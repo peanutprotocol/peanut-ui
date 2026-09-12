@@ -84,7 +84,10 @@ const SignTestTransaction = () => {
         if (redirectingRef.current) return
         redirectingRef.current = true
         setIsRedirecting(true)
-        handleRedirect()
+        // This screen is only reachable for an account created in this
+        // session, so it inherits no earlier session's page — only a deep link
+        // the person themselves asked for.
+        handleRedirect({ isNewAccount: true })
     }
 
     // ensure user is fetched when component mounts (important for new signups)

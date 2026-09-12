@@ -10,9 +10,12 @@ import { zeroDevFlowActions } from '@/hooks/useZeroDevFlow'
 import {
     removeFromCookie,
     syncLocalStorageToCookie,
+    beginIntentionalLogout,
     clearRedirectUrl,
+    endIntentionalLogout,
     updateUserPreferences,
 } from '@/utils/general.utils'
+import { clearSessionHeld } from '@/utils/session-presence'
 import { apiFetch } from '@/utils/api-fetch'
 import { useAppLocked } from '@/hooks/useAppLocked'
 import { currentAppLocale, currentDeviceContext, currentDeviceIdentity } from '@/i18n/app/locale-store'
@@ -323,6 +326,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             sessionStorage.removeItem('hasSeenIOSPWAPromptThisSession')
         } catch {}
 
+        // This tab is a logged-out tab again, so a deep link opened in it later
+        // is that person's own intent rather than a dead session's residue.
+        clearSessionHeld()
+
         // clear demo mode flag
         disableDemoMode()
 
@@ -351,6 +358,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (isLoggingOut) return
 
             setIsLoggingOut(true)
+            // Before anything empties the user cache: the auth gate reacts to
+            // that by storing the current path as the post-auth destination.
+            beginIntentionalLogout()
             try {
                 /*
                  * Revoke server-side FIRST (needs the still-valid JWT): POST
@@ -378,6 +388,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 // force full page refresh to /setup to clear all state
                 window.location.href = '/setup'
             } catch (error) {
+                // The hard nav never happened, so this document keeps serving
+                // the app — a later deep-link bounce must store its target again.
+                endIntentionalLogout()
                 captureException(error)
                 console.error('Error logging out user', error)
                 // TODO: remove debug info after native testing

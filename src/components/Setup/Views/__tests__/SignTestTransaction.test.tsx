@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
-import { saveToLocalStorage } from '@/utils/general.utils'
+import { getRedirectUrl, saveToLocalStorage, setRedirectUrl } from '@/utils/general.utils'
 import SignTestTransaction from '../SignTestTransaction'
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 
@@ -98,6 +98,37 @@ describe('SignTestTransaction — the account-ready screen', () => {
         fireEvent.click(cta)
 
         expect(mockRouterReplace).toHaveBeenCalledTimes(1)
+        expect(mockRouterReplace).toHaveBeenCalledWith('/receipt?id=abc')
+    })
+
+    /*
+     * This CTA is the only caller that declares the account new, and so the
+     * only place the cross-account guard is switched on. Without a classified
+     * record in the fixture the flag is unobserved — the argument could be
+     * deleted with every test here still green, and logout-from-/profile then
+     * signup would land on /profile again.
+     */
+    const completeSignupAndTapCta = async () => {
+        renderWithIntl(<SignTestTransaction />)
+        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+        await screen.findByText(/works right now/i)
+        fireEvent.click(screen.getByRole('button', { name: /go to my account/i }))
+    }
+
+    it('refuses a page the previous session was standing on', async () => {
+        setRedirectUrl('/profile', 'session-end')
+
+        await completeSignupAndTapCta()
+
+        expect(mockRouterReplace).toHaveBeenCalledWith('/home')
+        expect(getRedirectUrl()).toBeNull()
+    })
+
+    it('still takes a deep link the person asked for', async () => {
+        setRedirectUrl('/receipt?id=abc')
+
+        await completeSignupAndTapCta()
+
         expect(mockRouterReplace).toHaveBeenCalledWith('/receipt?id=abc')
     })
 })

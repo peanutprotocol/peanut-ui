@@ -10,10 +10,11 @@ import React from 'react'
 import { render, screen, act } from '@testing-library/react'
 
 const mockRouterReplace = jest.fn()
+let mockPathname = '/home'
 
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ replace: mockRouterReplace, push: jest.fn(), back: jest.fn(), prefetch: jest.fn() }),
-    usePathname: () => '/home',
+    usePathname: () => mockPathname,
 }))
 
 const mockUseAuth = jest.fn()
@@ -61,6 +62,14 @@ jest.mock('@/components/Invites/JoinWaitlistPage', () => ({ __esModule: true, de
 jest.mock('@/components/Migration/SunsetScreen', () => ({ __esModule: true, default: () => <div /> }))
 
 import Layout from '../layout'
+import {
+    beginIntentionalLogout,
+    clearRedirectUrl,
+    endIntentionalLogout,
+    getRedirectOrigin,
+    getRedirectUrl,
+} from '@/utils/general.utils'
+import { clearSessionHeld, hasHeldSession, markSessionHeld } from '@/utils/session-presence'
 
 const CACHED_USER = {
     user: { userId: 'u1', username: 'probe', hasAppAccess: true },
@@ -94,6 +103,7 @@ describe('(mobile-ui) layout — no user', () => {
     beforeEach(() => {
         jest.useFakeTimers()
         mockRouterReplace.mockClear()
+        mockPathname = '/home'
     })
 
     afterEach(() => {
@@ -139,6 +149,133 @@ describe('(mobile-ui) layout — no user', () => {
 
         expect(screen.getByTestId('backend-error-screen')).toBeInTheDocument()
         expect(jest.getTimerCount()).toBe(0)
+    })
+
+    /*
+     * The gate stores where the person was so login can return them there.
+     * That is right for a deep link and wrong for an explicit logout: logout
+     * empties the user cache before its hard nav to /setup, so this gate runs
+     * with the profile URL still in the bar, and the stored path was then
+     * consumed by the NEXT account created on this device — a fresh signup
+     * landed on the previous session's profile instead of /home.
+     */
+    describe('what the bounce to /setup leaves behind', () => {
+        beforeEach(() => {
+            endIntentionalLogout()
+            clearRedirectUrl()
+            clearSessionHeld()
+        })
+        afterEach(() => {
+            endIntentionalLogout()
+            clearRedirectUrl()
+            clearSessionHeld()
+        })
+
+        it('logged out on a protected deep link: keeps the target for after login', () => {
+            window.history.replaceState({}, '', '/pay-request/abc')
+            mockUseAuth.mockReturnValue(authState())
+
+            renderLayout()
+
+            expect(mockRouterReplace).toHaveBeenCalledWith('/setup')
+            expect(getRedirectUrl()).toBe('/pay-request/abc')
+            // never held a session: this is the visitor's own intent
+            expect(getRedirectOrigin()).toBe('deep-link')
+        })
+
+        /*
+         * The other tab in the two-tab logout: this document held a session
+         * that then went away (logout elsewhere, revocation, expiry), so its
+         * latch never ran. Marking the destination for what it is keeps a
+         * fresh signup from inheriting it — see the consumer spec.
+         */
+        it('a session collapsing under a standing app is marked session-end', () => {
+            window.history.replaceState({}, '', '/card')
+            mockUseAuth.mockReturnValue(authState({ user: CACHED_USER }))
+            const { rerender } = renderLayout()
+            expect(getRedirectUrl()).toBeNull()
+
+            mockUseAuth.mockReturnValue(authState())
+            act(() => rerenderLayout(rerender))
+
+            expect(mockRouterReplace).toHaveBeenCalledWith('/setup')
+            expect(getRedirectUrl()).toBe('/card')
+            expect(getRedirectOrigin()).toBe('session-end')
+        })
+
+        /*
+         * The marker is per TAB, not per document: an authenticated tab that
+         * reloads /card after its token was revoked never observes a user in
+         * the new document, and reading that as a first-time visitor would
+         * hand the previous session's page to the next account.
+         */
+        it('a tab that reloads after its session was revoked still knows it held one', () => {
+            markSessionHeld() // the document this tab reloaded away from
+            window.history.replaceState({}, '', '/card')
+            mockUseAuth.mockReturnValue(authState())
+
+            renderLayout()
+
+            expect(getRedirectUrl()).toBe('/card')
+            expect(getRedirectOrigin()).toBe('session-end')
+        })
+
+        it('consumes passive session residue so a later protected link is intent again', () => {
+            markSessionHeld()
+            window.history.replaceState({}, '', '/card')
+            mockUseAuth.mockReturnValue(authState())
+
+            const firstBounce = renderLayout()
+
+            expect(mockRouterReplace).toHaveBeenCalledWith('/setup')
+            expect(getRedirectOrigin()).toBe('session-end')
+            expect(hasHeldSession()).toBe(false)
+
+            firstBounce.unmount()
+            clearRedirectUrl()
+            mockRouterReplace.mockClear()
+            window.history.replaceState({}, '', '/card')
+
+            const laterDeepLink = renderLayout()
+
+            expect(mockRouterReplace).toHaveBeenCalledWith('/setup')
+            expect(getRedirectOrigin()).toBe('deep-link')
+            laterDeepLink.unmount()
+        })
+
+        it('retires held-session residue when settled unauthenticated state is public', () => {
+            markSessionHeld()
+            mockPathname = '/support'
+            mockUseAuth.mockReturnValue(authState())
+
+            renderLayout()
+
+            expect(mockRouterReplace).not.toHaveBeenCalled()
+            expect(hasHeldSession()).toBe(false)
+            expect(getRedirectUrl()).toBeNull()
+        })
+
+        it('but a logged-out tab opening a deep link later is intent again', () => {
+            markSessionHeld()
+            clearSessionHeld() // what an explicit logout does at its boundary
+            window.history.replaceState({}, '', '/pay-request/abc')
+            mockUseAuth.mockReturnValue(authState())
+
+            renderLayout()
+
+            expect(getRedirectOrigin()).toBe('deep-link')
+        })
+
+        it('logging out from /profile: reaches /setup with no destination stored', () => {
+            window.history.replaceState({}, '', '/profile')
+            beginIntentionalLogout()
+            mockUseAuth.mockReturnValue(authState())
+
+            renderLayout()
+
+            expect(mockRouterReplace).toHaveBeenCalledWith('/setup')
+            expect(getRedirectUrl()).toBeNull()
+        })
     })
 
     it('refetch blip over cached data: keeps the app, no error screen, no redirect', () => {

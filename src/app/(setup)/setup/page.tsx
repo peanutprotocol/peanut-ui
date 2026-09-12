@@ -69,17 +69,27 @@ function SetupPageContent() {
     const legacyStepParam = searchParams.get('step')
     const [sessionChecked, setSessionChecked] = useState(false)
     const [existingSessionUsername, setExistingSessionUsername] = useState<string | null>(null)
+    /*
+     * A completed session is on its way to /home (see the session effect
+     * below), but the soft nav takes a beat and this page keeps rendering and
+     * resolving its entry step meanwhile. Nothing here is a fault the user
+     * should see: an authenticated pop back into /setup — the signup flow
+     * leaves a history entry per step — showed the recovery screen instead of
+     * the bounce it was already performing.
+     */
+    const [isLeavingForHome, setIsLeavingForHome] = useState(false)
 
-    const recoveryReason =
-        initializationError ??
-        (!isLoading &&
-        sessionChecked &&
-        !step &&
-        !existingSessionUsername &&
-        !showDeviceNotSupportedModal &&
-        !showBrowserNotSupportedModal
-            ? 'missing_step'
-            : null)
+    const recoveryReason = isLeavingForHome
+        ? null
+        : (initializationError ??
+          (!isLoading &&
+          sessionChecked &&
+          !step &&
+          !existingSessionUsername &&
+          !showDeviceNotSupportedModal &&
+          !showBrowserNotSupportedModal
+              ? 'missing_step'
+              : null))
 
     useEffect(() => {
         if (recoveryReason) {
@@ -91,13 +101,13 @@ function SetupPageContent() {
     }, [recoveryReason])
 
     useEffect(() => {
-        if ((!isLoading && sessionChecked) || initializationError) return
+        if ((!isLoading && sessionChecked) || initializationError || isLeavingForHome) return
         const timeout = setTimeout(() => {
             initializationExpired.current = true
             setInitializationError('initialization_timeout')
         }, 15000)
         return () => clearTimeout(timeout)
-    }, [isLoading, sessionChecked, initializationError])
+    }, [isLoading, sessionChecked, initializationError, isLeavingForHome])
 
     // only count steps that actually render: not while the entry step is
     // being determined, and not behind the existing-session interstitial
@@ -150,6 +160,7 @@ function SetupPageContent() {
              */
             if (user.user.hasAppAccess) {
                 posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED, { auto: true })
+                setIsLeavingForHome(true)
                 router.replace('/home')
                 return
             }
@@ -371,7 +382,7 @@ function SetupPageContent() {
         )
     }
 
-    if (isLoading || !sessionChecked)
+    if (isLoading || !sessionChecked || isLeavingForHome)
         return (
             <div className="flex h-dvh w-full flex-col items-center justify-center">
                 <Loading variant="mascot" />

@@ -119,8 +119,8 @@ export const validateEnsName = (ensName: string = ''): boolean => {
 
 // Default matches JSON.parse's own return type so legacy untyped call sites keep compiling.
 
-export const saveToLocalStorage = (key: string, data: unknown, expirySeconds?: number) => {
-    if (typeof localStorage === 'undefined') return
+export const saveToLocalStorage = (key: string, data: unknown, expirySeconds?: number): boolean => {
+    if (typeof localStorage === 'undefined') return false
     try {
         // Convert the data to a string before storing it in localStorage
         const serializedData = jsonStringify(data)
@@ -133,9 +133,11 @@ export const saveToLocalStorage = (key: string, data: unknown, expirySeconds?: n
         // key is passed as an argument (not interpolated into the format string)
         // so a user-controlled key can't act as a console format string (CodeQL).
         console.log('Saved to localStorage:', key, data)
+        return true
     } catch (error) {
         Sentry.captureException(error)
         console.error('Error saving to localStorage:', error)
+        return false
     }
 }
 
@@ -730,19 +732,434 @@ export function isStableCoin(tokenSymbol: string): boolean {
     return STABLE_COINS.includes(tokenSymbol.toUpperCase())
 }
 
-export const saveRedirectUrl = () => {
+/*
+ * An explicit logout must not leave a post-auth destination behind, and
+ * clearing the stored redirect is not enough on its own: emptying the user
+ * cache re-runs the (mobile-ui) auth gate, which saves the CURRENT path before
+ * bouncing to /setup — and the logout button lives on /profile, so the next
+ * account created on this device was redirected onto the previous session's
+ * page. The latch outlives the logout call (isLoggingOut flips back before the
+ * hard nav completes) and is dropped only if the logout itself failed.
+ */
+let intentionalLogout = false
+
+export const beginIntentionalLogout = () => {
+    intentionalLogout = true
+}
+
+export const endIntentionalLogout = () => {
+    intentionalLogout = false
+}
+
+/**
+ * Why a post-auth destination was stored. `deep-link` is an intent of the
+ * person who will authenticate — they asked for that page and could not have
+ * it yet. `session-end` is merely where some session happened to be standing
+ * when it collapsed (logout, revocation, token expiry), which is nobody's
+ * intent and belongs to an account that is not necessarily the next one.
+ */
+export type RedirectOrigin = 'deep-link' | 'session-end'
+
+const REDIRECT_KEY = 'redirect'
+const REDIRECT_V2_KEY = 'redirect-v2'
+/** Generation-key format used by the immediately preceding deployed build. */
+const REDIRECT_RECORD_PREFIX = 'redirect-v2-record:'
+/** The generation-key format briefly used by the preceding unreleased build. */
+const LEGACY_GENERATION_RECORD_PREFIX = 'redirect-record:'
+const REDIRECT_V2_CONSUMED_KEY = 'redirect-v2-consumed'
+/** Generation-scoped tombstones prevent stale consumers from overwriting each other. */
+const REDIRECT_V2_CONSUMED_PREFIX = 'redirect-v2-consumed:'
+const REDIRECT_V2_CONSUMED_FALLBACK_PREFIX = 'redirect-v2-consumed-fallback:'
+/** Fresh reservations are in-flight publications; only aged ones are abandoned. */
+const REDIRECT_V2_CONSUMED_RESERVATION_PREFIX = 'r'
+const REDIRECT_V2_CONSUMED_RESERVATION_LENGTH = 11
+const REDIRECT_V2_CONSUMED_RESERVATION_TTL_MS = 60_000
+/** Publication state is separate so it can never overwrite a consumed slot. */
+const REDIRECT_V2_PUBLISHED_PREFIX = 'redirect-v2-published:'
+const REDIRECT_V2_PUBLISHED_VALUE = '1'
+/** Identifies the v2 generation and value that last wrote the v1-compatible mirror. */
+const REDIRECT_V2_MIRROR_OWNER_KEY = 'redirect-v2-mirror-owner'
+/** Keeps a late v2 mirror identifiable until its owner write has completed. */
+const REDIRECT_V2_MIRROR_PENDING_PREFIX = 'redirect-v2-mirror-pending:'
+const REDIRECT_V2_MIRROR_PENDING_TTL_MS = 60_000
+/**
+ * Legacy bare-path records cannot be deleted conditionally without the same
+ * check/remove race. Remembering their consumed value makes them inert while
+ * allowing every new generation (stored through setRedirectUrl) to replace
+ * the pointer safely.
+ */
+const LEGACY_REDIRECT_CONSUMED_KEY = 'redirect-consumed-legacy'
+
+/**
+ * `redirect-v2` is the authoritative, self-contained generation payload,
+ * while `redirect` remains a v1-readable destination handoff. Publishing the
+ * v2 payload is one localStorage write; the v1 mirror is written only after
+ * that succeeds. Once a valid v2 payload exists, it has explicit precedence
+ * over the legacy mirror, so a failed mirror write cannot make an old value
+ * win. Each generation reserves its own primary and fallback consumption
+ * slots before publication, and consumed slots for older generations are
+ * reclaimed after the pointer moves so the journal stays bounded.
+ *
+ * A record stored by a version that had no origin (a plain string) reads back
+ * as unclassified rather than as intent: see consumePostAuthRedirect for what
+ * a brand-new account does with one.
+ */
+export type StoredRedirect = {
+    destination: string
+    origin: RedirectOrigin | null
+    generationId: string | null
+    generationKey?: string
+    legacyIdentity?: string
+    supersededGenerationId?: string
+}
+
+const parseStoredRedirect = (
+    stored: unknown,
+    generationId: string | null,
+    generationKey?: string,
+    legacyIdentity?: string
+): StoredRedirect | null => {
+    if (typeof stored === 'string') {
+        return stored.length > 0
+            ? {
+                  destination: stored,
+                  origin: null,
+                  generationId,
+                  generationKey,
+                  legacyIdentity,
+              }
+            : null
+    }
+    if (stored && typeof stored === 'object') {
+        const { destination, origin } = stored as Partial<StoredRedirect>
+        if (typeof destination !== 'string' || destination.length === 0) return null
+        return {
+            destination,
+            origin: origin === 'session-end' || origin === 'deep-link' ? origin : null,
+            generationId,
+            generationKey,
+            legacyIdentity,
+        }
+    }
+    return null
+}
+
+const isRedirectGenerationId = (value: unknown): value is string =>
+    typeof value === 'string' && /^[A-Za-z0-9_-]+$/.test(value)
+
+const createRedirectGenerationId = (): string => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID()
+    }
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+}
+
+type RedirectPointer = {
+    version: 2
+    generationId: string
+    destination: string
+    origin?: RedirectOrigin
+    /** The legacy mirror observed before this generation was published. */
+    legacyMirror?: string | null
+}
+
+type RedirectMirrorPending = {
+    destination: string
+    createdAt: number
+}
+
+type RedirectMirrorOwner = {
+    generationId: string
+    destination: string
+}
+
+const isRedirectPointer = (stored: unknown): stored is RedirectPointer =>
+    !!stored &&
+    typeof stored === 'object' &&
+    (stored as Partial<RedirectPointer>).version === 2 &&
+    isRedirectGenerationId((stored as Partial<RedirectPointer>).generationId) &&
+    typeof (stored as Partial<RedirectPointer>).destination === 'string'
+
+const isRedirectMirrorPendingForDestination = (stored: unknown, destination: string): boolean =>
+    !!stored && typeof stored === 'object' && (stored as Partial<RedirectMirrorPending>).destination === destination
+
+const isRedirectMirrorOwnerForDestination = (stored: unknown, destination: string): stored is RedirectMirrorOwner =>
+    !!stored &&
+    typeof stored === 'object' &&
+    isRedirectGenerationId((stored as Partial<RedirectMirrorOwner>).generationId) &&
+    (stored as Partial<RedirectMirrorOwner>).destination === destination
+
+const isFreshRedirectMirrorPending = (generationId: string): boolean => {
+    const pending = getFromLocalStorage(`${REDIRECT_V2_MIRROR_PENDING_PREFIX}${generationId}`)
+    if (!pending || typeof pending !== 'object') return false
+    const createdAt = (pending as Partial<RedirectMirrorPending>).createdAt
+    const age = Date.now() - (typeof createdAt === 'number' ? createdAt : Date.now())
+    return typeof createdAt === 'number' && age >= 0 && age < REDIRECT_V2_MIRROR_PENDING_TTL_MS
+}
+
+const getLegacyIdentity = (stored: unknown): string | undefined =>
+    stored === undefined ? undefined : jsonStringify(stored)
+
+const parseLegacyRedirect = (stored: unknown): StoredRedirect | null => {
+    if (stored && typeof stored === 'object') {
+        const { generationId } = stored as Partial<StoredRedirect>
+        if (isRedirectGenerationId(generationId)) {
+            for (const prefix of [REDIRECT_RECORD_PREFIX, LEGACY_GENERATION_RECORD_PREFIX]) {
+                const generationKey = `${prefix}${generationId}`
+                const parsed = parseStoredRedirect(getFromLocalStorage(generationKey), generationId, generationKey)
+                if (parsed) return parsed
+            }
+        }
+    }
+
+    const legacyIdentity = getLegacyIdentity(stored)
+    if (legacyIdentity && getFromLocalStorage(LEGACY_REDIRECT_CONSUMED_KEY) === legacyIdentity) return null
+    return parseStoredRedirect(stored, null, undefined, legacyIdentity)
+}
+
+const getStoredRedirectForSnapshot = (): StoredRedirect | null => {
+    let pointer = getFromLocalStorage(REDIRECT_V2_KEY)
+    while (isRedirectPointer(pointer)) {
+        const { generationId, destination } = pointer as RedirectPointer
+        let generated: StoredRedirect | null = null
+
+        // Read records from the two transitional generation-key formats so a
+        // state written by the preceding build keeps its provenance. Current
+        // v2 payloads are self-contained and do not need a secondary read.
+        const pointerOrigin = (pointer as Partial<RedirectPointer>).origin
+        if (pointerOrigin !== 'session-end' && pointerOrigin !== 'deep-link') {
+            for (const prefix of [REDIRECT_RECORD_PREFIX, LEGACY_GENERATION_RECORD_PREFIX]) {
+                const generationKey = `${prefix}${generationId}`
+                generated = parseStoredRedirect(getFromLocalStorage(generationKey), generationId, generationKey)
+                if (generated) break
+            }
+        }
+        generated ??= parseStoredRedirect(pointer, generationId)
+
+        const legacyMirror = (pointer as Partial<RedirectPointer>).legacyMirror
+        const hasLegacyMirror = Object.prototype.hasOwnProperty.call(pointer, 'legacyMirror')
+        const legacyValue = hasLegacyMirror ? getFromLocalStorage(REDIRECT_KEY) : null
+        if (
+            hasLegacyMirror &&
+            typeof legacyValue === 'string' &&
+            legacyValue.length > 0 &&
+            legacyValue !== destination &&
+            legacyValue !== legacyMirror
+        ) {
+            const refreshedPointer = getFromLocalStorage(REDIRECT_V2_KEY)
+            if (!isRedirectPointer(refreshedPointer)) {
+                return parseLegacyRedirect(getFromLocalStorage(REDIRECT_KEY))
+            }
+            if (refreshedPointer.generationId !== generationId) {
+                pointer = refreshedPointer
+                continue
+            }
+            const mirrorOwner = getFromLocalStorage(REDIRECT_V2_MIRROR_OWNER_KEY)
+            const mirrorOwnedByAnotherV2Generation =
+                isRedirectMirrorOwnerForDestination(mirrorOwner, legacyValue) &&
+                mirrorOwner.generationId !== generationId
+            let hasPendingV2Mirror = false
+            for (let index = 0; index < localStorage.length; index += 1) {
+                const key = localStorage.key(index)
+                if (key?.startsWith(REDIRECT_V2_MIRROR_PENDING_PREFIX)) {
+                    hasPendingV2Mirror = isRedirectMirrorPendingForDestination(getFromLocalStorage(key), legacyValue)
+                    if (hasPendingV2Mirror) break
+                }
+            }
+            if (!hasPendingV2Mirror && !mirrorOwnedByAnotherV2Generation) {
+                // A pre-deploy v1 tab can still publish a new handoff. The
+                // baseline distinguishes that from a stale mirror left behind by
+                // a failed v2 -> v1 mirror write.
+                const legacy = parseLegacyRedirect(legacyValue)
+                if (legacy) return { ...legacy, supersededGenerationId: generationId }
+                // This legacy handoff was already consumed. It superseded the
+                // v2 generation, so do not resurrect that older destination.
+                return null
+            }
+            // A current v2 publisher from another generation wrote this late.
+            // Ignore its mirror mismatch and continue to the consumption check.
+        }
+
+        const consumed = getFromLocalStorage(REDIRECT_V2_CONSUMED_KEY)
+        const generationConsumed = getFromLocalStorage(`${REDIRECT_V2_CONSUMED_PREFIX}${generationId}`)
+        const fallbackGenerationConsumed = getFromLocalStorage(`${REDIRECT_V2_CONSUMED_FALLBACK_PREFIX}${generationId}`)
+        if (
+            generationConsumed === '1' ||
+            fallbackGenerationConsumed === '1' ||
+            (isRedirectGenerationId(consumed) && consumed === generationId) ||
+            (consumed &&
+                typeof consumed === 'object' &&
+                (consumed as Partial<RedirectPointer>).generationId === generationId)
+        ) {
+            return null
+        }
+        return generated
+    }
+
+    return parseLegacyRedirect(getFromLocalStorage(REDIRECT_KEY))
+}
+
+export const getStoredRedirect = (): StoredRedirect | null => getStoredRedirectForSnapshot()
+
+const reserveRedirectConsumptionCapacity = (generationId: string): boolean => {
+    if (typeof localStorage === 'undefined') return false
+    const primaryKey = `${REDIRECT_V2_CONSUMED_PREFIX}${generationId}`
+    const fallbackKey = `${REDIRECT_V2_CONSUMED_FALLBACK_PREFIX}${generationId}`
+    const reservationValue = createRedirectConsumptionReservation()
+    const primaryReserved = getFromLocalStorage(primaryKey) !== null || saveToLocalStorage(primaryKey, reservationValue)
+    const fallbackReserved =
+        getFromLocalStorage(fallbackKey) !== null || saveToLocalStorage(fallbackKey, reservationValue)
+    return primaryReserved && fallbackReserved
+}
+
+const markRedirectConsumed = (generationId: string): boolean => {
+    const primaryKey = `${REDIRECT_V2_CONSUMED_PREFIX}${generationId}`
+    const fallbackKey = `${REDIRECT_V2_CONSUMED_FALLBACK_PREFIX}${generationId}`
+    if (saveToLocalStorage(primaryKey, '1')) return true
+    return saveToLocalStorage(fallbackKey, '1')
+}
+
+const createRedirectConsumptionReservation = (): string =>
+    `${REDIRECT_V2_CONSUMED_RESERVATION_PREFIX}${Date.now()
+        .toString(36)
+        .padStart(REDIRECT_V2_CONSUMED_RESERVATION_LENGTH - REDIRECT_V2_CONSUMED_RESERVATION_PREFIX.length, '0')}`
+
+const publishRedirectConsumption = (generationId: string) =>
+    saveToLocalStorage(`${REDIRECT_V2_PUBLISHED_PREFIX}${generationId}`, REDIRECT_V2_PUBLISHED_VALUE)
+
+const publishLegacyRedirectMirror = (generationId: string, destination: string) => {
+    const pointer = getFromLocalStorage(REDIRECT_V2_KEY)
+    if (!isRedirectPointer(pointer) || pointer.generationId !== generationId) return
+    const pendingKey = `${REDIRECT_V2_MIRROR_PENDING_PREFIX}${generationId}`
+    if (!saveToLocalStorage(pendingKey, { destination, createdAt: Date.now() })) return
+    saveToLocalStorage(REDIRECT_KEY, destination)
+    if (saveToLocalStorage(REDIRECT_V2_MIRROR_OWNER_KEY, { generationId, destination }))
+        localStorage.removeItem(pendingKey)
+}
+
+const discardRedirectConsumptionReservations = (generationId: string) => {
+    const pointer = getFromLocalStorage(REDIRECT_V2_KEY)
+    if (isRedirectPointer(pointer) && pointer.generationId === generationId) return
+    localStorage.removeItem(`${REDIRECT_V2_CONSUMED_PREFIX}${generationId}`)
+    localStorage.removeItem(`${REDIRECT_V2_CONSUMED_FALLBACK_PREFIX}${generationId}`)
+    localStorage.removeItem(`${REDIRECT_V2_PUBLISHED_PREFIX}${generationId}`)
+    localStorage.removeItem(`${REDIRECT_V2_MIRROR_PENDING_PREFIX}${generationId}`)
+}
+
+const isReclaimableRedirectConsumptionSlot = (generationId: string, value: unknown): boolean => {
+    if (value === '0' || value === '1') return true
+    if (getFromLocalStorage(`${REDIRECT_V2_PUBLISHED_PREFIX}${generationId}`) === REDIRECT_V2_PUBLISHED_VALUE)
+        return true
+    if (typeof value !== 'string' || !value.startsWith(REDIRECT_V2_CONSUMED_RESERVATION_PREFIX)) return false
+
+    const reservedAt = Number.parseInt(value.slice(REDIRECT_V2_CONSUMED_RESERVATION_PREFIX.length), 36)
+    return Number.isFinite(reservedAt) && Date.now() - reservedAt >= REDIRECT_V2_CONSUMED_RESERVATION_TTL_MS
+}
+
+const reclaimRedirectConsumptionSlots = () => {
+    if (typeof localStorage === 'undefined') return
+
+    const pointer = getFromLocalStorage(REDIRECT_V2_KEY)
+    const initiallyReachableGenerationId = isRedirectPointer(pointer) ? pointer.generationId : null
+    const reclaimableGenerationIds = new Set<string>()
+
+    for (let index = 0; index < localStorage.length; index += 1) {
+        const key = localStorage.key(index)
+        if (!key) continue
+
+        let generationId: string | null = null
+        if (key.startsWith(REDIRECT_V2_CONSUMED_PREFIX)) {
+            generationId = key.slice(REDIRECT_V2_CONSUMED_PREFIX.length)
+        } else if (key.startsWith(REDIRECT_V2_CONSUMED_FALLBACK_PREFIX)) {
+            generationId = key.slice(REDIRECT_V2_CONSUMED_FALLBACK_PREFIX.length)
+        }
+        if (!generationId || !isRedirectGenerationId(generationId)) continue
+
+        const value = getFromLocalStorage(key)
+        if (isReclaimableRedirectConsumptionSlot(generationId, value)) reclaimableGenerationIds.add(generationId)
+    }
+
+    const refreshedPointer = getFromLocalStorage(REDIRECT_V2_KEY)
+    const refreshedReachableGenerationId = isRedirectPointer(refreshedPointer) ? refreshedPointer.generationId : null
+    if (refreshedReachableGenerationId !== initiallyReachableGenerationId) return
+
+    for (const generationId of reclaimableGenerationIds) {
+        if (generationId === refreshedReachableGenerationId) continue
+        const pendingKey = `${REDIRECT_V2_MIRROR_PENDING_PREFIX}${generationId}`
+        const observedPending = localStorage.getItem(pendingKey)
+        if (isFreshRedirectMirrorPending(generationId)) continue
+        localStorage.removeItem(`${REDIRECT_V2_CONSUMED_PREFIX}${generationId}`)
+        localStorage.removeItem(`${REDIRECT_V2_CONSUMED_FALLBACK_PREFIX}${generationId}`)
+        localStorage.removeItem(`${REDIRECT_V2_PUBLISHED_PREFIX}${generationId}`)
+        if (observedPending !== null && localStorage.getItem(pendingKey) === observedPending) {
+            localStorage.removeItem(pendingKey)
+        }
+    }
+}
+
+/** The ONLY way to store a post-auth destination. */
+export const setRedirectUrl = (destination: string, origin: RedirectOrigin = 'deep-link') => {
+    const generationId = createRedirectGenerationId()
+    if (!reserveRedirectConsumptionCapacity(generationId)) return
+    const previousLegacy = getFromLocalStorage(REDIRECT_KEY)
+    const legacyMirror = typeof previousLegacy === 'string' ? previousLegacy : null
+    const published = saveToLocalStorage(REDIRECT_V2_KEY, {
+        version: 2,
+        generationId,
+        destination,
+        origin,
+        legacyMirror,
+    })
+    // Keep the v1 handoff readable for documents that predate this change, but
+    // never publish a mirror that has no authoritative v2 payload behind it.
+    if (published) {
+        publishRedirectConsumption(generationId)
+        publishLegacyRedirectMirror(generationId, destination)
+    } else {
+        discardRedirectConsumptionReservations(generationId)
+    }
+    reclaimRedirectConsumptionSlots()
+}
+
+export const saveRedirectUrl = (origin: RedirectOrigin = 'deep-link') => {
+    if (intentionalLogout) return
     const currentUrl = new URL(window.location.href)
-    const relativeUrl = currentUrl.href.replace(currentUrl.origin, '')
-    saveToLocalStorage('redirect', relativeUrl)
+    setRedirectUrl(currentUrl.href.replace(currentUrl.origin, ''), origin)
 }
 
-export const getRedirectUrl = () => {
-    return getFromLocalStorage('redirect')
+export const getRedirectUrl = (): string | null => {
+    return getStoredRedirect()?.destination ?? null
 }
 
-export const clearRedirectUrl = () => {
+/** `null` for a record written before the origin existed — unclassified, not intent. */
+export const getRedirectOrigin = (): RedirectOrigin | null => {
+    return getStoredRedirect()?.origin ?? null
+}
+
+/**
+ * Clear the stored redirect, optionally only if it is still the snapshot a
+ * caller consumed. Current v2 generations are marked consumed instead of
+ * removing the shared pointer, so a newer same-origin generation survives.
+ * Records from the two transitional generation-key formats are still removed
+ * by their immutable key.
+ */
+export const clearRedirectUrl = (expected?: StoredRedirect | null) => {
     if (typeof localStorage !== 'undefined') {
-        localStorage.removeItem('redirect')
+        const current = expected === undefined ? getStoredRedirect() : expected
+        if (!current) return
+
+        if (current.generationKey) {
+            localStorage.removeItem(current.generationKey)
+        }
+        const generationsToConsume = [current.generationId, current.supersededGenerationId].filter(
+            (generationId): generationId is string => !!generationId
+        )
+        for (const generationId of new Set(generationsToConsume)) markRedirectConsumed(generationId)
+        if (generationsToConsume.length > 0) reclaimRedirectConsumptionSlots()
+
+        if (current.legacyIdentity) {
+            saveToLocalStorage(LEGACY_REDIRECT_CONSUMED_KEY, current.legacyIdentity)
+        }
     }
 }
 

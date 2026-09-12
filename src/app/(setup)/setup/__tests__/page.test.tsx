@@ -15,7 +15,13 @@ const mockFlow = {
     setScreenId: jest.fn(),
 }
 const mockStore = { steps: [] as ISetupStep[], inviteCode: undefined }
-const mockAuth = { user: undefined, isFetchingUser: false, logoutUser: jest.fn(), isLoggingOut: false }
+type MockUser = { user: { username: string; hasAppAccess: boolean } }
+const mockAuth = {
+    user: undefined as MockUser | undefined,
+    isFetchingUser: false,
+    logoutUser: jest.fn(),
+    isLoggingOut: false,
+}
 let mockNative = true
 
 jest.mock('@/features/setup/SetupFlowContext', () => ({
@@ -79,6 +85,7 @@ beforeEach(() => {
     mockStore.steps = [landing]
     mockFlow.step = landing
     mockAuth.isFetchingUser = false
+    mockAuth.user = undefined
     mockNative = true
 })
 afterEach(() => {
@@ -177,6 +184,24 @@ it('bounds waiting for session hydration', async () => {
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
 })
 
+it('suppresses timeout recovery when a completed session starts leaving for home', async () => {
+    mockAuth.isFetchingUser = true
+    const view = renderWithIntl(<SetupPage />)
+    await advance(100)
+    await advance(15000)
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+
+    mockAuth.isFetchingUser = false
+    mockAuth.user = { user: { username: 'peanutter', hasAppAccess: true } }
+    await act(async () => {
+        view.rerender(<SetupPage />)
+    })
+
+    expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+    expect(screen.getByRole('status')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+})
+
 it.each([true, false])('preserves the resolved entry flow (native=%s)', async (native) => {
     mockNative = native
     Object.defineProperty(window, 'PublicKeyCredential', {
@@ -194,4 +219,26 @@ it('does not initialize after unmount', async () => {
     view.unmount()
     await advance(100)
     expect(mockFlow.setScreenId).not.toHaveBeenCalled()
+})
+
+/*
+ * Back after a completed signup lands here: the flow leaves a history entry
+ * per step on web, and the post-signup redirect only replaces the last one.
+ * The session effect already bounces such a visit to /home — while that soft
+ * nav is in flight the page must keep waiting, not report a fault it is
+ * already recovering from (PEANUT-UI-T3A, reason=missing_step).
+ */
+it('bounces a completed session home without showing the recovery screen', async () => {
+    mockAuth.user = { user: { username: 'peanutter', hasAppAccess: true } }
+    mockFlow.step = undefined
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+    expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+    expect(screen.getByRole('status')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+    expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    // the initialization bound must not turn the pending bounce into a fault either
+    await advance(15000)
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+    expect(Sentry.captureMessage).not.toHaveBeenCalled()
 })
