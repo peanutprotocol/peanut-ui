@@ -14,7 +14,7 @@ import { useRedirectQrStatus } from '@/hooks/useRedirectQrStatus'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { copyTextToClipboard } from '@/utils/clipboard.utils'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import { BASE_URL } from '@/constants/general.consts'
+import { shareableUrl } from '@/utils/url.utils'
 
 export default function RedirectQrSuccessPage() {
     const t = useTranslations('qrPay')
@@ -27,7 +27,7 @@ export default function RedirectQrSuccessPage() {
 
     const { data: redirectQrData, isLoading } = useRedirectQrStatus(code)
 
-    const qrUrl = `${BASE_URL}/qr/${code}`
+    const qrUrl = shareableUrl(`/qr/${code}`)
 
     useEffect(() => {
         const timer = setTimeout(() => {
