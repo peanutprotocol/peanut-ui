@@ -37,6 +37,7 @@ import {
     queuePendingBadgeCampaigns,
 } from '@/components/Invites/badge-campaign-context'
 import { claimAndSettlePendingBadgeCampaigns } from '@/services/badge-campaigns'
+import { getDeepLinkGeneration } from '@/utils/deep-link-state'
 
 function SetupPageContent() {
     const t = useTranslations('setup')
@@ -184,13 +185,15 @@ function SetupPageContent() {
             if (user.user.hasAppAccess) {
                 if (isCapacitor() && pendingBadgeCampaigns.length > 0 && !hasStartedNativeBadgeClaimingRef.current) {
                     hasStartedNativeBadgeClaimingRef.current = true
+                    const nativeClaimDeepLinkGeneration = getDeepLinkGeneration()
+                    const isCurrentNativeClaim = () =>
+                        isSetupMountedRef.current &&
+                        getDeepLinkGeneration() === nativeClaimDeepLinkGeneration &&
+                        currentBadgeCampaignsKeyRef.current === urlBadgeCampaigns.join('\u0000')
                     setIsSettlingNativeBadgeCampaigns(true)
                     void claimAndSettlePendingBadgeCampaigns(pendingBadgeCampaigns)
                         .then(async (batch) => {
-                            const isCurrentSetup =
-                                isSetupMountedRef.current &&
-                                currentBadgeCampaignsKeyRef.current === urlBadgeCampaigns.join('\u0000')
-                            if (!isCurrentSetup) return
+                            if (!isCurrentNativeClaim()) return
 
                             const hasConfirmedClaim = batch.claims.some(
                                 ({ outcome }) => outcome === 'awarded' || outcome === 'already_owned'
@@ -198,12 +201,7 @@ function SetupPageContent() {
                             if (hasConfirmedClaim) {
                                 try {
                                     await fetchUser()
-                                    if (
-                                        !isSetupMountedRef.current ||
-                                        currentBadgeCampaignsKeyRef.current !== urlBadgeCampaigns.join('\u0000')
-                                    ) {
-                                        return
-                                    }
+                                    if (!isCurrentNativeClaim()) return
                                 } catch (error) {
                                     Sentry.captureException(error, {
                                         tags: { error_type: 'native_campaign_profile_refresh_failed' },
@@ -212,21 +210,11 @@ function SetupPageContent() {
                             }
                         })
                         .catch((error) => {
-                            if (
-                                !isSetupMountedRef.current ||
-                                currentBadgeCampaignsKeyRef.current !== urlBadgeCampaigns.join('\u0000')
-                            ) {
-                                return
-                            }
+                            if (!isCurrentNativeClaim()) return
                             Sentry.captureException(error, { tags: { error_type: 'native_campaign_claim_failed' } })
                         })
                         .finally(() => {
-                            if (
-                                !isSetupMountedRef.current ||
-                                currentBadgeCampaignsKeyRef.current !== urlBadgeCampaigns.join('\u0000')
-                            ) {
-                                return
-                            }
+                            if (!isCurrentNativeClaim()) return
                             setIsSettlingNativeBadgeCampaigns(false)
                             router.replace('/home')
                         })

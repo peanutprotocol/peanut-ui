@@ -7,16 +7,24 @@
  */
 
 let deepLinkNavigated = false
+let deepLinkGeneration = 0
 
-export function markDeepLinkNavigated(): void {
+export function markDeepLinkNavigated(): number {
     deepLinkNavigated = true
+    deepLinkGeneration += 1
+    return deepLinkGeneration
 }
 
 export function hasDeepLinkNavigated(): boolean {
     return deepLinkNavigated
 }
 
+export function getDeepLinkGeneration(): number {
+    return deepLinkGeneration
+}
+
 // Module state outlives a jest test; production code must never call this.
 export function resetDeepLinkStateForTests(): void {
     deepLinkNavigated = false
+    deepLinkGeneration = 0
 }

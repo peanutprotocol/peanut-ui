@@ -4,6 +4,7 @@ import type { ISetupStep } from '@/components/Setup/Setup.types'
 import SetupPage from '../page'
 import * as Sentry from '@sentry/nextjs'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
+import { markDeepLinkNavigated, resetDeepLinkStateForTests } from '@/utils/deep-link-state'
 
 const mockSupport = jest.fn()
 const mockResolve = jest.fn()
@@ -114,6 +115,7 @@ beforeEach(() => {
         pending: [],
         transport: 'canonical',
     })
+    resetDeepLinkStateForTests()
     mockNative = true
     mockSearchParams = new URLSearchParams()
 })
@@ -255,6 +257,33 @@ it('does not redirect home when setup unmounts before the native claim settles',
     const view = renderWithIntl(<SetupPage />)
     await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledWith(['bug_whisperer']))
     view.unmount()
+
+    await act(async () => {
+        resolveClaim({
+            claims: [{ badgeCampaign: 'bug_whisperer', outcome: 'awarded' }],
+            pending: [],
+            transport: 'canonical',
+        })
+    })
+
+    expect(mockRouter.replace).not.toHaveBeenCalledWith('/home')
+})
+
+it('does not redirect home after a newer native deep link is accepted', async () => {
+    mockAuth.user = { user: { username: 'alice', hasAppAccess: true } }
+    mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer')
+    type ClaimResult = Awaited<ReturnType<typeof mockClaimAndSettlePendingBadgeCampaigns>>
+    let resolveClaim!: (result: ClaimResult) => void
+    mockClaimAndSettlePendingBadgeCampaigns.mockImplementation(
+        (_campaigns: readonly string[]) =>
+            new Promise<ClaimResult>((resolve) => {
+                resolveClaim = resolve
+            })
+    )
+
+    renderWithIntl(<SetupPage />)
+    await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledWith(['bug_whisperer']))
+    markDeepLinkNavigated()
 
     await act(async () => {
         resolveClaim({
