@@ -1,0 +1,91 @@
+{
+    "count": 4,
+    "data": [
+        {
+            "id": "655a4e82-e901-4ee6-b6d0-c2ba051e42da",
+            "status": "activated",
+            "developer_fee_percent": "0.0",
+            "customer_id": "bd21e66d-8758-4982-9e50-86c64a9ba3ca",
+            "created_at": "2026-09-11T16:07:44.326Z",
+            "source_deposit_instructions": {
+                "currency": "mxn",
+                "clabe": "646406228530290641",
+                "account_holder_name": "Sandbox User",
+                "payment_rails": ["spei"]
+            },
+            "destination": {
+                "currency": "usdc",
+                "payment_rail": "arbitrum",
+                "address": "0x000000000000000000000000000000000000dead"
+            }
+        },
+        {
+            "id": "fa8a2b66-706a-4aa8-8928-50f64b827f46",
+            "status": "activated",
+            "developer_fee_percent": "0.0",
+            "customer_id": "bd21e66d-8758-4982-9e50-86c64a9ba3ca",
+            "created_at": "2026-09-11T16:07:41.252Z",
+            "source_deposit_instructions": {
+                "currency": "gbp",
+                "account_number": "25743313",
+                "sort_code": "608382",
+                "account_holder_name": "Bridge Building S.A.",
+                "bank_name": "Banking Circle S.A.",
+                "bank_address": "2 Boulevard de la Foire, L-1528 Luxembourg",
+                "payment_rails": ["faster_payments"]
+            },
+            "destination": {
+                "currency": "usdc",
+                "payment_rail": "arbitrum",
+                "address": "0x000000000000000000000000000000000000dead"
+            }
+        },
+        {
+            "id": "575a4a8e-dbdc-46e6-8ec3-4420d5def21a",
+            "status": "activated",
+            "developer_fee_percent": "0.0",
+            "customer_id": "bd21e66d-8758-4982-9e50-86c64a9ba3ca",
+            "created_at": "2026-09-10T10:36:38.205Z",
+            "source_deposit_instructions": {
+                "currency": "eur",
+                "iban": "LU554080000026613998",
+                "bic": "BCIRLULL",
+                "account_holder_name": "Sandbox User",
+                "bank_name": "Banking Circle S.A.",
+                "bank_address": "2 Boulevard de la Foire, L-1528 Luxembourg",
+                "bank_beneficiary_name": "Sandbox User",
+                "bank_beneficiary_address": "123 Sandbox Street, San Francisco 94102, US",
+                "payment_rails": ["sepa"]
+            },
+            "destination": {
+                "currency": "usdc",
+                "payment_rail": "arbitrum",
+                "address": "0x000000000000000000000000000000000000dead"
+            }
+        },
+        {
+            "id": "0834bcf1-a636-4d74-84b9-77a55ebc77f0",
+            "status": "activated",
+            "developer_fee_percent": "0.0",
+            "customer_id": "bd21e66d-8758-4982-9e50-86c64a9ba3ca",
+            "created_at": "2026-09-10T10:36:22.484Z",
+            "source_deposit_instructions": {
+                "currency": "usd",
+                "bank_name": "Bank of Nowhere",
+                "bank_address": "1800 North Pole St., Orlando, FL 32801",
+                "bank_routing_number": "101019644",
+                "bank_account_number": "3600691377",
+                "bank_beneficiary_name": "Sandbox User",
+                "bank_beneficiary_address": "123 Sandbox Street, San Francisco, CA 94102, US",
+                "payment_rail": "ach_push",
+                "payment_rails": ["ach_push", "fednow", "wire"]
+            },
+            "destination": {
+                "currency": "usdc",
+                "payment_rail": "arbitrum",
+                "address": "0x000000000000000000000000000000000000dead"
+            }
+        }
+    ],
+    "pagination_token": null
+}

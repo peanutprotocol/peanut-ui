@@ -103,6 +103,16 @@ export const ANALYTICS_EVENTS = {
     DEPOSIT_COMPLETED: 'deposit_completed',
     DEPOSIT_FAILED: 'deposit_failed',
 
+    // ── Standing deposit accounts (/get-paid) ──
+    // Bank details the user holds and hands to a payer. `corridor` is the rail
+    // method code (ACH_US, SEPA_EU…) and is the ONLY thing these carry: the
+    // account numbers themselves never reach analytics.
+    DEPOSIT_ACCOUNT_CLAIM_STARTED: 'deposit_account_claim_started',
+    DEPOSIT_ACCOUNT_CLAIM_FAILED: 'deposit_account_claim_failed',
+    DEPOSIT_ACCOUNT_DETAILS_VIEWED: 'deposit_account_details_viewed',
+    DEPOSIT_ACCOUNT_SHARED: 'deposit_account_shared',
+    DEPOSIT_ACCOUNT_GATE_BLOCKED: 'deposit_account_gate_blocked',
+
     // ── Withdraw ──
     WITHDRAW_AMOUNT_ENTERED: 'withdraw_amount_entered',
     WITHDRAW_METHOD_SELECTED: 'withdraw_method_selected',

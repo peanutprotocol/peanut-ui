@@ -1,0 +1,155 @@
+import { bridgeSenderPolicy } from '@/features/deposit-accounts/rails'
+import type { DepositAccount, DepositCorridor, DepositInstructions } from '@/features/deposit-accounts/types'
+
+/**
+ * HARNESS ONLY. Production reads `GET /users/deposit-accounts`, where
+ * peanut-api-ts does this mapping — the app never sees a provider payload.
+ * This exists so the design harness renders real captured Bridge responses
+ * with no backend running.
+ *
+ * Bridge virtual account, as `GET /customers/{id}/virtual_accounts` returns
+ * it. Verbatim field names on purpose.
+ *
+ * Field presence varies by currency and is not documented — captured from
+ * sandbox on 2026-09-11 (see __fixtures__). USD carries no
+ * `account_holder_name`; GBP carries no `bank_beneficiary_name`; MXN carries
+ * neither a bank name nor a bank address.
+ */
+export interface BridgeVirtualAccount {
+    id: string
+    status: string
+    customer_id: string
+    source_deposit_instructions: {
+        currency: string
+        bank_name?: string
+        bank_address?: string
+        bank_routing_number?: string
+        bank_account_number?: string
+        bank_beneficiary_name?: string
+        bank_beneficiary_address?: string
+        account_holder_name?: string
+        account_number?: string
+        sort_code?: string
+        iban?: string
+        bic?: string
+        clabe?: string
+        payment_rail?: string
+        payment_rails?: string[]
+    }
+}
+
+const COUNTRY_BY_CORRIDOR: Record<DepositCorridor, string> = {
+    ACH_US: 'US',
+    SEPA_EU: 'EU',
+    FASTER_PAYMENTS_GB: 'GB',
+    SPEI_MX: 'MX',
+    PIX_BR: 'BR',
+    BANK_TRANSFER_AR: 'AR',
+}
+
+const CORRIDOR_BY_CURRENCY: Record<string, DepositCorridor> = {
+    usd: 'ACH_US',
+    eur: 'SEPA_EU',
+    gbp: 'FASTER_PAYMENTS_GB',
+    mxn: 'SPEI_MX',
+}
+
+/**
+ * Bridge's account states, mapped explicitly and failing closed.
+ *
+ * `deactivated` is the one that matters: Bridge returns incoming funds on a
+ * deactivated account, so treating it as "still setting up" would leave a user
+ * watching a spinner while their employer's transfer bounces. An unrecognised
+ * state is treated the same way — we would rather tell somebody their details
+ * are not working than imply they are.
+ */
+const BRIDGE_STATUS: Record<string, DepositAccount['status']> = {
+    activated: 'active',
+    pending: 'provisioning',
+    provisioning: 'provisioning',
+    deactivated: 'revoked',
+}
+
+function statusFrom(bridgeStatus: string): DepositAccount['status'] {
+    return BRIDGE_STATUS[bridgeStatus] ?? 'revoked'
+}
+
+/**
+ * The name a payer types. Bridge puts it in `bank_beneficiary_name` on the
+ * corridors that have one and in `account_holder_name` on the rest, so the
+ * fallback is the contract, not a convenience.
+ */
+function holderNameFrom(source: BridgeVirtualAccount['source_deposit_instructions']): string {
+    return source.bank_beneficiary_name ?? source.account_holder_name ?? ''
+}
+
+function instructionsFrom(source: BridgeVirtualAccount['source_deposit_instructions']): DepositInstructions {
+    return {
+        accountHolderName: holderNameFrom(source),
+        beneficiaryName: source.bank_beneficiary_name,
+        beneficiaryAddress: source.bank_beneficiary_address,
+        bankName: source.bank_name,
+        bankAddress: source.bank_address,
+        iban: source.iban,
+        bic: source.bic,
+        // USD and GBP spell the same thing differently
+        accountNumber: source.bank_account_number ?? source.account_number,
+        routingNumber: source.bank_routing_number,
+        sortCode: source.sort_code,
+        clabe: source.clabe,
+        paymentRails: source.payment_rails ?? (source.payment_rail ? [source.payment_rail] : []),
+    }
+}
+
+/**
+ * Whether the payer reads the user's name or the provider's. Bridge does not
+ * say, so the only honest test is comparing what it returned against the name
+ * we hold for the user. Sandbox returns the customer's own name on EUR, USD
+ * and MXN, and Bridge's pooled entity on GBP — which is exactly why this is
+ * derived per account and never assumed per SKU.
+ */
+function isUserName(holder: string, userLegalName: string): boolean {
+    const normalise = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, '')
+    return normalise(holder) !== '' && normalise(holder) === normalise(userLegalName)
+}
+
+/**
+ * A Bridge virtual account is reusable, takes any amount, and carries no
+ * reference — verified against sandbox on 2026-09-11: no `deposit_message`,
+ * no reference field, on any corridor. That is the whole difference from the
+ * transfers SKU we run today, where every deposit is one pre-agreed amount
+ * with a mandatory memo.
+ *
+ * Who may pay in is the one thing the payload does not say, so it comes from
+ * the recorded per-corridor policy (`bridgeSenderPolicy`) and defaults to
+ * `unknown` rather than to a promise.
+ */
+export function fromBridgeVirtualAccount(raw: BridgeVirtualAccount, userLegalName: string): DepositAccount | null {
+    const source = raw.source_deposit_instructions
+    const corridor = CORRIDOR_BY_CURRENCY[source.currency]
+    if (!corridor) return null
+
+    const instructions = instructionsFrom(source)
+
+    return {
+        id: raw.id,
+        railId: `bridge.${corridor.toLowerCase()}`,
+        country: COUNTRY_BY_CORRIDOR[corridor],
+        currency: source.currency.toUpperCase(),
+        isPrimary: true,
+        status: statusFrom(raw.status),
+        matching: {
+            nameOnAccount: isUserName(instructions.accountHolderName, userLegalName) ? 'user' : 'provider',
+            sender: bridgeSenderPolicy(corridor),
+            memo: 'none',
+            amount: 'flexible',
+        },
+        instructions,
+    }
+}
+
+export function fromBridgeVirtualAccounts(raws: BridgeVirtualAccount[], userLegalName: string): DepositAccount[] {
+    return raws
+        .map((raw) => fromBridgeVirtualAccount(raw, userLegalName))
+        .filter((account): account is DepositAccount => account !== null)
+}

@@ -1,0 +1,123 @@
+'use client'
+
+import fixture from './bridge-sandbox-virtual-accounts.json'
+import { fromBridgeVirtualAccounts, type BridgeVirtualAccount } from './bridgeFixtureAdapter'
+import { mantecaArgentinaAccount, mantecaBrazilAccount } from '@/features/deposit-accounts/mantecaCorridors'
+import { DEPOSIT_RAIL_ORDER } from '@/features/deposit-accounts/rails'
+import type { DepositAccount, DepositCorridor } from '@/features/deposit-accounts/types'
+import { corridorFromRailId } from '@/features/deposit-accounts/useDepositAccounts'
+import type { GateState } from '@/utils/capability-gate'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
+/** the sandbox customer's own name — what Bridge returns as the holder */
+export const SANDBOX_USER_NAME = 'Sandbox User'
+
+/** how long a claim spends provisioning before the details appear */
+const PROVISIONING_MS = 1400
+
+export type SandboxScenario = 'live' | 'all-claimed' | 'provisioning' | 'failed' | 'returned' | 'kyc'
+
+/**
+ * The prototype's data source: real Bridge sandbox payloads, captured by
+ * mono `projects/virtual-accounts/capture-sandbox-vas.sh`, run through the
+ * same adapters a product build would use. Nothing here is a hand-written
+ * bank detail — the only invented values are the Manteca Argentine ones,
+ * which come from the shipped constants.
+ *
+ * A product build replaces this hook with `GET /users/deposit-accounts` and
+ * `POST /users/deposit-accounts`; every screen below it stays as it is.
+ */
+export function useSandboxDepositAccounts(scenario: SandboxScenario) {
+    const bridgeAccounts = useMemo(
+        () => fromBridgeVirtualAccounts(fixture.data as BridgeVirtualAccount[], SANDBOX_USER_NAME),
+        []
+    )
+
+    const [claimed, setClaimed] = useState<DepositCorridor[]>([])
+    const [claiming, setClaiming] = useState<DepositCorridor | undefined>()
+    const timers = useRef<ReturnType<typeof setTimeout>[]>([])
+
+    const claim = useCallback((corridor: DepositCorridor) => {
+        setClaiming(corridor)
+        timers.current.push(
+            setTimeout(() => {
+                setClaimed((current) => (current.includes(corridor) ? current : [...current, corridor]))
+                setClaiming(undefined)
+            }, PROVISIONING_MS)
+        )
+    }, [])
+
+    useEffect(() => () => timers.current.forEach(clearTimeout), [])
+
+    const reset = useCallback(() => {
+        timers.current.forEach(clearTimeout)
+        timers.current = []
+        setClaimed([])
+        setClaiming(undefined)
+    }, [])
+
+    const accounts = useMemo(() => {
+        const byCorridor: Record<DepositCorridor, DepositAccount | undefined> = {
+            ACH_US: undefined,
+            SEPA_EU: undefined,
+            FASTER_PAYMENTS_GB: undefined,
+            SPEI_MX: undefined,
+            PIX_BR: mantecaBrazilAccount(),
+            BANK_TRANSFER_AR: mantecaArgentinaAccount(),
+        }
+
+        bridgeAccounts.forEach((account) => {
+            const corridor = corridorFromRailId(account.railId)
+            if (corridor) byCorridor[corridor] = withScenarioStatus(account, corridor, scenario, claimed, claiming)
+        })
+
+        return byCorridor
+    }, [bridgeAccounts, scenario, claimed, claiming])
+
+    return {
+        accounts,
+        userName: SANDBOX_USER_NAME,
+        // a product build asks gateFor('deposit', { railId }) once per corridor;
+        // the harness fakes the one kind this prototype needs to show, the same
+        // on every corridor
+        gates: Object.fromEntries(
+            DEPOSIT_RAIL_ORDER.map((corridor) => [
+                corridor,
+                (scenario === 'kyc' ? { kind: 'needs-identity' } : { kind: 'ready' }) satisfies GateState,
+            ])
+        ) as Record<DepositCorridor, GateState>,
+        claimingCorridor: claiming,
+        returnedPayment:
+            scenario === 'returned'
+                ? {
+                      amount: '€500.00',
+                      payer: 'ACME GmbH',
+                      date: '28 Aug',
+                      reason: 'the sending bank could not match the account holder.',
+                  }
+                : undefined,
+        claim,
+        reset,
+    }
+}
+
+/**
+ * Which status a corridor shows. `live` is the honest one — nothing is held
+ * until the user claims it — and the rest force a single state so every
+ * screen can be reviewed without waiting for the real transition.
+ */
+function withScenarioStatus(
+    account: DepositAccount,
+    corridor: DepositCorridor,
+    scenario: SandboxScenario,
+    claimed: DepositCorridor[],
+    claiming: DepositCorridor | undefined
+): DepositAccount {
+    if (scenario === 'provisioning') return { ...account, status: 'provisioning' }
+    if (scenario === 'failed') return { ...account, status: 'failed' }
+    if (scenario === 'all-claimed' || scenario === 'returned') return account
+
+    if (claiming === corridor) return { ...account, status: 'provisioning' }
+    if (claimed.includes(corridor)) return account
+    return { ...account, status: 'unclaimed' }
+}

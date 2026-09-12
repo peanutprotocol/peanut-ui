@@ -50,7 +50,13 @@ jest.mock('@sentry/nextjs', () => ({
 // PostHog
 jest.mock('posthog-js', () => ({
     __esModule: true,
-    default: { capture: jest.fn(), init: jest.fn() },
+    default: {
+        capture: jest.fn(),
+        init: jest.fn(),
+        // the get-paid link on this screen is flag-gated
+        isFeatureEnabled: jest.fn(() => false),
+        onFeatureFlags: jest.fn(() => () => {}),
+    },
 }))
 
 // ---------- hooks & services ----------

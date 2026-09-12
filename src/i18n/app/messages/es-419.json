@@ -1089,7 +1089,8 @@
             "missingRecipientMessage": "No se incluyó un nombre de usuario en la URL. Revisa el enlace e inténtalo de nuevo.",
             "goToHome": "Ir al inicio",
             "createWallet": "Crea tu Peanut Wallet"
-        }
+        },
+        "bankDetailsAlternative": "O recibe pagos en tus datos bancarios"
     },
     "payment": {
         "validation": {
@@ -1735,7 +1736,8 @@
             "crypto": "Cripto",
             "cryptoDescription": "Deposita desde una billetera o exchange",
             "bankTransfer": "Transferencia bancaria",
-            "kycRequired": "Requiere KYC"
+            "kycRequired": "Requiere KYC",
+            "bankTransferDescription": "Datos a tu nombre que cualquiera puede pagar"
         },
         "networkDrawer": {
             "title": "Elegir red",
@@ -3936,6 +3938,170 @@
                 "name": "Ganso mandón",
                 "line": "Arrea al grupo"
             }
+        }
+    },
+    "depositAccounts": {
+        "title": "Cobrar",
+        "list": {
+            "heading": "Cobra en tu moneda local",
+            "subheading": "Ten datos bancarios donde te pueda pagar un empleador, un cliente o una plataforma. El dinero llega a tu saldo de Peanut.",
+            "sectionTitle": "Tus cuentas",
+            "rowUnclaimed": "Sin configurar · {arrival}",
+            "rowProvisioning": "Estamos preparando tus datos",
+            "rowFailed": "La configuración no terminó",
+            "rowUnavailable": "No disponible en tu región",
+            "rowReady": "Lista para compartir · {arrival}",
+            "badgeReady": "Lista",
+            "rowBlocked": "Verifica tu identidad para abrir esta cuenta",
+            "rowRevoked": "Estos datos ya no funcionan",
+            "rowActive": "Activa · {arrival}",
+            "badgeActive": "Activo",
+            "errorTitle": "No pudimos cargar tus cuentas",
+            "errorBody": "Tus cuentas están bien: solo no pudimos leerlas. Revisa tu conexión e inténtalo de nuevo.",
+            "errorRetry": "Intentar de nuevo"
+        },
+        "claim": {
+            "heading": "Abre tu cuenta en {currency}",
+            "subheading": "Datos bancarios que no cambian, así que los compartes una sola vez. {arrival}",
+            "benefitStable": "Los datos no cambian, así que los compartes una sola vez.",
+            "benefitBalance": "El dinero llega a tu saldo de Peanut en USD.",
+            "benefitCap": "Una persona puede enviarte hasta {cap} cada vez. Una empresa no tiene límite.",
+            "benefitNoReference": "Sin referencia ni concepto que recordar.",
+            "cta": "Abrir cuenta en {currency}",
+            "errorTitle": "No pudimos abrir la cuenta",
+            "benefit": {
+                "anyone": "Cualquiera te puede pagar: un empleador, un cliente, una plataforma.",
+                "business-only": "Una empresa te puede pagar: un empleador, un cliente o una plataforma. Un pago desde la cuenta de una persona se devuelve.",
+                "unknown": "Cualquier monto, sin referencia que recordar. Todavía no está confirmado si alguien más puede pagarte ahí.",
+                "own-name-only": "Ingresa dinero desde una cuenta bancaria a tu nombre."
+            }
+        },
+        "details": {
+            "heading": "{currency} · {rail}",
+            "provisioning": "Estamos preparando tus datos en {currency}. Suele tardar menos de un minuto.",
+            "pooledTitle": "La cuenta no está a tu nombre",
+            "pooledShared": "Quien te paga ve {holder}, el socio que tiene las cuentas en {currency} de Peanut, y no a {user}. Es lo esperado.",
+            "pooledOwnNameOnly": "{holder} recibe los depósitos en {currency} de Peanut. Envía desde tu propia cuenta bancaria y el dinero llega a tu saldo.",
+            "sectionTitle": "Datos bancarios",
+            "returnedTitle": "Se devolvió un pago",
+            "returnedBody": "{amount} de {payer} del {date} volvió a quien lo envió: {reason}",
+            "returnedCta": "Compartir los datos otra vez",
+            "shareCta": "Compartir datos",
+            "unavailableTitle": "Todavía no tienes datos en {currency}",
+            "unavailableBody": "Lo verificamos antes de mostrar los datos, así que ningún pago se puede perder.",
+            "unavailableCta": "Elegir otra moneda",
+            "failedTitle": "No pudimos abrir tu cuenta en {currency}",
+            "failedBody": "No se cobró nada. Inténtalo de nuevo en un momento o elige otra moneda.",
+            "failedRetry": "Intentar de nuevo",
+            "sender": {
+                "anyone": "Cualquiera puede pagar cualquier monto a estos datos. No hay referencia que recordar.",
+                "business-only": "Una empresa puede pagar cualquier monto a estos datos. Un pago desde la cuenta de una persona se devuelve.",
+                "unknown": "Se puede pagar cualquier monto a estos datos, sin ninguna referencia que recordar. No confirmamos con nuestro socio si alguien más puede pagarte ahí: avísanos si un pago se devuelve.",
+                "own-name-only": "Ingresa dinero desde una cuenta bancaria a tu nombre. Estos datos no aceptan pagos de otras personas."
+            },
+            "personCap": "Una persona puede enviarte hasta {cap} cada vez. Una empresa no tiene límite.",
+            "revokedTitle": "Tus datos en {currency} ya no funcionan",
+            "revokedBody": "Lo que envíen a esos datos vuelve a quien lo mandó. Avisa a quien te paga que deje de usarlos y abre datos nuevos.",
+            "topUpCta": "Ingresar {currency} de otra forma",
+            "exactAmountCta": "Depositar un monto fijo"
+        },
+        "share": {
+            "heading": "Esto ve quien te paga",
+            "subheading": "Envíale esto a quien te vaya a pagar. Es lo mismo para cada pago.",
+            "sectionTitle": "Pagar a {user} en {currency}",
+            "nameWarningTitle": "Avísale sobre el nombre",
+            "nameWarningBody": "La cuenta es de {holder}, así que ese es el nombre de la transferencia, no {user}. Algunos formularios de nómina rechazan un nombre que no esperan.",
+            "shareCta": "Compartir",
+            "copyCta": "Copiar como texto",
+            "copied": "Datos copiados",
+            "copyFailed": "No se pudieron copiar los datos",
+            "textIntroOwn": "Estos son mis datos bancarios para que me pagues en {currency}:",
+            "textIntroPooled": "Datos bancarios para pagarle a {user} en {currency}:",
+            "textReference": "Pon {memo} en el campo de referencia de la transferencia. Sin eso, el pago se devuelve.",
+            "textOutro": "Enviado desde Peanut · peanut.me",
+            "sheetTitleOwn": "Mis datos bancarios",
+            "sheetTitlePooled": "Datos bancarios para pagarle a {user}",
+            "senderWarningTitle": "Dile quién puede pagar",
+            "textSender": {
+                "business-only": "Solo una empresa puede pagar en esta cuenta: un empleador, un cliente o una plataforma. Un pago desde la cuenta personal de alguien se devuelve.",
+                "unknown": "Por favor paga desde una cuenta de empresa. Todavía no confirmamos con nuestro socio que se acepte un pago desde una cuenta personal. Si un pago se devuelve, avísame y lo resolvemos."
+            }
+        },
+        "rows": {
+            "accountHolder": "Titular de la cuenta",
+            "taxId": "ID fiscal",
+            "bank": "Banco",
+            "iban": "IBAN",
+            "bic": "BIC",
+            "sortCode": "Sort Code",
+            "accountNumber": "Número de cuenta",
+            "routingNumber": "Número de ruta",
+            "clabe": "CLABE",
+            "cvu": "CVU",
+            "alias": "Alias",
+            "bankAddress": "Dirección del banco",
+            "paymentReference": "Referencia del pago",
+            "accepts": "Acepta",
+            "beneficiaryAddress": "Dirección del destinatario",
+            "rails": {
+                "ach_push": "ACH",
+                "fednow": "FedNow",
+                "wire": "Transferencia internacional",
+                "sepa": "SEPA",
+                "faster_payments": "Faster Payments",
+                "spei": "SPEI",
+                "pix": "Pix",
+                "transfer_ar": "Transferencia bancaria",
+                "fallback": "Transferencia bancaria"
+            }
+        },
+        "corridors": {
+            "SEPA_EU": {
+                "arrival": "El mismo día hábil",
+                "arrivalDetail": "Las transferencias SEPA suelen llegar el mismo día hábil, como máximo en dos.",
+                "railName": "SEPA"
+            },
+            "FASTER_PAYMENTS_GB": {
+                "arrival": "En minutos",
+                "arrivalDetail": "Los Faster Payments suelen llegar en minutos.",
+                "railName": "Faster Payments"
+            },
+            "ACH_US": {
+                "arrival": "1 a 3 días hábiles",
+                "arrivalDetail": "ACH llega en uno a tres días hábiles. Una transferencia wire llega el mismo día.",
+                "railName": "ACH o wire"
+            },
+            "SPEI_MX": {
+                "arrival": "En minutos",
+                "arrivalDetail": "Las transferencias SPEI suelen llegar en minutos.",
+                "railName": "SPEI"
+            },
+            "PIX_BR": {
+                "arrival": "En minutos",
+                "arrivalDetail": "Las transferencias Pix suelen llegar en minutos.",
+                "unclaimable": "En Brasil el depósito es un código Pix para un solo pago, desde tu propia cuenta.",
+                "railName": "Pix"
+            },
+            "BANK_TRANSFER_AR": {
+                "arrival": "En minutos",
+                "arrivalDetail": "Las transferencias en Argentina suelen llegar en minutos.",
+                "unclaimable": "En Argentina el depósito tiene que venir de una cuenta a tu nombre.",
+                "railName": "Transferencia bancaria"
+            }
+        },
+        "gate": {
+            "verifyTitle": "Primero verifica tu identidad",
+            "verifyBody": "Solo podemos abrir una cuenta a tu nombre cuando sabemos quién eres.",
+            "verifyCta": "Verificar identidad",
+            "tosTitle": "Falta aceptar un documento",
+            "tosCta": "Leer y aceptar",
+            "waitTitle": "Lo estamos preparando",
+            "waitBody": "No tienes que hacer nada. Esta pantalla se actualiza sola.",
+            "blockedTitle": "No podemos abrirte una cuenta",
+            "supportCta": "Contactar soporte",
+            "emailTitle": "Necesitamos un correo electrónico",
+            "emailBody": "Tu identidad está verificada. Nunca recibimos un correo para pasarle a nuestro socio, así que no podemos abrir la cuenta hasta que agregues uno.",
+            "emailCta": "Agrega tu email"
         }
     }
 }

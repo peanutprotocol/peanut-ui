@@ -130,7 +130,9 @@ for (const [name, fixture] of Object.entries(FIXTURES)) {
         await page.addInitScript(seenOnceModals)
 
         await page.goto(fixtureHref(fixture.route, name), { waitUntil: 'domcontentloaded' })
-        await settle(page)
+        // A fixture whose whole subject is a loader has nothing to settle to.
+        if (fixture.isLoadingState) await page.waitForTimeout(2000)
+        else await settle(page)
 
         // A build without NEXT_PUBLIC_VERCEL_ENV=preview ignores the param and
         // bounces every protected route to /setup — which settles fine, so the

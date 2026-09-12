@@ -621,7 +621,8 @@
             "invalidRecipientMessage": "El usuario al que intentás solicitar no es un usuario válido de Peanut o no existe. Asegurate de tener el nombre de usuario de Peanut correcto.",
             "missingRecipientMessage": "No se incluyó un nombre de usuario en la URL. Revisá el enlace e intentalo de nuevo.",
             "createWallet": "Creá tu Peanut Wallet"
-        }
+        },
+        "bankDetailsAlternative": "O recibí pagos en tus datos bancarios"
     },
     "payment": {
         "validation": {
@@ -888,7 +889,8 @@
         "mustMatchBankTransfer": "Esto debe coincidir exactamente con lo que enviás desde tu banco",
         "amountMustMatchBank": "¡El monto debe coincidir con lo que enviás desde tu banco!",
         "methods": {
-            "cryptoDescription": "Depositá desde una billetera o exchange"
+            "cryptoDescription": "Depositá desde una billetera o exchange",
+            "bankTransferDescription": "Datos a tu nombre que cualquiera puede pagar"
         },
         "networkDrawer": {
             "description": "Elegí la red desde la que querés depositar:"
@@ -1680,6 +1682,53 @@
             "heart": {
                 "name": "Carpincho sereno"
             }
+        }
+    },
+    "depositAccounts": {
+        "list": {
+            "heading": "Cobrá en tu moneda local",
+            "subheading": "Tené datos bancarios donde te pueda pagar un empleador, un cliente o una plataforma. La plata llega a tu saldo de Peanut.",
+            "rowBlocked": "Verificá tu identidad para abrir esta cuenta",
+            "errorBody": "Tus cuentas están bien: solo no pudimos leerlas. Revisá tu conexión y probá de nuevo."
+        },
+        "claim": {
+            "heading": "Abrí tu cuenta en {currency}",
+            "benefitStable": "Los datos no cambian, así que los compartís una sola vez.",
+            "benefitBalance": "La plata llega a tu saldo de Peanut en USD.",
+            "subheading": "Datos bancarios que no cambian, así que los compartís una sola vez. {arrival}",
+            "benefit": {
+                "unknown": "Cualquier monto, sin referencia que recordar. Todavía no está confirmado si alguien más te puede pagar ahí.",
+                "own-name-only": "Ingresá plata desde una cuenta bancaria a tu nombre."
+            }
+        },
+        "details": {
+            "pooledOwnNameOnly": "{holder} recibe los depósitos en {currency} de Peanut. Enviá desde tu propia cuenta bancaria y la plata llega a tu saldo.",
+            "unavailableTitle": "Todavía no tenés datos en {currency}",
+            "failedBody": "No se cobró nada. Probá de nuevo en un momento o elegí otra moneda.",
+            "sender": {
+                "unknown": "Se puede pagar cualquier monto a estos datos, sin ninguna referencia que recordar. No confirmamos con nuestro socio si alguien más te puede pagar ahí: avisanos si un pago se devuelve.",
+                "own-name-only": "Ingresá plata desde una cuenta bancaria a tu nombre. Estos datos no aceptan pagos de otras personas."
+            },
+            "revokedBody": "Lo que manden a esos datos vuelve a quien lo envió. Avisale a quien te paga que deje de usarlos y abrí datos nuevos.",
+            "topUpCta": "Ingresar {currency} de otra forma",
+            "exactAmountCta": "Depositar un monto fijo"
+        },
+        "share": {
+            "subheading": "Enviale esto a quien te vaya a pagar. Es lo mismo para cada pago.",
+            "nameWarningTitle": "Avisale sobre el nombre",
+            "textIntroOwn": "Estos son mis datos bancarios para cobrar en {currency}:",
+            "textReference": "Poné {memo} en el campo de referencia de la transferencia. Sin eso, el pago se devuelve.",
+            "senderWarningTitle": "Decile quién puede pagar",
+            "textSender": {
+                "unknown": "Por favor pagá desde una cuenta de empresa. Todavía no confirmamos con nuestro socio que se acepte un pago desde una cuenta personal. Si un pago se devuelve, avisame y lo resolvemos."
+            }
+        },
+        "gate": {
+            "verifyTitle": "Primero verificá tu identidad",
+            "verifyBody": "Solo podemos abrir una cuenta a tu nombre cuando sabemos quién sos.",
+            "waitBody": "No tenés que hacer nada. Esta pantalla se actualiza sola.",
+            "emailBody": "Tu identidad está verificada. Nunca recibimos un correo para pasarle a nuestro socio, así que no podemos abrir la cuenta hasta que agregues uno.",
+            "emailCta": "Agregá tu email"
         }
     }
 }

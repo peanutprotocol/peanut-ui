@@ -1089,7 +1089,8 @@
             "missingRecipientMessage": "No username provided in the URL. Please check the link and try again.",
             "goToHome": "Go to home",
             "createWallet": "Create your Peanut Wallet"
-        }
+        },
+        "bankDetailsAlternative": "Or get paid to your bank details"
     },
     "payment": {
         "validation": {
@@ -1735,7 +1736,8 @@
             "crypto": "Crypto",
             "cryptoDescription": "Deposit from a wallet or exchange",
             "bankTransfer": "Bank transfer",
-            "kycRequired": "KYC required"
+            "kycRequired": "KYC required",
+            "bankTransferDescription": "Details in your name that anyone can pay"
         },
         "networkDrawer": {
             "title": "Choose Network",
@@ -3936,6 +3938,170 @@
                 "name": "Bossy Goose",
                 "line": "Herds the group"
             }
+        }
+    },
+    "depositAccounts": {
+        "title": "Get paid",
+        "list": {
+            "heading": "Get paid in your local currency",
+            "subheading": "Hold bank details an employer, a client or a platform can pay into. The money lands in your Peanut balance.",
+            "sectionTitle": "Your accounts",
+            "rowUnclaimed": "Not set up yet · {arrival}",
+            "rowProvisioning": "Setting up your details",
+            "rowFailed": "Setup did not finish",
+            "rowUnavailable": "Not available in your region",
+            "rowReady": "Ready to share · {arrival}",
+            "badgeReady": "Ready",
+            "rowBlocked": "Verify your identity to open this account",
+            "rowRevoked": "These details no longer work",
+            "rowActive": "Active · {arrival}",
+            "badgeActive": "Active",
+            "errorTitle": "We could not load your accounts",
+            "errorBody": "Your accounts are fine — we just could not read them. Check your connection and try again.",
+            "errorRetry": "Try again"
+        },
+        "claim": {
+            "heading": "Open your {currency} account",
+            "subheading": "Bank details that stay the same, so you hand them over once. {arrival}",
+            "benefitStable": "The details stay the same, so you hand them over once.",
+            "benefitBalance": "Money arrives in your Peanut balance as USD.",
+            "benefitCap": "A person can send up to {cap} each time. A company has no limit.",
+            "benefitNoReference": "No reference or memo to remember.",
+            "cta": "Open {currency} account",
+            "errorTitle": "We could not open the account",
+            "benefit": {
+                "anyone": "Anyone can pay you: an employer, a client, a platform.",
+                "business-only": "A company can pay you — an employer, a client or a platform. A payment from a person's own account is sent back.",
+                "unknown": "Any amount, with no reference to remember. Whether someone else can pay in is not confirmed yet.",
+                "own-name-only": "Top up from a bank account in your own name."
+            }
+        },
+        "details": {
+            "heading": "{currency} · {rail}",
+            "provisioning": "Setting up your {currency} details. This usually takes under a minute.",
+            "pooledTitle": "The account is not in your name",
+            "pooledShared": "Payers see {holder}, the partner that holds {currency} accounts for Peanut, not {user}. That is expected.",
+            "pooledOwnNameOnly": "{holder} holds {currency} deposits for Peanut. Send from your own bank account, and the money reaches your balance.",
+            "sectionTitle": "Bank details",
+            "returnedTitle": "A payment was returned",
+            "returnedBody": "{amount} from {payer} on {date} went back to the sender: {reason}",
+            "returnedCta": "Share details again",
+            "shareCta": "Share details",
+            "unavailableTitle": "{currency} details are not available to you yet",
+            "unavailableBody": "We check this before showing details, so no payment can go missing.",
+            "unavailableCta": "Choose another currency",
+            "failedTitle": "We could not open your {currency} account",
+            "failedBody": "Nothing was charged. Try again in a moment, or choose another currency.",
+            "failedRetry": "Try again",
+            "sender": {
+                "anyone": "Anyone can pay any amount into these details. There is no reference to remember.",
+                "business-only": "A company can pay any amount into these details. A payment from a person's own account is sent back.",
+                "unknown": "Any amount can be paid into these details, with no reference to remember. We have not confirmed with our partner whether someone else can pay in — tell us if a payment comes back.",
+                "own-name-only": "Top up from a bank account in your own name. These details do not accept payments from anyone else."
+            },
+            "personCap": "A person can send up to {cap} each time. A company has no limit.",
+            "revokedTitle": "Your {currency} details no longer work",
+            "revokedBody": "Anything sent to them is returned to the sender. Tell anyone who pays you to stop using them, and open new details.",
+            "topUpCta": "Add {currency} instead",
+            "exactAmountCta": "Deposit a set amount instead"
+        },
+        "share": {
+            "heading": "What the payer sees",
+            "subheading": "Send this to whoever is paying you. It stays the same for every payment.",
+            "sectionTitle": "Pay {user} in {currency}",
+            "nameWarningTitle": "Tell them about the name",
+            "nameWarningBody": "The account is held by {holder}, so that is the name on the transfer, not {user}. Some payroll forms reject a name they do not expect.",
+            "shareCta": "Share",
+            "copyCta": "Copy as text",
+            "copied": "Details copied",
+            "copyFailed": "Could not copy the details",
+            "textIntroOwn": "Here are my bank details to get paid in {currency}:",
+            "textIntroPooled": "Bank details to pay {user} in {currency}:",
+            "textReference": "Put {memo} in the reference field of the transfer. Without it the payment comes back.",
+            "textOutro": "Sent from Peanut · peanut.me",
+            "sheetTitleOwn": "My bank details",
+            "sheetTitlePooled": "Bank details to pay {user}",
+            "senderWarningTitle": "Tell them who can pay",
+            "textSender": {
+                "business-only": "Only a company can pay into this account: an employer, a client or a platform. A payment from a person's own account is sent back.",
+                "unknown": "Please pay from a company account. We have not yet confirmed with our partner that a payment from a private account is accepted. If a payment comes back, tell me and we will sort it out."
+            }
+        },
+        "rows": {
+            "accountHolder": "Account holder",
+            "taxId": "Tax ID",
+            "bank": "Bank",
+            "iban": "IBAN",
+            "bic": "BIC",
+            "sortCode": "Sort code",
+            "accountNumber": "Account number",
+            "routingNumber": "Routing number",
+            "clabe": "CLABE",
+            "cvu": "CVU",
+            "alias": "Alias",
+            "bankAddress": "Bank address",
+            "paymentReference": "Payment reference",
+            "accepts": "Accepts",
+            "beneficiaryAddress": "Recipient address",
+            "rails": {
+                "ach_push": "ACH",
+                "fednow": "FedNow",
+                "wire": "Wire",
+                "sepa": "SEPA",
+                "faster_payments": "Faster Payments",
+                "spei": "SPEI",
+                "pix": "Pix",
+                "transfer_ar": "Bank transfer",
+                "fallback": "Bank transfer"
+            }
+        },
+        "corridors": {
+            "SEPA_EU": {
+                "arrival": "Same business day",
+                "arrivalDetail": "SEPA transfers usually arrive the same business day, at most in two.",
+                "railName": "SEPA"
+            },
+            "FASTER_PAYMENTS_GB": {
+                "arrival": "Within minutes",
+                "arrivalDetail": "Faster Payments usually arrive within minutes.",
+                "railName": "Faster Payments"
+            },
+            "ACH_US": {
+                "arrival": "1–3 business days",
+                "arrivalDetail": "ACH arrives in one to three business days. A wire arrives the same day.",
+                "railName": "ACH or wire"
+            },
+            "SPEI_MX": {
+                "arrival": "Within minutes",
+                "arrivalDetail": "SPEI transfers usually arrive within minutes.",
+                "railName": "SPEI"
+            },
+            "PIX_BR": {
+                "arrival": "Within minutes",
+                "arrivalDetail": "Pix transfers usually arrive within minutes.",
+                "unclaimable": "Brazilian deposits are a Pix code for one payment, from your own account.",
+                "railName": "Pix"
+            },
+            "BANK_TRANSFER_AR": {
+                "arrival": "Within minutes",
+                "arrivalDetail": "Argentine transfers usually arrive within minutes.",
+                "unclaimable": "Argentine deposits must come from an account in your own name.",
+                "railName": "Bank transfer"
+            }
+        },
+        "gate": {
+            "verifyTitle": "Verify your identity first",
+            "verifyBody": "We can only open an account in your name once we know who you are.",
+            "verifyCta": "Verify identity",
+            "tosTitle": "One document to agree to",
+            "tosCta": "Read and agree",
+            "waitTitle": "We are setting this up",
+            "waitBody": "Nothing for you to do. This page updates by itself.",
+            "blockedTitle": "We cannot open an account for you",
+            "supportCta": "Contact support",
+            "emailTitle": "We need an email address",
+            "emailBody": "Your identity is verified. We never got an email address to pass on, so the account cannot be opened until you add one.",
+            "emailCta": "Add your email"
         }
     }
 }

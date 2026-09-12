@@ -133,6 +133,55 @@ const HUGE_HISTORY_ENTRY = {
     memo: 'Series B wire, split three ways with a memo long enough to wrap',
 }
 
+/**
+ * A dollar account: the one corridor where Bridge documents a private payer,
+ * with the cap that proves it. Values are documentation examples.
+ */
+const DEPOSIT_ACCOUNT_USD = {
+    id: 'fixture-deposit-usd',
+    railId: 'bridge.ach_us',
+    country: 'USA',
+    currency: 'USD',
+    status: 'active',
+    isPrimary: true,
+    matching: { nameOnAccount: 'provider', sender: 'anyone', memo: 'none', amount: 'flexible' },
+    instructions: {
+        accountHolderName: 'Bridge Ventures Inc',
+        bankName: 'Lead Bank',
+        bankAddress: '1801 Main St, Kansas City, MO 64108',
+        accountNumber: '9600000000000001',
+        routingNumber: '101019644',
+        beneficiaryName: 'Bridge Ventures Inc',
+        beneficiaryAddress: '1000 Brannan St, San Francisco, CA 94103',
+        paymentRails: ['ach_push', 'wire', 'fednow'],
+    },
+}
+
+/** Sterling: documented as first-party and third-party BUSINESS payments only. */
+const DEPOSIT_ACCOUNT_GBP = {
+    id: 'fixture-deposit-gbp',
+    railId: 'bridge.faster_payments_gb',
+    country: 'GBR',
+    currency: 'GBP',
+    status: 'active',
+    isPrimary: true,
+    matching: { nameOnAccount: 'provider', sender: 'business-only', memo: 'none', amount: 'flexible' },
+    instructions: {
+        accountHolderName: 'Bridge Building Sp. z o.o.',
+        bankName: 'Clear Junction Limited',
+        accountNumber: '00000001',
+        sortCode: '04-00-53',
+        paymentRails: ['faster_payments'],
+    },
+}
+
+/** No bank rail is usable until identity is verified — the gate every bank surface reads. */
+const BLOCKED_BANK_CAPABILITIES = {
+    rails: [],
+    nextActions: [{ kind: 'verify_identity', railIds: [] }],
+    restrictions: [],
+}
+
 export const FIXTURES: Record<string, Fixture> = {
     'setup-pending': {
         route: '/setup',
@@ -500,6 +549,91 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/home',
         about: 'Early-user reward drawer over home, opened by the user flag.',
         responses: { 'GET /users/me': { showEarlyUserModal: true } },
+    },
+
+    // ---------------------------------------------------------------------
+    // Standing deposit accounts (/get-paid). One fixture per state a payer or
+    // a holder can be looking at — the four policy fields on `matching` are
+    // what each screen reads, so the states differ by policy, not by country.
+    // ---------------------------------------------------------------------
+    'get-paid': {
+        route: '/get-paid',
+        about: 'The hub: one euro account held, the rest open to claim.',
+    },
+    'get-paid-empty': {
+        route: '/get-paid',
+        about: 'Nothing claimed yet — every corridor offered, none held.',
+        responses: { 'GET /users/deposit-accounts': { depositAccounts: [] } },
+    },
+    'get-paid-blocked': {
+        route: '/get-paid',
+        about: 'Identity not verified, so no corridor can be claimed and the gate says why.',
+        responses: {
+            'GET /users/deposit-accounts': { depositAccounts: [] },
+            'GET /users/me': { capabilities: BLOCKED_BANK_CAPABILITIES },
+        },
+    },
+    'get-paid-claim': {
+        route: '/get-paid?screen=claim&corridor=ACH_US',
+        about: 'What the user agrees to before an account is opened in their name.',
+        responses: { 'GET /users/deposit-accounts': { depositAccounts: [] } },
+    },
+    'get-paid-details-eur': {
+        route: '/get-paid?screen=details&corridor=SEPA_EU',
+        about: 'Euro details. The holder is the partner, not the user — the notice says so.',
+    },
+    'get-paid-details-usd': {
+        route: '/get-paid?screen=details&corridor=ACH_US',
+        about: 'Dollar details: the one corridor where a private payer is proved, with its cap.',
+        responses: { 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_USD] } },
+    },
+    'get-paid-details-gbp': {
+        route: '/get-paid?screen=details&corridor=FASTER_PAYMENTS_GB',
+        about: 'Sterling details, where only a business may pay in.',
+        responses: { 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_GBP] } },
+    },
+    'get-paid-provisioning': {
+        route: '/get-paid?screen=details&corridor=ACH_US',
+        about: 'Claimed, waiting on the provider — the skeleton matches the row count to come.',
+        isLoadingState: true,
+        responses: {
+            'GET /users/deposit-accounts': {
+                depositAccounts: [{ ...DEPOSIT_ACCOUNT_USD, status: 'provisioning', instructions: undefined }],
+            },
+        },
+    },
+    'get-paid-failed': {
+        route: '/get-paid?screen=details&corridor=ACH_US',
+        about: 'Opening the account did not complete; the user can try again.',
+        responses: {
+            'GET /users/deposit-accounts': {
+                depositAccounts: [{ ...DEPOSIT_ACCOUNT_USD, status: 'failed', instructions: undefined }],
+            },
+        },
+    },
+    'get-paid-revoked': {
+        route: '/get-paid?screen=details&corridor=ACH_US',
+        about: 'The account no longer accepts money and the details are in somebody payroll file.',
+        responses: {
+            'GET /users/deposit-accounts': { depositAccounts: [{ ...DEPOSIT_ACCOUNT_USD, status: 'revoked' }] },
+        },
+    },
+    'get-paid-share': {
+        route: '/get-paid?screen=share&corridor=SEPA_EU',
+        about: 'What the payer will see, before the user sends it to them.',
+    },
+    'get-paid-ar': {
+        route: '/get-paid?screen=details&corridor=BANK_TRANSFER_AR',
+        about: 'Argentina: the provider CVU only credits the user own transfers, so it is never shared.',
+    },
+
+    'home-add-drawer': {
+        route: '/home?drawer=add',
+        about: 'The Add drawer — where bank transfer now leads to the standing account.',
+    },
+    'request-with-bank-alternative': {
+        route: '/request',
+        about: 'Asking one person for one amount, with the standing-details alternative named below it.',
     },
 
     // ---------------------------------------------------------------------

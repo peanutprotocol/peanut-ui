@@ -22,6 +22,13 @@ jest.mock('@/hooks/useAppHaptic', () => ({
     useAppHaptic: () => ({ triggerHaptic: jest.fn() }),
 }))
 
+// Get-paid is dark until Bridge grants the Virtual Accounts SKU, so the bank
+// row has two truths and both have to hold.
+let depositAccountsEnabled = true
+jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
+    useDepositAccountsEnabled: () => depositAccountsEnabled,
+}))
+
 beforeAll(() => {
     window.matchMedia =
         window.matchMedia ||
@@ -41,6 +48,7 @@ beforeAll(() => {
 beforeEach(() => {
     jest.clearAllMocks()
     resetBottomNavVisibilityForTests()
+    depositAccountsEnabled = true
 })
 
 const renderWithUrl = (search: string, onUrlUpdate?: (e: UrlUpdateEvent) => void) =>
@@ -74,8 +82,10 @@ describe('HomeActionDrawers', () => {
     it('opens the add drawer with bank and crypto options only', async () => {
         renderWithUrl('?drawer=add')
 
+        // Bank transfer leads to the standing account, not to the one-off
+        // amount flow — /get-paid hands back the corridors it cannot serve.
         fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/get-paid'))
 
         fireEvent.click(screen.getByTestId('home-drawer-add-crypto'))
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/crypto'))
@@ -105,14 +115,23 @@ describe('HomeActionDrawers', () => {
         expect(last.searchParams.get('returnTo')).toBeNull()
     })
 
-    it('carries returnTo onto the bank destination through the & separator branch', async () => {
+    it('sends the bank row back to the one-off transfer flow while get-paid is off', async () => {
+        depositAccountsEnabled = false
+        renderWithUrl('?drawer=add')
+
+        fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank'))
+    })
+
+    it('carries a query-bearing returnTo onto the bank destination', async () => {
+        // The origin holds its own query string, so the value has to survive
+        // encoding whole — an unencoded `&to=EUR` would arrive as a separate
+        // param and the back button would land on half a URL.
         const origin = '/profile/exchange-rate?from=USD&to=EUR'
         renderWithUrl(`?drawer=add&returnTo=${encodeURIComponent(origin)}`)
 
         fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
-        await waitFor(() =>
-            expect(mockPush).toHaveBeenCalledWith(`/add-money?method=bank&returnTo=${encodeURIComponent(origin)}`)
-        )
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith(`/get-paid?returnTo=${encodeURIComponent(origin)}`))
     })
 
     it('hides the bottom nav while open and releases the hold once closed', async () => {
