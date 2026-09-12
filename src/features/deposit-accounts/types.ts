@@ -62,6 +62,32 @@ export interface DepositMatching {
 }
 
 /**
+ * The documented terms behind a corridor's sender policy, as the backend
+ * returns them. Every field is optional and absence means "nothing published",
+ * never a default: a corridor with no terms carries no `rules` at all rather
+ * than a row of zeros the screens would read as promises.
+ *
+ * Source of truth is peanut-api-ts `src/deposit-accounts/bridge-adapter.ts`,
+ * which derives these from
+ * `product/providers/fiat/bridge-contracts-and-rail-rules.md` §3. The app
+ * renders them and authors none of them.
+ */
+export interface DepositRules {
+    /** most one private person may send in one payment */
+    individualPerPaymentCap?: { amount: string; currency: string }
+    /** family sharing the user's surname is not held to the cap */
+    familySameSurnameExempt?: boolean
+    /** a registered business may send any amount */
+    businessesUnlimited?: boolean
+    /** whether a private person may pay in at all */
+    individualsAllowed?: boolean
+    /** smallest payment the rail accepts */
+    min?: { amount: string; currency: string }
+    /** why the policy is narrower than the corridor's own rule */
+    reason?: 'state-restricted'
+}
+
+/**
  * Provider instructions, normalised. Every field is optional except the
  * holder name, because corridors genuinely differ: Mexican SPEI returns a
  * CLABE and no bank name at all, UK Faster Payments returns no beneficiary
@@ -104,6 +130,8 @@ export interface DepositAccount {
     /** the details we hand to a NEW payer; a retiring account is false */
     isPrimary: boolean
     matching: DepositMatching
+    /** the terms behind `matching.sender`; absent where none are published */
+    rules?: DepositRules
     /** present once status is `active` */
     instructions?: DepositInstructions
 }
@@ -116,17 +144,6 @@ export interface DepositRail {
     flagIso2: string
     /** how many rows the details card shows, so the provisioning skeleton matches it */
     detailRowCount: number
-    /**
-     * What we can honestly say about who may pay in, BEFORE an account exists.
-     * The account's own `matching.sender` is the truth once it does.
-     */
-    expectedSender: SenderPolicy
-    /**
-     * Cap on one payment from a private person, where it is proved. Business
-     * payers are exempt from Bridge's — quoting it as a flat third-party cap
-     * would understate what an employer can send.
-     */
-    personCap?: string
     /** false where the corridor cannot be held as a reusable account */
     claimable?: false
     /** where a corridor that cannot be claimed does its real top-up instead */

@@ -370,10 +370,14 @@ let demoAvatarKey: string | null = null
 // ---- routes (ordered: literal paths before :param paths) ----
 
 /**
- * The euro account the demo user holds. Shaped like Bridge sandbox output, with
- * documentation values rather than real coordinates. The holder is the partner
- * that holds euro accounts rather than the user, which is exactly the fact the
- * details screen exists to explain before somebody hands these out.
+ * The euro account the demo user holds, shaped like sandbox output with
+ * documentation coordinates instead of real ones.
+ *
+ * Sandbox opens the account in the user's own name, so `nameOnAccount` is
+ * `user` and the holder is the demo user. `matching.sender` and `rules` are
+ * the backend's answer for SEPA and the only thing the screens read: euro
+ * takes business payments, individuals are not agreed yet, and the rail has a
+ * 1 EUR floor.
  */
 const DEMO_DEPOSIT_ACCOUNT_EUR = {
     id: 'demo-deposit-account-eur',
@@ -382,15 +386,16 @@ const DEMO_DEPOSIT_ACCOUNT_EUR = {
     currency: 'EUR',
     status: 'active',
     isPrimary: true,
-    matching: { nameOnAccount: 'provider', sender: 'unknown', memo: 'none', amount: 'flexible' },
+    matching: { nameOnAccount: 'user', sender: 'business-only', memo: 'none', amount: 'flexible' },
+    rules: { businessesUnlimited: true, individualsAllowed: false, min: { amount: '1', currency: 'EUR' } },
     instructions: {
-        accountHolderName: 'Bridge Building Sp. z o.o.',
+        accountHolderName: 'Demo User',
         bankName: 'Modern Treasury Bank',
         bankAddress: 'Rue du Commerce 4, 1000 Brussels, Belgium',
         iban: 'DE89 3704 0044 0532 0130 00',
         bic: 'MTBEBEBB',
-        beneficiaryName: 'Bridge Building Sp. z o.o.',
-        beneficiaryAddress: 'ul. Prosta 51, 00-838 Warszawa, Poland',
+        beneficiaryName: 'Demo User',
+        beneficiaryAddress: 'Prinsengracht 263, 1016 GV Amsterdam, Netherlands',
         paymentRails: ['sepa'],
     },
 }

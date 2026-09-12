@@ -9,10 +9,9 @@ const pulse = 'animate-pulse rounded bg-foreground-primary/10'
  * title sentence, the holder notice, the section heading, a card with the
  * same row count — so nothing jumps when the details arrive.
  */
-export function DepositDetailsSkeleton({ rows, withNotice }: { rows: number; withNotice: boolean }) {
+export function DepositDetailsSkeleton({ rows }: { rows: number }) {
     return (
         <>
-            {withNotice && <div className={`h-16 w-full ${pulse}`} />}
             <div className="flex flex-col gap-2" data-testid="deposit-details-skeleton">
                 <div className={`h-5 w-28 ${pulse}`} />
                 <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">

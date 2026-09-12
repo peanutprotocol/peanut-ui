@@ -1692,36 +1692,21 @@
             "errorBody": "Tus cuentas están bien: solo no pudimos leerlas. Revisá tu conexión y probá de nuevo."
         },
         "claim": {
-            "heading": "Abrí tu cuenta en {currency}",
-            "benefitStable": "Los datos no cambian, así que los compartís una sola vez.",
-            "benefitBalance": "La plata llega a tu saldo de Peanut en USD.",
-            "subheading": "Datos bancarios que no cambian, así que los compartís una sola vez. {arrival}",
-            "benefit": {
-                "unknown": "Cualquier monto, sin referencia que recordar. Todavía no está confirmado si alguien más te puede pagar ahí.",
-                "own-name-only": "Ingresá plata desde una cuenta bancaria a tu nombre."
-            }
+            "benefitStable": "Compartí estos datos una sola vez — quedan igual para cada pago después.",
+            "benefitBalance": "La plata llega a tu saldo de Peanut en USD."
         },
         "details": {
-            "pooledOwnNameOnly": "{holder} recibe los depósitos en {currency} de Peanut. Enviá desde tu propia cuenta bancaria y la plata llega a tu saldo.",
             "unavailableTitle": "Todavía no tenés datos en {currency}",
             "failedBody": "No se cobró nada. Probá de nuevo en un momento o elegí otra moneda.",
-            "sender": {
-                "unknown": "Se puede pagar cualquier monto a estos datos, sin ninguna referencia que recordar. No confirmamos con nuestro socio si alguien más te puede pagar ahí: avisanos si un pago se devuelve.",
-                "own-name-only": "Ingresá plata desde una cuenta bancaria a tu nombre. Estos datos no aceptan pagos de otras personas."
-            },
             "revokedBody": "Lo que manden a esos datos vuelve a quien lo envió. Avisale a quien te paga que deje de usarlos y abrí datos nuevos.",
             "topUpCta": "Ingresar {currency} de otra forma",
             "exactAmountCta": "Depositar un monto fijo"
         },
         "share": {
             "subheading": "Enviale esto a quien te vaya a pagar. Es lo mismo para cada pago.",
-            "nameWarningTitle": "Avisale sobre el nombre",
             "textIntroOwn": "Estos son mis datos bancarios para cobrar en {currency}:",
             "textReference": "Poné {memo} en el campo de referencia de la transferencia. Sin eso, el pago se devuelve.",
-            "senderWarningTitle": "Decile quién puede pagar",
-            "textSender": {
-                "unknown": "Por favor pagá desde una cuenta de empresa. Todavía no confirmamos con nuestro socio que se acepte un pago desde una cuenta personal. Si un pago se devuelve, avisame y lo resolvemos."
-            }
+            "calloutTitle": "Contales esto"
         },
         "gate": {
             "verifyTitle": "Primero verificá tu identidad",
@@ -1729,6 +1714,26 @@
             "waitBody": "No tenés que hacer nada. Esta pantalla se actualiza sola.",
             "emailBody": "Tu identidad está verificada. Nunca recibimos un correo para pasarle a nuestro socio, así que no podemos abrir la cuenta hasta que agregues uno.",
             "emailCta": "Agregá tu email"
+        },
+        "rules": {
+            "anyone": {
+                "why": "Nuestro socio bancario acepta pagos de otras personas en esta moneda, así que podés dar estos datos a quien te pague."
+            },
+            "individualCap": {
+                "why": "Nuestro socio bancario limita un pago único de una persona. Más de {cap} de una vez se devuelve, así que pedí varios pagos o que la plata venga de una cuenta de empresa."
+            },
+            "individualsNotAllowed": {
+                "payer": "Por favor pagá desde una cuenta de empresa. Un pago desde una cuenta personal se devuelve."
+            },
+            "stateRestricted": {
+                "line": "Solo vos podés ingresar plata, desde una cuenta bancaria a tu nombre."
+            },
+            "ownName": {
+                "line": "Ingresá plata desde una cuenta bancaria a tu nombre."
+            },
+            "unpublished": {
+                "why": "Solo indicamos lo que nuestro socio bancario confirmó para esta moneda, y no dijo nada sobre pagos de otras personas. Los datos funcionan; si alguna vez un pago se devuelve, avisanos y lo resolvemos."
+            }
         }
     }
 }

@@ -1,9 +1,11 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
+import { formatCurrencyAmount } from '@/utils/currency'
 import type { RailLabels } from './instructionRows'
-import type { DepositCorridor, DepositRowLabels, SenderPolicy } from './types'
+import { depositRuleLines, type DepositRuleKey } from './ruleLines'
+import type { DepositCorridor, DepositMatching, DepositRowLabels, DepositRules } from './types'
 
 /**
  * Catalog keys per corridor, written out rather than built by template so the
@@ -50,6 +52,14 @@ const UNCLAIMABLE_KEYS = {
  */
 const RAIL_LABEL_KEYS = ['ach_push', 'fednow', 'wire', 'sepa', 'faster_payments', 'spei', 'pix', 'transfer_ar'] as const
 
+/** one rule, in the three voices the screens and the shared text need */
+export interface ResolvedRuleLine {
+    key: DepositRuleKey
+    text: string
+    payer: string
+    why: string
+}
+
 /**
  * Copy for the deposit-account screens, in one place.
  *
@@ -88,24 +98,42 @@ export function useDepositAccountCopy() {
     }, [t])
 
     /**
-     * The sender rule as a line the payer reads, for the text that leaves the
-     * app. `anyone` has no entry: there is nothing to warn a payer about.
+     * The rules for one account, resolved into the three voices a rule needs:
+     * `text` for the holder reading their own screen, `payer` for the text
+     * that leaves the app, and `why` for the (i) behind the line.
+     *
+     * One resolver, so a rule can never be stated on screen and missing from
+     * the message a payer actually reads.
      */
-    const senderNotes: Partial<Record<SenderPolicy, string>> = useMemo(
-        () => ({
-            'business-only': t('share.textSender.business-only'),
-            unknown: t('share.textSender.unknown'),
-        }),
+    const ruleLines = useCallback(
+        (matching: DepositMatching, rules: DepositRules | undefined, user: string): ResolvedRuleLine[] =>
+            depositRuleLines(matching, rules, formatCurrencyAmount).map(({ key, values }) => {
+                // `user` is only read by the provider-held line; passing it to
+                // every string is cheaper than a per-key values table.
+                const all = { user, ...values }
+                return {
+                    key,
+                    text: t(`rules.${key}.line`, all),
+                    payer: t(`rules.${key}.payer`, all),
+                    why: t(`rules.${key}.why`, all),
+                }
+            }),
         [t]
     )
 
     const railName = (corridor: DepositCorridor) => t(RAIL_NAME_KEYS[corridor])
     const arrival = (corridor: DepositCorridor) => t(ARRIVAL_KEYS[corridor])
     const arrivalDetail = (corridor: DepositCorridor) => t(ARRIVAL_DETAIL_KEYS[corridor])
-    const unclaimableReason = (corridor: DepositCorridor) => {
+    /**
+     * Why a corridor is never a standing account, in both voices: `text` for
+     * the row body and the empty state, `why` for the (i) behind it — the
+     * exchange-binding and US-nationality rule (`product/providers/fiat/
+     * eligibility.md`) that the short sentence has no room for.
+     */
+    const unclaimableReason = (corridor: DepositCorridor): { text: string; why: string } | undefined => {
         const key = UNCLAIMABLE_KEYS[corridor as keyof typeof UNCLAIMABLE_KEYS]
-        return key ? t(key) : undefined
+        return key ? { text: t(`${key}.line`), why: t(`${key}.why`) } : undefined
     }
 
-    return { t, rowLabels, railLabels, senderNotes, railName, arrival, arrivalDetail, unclaimableReason }
+    return { t, rowLabels, railLabels, ruleLines, railName, arrival, arrivalDetail, unclaimableReason }
 }

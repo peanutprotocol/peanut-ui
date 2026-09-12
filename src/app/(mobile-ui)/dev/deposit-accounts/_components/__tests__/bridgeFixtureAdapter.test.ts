@@ -20,7 +20,7 @@ const RAIL_LABELS = enMessages.depositAccounts.rows.rails as RailLabels
 const shareCopy = (account: DepositAccount, user: string) => ({
     introOwn: `Here are my bank details to get paid in ${account.currency}:`,
     introPooled: `Bank details to pay ${user} in ${account.currency}:`,
-    senderNotes: {},
+    rules: [],
     outro: 'Sent from Peanut · peanut.me',
 })
 
@@ -61,17 +61,33 @@ describe('bridge adapter', () => {
     })
 
     /**
-     * product/providers/fiat/rails/virtual-accounts.md: GBP is "1st party and
-     * 3rd party business" only, USD/EUR/MXN are documented nowhere — and that
-     * file is explicit that silence is not permission. USD is the exception:
-     * Bridge caps person-to-person and exempts businesses, which only makes
-     * sense if a private payer is allowed at all.
+     * The harness mirrors peanut-api-ts `src/deposit-accounts/bridge-adapter.ts`,
+     * which reads `product/providers/fiat/bridge-contracts-and-rail-rules.md`
+     * §3: USD permits third parties on published terms, EUR and GBP take
+     * business payments only, and MXN is documented nowhere — silence is not
+     * permission, so it stays unknown.
      */
-    it('only promises third-party payment where the corridor proves it', () => {
+    it('carries the per-rail sender policy the backend publishes', () => {
         expect(byCurrency('USD').matching.sender).toBe('anyone')
         expect(byCurrency('GBP').matching.sender).toBe('business-only')
-        expect(byCurrency('EUR').matching.sender).toBe('unknown')
+        expect(byCurrency('EUR').matching.sender).toBe('business-only')
         expect(byCurrency('MXN').matching.sender).toBe('unknown')
+    })
+
+    /** Terms ride with the policy, and a corridor with none carries none. */
+    it('carries the published terms, and nothing where there are none', () => {
+        expect(byCurrency('USD').rules).toEqual({
+            individualPerPaymentCap: { amount: '4000', currency: 'USD' },
+            familySameSurnameExempt: true,
+            businessesUnlimited: true,
+        })
+        expect(byCurrency('EUR').rules).toEqual({
+            businessesUnlimited: true,
+            individualsAllowed: false,
+            min: { amount: '1', currency: 'EUR' },
+        })
+        expect(byCurrency('GBP').rules).toBeUndefined()
+        expect(byCurrency('MXN').rules).toBeUndefined()
     })
 
     it('treats a deactivated account as revoked, not as still setting up', () => {

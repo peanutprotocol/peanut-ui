@@ -10,6 +10,7 @@ import { resolveScreen } from '../resolveScreen'
 import type { DepositAccount, DepositCorridor, ReturnedPayment } from '../types'
 import type { DepositClaimError } from '../useDepositAccounts'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import NavHeader from '@/components/Global/NavHeader'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { ClaimAccountScreen } from './ClaimAccountScreen'
@@ -62,7 +63,7 @@ export function DepositAccountsFlow({
     onRetry,
 }: DepositAccountsFlowProps) {
     const [{ screen, corridor }, setParams] = useQueryStates(DEPOSIT_ACCOUNT_PARAMS)
-    const { t } = useDepositAccountCopy()
+    const { t, railName } = useDepositAccountCopy()
     const rail = DEPOSIT_RAILS[corridor]
     const account = accounts[corridor]
     const gate = gates[corridor]
@@ -91,7 +92,15 @@ export function DepositAccountsFlow({
             <PageStack>
                 <NavHeader title={t('title')} onPrev={onExit} />
                 <div className="flex flex-col gap-6">
-                    <DepositDetailsSkeleton rows={rail.detailRowCount} withNotice />
+                    {/* Real heading and status line — only the card underneath is a
+                        skeleton, so a claimed corridor reads as "your account is
+                        coming" rather than an unlabelled loading box. */}
+                    <TitleBlock
+                        size="s"
+                        title={t('details.heading', { currency: rail.currency, rail: railName(rail.corridor) })}
+                        description={t('details.provisioning', { currency: rail.currency })}
+                    />
+                    <DepositDetailsSkeleton rows={rail.detailRowCount} />
                 </div>
             </PageStack>
         )
@@ -112,6 +121,7 @@ export function DepositAccountsFlow({
                 isClaiming={claimingCorridor === corridor}
                 // a failure on another corridor is not this screen's news
                 error={claimError?.corridor === corridor ? claimError.message : undefined}
+                userName={userName}
                 // no screen change here: once the account exists, resolveScreen
                 // moves the user on by itself, and if it never does the error
                 // renders on this screen rather than nowhere

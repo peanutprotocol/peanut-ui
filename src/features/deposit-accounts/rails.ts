@@ -1,31 +1,6 @@
 import type { DepositCorridor, DepositRail, SenderPolicy } from './types'
 
 /**
- * Who Bridge lets pay into a virtual account, per currency.
- *
- * Source: `product/providers/fiat/rails/virtual-accounts.md` — "BRL, GBP and
- * COP say 'only 1st party and 3rd party business payments supported'. USD, EUR
- * and MXN carry no note either way — the docs are silent, not permissive."
- * USD is the one corridor with positive evidence of a private payer: Bridge
- * runs a person-to-person cap on it and exempts businesses, and a cap on a
- * thing is evidence the thing is allowed (`product/providers/fiat/ASSESSMENT.md`).
- *
- * Everything else stays `unknown` until Bridge answers, because the screens
- * only promise what a corridor can prove. A product build gets this per
- * account from the backend contract and deletes this map.
- */
-const BRIDGE_SENDER_POLICY: Record<string, SenderPolicy> = {
-    ACH_US: 'anyone',
-    FASTER_PAYMENTS_GB: 'business-only',
-    SEPA_EU: 'unknown',
-    SPEI_MX: 'unknown',
-}
-
-export function bridgeSenderPolicy(corridor: DepositCorridor): SenderPolicy {
-    return BRIDGE_SENDER_POLICY[corridor] ?? 'unknown'
-}
-
-/**
  * The corridor catalogue: structure only. Every sentence a user reads lives in
  * the message catalog under `depositAccounts.corridors`, keyed by corridor —
  * rail names included, because "ACH or wire" and "Bank transfer" are English
@@ -40,7 +15,6 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         provider: 'bridge',
         flagIso2: 'eu',
         detailRowCount: 7,
-        expectedSender: 'unknown',
     },
     FASTER_PAYMENTS_GB: {
         corridor: 'FASTER_PAYMENTS_GB',
@@ -48,7 +22,6 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         provider: 'bridge',
         flagIso2: 'gb',
         detailRowCount: 6,
-        expectedSender: 'business-only',
     },
     ACH_US: {
         corridor: 'ACH_US',
@@ -56,8 +29,6 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         provider: 'bridge',
         flagIso2: 'us',
         detailRowCount: 7,
-        expectedSender: 'anyone',
-        personCap: '$4,000',
     },
     SPEI_MX: {
         corridor: 'SPEI_MX',
@@ -65,7 +36,6 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         provider: 'bridge',
         flagIso2: 'mx',
         detailRowCount: 3,
-        expectedSender: 'unknown',
     },
     PIX_BR: {
         corridor: 'PIX_BR',
@@ -73,7 +43,6 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         provider: 'manteca',
         flagIso2: 'br',
         detailRowCount: 3,
-        expectedSender: 'own-name-only',
         claimable: false,
         topUpHref: '/add-money/brazil/manteca',
     },
@@ -83,7 +52,6 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         provider: 'manteca',
         flagIso2: 'ar',
         detailRowCount: 5,
-        expectedSender: 'own-name-only',
         claimable: false,
         topUpHref: '/add-money/argentina/manteca',
     },
@@ -106,15 +74,11 @@ export function isClaimable(rail: DepositRail): boolean {
 /**
  * May these details be handed to somebody else at all?
  *
- * `unknown` shares. Bridge names restrictions where it has them — Pix and
- * Faster Payments are documented as first-party and third-party BUSINESS only,
- * and USD is documented permissively with a person-to-person cap — while EUR
- * and SPEI carry no sender rule either way. Withholding the feature over that
- * silence costs more than it protects, so the details are shareable and the
- * copy simply does not promise what Bridge has not said.
- *
- * Only `own-name-only` is withheld, because there the provider has told us
- * plainly that nobody else may pay in.
+ * The answer is `matching.sender`, which the backend derives from the rail
+ * rules. Only `own-name-only` is withheld: there the provider has said plainly
+ * that nobody else may pay in, so a Share button would offer details that
+ * return whatever is sent to them. Every other policy shares, and the copy
+ * carries the terms rather than the feature being withheld.
  */
 export function isShareable(sender: SenderPolicy): boolean {
     return sender !== 'own-name-only'

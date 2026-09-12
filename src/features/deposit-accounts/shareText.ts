@@ -1,5 +1,5 @@
 import { instructionRows, type RailLabels } from './instructionRows'
-import type { DepositAccount, DepositRowLabels, SenderPolicy } from './types'
+import type { DepositAccount, DepositRowLabels } from './types'
 
 export interface ShareTextCopy {
     /** "Here are my bank details to get paid in {currency}:" */
@@ -9,11 +9,11 @@ export interface ShareTextCopy {
     /** "Put {memo} in the reference field…" */
     reference?: string
     /**
-     * Who may pay in, per policy. The text is forwarded to people who will
-     * never see a Peanut screen, so the rule has to travel with the numbers.
-     * A policy with nothing to warn about (`anyone`) has no entry.
+     * The account's rules, in the payer's voice. The text is forwarded to
+     * people who will never see a Peanut screen, so every rule the app states
+     * beside the numbers has to travel with them.
      */
-    senderNotes: Partial<Record<SenderPolicy, string>>
+    rules: string[]
     outro: string
 }
 
@@ -21,15 +21,14 @@ export interface ShareTextCopy {
  * The text a user hands to whoever is paying them.
  *
  * The possessive is one of two cares here. "My bank details" is only true when
- * the account is in the user's own name; on a pooled corridor the holder is
- * the provider's legal entity, and calling that "my account" is a claim we
- * cannot make to a third party. So the framing reads `nameOnAccount` — never
- * a per-string judgement, and never a per-provider one.
+ * the account is in the user's own name; where our banking partner holds it,
+ * calling it "my account" is a claim we cannot make to a third party. So the
+ * framing reads `nameOnAccount` — never a per-string judgement.
  *
- * The other is the sender rule. In the app we can say "only a company may pay
- * into this" beside the details; the moment the details are copied out, that
- * sentence is gone and a private payer's transfer is returned days later. So
- * the rule is a line IN the text, not a banner next to it.
+ * The other is the rules. In the app we can say who may pay in beside the
+ * details; the moment the details are copied out, that sentence is gone and a
+ * refused transfer comes back weeks later. So the rules are lines IN the text,
+ * not a banner next to it.
  */
 export function buildShareText(
     account: DepositAccount,
@@ -51,8 +50,7 @@ export function buildShareText(
         lines.push('', copy.reference)
     }
 
-    const senderNote = copy.senderNotes[account.matching.sender]
-    if (senderNote) lines.push('', senderNote)
+    if (copy.rules.length > 0) lines.push('', ...copy.rules)
 
     lines.push('', copy.outro)
     return lines.join('\n')

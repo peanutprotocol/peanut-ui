@@ -3964,27 +3964,20 @@
             "errorRetry": "Intentar de nuevo"
         },
         "claim": {
-            "heading": "Abre tu cuenta en {currency}",
-            "subheading": "Datos bancarios que no cambian, así que los compartes una sola vez. {arrival}",
-            "benefitStable": "Los datos no cambian, así que los compartes una sola vez.",
+            "heading": "Tu propia cuenta en {currency}",
+            "subheading": "Datos bancarios reales que tu empleador, cliente o plataforma ya sabe usar.",
+            "previewTitle": "Cómo se van a ver tus datos",
+            "previewCaption": "Solo un ejemplo — tus números reales aparecen cuando la cuenta esté abierta.",
+            "conditionTerms": "Quién puede pagarte depende de los términos de {currency}. Los verás en cuanto la cuenta esté abierta.",
+            "benefitStable": "Comparte estos datos una sola vez — quedan igual para cada pago después.",
             "benefitBalance": "El dinero llega a tu saldo de Peanut en USD.",
-            "benefitCap": "Una persona puede enviarte hasta {cap} cada vez. Una empresa no tiene límite.",
-            "benefitNoReference": "Sin referencia ni concepto que recordar.",
+            "conditionNoReference": "Sin referencia ni concepto que recordar.",
             "cta": "Abrir cuenta en {currency}",
-            "errorTitle": "No pudimos abrir la cuenta",
-            "benefit": {
-                "anyone": "Cualquiera te puede pagar: un empleador, un cliente, una plataforma.",
-                "business-only": "Una empresa te puede pagar: un empleador, un cliente o una plataforma. Un pago desde la cuenta de una persona se devuelve.",
-                "unknown": "Cualquier monto, sin referencia que recordar. Todavía no está confirmado si alguien más puede pagarte ahí.",
-                "own-name-only": "Ingresa dinero desde una cuenta bancaria a tu nombre."
-            }
+            "errorTitle": "No pudimos abrir la cuenta"
         },
         "details": {
             "heading": "{currency} · {rail}",
-            "provisioning": "Estamos preparando tus datos en {currency}. Suele tardar menos de un minuto.",
-            "pooledTitle": "La cuenta no está a tu nombre",
-            "pooledShared": "Quien te paga ve {holder}, el socio que tiene las cuentas en {currency} de Peanut, y no a {user}. Es lo esperado.",
-            "pooledOwnNameOnly": "{holder} recibe los depósitos en {currency} de Peanut. Envía desde tu propia cuenta bancaria y el dinero llega a tu saldo.",
+            "provisioning": "Preparando tu cuenta en {currency}, normalmente en menos de un minuto.",
             "sectionTitle": "Datos bancarios",
             "returnedTitle": "Se devolvió un pago",
             "returnedBody": "{amount} de {payer} del {date} volvió a quien lo envió: {reason}",
@@ -3996,24 +3989,16 @@
             "failedTitle": "No pudimos abrir tu cuenta en {currency}",
             "failedBody": "No se cobró nada. Inténtalo de nuevo en un momento o elige otra moneda.",
             "failedRetry": "Intentar de nuevo",
-            "sender": {
-                "anyone": "Cualquiera puede pagar cualquier monto a estos datos. No hay referencia que recordar.",
-                "business-only": "Una empresa puede pagar cualquier monto a estos datos. Un pago desde la cuenta de una persona se devuelve.",
-                "unknown": "Se puede pagar cualquier monto a estos datos, sin ninguna referencia que recordar. No confirmamos con nuestro socio si alguien más puede pagarte ahí: avísanos si un pago se devuelve.",
-                "own-name-only": "Ingresa dinero desde una cuenta bancaria a tu nombre. Estos datos no aceptan pagos de otras personas."
-            },
-            "personCap": "Una persona puede enviarte hasta {cap} cada vez. Una empresa no tiene límite.",
             "revokedTitle": "Tus datos en {currency} ya no funcionan",
             "revokedBody": "Lo que envíen a esos datos vuelve a quien lo mandó. Avisa a quien te paga que deje de usarlos y abre datos nuevos.",
             "topUpCta": "Ingresar {currency} de otra forma",
-            "exactAmountCta": "Depositar un monto fijo"
+            "exactAmountCta": "Depositar un monto fijo",
+            "whoCanPay": "Quién puede pagarte"
         },
         "share": {
             "heading": "Esto ve quien te paga",
             "subheading": "Envíale esto a quien te vaya a pagar. Es lo mismo para cada pago.",
             "sectionTitle": "Pagar a {user} en {currency}",
-            "nameWarningTitle": "Avísale sobre el nombre",
-            "nameWarningBody": "La cuenta es de {holder}, así que ese es el nombre de la transferencia, no {user}. Algunos formularios de nómina rechazan un nombre que no esperan.",
             "shareCta": "Compartir",
             "copyCta": "Copiar como texto",
             "copied": "Datos copiados",
@@ -4024,11 +4009,7 @@
             "textOutro": "Enviado desde Peanut · peanut.me",
             "sheetTitleOwn": "Mis datos bancarios",
             "sheetTitlePooled": "Datos bancarios para pagarle a {user}",
-            "senderWarningTitle": "Dile quién puede pagar",
-            "textSender": {
-                "business-only": "Solo una empresa puede pagar en esta cuenta: un empleador, un cliente o una plataforma. Un pago desde la cuenta personal de alguien se devuelve.",
-                "unknown": "Por favor paga desde una cuenta de empresa. Todavía no confirmamos con nuestro socio que se acepte un pago desde una cuenta personal. Si un pago se devuelve, avísame y lo resolvemos."
-            }
+            "calloutTitle": "Cuéntales esto"
         },
         "rows": {
             "accountHolder": "Titular de la cuenta",
@@ -4082,13 +4063,19 @@
             "PIX_BR": {
                 "arrival": "En minutos",
                 "arrivalDetail": "Las transferencias Pix suelen llegar en minutos.",
-                "unclaimable": "En Brasil el depósito es un código Pix para un solo pago, desde tu propia cuenta.",
+                "unclaimable": {
+                    "line": "En Brasil el depósito es un código Pix para un solo pago, desde tu propia cuenta.",
+                    "why": "Nuestro socio bancario vincula tu cuenta al país de tu documento legal, un país a la vez. Una persona con nacionalidad estadounidense no puede usar transferencias bancarias acá, viva donde viva."
+                },
                 "railName": "Pix"
             },
             "BANK_TRANSFER_AR": {
                 "arrival": "En minutos",
                 "arrivalDetail": "Las transferencias en Argentina suelen llegar en minutos.",
-                "unclaimable": "En Argentina el depósito tiene que venir de una cuenta a tu nombre.",
+                "unclaimable": {
+                    "line": "En Argentina el depósito tiene que venir de una cuenta a tu nombre.",
+                    "why": "Nuestro socio bancario vincula tu cuenta al país de tu documento legal, un país a la vez. Una persona con nacionalidad estadounidense no puede usar transferencias bancarias acá, viva donde viva."
+                },
                 "railName": "Transferencia bancaria"
             }
         },
@@ -4105,6 +4092,63 @@
             "emailTitle": "Necesitamos un correo electrónico",
             "emailBody": "Tu identidad está verificada. Nunca recibimos un correo para pasarle a nuestro socio, así que no podemos abrir la cuenta hasta que agregues uno.",
             "emailCta": "Agrega tu email"
+        },
+        "rules": {
+            "providerHeld": {
+                "line": "La cuenta la mantiene nuestro socio bancario en tu nombre.",
+                "payer": "La cuenta la mantiene nuestro socio bancario en nombre de {user}.",
+                "why": "El dinero que entra igual llega a tu saldo de Peanut. El nombre de la cuenta es el del socio, no el tuyo, así que un formulario de nómina que revise el nombre necesita el titular que se muestra arriba."
+            },
+            "anyone": {
+                "line": "Cualquiera puede pagarte: un empleador, un cliente o una plataforma.",
+                "payer": "Cualquiera puede pagar a esta cuenta.",
+                "why": "Nuestro socio bancario acepta pagos de otras personas en esta moneda, así que puedes dar estos datos a quien te pague."
+            },
+            "businessesUnlimited": {
+                "line": "Una empresa puede pagarte cualquier monto: un empleador, un cliente o una plataforma.",
+                "payer": "Una empresa puede pagar cualquier monto a esta cuenta.",
+                "why": "Un banco trata la transferencia de una empresa como un pago comercial, así que nuestro socio bancario no le pone límite. El sueldo y las facturas pasan sin cambios."
+            },
+            "familyExempt": {
+                "line": "Los familiares que comparten tu apellido pueden pagarte cualquier monto.",
+                "payer": "Los familiares que comparten el apellido del titular pueden pagar cualquier monto.",
+                "why": "Una transferencia de un familiar con el mismo apellido se compara con el nombre de la cuenta, así que no se lee como un pago de un desconocido y el límite por pago no aplica."
+            },
+            "individualCap": {
+                "line": "Cualquier otra persona puede pagarte hasta {cap} en un pago.",
+                "payer": "Cualquier otra persona puede enviar hasta {cap} en un pago.",
+                "why": "Nuestro socio bancario limita un pago único de una persona. Más de {cap} de una vez se devuelve, así que pide varios pagos o que el dinero venga de una cuenta de empresa."
+            },
+            "individualsNotAllowed": {
+                "line": "Por ahora, un pago desde la cuenta propia de una persona se devuelve.",
+                "payer": "Por favor paga desde una cuenta de empresa. Un pago desde una cuenta personal se devuelve.",
+                "why": "Nuestro socio bancario todavía no acordó un monto para pagos de personas en esta moneda. Lo diremos acá el día que lo haga."
+            },
+            "businessOnly": {
+                "line": "Una empresa puede pagarte: un empleador, un cliente o una plataforma. Un pago desde la cuenta propia de una persona se devuelve.",
+                "payer": "Solo una empresa puede pagar a esta cuenta: un empleador, un cliente o una plataforma. Un pago desde una cuenta personal se devuelve.",
+                "why": "Nuestro socio bancario acepta transferencias de empresas en esta moneda y no las personales. Una transferencia personal vuelve al remitente unos días después."
+            },
+            "minimum": {
+                "line": "El pago mínimo es {min}.",
+                "payer": "El pago mínimo es {min}.",
+                "why": "Por debajo de {min} el riel bancario rechaza la transferencia, así que un pago de prueba de unos centavos nunca llega."
+            },
+            "stateRestricted": {
+                "line": "Solo tú puedes ingresar dinero, desde una cuenta bancaria a tu nombre.",
+                "payer": "Solo el titular puede pagar a esta cuenta.",
+                "why": "El estado de tu dirección no permite que nadie más pague a una cuenta como esta. Tus propias transferencias funcionan normal y los datos siguen siendo válidos."
+            },
+            "ownName": {
+                "line": "Ingresa dinero desde una cuenta bancaria a tu nombre.",
+                "payer": "Solo el titular puede pagar a esta cuenta.",
+                "why": "Nuestro socio bancario solo acredita una transferencia que venga de una cuenta a tu nombre. Un pago de cualquier otra persona se le devuelve."
+            },
+            "unpublished": {
+                "line": "Cualquier monto y sin referencia que recordar.",
+                "payer": "Cualquier monto y sin referencia que recordar.",
+                "why": "Solo indicamos lo que nuestro socio bancario confirmó para esta moneda, y no dijo nada sobre pagos de otras personas. Los datos funcionan; si alguna vez un pago se devuelve, avísanos y lo resolvemos."
+            }
         }
     }
 }

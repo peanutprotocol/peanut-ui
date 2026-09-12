@@ -16,6 +16,7 @@ import { isShareable } from '../rails'
 import type { DepositAccount, DepositRail, ReturnedPayment } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { DepositDetailsCard } from './DepositDetailsCard'
+import { DepositRuleList, RuleWithInfo } from './DepositRuleList'
 import { DepositDetailsSkeleton } from './DepositDetailsSkeleton'
 
 /**
@@ -44,18 +45,20 @@ export function DepositAccountDetailsScreen({
     rail: DepositRail
     account: DepositAccount
     returnedPayment?: ReturnedPayment
+    /** the name a payer reads when the account is NOT in the user's own name */
     userName: string
     onBack: () => void
     onShare: () => void
     onRetry: () => void
 }) {
-    const { t, rowLabels, railLabels, arrivalDetail, railName, unclaimableReason } = useDepositAccountCopy()
+    const { t, rowLabels, railLabels, arrivalDetail, railName, ruleLines, unclaimableReason } = useDepositAccountCopy()
     // The Manteca top-up lives at /add-money/[country]/manteca, a dynamic route
     // the native static export does not ship. rewriteMethodPath turns it into
     // the query-backed parent the export does have; on web it is a no-op.
     const topUpHref = rail.topUpHref ? rewriteMethodPath(rail.topUpHref) : undefined
 
     if (account.status === 'unavailable') {
+        const unclaimable = unclaimableReason(rail.corridor)
         return (
             <PageStack>
                 <NavHeader title={t('title')} onPrev={onBack} />
@@ -63,7 +66,13 @@ export function DepositAccountDetailsScreen({
                     <EmptyState
                         icon="globe-lock"
                         title={t('details.unavailableTitle', { currency: rail.currency })}
-                        description={unclaimableReason(rail.corridor) ?? t('details.unavailableBody')}
+                        description={
+                            unclaimable ? (
+                                <RuleWithInfo text={unclaimable.text} why={unclaimable.why} />
+                            ) : (
+                                t('details.unavailableBody')
+                            )
+                        }
                         cta={
                             topUpHref ? (
                                 // a corridor with no standing account still has a
@@ -130,10 +139,9 @@ export function DepositAccountDetailsScreen({
 
     const provisioning = account.status === 'provisioning'
     const rows = account.instructions ? instructionRows(account.instructions, rowLabels, railLabels) : []
-    const pooled = account.matching.nameOnAccount === 'provider'
     const ownNameOnly = account.matching.sender === 'own-name-only'
     const shareable = isShareable(account.matching.sender)
-    const holder = account.instructions?.accountHolderName ?? ''
+    const rules = ruleLines(account.matching, account.rules, userName)
 
     return (
         <PageStack>
@@ -145,10 +153,16 @@ export function DepositAccountDetailsScreen({
                     description={
                         provisioning
                             ? t('details.provisioning', { currency: rail.currency })
-                            : t(`details.sender.${account.matching.sender}`)
+                            : arrivalDetail(rail.corridor)
                     }
                 />
 
+                {/*
+                 * The screen's one Notification. A returned payment is the only
+                 * thing here the user has to act on; every other fact about the
+                 * account is a rule line, which states itself and explains
+                 * itself without a banner.
+                 */}
                 {returnedPayment && !provisioning && (
                     <Notification
                         priority="error"
@@ -165,29 +179,16 @@ export function DepositAccountDetailsScreen({
                 )}
 
                 {provisioning ? (
-                    <DepositDetailsSkeleton rows={rail.detailRowCount} withNotice={pooled} />
+                    <DepositDetailsSkeleton rows={rail.detailRowCount} />
                 ) : (
                     <>
-                        {pooled && (
-                            <Notification priority="info" title={t('details.pooledTitle')}>
-                                {ownNameOnly
-                                    ? t('details.pooledOwnNameOnly', { holder, currency: rail.currency })
-                                    : t('details.pooledShared', {
-                                          holder,
-                                          currency: rail.currency,
-                                          user: userName,
-                                      })}
-                            </Notification>
-                        )}
-
                         <Section title={t('details.sectionTitle')}>
                             <DepositDetailsCard rows={rows} />
                         </Section>
 
-                        <p className="text-body-xs text-foreground-secondary">
-                            {arrivalDetail(rail.corridor)}
-                            {rail.personCap ? ` ${t('details.personCap', { cap: rail.personCap })}` : ''}
-                        </p>
+                        <Section title={t('details.whoCanPay')}>
+                            <DepositRuleList lines={rules} />
+                        </Section>
 
                         {ownNameOnly && topUpHref && (
                             <LinkButton href={topUpHref}>
