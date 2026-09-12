@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import messages from '@/i18n/app/messages/en.json'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
@@ -62,6 +62,8 @@ const list = (
 const rowOf = (container: HTMLElement, corridor: DepositCorridor) =>
     container.querySelector(`[data-testid="deposit-account-${corridor}"]`)
 
+const inRow = (container: HTMLElement, corridor: DepositCorridor) => within(rowOf(container, corridor) as HTMLElement)
+
 /**
  * The corridors are a local catalogue and the accounts are a network call, so
  * the rows paint before anything is known about them. What the screen says in
@@ -71,12 +73,32 @@ const rowOf = (container: HTMLElement, corridor: DepositCorridor) =>
 describe('DepositAccountsListScreen', () => {
     it('claims nothing about a corridor while the accounts are still loading', () => {
         list(true)
-        expect(screen.queryByText(/not set up yet/i)).not.toBeInTheDocument()
+        expect(screen.queryByText(/not set up/i)).not.toBeInTheDocument()
     })
 
-    it('says a corridor is not set up once it knows that is true', () => {
-        list(false)
-        expect(screen.getAllByText(/not set up yet/i).length).toBeGreaterThan(0)
+    // Status belongs to the badge on every row, and the body to the arrival
+    // time alone. A row that said both ended up reading "Not set up yet"
+    // under a "Ready" pill.
+    it('says a corridor is not set up once it knows that is true, in the badge', () => {
+        const { container } = list(false)
+
+        expect(inRow(container, 'SEPA_EU').getByText('Not set up')).toBeInTheDocument()
+        expect(inRow(container, 'SEPA_EU').getByText('Same business day')).toBeInTheDocument()
+    })
+
+    it('carries a held corridor the same way — badge for status, body for arrival', () => {
+        const { container } = list(false, { accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') } })
+
+        expect(inRow(container, 'SEPA_EU').getByText('Ready')).toBeInTheDocument()
+        expect(inRow(container, 'SEPA_EU').getByText('Same business day')).toBeInTheDocument()
+    })
+
+    // Neither Manteca corridor is a standing account, and the rail says so
+    // whatever the accounts call returned.
+    it('badges a corridor nobody can hold as unavailable', () => {
+        const { container } = list(false)
+
+        expect(inRow(container, 'BANK_TRANSFER_AR').getByText('Unavailable')).toBeInTheDocument()
     })
 
     it('does not open a corridor whose state is not known yet', () => {

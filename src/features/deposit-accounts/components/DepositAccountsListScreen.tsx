@@ -12,7 +12,7 @@ import type { GateState } from '@/utils/capability-gate'
 import { depositGateView } from '../depositGate'
 import { DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, isClaimable, isShareable } from '../rails'
 import { isHeld } from '../resolveScreen'
-import type { DepositAccount, DepositCorridor } from '../types'
+import type { DepositAccount, DepositCorridor, DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { CorridorFlag } from './CorridorFlag'
 import { DepositGateNotice } from './DepositGateNotice'
@@ -48,7 +48,7 @@ export function DepositAccountsListScreen({
     onResolveGate: (gate: GateState) => void
     onRetry: () => void
 }) {
-    const { t, arrival, railName, unclaimableReason } = useDepositAccountCopy()
+    const { t, arrival, railName } = useDepositAccountCopy()
 
     const views = DEPOSIT_RAIL_ORDER.map((corridor) => ({ corridor, view: depositGateView(gates[corridor]) }))
     // The banner names one corridor the user could hold but cannot. Every
@@ -61,41 +61,47 @@ export function DepositAccountsListScreen({
     const blockedViews = views.filter(({ corridor, view }) => isClaimable(DEPOSIT_RAILS[corridor]) && view.notice)
     const blocked = blockedViews.find(({ view }) => view.notice?.action !== 'none') ?? blockedViews[0]
 
-    const rowBody = (corridor: DepositCorridor, account: DepositAccount | undefined, openable: boolean): string => {
+    // Status lives in the badge on every row, so the body only ever answers
+    // "when does the money land". Saying it in both places is how a row ended
+    // up reading "Not set up yet" under a "Ready" pill.
+    const rowBody = (corridor: DepositCorridor, openable: boolean): string => {
         // The corridors come from a local catalogue and the accounts from the
         // network, so the rows can paint before anything is known about them.
-        // Saying "not set up yet" in that gap is a wrong answer that corrects
-        // itself a moment later — the arrival time is true either way.
+        // The arrival time is true in that gap too.
         if (isLoading) return arrival(corridor)
-        const unclaimable = unclaimableReason(corridor)
-        if (unclaimable) return unclaimable.text
         if (!openable) return t('list.rowBlocked')
-        // no badge carries this one, so the body has to
-        if (account?.status === 'unavailable') return t('list.rowUnavailable')
-        // "Not set up yet" is the cue to tap, and there is no badge beside an
-        // unclaimed row to repeat it.
-        if (!account || account.status === 'unclaimed') return t('list.rowUnclaimed', { arrival: arrival(corridor) })
-        // Every other state wears a badge. The badge says where the account
-        // stands; the body says when money arrives — saying both in both
-        // places is how a row ended up reading "Ready to share" beside "Ready".
         return arrival(corridor)
     }
 
-    // a corridor that cannot be held as an account still works for the user's
-    // own top-up, so it gets no badge — the body line carries the difference
-    const rowBadge = (account: DepositAccount | undefined) => {
+    /**
+     * Where the corridor stands, in the one slot that carries status.
+     *
+     * A corridor nobody can hold as a standing account is unavailable whatever
+     * the accounts call returned, so the rail decides that case rather than the
+     * payload — a failed read must not invite a claim on AR or BR.
+     */
+    const rowBadge = (rail: DepositRail, account: DepositAccount | undefined) => {
         if (isLoading) return <div className="h-5 w-16 animate-pulse rounded bg-foreground-primary/10" />
-        if (account?.status === 'active')
-            return (
-                <StatusBadge
-                    status="completed"
-                    customText={isShareable(account.matching.sender) ? t('list.badgeReady') : t('list.badgeActive')}
-                />
-            )
-        if (account?.status === 'provisioning') return <StatusBadge status="pending" />
-        if (account?.status === 'failed') return <StatusBadge status="failed" />
-        if (account?.status === 'revoked') return <StatusBadge status="closed" />
-        return undefined
+        if (!isClaimable(rail) || account?.status === 'unavailable')
+            return <StatusBadge status="custom" customText={t('list.badgeUnavailable')} />
+        switch (account?.status) {
+            case 'active':
+            case 'retiring':
+                return (
+                    <StatusBadge
+                        status="completed"
+                        customText={isShareable(account.matching.sender) ? t('list.badgeReady') : t('list.badgeActive')}
+                    />
+                )
+            case 'provisioning':
+                return <StatusBadge status="pending" />
+            case 'failed':
+                return <StatusBadge status="failed" />
+            case 'revoked':
+                return <StatusBadge status="closed" customText={t('list.badgeRevoked')} />
+            default:
+                return <StatusBadge status="custom" customText={t('list.badgeNotSetUp')} />
+        }
     }
 
     return (
@@ -144,9 +150,9 @@ export function DepositAccountsListScreen({
                                     key={corridor}
                                     leading={<CorridorFlag iso2={rail.flagIso2} />}
                                     title={`${rail.currency} · ${railName(corridor)}`}
-                                    body={rowBody(corridor, account, openable)}
+                                    body={rowBody(corridor, openable)}
                                     bodyWrap
-                                    trailing={isClaimable(rail) ? rowBadge(account) : undefined}
+                                    trailing={rowBadge(rail, account)}
                                     chevron={!disabled}
                                     disabled={disabled}
                                     onClick={() => onOpen(corridor)}
