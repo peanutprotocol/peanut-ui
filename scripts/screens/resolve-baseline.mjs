@@ -48,8 +48,7 @@ for (const artifact of candidates) {
         ['schedule', 'workflow_dispatch'].includes(run.event) &&
         run.head_repository?.full_name === repo &&
         run.head_branch === defaultBranch
-    if (!sourceIsTrusted || run.status !== 'completed' || run.conclusion !== 'success')
-        continue
+    if (!sourceIsTrusted || run.status !== 'completed' || run.conclusion !== 'success') continue
     process.stdout.write(`run_id=${run.id}\n`)
     process.stdout.write(`artifact_name=${artifact.name}\n`)
     process.stdout.write(`baseline_sha=${expectedBase}\n`)
