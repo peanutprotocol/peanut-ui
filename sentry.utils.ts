@@ -99,6 +99,31 @@ const IGNORED_ERRORS = {
     ],
 }
 
+// Deliberate product and SDK outcomes. Keep these outside IGNORED_ERRORS' fuzzy
+// substring matcher: a technical error that merely includes similar prose must
+// remain visible. Error classes are exact; messages are anchored to the complete
+// observed outcome, with punctuation/detail allowed only for the variable limit
+// copy we own.
+const EXPECTED_BEHAVIOR_ERROR_TYPES = new Set(['CardAuthenticationRequiredError', 'RainCooldownError'])
+const EXPECTED_BEHAVIOR_MESSAGES = [
+    /^Permission dismissed\.?$/i,
+    /^Permission blocked\.?$/i,
+    /^Authentication was not completed\.?$/i,
+    /^Login not verified\.?$/i,
+    /^You reached the limit of 10 cross-chain withdrawals per hour\.?$/i,
+    /^You reached the limit of 20 cross-chain withdrawals per day\.?$/i,
+    /^You reached the limit of 30 cross-chain withdrawals per 30 days\.?$/i,
+    /^You reached the limit for withdrawals to other networks(?:\..*)?$/i,
+    /^Company has exceeded their debt limit\.?$/i,
+    /^\[PostHog\.js\] This capture call is ignored due to client rate limiting\.?$/i,
+]
+
+function isExpectedBehaviorError(event: ErrorEvent, searchTexts: string[]): boolean {
+    const exceptionTypes = (event.exception?.values ?? []).map((value) => value.type || '')
+    if (exceptionTypes.some((type) => EXPECTED_BEHAVIOR_ERROR_TYPES.has(type))) return true
+    return searchTexts.some((text) => EXPECTED_BEHAVIOR_MESSAGES.some((pattern) => pattern.test(text.trim())))
+}
+
 /**
  * Capgo's background updater logs every transient CDN/network hiccup at error
  * level, and captureConsoleIntegration promotes each one into a Sentry event
@@ -274,6 +299,10 @@ export function shouldIgnoreError(event: ErrorEvent): boolean {
      * third-party SDK.
      */
     if (isFetchSiteMutationFailure(event)) return false
+
+    // Expected outcomes remain expected even in a tagged money flow, but use
+    // exact classes/anchored messages so adjacent technical failures survive.
+    if (isExpectedBehaviorError(event, searchTexts)) return true
 
     // Check all ignore patterns
     for (const [group, patterns] of Object.entries(IGNORED_ERRORS)) {

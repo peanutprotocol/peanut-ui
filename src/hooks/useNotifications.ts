@@ -16,6 +16,14 @@ import { UTM_SOURCES, UTM_MEDIUMS } from '@/utils/utm.utils'
 
 const NOTIF_PROMPT_SNOOZE_MS = NOTIF_PROMPT_SNOOZE_DAYS * 24 * 60 * 60 * 1000
 
+const EXPECTED_PERMISSION_ERRORS = ['permission dismissed', 'permission blocked']
+
+export function isExpectedNotificationPermissionError(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error ?? '')
+    const normalized = message.toLowerCase().trim().replace(/\.$/, '')
+    return EXPECTED_PERMISSION_ERRORS.includes(normalized)
+}
+
 /*
  * Notification state lives in a module-level store shared by every
  * useNotifications() consumer. The hook used to keep per-instance useState and
@@ -323,6 +331,14 @@ async function requestPermission(): Promise<NotificationPermissionState> {
         evaluateVisibility()
         return newPermission
     } catch (error) {
+        if (isExpectedNotificationPermissionError(error)) {
+            addBreadcrumb({
+                category: 'onesignal.permission',
+                level: 'info',
+                message: 'notification permission prompt was not accepted',
+            })
+            return 'default'
+        }
         console.warn('Error requesting permission:', error)
         captureException(error, { tags: { source: 'onesignal_request_permission' } })
         return 'default'

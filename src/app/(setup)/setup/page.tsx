@@ -141,9 +141,11 @@ function SetupPageContent() {
 
     useEffect(() => {
         if (recoveryReason) {
-            Sentry.captureMessage('Setup recovery required', {
-                level: 'warning',
-                tags: { reason: recoveryReason },
+            Sentry.addBreadcrumb({
+                category: 'setup.recovery',
+                level: 'info',
+                message: 'Setup recovery required',
+                data: { reason: recoveryReason },
             })
         }
     }, [recoveryReason])
