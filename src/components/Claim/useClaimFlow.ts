@@ -96,7 +96,6 @@ export const useClaimFlow = () => {
     // TanStack Query for fetching send link with automatic retry
     const {
         data: sendLink,
-        isLoading: isSendLinkLoading,
         error: sendLinkError,
         refetch, // Get refetch function for manual retry
         failureCount, // Track retry attempts for better UX
@@ -440,7 +439,6 @@ export const useClaimFlow = () => {
         isFetchingUser,
         linkState,
         setLinkState,
-        isSendLinkLoading,
         failureCount,
         refetch,
         setLinkUrl,

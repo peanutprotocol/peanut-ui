@@ -18,7 +18,6 @@ export const Claim = ({}) => {
         isFetchingUser,
         linkState,
         setLinkState,
-        isSendLinkLoading,
         failureCount,
         refetch,
         setLinkUrl,
@@ -64,9 +63,7 @@ export const Claim = ({}) => {
             alignItems="center"
             className={twMerge('flex flex-col', !user && !isFetchingUser && 'min-h-[calc(100dvh_-_110px)]')}
         >
-            {linkState === _consts.claimLinkStateType.LOADING && (
-                <ClaimLoadingView isSendLinkLoading={isSendLinkLoading} failureCount={failureCount} />
-            )}
+            {linkState === _consts.claimLinkStateType.LOADING && <ClaimLoadingView failureCount={failureCount} />}
             {linkState === _consts.claimLinkStateType.CLAIM && (
                 <FlowManager
                     recipientType={recipientType}
