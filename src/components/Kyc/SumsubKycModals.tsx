@@ -23,7 +23,7 @@ export const SumsubKycModals = ({ flow, onCooldownClose }: SumsubKycModalsProps)
     return (
         <>
             <ActionModal
-                visible={flow.showCorrection}
+                visible={flow.showCorrection === true}
                 onClose={flow.dismissCorrection}
                 title={t('title')}
                 description={flow.verificationSession?.reasonCode === 'INVALID_TAX_ID' ? t('taxId') : t('details')}

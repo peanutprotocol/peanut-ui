@@ -1,3 +1,4 @@
+import { railJurisdictionForBank } from '@/utils/bridge.utils'
 import { useTranslations } from 'next-intl'
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useAuth } from '@/context/authContext'
@@ -34,6 +35,7 @@ export function deriveCapabilityPhaseSignals(
     targetCountry?: string
 ) {
     const { rails: allRails, nextActions } = capabilities ?? EMPTY_CAPABILITIES
+    const jurisdiction = railJurisdictionForBank(targetCountry)
     const rails = allRails.filter(
         (rail) =>
             rail.channel === 'bank' &&
@@ -42,8 +44,13 @@ export function deriveCapabilityPhaseSignals(
                 : intent === 'EU' || intent === 'NA'
                   ? rail.provider === 'bridge'
                   : true) &&
-            (intent === 'LATAM' && targetCountry ? rail.country === targetCountry : true) &&
-            (intent === 'EU' ? rail.currency === 'EUR' : intent === 'NA' ? rail.currency === 'USD' : true)
+            (jurisdiction
+                ? rail.country === jurisdiction
+                : intent === 'EU'
+                  ? rail.currency === 'EUR'
+                  : intent === 'NA'
+                    ? rail.currency === 'USD'
+                    : true)
     )
     const anyPending = rails.some((rail) => (rail.operations?.deposit ?? rail.status) === 'pending')
     // The accept-tos branch sits above the identity check in deriveGate's
@@ -453,24 +460,54 @@ export const useMultiPhaseKycFlow = ({
     }, [modalPhase, preparingTimedOut, clearPreparingTimer])
 
     const completedSessionRef = useRef<string | null>(null)
+    const sessionId = verificationSession?.id
+    const sessionGeneration = verificationSession?.generation
+    const sessionState = verificationSession?.state
+    const sessionCountry = verificationSession?.targetCountry
     useEffect(() => {
-        if (!verificationSession) return
-        if (verificationSession.state === 'CORRECTION_REQUIRED' || verificationSession.state === 'BLOCKED') {
+        if (!sessionId) return
+        if (sessionState === 'CORRECTION_REQUIRED' || sessionState === 'BLOCKED') {
             setForceShowModal(false)
             clearPreparingTimer()
             return
         }
         if (!isVerificationProgressModalOpen) return
-        if (verificationSession.state === 'READY') {
-            const key = `${verificationSession.id}:${verificationSession.generation}`
-            if (completedSessionRef.current !== key) {
-                completedSessionRef.current = key
-                completeFlow()
+        setModalPhase('preparing')
+        if (sessionState !== 'READY') return
+        const key = `${sessionId}:${sessionGeneration}`
+        if (completedSessionRef.current === key) return
+        let cancelled = false
+        let timer: ReturnType<typeof setTimeout> | undefined
+        const refreshBeforeCompletion = async () => {
+            markSubmitted()
+            try {
+                const refreshed = await fetchUser()
+                if (cancelled) return
+                if (deriveCapabilityPhaseSignals(refreshed?.capabilities, 'LATAM', sessionCountry).allSettled) {
+                    completedSessionRef.current = key
+                    completeFlow()
+                    return
+                }
+            } catch {
+                // Keep the flow pending until the refreshed downstream gate is usable.
             }
-        } else {
-            setModalPhase('preparing')
+            if (!cancelled) timer = setTimeout(refreshBeforeCompletion, 4000)
         }
-    }, [verificationSession, isVerificationProgressModalOpen, completeFlow, clearPreparingTimer])
+        void refreshBeforeCompletion()
+        return () => {
+            cancelled = true
+            clearTimeout(timer)
+        }
+    }, [
+        sessionId,
+        sessionGeneration,
+        sessionState,
+        sessionCountry,
+        isVerificationProgressModalOpen,
+        fetchUser,
+        completeFlow,
+        clearPreparingTimer,
+    ])
 
     // phase transitions driven by rail tracking
     useEffect(() => {

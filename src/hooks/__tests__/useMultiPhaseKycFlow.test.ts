@@ -3,6 +3,7 @@ import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import posthog from 'posthog-js'
 import { deriveCapabilityPhaseSignals, useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { getVerificationSession, refreshVerificationSession, initiateSumsubKyc } from '@/app/actions/sumsub'
+import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 // Pins the KYC_REJECTED capture + user-store refresh effect: it must be
@@ -224,6 +225,31 @@ describe('deposit session regression contracts', () => {
         await act(async () => {
             await jest.advanceTimersByTimeAsync(4000)
         })
+        // READY is necessary but the downstream capability snapshot must catch up.
+        expect(success).not.toHaveBeenCalled()
+        expect(markSubmitted).toHaveBeenCalled()
+        expect(mockFetchUser).toHaveBeenCalled()
+        const refreshed = {
+            capabilities: {
+                rails: [
+                    {
+                        provider: 'manteca',
+                        channel: 'bank',
+                        country: 'AR',
+                        currency: 'ARS',
+                        status: 'enabled',
+                        operations: { deposit: 'enabled' },
+                    },
+                ],
+                nextActions: [],
+                restrictions: [],
+            },
+        }
+        mockFetchUser.mockResolvedValue(refreshed)
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(4000)
+        })
+        expect(deriveCapabilityPhaseSignals(refreshed.capabilities as never, 'LATAM', 'AR').allSettled).toBe(true)
         expect(success).toHaveBeenCalledTimes(1)
         await act(async () => {
             await jest.advanceTimersByTimeAsync(8000)
@@ -305,6 +331,28 @@ describe('deposit session regression contracts', () => {
             expect(deriveCapabilityPhaseSignals(capabilities as never, 'EU').allSettled).toBe(false)
         }
     )
+    it.each([
+        ['GB', 'GBP', 'EU'],
+        ['MX', 'MXN', 'NA'],
+    ] as const)('uses the requested %s bank jurisdiction', (country, currency, intent) => {
+        const capabilities = {
+            rails: [{ provider: 'bridge', channel: 'bank', country, currency, status: 'enabled' }],
+            nextActions: [],
+            restrictions: [],
+        }
+        expect(deriveCapabilityPhaseSignals(capabilities as never, intent, country).allSettled).toBe(true)
+        const other = {
+            ...capabilities,
+            rails: [
+                {
+                    ...capabilities.rails[0],
+                    country: intent === 'EU' ? 'EU' : 'US',
+                    currency: intent === 'EU' ? 'EUR' : 'USD',
+                },
+            ],
+        }
+        expect(deriveCapabilityPhaseSignals(other as never, intent, country).allSettled).toBe(false)
+    })
     it('an enabled account in another country cannot complete an AR deposit flow', () => {
         const capabilities = {
             rails: [
