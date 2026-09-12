@@ -14,7 +14,7 @@ import type { GateState } from '@/utils/capability-gate'
  * needs support. Sending all of them to "Verify your identity" is how a
  * verified user ends up in a Sumsub run that cannot help them.
  */
-export type DepositGateAction = 'verify' | 'accept-tos' | 'support' | 'none'
+export type DepositGateAction = 'verify' | 'accept-tos' | 'provide-email' | 'support' | 'none'
 
 export interface DepositGateView {
     /** rows are tappable */
@@ -42,7 +42,10 @@ const ACTION_BY_KIND: Record<GateState['kind'], DepositGateAction> = {
     'needs-enrollment': 'verify',
     'fixable-rejection': 'verify',
     'restart-identity': 'verify',
-    'provide-email': 'verify',
+    // an already-verified user whose email never reached the provider. Sumsub
+    // cannot clear it; the email sheet can, and sending them to Sumsub instead
+    // burns an attempt and leaves the rail exactly as blocked as it was.
+    'provide-email': 'provide-email',
     // terminal: re-verifying cannot clear it, so do not offer to
     'blocked-rejection': 'support',
 }

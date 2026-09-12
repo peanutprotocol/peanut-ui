@@ -9,6 +9,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import NavHeader from '@/components/Global/NavHeader'
 import ShareButton from '@/components/Global/ShareButton'
 import { copyTextToClipboard } from '@/utils/clipboard.utils'
+import { trackShared } from '../analytics'
 import { instructionRows } from '../instructionRows'
 import { buildShareText } from '../shareText'
 import type { DepositAccount, DepositRail } from '../types'
@@ -35,13 +36,14 @@ export function ShareDepositDetailsScreen({
     onBack: () => void
 }) {
     const toast = useToast()
-    const { t, rowLabels } = useDepositAccountCopy()
+    const { t, rowLabels, railLabels, senderNotes } = useDepositAccountCopy()
 
     if (!account.instructions) return null
 
     const ownName = account.matching.nameOnAccount === 'user'
     const holder = account.instructions.accountHolderName
-    const rows = instructionRows(account.instructions, rowLabels)
+    const rows = instructionRows(account.instructions, rowLabels, railLabels)
+    const senderNote = senderNotes[account.matching.sender]
     const text = buildShareText(
         account,
         {
@@ -50,9 +52,11 @@ export function ShareDepositDetailsScreen({
             reference: account.instructions.memo
                 ? t('share.textReference', { memo: account.instructions.memo })
                 : undefined,
+            senderNotes,
             outro: t('share.textOutro'),
         },
-        rowLabels
+        rowLabels,
+        railLabels
     )
 
     return (
@@ -65,6 +69,18 @@ export function ShareDepositDetailsScreen({
                     <DepositDetailsCard rows={rows} />
                 </Section>
 
+                {/*
+                 * The same sentence the copied text carries, said on screen.
+                 * The user is about to hand these details to somebody, and who
+                 * may pay in decides whether that payment arrives or comes
+                 * back weeks later.
+                 */}
+                {senderNote && (
+                    <Notification priority="attention" title={t('share.senderWarningTitle')}>
+                        {senderNote}
+                    </Notification>
+                )}
+
                 {!ownName && (
                     <Notification priority="attention" title={t('share.nameWarningTitle')}>
                         {t('share.nameWarningBody', { holder, user: userName })}
@@ -73,7 +89,10 @@ export function ShareDepositDetailsScreen({
             </div>
             <PageStack.Footer>
                 <ShareButton
-                    generateText={async () => text}
+                    generateText={async () => {
+                        trackShared(rail.corridor, 'share-sheet')
+                        return text
+                    }}
                     title={ownName ? t('share.sheetTitleOwn') : t('share.sheetTitlePooled', { user: userName })}
                     className="w-full"
                 >
@@ -85,6 +104,7 @@ export function ShareDepositDetailsScreen({
                     icon="copy"
                     onClick={async () => {
                         const copied = await copyTextToClipboard(text)
+                        if (copied) trackShared(rail.corridor, 'copy')
                         if (copied) toast.success(t('share.copied'))
                         else toast.error(t('share.copyFailed'))
                     }}

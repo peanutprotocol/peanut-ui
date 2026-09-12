@@ -90,12 +90,13 @@ export default function DepositAccountsPrototypePage() {
                             <DepositAccountsFlow
                                 accounts={sandbox.accounts}
                                 userName={sandbox.userName}
-                                gate={sandbox.gate}
+                                gates={sandbox.gates}
                                 claimingCorridor={sandbox.claimingCorridor}
                                 returnedPayment={sandbox.returnedPayment}
                                 onExit={() => {}}
                                 onClaim={sandbox.claim}
                                 onResolveGate={() => setScenario('live')}
+                                onRetry={sandbox.reset}
                             />
                         </div>
                     </div>

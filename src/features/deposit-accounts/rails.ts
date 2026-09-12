@@ -119,3 +119,13 @@ export function isClaimable(rail: DepositRail): boolean {
 export function isShareable(sender: SenderPolicy): boolean {
     return sender !== 'own-name-only'
 }
+
+/**
+ * The capability rail id for a corridor — the inverse of `corridorFromRailId`.
+ * The gate is asked about ONE corridor at a time through this: a bank-wide
+ * question answers "ready" as soon as any bank rail is enabled, which let one
+ * enabled Manteca rail unlock four Bridge corridors the user cannot claim.
+ */
+export function railIdFor(corridor: DepositCorridor): string {
+    return `${DEPOSIT_RAILS[corridor].provider}.${corridor.toLowerCase()}`
+}

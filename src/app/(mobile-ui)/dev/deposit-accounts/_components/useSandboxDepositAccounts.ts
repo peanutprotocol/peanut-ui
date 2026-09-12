@@ -3,6 +3,7 @@
 import fixture from './bridge-sandbox-virtual-accounts.json'
 import { fromBridgeVirtualAccounts, type BridgeVirtualAccount } from './bridgeFixtureAdapter'
 import { mantecaArgentinaAccount, mantecaBrazilAccount } from '@/features/deposit-accounts/mantecaCorridors'
+import { DEPOSIT_RAIL_ORDER } from '@/features/deposit-accounts/rails'
 import type { DepositAccount, DepositCorridor } from '@/features/deposit-accounts/types'
 import { corridorFromRailId } from '@/features/deposit-accounts/useDepositAccounts'
 import type { GateState } from '@/utils/capability-gate'
@@ -76,9 +77,15 @@ export function useSandboxDepositAccounts(scenario: SandboxScenario) {
     return {
         accounts,
         userName: SANDBOX_USER_NAME,
-        // a product build passes gateFor('deposit', { channel: 'bank' }) straight
-        // through; the harness fakes the one kind this prototype needs to show
-        gate: (scenario === 'kyc' ? { kind: 'needs-identity' } : { kind: 'ready' }) satisfies GateState,
+        // a product build asks gateFor('deposit', { railId }) once per corridor;
+        // the harness fakes the one kind this prototype needs to show, the same
+        // on every corridor
+        gates: Object.fromEntries(
+            DEPOSIT_RAIL_ORDER.map((corridor) => [
+                corridor,
+                (scenario === 'kyc' ? { kind: 'needs-identity' } : { kind: 'ready' }) satisfies GateState,
+            ])
+        ) as Record<DepositCorridor, GateState>,
         claimingCorridor: claiming,
         returnedPayment:
             scenario === 'returned'

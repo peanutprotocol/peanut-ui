@@ -14,6 +14,11 @@ import type { GateState } from '@/utils/capability-gate'
  * button for details nobody else may pay into, and `?screen=claim` would offer
  * to open an account the user already holds, or one the gate has not cleared.
  *
+ * The gate passed here is the SELECTED corridor's gate, never the bank-wide
+ * one: a bank-wide gate is `ready` as soon as any bank rail is enabled, so a
+ * user with one working corridor could hand-edit `?corridor=` to a blocked one
+ * and pass the claim precondition.
+ *
  * The fallback is always the most informative screen the user is entitled to,
  * never an error.
  */
@@ -36,6 +41,12 @@ export function resolveScreen(
     if (requested === 'share') {
         if (!account?.instructions || account.status !== 'active') return held ? 'details' : 'list'
         if (!isShareable(account.matching.sender)) return 'details'
+        // Handing details to a payer is an action on a corridor, so it needs
+        // that corridor's gate. Reading details the user already holds is not:
+        // a corridor that goes blocked after the fact still has money to
+        // explain, and hiding it would strand the user mid-conversation with
+        // whoever is paying them.
+        if (!claimable) return 'details'
         return 'share'
     }
 

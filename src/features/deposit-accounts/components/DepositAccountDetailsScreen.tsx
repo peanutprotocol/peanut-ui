@@ -10,6 +10,7 @@ import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
 import Link from 'next/link'
+import { rewriteMethodPath } from '@/utils/native-routes'
 import { instructionRows } from '../instructionRows'
 import { isShareable } from '../rails'
 import type { DepositAccount, DepositRail, ReturnedPayment } from '../types'
@@ -48,7 +49,11 @@ export function DepositAccountDetailsScreen({
     onShare: () => void
     onRetry: () => void
 }) {
-    const { t, rowLabels, arrivalDetail, railName, unclaimableReason } = useDepositAccountCopy()
+    const { t, rowLabels, railLabels, arrivalDetail, railName, unclaimableReason } = useDepositAccountCopy()
+    // The Manteca top-up lives at /add-money/[country]/manteca, a dynamic route
+    // the native static export does not ship. rewriteMethodPath turns it into
+    // the query-backed parent the export does have; on web it is a no-op.
+    const topUpHref = rail.topUpHref ? rewriteMethodPath(rail.topUpHref) : undefined
 
     if (account.status === 'unavailable') {
         return (
@@ -60,10 +65,10 @@ export function DepositAccountDetailsScreen({
                         title={t('details.unavailableTitle', { currency: rail.currency })}
                         description={unclaimableReason(rail.corridor) ?? t('details.unavailableBody')}
                         cta={
-                            rail.topUpHref ? (
+                            topUpHref ? (
                                 // a corridor with no standing account still has a
                                 // real way in — send them to it rather than back
-                                <Link href={rail.topUpHref}>
+                                <Link href={topUpHref}>
                                     <Button variant="stroke" size="small">
                                         {t('details.topUpCta', { currency: rail.currency })}
                                     </Button>
@@ -124,7 +129,7 @@ export function DepositAccountDetailsScreen({
     }
 
     const provisioning = account.status === 'provisioning'
-    const rows = account.instructions ? instructionRows(account.instructions, rowLabels) : []
+    const rows = account.instructions ? instructionRows(account.instructions, rowLabels, railLabels) : []
     const pooled = account.matching.nameOnAccount === 'provider'
     const ownNameOnly = account.matching.sender === 'own-name-only'
     const shareable = isShareable(account.matching.sender)
@@ -184,8 +189,8 @@ export function DepositAccountDetailsScreen({
                             {rail.personCap ? ` ${t('details.personCap', { cap: rail.personCap })}` : ''}
                         </p>
 
-                        {ownNameOnly && rail.topUpHref && (
-                            <LinkButton href={rail.topUpHref}>
+                        {ownNameOnly && topUpHref && (
+                            <LinkButton href={topUpHref}>
                                 {t('details.topUpCta', { currency: rail.currency })}
                             </LinkButton>
                         )}
