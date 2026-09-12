@@ -3956,9 +3956,12 @@
             "errorRetry": "Tentar de novo"
         },
         "claim": {
-            "heading": "Abra sua conta em {currency}",
-            "subheading": "Dados bancários que não mudam, então você os envia uma vez só. {arrival}",
-            "benefitStable": "Os dados continuam os mesmos, então você os envia uma vez só.",
+            "heading": "Sua própria conta em {currency}",
+            "subheading": "Dados bancários reais que seu empregador, cliente ou plataforma já sabe usar.",
+            "previewTitle": "Como seus dados vão aparecer",
+            "previewCaption": "Só um exemplo — seus números reais aparecem quando a conta for aberta.",
+            "benefitWho": "Quem pode te pagar depende dos termos de {currency}. Você vai ver assim que a conta for aberta.",
+            "benefitStable": "Envie esses dados uma vez — eles continuam os mesmos em cada pagamento depois.",
             "benefitBalance": "O dinheiro chega no seu saldo da Peanut em USD.",
             "benefitCap": "Uma pessoa pode enviar até {cap} por vez. Uma empresa não tem limite.",
             "benefitNoReference": "Sem referência nem código para lembrar.",
@@ -3967,7 +3970,7 @@
         },
         "details": {
             "heading": "{currency} · {rail}",
-            "provisioning": "Preparando seus dados em {currency}. Costuma levar menos de um minuto.",
+            "provisioning": "Preparando sua conta em {currency}, geralmente em menos de um minuto.",
             "sectionTitle": "Dados bancários",
             "returnedTitle": "Um pagamento foi devolvido",
             "returnedBody": "{amount} de {payer} em {date} voltou para quem enviou: {reason}",

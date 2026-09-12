@@ -3956,9 +3956,12 @@
             "errorRetry": "Try again"
         },
         "claim": {
-            "heading": "Open your {currency} account",
-            "subheading": "Bank details that stay the same, so you hand them over once. {arrival}",
-            "benefitStable": "The details stay the same, so you hand them over once.",
+            "heading": "Your own {currency} account",
+            "subheading": "Real bank details your employer, client or platform already knows how to use.",
+            "previewTitle": "What your details will look like",
+            "previewCaption": "An example only — your real numbers appear once the account is open.",
+            "benefitWho": "Who can pay you depends on {currency}'s terms. You will see them as soon as the account is open.",
+            "benefitStable": "Hand these details over once — they stay the same for every payment after.",
             "benefitBalance": "Money arrives in your Peanut balance as USD.",
             "benefitCap": "A person can send up to {cap} each time. A company has no limit.",
             "benefitNoReference": "No reference or memo to remember.",
@@ -3967,7 +3970,7 @@
         },
         "details": {
             "heading": "{currency} · {rail}",
-            "provisioning": "Setting up your {currency} details. This usually takes under a minute.",
+            "provisioning": "Setting up your {currency} account, usually under a minute.",
             "sectionTitle": "Bank details",
             "returnedTitle": "A payment was returned",
             "returnedBody": "{amount} from {payer} on {date} went back to the sender: {reason}",

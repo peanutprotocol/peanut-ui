@@ -1692,10 +1692,8 @@
             "errorBody": "Tus cuentas están bien: solo no pudimos leerlas. Revisá tu conexión y probá de nuevo."
         },
         "claim": {
-            "heading": "Abrí tu cuenta en {currency}",
-            "benefitStable": "Los datos no cambian, así que los compartís una sola vez.",
-            "benefitBalance": "La plata llega a tu saldo de Peanut en USD.",
-            "subheading": "Datos bancarios que no cambian, así que los compartís una sola vez. {arrival}"
+            "benefitStable": "Compartí estos datos una sola vez — quedan igual para cada pago después.",
+            "benefitBalance": "La plata llega a tu saldo de Peanut en USD."
         },
         "details": {
             "unavailableTitle": "Todavía no tenés datos en {currency}",
