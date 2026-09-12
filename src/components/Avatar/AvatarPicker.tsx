@@ -123,7 +123,10 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
     const describe = (key: string | null): { name: string; line: string } => {
         if (!key) return { name: t('initialName', { letter: first.toUpperCase() }), line: t('initialLine') }
         const [kind, code, slug] = key.split('.')
-        if (kind === 'badge') return { name: capitalise(slug), line: badgeName[code] ?? code }
+        if (kind === 'badge') {
+            const nameKey = `badge.${code}.${slug}` as Parameters<typeof t>[0]
+            return { name: t.has(nameKey) ? t(nameKey) : capitalise(slug), line: badgeName[code] ?? code }
+        }
         const nameKey = `cast.${code}.name` as Parameters<typeof t>[0]
         const lineKey = `cast.${code}.line` as Parameters<typeof t>[0]
         return { name: t.has(nameKey) ? t(nameKey) : capitalise(code), line: t.has(lineKey) ? t(lineKey) : '' }

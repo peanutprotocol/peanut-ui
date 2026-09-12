@@ -1664,6 +1664,35 @@
         }
     },
     "avatar": {
+        "badge": {
+            "BETA_TESTER": {
+                "wink": "Guiño beta"
+            },
+            "CARD_FIRST_SWIPE": {
+                "wink": "Guiño del primer swipe"
+            },
+            "DEVCONNECT_BA_2025": {
+                "wink": "Guiño de Devconnect"
+            },
+            "EVENT_ALUMNI": {
+                "wink": "Guiño de alumni"
+            },
+            "NAIJA": {
+                "wink": "Guiño de Naija"
+            },
+            "NITA": {
+                "wink": "Guiño de NITA"
+            },
+            "OFFRAMP_USER": {
+                "wink": "Guiño de offramp"
+            },
+            "SHHHHH": {
+                "wink": "Guiño secreto"
+            },
+            "WAITLIST_SKIP": {
+                "wink": "Guiño de la lista"
+            }
+        },
         "cast": {
             "cactus": {
                 "name": "Ají valiente"

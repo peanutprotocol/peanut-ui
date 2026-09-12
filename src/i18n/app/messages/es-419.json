@@ -3767,6 +3767,88 @@
         "rollDie": "Tirar el dado",
         "initialName": "Solo {letter}",
         "initialLine": "Tu inicial",
+        "badge": {
+            "ARBIVERSE_DEVCONNECT_BA_2025": {
+                "crystal": "Cristal de Arbiverse",
+                "hex": "Hexágono de Arbiverse",
+                "cheer": "Celebración de Arbiverse"
+            },
+            "BETA_TESTER": {
+                "flask": "Matraz de beta",
+                "bubble": "Burbuja de beta",
+                "wink": "Guiño beta"
+            },
+            "BUG_WHISPERER": {
+                "beetle": "Escarabajo de bugs",
+                "shell": "Concha de bugs",
+                "peek": "Mirada de bugs"
+            },
+            "CARD_ALPHA": {
+                "card": "Carta alfa",
+                "swipe": "Deslizada alfa",
+                "tape": "Cinta alfa"
+            },
+            "CARD_FIRST_SWIPE": {
+                "card": "Carta del primer swipe",
+                "chip": "Chip del primer swipe",
+                "wink": "Guiño del primer swipe"
+            },
+            "CARD_SPENT_1K": {
+                "stack": "Pila del gastador",
+                "note": "Nota del gastador",
+                "cheer": "Celebración del gastador"
+            },
+            "DEVCONNECT_BA_2025": {
+                "sun": "Sol de Devconnect",
+                "rise": "Amanecer de Devconnect",
+                "wink": "Guiño de Devconnect"
+            },
+            "ETHFLORIPA_HUB": {
+                "eth": "ETH de EthFloripa",
+                "island": "Isla de EthFloripa",
+                "palm": "Palmera de EthFloripa"
+            },
+            "EVENT_ALUMNI": {
+                "cap": "Gorra de alumni",
+                "board": "Pizarra de alumni",
+                "wink": "Guiño de alumni"
+            },
+            "IRL_NOMADS": {
+                "pack": "Mochila nómada",
+                "roll": "Rollo nómada",
+                "pocket": "Bolsillo nómada"
+            },
+            "NAIJA": {
+                "flag": "Bandera de Naija",
+                "wave": "Ola de Naija",
+                "wink": "Guiño de Naija"
+            },
+            "NITA": {
+                "letter": "Carta de NITA",
+                "sparkle": "Destello de NITA",
+                "wink": "Guiño de NITA"
+            },
+            "OFFRAMP_USER": {
+                "bolt": "Rayo de offramp",
+                "spark": "Destello de offramp",
+                "wink": "Guiño de offramp"
+            },
+            "OG_2025_10_12": {
+                "coin": "Moneda OG",
+                "link": "Enlace OG",
+                "shades": "Gafas OG"
+            },
+            "SHHHHH": {
+                "lips": "Labios secretos",
+                "shush": "Shhh secreto",
+                "wink": "Guiño secreto"
+            },
+            "WAITLIST_SKIP": {
+                "key": "Llave de la lista",
+                "keyhole": "Cerradura de la lista",
+                "wink": "Guiño de la lista"
+            }
+        },
         "cast": {
             "apple": {
                 "name": "Cereza ganadora",

@@ -3767,6 +3767,88 @@
         "rollDie": "Jogar o dado",
         "initialName": "Só {letter}",
         "initialLine": "Sua inicial",
+        "badge": {
+            "ARBIVERSE_DEVCONNECT_BA_2025": {
+                "crystal": "Cristal da Arbiverse",
+                "hex": "Hexágono da Arbiverse",
+                "cheer": "Comemoração da Arbiverse"
+            },
+            "BETA_TESTER": {
+                "flask": "Frasco da beta",
+                "bubble": "Bolha da beta",
+                "wink": "Piscadinha da beta"
+            },
+            "BUG_WHISPERER": {
+                "beetle": "Besouro dos bugs",
+                "shell": "Concha dos bugs",
+                "peek": "Olhar dos bugs"
+            },
+            "CARD_ALPHA": {
+                "card": "Cartão alfa",
+                "swipe": "Deslize alfa",
+                "tape": "Fita alfa"
+            },
+            "CARD_FIRST_SWIPE": {
+                "card": "Cartão do primeiro swipe",
+                "chip": "Chip do primeiro swipe",
+                "wink": "Piscadinha do primeiro swipe"
+            },
+            "CARD_SPENT_1K": {
+                "stack": "Pilha do gastador",
+                "note": "Nota do gastador",
+                "cheer": "Comemoração do gastador"
+            },
+            "DEVCONNECT_BA_2025": {
+                "sun": "Sol da Devconnect",
+                "rise": "Amanhecer da Devconnect",
+                "wink": "Piscadinha da Devconnect"
+            },
+            "ETHFLORIPA_HUB": {
+                "eth": "ETH da EthFloripa",
+                "island": "Ilha da EthFloripa",
+                "palm": "Palmeira da EthFloripa"
+            },
+            "EVENT_ALUMNI": {
+                "cap": "Boné dos alumni",
+                "board": "Placar dos alumni",
+                "wink": "Piscadinha dos alumni"
+            },
+            "IRL_NOMADS": {
+                "pack": "Mochila nômade",
+                "roll": "Rolo nômade",
+                "pocket": "Bolso nômade"
+            },
+            "NAIJA": {
+                "flag": "Bandeira da Naija",
+                "wave": "Onda da Naija",
+                "wink": "Piscadinha da Naija"
+            },
+            "NITA": {
+                "letter": "Carta da NITA",
+                "sparkle": "Brilho da NITA",
+                "wink": "Piscadinha da NITA"
+            },
+            "OFFRAMP_USER": {
+                "bolt": "Raio da offramp",
+                "spark": "Faísca da offramp",
+                "wink": "Piscadinha da offramp"
+            },
+            "OG_2025_10_12": {
+                "coin": "Moeda OG",
+                "link": "Link OG",
+                "shades": "Óculos OG"
+            },
+            "SHHHHH": {
+                "lips": "Lábios secretos",
+                "shush": "Shhh secreto",
+                "wink": "Piscadinha secreta"
+            },
+            "WAITLIST_SKIP": {
+                "key": "Chave da fila",
+                "keyhole": "Fechadura da fila",
+                "wink": "Piscadinha da fila"
+            }
+        },
         "cast": {
             "apple": {
                 "name": "Cereja premiada",
