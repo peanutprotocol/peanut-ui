@@ -11,7 +11,7 @@ import { SearchInput } from '@/components/SearchInput'
 import Image from 'next/image'
 import { useCallback, useMemo, useState, useDeferredValue, type ReactNode } from 'react'
 import { getCardPosition } from '../Global/Card/card.utils'
-import { useGeoLocation } from '@/hooks/useGeoLocation'
+import { useHomeCountry } from '@/features/destinations/useHomeCountry'
 import { CountryListSkeleton } from './CountryListSkeleton'
 import AvatarWithBadge from '../Profile/AvatarWithBadge'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
@@ -83,7 +83,7 @@ export const CountryList = ({
     const [searchTerm, setSearchTerm] = useState(currencyCode ?? '')
     // use deferred value to prevent blocking ui during search
     const deferredSearchTerm = useDeferredValue(searchTerm)
-    const { countryCode: userGeoLocationCountryCode, isLoading: isGeoLoading } = useGeoLocation()
+    const { countryCode: userGeoLocationCountryCode, isLoading: isGeoLoading } = useHomeCountry()
     // track which country is being clicked to show loading state
     const [clickedCountryId, setClickedCountryId] = useState<string | null>(null)
 
@@ -95,7 +95,7 @@ export const CountryList = ({
     // catalog titles are English; the displayed name comes from Intl.DisplayNames
     const countryName = useCallback((country: CountryData) => localizedCountryTitle(locale, country), [locale])
 
-    // sort countries: user's geo-located country first, then preferred countries
+    // sort countries: the user's own country first, then preferred countries
     // (in declared order), then everyone else alphabetically.
     const sortedCountries = useMemo(() => {
         const preferredRank = (country: CountryData) => {
