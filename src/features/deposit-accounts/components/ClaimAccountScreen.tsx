@@ -22,6 +22,11 @@ import { DepositDetailsCard } from './DepositDetailsCard'
  * benefit rows for what the account actually buys them, and the conditions
  * — a bank's rules, not ours — held to one Notification below the CTA rather
  * than stacked into the page.
+ *
+ * Who may pay in is a condition here, not a benefit: the rules travel on the
+ * account, and no account exists yet, so this step can only say that the terms
+ * are coming. It says so under the CTA with the other conditions rather than
+ * spending a benefit row on a sentence that promises nothing.
  */
 export function ClaimAccountScreen({
     rail,
@@ -74,8 +79,8 @@ export function ClaimAccountScreen({
                  */}
                 <ListGroup>
                     <ListItem
-                        leading={<Icon name="users" size={24} className="text-foreground-primary" />}
-                        title={<span>{t('claim.benefitWho', { currency: rail.currency })}</span>}
+                        leading={<Icon name="wallet" size={24} className="text-foreground-primary" />}
+                        title={<span>{t('claim.benefitBalance')}</span>}
                     />
                     <ListItem
                         leading={<Icon name="clock" size={24} className="text-foreground-primary" />}
@@ -107,7 +112,10 @@ export function ClaimAccountScreen({
                     <Notification
                         priority="helper"
                         title={tGlobal('balanceWarningModal.goodToKnow')}
-                        items={[t('claim.benefitBalance'), t('claim.benefitNoReference')]}
+                        items={[
+                            t('claim.conditionTerms', { currency: rail.currency }),
+                            t('claim.conditionNoReference'),
+                        ]}
                     />
                 )}
             </PageStack.Footer>

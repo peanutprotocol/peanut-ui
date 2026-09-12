@@ -3960,11 +3960,10 @@
             "subheading": "Dados bancários reais que seu empregador, cliente ou plataforma já sabe usar.",
             "previewTitle": "Como seus dados vão aparecer",
             "previewCaption": "Só um exemplo — seus números reais aparecem quando a conta for aberta.",
-            "benefitWho": "Quem pode te pagar depende dos termos de {currency}. Você vai ver assim que a conta for aberta.",
+            "conditionTerms": "Quem pode te pagar depende dos termos de {currency}. Você vai ver assim que a conta for aberta.",
             "benefitStable": "Envie esses dados uma vez — eles continuam os mesmos em cada pagamento depois.",
             "benefitBalance": "O dinheiro chega no seu saldo da Peanut em USD.",
-            "benefitCap": "Uma pessoa pode enviar até {cap} por vez. Uma empresa não tem limite.",
-            "benefitNoReference": "Sem referência nem código para lembrar.",
+            "conditionNoReference": "Sem referência nem código para lembrar.",
             "cta": "Abrir conta em {currency}",
             "errorTitle": "Não conseguimos abrir a conta"
         },
