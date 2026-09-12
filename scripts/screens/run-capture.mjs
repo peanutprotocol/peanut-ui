@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { createServer } from 'node:net'
 import { execFileSync, spawn } from 'node:child_process'
 import { resolve, join } from 'node:path'
-import { existsSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, writeFileSync } from 'node:fs'
 import { prepare } from './prepare.mjs'
 const [sourceArg, sha, outArg] = process.argv.slice(2)
 if (!/^[a-f0-9]{40}$/.test(sha ?? '')) throw new Error('Expected immutable target SHA')
@@ -37,6 +37,16 @@ const actual = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: source, encodin
 if (actual !== sha) throw new Error('Wrong target checkout')
 run('pnpm', ['install', '--frozen-lockfile'])
 prepare(source)
+// The legacy iOS PWA videos are HEVC in the base revision, which headless
+// Chromium cannot decode. The current capture checkout contains equivalent
+// H.264 assets; overlay those files in the disposable target only so the
+// before/after comparison measures UI changes instead of codec support.
+for (const relative of ['public/iosPwaChrome.mov', 'public/iosPwaSafari.mov']) {
+    const harnessAsset = join(process.cwd(), relative)
+    const targetAsset = join(source, relative)
+    if (harnessAsset !== targetAsset && existsSync(harnessAsset) && existsSync(targetAsset))
+        copyFileSync(harnessAsset, targetAsset)
+}
 const nonce = randomUUID()
 writeFileSync(
     join(source, 'public/screen-capture-build.json'),
