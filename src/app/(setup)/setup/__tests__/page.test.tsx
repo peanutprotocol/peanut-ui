@@ -10,7 +10,7 @@ const mockResolve = jest.fn()
 const mockRouter = { replace: jest.fn(), push: jest.fn() }
 const mockQueuePendingBadgeCampaigns = jest.fn((campaigns: readonly string[]) => [...campaigns])
 const mockGetPendingBadgeCampaigns = jest.fn(() => [] as string[])
-const mockClaimAndSettlePendingBadgeCampaigns = jest.fn(() =>
+const mockClaimAndSettlePendingBadgeCampaigns = jest.fn((_campaigns: readonly string[]) =>
     Promise.resolve({
         claims: [{ badgeCampaign: 'bug_whisperer', outcome: 'awarded' }],
         pending: [],
@@ -48,7 +48,8 @@ jest.mock('@/components/Invites/badge-campaign-context', () => ({
     queuePendingBadgeCampaigns: (campaigns: readonly string[]) => mockQueuePendingBadgeCampaigns(campaigns),
 }))
 jest.mock('@/services/badge-campaigns', () => ({
-    claimAndSettlePendingBadgeCampaigns: (...args: unknown[]) => mockClaimAndSettlePendingBadgeCampaigns(...args),
+    claimAndSettlePendingBadgeCampaigns: (campaigns: readonly string[]) =>
+        mockClaimAndSettlePendingBadgeCampaigns(campaigns),
 }))
 jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => mockFlow }))
 jest.mock('@/features/setup/useSetupStepAnalytics', () => ({ useSetupStepAnalytics: jest.fn() }))
@@ -237,6 +238,33 @@ it('settles a native badge campaign before redirecting an authenticated user hom
     expect(mockRouter.replace.mock.invocationCallOrder[0]).toBeGreaterThan(
         mockClaimAndSettlePendingBadgeCampaigns.mock.invocationCallOrder[0]
     )
+})
+
+it('does not redirect home when setup unmounts before the native claim settles', async () => {
+    mockAuth.user = { user: { username: 'alice', hasAppAccess: true } }
+    mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer')
+    type ClaimResult = Awaited<ReturnType<typeof mockClaimAndSettlePendingBadgeCampaigns>>
+    let resolveClaim!: (result: ClaimResult) => void
+    mockClaimAndSettlePendingBadgeCampaigns.mockImplementation(
+        (_campaigns: readonly string[]) =>
+            new Promise<ClaimResult>((resolve) => {
+                resolveClaim = resolve
+            })
+    )
+
+    const view = renderWithIntl(<SetupPage />)
+    await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledWith(['bug_whisperer']))
+    view.unmount()
+
+    await act(async () => {
+        resolveClaim({
+            claims: [{ badgeCampaign: 'bug_whisperer', outcome: 'awarded' }],
+            pending: [],
+            transport: 'canonical',
+        })
+    })
+
+    expect(mockRouter.replace).not.toHaveBeenCalledWith('/home')
 })
 
 it('does not initialize after unmount', async () => {

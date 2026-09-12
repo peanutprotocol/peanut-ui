@@ -82,6 +82,16 @@ function SetupPageContent() {
     const [existingSessionUsername, setExistingSessionUsername] = useState<string | null>(null)
     const [isSettlingNativeBadgeCampaigns, setIsSettlingNativeBadgeCampaigns] = useState(false)
     const hasStartedNativeBadgeClaimingRef = useRef(false)
+    const isSetupMountedRef = useRef(false)
+    const currentBadgeCampaignsKeyRef = useRef(urlBadgeCampaigns.join('\u0000'))
+    currentBadgeCampaignsKeyRef.current = urlBadgeCampaigns.join('\u0000')
+
+    useEffect(() => {
+        isSetupMountedRef.current = true
+        return () => {
+            isSetupMountedRef.current = false
+        }
+    }, [])
 
     const recoveryReason =
         initializationError ??
@@ -177,12 +187,23 @@ function SetupPageContent() {
                     setIsSettlingNativeBadgeCampaigns(true)
                     void claimAndSettlePendingBadgeCampaigns(pendingBadgeCampaigns)
                         .then(async (batch) => {
+                            const isCurrentSetup =
+                                isSetupMountedRef.current &&
+                                currentBadgeCampaignsKeyRef.current === urlBadgeCampaigns.join('\u0000')
+                            if (!isCurrentSetup) return
+
                             const hasConfirmedClaim = batch.claims.some(
                                 ({ outcome }) => outcome === 'awarded' || outcome === 'already_owned'
                             )
                             if (hasConfirmedClaim) {
                                 try {
                                     await fetchUser()
+                                    if (
+                                        !isSetupMountedRef.current ||
+                                        currentBadgeCampaignsKeyRef.current !== urlBadgeCampaigns.join('\u0000')
+                                    ) {
+                                        return
+                                    }
                                 } catch (error) {
                                     Sentry.captureException(error, {
                                         tags: { error_type: 'native_campaign_profile_refresh_failed' },
@@ -191,9 +212,21 @@ function SetupPageContent() {
                             }
                         })
                         .catch((error) => {
+                            if (
+                                !isSetupMountedRef.current ||
+                                currentBadgeCampaignsKeyRef.current !== urlBadgeCampaigns.join('\u0000')
+                            ) {
+                                return
+                            }
                             Sentry.captureException(error, { tags: { error_type: 'native_campaign_claim_failed' } })
                         })
                         .finally(() => {
+                            if (
+                                !isSetupMountedRef.current ||
+                                currentBadgeCampaignsKeyRef.current !== urlBadgeCampaigns.join('\u0000')
+                            ) {
+                                return
+                            }
                             setIsSettlingNativeBadgeCampaigns(false)
                             router.replace('/home')
                         })
