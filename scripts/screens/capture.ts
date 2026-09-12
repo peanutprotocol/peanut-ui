@@ -7,6 +7,7 @@ import sharp from 'sharp'
 import { SCREENS } from '../../src/dev/screens/catalogue'
 import { answer, ADAPTER_VERSION } from './adapter'
 import { hash, storeAsset, validateCapture, materializeCatalogue } from './core.mjs'
+import { captureExitCode } from './capture-status.mjs'
 
 import { routePatterns, routePatternFor } from './routes.mjs'
 import { inventory } from './inventory.mjs'
@@ -479,8 +480,9 @@ async function main() {
             })
         )
         // Incomplete captures are valid gallery reports: the manifest records
-        // every unavailable state and the publisher can still expose the gaps.
-        // Reserve a red job for an actual capture/runtime failure.
+        // expected gaps and the publisher can still expose them. A caught
+        // current-revision runtime failure remains a red capture job.
+        process.exitCode = captureExitCode(historical, results)
     } finally {
         await browser.close()
     }
