@@ -21,6 +21,39 @@ import { getFromCookie } from '@/utils/general.utils'
 import { twMerge } from '@/utils/tw'
 import { useTranslations } from 'next-intl'
 
+export function AccountReadyView({
+    onContinue,
+    isRedirecting = false,
+}: {
+    onContinue: () => void
+    isRedirecting?: boolean
+}) {
+    const t = useTranslations('setup')
+    return (
+        <div className="flex w-full flex-col gap-4 text-left">
+            {/* neither block is a warning or a caveat, so they read as plain
+                    text under grey mini-headers rather than tinted Notifications */}
+            <div className="flex flex-col gap-1">
+                <MiniHeader>{t('accountReady.worksNowTitle')}</MiniHeader>
+                <p className="text-body-s text-foreground-primary">{t('accountReady.worksNowBody')}</p>
+            </div>
+            <div className="flex flex-col gap-1">
+                <MiniHeader>{t('accountReady.laterTitle')}</MiniHeader>
+                <p className="text-body-s text-foreground-primary">{t('accountReady.laterBody')}</p>
+            </div>
+            <Button
+                onClick={onContinue}
+                loading={isRedirecting}
+                disabled={isRedirecting}
+                shadowSize="4"
+                className="mt-2"
+            >
+                {t('accountReady.cta')}
+            </Button>
+        </div>
+    )
+}
+
 const SignTestTransaction = () => {
     const t = useTranslations('setup')
     const tCommon = useTranslations('common')
@@ -251,31 +284,7 @@ const SignTestTransaction = () => {
         return t('testTransaction.confirmAndFinish')
     }
 
-    if (accountReady) {
-        return (
-            <div className="flex w-full flex-col gap-4 text-left">
-                {/* neither block is a warning or a caveat, so they read as plain
-                    text under grey mini-headers rather than tinted Notifications */}
-                <div className="flex flex-col gap-1">
-                    <MiniHeader>{t('accountReady.worksNowTitle')}</MiniHeader>
-                    <p className="text-body-s text-foreground-primary">{t('accountReady.worksNowBody')}</p>
-                </div>
-                <div className="flex flex-col gap-1">
-                    <MiniHeader>{t('accountReady.laterTitle')}</MiniHeader>
-                    <p className="text-body-s text-foreground-primary">{t('accountReady.laterBody')}</p>
-                </div>
-                <Button
-                    onClick={goToAccount}
-                    loading={isRedirecting}
-                    disabled={isRedirecting}
-                    shadowSize="4"
-                    className="mt-2"
-                >
-                    {t('accountReady.cta')}
-                </Button>
-            </div>
-        )
-    }
+    if (accountReady) return <AccountReadyView onContinue={goToAccount} isRedirecting={isRedirecting} />
 
     return (
         <div>

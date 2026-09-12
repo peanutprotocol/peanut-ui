@@ -41,8 +41,7 @@ a[href*="__fixture=off"] { display: none !important; }
 test.describe.configure({ mode: 'parallel' })
 
 for (const id of IDS) {
-    test(id, async ({ page }) => {
-        await page.setViewportSize({ width: 375, height: 900 })
+    test(id, async ({ page }, testInfo) => {
         await page.route('**/*', (route) => {
             const { hostname } = new URL(route.request().url())
             return hostname === '127.0.0.1' || hostname === 'localhost' ? route.continue() : route.abort()
@@ -56,6 +55,11 @@ for (const id of IDS) {
         await page.addStyleTag({ content: FREEZE_CSS })
         await page.evaluate(() => document.fonts.ready.then(() => undefined))
         await mkdir(OUT_DIR, { recursive: true })
-        await page.screenshot({ path: join(OUT_DIR, `${id}.png`), animations: 'disabled', caret: 'hide', scale: 'css' })
+        await page.screenshot({
+            path: join(OUT_DIR, `${id}@${testInfo.project.name}.png`),
+            animations: 'disabled',
+            caret: 'hide',
+            scale: 'css',
+        })
     })
 }
