@@ -12,16 +12,18 @@ import Image, { type StaticImageData } from 'next/image'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { withdrawBankUrl, rewriteMethodPath } from '@/utils/native-routes'
+import { rewriteMethodPath } from '@/utils/native-routes'
 import { isCapacitor } from '@/utils/capacitor'
 import EmptyState from '../Global/EmptyStates/EmptyState'
 import { useAuth } from '@/context/authContext'
+import { parseAsStringEnum, useQueryState } from 'nuqs'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DynamicBankAccountForm, type IBankAccountDetails } from './DynamicBankAccountForm'
 import { addBankAccount } from '@/app/actions/users'
 import { type AddBankAccountPayload } from '@/app/actions/types/users.types'
 import { useOptionalWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
 import { useWithdrawAmount } from '@/features/withdraw/useWithdrawAmount'
+import { withdrawAmountStepUrl } from '@/features/withdraw/routes'
 import { type Account } from '@/interfaces/interfaces'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
@@ -96,25 +98,37 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 router.push(countrySlug ? rewriteMethodPath(`/add-money/${countrySlug}/bank`) : '/add-money')
                 return
             }
-            setView('form')
+            void setViewParam('form')
         },
         onManualClose: () => setIsKycModalOpen(false),
     })
 
-    // component level states
-    const [view, setView] = useState<'list' | 'form'>(flow === 'withdraw' && urlAmount ? 'form' : 'list')
+    // component level states. The screen is named in the URL, not inferred:
+    // `?view=form` is the bank-account form, no `view` is the rail list. It used
+    // to flip to the form purely because `?amount=` was present, which tied the
+    // screen to a value that now arrives AFTER the destination (TASK-22589).
+    const [viewParam, setViewParam] = useQueryState('view', parseAsStringEnum(['form', 'bank']))
+    const view: 'list' | 'form' = viewParam === 'form' ? 'form' : 'list'
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const formRef = useRef<{ handleSubmit: () => void }>(null)
     const [isSupportedTokensModalOpen, setIsSupportedTokensModalOpen] = useState(false)
 
     // read country from path params (web: /add-money/india) or query params (native: /add-money?country=india)
     const countryFromQuery = searchParams.get('country')
-    const viewFromQuery = searchParams.get('view')
+    const viewFromQuery = viewParam
     const rawCountry = countryFromQuery || params.country
     const countryPathParts = Array.isArray(rawCountry) ? rawCountry : [rawCountry].filter(Boolean)
     const isBankPage = viewFromQuery === 'bank' || countryPathParts[countryPathParts.length - 1] === 'bank'
     const countrySlugFromUrl =
         isBankPage && !viewFromQuery ? countryPathParts.slice(0, -1).join('-') : countryPathParts.join('-')
+
+    // Old links still say "form" the old way: /withdraw/<country>?amount=50 was
+    // the bank form before the screen got its own name. Name it, keep the
+    // amount, and the user lands where the link meant to send them.
+    useEffect(() => {
+        if (flow !== 'withdraw' || viewParam || !urlAmount) return
+        void setViewParam('form')
+    }, [flow, viewParam, urlAmount, setViewParam])
 
     const currentCountry = countryData.find(
         (country) => country.type === 'country' && country.path === countrySlugFromUrl
@@ -253,14 +267,9 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 withdrawFlow?.setSelectedBankAccount(newAccountFromResponse)
             }
 
-            if (currentCountry) {
-                // carry the typed amount + send marker to the review screen
-                const params = new URLSearchParams()
-                if (isBankFromSend && methodParam) params.set('method', methodParam)
-                if (urlAmount) params.set('amount', urlAmount)
-                const qs = params.toString()
-                router.push(withdrawBankUrl(currentCountry.path, qs ? `?${qs}` : ''))
-            }
+            // The destination is settled — the amount step is next, and it is
+            // the last thing the user fills in before the review.
+            router.push(withdrawAmountStepUrl({ method: isBankFromSend ? methodParam : null, amount: urlAmount }))
             return {}
         }
 
@@ -287,14 +296,15 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         } else if (method.id.includes('default-bank-withdraw') || method.id.includes('sepa-instant-withdraw')) {
             if (checkBridgeGate(() => handleWithdrawMethodClick(method))) return
 
-            // Bridge methods: set in context and land on the amount step
+            // Bridge methods: set in context and open the bank-account form.
+            // The amount comes after the destination now (TASK-22589).
             withdrawFlow?.setSelectedMethod({
                 type: 'bridge',
                 countryPath: currentCountry?.path,
                 currency: currentCountry?.currency,
                 title,
             })
-            router.push(`/withdraw?step=amount${isBankFromSend ? `&method=${methodParam}` : ''}`)
+            void setViewParam('form')
             return
         } else if (method.id.includes('crypto-withdraw')) {
             withdrawFlow?.setSelectedMethod({
@@ -433,23 +443,9 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         // ensure kyc modal isn't open so late success events don't flip view
                         setIsKycModalOpen(false)
 
-                        // if coming from send flow, go back to amount input on /withdraw?method=bank
-                        if (flow === 'withdraw' && isBankFromSend) {
-                            if (currentCountry) {
-                                withdrawFlow?.setSelectedMethod({
-                                    type: 'bridge',
-                                    countryPath: currentCountry.path,
-                                    currency: currentCountry.currency,
-                                    title: 'To Bank',
-                                })
-                            }
-                            router.push(`/withdraw?step=amount&method=${methodParam}`)
-                            return
-                        }
-
                         // otherwise go back to list
                         withdrawFlow?.setSelectedMethod(null)
-                        setView('list')
+                        void setViewParam(null)
                     }}
                 />
                 <DynamicBankAccountForm
@@ -460,14 +456,12 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     error={null}
                     amountDisplay={urlAmount}
                     onExistingAccount={(account) => {
-                        // the typed account already exists — select it and go
-                        // straight to review, keeping amount + send marker
+                        // the typed account already exists — select it and carry
+                        // on to the amount step, keeping the send marker
                         withdrawFlow?.setSelectedBankAccount(account)
-                        const params = new URLSearchParams()
-                        if (isBankFromSend && methodParam) params.set('method', methodParam)
-                        if (urlAmount) params.set('amount', urlAmount)
-                        const qs = params.toString()
-                        router.push(withdrawBankUrl(currentCountry.path, qs ? `?${qs}` : ''))
+                        router.push(
+                            withdrawAmountStepUrl({ method: isBankFromSend ? methodParam : null, amount: urlAmount })
+                        )
                     }}
                 />
                 {sharedModals}

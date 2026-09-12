@@ -14,8 +14,9 @@ import { useAuth } from '@/context/authContext'
 import { AccountType, type Account } from '@/interfaces/interfaces'
 import { isMantecaCountry } from '@/constants/manteca.consts'
 import { getFromLocalStorage } from '@/utils/general.utils'
-import { withdrawCountryUrl } from '@/utils/native-routes'
-import { mantecaWithdrawUrl } from '@/features/withdraw/routes'
+import { rewriteMethodPath, withdrawCountryUrl } from '@/utils/native-routes'
+import { mantecaWithdrawUrl, withdrawCountryFormUrl } from '@/features/withdraw/routes'
+import { soleLiveRailForCountry } from '@/features/destinations/country-rails'
 import { clearScannedDestination, withdrawTokenForChain } from '@/features/withdraw/destination'
 import { useWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
 import { useSavedAddresses } from '@/hooks/useSavedAddresses'
@@ -249,38 +250,45 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                 viewMode="add-withdraw"
                 enforceSupportedCountries={isBankFromSend}
                 onCountryClick={(country) => {
+                    const isManteca = isMantecaCountry(country.path)
                     posthog.capture(ANALYTICS_EVENTS.WITHDRAW_METHOD_SELECTED, {
-                        method_type: isMantecaCountry(country.path) ? 'manteca' : 'bridge',
+                        method_type: isManteca ? 'manteca' : 'bridge',
                         country: country.path,
                     })
 
-                    // from send flow (bank): set method in context and stay on /withdraw?method=bank
-                    if (isBankFromSend) {
-                        if (isMantecaCountry(country.path)) {
-                            startTransition(() => {
-                                router.push(
-                                    mantecaWithdrawUrl({
-                                        method: country.path === 'brazil' ? 'pix' : 'bank-transfer',
-                                        country: country.path,
-                                    })
-                                )
-                            })
-                            return
-                        }
-                        setSelectedMethod({
-                            type: 'bridge',
-                            countryPath: country.path,
-                            currency: country.currency,
-                            title: country.title,
+                    // A country with one live rail has nothing to choose — the
+                    // per-country list would be a one-row screen, so skip it and
+                    // go straight to the destination (mirrors useAddMoneyFlow).
+                    // Countries with several live rails still show them, once.
+                    const rail = soleLiveRailForCountry(country.id, 'withdraw')
+                    if (!rail) {
+                        startTransition(() => {
+                            router.push(withdrawCountryUrl(country.path))
                         })
-                        onMethodChosen()
                         return
                     }
 
-                    // default behaviour: navigate to country page
-                    // use transition for smoother navigation, keeps ui responsive during route change
+                    if (isManteca) {
+                        // the manteca flow collects the amount in local currency
+                        startTransition(() => {
+                            router.push(
+                                rewriteMethodPath(
+                                    rail.path ?? '',
+                                    isBankFromSend && methodParam ? `method=${methodParam}` : undefined
+                                )
+                            )
+                        })
+                        return
+                    }
+
+                    setSelectedMethod({
+                        type: 'bridge',
+                        countryPath: country.path,
+                        currency: country.currency,
+                        title: rail.title,
+                    })
                     startTransition(() => {
-                        router.push(withdrawCountryUrl(country.path))
+                        router.push(withdrawCountryFormUrl(country.path, isBankFromSend ? methodParam : null))
                     })
                 }}
                 onCryptoClick={

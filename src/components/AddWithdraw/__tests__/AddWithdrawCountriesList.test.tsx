@@ -16,11 +16,20 @@
 import React from 'react'
 import { render as rtlRender, screen, fireEvent, within, act, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
+import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import AddWithdrawCountriesList from '../AddWithdrawCountriesList'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { addBankAccount } from '@/app/actions/users'
 
-const render = (ui: React.ReactElement) => rtlRender(<IntlWrapper>{ui}</IntlWrapper>)
+// the screen is named in the URL (`?view=form`), so every render needs the
+// nuqs adapter — and the tests that want the bank form say so by setting it
+let mockNuqsParams: Record<string, string> = {}
+const withProviders = (ui: React.ReactElement) => (
+    <IntlWrapper>
+        <NuqsTestingAdapter searchParams={mockNuqsParams}>{ui}</NuqsTestingAdapter>
+    </IntlWrapper>
+)
+const render = (ui: React.ReactElement) => rtlRender(withProviders(ui))
 
 // ---- routing ----
 const mockPush = jest.fn()
@@ -264,8 +273,9 @@ describe('AddWithdrawCountriesList — bank gate', () => {
         render(<AddWithdrawCountriesList flow="withdraw" />)
         fireEvent.click(screen.getByText('To Bank'))
 
-        // method chosen → land on the amount step (named screen id in the URL)
-        expect(mockPush).toHaveBeenCalledWith('/withdraw?step=amount')
+        // rail chosen → the bank-account form, named in the URL. The amount
+        // step comes after the destination now (TASK-22589).
+        expect(screen.getByTestId('bank-form')).toBeInTheDocument()
         expect(screen.queryByTestId('initiate-kyc-modal')).toBeNull()
     })
 
@@ -346,17 +356,19 @@ describe('AddWithdrawCountriesList — existing-account shortcut (Chip round 9)'
         mockSetSelectedBankAccount.mockClear()
         mockBankFormProps.mockClear()
         mockUrlAmount = '50'
+        mockNuqsParams = { view: 'form', amount: '50' }
         setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
     })
 
     afterEach(() => {
         mockUrlAmount = ''
+        mockNuqsParams = {}
     })
 
-    it('withdraw flow: a typed account that already exists selects it and routes to review with the amount', () => {
+    it('withdraw flow: a typed account that already exists selects it and carries on to the amount step', () => {
         render(<AddWithdrawCountriesList flow="withdraw" />)
 
-        // flow=withdraw + ?amount= lands straight on the bank form
+        // ?view=form names the screen — the amount no longer implies it
         expect(screen.getByTestId('bank-form')).toBeInTheDocument()
         const props = mockBankFormProps.mock.calls.at(-1)?.[0] as {
             onExistingAccount?: (account: unknown) => void
@@ -368,8 +380,15 @@ describe('AddWithdrawCountriesList — existing-account shortcut (Chip round 9)'
 
         // the account becomes the withdraw flow's destination…
         expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(existing)
-        // …and the push carries the typed amount into the review page
-        expect(mockPush).toHaveBeenCalledWith('/withdraw/testland/bank?amount=50')
+        // …and the amount step is what comes next (TASK-22589: amount last)
+        expect(mockPush).toHaveBeenCalledWith('/withdraw?step=amount&amount=50')
+    })
+
+    it('an old ?amount= link with no named view still opens the bank form', async () => {
+        mockNuqsParams = { amount: '50' }
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+
+        await waitFor(() => expect(screen.getByTestId('bank-form')).toBeInTheDocument())
     })
 })
 
@@ -405,6 +424,7 @@ describe('AddWithdrawCountriesList — new-account submit hand-off (Chip round 1
         mockSetSelectedBankAccount.mockClear()
         mockBankFormProps.mockClear()
         mockUrlAmount = '50'
+        mockNuqsParams = { view: 'form', amount: '50' }
         setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
         ;(addBankAccount as jest.Mock).mockResolvedValue({ data: { id: newAccount.id } })
         // the refetched user carries the freshly added account
@@ -413,13 +433,14 @@ describe('AddWithdrawCountriesList — new-account submit hand-off (Chip round 1
 
     afterEach(() => {
         mockUrlAmount = ''
+        mockNuqsParams = {}
         mockSearchParams = new URLSearchParams()
         ;(addBankAccount as jest.Mock).mockReset()
         mockFetchUser.mockReset()
         mockFetchUser.mockResolvedValue(undefined)
     })
 
-    it('withdraw flow: the added account becomes the destination and the push carries ?amount= to review', async () => {
+    it('withdraw flow: the added account becomes the destination and the push goes to the amount step', async () => {
         render(<AddWithdrawCountriesList flow="withdraw" />)
         expect(screen.getByTestId('bank-form')).toBeInTheDocument()
 
@@ -427,7 +448,7 @@ describe('AddWithdrawCountriesList — new-account submit hand-off (Chip round 1
 
         expect(result).toEqual({})
         expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(newAccount)
-        expect(mockPush).toHaveBeenCalledWith('/withdraw/testland/bank?amount=50')
+        expect(mockPush).toHaveBeenCalledWith('/withdraw?step=amount&amount=50')
     })
 
     it('entered from the send flow, the method marker rides along with the amount', async () => {
@@ -438,7 +459,7 @@ describe('AddWithdrawCountriesList — new-account submit hand-off (Chip round 1
 
         expect(result).toEqual({})
         expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(newAccount)
-        expect(mockPush).toHaveBeenCalledWith('/withdraw/testland/bank?method=bank&amount=50')
+        expect(mockPush).toHaveBeenCalledWith('/withdraw?step=amount&method=bank&amount=50')
     })
 })
 
@@ -461,19 +482,11 @@ it('closing a cooldown also closes the underlying bank initiation prompt', async
     fireEvent.click(screen.getByTestId('method-bank'))
     expect(screen.getByTestId('initiate-kyc-modal')).toBeInTheDocument()
     mockCooldown = { retryAt: '2026-09-08T18:57:00Z' }
-    rerender(
-        <IntlWrapper>
-            <AddWithdrawCountriesList flow="add" />
-        </IntlWrapper>
-    )
+    rerender(withProviders(<AddWithdrawCountriesList flow="add" />))
     expect(screen.queryByTestId('initiate-kyc-modal')).not.toBeInTheDocument()
     fireEvent.click(screen.getByText("I'll try later"))
     mockCooldown = null
-    rerender(
-        <IntlWrapper>
-            <AddWithdrawCountriesList flow="add" />
-        </IntlWrapper>
-    )
+    rerender(withProviders(<AddWithdrawCountriesList flow="add" />))
     expect(screen.queryByTestId('initiate-kyc-modal')).not.toBeInTheDocument()
     await waitFor(() => expect(screen.queryByText("I'll try later")).not.toBeInTheDocument())
 })
