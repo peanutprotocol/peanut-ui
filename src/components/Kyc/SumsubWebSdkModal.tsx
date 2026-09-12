@@ -17,6 +17,7 @@ import type { SumsubSdkProps, SumsubHelpModalVariant } from './sumsubSdk.types'
  */
 export const SumsubWebSdkModal = ({
     visible,
+    sessionKey,
     accessToken,
     onClose,
     onComplete,
@@ -32,6 +33,7 @@ export const SumsubWebSdkModal = ({
 
     const { sdkLoadError, setSdkContainer, hasSubmittedRef } = useSumsubWebSdk({
         visible,
+        sessionKey,
         accessToken,
         onComplete,
         onSubmitted,

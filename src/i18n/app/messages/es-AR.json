@@ -1361,6 +1361,12 @@
             "done": {
                 "title": "Acá ya no queda nada por hacer"
             }
+        },
+        "correction": {
+            "title": "Corregí los datos de verificación bancaria",
+            "taxId": "Tu identidad está verificada, pero no pudimos validar tu identificación fiscal para este país. Revisala y corregila para habilitar las transferencias bancarias.",
+            "details": "Hay información que debés corregir para habilitar las transferencias bancarias. Tu verificación de identidad está guardada.",
+            "correct": "Corregir datos"
         }
     },
     "identity": {

@@ -5,13 +5,19 @@ import { useWebSocket } from '@/hooks/useWebSocket'
 import { useAuth } from '@/context/authContext'
 import {
     initiateSumsubKyc,
+    getVerificationSession,
+    refreshVerificationSession,
     initiateSelfHealResubmission,
     restartIdentityVerification,
     startKycAction,
     isTerminalActionCode,
     type SumsubActionErrorCode,
 } from '@/app/actions/sumsub'
-import { type KYCRegionIntent, type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
+import {
+    type KYCRegionIntent,
+    type SumsubKycStatus,
+    type VerificationActionSession,
+} from '@/app/actions/types/sumsub.types'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { isDemoMode } from '@/utils/demo'
 
@@ -107,6 +113,11 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     )
 
     const [accessToken, setAccessToken] = useState<string | null>(null)
+    const [verificationSession, setVerificationSession] = useState<VerificationActionSession | null>(null)
+    const verificationSessionRef = useRef<VerificationActionSession | null>(null)
+    const sessionId = verificationSession?.id
+    const sessionGeneration = verificationSession?.generation
+    const [showCorrection, setShowCorrection] = useState(false)
     const [showWrapper, setShowWrapper] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [error, setErrorState] = useState<string | null>(null)
@@ -121,6 +132,26 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // retriability from the region, which cannot tell the two apart.
     const [isTerminalError, setIsTerminalError] = useState(false)
     const [isVerificationProgressModalOpen, setIsVerificationProgressModalOpen] = useState(false)
+    const acceptSessionView = useCallback(
+        (session: VerificationActionSession) => {
+            verificationSessionRef.current = session
+            setVerificationSession(session)
+            if (session.state === 'CORRECTION_REQUIRED') {
+                setShowWrapper(false)
+                setIsVerificationProgressModalOpen(false)
+                setShowCorrection(true)
+            } else if (session.state === 'BLOCKED') {
+                setShowWrapper(false)
+                setIsVerificationProgressModalOpen(false)
+                setIsTerminalError(true)
+                setError(t('railsUnavailableError'))
+            } else if (session.state === 'READY') {
+                setShowWrapper(false)
+                setIsVerificationProgressModalOpen(true)
+            }
+        },
+        [setError, t]
+    )
     const [liveKycStatus, setLiveKycStatus] = useState<SumsubKycStatus | undefined>(undefined)
     const [rejectLabels, setRejectLabels] = useState<string[] | undefined>(undefined)
     // true when the SDK is showing an applicant action (not a standard level)
@@ -189,6 +220,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         // can never leak a value this guard acts on.
         if (liveKycStatus === 'ACTION_REQUIRED' && showWrapper && isMultiLevel) return
 
+        // A provider action retains base identity approval. Only its own session
+        // can finish this flow, never a stale identity APPROVED websocket event.
+        if (verificationSessionRef.current) return
         const prevStatus = prevStatusRef.current
         prevStatusRef.current = liveKycStatus
 
@@ -257,7 +291,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // it keeps polling for the whole modal-open lifetime so a late/missed
     // websocket event is always eventually recovered.
     useEffect(() => {
-        if (!isVerificationProgressModalOpen) return
+        if (!isVerificationProgressModalOpen || sessionId) return
 
         const startedAt = Date.now()
         let timeoutId: ReturnType<typeof setTimeout>
@@ -294,14 +328,15 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             cancelled = true
             clearTimeout(timeoutId)
         }
-    }, [isVerificationProgressModalOpen])
+    }, [isVerificationProgressModalOpen, sessionId])
 
     const handleInitiateKyc = useCallback(
         async (
             overrideIntent?: KYCRegionIntent,
             levelName?: string,
             crossRegion?: boolean,
-            rawTargetCountry?: string
+            rawTargetCountry?: string,
+            correctSession = false
         ) => {
             // targetCountry is only ever consumed by the BE as a Manteca geo
             // (pendingMantecaGeo stamp + action externalId suffix). Call sites
@@ -342,7 +377,21 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     levelName,
                     crossRegion,
                     targetCountry,
+                    correctSession,
                 })
+
+                if (response.data?.session) {
+                    userInitiatedRef.current = false
+                    acceptSessionView(response.data.session)
+                    if (['CORRECTION_REQUIRED', 'BLOCKED'].includes(response.data.session.state)) return false
+                    if (!response.data.token && response.data.session.state !== 'BLOCKED') {
+                        setIsVerificationProgressModalOpen(true)
+                        return false
+                    }
+                } else {
+                    verificationSessionRef.current = null
+                    setVerificationSession(null)
+                }
 
                 // A refusal no retry can change — no resolvable country for this
                 // entry point, or a permanent restriction like Manteca's
@@ -394,7 +443,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 }
 
                 // update effective intent + level for token refresh
-                const effectiveIntent = overrideIntent ?? regionIntent
+                const effectiveIntent = response.data?.workflow?.regionIntent ?? overrideIntent ?? regionIntent
                 if (effectiveIntent) regionIntentRef.current = effectiveIntent
                 levelNameRef.current = levelName
                 targetCountryRef.current = targetCountry
@@ -452,7 +501,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                      */
                     setIsActionFlow(!!actionType && actionType !== 'bridge-uplift')
                     setIsMultiLevel(
-                        (!actionType || actionType === 'bridge-uplift') && isMultiLevelIntent(effectiveIntent)
+                        response.data.session?.isMultiLevel ??
+                            response.data.workflow?.isMultiLevel ??
+                            ((!actionType || actionType === 'bridge-uplift') && isMultiLevelIntent(effectiveIntent))
                     )
                     setShowWrapper(true)
                     return true
@@ -472,8 +523,56 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 initiatingRef.current = false
             }
         },
-        [regionIntent, onKycSuccess, t, actionErrorMessage]
+        [regionIntent, onKycSuccess, t, actionErrorMessage, acceptSessionView, setError]
     )
+
+    const correctVerificationData = useCallback(async () => {
+        const session = verificationSessionRef.current
+        if (!session || session.state !== 'CORRECTION_REQUIRED') return
+        setShowCorrection(false)
+        await handleInitiateKyc('LATAM', undefined, true, session.targetCountry, true)
+    }, [handleInitiateKyc])
+    const dismissCorrection = useCallback(() => setShowCorrection(false), [])
+
+    // Poll progress through a read-only endpoint. Never call initiation to poll
+    // an accepted action: doing so used to mint the same completed questionnaire.
+    useEffect(() => {
+        if (!sessionId || (!showWrapper && !isVerificationProgressModalOpen)) return
+        let cancelled = false
+        let timer: ReturnType<typeof setTimeout>
+        const poll = async () => {
+            try {
+                const session = await getVerificationSession(sessionId)
+                if (
+                    !cancelled &&
+                    session &&
+                    verificationSessionRef.current?.id === session.id &&
+                    verificationSessionRef.current.generation === session.generation
+                )
+                    acceptSessionView(session)
+                else if (
+                    !cancelled &&
+                    session &&
+                    session.id === verificationSessionRef.current?.id &&
+                    session.generation > verificationSessionRef.current.generation
+                ) {
+                    setShowWrapper(false)
+                    acceptSessionView(session)
+                    if (!['CORRECTION_REQUIRED', 'BLOCKED'].includes(session.state))
+                        setIsVerificationProgressModalOpen(true)
+                }
+            } catch {
+                /* Keep waiting on transient reads; never infer completion. */
+            } finally {
+                if (!cancelled) timer = setTimeout(poll, 4000)
+            }
+        }
+        void poll()
+        return () => {
+            cancelled = true
+            clearTimeout(timer)
+        }
+    }, [sessionId, sessionGeneration, showWrapper, isVerificationProgressModalOpen, acceptSessionView])
 
     // called when sdk signals applicant submitted
     const handleSdkComplete = useCallback(() => {
@@ -504,6 +603,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // routes by how the flow started: start-action key, self-heal provider, or
     // the regular KYC endpoint.
     const refreshToken = useCallback(async (): Promise<string> => {
+        if (verificationSessionRef.current) return refreshVerificationSession(verificationSessionRef.current)
+
         if (actionKeyRef.current) {
             const response = await startKycAction(actionKeyRef.current)
             if (response.error || !response.data?.token) {
@@ -548,7 +649,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const resetError = useCallback(() => {
         setIsTerminalError(false)
         setError(null)
-    }, [])
+    }, [setError])
 
     // Reset Sumsub IDENTITY step + open the WebSDK with a fresh token. The
     // user lands back on the document-upload screen so they can verify with a
@@ -556,6 +657,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // (Manteca country-ineligibility — uploaded a non-AR/BR document).
     const handleRestartIdentity = useCallback(
         async (overrideIntent?: KYCRegionIntent) => {
+            verificationSessionRef.current = null
+            setVerificationSession(null)
+            setShowCorrection(false)
             setIsLoading(true)
             setError(null)
             setIsTerminalError(false)
@@ -619,7 +723,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setIsLoading(false)
             }
         },
-        [t, actionErrorMessage]
+        [t, actionErrorMessage, setError]
     )
 
     // initiate self-heal document resubmission: calls the resubmit API
@@ -628,6 +732,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // legacy blocking flow.
     const handleSelfHealResubmit = useCallback(
         async (provider: 'BRIDGE' | 'MANTECA', requirementKey?: string) => {
+            verificationSessionRef.current = null
+            setVerificationSession(null)
+            setShowCorrection(false)
             setIsLoading(true)
             setError(null)
             userInitiatedRef.current = true
@@ -664,7 +771,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setIsLoading(false)
             }
         },
-        [t, actionErrorMessage]
+        [t, actionErrorMessage, setError]
     )
 
     // Start a capability nextAction by key (POST /users/kyc/start-action) and
@@ -674,6 +781,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // the advisory pre-empt needs to start a future-dated requirement early.
     const handleStartAction = useCallback(
         async (key: string) => {
+            verificationSessionRef.current = null
+            setVerificationSession(null)
+            setShowCorrection(false)
             setIsLoading(true)
             setError(null)
             userInitiatedRef.current = true
@@ -700,7 +810,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 setIsLoading(false)
             }
         },
-        [t, actionErrorMessage]
+        [t, actionErrorMessage, setError]
     )
 
     // Launch the fix for a `fixable` provider rejection. Manteca RFIs (PEP/FEP,
@@ -743,5 +853,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         resetError,
         isActionFlow,
         isMultiLevel,
+        verificationSession,
+        showCorrection,
+        correctVerificationData,
+        dismissCorrection,
     }
 }
