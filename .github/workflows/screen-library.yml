@@ -46,15 +46,12 @@ jobs:
                   [[ "$before" =~ ^[a-f0-9]{40}$ ]]
                   echo "before=$before" >> "$GITHUB_OUTPUT"
                   echo "after=$after" >> "$GITHUB_OUTPUT"
-    capture:
+    capture_after:
         needs: refs
-        # Original tutorials use HEVC with alpha; preserve native decoding.
+        # PR commits only capture the changed revision. The trusted publisher
+        # supplies the verified daily baseline from a prior run.
         runs-on: macos-26-intel
         timeout-minutes: 60
-        strategy:
-            fail-fast: false
-            matrix:
-                side: [before, after]
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
@@ -65,7 +62,7 @@ jobs:
                   persist-credentials: false
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
-                  ref: ${{ matrix.side == 'before' && needs.refs.outputs.before || needs.refs.outputs.after }}
+                  ref: ${{ needs.refs.outputs.after }}
                   path: target
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
@@ -85,19 +82,70 @@ jobs:
             - name: Build and capture exact revision
               working-directory: harness
               env:
-                  TARGET_SHA: ${{ matrix.side == 'before' && needs.refs.outputs.before || needs.refs.outputs.after }}
+                  TARGET_SHA: ${{ needs.refs.outputs.after }}
               run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
               if: always()
               with:
-                  name: screen-library-${{ matrix.side }}-${{ github.run_attempt }}
+                  name: screen-library-after-${{ github.run_attempt }}
+                  path: capture/
+                  if-no-files-found: error
+                  retention-days: 14
+
+    capture_before:
+        needs: refs
+        # Pushes still need a same-run pair for the post-merge report and
+        # historical dispatch keeps its fixed main baseline. PRs resolve the
+        # baseline in the trusted publisher instead of recapturing it.
+        if: github.event_name != 'pull_request'
+        runs-on: macos-26-intel
+        timeout-minutes: 60
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  ref: ${{ github.event.pull_request.head.sha || github.sha }}
+                  path: harness
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+                  persist-credentials: false
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  ref: ${{ needs.refs.outputs.before }}
+                  path: target
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+                  persist-credentials: false
+            - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+              with:
+                  version: 10.30.1
+            - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+              with:
+                  node-version: '22'
+            - name: Install capture tools
+              working-directory: harness
+              run: pnpm install --frozen-lockfile
+            - name: Install pinned browser
+              working-directory: harness
+              run: pnpm exec playwright install --with-deps --no-shell chromium
+            - name: Build and capture exact revision
+              working-directory: harness
+              env:
+                  TARGET_SHA: ${{ needs.refs.outputs.before }}
+              run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture
+            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+              if: always()
+              with:
+                  name: screen-library-before-${{ github.run_attempt }}
                   path: capture/
                   if-no-files-found: error
                   retention-days: 14
 
     publish:
-        needs: [refs, capture]
-        if: always() && !cancelled() && needs.refs.result == 'success' && needs.capture.result != 'skipped'
+        needs: [refs, capture_after, capture_before]
+        if: >-
+            always() && !cancelled() && needs.refs.result == 'success' &&
+            needs.capture_after.result != 'skipped' &&
+            (github.event_name == 'pull_request' || needs.capture_before.result != 'skipped')
         permissions:
             contents: read
             actions: read
@@ -106,6 +154,5 @@ jobs:
         # Land the reusable publisher (#3107) on dev before this caller (#3108).
         uses: peanutprotocol/peanut-ui/.github/workflows/screen-library-publish.yml@dev
         secrets:
-            # Keep the reusable-workflow input compatible with the current dev callee.
             # The repository secret itself is named CLOUDFLARE_API_TOKEN.
             CLOUDFLARE_PUBLISH_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

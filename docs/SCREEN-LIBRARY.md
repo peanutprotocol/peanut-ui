@@ -6,7 +6,7 @@ continues to provide that evidence. Native system dialogs are outside v1.
 
 ## Capture and compare
 
-Use Node 20, pnpm 10.30.1, an initialized content submodule, and the browser
+Use Node 22, pnpm 10.30.1, an initialized content submodule, and the browser
 installed by this checkout's pinned Playwright. Each target is a separate
 checkout at an immutable SHA. Never reuse a running development server.
 
@@ -134,17 +134,29 @@ libraries advance that pointer; PR preview completion cannot move it.
 
 ## CI activation and provenance
 
-`Screen library` builds both sides without write credentials. PR previews use
-the exact merge base and head; merge reports use the first parent, expanding to
-the complete integrated patch sequence for rebase merges. Captures are not
-reused from a best-effort cache. Full catalogues run even for shared-style changes.
+`Screen library` builds the changed side without write credentials on PR
+updates. The trusted publisher resolves the exact merge-base capture from a
+successful dev integration run or the scheduled daily baseline workflow; it
+rejects stale, unrelated, or mismatched-harness baselines. Pushes and the
+historical dispatch retain same-run two-sided captures. Full catalogues run
+even for shared-style changes.
+
+`Screen library baseline` refreshes the dev baseline once per UTC day at
+00:17. Its artifact is retained for seven days and is accepted only when the
+artifact run, branch, SHA, workflow, age, and capture manifest all match the
+verified baseline. If the baseline is unavailable or the capture harness
+changed, publication fails closed instead of comparing against an arbitrary
+revision; run the baseline workflow manually after enabling it.
 
 `Publish screen library` is a reusable `workflow_call` job invoked after the
-capture matrix finishes. The caller resolves the reusable workflow from `dev`,
-and the publisher checks out `dev`; PR checkout code never runs in that job.
-It consumes only the caller's exact run and attempt. It also runs after capture
-failures so available evidence can be published with explicit gaps. Cancelled
-runs do not publish. There is no default-branch activation requirement.
+capture jobs finish. The caller resolves the reusable workflow from `dev`, and
+the publisher checks out `dev`; PR checkout code never runs in that job. It
+consumes the caller's exact after artifact and, for PRs, one separately
+resolved baseline artifact. Same-run before/after artifacts remain the fallback
+for integration and historical runs. It also runs after capture failures so
+available evidence can be published with explicit gaps. Cancelled runs do not
+publish. The scheduled baseline workflow must be registered on the repository's
+default branch for GitHub's schedule trigger to fire.
 
 Merge publisher PR #3107 into dev first, then caller/catalogue PR #3108. Both
 PRs target dev. Once storage is configured, that dev push captures and publishes

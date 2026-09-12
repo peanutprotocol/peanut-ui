@@ -43,6 +43,28 @@ jobs:
                   pattern: screen-library-*
                   merge-multiple: false
                   path: incoming
+            - name: Resolve verified daily baseline when needed
+              id: baseline
+              env:
+                  RUN_ID: ${{ github.run_id }}
+                  REPOSITORY: ${{ github.repository }}
+              run: |
+                  set -euo pipefail
+                  if test -s "incoming/screen-library-before-${GITHUB_RUN_ATTEMPT}/capture.json"; then
+                      echo 'mode=current' >> "$GITHUB_OUTPUT"
+                  else
+                      echo 'mode=external' >> "$GITHUB_OUTPUT"
+                      node scripts/screens/resolve-baseline.mjs >> "$GITHUB_OUTPUT"
+                  fi
+            - name: Download verified daily baseline
+              if: steps.baseline.outputs.mode == 'external'
+              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              with:
+                  github-token: ${{ github.token }}
+                  repository: ${{ github.repository }}
+                  run-id: ${{ steps.baseline.outputs.run_id }}
+                  name: ${{ steps.baseline.outputs.artifact_name }}
+                  path: incoming/baseline
             - name: Verify provenance and publish
               env:
                   GH_TOKEN: ${{ github.token }}
@@ -56,4 +78,7 @@ jobs:
                   RUN_ID: ${{ github.run_id }}
                   RUN_ATTEMPT: ${{ github.run_attempt }}
                   REPOSITORY: ${{ github.repository }}
+                  SCREEN_LIBRARY_BASELINE_DIR: ${{ steps.baseline.outputs.mode == 'external' && 'incoming/baseline' || '' }}
+                  SCREEN_LIBRARY_BASELINE_RUN_ID: ${{ steps.baseline.outputs.run_id }}
+                  SCREEN_LIBRARY_BASELINE_ARTIFACT: ${{ steps.baseline.outputs.artifact_name }}
               run: node scripts/screens/publish-run.mjs
