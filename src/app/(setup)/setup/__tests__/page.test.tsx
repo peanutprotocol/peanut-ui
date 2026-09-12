@@ -296,6 +296,47 @@ it('does not redirect home after a newer native deep link is accepted', async ()
     expect(mockRouter.replace).not.toHaveBeenCalledWith('/home')
 })
 
+it('restarts native badge settlement when a newer invite replaces the setup URL', async () => {
+    mockAuth.user = { user: { username: 'alice', hasAppAccess: true } }
+    mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer')
+    type ClaimResult = Awaited<ReturnType<typeof mockClaimAndSettlePendingBadgeCampaigns>>
+    const resolveClaims: Array<(result: ClaimResult) => void> = []
+    mockClaimAndSettlePendingBadgeCampaigns.mockImplementation(
+        (_campaigns: readonly string[]) =>
+            new Promise<ClaimResult>((resolve) => {
+                resolveClaims.push(resolve)
+            })
+    )
+
+    const view = renderWithIntl(<SetupPage />)
+    await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledTimes(1))
+
+    markDeepLinkNavigated()
+    mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer_v2')
+    view.rerender(<SetupPage />)
+
+    await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledTimes(2))
+    expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenNthCalledWith(2, ['bug_whisperer_v2'])
+
+    await act(async () => {
+        resolveClaims[0]({
+            claims: [{ badgeCampaign: 'bug_whisperer', outcome: 'awarded' }],
+            pending: [],
+            transport: 'canonical',
+        })
+    })
+    expect(mockRouter.replace).not.toHaveBeenCalledWith('/home')
+
+    await act(async () => {
+        resolveClaims[1]({
+            claims: [{ badgeCampaign: 'bug_whisperer_v2', outcome: 'awarded' }],
+            pending: [],
+            transport: 'canonical',
+        })
+    })
+    await waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith('/home'))
+})
+
 it('does not initialize after unmount', async () => {
     const view = renderWithIntl(<SetupPage />)
     view.unmount()

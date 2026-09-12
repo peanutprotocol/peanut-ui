@@ -82,9 +82,11 @@ function SetupPageContent() {
     const [sessionChecked, setSessionChecked] = useState(false)
     const [existingSessionUsername, setExistingSessionUsername] = useState<string | null>(null)
     const [isSettlingNativeBadgeCampaigns, setIsSettlingNativeBadgeCampaigns] = useState(false)
-    const hasStartedNativeBadgeClaimingRef = useRef(false)
     const isSetupMountedRef = useRef(false)
     const currentBadgeCampaignsKeyRef = useRef(urlBadgeCampaigns.join('\u0000'))
+    const nativeClaimCampaignsKeyRef = useRef<string | null>(null)
+    const nativeClaimGenerationRef = useRef<number | null>(null)
+    const nativeClaimRunIdRef = useRef(0)
     currentBadgeCampaignsKeyRef.current = urlBadgeCampaigns.join('\u0000')
 
     useEffect(() => {
@@ -163,8 +165,15 @@ function SetupPageContent() {
      * registration) never re-triggers the prompt.
      */
     useEffect(() => {
-        if (sessionChecked || isFetchingUser) return
-        setSessionChecked(true)
+        if (isFetchingUser) return
+        const isInitialSessionCheck = !sessionChecked
+        if (
+            !isInitialSessionCheck &&
+            (!user?.user?.username || !user.user.hasAppAccess || urlBadgeCampaigns.length === 0)
+        ) {
+            return
+        }
+        if (isInitialSessionCheck) setSessionChecked(true)
 
         // Native /invite links are rewritten to /setup because the invite page is
         // not part of the static export. Queue the campaign before the completed
@@ -183,11 +192,21 @@ function SetupPageContent() {
              * written for (durable credentials, setup never completed).
              */
             if (user.user.hasAppAccess) {
-                if (isCapacitor() && pendingBadgeCampaigns.length > 0 && !hasStartedNativeBadgeClaimingRef.current) {
-                    hasStartedNativeBadgeClaimingRef.current = true
-                    const nativeClaimDeepLinkGeneration = getDeepLinkGeneration()
+                const nativeClaimDeepLinkGeneration = getDeepLinkGeneration()
+                const nativeClaimCampaignsKey = pendingBadgeCampaigns.join('\u0000')
+                const shouldSettleNativeBadgeCampaigns =
+                    isCapacitor() &&
+                    pendingBadgeCampaigns.length > 0 &&
+                    (nativeClaimCampaignsKeyRef.current !== nativeClaimCampaignsKey ||
+                        nativeClaimGenerationRef.current !== nativeClaimDeepLinkGeneration)
+                if (shouldSettleNativeBadgeCampaigns) {
+                    const nativeClaimRunId = nativeClaimRunIdRef.current + 1
+                    nativeClaimRunIdRef.current = nativeClaimRunId
+                    nativeClaimCampaignsKeyRef.current = nativeClaimCampaignsKey
+                    nativeClaimGenerationRef.current = nativeClaimDeepLinkGeneration
                     const isCurrentNativeClaim = () =>
                         isSetupMountedRef.current &&
+                        nativeClaimRunIdRef.current === nativeClaimRunId &&
                         getDeepLinkGeneration() === nativeClaimDeepLinkGeneration &&
                         currentBadgeCampaignsKeyRef.current === urlBadgeCampaigns.join('\u0000')
                     setIsSettlingNativeBadgeCampaigns(true)
@@ -214,12 +233,20 @@ function SetupPageContent() {
                             Sentry.captureException(error, { tags: { error_type: 'native_campaign_claim_failed' } })
                         })
                         .finally(() => {
-                            if (!isCurrentNativeClaim()) return
-                            setIsSettlingNativeBadgeCampaigns(false)
-                            router.replace('/home')
+                            if (isCurrentNativeClaim()) {
+                                setIsSettlingNativeBadgeCampaigns(false)
+                                router.replace('/home')
+                            } else if (isSetupMountedRef.current && nativeClaimRunIdRef.current === nativeClaimRunId) {
+                                // A newer native link may keep this setup instance
+                                // mounted while Next transitions to its new URL.
+                                // Release the old loader until the latest URL's
+                                // effect starts its replacement settlement.
+                                setIsSettlingNativeBadgeCampaigns(false)
+                            }
                         })
                     return
                 }
+                if (!isInitialSessionCheck) return
                 posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED, { auto: true })
                 router.replace('/home')
                 return
