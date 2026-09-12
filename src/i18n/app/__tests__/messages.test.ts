@@ -21,7 +21,7 @@ const FULL_LOCALES = APP_LOCALES.filter((locale) => !DELTA_LOCALES.includes(loca
  */
 const CONTEXT_DIVERGENT: Record<string, string> = {
     Send: 'nav/action verb vs. transaction-type noun (Enviar / Envío)',
-    Request: 'nav/action verb vs. transaction-type noun (Recibir / Solicitud)',
+    Request: 'nav/action verb vs. transaction-type noun (Solicitar / Solicitud)',
     Add: 'nav verb vs. transaction-type noun (Agregar / Ingreso)',
     Withdraw: 'nav verb vs. transaction-type noun (Retirar / Retiro)',
     Pay: 'nav/action verb vs. transaction-type noun (Pagar / Pago)',
@@ -72,6 +72,21 @@ describe('catalog key parity', () => {
     it.each(DELTA_LOCALES)('%s holds only keys that exist in en', (locale) => {
         const stray = leafPaths(CATALOGS[locale]).filter((path) => !enPaths.includes(path))
         expect(stray).toEqual([])
+    })
+})
+
+describe('navigation action labels', () => {
+    const EXPECTED_ACTIONS: Record<AppLocale, { request: string; add: string }> = {
+        en: { request: 'Request', add: 'Add' },
+        'es-419': { request: 'Solicitar', add: 'Agregar' },
+        'es-AR': { request: 'Solicitar', add: 'Agregar' },
+        'pt-BR': { request: 'Cobrar', add: 'Adicionar' },
+    }
+
+    it.each(APP_LOCALES)('%s keeps request and add distinct', async (locale) => {
+        const { navigation } = await loadMessages(locale)
+        expect({ request: navigation.request, add: navigation.add }).toEqual(EXPECTED_ACTIONS[locale])
+        expect(navigation.request).not.toBe(navigation.add)
     })
 })
 
