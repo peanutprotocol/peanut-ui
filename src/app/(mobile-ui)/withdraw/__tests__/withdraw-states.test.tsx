@@ -972,7 +972,7 @@ describe('GROUP 6b: old deep links never dead-end', () => {
 
         const pushed = mockRouterPush.mock.calls.at(-1)?.[0] as string
         expect(pushed).toContain('/withdraw/germany')
-        expect(pushed).toContain('view=form')
+        expect(pushed).toContain('step=form')
         expect(pushed).toContain('amount=50')
     })
 })

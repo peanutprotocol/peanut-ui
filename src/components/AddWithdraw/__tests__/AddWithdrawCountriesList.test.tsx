@@ -21,7 +21,7 @@ import AddWithdrawCountriesList from '../AddWithdrawCountriesList'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { addBankAccount } from '@/app/actions/users'
 
-// the screen is named in the URL (`?view=form`), so every render needs the
+// the screen is named in the URL (`?step=form`), so every render needs the
 // nuqs adapter — and the tests that want the bank form say so by setting it
 let mockNuqsParams: Record<string, string> = {}
 const withProviders = (ui: React.ReactElement) => (
@@ -356,7 +356,7 @@ describe('AddWithdrawCountriesList — existing-account shortcut (Chip round 9)'
         mockSetSelectedBankAccount.mockClear()
         mockBankFormProps.mockClear()
         mockUrlAmount = '50'
-        mockNuqsParams = { view: 'form', amount: '50' }
+        mockNuqsParams = { step: 'form', amount: '50' }
         setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
     })
 
@@ -368,7 +368,7 @@ describe('AddWithdrawCountriesList — existing-account shortcut (Chip round 9)'
     it('withdraw flow: a typed account that already exists selects it and carries on to the amount step', () => {
         render(<AddWithdrawCountriesList flow="withdraw" />)
 
-        // ?view=form names the screen — the amount no longer implies it
+        // ?step=form names the screen — the amount no longer implies it
         expect(screen.getByTestId('bank-form')).toBeInTheDocument()
         const props = mockBankFormProps.mock.calls.at(-1)?.[0] as {
             onExistingAccount?: (account: unknown) => void
@@ -384,8 +384,17 @@ describe('AddWithdrawCountriesList — existing-account shortcut (Chip round 9)'
         expect(mockPush).toHaveBeenCalledWith('/withdraw?step=amount&amount=50')
     })
 
-    it('an old ?amount= link with no named view still opens the bank form', async () => {
+    it('an old ?amount= link with no named step still opens the bank form', async () => {
         mockNuqsParams = { amount: '50' }
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+
+        await waitFor(() => expect(screen.getByTestId('bank-form')).toBeInTheDocument())
+    })
+
+    // The screen was called `?view=form` for one release before the flow
+    // adopted `?step=`, the name every other flow uses. Those links still land.
+    it('an old ?view=form link still opens the bank form', async () => {
+        mockNuqsParams = { view: 'form' }
         render(<AddWithdrawCountriesList flow="withdraw" />)
 
         await waitFor(() => expect(screen.getByTestId('bank-form')).toBeInTheDocument())
@@ -424,7 +433,7 @@ describe('AddWithdrawCountriesList — new-account submit hand-off (Chip round 1
         mockSetSelectedBankAccount.mockClear()
         mockBankFormProps.mockClear()
         mockUrlAmount = '50'
-        mockNuqsParams = { view: 'form', amount: '50' }
+        mockNuqsParams = { step: 'form', amount: '50' }
         setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
         ;(addBankAccount as jest.Mock).mockResolvedValue({ data: { id: newAccount.id } })
         // the refetched user carries the freshly added account
@@ -506,7 +515,7 @@ describe('bank country back navigation', () => {
 
 /**
  * The bank form can be reached without passing the rail list: a country with
- * one live rail skips it, and a refresh or a shared `?view=form` link starts
+ * one live rail skips it, and a refresh or a shared `?step=form` link starts
  * there. Flow memory does not survive either, so the screen has to stand on
  * its own — both on the way out and on the way back.
  */
@@ -516,7 +525,7 @@ describe('AddWithdrawCountriesList — the bank form entered cold', () => {
         mockSetSelectedMethod.mockClear()
         mockSetSelectedBankAccount.mockClear()
         mockBankFormProps.mockClear()
-        mockNuqsParams = { view: 'form' }
+        mockNuqsParams = { step: 'form' }
         setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
         ;(addBankAccount as jest.Mock).mockResolvedValue({ data: { id: 'acct-new' } })
         mockFetchUser.mockResolvedValue({ accounts: [{ id: 'acct-new', bridgeAccountId: 'ext-new' }] })

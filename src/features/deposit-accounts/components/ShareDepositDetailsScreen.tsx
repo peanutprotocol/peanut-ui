@@ -77,9 +77,7 @@ export function ShareDepositDetailsScreen({
                  * to send, so the callout is a preview of them rather than a
                  * second set of warnings stacked under the card.
                  */}
-                {rules.length > 0 && (
-                    <Notification priority="attention" title={t('share.calloutTitle')} items={rules} />
-                )}
+                {rules.length > 0 && <Notification priority="helper" title={t('share.calloutTitle')} items={rules} />}
             </div>
             <PageStack.Footer>
                 <ShareButton

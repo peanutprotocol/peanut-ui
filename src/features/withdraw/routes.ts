@@ -29,7 +29,7 @@ export function withdrawAmountStepUrl({ method, amount }: { method?: string | nu
 
 /** The bank-account form for a country, named in the URL rather than implied. */
 export function withdrawCountryFormUrl(countryPath: string, method?: string | null): string {
-    const search = new URLSearchParams({ view: 'form' })
+    const search = new URLSearchParams({ step: 'form' })
     if (method) search.set('method', method)
     return withdrawCountryUrl(countryPath, `?${search.toString()}`)
 }

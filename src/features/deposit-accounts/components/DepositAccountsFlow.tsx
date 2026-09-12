@@ -60,7 +60,13 @@ export function DepositAccountsFlow({
     onResolveGate,
     onRetry,
 }: DepositAccountsFlowProps) {
-    const [{ screen, corridor }, setParams] = useQueryStates(DEPOSIT_ACCOUNT_PARAMS)
+    const [{ step: screen, corridor, screen: legacyStep }, setParams] = useQueryStates(DEPOSIT_ACCOUNT_PARAMS)
+    // Links minted while the cursor was called `?screen=` still open the flow
+    // where they meant to. Rewritten once, in place, so back does not land on
+    // the old name.
+    useEffect(() => {
+        if (legacyStep) setParams({ step: legacyStep, screen: null })
+    }, [legacyStep, setParams])
     const { t, railName } = useDepositAccountCopy()
     const rail = DEPOSIT_RAILS[corridor]
     const account = accounts[corridor]
@@ -113,7 +119,7 @@ export function DepositAccountsFlow({
         // only a corridor a user can hold has something to claim; the rest go
         // straight to their details, which are the user's own top-up details
         const needsClaim = isClaimable(DEPOSIT_RAILS[next]) && (!nextAccount || nextAccount.status === 'unclaimed')
-        setParams({ corridor: next, screen: needsClaim ? 'claim' : 'details' })
+        setParams({ corridor: next, step: needsClaim ? 'claim' : 'details' })
     }
 
     if (resolved === 'claim') {
@@ -127,7 +133,7 @@ export function DepositAccountsFlow({
                 // moves the user on by itself, and if it never does the error
                 // renders on this screen rather than nowhere
                 onClaim={() => onClaim(corridor)}
-                onBack={() => setParams({ screen: 'list' })}
+                onBack={() => setParams({ step: 'list' })}
             />
         )
     }
@@ -138,8 +144,8 @@ export function DepositAccountsFlow({
                 rail={rail}
                 account={account}
                 userName={userName}
-                onBack={() => setParams({ screen: 'list' })}
-                onShare={() => setParams({ screen: 'share' })}
+                onBack={() => setParams({ step: 'list' })}
+                onShare={() => setParams({ step: 'share' })}
                 onRetry={() => onClaim(corridor)}
             />
         )
@@ -151,7 +157,7 @@ export function DepositAccountsFlow({
                 rail={rail}
                 account={account}
                 userName={userName}
-                onBack={() => setParams({ screen: 'details' })}
+                onBack={() => setParams({ step: 'details' })}
             />
         )
     }

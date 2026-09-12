@@ -10,8 +10,8 @@ import type { GateState } from '@/utils/capability-gate'
  * The URL is the source of truth for where the user is, which means the URL is
  * also an input a user can hand-edit or a stale link can carry. Every screen
  * therefore states its own preconditions here rather than trusting the param:
- * `?screen=share` on an own-name-only corridor would otherwise offer a Share
- * button for details nobody else may pay into, and `?screen=claim` would offer
+ * `?step=share` on an own-name-only corridor would otherwise offer a Share
+ * button for details nobody else may pay into, and `?step=claim` would offer
  * to open an account the user already holds, or one the gate has not cleared.
  *
  * The gate passed here is the SELECTED corridor's gate, never the bank-wide

@@ -343,7 +343,7 @@ describe('WithdrawMethodView — picking a country', () => {
         expect(mockSetSelectedMethod).toHaveBeenCalledWith(
             expect.objectContaining({ type: 'bridge', countryPath: 'germany', title: 'To Bank' })
         )
-        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/germany?view=form')
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/germany?step=form')
     })
 
     it('one live Manteca rail: straight to that flow, with no amount to seed', () => {

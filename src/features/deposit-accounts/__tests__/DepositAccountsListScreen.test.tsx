@@ -166,7 +166,7 @@ describe('DepositAccountsFlow while the accounts are loading', () => {
     const flow = (isLoading: boolean, gates: Record<DepositCorridor, GateState> = allGates(), isError = false) =>
         render(
             <NextIntlClientProvider locale="en" messages={messages}>
-                <NuqsTestingAdapter searchParams="?screen=details&corridor=SEPA_EU">
+                <NuqsTestingAdapter searchParams="?step=details&corridor=SEPA_EU">
                     <DepositAccountsFlow
                         accounts={NONE}
                         gates={gates}
@@ -237,7 +237,7 @@ describe('DepositAccountsFlow when the accounts cannot be read', () => {
     it('falls back to the list and its retry rather than offering the claim', () => {
         render(
             <NextIntlClientProvider locale="en" messages={messages}>
-                <NuqsTestingAdapter searchParams="?screen=claim&corridor=SEPA_EU">
+                <NuqsTestingAdapter searchParams="?step=claim&corridor=SEPA_EU">
                     <DepositAccountsFlow
                         accounts={NONE}
                         gates={allGates()}
@@ -255,5 +255,30 @@ describe('DepositAccountsFlow when the accounts cannot be read', () => {
 
         expect(screen.queryByRole('button', { name: /open eur account/i })).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument()
+    })
+})
+
+/**
+ * The cursor shipped as `?screen=` and was renamed to `?step=`, the name every
+ * other flow in the app uses. Links already minted must still land.
+ */
+describe('DepositAccountsFlow accepts the cursor by its old name', () => {
+    it('opens the step a `?screen=` link asked for', () => {
+        render(
+            <NextIntlClientProvider locale="en" messages={messages}>
+                <NuqsTestingAdapter searchParams="?screen=claim&corridor=SEPA_EU">
+                    <DepositAccountsFlow
+                        accounts={NONE}
+                        gates={allGates()}
+                        userName="Demo User"
+                        onExit={() => {}}
+                        onClaim={() => {}}
+                        onResolveGate={() => {}}
+                        onRetry={() => {}}
+                    />
+                </NuqsTestingAdapter>
+            </NextIntlClientProvider>
+        )
+        expect(screen.getByRole('button', { name: /open eur account/i })).toBeInTheDocument()
     })
 })

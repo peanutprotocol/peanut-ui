@@ -447,9 +447,9 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
-    // ?view=form names the screen; the amount is collected after it now.
+    // ?step=form names the screen; the amount is collected after it now.
     'withdraw-bank-form': {
-        route: '/withdraw/spain?view=form',
+        route: '/withdraw/spain?step=form',
         about: 'Bridge bank-account form for Spain — Field label/error chrome.',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
     },
@@ -784,22 +784,22 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'get-paid-claim': {
-        route: '/get-paid?screen=claim&corridor=ACH_US',
+        route: '/get-paid?step=claim&corridor=ACH_US',
         about: 'What the user agrees to before an account is opened in their name.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [] } },
     },
     'get-paid-details-eur': {
-        route: '/get-paid?screen=details&corridor=SEPA_EU',
+        route: '/get-paid?step=details&corridor=SEPA_EU',
         about: 'Euro details: businesses only until an individual volume is agreed, with a 1 EUR floor.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
     },
     'get-paid-details-usd': {
-        route: '/get-paid?screen=details&corridor=ACH_US',
+        route: '/get-paid?step=details&corridor=ACH_US',
         about: 'Dollar details: businesses and same-surname family unlimited, anyone else capped.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_USD] } },
     },
     'get-paid-details-usd-state-restricted': {
-        route: '/get-paid?screen=details&corridor=ACH_US',
+        route: '/get-paid?step=details&corridor=ACH_US',
         about: 'The same dollar account for a resident of a state where no third party may pay in.',
         responses: {
             ...VA_READY_RESPONSE,
@@ -807,17 +807,17 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'get-paid-details-gbp': {
-        route: '/get-paid?screen=details&corridor=FASTER_PAYMENTS_GB',
+        route: '/get-paid?step=details&corridor=FASTER_PAYMENTS_GB',
         about: 'Sterling details, where only a business may pay in and nothing else is published.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_GBP] } },
     },
     'get-paid-details-mxn': {
-        route: '/get-paid?screen=details&corridor=SPEI_MX',
+        route: '/get-paid?step=details&corridor=SPEI_MX',
         about: 'Peso details: no terms are published, so the screen says only what is confirmed.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_MXN] } },
     },
     'get-paid-details-provider-held': {
-        route: '/get-paid?screen=details&corridor=SEPA_EU',
+        route: '/get-paid?step=details&corridor=SEPA_EU',
         about: 'The account is held by our banking partner, so the payer reads a name that is not the user.',
         responses: {
             ...VA_READY_RESPONSE,
@@ -825,7 +825,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'get-paid-provisioning': {
-        route: '/get-paid?screen=details&corridor=ACH_US',
+        route: '/get-paid?step=details&corridor=ACH_US',
         about: 'Claimed, waiting on the provider — the skeleton matches the row count to come.',
         isLoadingState: true,
         waitFor: '[data-testid="deposit-details-skeleton"]',
@@ -837,7 +837,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'get-paid-failed': {
-        route: '/get-paid?screen=details&corridor=ACH_US',
+        route: '/get-paid?step=details&corridor=ACH_US',
         about: 'Opening the account did not complete; the user can try again.',
         responses: {
             ...VA_READY_RESPONSE,
@@ -847,7 +847,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'get-paid-revoked': {
-        route: '/get-paid?screen=details&corridor=ACH_US',
+        route: '/get-paid?step=details&corridor=ACH_US',
         about: 'The account no longer accepts money and the details are already in a payroll file somewhere.',
         responses: {
             ...VA_READY_RESPONSE,
@@ -855,14 +855,14 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'get-paid-share': {
-        route: '/get-paid?screen=share&corridor=SEPA_EU',
+        route: '/get-paid?step=share&corridor=SEPA_EU',
         about: 'What the payer will see, before the user sends it to them.',
         // The caveats sit under the details card, below the fold.
         fullPage: true,
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
     },
     'get-paid-ar': {
-        route: '/get-paid?screen=details&corridor=BANK_TRANSFER_AR',
+        route: '/get-paid?step=details&corridor=BANK_TRANSFER_AR',
         about: 'Argentina: the provider CVU only credits transfers the user sends themselves, so it is never shared.',
     },
 

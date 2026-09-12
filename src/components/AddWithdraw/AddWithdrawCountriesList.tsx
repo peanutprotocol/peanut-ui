@@ -99,17 +99,21 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                 router.push(countrySlug ? rewriteMethodPath(`/add-money/${countrySlug}/bank`) : '/add-money')
                 return
             }
-            void setViewParam('form')
+            void setStepParam('form')
         },
         onManualClose: () => setIsKycModalOpen(false),
     })
 
     // component level states. The screen is named in the URL, not inferred:
-    // `?view=form` is the bank-account form, no `view` is the rail list. It used
+    // `?step=form` is the bank-account form, no `step` is the rail list. It used
     // to flip to the form purely because `?amount=` was present, which tied the
     // screen to a value that now arrives AFTER the destination (TASK-22589).
+    // `step` is the name every flow in the app gives its cursor; `?view=` stays
+    // the native route selector (`?view=bank` is a rewritten path segment, not
+    // a step) and old `?view=form` links are rewritten below.
+    const [stepParam, setStepParam] = useQueryState('step', parseAsStringEnum(['form']))
     const [viewParam, setViewParam] = useQueryState('view', parseAsStringEnum(['form', 'bank']))
-    const view: 'list' | 'form' = viewParam === 'form' ? 'form' : 'list'
+    const view: 'list' | 'form' = stepParam === 'form' ? 'form' : 'list'
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const formRef = useRef<{ handleSubmit: () => void }>(null)
     const [isSupportedTokensModalOpen, setIsSupportedTokensModalOpen] = useState(false)
@@ -123,13 +127,19 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const countrySlugFromUrl =
         isBankPage && !viewFromQuery ? countryPathParts.slice(0, -1).join('-') : countryPathParts.join('-')
 
-    // Old links still say "form" the old way: /withdraw/<country>?amount=50 was
-    // the bank form before the screen got its own name. Name it, keep the
-    // amount, and the user lands where the link meant to send them.
+    // Old links still say "form" two older ways: /withdraw/<country>?amount=50
+    // was the bank form before the screen got its own name, and `?view=form`
+    // was that name for one release. Name it `step`, keep the amount, and the
+    // user lands where the link meant to send them.
     useEffect(() => {
-        if (flow !== 'withdraw' || viewParam || !urlAmount) return
-        void setViewParam('form')
-    }, [flow, viewParam, urlAmount, setViewParam])
+        if (flow !== 'withdraw' || stepParam) return
+        if (viewParam === 'form') {
+            void setViewParam(null)
+            void setStepParam('form')
+            return
+        }
+        if (urlAmount) void setStepParam('form')
+    }, [flow, stepParam, viewParam, urlAmount, setStepParam, setViewParam])
 
     const currentCountry = countryData.find(
         (country) => country.type === 'country' && country.path === countrySlugFromUrl
