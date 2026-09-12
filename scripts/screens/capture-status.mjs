@@ -1,3 +1,3 @@
-export function captureExitCode(historical, results) {
-    return !historical && results.some((result) => result.status === 'failed') ? 1 : 0
+export function captureExitCode(results) {
+    return results.some((result) => result.status === 'failed') ? 1 : 0
 }
