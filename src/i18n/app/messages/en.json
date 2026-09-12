@@ -3767,6 +3767,88 @@
         "rollDie": "Roll the die",
         "initialName": "Just {letter}",
         "initialLine": "Your initial",
+        "badge": {
+            "ARBIVERSE_DEVCONNECT_BA_2025": {
+                "crystal": "Arbiverse Crystal",
+                "hex": "Arbiverse Hex",
+                "cheer": "Arbiverse Cheer"
+            },
+            "BETA_TESTER": {
+                "flask": "Beta Flask",
+                "bubble": "Beta Bubble",
+                "wink": "Beta Wink"
+            },
+            "BUG_WHISPERER": {
+                "beetle": "Bug Beetle",
+                "shell": "Bug Shell",
+                "peek": "Bug Peek"
+            },
+            "CARD_ALPHA": {
+                "card": "Alpha Card",
+                "swipe": "Alpha Swipe",
+                "tape": "Alpha Tape"
+            },
+            "CARD_FIRST_SWIPE": {
+                "card": "First Swipe Card",
+                "chip": "First Swipe Chip",
+                "wink": "First Swipe Wink"
+            },
+            "CARD_SPENT_1K": {
+                "stack": "Spender Stack",
+                "note": "Spender Note",
+                "cheer": "Spender Cheer"
+            },
+            "DEVCONNECT_BA_2025": {
+                "sun": "Devconnect Sun",
+                "rise": "Devconnect Sunrise",
+                "wink": "Devconnect Wink"
+            },
+            "ETHFLORIPA_HUB": {
+                "eth": "EthFloripa ETH",
+                "island": "EthFloripa Island",
+                "palm": "EthFloripa Palm"
+            },
+            "EVENT_ALUMNI": {
+                "cap": "Alumni Cap",
+                "board": "Alumni Board",
+                "wink": "Alumni Wink"
+            },
+            "IRL_NOMADS": {
+                "pack": "Nomad Pack",
+                "roll": "Nomad Roll",
+                "pocket": "Nomad Pocket"
+            },
+            "NAIJA": {
+                "flag": "Naija Flag",
+                "wave": "Naija Wave",
+                "wink": "Naija Wink"
+            },
+            "NITA": {
+                "letter": "NITA Letter",
+                "sparkle": "NITA Sparkle",
+                "wink": "NITA Wink"
+            },
+            "OFFRAMP_USER": {
+                "bolt": "Offramp Bolt",
+                "spark": "Offramp Spark",
+                "wink": "Offramp Wink"
+            },
+            "OG_2025_10_12": {
+                "coin": "OG Coin",
+                "link": "OG Link",
+                "shades": "OG Shades"
+            },
+            "SHHHHH": {
+                "lips": "Secret Lips",
+                "shush": "Secret Shush",
+                "wink": "Secret Wink"
+            },
+            "WAITLIST_SKIP": {
+                "key": "Waitlist Key",
+                "keyhole": "Waitlist Keyhole",
+                "wink": "Waitlist Wink"
+            }
+        },
         "cast": {
             "apple": {
                 "name": "Jackpot Cherry",
