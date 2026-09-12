@@ -17,6 +17,7 @@ jobs:
         outputs:
             before: ${{ steps.refs.outputs.before }}
             after: ${{ steps.refs.outputs.after }}
+            capture_before: ${{ steps.refs.outputs.capture_before }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
@@ -46,10 +47,18 @@ jobs:
                   [[ "$before" =~ ^[a-f0-9]{40}$ ]]
                   echo "before=$before" >> "$GITHUB_OUTPUT"
                   echo "after=$after" >> "$GITHUB_OUTPUT"
+                  capture_before=true
+                  if [ "$EVENT" = pull_request ]; then
+                    capture_before=false
+                    if git diff --name-only "$before...$after" | rg -q '^(scripts/screens/|src/dev/screens/|src/dev/surfaces/|src/dev/fixtures/|src/utils/demo-api\.ts$|src/constants/(demo-data|residence\.consts)\.ts$|pnpm-lock\.yaml$)'; then
+                      capture_before=true
+                    fi
+                  fi
+                  echo "capture_before=$capture_before" >> "$GITHUB_OUTPUT"
     capture_after:
         needs: refs
-        # PR commits only capture the changed revision. The trusted publisher
-        # supplies the verified daily baseline from a prior run.
+        # PR commits capture the changed revision. Product-only PRs reuse the
+        # verified daily baseline; harness-changing PRs also run capture_before.
         runs-on: macos-26-intel
         timeout-minutes: 60
         steps:
@@ -94,10 +103,10 @@ jobs:
 
     capture_before:
         needs: refs
-        # Pushes still need a same-run pair for the post-merge report and
-        # historical dispatch keeps its fixed main baseline. PRs resolve the
-        # baseline in the trusted publisher instead of recapturing it.
-        if: github.event_name != 'pull_request'
+        # Pushes and historical dispatch keep same-run pairs. A PR only needs
+        # this expensive job when its harness/fixture identity can differ from
+        # the daily baseline; ordinary product-only PRs reuse that baseline.
+        if: github.event_name != 'pull_request' || needs.refs.outputs.capture_before == 'true'
         runs-on: macos-26-intel
         timeout-minutes: 60
         steps:

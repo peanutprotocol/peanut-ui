@@ -138,8 +138,10 @@ libraries advance that pointer; PR preview completion cannot move it.
 updates. The trusted publisher resolves the exact merge-base capture from a
 successful dev integration run or the scheduled daily baseline workflow; it
 rejects stale, unrelated, or mismatched-harness baselines. Pushes and the
-historical dispatch retain same-run two-sided captures. Full catalogues run
-even for shared-style changes.
+historical dispatch retain same-run two-sided captures. When a PR changes the
+capture harness, fixtures, catalogue, or lockfile, the caller recaptures the
+base with that PR harness instead of reusing an incompatible baseline. Full
+catalogues run even for shared-style changes.
 
 `Screen library baseline` refreshes the dev baseline once per UTC day at
 00:17. Its artifact is retained for seven days and is accepted only when the

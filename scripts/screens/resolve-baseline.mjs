@@ -12,6 +12,7 @@ if (!/^[\w.-]+\/[\w.-]+$/.test(repo ?? '') || !/^\d+$/.test(runId ?? ''))
 const api = (path, args = []) =>
     JSON.parse(execFileSync('gh', ['api', `repos/${repo}/${path}`, ...args], { encoding: 'utf8' }))
 const currentRun = api(`actions/runs/${runId}`)
+const defaultBranch = api('').default_branch
 if (currentRun.event !== 'pull_request' || currentRun.head_repository?.full_name !== repo)
     throw new Error('Baseline lookup only supports same-repository pull requests')
 const prCandidates = api(`commits/${currentRun.head_sha}/pulls?per_page=100`, ['--paginate', '--slurp']).flat()
@@ -34,7 +35,7 @@ const artifacts = pages.flatMap((page) => page.artifacts ?? [])
 const candidates = artifacts
     .filter((artifact) => {
         if (artifact.expired || !artifact.workflow_run?.id) return false
-        if (!/^screen-library-baseline-[1-9]\d*$/.test(artifact.name)) return false
+        if (!new RegExp(`^screen-library-baseline-${expectedBase}-[1-9]\\d*$`).test(artifact.name)) return false
         const created = Date.parse(artifact.created_at ?? '')
         return Number.isFinite(created) && Date.now() - created <= maxAgeMs
     })
@@ -45,13 +46,13 @@ for (const artifact of candidates) {
     const sourceIsTrusted =
         run.path === baselineWorkflow &&
         ['schedule', 'workflow_dispatch'].includes(run.event) &&
-        run.head_branch === 'dev' &&
-        run.head_repository?.full_name === repo
-    if (!sourceIsTrusted || run.status !== 'completed' || run.conclusion !== 'success' || run.head_sha !== expectedBase)
+        run.head_repository?.full_name === repo &&
+        run.head_branch === defaultBranch
+    if (!sourceIsTrusted || run.status !== 'completed' || run.conclusion !== 'success')
         continue
     process.stdout.write(`run_id=${run.id}\n`)
     process.stdout.write(`artifact_name=${artifact.name}\n`)
-    process.stdout.write(`baseline_sha=${run.head_sha}\n`)
+    process.stdout.write(`baseline_sha=${expectedBase}\n`)
     process.stdout.write(`created_at=${artifact.created_at}\n`)
     process.exit(0)
 }

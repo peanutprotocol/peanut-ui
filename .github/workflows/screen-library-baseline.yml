@@ -53,7 +53,10 @@ jobs:
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
               if: always()
               with:
-                  name: screen-library-baseline-${{ github.run_attempt }}
+                  # The scheduler's run SHA is the default branch commit; the
+                  # artifact name binds the capture to the dev SHA checked out
+                  # above so the trusted publisher can select it exactly.
+                  name: screen-library-baseline-${{ steps.revision.outputs.sha }}-${{ github.run_attempt }}
                   path: capture/
                   if-no-files-found: error
                   retention-days: 7

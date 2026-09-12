@@ -60,24 +60,26 @@ function verifyExternalBaseline(expected) {
     if (
         !baselineDir ||
         !/^\d+$/.test(baselineRunId ?? '') ||
-        !/^(screen-library-baseline|screen-library-after)-[1-9]\d*$/.test(baselineArtifact ?? '')
+        !/^(screen-library-baseline-[a-f0-9]{40}-|screen-library-after-)[1-9]\d*$/.test(baselineArtifact ?? '')
     )
         throw new Error('External baseline identity is missing')
     const source = api(`actions/runs/${baselineRunId}`)
-    const trustedWorkflow =
-        (source.path === '.github/workflows/screen-library-baseline.yml' &&
-            ['schedule', 'workflow_dispatch'].includes(source.event) &&
-            /^screen-library-baseline-[1-9]\d*$/.test(baselineArtifact)) ||
-        (source.path === '.github/workflows/screen-library.yml' &&
-            source.event === 'push' &&
-            /^screen-library-after-[1-9]\d*$/.test(baselineArtifact))
+    const defaultBranch = api('').default_branch
+    const dailyBaseline =
+        source.path === '.github/workflows/screen-library-baseline.yml' &&
+        ['schedule', 'workflow_dispatch'].includes(source.event) &&
+        source.head_branch === defaultBranch &&
+        new RegExp(`^screen-library-baseline-${expected}-[1-9]\\d*$`).test(baselineArtifact)
+    const integrationBaseline =
+        source.path === '.github/workflows/screen-library.yml' &&
+        source.event === 'push' &&
+        /^screen-library-after-[1-9]\d*$/.test(baselineArtifact)
     if (
-        !trustedWorkflow ||
+        (!dailyBaseline && !integrationBaseline) ||
         source.status !== 'completed' ||
         source.conclusion !== 'success' ||
-        source.head_branch !== 'dev' ||
         source.head_repository?.full_name !== repo ||
-        source.head_sha !== expected
+        (integrationBaseline && (source.head_branch !== 'dev' || source.head_sha !== expected))
     )
         throw new Error('External baseline run provenance mismatch')
     const artifact = (api(`actions/runs/${baselineRunId}/artifacts?per_page=100`).artifacts ?? []).find(
