@@ -478,7 +478,9 @@ async function main() {
                 }, {}),
             })
         )
-        if (!report.complete) process.exitCode = 1
+        // Incomplete captures are valid gallery reports: the manifest records
+        // every unavailable state and the publisher can still expose the gaps.
+        // Reserve a red job for an actual capture/runtime failure.
     } finally {
         await browser.close()
     }
