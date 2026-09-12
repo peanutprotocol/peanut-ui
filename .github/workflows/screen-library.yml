@@ -106,4 +106,6 @@ jobs:
         # Land the reusable publisher (#3107) on dev before this caller (#3108).
         uses: peanutprotocol/peanut-ui/.github/workflows/screen-library-publish.yml@dev
         secrets:
-            CLOUDFLARE_PUBLISH_TOKEN: ${{ secrets.CLOUDFLARE_PUBLISH_TOKEN }}
+            # Keep the reusable-workflow input compatible with the current dev callee.
+            # The repository secret itself is named CLOUDFLARE_API_TOKEN.
+            CLOUDFLARE_PUBLISH_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

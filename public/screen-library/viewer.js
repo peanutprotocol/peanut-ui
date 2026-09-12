@@ -107,8 +107,42 @@ function render() {
 }
 async function loadJSON(url) {
     const r = await fetch(url)
-    if (!r.ok) throw new Error(`Report unavailable (${r.status})`)
+    if (!r.ok) {
+        const error = new Error(`Report unavailable (${r.status})`)
+        error.status = r.status
+        throw error
+    }
     return r.json()
+}
+function showEmptyState(kind = 'unpublished') {
+    const unpublished = kind === 'unpublished'
+    const reportNotFound = kind === 'report-not-found'
+    $('empty-kicker').textContent = unpublished
+        ? 'SCREEN LIBRARY · COMING TO LIFE'
+        : reportNotFound
+          ? 'SCREEN LIBRARY · REPORT NOT FOUND'
+          : 'SCREEN LIBRARY · TEMPORARILY UNAVAILABLE'
+    $('empty-title').textContent = unpublished
+        ? 'Your gallery is almost here.'
+        : reportNotFound
+          ? 'That report is not available.'
+          : 'The gallery needs a moment.'
+    $('empty-message').textContent = unpublished
+        ? 'Screenshots are generated in the background and will appear here after the first capture is published.'
+        : reportNotFound
+          ? 'This screen-library link does not point to a published report. Return to the gallery to choose an available version.'
+          : 'We could not load the library right now. Check again in a moment and your gallery will be here when it is ready.'
+    $('empty-status').textContent = unpublished
+        ? 'No published captures yet'
+        : reportNotFound
+          ? 'Published report not found'
+          : 'Temporary loading issue'
+    $('coverage').hidden = true
+    $('screen-filters').hidden = true
+    $('route-coverage').hidden = true
+    $('versions').hidden = true
+    $('screens').hidden = true
+    $('empty-state').hidden = false
 }
 async function start() {
     if (offline) document.querySelector('.brand').href = './index.html'
@@ -123,6 +157,10 @@ async function start() {
     const path = isHostedIndex ? '' : pathname.replace(/^\/screens\/?/, '').replace(/\/$/, '')
     if (!offline && !path) {
         const index = await loadJSON('/screen-data/index.json')
+        if (!index.length) {
+            showEmptyState()
+            return
+        }
         $('coverage').textContent = `${index.length} published versions`
         $('screen-filters').hidden = true
         $('route-coverage').hidden = true
@@ -215,6 +253,14 @@ $('slider').oninput = () => {
     const n = $('zoom-images').querySelector('.overlay img+img')
     if (n) n.style.clipPath = `inset(0 ${100 - Number($('slider').value)}% 0 0)`
 }
+$('empty-retry').onclick = () => location.reload()
 start().catch((e) => {
-    $('coverage').textContent = e.message
+    const pathname = location.pathname
+    const isHostedIndex =
+        pathname === '/' ||
+        pathname === '/index.html' ||
+        pathname === '/screen-library' ||
+        pathname === '/screen-library/' ||
+        pathname === '/screen-library/index.html'
+    showEmptyState(e.status === 404 ? (isHostedIndex ? 'unpublished' : 'report-not-found') : 'error')
 })
