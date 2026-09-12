@@ -83,7 +83,7 @@ export const CountryList = ({
     const [searchTerm, setSearchTerm] = useState(currencyCode ?? '')
     // use deferred value to prevent blocking ui during search
     const deferredSearchTerm = useDeferredValue(searchTerm)
-    const { countryCode: userGeoLocationCountryCode, isLoading: isGeoLoading } = useHomeCountry()
+    const { countryCode: homeCountryCode, isLoading: isHomeCountryLoading } = useHomeCountry()
     // track which country is being clicked to show loading state
     const [clickedCountryId, setClickedCountryId] = useState<string | null>(null)
 
@@ -105,13 +105,11 @@ export const CountryList = ({
         }
 
         return [...supportedCountries].sort((a, b) => {
-            if (userGeoLocationCountryCode) {
+            if (homeCountryCode) {
                 const aIsUserCountry =
-                    ALL_COUNTRIES_ALPHA3_TO_ALPHA2[a.id] === userGeoLocationCountryCode ||
-                    a.id === userGeoLocationCountryCode
+                    ALL_COUNTRIES_ALPHA3_TO_ALPHA2[a.id] === homeCountryCode || a.id === homeCountryCode
                 const bIsUserCountry =
-                    ALL_COUNTRIES_ALPHA3_TO_ALPHA2[b.id] === userGeoLocationCountryCode ||
-                    b.id === userGeoLocationCountryCode
+                    ALL_COUNTRIES_ALPHA3_TO_ALPHA2[b.id] === homeCountryCode || b.id === homeCountryCode
 
                 if (aIsUserCountry && !bIsUserCountry) return -1
                 if (!aIsUserCountry && bIsUserCountry) return 1
@@ -123,7 +121,7 @@ export const CountryList = ({
 
             return countryName(a).localeCompare(countryName(b), locale)
         })
-    }, [userGeoLocationCountryCode, countryName, locale])
+    }, [homeCountryCode, countryName, locale])
 
     // filter countries based on deferred search term to prevent blocking ui.
     // The English title stays searchable so "Brazil" still finds "Brasil".
@@ -151,7 +149,7 @@ export const CountryList = ({
                     placeholder={t('countryList.searchPlaceholder')}
                 />
             </div>
-            {isGeoLoading ? (
+            {isHomeCountryLoading ? (
                 <CountryListSkeleton />
             ) : (
                 <div className="flex-1 overflow-y-auto">
