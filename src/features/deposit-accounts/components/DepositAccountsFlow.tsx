@@ -7,7 +7,7 @@ import { trackDetailsViewed, trackGateBlocked } from '../analytics'
 import { DEPOSIT_ACCOUNT_PARAMS } from '../params'
 import { DEPOSIT_RAILS, isClaimable } from '../rails'
 import { resolveScreen } from '../resolveScreen'
-import type { DepositAccount, DepositCorridor, ReturnedPayment } from '../types'
+import type { DepositAccount, DepositCorridor } from '../types'
 import type { DepositClaimError } from '../useDepositAccounts'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
@@ -30,7 +30,6 @@ export interface DepositAccountsFlowProps {
     userName: string
     claimingCorridor?: DepositCorridor
     claimError?: DepositClaimError
-    returnedPayment?: ReturnedPayment
     /** leaving the flow entirely — the list is a destination now, not a tab root */
     onExit: () => void
     onClaim: (corridor: DepositCorridor) => void
@@ -56,7 +55,6 @@ export function DepositAccountsFlow({
     userName,
     claimingCorridor,
     claimError,
-    returnedPayment,
     onExit,
     onClaim,
     onResolveGate,
@@ -140,7 +138,6 @@ export function DepositAccountsFlow({
                 rail={rail}
                 account={account}
                 userName={userName}
-                returnedPayment={returnedPayment}
                 onBack={() => setParams({ screen: 'list' })}
                 onShare={() => setParams({ screen: 'share' })}
                 onRetry={() => onClaim(corridor)}

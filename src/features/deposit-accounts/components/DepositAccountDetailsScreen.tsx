@@ -3,7 +3,6 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import { Notification } from '@/components/0_Bruddle/Notification'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
@@ -13,7 +12,7 @@ import Link from 'next/link'
 import { rewriteMethodPath } from '@/utils/native-routes'
 import { instructionRows } from '../instructionRows'
 import { isShareable } from '../rails'
-import type { DepositAccount, DepositRail, ReturnedPayment } from '../types'
+import type { DepositAccount, DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { DepositDetailsCard } from './DepositDetailsCard'
 import { DepositRuleList, RuleWithInfo } from './DepositRuleList'
@@ -36,7 +35,6 @@ const ONE_OFF_TRANSFER_HREF = '/add-money?method=bank'
 export function DepositAccountDetailsScreen({
     rail,
     account,
-    returnedPayment,
     userName,
     onBack,
     onShare,
@@ -44,7 +42,6 @@ export function DepositAccountDetailsScreen({
 }: {
     rail: DepositRail
     account: DepositAccount
-    returnedPayment?: ReturnedPayment
     /** the name a payer reads when the account is NOT in the user's own name */
     userName: string
     onBack: () => void
@@ -156,27 +153,6 @@ export function DepositAccountDetailsScreen({
                             : arrivalDetail(rail.corridor)
                     }
                 />
-
-                {/*
-                 * The screen's one Notification. A returned payment is the only
-                 * thing here the user has to act on; every other fact about the
-                 * account is a rule line, which states itself and explains
-                 * itself without a banner.
-                 */}
-                {returnedPayment && !provisioning && (
-                    <Notification
-                        priority="error"
-                        title={t('details.returnedTitle')}
-                        ctas={[{ label: t('details.returnedCta'), onClick: onShare }]}
-                    >
-                        {t('details.returnedBody', {
-                            amount: returnedPayment.amount,
-                            payer: returnedPayment.payer,
-                            date: returnedPayment.date,
-                            reason: returnedPayment.reason,
-                        })}
-                    </Notification>
-                )}
 
                 {provisioning ? (
                     <DepositDetailsSkeleton rows={rail.detailRowCount} />

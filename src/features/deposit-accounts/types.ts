@@ -177,12 +177,3 @@ export interface DepositDetailRow {
     /** informational rows opt out of the copy button */
     copyable?: boolean
 }
-
-/** a payment that arrived and went back to the sender */
-export interface ReturnedPayment {
-    amount: string
-    payer: string
-    date: string
-    /** the provider's reason, in words a user can act on */
-    reason: string
-}

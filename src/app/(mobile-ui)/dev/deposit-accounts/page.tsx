@@ -14,7 +14,6 @@ const SCENARIOS: { value: SandboxScenario; label: string; hint: string }[] = [
     { value: 'all-claimed', label: 'Claimed', hint: 'Every Bridge corridor already active' },
     { value: 'provisioning', label: 'Setting up', hint: 'The skeleton while the provider works' },
     { value: 'failed', label: 'Failed', hint: 'Provisioning did not complete' },
-    { value: 'returned', label: 'Returned', hint: 'A payment came back' },
     { value: 'kyc', label: 'KYC gate', hint: 'Identity not verified yet' },
 ]
 
@@ -85,7 +84,6 @@ export default function DepositAccountsPrototypePage() {
                                 userName={sandbox.userName}
                                 gates={sandbox.gates}
                                 claimingCorridor={sandbox.claimingCorridor}
-                                returnedPayment={sandbox.returnedPayment}
                                 onExit={() => {}}
                                 onClaim={sandbox.claim}
                                 onResolveGate={() => setScenario('live')}

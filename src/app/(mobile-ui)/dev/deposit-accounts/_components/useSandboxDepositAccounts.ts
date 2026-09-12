@@ -15,7 +15,7 @@ export const SANDBOX_USER_NAME = 'Sandbox User'
 /** how long a claim spends provisioning before the details appear */
 const PROVISIONING_MS = 1400
 
-export type SandboxScenario = 'live' | 'all-claimed' | 'provisioning' | 'failed' | 'returned' | 'kyc'
+export type SandboxScenario = 'live' | 'all-claimed' | 'provisioning' | 'failed' | 'kyc'
 
 /**
  * The prototype's data source: real Bridge sandbox payloads, captured by
@@ -87,15 +87,6 @@ export function useSandboxDepositAccounts(scenario: SandboxScenario) {
             ])
         ) as Record<DepositCorridor, GateState>,
         claimingCorridor: claiming,
-        returnedPayment:
-            scenario === 'returned'
-                ? {
-                      amount: '€500.00',
-                      payer: 'ACME GmbH',
-                      date: '28 Aug',
-                      reason: 'the sending bank could not match the account holder.',
-                  }
-                : undefined,
         claim,
         reset,
     }
@@ -115,7 +106,7 @@ function withScenarioStatus(
 ): DepositAccount {
     if (scenario === 'provisioning') return { ...account, status: 'provisioning' }
     if (scenario === 'failed') return { ...account, status: 'failed' }
-    if (scenario === 'all-claimed' || scenario === 'returned') return account
+    if (scenario === 'all-claimed') return account
 
     if (claiming === corridor) return { ...account, status: 'provisioning' }
     if (claimed.includes(corridor)) return account
