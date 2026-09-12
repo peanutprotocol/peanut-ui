@@ -4053,13 +4053,19 @@
             "PIX_BR": {
                 "arrival": "En minutos",
                 "arrivalDetail": "Las transferencias Pix suelen llegar en minutos.",
-                "unclaimable": "En Brasil el depósito es un código Pix para un solo pago, desde tu propia cuenta.",
+                "unclaimable": {
+                    "line": "En Brasil el depósito es un código Pix para un solo pago, desde tu propia cuenta.",
+                    "why": "Nuestro socio bancario vincula tu cuenta al país de tu documento legal, un país a la vez. Una persona con nacionalidad estadounidense no puede usar transferencias bancarias acá, viva donde viva."
+                },
                 "railName": "Pix"
             },
             "BANK_TRANSFER_AR": {
                 "arrival": "En minutos",
                 "arrivalDetail": "Las transferencias en Argentina suelen llegar en minutos.",
-                "unclaimable": "En Argentina el depósito tiene que venir de una cuenta a tu nombre.",
+                "unclaimable": {
+                    "line": "En Argentina el depósito tiene que venir de una cuenta a tu nombre.",
+                    "why": "Nuestro socio bancario vincula tu cuenta al país de tu documento legal, un país a la vez. Una persona con nacionalidad estadounidense no puede usar transferencias bancarias acá, viva donde viva."
+                },
                 "railName": "Transferencia bancaria"
             }
         },

@@ -16,7 +16,7 @@ import { isShareable } from '../rails'
 import type { DepositAccount, DepositRail, ReturnedPayment } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { DepositDetailsCard } from './DepositDetailsCard'
-import { DepositRuleList } from './DepositRuleList'
+import { DepositRuleList, RuleWithInfo } from './DepositRuleList'
 import { DepositDetailsSkeleton } from './DepositDetailsSkeleton'
 
 /**
@@ -58,6 +58,7 @@ export function DepositAccountDetailsScreen({
     const topUpHref = rail.topUpHref ? rewriteMethodPath(rail.topUpHref) : undefined
 
     if (account.status === 'unavailable') {
+        const unclaimable = unclaimableReason(rail.corridor)
         return (
             <PageStack>
                 <NavHeader title={t('title')} onPrev={onBack} />
@@ -65,7 +66,13 @@ export function DepositAccountDetailsScreen({
                     <EmptyState
                         icon="globe-lock"
                         title={t('details.unavailableTitle', { currency: rail.currency })}
-                        description={unclaimableReason(rail.corridor) ?? t('details.unavailableBody')}
+                        description={
+                            unclaimable ? (
+                                <RuleWithInfo text={unclaimable.text} why={unclaimable.why} />
+                            ) : (
+                                t('details.unavailableBody')
+                            )
+                        }
                         cta={
                             topUpHref ? (
                                 // a corridor with no standing account still has a

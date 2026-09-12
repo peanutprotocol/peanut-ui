@@ -62,7 +62,7 @@ export function DepositAccountsListScreen({
         // itself a moment later — the arrival time is true either way.
         if (isLoading) return arrival(corridor)
         const unclaimable = unclaimableReason(corridor)
-        if (unclaimable) return unclaimable
+        if (unclaimable) return unclaimable.text
         if (!claimable) return t('list.rowBlocked')
         // no badge carries this one, so the body has to
         if (account?.status === 'unavailable') return t('list.rowUnavailable')

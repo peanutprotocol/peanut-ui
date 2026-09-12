@@ -124,9 +124,15 @@ export function useDepositAccountCopy() {
     const railName = (corridor: DepositCorridor) => t(RAIL_NAME_KEYS[corridor])
     const arrival = (corridor: DepositCorridor) => t(ARRIVAL_KEYS[corridor])
     const arrivalDetail = (corridor: DepositCorridor) => t(ARRIVAL_DETAIL_KEYS[corridor])
-    const unclaimableReason = (corridor: DepositCorridor) => {
+    /**
+     * Why a corridor is never a standing account, in both voices: `text` for
+     * the row body and the empty state, `why` for the (i) behind it — the
+     * exchange-binding and US-nationality rule (`product/providers/fiat/
+     * eligibility.md`) that the short sentence has no room for.
+     */
+    const unclaimableReason = (corridor: DepositCorridor): { text: string; why: string } | undefined => {
         const key = UNCLAIMABLE_KEYS[corridor as keyof typeof UNCLAIMABLE_KEYS]
-        return key ? t(key) : undefined
+        return key ? { text: t(`${key}.line`), why: t(`${key}.why`) } : undefined
     }
 
     return { t, rowLabels, railLabels, ruleLines, railName, arrival, arrivalDetail, unclaimableReason }
