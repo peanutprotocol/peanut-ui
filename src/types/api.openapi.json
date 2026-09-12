@@ -16197,37 +16197,6 @@
                         },
                         "description": "Default Response"
                     },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "description": "The declared residence changed too recently. Only the residence keys were refused \u2014 every other field in the request was applied. Retry the residence change at `retryAt`; `/users/me` reports the same instant as `residence.nextChangeAllowedAt`.",
-                                    "properties": {
-                                        "code": {
-                                            "enum": [
-                                                "RESIDENCE_CHANGE_COOLDOWN"
-                                            ],
-                                            "type": "string"
-                                        },
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "retryAt": {
-                                            "format": "date-time",
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error",
-                                        "code",
-                                        "retryAt"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "The declared residence changed too recently. Only the residence keys were refused \u2014 every other field in the request was applied. Retry the residence change at `retryAt`; `/users/me` reports the same instant as `residence.nextChangeAllowedAt`."
-                    },
                     "500": {
                         "content": {
                             "application/json": {
@@ -16444,6 +16413,298 @@
                 },
                 "responses": {
                     "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/users/accounts/{id}": {
+            "patch": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "format": "uuid",
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "label": {
+                                        "anyOf": [
+                                            {
+                                                "maxLength": 15,
+                                                "type": "string"
+                                            },
+                                            {
+                                                "type": "null"
+                                            }
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "label"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "account": {
+                                            "properties": {
+                                                "bic": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "bridgeAccountId": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "chainId": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "connector": {
+                                                    "anyOf": [
+                                                        {
+                                                            "properties": {
+                                                                "iconUrl": {
+                                                                    "type": "string"
+                                                                },
+                                                                "name": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "name",
+                                                                "iconUrl"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "createdAt": {
+                                                    "type": "string"
+                                                },
+                                                "deactivationReason": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "details": {
+                                                    "anyOf": [
+                                                        {
+                                                            "properties": {
+                                                                "accountOwnerName": {
+                                                                    "type": "string"
+                                                                },
+                                                                "bankName": {
+                                                                    "anyOf": [
+                                                                        {
+                                                                            "type": "string"
+                                                                        },
+                                                                        {
+                                                                            "type": "null"
+                                                                        }
+                                                                    ]
+                                                                },
+                                                                "countryCode": {
+                                                                    "type": "string"
+                                                                },
+                                                                "countryName": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "bankName",
+                                                                "accountOwnerName",
+                                                                "countryCode",
+                                                                "countryName"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "identifier": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "isActive": {
+                                                    "type": "boolean"
+                                                },
+                                                "label": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "lastUsedAt": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "routingNumber": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "sortCode": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "type": {
+                                                    "type": "string"
+                                                },
+                                                "updatedAt": {
+                                                    "type": "string"
+                                                },
+                                                "userId": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "userId",
+                                                "bridgeAccountId",
+                                                "type",
+                                                "identifier",
+                                                "details",
+                                                "label",
+                                                "lastUsedAt",
+                                                "createdAt",
+                                                "updatedAt",
+                                                "chainId",
+                                                "connector",
+                                                "bic",
+                                                "routingNumber",
+                                                "sortCode",
+                                                "isActive",
+                                                "deactivationReason"
+                                            ],
+                                            "type": "object"
+                                        }
+                                    },
+                                    "required": [
+                                        "account"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
                         "description": "Default Response"
                     }
                 }
@@ -17437,6 +17698,56 @@
                                                     "railId": {
                                                         "type": "string"
                                                     },
+                                                    "rules": {
+                                                        "properties": {
+                                                            "businessesUnlimited": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "familySameSurnameExempt": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "individualPerPaymentCap": {
+                                                                "properties": {
+                                                                    "amount": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "currency": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "amount",
+                                                                    "currency"
+                                                                ],
+                                                                "type": "object"
+                                                            },
+                                                            "individualsAllowed": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "min": {
+                                                                "properties": {
+                                                                    "amount": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "currency": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "amount",
+                                                                    "currency"
+                                                                ],
+                                                                "type": "object"
+                                                            },
+                                                            "reason": {
+                                                                "enum": [
+                                                                    "state-restricted"
+                                                                ],
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    },
                                                     "status": {
                                                         "anyOf": [
                                                             {
@@ -17705,6 +18016,56 @@
                                                 },
                                                 "railId": {
                                                     "type": "string"
+                                                },
+                                                "rules": {
+                                                    "properties": {
+                                                        "businessesUnlimited": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "familySameSurnameExempt": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "individualPerPaymentCap": {
+                                                            "properties": {
+                                                                "amount": {
+                                                                    "type": "string"
+                                                                },
+                                                                "currency": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "amount",
+                                                                "currency"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        "individualsAllowed": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "min": {
+                                                            "properties": {
+                                                                "amount": {
+                                                                    "type": "string"
+                                                                },
+                                                                "currency": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "amount",
+                                                                "currency"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        "reason": {
+                                                            "enum": [
+                                                                "state-restricted"
+                                                            ],
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "type": "object"
                                                 },
                                                 "status": {
                                                     "anyOf": [

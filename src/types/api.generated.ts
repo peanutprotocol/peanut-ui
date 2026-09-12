@@ -10207,21 +10207,6 @@ export interface paths {
                         };
                     };
                 };
-                /** @description The declared residence changed too recently. Only the residence keys were refused — every other field in the request was applied. Retry the residence change at `retryAt`; `/users/me` reports the same instant as `residence.nextChangeAllowedAt`. */
-                429: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {string} */
-                            code: "RESIDENCE_CHANGE_COOLDOWN";
-                            error: string;
-                            /** Format: date-time */
-                            retryAt: string;
-                        };
-                    };
-                };
                 /** @description Default Response */
                 500: {
                     headers: {
@@ -10350,6 +10335,99 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/users/accounts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        label: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            account: {
+                                bic: string | null;
+                                bridgeAccountId: string | null;
+                                chainId: string | null;
+                                connector: {
+                                    iconUrl: string;
+                                    name: string;
+                                } | null;
+                                createdAt: string;
+                                deactivationReason: string | null;
+                                details: {
+                                    accountOwnerName: string;
+                                    bankName: string | null;
+                                    countryCode: string;
+                                    countryName: string;
+                                } | null;
+                                id: string;
+                                identifier: string | null;
+                                isActive: boolean;
+                                label: string | null;
+                                lastUsedAt: string | null;
+                                routingNumber: string | null;
+                                sortCode: string | null;
+                                type: string;
+                                updatedAt: string;
+                                userId: string | null;
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
         trace?: never;
     };
     "/users/bridge-tos-confirm": {
@@ -10742,6 +10820,21 @@ export interface paths {
                                     sender: "anyone" | "business-only" | "own-name-only" | "unknown";
                                 };
                                 railId: string;
+                                rules?: {
+                                    businessesUnlimited?: boolean;
+                                    familySameSurnameExempt?: boolean;
+                                    individualPerPaymentCap?: {
+                                        amount: string;
+                                        currency: string;
+                                    };
+                                    individualsAllowed?: boolean;
+                                    min?: {
+                                        amount: string;
+                                        currency: string;
+                                    };
+                                    /** @enum {string} */
+                                    reason?: "state-restricted";
+                                };
                                 status: "provisioning" | "active" | "retiring" | "revoked" | "failed";
                             }[];
                         };
@@ -10813,6 +10906,21 @@ export interface paths {
                                     sender: "anyone" | "business-only" | "own-name-only" | "unknown";
                                 };
                                 railId: string;
+                                rules?: {
+                                    businessesUnlimited?: boolean;
+                                    familySameSurnameExempt?: boolean;
+                                    individualPerPaymentCap?: {
+                                        amount: string;
+                                        currency: string;
+                                    };
+                                    individualsAllowed?: boolean;
+                                    min?: {
+                                        amount: string;
+                                        currency: string;
+                                    };
+                                    /** @enum {string} */
+                                    reason?: "state-restricted";
+                                };
                                 status: "provisioning" | "active" | "retiring" | "revoked" | "failed";
                             };
                         };
