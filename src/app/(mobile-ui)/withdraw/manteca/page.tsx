@@ -77,6 +77,7 @@ import { isVerifiedForCountry } from '@/utils/regions.utils'
 import PixKeySendView from '@/features/withdraw/views/PixKeySendView'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useWithdrawAmount } from '@/features/withdraw/useWithdrawAmount'
+import { shouldShowAmountError } from '@/features/limits/amount-error-gating'
 import { useMantecaAmountSeed } from '@/features/withdraw/useMantecaAmountSeed'
 import { WITHDRAW_MANTECA_STEPS } from '@/features/withdraw/types'
 import { mantecaStepGuards, type MantecaOutcome } from '@/features/withdraw/step-guards'
@@ -921,8 +922,18 @@ function MantecaBankWithdrawFlow() {
             {step === 'amount' && (
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <div className="text-heading-xs text-foreground-primary">{t('amountToWithdraw')}</div>
-                    {/* only show the balance error if limits blocking card is not displayed (warnings can coexist) */}
-                    <FieldColumn error={!limitsValidation.isBlocking ? balanceErrorMessage : undefined}>
+                    {/* the balance error yields to the limits card only when that card renders */}
+                    <FieldColumn
+                        error={
+                            shouldShowAmountError({
+                                showError: !!balanceErrorMessage,
+                                showsLimitsCard: true,
+                                limitsBlocking: limitsValidation.isBlocking,
+                            })
+                                ? balanceErrorMessage
+                                : undefined
+                        }
+                    >
                         <AmountInput
                             initialAmount={currencyAmount}
                             setPrimaryAmount={setCurrencyAmount}

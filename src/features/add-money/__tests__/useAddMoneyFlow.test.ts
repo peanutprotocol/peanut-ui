@@ -35,12 +35,14 @@ jest.mock('@/utils/general.utils', () => ({
     ),
 }))
 
-jest.mock('@/utils/regions.utils', () => ({
-    isBridgeSupportedCountry: (id: string) => ['DE', 'US'].includes(id),
-}))
-
-jest.mock('@/constants/manteca.consts', () => ({
-    isMantecaSupportedCountryCode: (id: string) => ['AR', 'BR'].includes(id),
+// the country pick reads the country's live bank rail — the rail knows where
+// it goes, so there is no provider branching left in the hook
+jest.mock('@/features/destinations/country-rails', () => ({
+    soleLiveRailForCountry: (id: string) =>
+        ({
+            AR: { id: 'bank-transfer-add', path: '/add-money/argentina/manteca' },
+            DE: { id: 'bank-transfer-add', path: '/add-money/germany/bank' },
+        })[id] ?? null,
 }))
 
 jest.mock('@/utils/native-routes', () => ({
