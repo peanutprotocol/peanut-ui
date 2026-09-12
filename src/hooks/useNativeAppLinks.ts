@@ -147,7 +147,7 @@ export function useNativeAppLinks() {
             // Flag first (synchronously): the landing gate's /home replace races
             // this push on cold start and must yield to it.
             anyDeepLinkNavigated = true
-            markDeepLinkNavigated()
+            markDeepLinkNavigated(safe)
             /*
              * A deep link arriving while our in-app browser sheet is up (the
              * Persona/Bridge KYC return leg) must dismiss it or the nav happens
@@ -253,7 +253,7 @@ export function useNativeAppLinks() {
                             captureLink('deferred', restored.dest, restored.dest, 'expired')
                             return
                         }
-                        markDeepLinkNavigated()
+                        markDeepLinkNavigated(restored.dest)
                         router.push(restored.dest)
                         captureLink('deferred', restored.dest, restored.dest, 'navigated')
                     })

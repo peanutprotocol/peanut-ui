@@ -37,7 +37,7 @@ import {
     queuePendingBadgeCampaigns,
 } from '@/components/Invites/badge-campaign-context'
 import { claimAndSettlePendingBadgeCampaigns } from '@/services/badge-campaigns'
-import { getDeepLinkGeneration } from '@/utils/deep-link-state'
+import { getDeepLinkGeneration, getDeepLinkTarget, subscribeToDeepLinkGeneration } from '@/utils/deep-link-state'
 
 function SetupPageContent() {
     const t = useTranslations('setup')
@@ -82,12 +82,16 @@ function SetupPageContent() {
     const [sessionChecked, setSessionChecked] = useState(false)
     const [existingSessionUsername, setExistingSessionUsername] = useState<string | null>(null)
     const [isSettlingNativeBadgeCampaigns, setIsSettlingNativeBadgeCampaigns] = useState(false)
+    const [deepLinkGeneration, setDeepLinkGeneration] = useState(() => getDeepLinkGeneration())
     const isSetupMountedRef = useRef(false)
     const currentBadgeCampaignsKeyRef = useRef(urlBadgeCampaigns.join('\u0000'))
     const nativeClaimCampaignsKeyRef = useRef<string | null>(null)
     const nativeClaimGenerationRef = useRef<number | null>(null)
     const nativeClaimRunIdRef = useRef(0)
+    const lastHandledDeepLinkGenerationRef = useRef(deepLinkGeneration)
     currentBadgeCampaignsKeyRef.current = urlBadgeCampaigns.join('\u0000')
+
+    useEffect(() => subscribeToDeepLinkGeneration(() => setDeepLinkGeneration(getDeepLinkGeneration())), [])
 
     useEffect(() => {
         isSetupMountedRef.current = true
@@ -160,20 +164,20 @@ function SetupPageContent() {
      * earlier signup leaves durable credentials (jwt cookie in the native jar,
      * web-authn-key cookie), and running signup on top of them silently no-ops
      * — the passkey step would skip and the freshly chosen username would be
-     * discarded. Check once, at entry only: `sessionChecked` stays true for the
-     * rest of the flow, so the user becoming authenticated mid-signup (after
-     * registration) never re-triggers the prompt.
+     * discarded. Check once, at entry: `sessionChecked` stays true for the rest
+     * of the flow, while newer accepted native /setup generations are handled
+     * separately so repeated invites cannot strand the loader.
      */
     useEffect(() => {
         if (isFetchingUser) return
         const isInitialSessionCheck = !sessionChecked
-        if (
+        const isNewSetupDeepLink =
             !isInitialSessionCheck &&
-            (!user?.user?.username || !user.user.hasAppAccess || urlBadgeCampaigns.length === 0)
-        ) {
-            return
-        }
+            deepLinkGeneration !== lastHandledDeepLinkGenerationRef.current &&
+            getDeepLinkTarget()?.startsWith('/setup') === true
+        if (!isInitialSessionCheck && !isNewSetupDeepLink) return
         if (isInitialSessionCheck) setSessionChecked(true)
+        lastHandledDeepLinkGenerationRef.current = deepLinkGeneration
 
         // Native /invite links are rewritten to /setup because the invite page is
         // not part of the static export. Queue the campaign before the completed
@@ -246,6 +250,11 @@ function SetupPageContent() {
                         })
                     return
                 }
+                if (isNewSetupDeepLink) {
+                    setIsSettlingNativeBadgeCampaigns(false)
+                    router.replace('/home')
+                    return
+                }
                 if (!isInitialSessionCheck) return
                 posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED, { auto: true })
                 router.replace('/home')
@@ -256,7 +265,7 @@ function SetupPageContent() {
                 has_app_access: !!user.user.hasAppAccess,
             })
         }
-    }, [sessionChecked, isFetchingUser, user, router, fetchUser, urlBadgeCampaigns])
+    }, [sessionChecked, isFetchingUser, user, router, fetchUser, urlBadgeCampaigns, deepLinkGeneration])
 
     const handleContinueSession = () => {
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED)

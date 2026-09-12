@@ -283,7 +283,7 @@ it('does not redirect home after a newer native deep link is accepted', async ()
 
     renderWithIntl(<SetupPage />)
     await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledWith(['bug_whisperer']))
-    markDeepLinkNavigated()
+    markDeepLinkNavigated('/pay-request')
 
     await act(async () => {
         resolveClaim({
@@ -294,6 +294,44 @@ it('does not redirect home after a newer native deep link is accepted', async ()
     })
 
     expect(mockRouter.replace).not.toHaveBeenCalledWith('/home')
+})
+
+it('restarts native badge settlement when the same invite is accepted again', async () => {
+    mockAuth.user = { user: { username: 'alice', hasAppAccess: true } }
+    mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer')
+    type ClaimResult = Awaited<ReturnType<typeof mockClaimAndSettlePendingBadgeCampaigns>>
+    const resolveClaims: Array<(result: ClaimResult) => void> = []
+    mockClaimAndSettlePendingBadgeCampaigns.mockImplementation(
+        (_campaigns: readonly string[]) =>
+            new Promise<ClaimResult>((resolve) => {
+                resolveClaims.push(resolve)
+            })
+    )
+
+    renderWithIntl(<SetupPage />)
+    await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledTimes(1))
+    markDeepLinkNavigated('/setup?step=signup&badge_campaign=bug_whisperer')
+
+    await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledTimes(2))
+    expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenNthCalledWith(2, ['bug_whisperer'])
+
+    await act(async () => {
+        resolveClaims[0]({
+            claims: [{ badgeCampaign: 'bug_whisperer', outcome: 'awarded' }],
+            pending: [],
+            transport: 'canonical',
+        })
+    })
+    expect(mockRouter.replace).not.toHaveBeenCalledWith('/home')
+
+    await act(async () => {
+        resolveClaims[1]({
+            claims: [{ badgeCampaign: 'bug_whisperer', outcome: 'awarded' }],
+            pending: [],
+            transport: 'canonical',
+        })
+    })
+    await waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith('/home'))
 })
 
 it('restarts native badge settlement when a newer invite replaces the setup URL', async () => {
@@ -311,7 +349,7 @@ it('restarts native badge settlement when a newer invite replaces the setup URL'
     const view = renderWithIntl(<SetupPage />)
     await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledTimes(1))
 
-    markDeepLinkNavigated()
+    markDeepLinkNavigated('/setup?step=signup&badge_campaign=bug_whisperer_v2')
     mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer_v2')
     view.rerender(<SetupPage />)
 
@@ -334,6 +372,24 @@ it('restarts native badge settlement when a newer invite replaces the setup URL'
             transport: 'canonical',
         })
     })
+    await waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith('/home'))
+})
+
+it('redirects home for a newer setup invite without a badge campaign', async () => {
+    mockAuth.user = { user: { username: 'alice', hasAppAccess: true } }
+    mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer')
+    type ClaimResult = Awaited<ReturnType<typeof mockClaimAndSettlePendingBadgeCampaigns>>
+    mockClaimAndSettlePendingBadgeCampaigns.mockImplementation(
+        (_campaigns: readonly string[]) => new Promise<ClaimResult>(() => {})
+    )
+
+    const view = renderWithIntl(<SetupPage />)
+    await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledTimes(1))
+
+    markDeepLinkNavigated('/setup?step=signup')
+    mockSearchParams = new URLSearchParams('step=signup')
+    view.rerender(<SetupPage />)
+
     await waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith('/home'))
 })
 
