@@ -182,6 +182,79 @@ const BLOCKED_BANK_CAPABILITIES = {
     restrictions: [],
 }
 
+/**
+ * A fully verified user, enrolled on every corridor /get-paid offers.
+ *
+ * The gate is asked one rail id at a time (`railIdFor` in
+ * features/deposit-accounts/rails.ts), so a corridor missing from this list
+ * renders as needs-enrollment, not as the state the fixture is named for. The
+ * demo API enrolls three rails, which is right for the walkthrough and wrong
+ * for these screens — hence a per-fixture override rather than a wider default.
+ */
+const VA_READY_CAPABILITIES = {
+    rails: [
+        {
+            id: 'bridge.ach_us',
+            provider: 'bridge',
+            method: 'ACH_US',
+            channel: 'bank',
+            country: 'US',
+            currency: 'USD',
+            status: 'enabled',
+        },
+        {
+            id: 'bridge.sepa_eu',
+            provider: 'bridge',
+            method: 'SEPA_EU',
+            channel: 'bank',
+            country: 'EU',
+            currency: 'EUR',
+            status: 'enabled',
+        },
+        {
+            id: 'bridge.faster_payments_gb',
+            provider: 'bridge',
+            method: 'FASTER_PAYMENTS_GB',
+            channel: 'bank',
+            country: 'GB',
+            currency: 'GBP',
+            status: 'enabled',
+        },
+        {
+            id: 'bridge.spei_mx',
+            provider: 'bridge',
+            method: 'SPEI_MX',
+            channel: 'bank',
+            country: 'MX',
+            currency: 'MXN',
+            status: 'enabled',
+        },
+        {
+            id: 'manteca.pix_br',
+            provider: 'manteca',
+            method: 'PIX_BR',
+            channel: 'bank',
+            country: 'BR',
+            currency: 'BRL',
+            status: 'enabled',
+        },
+        {
+            id: 'manteca.bank_transfer_ar',
+            provider: 'manteca',
+            method: 'BANK_TRANSFER_AR',
+            channel: 'bank',
+            country: 'AR',
+            currency: 'ARS',
+            status: 'enabled',
+        },
+    ],
+    nextActions: [],
+    restrictions: [],
+}
+
+/** Every verified-user get-paid fixture answers the gate the same way. */
+const VA_READY_RESPONSE = { 'GET /users/me': { capabilities: VA_READY_CAPABILITIES } }
+
 export const FIXTURES: Record<string, Fixture> = {
     // ---------------------------------------------------------------------
     // One per screen — the known-good default for each.
@@ -549,11 +622,12 @@ export const FIXTURES: Record<string, Fixture> = {
     'get-paid': {
         route: '/get-paid',
         about: 'The hub: one euro account held, the rest open to claim.',
+        responses: VA_READY_RESPONSE,
     },
     'get-paid-empty': {
         route: '/get-paid',
         about: 'Nothing claimed yet — every corridor offered, none held.',
-        responses: { 'GET /users/deposit-accounts': { depositAccounts: [] } },
+        responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [] } },
     },
     'get-paid-blocked': {
         route: '/get-paid',
@@ -566,27 +640,30 @@ export const FIXTURES: Record<string, Fixture> = {
     'get-paid-claim': {
         route: '/get-paid?screen=claim&corridor=ACH_US',
         about: 'What the user agrees to before an account is opened in their name.',
-        responses: { 'GET /users/deposit-accounts': { depositAccounts: [] } },
+        responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [] } },
     },
     'get-paid-details-eur': {
         route: '/get-paid?screen=details&corridor=SEPA_EU',
         about: 'Euro details. The holder is the partner, not the user — the notice says so.',
+        responses: VA_READY_RESPONSE,
     },
     'get-paid-details-usd': {
         route: '/get-paid?screen=details&corridor=ACH_US',
         about: 'Dollar details: the one corridor where a private payer is proved, with its cap.',
-        responses: { 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_USD] } },
+        responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_USD] } },
     },
     'get-paid-details-gbp': {
         route: '/get-paid?screen=details&corridor=FASTER_PAYMENTS_GB',
         about: 'Sterling details, where only a business may pay in.',
-        responses: { 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_GBP] } },
+        responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_GBP] } },
     },
     'get-paid-provisioning': {
         route: '/get-paid?screen=details&corridor=ACH_US',
         about: 'Claimed, waiting on the provider — the skeleton matches the row count to come.',
         isLoadingState: true,
+        waitFor: '[data-testid="deposit-details-skeleton"]',
         responses: {
+            ...VA_READY_RESPONSE,
             'GET /users/deposit-accounts': {
                 depositAccounts: [{ ...DEPOSIT_ACCOUNT_USD, status: 'provisioning', instructions: undefined }],
             },
@@ -596,6 +673,7 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/get-paid?screen=details&corridor=ACH_US',
         about: 'Opening the account did not complete; the user can try again.',
         responses: {
+            ...VA_READY_RESPONSE,
             'GET /users/deposit-accounts': {
                 depositAccounts: [{ ...DEPOSIT_ACCOUNT_USD, status: 'failed', instructions: undefined }],
             },
@@ -605,12 +683,16 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/get-paid?screen=details&corridor=ACH_US',
         about: 'The account no longer accepts money and the details are in somebody payroll file.',
         responses: {
+            ...VA_READY_RESPONSE,
             'GET /users/deposit-accounts': { depositAccounts: [{ ...DEPOSIT_ACCOUNT_USD, status: 'revoked' }] },
         },
     },
     'get-paid-share': {
         route: '/get-paid?screen=share&corridor=SEPA_EU',
         about: 'What the payer will see, before the user sends it to them.',
+        // The holder caveat sits under the details card, below the fold.
+        fullPage: true,
+        responses: VA_READY_RESPONSE,
     },
     'get-paid-ar': {
         route: '/get-paid?screen=details&corridor=BANK_TRANSFER_AR',
@@ -624,6 +706,8 @@ export const FIXTURES: Record<string, Fixture> = {
     'request-with-bank-alternative': {
         route: '/request',
         about: 'Asking one person for one amount, with the standing-details alternative named below it.',
+        // The alternative sits under the keypad, below the fold on a small phone.
+        fullPage: true,
     },
 
     // ---------------------------------------------------------------------

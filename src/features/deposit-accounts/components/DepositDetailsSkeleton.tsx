@@ -13,7 +13,7 @@ export function DepositDetailsSkeleton({ rows, withNotice }: { rows: number; wit
     return (
         <>
             {withNotice && <div className={`h-16 w-full ${pulse}`} />}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2" data-testid="deposit-details-skeleton">
                 <div className={`h-5 w-28 ${pulse}`} />
                 <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">
                     {Array.from({ length: rows }).map((_, index) => (

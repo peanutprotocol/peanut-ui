@@ -20,4 +20,16 @@ export type Fixture = {
      * says so on purpose is the one case where that check has to stand down.
      */
     isLoadingState?: true
+    /**
+     * Capture the whole scrollable page instead of the viewport. For a fixture
+     * whose subject sits below the fold at 320 — a secondary link under a form
+     * — where a viewport shot proves nothing.
+     */
+    fullPage?: true
+    /**
+     * A selector the capture waits for before it shoots. Set it on a
+     * `isLoadingState` fixture so the shot is the loader the fixture is named
+     * for, rather than whatever loader the app happens to show first.
+     */
+    waitFor?: string
 }

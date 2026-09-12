@@ -131,8 +131,12 @@ for (const [name, fixture] of Object.entries(FIXTURES)) {
 
         await page.goto(fixtureHref(fixture.route, name), { waitUntil: 'domcontentloaded' })
         // A fixture whose whole subject is a loader has nothing to settle to.
-        if (fixture.isLoadingState) await page.waitForTimeout(2000)
-        else await settle(page)
+        // Waiting for the loader itself, rather than a fixed delay, is what
+        // keeps the shot off the app's own boot mascot.
+        if (fixture.isLoadingState) {
+            if (fixture.waitFor) await page.locator(fixture.waitFor).first().waitFor({ state: 'visible' })
+            else await page.waitForTimeout(2000)
+        } else await settle(page)
 
         // A build without NEXT_PUBLIC_VERCEL_ENV=preview ignores the param and
         // bounces every protected route to /setup — which settles fine, so the
@@ -151,6 +155,7 @@ for (const [name, fixture] of Object.entries(FIXTURES)) {
             animations: 'disabled',
             caret: 'hide',
             scale: 'css',
+            fullPage: fixture.fullPage ?? false,
         })
     })
 }
