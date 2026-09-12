@@ -1,4 +1,4 @@
-import { getRedirectUrl } from '@/utils/general.utils'
+import { getRedirectOrigin, getRedirectUrl, saveRedirectUrl } from '@/utils/general.utils'
 import {
     destinationForShhhhhClaims,
     queueShhhhhCampaignContinuation,
@@ -55,6 +55,27 @@ describe('Shhhhh campaign continuation', () => {
             expect(getRedirectUrl()).toBe('/home')
         }
     )
+
+    /*
+     * A session that ended earlier recorded itself as the reason a destination
+     * was stored. This continuation is the new account's own, so settling it
+     * must replace that provenance along with the destination — otherwise the
+     * fresh signup discards a confirmed Skip Pass as someone else's leftover.
+     */
+    it('replaces an earlier session-end provenance along with the destination', () => {
+        window.history.replaceState({}, '', '/profile')
+        saveRedirectUrl('session-end')
+        queueShhhhhCampaignContinuation()
+        expect(getRedirectOrigin()).toBe('deep-link')
+
+        expect(
+            settleShhhhhCampaignContinuation([
+                { badgeCampaign: 'skip', badgeCode: 'WAITLIST_SKIP', outcome: 'awarded' },
+            ])
+        ).toBe('/card')
+        expect(getRedirectUrl()).toBe('/card')
+        expect(getRedirectOrigin()).toBe('deep-link')
+    })
 
     it("does not consume another acquisition flow's stored destination", () => {
         localStorage.setItem('redirect', JSON.stringify('/claim?step=claim'))

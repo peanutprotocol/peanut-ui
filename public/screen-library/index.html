@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="robots" content="noindex,nofollow" />
+        <title>Peanut · Screen library</title>
+        <link rel="stylesheet" href="/screen-library/viewer.css" />
+        <script defer src="/screen-library/viewer.js"></script>
+    </head>
+    <body>
+        <header>
+            <a class="brand" href="/screens/">peanut <span>Screen library</span></a
+            ><a id="download" hidden>Download offline report ↗</a>
+        </header>
+        <main>
+            <div class="eyebrow">PRODUCT / VISUAL HISTORY</div>
+            <h1 id="title">Every screen.<br />Every change.</h1>
+            <p id="description">Browse app states and compare versions of Peanut.</p>
+            <details>
+                <summary>Capture details and exact revisions</summary>
+                <div id="provenance"></div>
+            </details>
+            <p id="coverage" role="status">Loading library…</p>
+            <section id="empty-state" class="empty-state" hidden aria-live="polite" aria-labelledby="empty-title">
+                <div class="empty-art" aria-hidden="true">
+                    <div class="empty-orbit empty-orbit-one"></div>
+                    <div class="empty-orbit empty-orbit-two"></div>
+                    <div class="empty-card empty-card-back"></div>
+                    <div class="empty-card empty-card-front"><span></span><span></span><span></span></div>
+                </div>
+                <div class="empty-copy">
+                    <p id="empty-kicker" class="empty-kicker">SCREEN LIBRARY · COMING TO LIFE</p>
+                    <h2 id="empty-title">Your gallery is almost here.</h2>
+                    <p id="empty-message">
+                        Screenshots are generated in the background and will appear here after the first capture is
+                        published.
+                    </p>
+                    <div class="empty-actions">
+                        <button id="empty-retry" type="button">Check again</button>
+                        <span id="empty-status" class="empty-status">No published captures yet</span>
+                    </div>
+                </div>
+            </section>
+            <nav id="screen-filters" class="filters" aria-label="Filter screens">
+                <label>Search<input id="search" type="search" placeholder="Screen, state or flow" /></label
+                ><label
+                    >Flow<select id="flow">
+                        <option value="">All flows</option>
+                    </select></label
+                ><label
+                    >Show<select id="status">
+                        <option value="">All screens</option>
+                        <option value="differences">Changes and gaps</option>
+                        <option value="changed">Changed pixels</option>
+                        <option value="added">Added</option>
+                        <option value="removed">Removed</option>
+                        <option value="unchanged">Unchanged</option>
+                        <option value="unavailable">Unavailable</option>
+                        <option value="captured">Captured (library)</option>
+                        <option value="failed">Capture failed</option>
+                        <option value="excluded">Excluded</option>
+                    </select></label
+                >
+            </nav>
+            <details id="route-coverage">
+                <summary>Route coverage and exclusions</summary>
+                <div id="route-inventory"></div>
+            </details>
+            <section id="versions" aria-label="Versions"></section>
+            <section id="screens" aria-label="Screens"></section>
+        </main>
+        <dialog id="zoom">
+            <div class="dialog-head">
+                <h2 id="zoom-title"></h2>
+                <button id="close" aria-label="Close enlarged screen">Close ×</button>
+            </div>
+            <div class="zoom-controls">
+                <button id="side">Side by side</button><button id="overlay">Overlay</button
+                ><button id="difference">Pixel difference</button
+                ><label id="slider-label" hidden
+                    >Before / after<input id="slider" type="range" min="0" max="100" value="50"
+                /></label>
+            </div>
+            <div id="zoom-images"></div>
+        </dialog>
+        <footer>App-owned mobile UI · English · 393 × 852 · Synthetic data</footer>
+    </body>
+</html>

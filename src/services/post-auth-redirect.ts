@@ -1,4 +1,4 @@
-import { clearRedirectUrl, getRedirectUrl, getValidRedirectUrl } from '@/utils/general.utils'
+import { clearRedirectUrl, getStoredRedirect, getValidRedirectUrl } from '@/utils/general.utils'
 
 export type PostAuthRedirectDecision = {
     destination: string
@@ -13,6 +13,23 @@ type PostAuthRedirectOptions = {
      * showing the bank-claim continuation after identity verification).
      */
     deferStoredRedirect?: (destination: string) => boolean
+    /**
+     * Refuse a destination that only records where an earlier session ended.
+     * Set by a brand-new account: it inherits no other session's page, however
+     * that page came to be stored (this device's own logout, a revoked session
+     * in another tab, a token that expired while the app stood open).
+     *
+     * Rollout: a record written before the origin existed is a bare path, and
+     * it is honoured. Discarding those instead would have dropped the stored
+     * pay-link continuation for anyone mid-funnel across the deploy — a
+     * signup entered from /receipt or a request link landing on /home, which
+     * SendWithPeanutCta and the account-ready CTA exist to prevent. The
+     * transitional cost of honouring them is the reverse case, a new account
+     * on the previous session's page, which the Back fix in this PR already
+     * makes harmless; and the window closes at the first write after deploy,
+     * because every writer classifies from then on.
+     */
+    rejectSessionEndOrigin?: boolean
 }
 
 /**
@@ -42,18 +59,36 @@ export function consumePostAuthRedirect(
         }
     }
 
-    const storedValue = getRedirectUrl()
-    if (typeof storedValue === 'string' && storedValue.length > 0) {
-        const destination = getValidRedirectUrl(storedValue, fallbackRoute)
+    /*
+     * One snapshot, one decision. Reading the destination and the origin
+     * separately is two getItems, and another tab can replace the record
+     * between them — pairing an old destination with the newer record's
+     * origin, then consuming the newer intent along with it.
+     */
+    const stored = getStoredRedirect()
+    if (stored) {
+        // Consumed, not merely skipped: leaving it would hand the same page to
+        // whoever authenticates next on this device.
+        if (options.rejectSessionEndOrigin && stored.origin === 'session-end') {
+            clearRedirectUrl(stored)
+            return { destination: fallbackRoute, source: 'fallback', deferred: false }
+        }
+
+        const destination = getValidRedirectUrl(stored.destination, fallbackRoute)
         if (destination !== fallbackRoute && options.deferStoredRedirect?.(destination)) {
             return { destination: fallbackRoute, source: 'stored', deferred: true }
         }
 
-        clearRedirectUrl()
+        clearRedirectUrl(stored)
         return { destination, source: 'stored', deferred: false }
     }
 
-    // Corrupt or blank generic state is no more reusable than an unsafe URL.
-    if (storedValue !== null && storedValue !== undefined) clearRedirectUrl()
+    /*
+     * Corrupt or blank generic state is no more reusable than an unsafe URL.
+     * Do not clean it up here: `null` conflates an absent key with an
+     * unusable value, and there is no generation to delete safely. An
+     * unusable value is ignored until a later writer replaces the pointer,
+     * which is safe because this reader never treats it as a destination.
+     */
     return { destination: fallbackRoute, source: 'fallback', deferred: false }
 }

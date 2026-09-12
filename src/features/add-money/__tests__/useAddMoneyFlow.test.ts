@@ -6,6 +6,9 @@ import { withNuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testi
 
 const mockRouterPush = jest.fn()
 const mockRouterReplace = jest.fn()
+const mockGetStoredRedirect = jest.fn() as jest.Mock
+const mockClearRedirectUrl = jest.fn()
+const mockGetFromLocalStorage = jest.fn() as jest.Mock
 
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockRouterPush, replace: mockRouterReplace, back: jest.fn(), prefetch: jest.fn() }),
@@ -23,9 +26,9 @@ jest.mock('posthog-js', () => ({
 }))
 
 jest.mock('@/utils/general.utils', () => ({
-    getRedirectUrl: jest.fn(() => null),
-    clearRedirectUrl: jest.fn(),
-    getFromLocalStorage: jest.fn(() => null),
+    getStoredRedirect: mockGetStoredRedirect,
+    clearRedirectUrl: mockClearRedirectUrl,
+    getFromLocalStorage: mockGetFromLocalStorage,
     // real behavior: same-origin paths pass, everything else is rejected
     sanitizeRedirectURL: jest.fn((url: string) =>
         url.startsWith('/') && !url.startsWith('//') && !url.includes('://') ? url : null
@@ -57,6 +60,8 @@ const renderFlow = (search = '', onUrlUpdate?: (e: UrlUpdateEvent) => void) =>
 describe('useAddMoneyFlow', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        mockGetStoredRedirect.mockReturnValue(null)
+        mockGetFromLocalStorage.mockReturnValue(null)
     })
 
     it('bare root redirects to the home add drawer and resets onramp state', () => {
@@ -91,6 +96,22 @@ describe('useAddMoneyFlow', () => {
         const { result: r2 } = renderFlow('?method=bank')
         act(() => r2.current.handleBack())
         expect(mockRouterPush).toHaveBeenCalledWith('/home')
+    })
+
+    it('clears the redirect snapshot it routed from', () => {
+        const redirect = {
+            destination: '/claim?step=claim&id=payment-1',
+            origin: 'deep-link',
+            generationId: 'generation-a',
+        }
+        mockGetStoredRedirect.mockReturnValue(redirect)
+        mockGetFromLocalStorage.mockReturnValue(true)
+
+        const { result } = renderFlow('?method=bank')
+        act(() => result.current.handleBack())
+
+        expect(mockRouterPush).toHaveBeenCalledWith(redirect.destination)
+        expect(mockClearRedirectUrl).toHaveBeenCalledWith(redirect)
     })
 
     it('a country in the URL keeps onramp state (only the root list resets it)', () => {

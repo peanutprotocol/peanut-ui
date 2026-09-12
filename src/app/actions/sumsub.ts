@@ -1,4 +1,8 @@
-import { type InitiateSumsubKycResponse, type KYCRegionIntent } from './types/sumsub.types'
+import {
+    type InitiateSumsubKycResponse,
+    type KYCRegionIntent,
+    type VerificationActionSession,
+} from './types/sumsub.types'
 import { serverFetch } from '@/utils/api-fetch'
 
 /**
@@ -76,12 +80,14 @@ export const initiateSumsubKyc = async (params?: {
     levelName?: string
     crossRegion?: boolean
     targetCountry?: string
+    correctSession?: boolean
 }): Promise<{ data?: InitiateSumsubKycResponse; error?: string; code?: SumsubActionErrorCode }> => {
     const body: Record<string, string | boolean | undefined> = {
         regionIntent: params?.regionIntent,
         levelName: params?.levelName,
         crossRegion: params?.crossRegion,
         targetCountry: params?.targetCountry,
+        correctSession: params?.correctSession,
     }
 
     try {
@@ -93,7 +99,10 @@ export const initiateSumsubKyc = async (params?: {
         const responseJson = await response.json()
 
         if (!response.ok) {
-            return backendOrFallback(responseJson, 'Failed to initiate identity verification', 'initiate_failed')
+            return {
+                ...backendOrFallback(responseJson, 'Failed to initiate identity verification', 'initiate_failed'),
+                ...(responseJson.session ? { data: responseJson as InitiateSumsubKycResponse } : {}),
+            }
         }
 
         return {
@@ -102,6 +111,8 @@ export const initiateSumsubKyc = async (params?: {
                 applicantId: responseJson.applicantId,
                 status: responseJson.status,
                 actionType: responseJson.actionType,
+                session: responseJson.session,
+                workflow: responseJson.workflow,
             },
         }
     } catch (e: unknown) {
@@ -293,4 +304,25 @@ export const startKycAction = async (
     } catch (e: unknown) {
         return caughtError(e)
     }
+}
+
+export async function refreshVerificationSession(
+    session: Pick<VerificationActionSession, 'id' | 'generation'>
+): Promise<string> {
+    const response = await serverFetch('/users/identity/session-token', {
+        method: 'POST',
+        body: JSON.stringify({ sessionId: session.id, generation: session.generation }),
+    })
+    const data = await response.json()
+    if (!response.ok || !data.token) throw new Error('Verification session changed. Please reopen verification.')
+    return data.token
+}
+
+export async function getVerificationSession(id: string): Promise<VerificationActionSession | null> {
+    const response = await serverFetch(`/users/identity/sessions/${encodeURIComponent(id)}`, {
+        method: 'GET',
+        cache: 'no-store',
+    })
+    if (!response.ok) return null
+    return (await response.json()).session ?? null
 }

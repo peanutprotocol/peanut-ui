@@ -1,5 +1,5 @@
 import { isConfirmedBadgeCampaignClaim, type BadgeCampaignClaim } from '@/services/badge-campaigns'
-import { getRedirectUrl, saveToLocalStorage } from '@/utils/general.utils'
+import { getRedirectUrl, setRedirectUrl } from '@/utils/general.utils'
 
 const WAITLIST_SKIP_BADGE_CODE = 'WAITLIST_SKIP'
 const PENDING_SHHHHH_REDIRECT = '/home?badge_campaign_continuation=shhhhh'
@@ -9,7 +9,7 @@ const PENDING_SHHHHH_REDIRECT = '/home?badge_campaign_continuation=shhhhh'
  * with `/card` only after the API confirms that this intent awarded Skip Pass.
  */
 export function queueShhhhhCampaignContinuation(): void {
-    saveToLocalStorage('redirect', PENDING_SHHHHH_REDIRECT)
+    setRedirectUrl(PENDING_SHHHHH_REDIRECT)
 }
 
 export function shhhhhCampaignSignupRoute(): string {
@@ -33,6 +33,6 @@ export function destinationForShhhhhClaims(claims: readonly BadgeCampaignClaim[]
 export function settleShhhhhCampaignContinuation(claims: readonly BadgeCampaignClaim[]): '/card' | '/home' | undefined {
     if (getRedirectUrl() !== PENDING_SHHHHH_REDIRECT) return undefined
     const destination = destinationForShhhhhClaims(claims)
-    saveToLocalStorage('redirect', destination)
+    setRedirectUrl(destination)
     return destination
 }

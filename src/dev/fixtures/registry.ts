@@ -256,9 +256,19 @@ const VA_READY_CAPABILITIES = {
 const VA_READY_RESPONSE = { 'GET /users/me': { capabilities: VA_READY_CAPABILITIES } }
 
 export const FIXTURES: Record<string, Fixture> = {
+    'setup-pending': {
+        route: '/setup',
+        about: 'Resume an unfinished account setup',
+        responses: { 'GET /users/me': { user: { hasAppAccess: false }, accounts: [] } },
+    },
     // ---------------------------------------------------------------------
     // One per screen — the known-good default for each.
     // ---------------------------------------------------------------------
+    'guest-invite': {
+        route: '/invite?code=synthetic-invite',
+        about: 'Invite before creating an account',
+        responses: { 'GET /users/me': null },
+    },
     home: { route: '/home', about: 'Home: balance, activity and CTAs for a verified user.' },
     profile: { route: '/profile', about: 'Profile menu, verified user, card row present.' },
     'profile-edit': {

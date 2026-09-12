@@ -11,6 +11,8 @@ PR.md
 
 # dependencies
 /node_modules
+/scripts/screens/publisher/node_modules/
+/scripts/screens/deploy/node_modules/
 /.pnp
 .pnp.js
 .vscode
@@ -65,6 +67,8 @@ playground/
 
 # yarn and npm lockfiles
 package-lock.json
+!/scripts/screens/publisher/package-lock.json
+!/scripts/screens/deploy/package-lock.json
 yarn.lock
 # Sentry Config File
 .sentryclirc
@@ -119,3 +123,7 @@ coverage/
 # See .github/workflows/tests.yml — `Fetch BE render-snapshot baseline` step.
 # Never commit; the canonical 49-entry baseline lives in the BE repo.
 src/components/TransactionDetails/__tests__/fixtures/be-entries.json
+
+# Transient exact-build markers for isolated screen captures
+.screen-capture-adapter.json
+/public/screen-capture-build.json

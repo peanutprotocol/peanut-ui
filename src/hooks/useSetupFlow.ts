@@ -12,6 +12,16 @@ import { useCallback, useMemo } from 'react'
  * that skips the invite gate (see determineInitialStep). */
 export const SETUP_SCREEN_PARAM = 'screen'
 
+/*
+ * The cursor a clean /setup URL means, pinned to a screen the runtime filter
+ * never removes. NOT steps[0]: that moves as the filtered list arrives (the
+ * master list starts at 'unsupported-browser', a sunset/PWA-filtered list at
+ * 'landing'), so a clean URL could resolve to a screen absent from the list
+ * in force — indexOf -1, no step, and the page's recovery screen instead of
+ * the flow (PEANUT-UI-T3A).
+ */
+export const SETUP_DEFAULT_SCREEN: ScreenId = 'landing'
+
 /**
  * The setup flow's cursor: a named screen id in the URL (?screen=signup),
  * driven by the shared stepper (TASK-21460). This replaced a redux numeric
@@ -61,6 +71,7 @@ export const useSetupFlow = () => {
 
     const stepper = useFlowStepper<ScreenId>({
         steps: screenIds,
+        defaultStep: SETUP_DEFAULT_SCREEN,
         urlKey: SETUP_SCREEN_PARAM,
         history: isNativeBridge() ? 'replace' : 'push',
         guards,
