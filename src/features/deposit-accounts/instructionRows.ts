@@ -1,28 +1,29 @@
 import type { DepositDetailRow, DepositInstructions, DepositRowKey, DepositRowLabels } from './types'
 
 /**
- * Provider rail ids as a payer would name them. These are proper nouns —
- * SEPA and FedNow are the same word in every locale — so they stay here
- * rather than in the message catalog. An unmapped id falls back to a
- * readable form of the id itself, so a new Bridge rail shows up in review
- * instead of going silently missing.
+ * How a payer names the rail their bank offers.
+ *
+ * SEPA, SPEI, Pix and FedNow are proper nouns and read the same in every
+ * locale, but "Wire", "ACH" and "Bank transfer" are English sentences wearing
+ * a proper noun's clothes — so the whole set is resolved from the message
+ * catalog and a Spanish details card no longer mixes a Spanish label with an
+ * English value.
+ *
+ * An id we do not know falls back to the catalog's generic bank-transfer
+ * wording rather than to the raw id: `transfer_ar` in a user's face is worse
+ * than a true but unspecific sentence, and a new Bridge rail is caught by the
+ * catalog check, not by a user.
  */
-const RAIL_LABELS: Record<string, string> = {
-    ach_push: 'ACH',
-    fednow: 'FedNow',
-    wire: 'Wire',
-    sepa: 'SEPA',
-    faster_payments: 'Faster Payments',
-    spei: 'SPEI',
-    transfer_ar: 'Bank transfer',
+export type RailLabels = Record<string, string> & { fallback: string }
+
+export function railLabel(rail: string, labels: RailLabels): string {
+    return labels[rail] ?? labels.fallback
 }
 
-export function railLabel(rail: string): string {
-    return RAIL_LABELS[rail] ?? rail.replace(/_/g, ' ')
-}
-
-export function acceptedRails(instructions: DepositInstructions): string {
-    return instructions.paymentRails.map(railLabel).join(' · ')
+export function acceptedRails(instructions: DepositInstructions, labels: RailLabels): string {
+    // one rail named twice (two ids we do not know) says nothing twice
+    const named = instructions.paymentRails.map((rail) => railLabel(rail, labels))
+    return [...new Set(named)].join(' \u00b7 ')
 }
 
 /**
@@ -34,7 +35,10 @@ export function acceptedRails(instructions: DepositInstructions): string {
  * Payments has no beneficiary address; Argentine transfers carry a tax id no
  * other corridor has. A row appears when its field does.
  */
-export function instructionRowKeys(instructions: DepositInstructions): { key: DepositRowKey; value: string }[] {
+export function instructionRowKeys(
+    instructions: DepositInstructions,
+    railLabels: RailLabels
+): { key: DepositRowKey; value: string }[] {
     const rows: { key: DepositRowKey; value: string }[] = [
         { key: 'accountHolder', value: instructions.accountHolderName },
     ]
@@ -60,15 +64,19 @@ export function instructionRowKeys(instructions: DepositInstructions): { key: De
     push('paymentReference', instructions.memo)
 
     if (instructions.paymentRails.length > 0) {
-        rows.push({ key: 'accepts', value: acceptedRails(instructions) })
+        rows.push({ key: 'accepts', value: acceptedRails(instructions, railLabels) })
     }
 
     return rows
 }
 
 /** the same rows, labelled for display */
-export function instructionRows(instructions: DepositInstructions, labels: DepositRowLabels): DepositDetailRow[] {
-    return instructionRowKeys(instructions).map((row) => ({
+export function instructionRows(
+    instructions: DepositInstructions,
+    labels: DepositRowLabels,
+    railLabels: RailLabels
+): DepositDetailRow[] {
+    return instructionRowKeys(instructions, railLabels).map((row) => ({
         key: row.key,
         label: labels[row.key],
         value: row.value,

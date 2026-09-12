@@ -4,6 +4,7 @@ import { mantecaArgentinaAccount } from '@/features/deposit-accounts/mantecaCorr
 import { instructionRows } from '@/features/deposit-accounts/instructionRows'
 import { buildShareText } from '@/features/deposit-accounts/shareText'
 import enMessages from '@/i18n/app/messages/en.json'
+import type { RailLabels } from '@/features/deposit-accounts/instructionRows'
 import type { DepositAccount, DepositRowLabels } from '@/features/deposit-accounts/types'
 
 // captured from Bridge sandbox on 2026-09-11 by
@@ -13,11 +14,13 @@ const accounts = fromBridgeVirtualAccounts(fixture.data as BridgeVirtualAccount[
 const byCurrency = (currency: string) => accounts.find((account) => account.currency === currency) as DepositAccount
 
 // the real English labels, so a renamed row key fails here too
-const ROW_LABELS = enMessages.depositAccounts.rows as DepositRowLabels
+const ROW_LABELS = enMessages.depositAccounts.rows as unknown as DepositRowLabels
+const RAIL_LABELS = enMessages.depositAccounts.rows.rails as RailLabels
 
 const shareCopy = (account: DepositAccount, user: string) => ({
     introOwn: `Here are my bank details to get paid in ${account.currency}:`,
     introPooled: `Bank details to pay ${user} in ${account.currency}:`,
+    senderNotes: {},
     outro: 'Sent from Peanut · peanut.me',
 })
 
@@ -115,7 +118,7 @@ describe('manteca adapter', () => {
 describe('instruction rows', () => {
     it('renders each corridor with only the fields it has', () => {
         const labels = (currency: string) =>
-            instructionRows(byCurrency(currency).instructions!, ROW_LABELS).map((row) => row.label)
+            instructionRows(byCurrency(currency).instructions!, ROW_LABELS, RAIL_LABELS).map((row) => row.label)
 
         expect(labels('EUR')).toEqual([
             'Account holder',
@@ -148,7 +151,7 @@ describe('instruction rows', () => {
     })
 
     it('names the rails a payer can use', () => {
-        const accepts = instructionRows(byCurrency('USD').instructions!, ROW_LABELS).find(
+        const accepts = instructionRows(byCurrency('USD').instructions!, ROW_LABELS, RAIL_LABELS).find(
             (row) => row.key === 'accepts'
         )
         expect(accepts?.value).toBe('ACH · FedNow · Wire')
@@ -159,7 +162,7 @@ describe('instruction rows', () => {
 describe('the shared text carries what a payroll form asks for', () => {
     it('includes the recipient address where the corridor has one', () => {
         const account = byCurrency('EUR')
-        const text = buildShareText(account, shareCopy(account, 'Ana Pérez'), ROW_LABELS)
+        const text = buildShareText(account, shareCopy(account, 'Ana Pérez'), ROW_LABELS, RAIL_LABELS)
         expect(text).toContain(account.instructions!.beneficiaryAddress!)
     })
 })
@@ -167,7 +170,7 @@ describe('the shared text carries what a payroll form asks for', () => {
 describe('share text', () => {
     const textFor = (currency: string) => {
         const account = byCurrency(currency)
-        return buildShareText(account, shareCopy(account, 'Ana Pérez'), ROW_LABELS)
+        return buildShareText(account, shareCopy(account, 'Ana Pérez'), ROW_LABELS, RAIL_LABELS)
     }
 
     it('uses the possessive only when the account is in the user name', () => {

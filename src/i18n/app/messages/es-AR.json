@@ -1682,7 +1682,8 @@
         "list": {
             "heading": "Cobrá en tu moneda local",
             "subheading": "Tené datos bancarios donde te pueda pagar un empleador, un cliente o una plataforma. La plata llega a tu saldo de Peanut.",
-            "rowBlocked": "Verificá tu identidad para abrir esta cuenta"
+            "rowBlocked": "Verificá tu identidad para abrir esta cuenta",
+            "errorBody": "Tus cuentas están bien: solo no pudimos leerlas. Revisá tu conexión y probá de nuevo."
         },
         "claim": {
             "heading": "Abrí tu cuenta en {currency}",
@@ -1710,12 +1711,18 @@
             "subheading": "Enviale esto a quien te vaya a pagar. Es lo mismo para cada pago.",
             "nameWarningTitle": "Avisale sobre el nombre",
             "textIntroOwn": "Estos son mis datos bancarios para cobrar en {currency}:",
-            "textReference": "Poné {memo} en el campo de referencia de la transferencia. Sin eso, el pago se devuelve."
+            "textReference": "Poné {memo} en el campo de referencia de la transferencia. Sin eso, el pago se devuelve.",
+            "senderWarningTitle": "Decile quién puede pagar",
+            "textSender": {
+                "unknown": "Por favor pagá desde una cuenta de empresa. Todavía no confirmamos con nuestro socio que se acepte un pago desde una cuenta personal. Si un pago se devuelve, avisame y lo resolvemos."
+            }
         },
         "gate": {
             "verifyTitle": "Primero verificá tu identidad",
             "verifyBody": "Solo podemos abrir una cuenta a tu nombre cuando sabemos quién sos.",
-            "waitBody": "No tenés que hacer nada. Esta pantalla se actualiza sola."
+            "waitBody": "No tenés que hacer nada. Esta pantalla se actualiza sola.",
+            "emailBody": "Tu identidad está verificada. Nunca recibimos un correo para pasarle a nuestro socio, así que no podemos abrir la cuenta hasta que agregues uno.",
+            "emailCta": "Agregá tu email"
         }
     }
 }

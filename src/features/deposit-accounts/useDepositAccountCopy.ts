@@ -2,7 +2,8 @@
 
 import { useTranslations } from 'next-intl'
 import { useMemo } from 'react'
-import type { DepositCorridor, DepositRowLabels } from './types'
+import type { RailLabels } from './instructionRows'
+import type { DepositCorridor, DepositRowLabels, SenderPolicy } from './types'
 
 /**
  * Catalog keys per corridor, written out rather than built by template so the
@@ -43,6 +44,13 @@ const UNCLAIMABLE_KEYS = {
 } as const
 
 /**
+ * Every payment rail a corridor can name, written out for the same reason as
+ * the corridor keys above: a rail Bridge starts returning without its copy
+ * fails the build instead of reaching a user as `transfer_ar`.
+ */
+const RAIL_LABEL_KEYS = ['ach_push', 'fednow', 'wire', 'sepa', 'faster_payments', 'spei', 'pix', 'transfer_ar'] as const
+
+/**
  * Copy for the deposit-account screens, in one place.
  *
  * Row labels are needed by the cards AND by the share text, so they are
@@ -73,6 +81,24 @@ export function useDepositAccountCopy() {
         [t]
     )
 
+    const railLabels: RailLabels = useMemo(() => {
+        const labels = { fallback: t('rows.rails.fallback') } as RailLabels
+        for (const key of RAIL_LABEL_KEYS) labels[key] = t(`rows.rails.${key}`)
+        return labels
+    }, [t])
+
+    /**
+     * The sender rule as a line the payer reads, for the text that leaves the
+     * app. `anyone` has no entry: there is nothing to warn a payer about.
+     */
+    const senderNotes: Partial<Record<SenderPolicy, string>> = useMemo(
+        () => ({
+            'business-only': t('share.textSender.business-only'),
+            unknown: t('share.textSender.unknown'),
+        }),
+        [t]
+    )
+
     const railName = (corridor: DepositCorridor) => t(RAIL_NAME_KEYS[corridor])
     const arrival = (corridor: DepositCorridor) => t(ARRIVAL_KEYS[corridor])
     const arrivalDetail = (corridor: DepositCorridor) => t(ARRIVAL_DETAIL_KEYS[corridor])
@@ -81,5 +107,5 @@ export function useDepositAccountCopy() {
         return key ? t(key) : undefined
     }
 
-    return { t, rowLabels, railName, arrival, arrivalDetail, unclaimableReason }
+    return { t, rowLabels, railLabels, senderNotes, railName, arrival, arrivalDetail, unclaimableReason }
 }

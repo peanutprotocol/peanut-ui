@@ -3865,7 +3865,12 @@
             "rowReady": "Pronta para compartilhar · {arrival}",
             "badgeReady": "Pronta",
             "rowBlocked": "Verifique sua identidade para abrir esta conta",
-            "rowRevoked": "Estes dados não funcionam mais"
+            "rowRevoked": "Estes dados não funcionam mais",
+            "rowActive": "Ativa · {arrival}",
+            "badgeActive": "Ativo",
+            "errorTitle": "Não conseguimos carregar suas contas",
+            "errorBody": "Suas contas estão bem: só não conseguimos lê-las. Verifique sua conexão e tente de novo.",
+            "errorRetry": "Tentar de novo"
         },
         "claim": {
             "heading": "Abra sua conta em {currency}",
@@ -3927,7 +3932,12 @@
             "textReference": "Coloque {memo} no campo de referência da transferência. Sem isso, o pagamento volta.",
             "textOutro": "Enviado pela Peanut · peanut.me",
             "sheetTitleOwn": "Meus dados bancários",
-            "sheetTitlePooled": "Dados bancários para pagar {user}"
+            "sheetTitlePooled": "Dados bancários para pagar {user}",
+            "senderWarningTitle": "Avise quem pode pagar",
+            "textSender": {
+                "business-only": "Só uma empresa pode pagar nesta conta: um empregador, um cliente ou uma plataforma. Um pagamento da conta pessoal de alguém é devolvido.",
+                "unknown": "Por favor, pague de uma conta de empresa. Ainda não confirmamos com nosso parceiro que um pagamento de conta pessoal é aceito. Se um pagamento voltar, me avise e a gente resolve."
+            }
         },
         "rows": {
             "accountHolder": "Titular da conta",
@@ -3944,7 +3954,18 @@
             "bankAddress": "Endereço do banco",
             "paymentReference": "Referência do pagamento",
             "accepts": "Aceita",
-            "beneficiaryAddress": "Endereço do destinatário"
+            "beneficiaryAddress": "Endereço do destinatário",
+            "rails": {
+                "ach_push": "ACH",
+                "fednow": "FedNow",
+                "wire": "Transferência internacional",
+                "sepa": "SEPA",
+                "faster_payments": "Faster Payments",
+                "spei": "SPEI",
+                "pix": "Pix",
+                "transfer_ar": "Transferência bancária",
+                "fallback": "Transferência bancária"
+            }
         },
         "corridors": {
             "SEPA_EU": {
@@ -3989,7 +4010,10 @@
             "waitTitle": "Estamos preparando isso",
             "waitBody": "Você não precisa fazer nada. Esta tela se atualiza sozinha.",
             "blockedTitle": "Não conseguimos abrir uma conta para você",
-            "supportCta": "Falar com o suporte"
+            "supportCta": "Falar com o suporte",
+            "emailTitle": "Precisamos de um e-mail",
+            "emailBody": "Sua identidade está verificada. Nunca recebemos um e-mail para repassar ao nosso parceiro, então a conta não pode ser aberta até você adicionar um.",
+            "emailCta": "Adicione seu e-mail"
         }
     }
 }

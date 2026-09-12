@@ -3865,7 +3865,12 @@
             "rowReady": "Ready to share · {arrival}",
             "badgeReady": "Ready",
             "rowBlocked": "Verify your identity to open this account",
-            "rowRevoked": "These details no longer work"
+            "rowRevoked": "These details no longer work",
+            "rowActive": "Active · {arrival}",
+            "badgeActive": "Active",
+            "errorTitle": "We could not load your accounts",
+            "errorBody": "Your accounts are fine — we just could not read them. Check your connection and try again.",
+            "errorRetry": "Try again"
         },
         "claim": {
             "heading": "Open your {currency} account",
@@ -3927,7 +3932,12 @@
             "textReference": "Put {memo} in the reference field of the transfer. Without it the payment comes back.",
             "textOutro": "Sent from Peanut · peanut.me",
             "sheetTitleOwn": "My bank details",
-            "sheetTitlePooled": "Bank details to pay {user}"
+            "sheetTitlePooled": "Bank details to pay {user}",
+            "senderWarningTitle": "Tell them who can pay",
+            "textSender": {
+                "business-only": "Only a company can pay into this account: an employer, a client or a platform. A payment from a person's own account is sent back.",
+                "unknown": "Please pay from a company account. We have not yet confirmed with our partner that a payment from a private account is accepted. If a payment comes back, tell me and we will sort it out."
+            }
         },
         "rows": {
             "accountHolder": "Account holder",
@@ -3944,7 +3954,18 @@
             "bankAddress": "Bank address",
             "paymentReference": "Payment reference",
             "accepts": "Accepts",
-            "beneficiaryAddress": "Recipient address"
+            "beneficiaryAddress": "Recipient address",
+            "rails": {
+                "ach_push": "ACH",
+                "fednow": "FedNow",
+                "wire": "Wire",
+                "sepa": "SEPA",
+                "faster_payments": "Faster Payments",
+                "spei": "SPEI",
+                "pix": "Pix",
+                "transfer_ar": "Bank transfer",
+                "fallback": "Bank transfer"
+            }
         },
         "corridors": {
             "SEPA_EU": {
@@ -3989,7 +4010,10 @@
             "waitTitle": "We are setting this up",
             "waitBody": "Nothing for you to do. This page updates by itself.",
             "blockedTitle": "We cannot open an account for you",
-            "supportCta": "Contact support"
+            "supportCta": "Contact support",
+            "emailTitle": "We need an email address",
+            "emailBody": "Your identity is verified. We never got an email address to pass on, so the account cannot be opened until you add one.",
+            "emailCta": "Add your email"
         }
     }
 }
