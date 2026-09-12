@@ -368,6 +368,7 @@ it('restarts native badge settlement when a newer invite replaces the setup URL'
     await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledTimes(1))
 
     markDeepLinkNavigated('/setup?step=signup&badge_campaign=bug_whisperer_v2')
+    await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledTimes(1))
     mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer_v2')
     view.rerender(<SetupPage />)
 

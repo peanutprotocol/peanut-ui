@@ -39,6 +39,24 @@ import {
 import { claimAndSettlePendingBadgeCampaigns } from '@/services/badge-campaigns'
 import { getDeepLinkGeneration, getDeepLinkTarget, subscribeToDeepLinkGeneration } from '@/utils/deep-link-state'
 
+function setupTargetMatchesSearchParams(target: string | null, searchParamsString: string): boolean {
+    if (!target) return false
+    try {
+        const targetUrl = new URL(target, 'https://peanut.me')
+        if (targetUrl.pathname !== '/setup') return false
+        const normalize = (params: URLSearchParams) =>
+            Array.from(params.entries()).sort(
+                ([keyA, valueA], [keyB, valueB]) => keyA.localeCompare(keyB) || valueA.localeCompare(valueB)
+            )
+        return (
+            JSON.stringify(normalize(targetUrl.searchParams)) ===
+            JSON.stringify(normalize(new URLSearchParams(searchParamsString)))
+        )
+    } catch {
+        return false
+    }
+}
+
 function SetupPageContent() {
     const t = useTranslations('setup')
     const tCommon = useTranslations('common')
@@ -184,7 +202,7 @@ function SetupPageContent() {
         const isNewSetupDeepLink =
             !isInitialSessionCheck &&
             deepLinkGeneration !== lastHandledDeepLinkGenerationRef.current &&
-            getDeepLinkTarget()?.startsWith('/setup') === true
+            setupTargetMatchesSearchParams(getDeepLinkTarget(), searchParamsString)
         if (!isInitialSessionCheck && !isNewSetupDeepLink) return
         if (isInitialSessionCheck) setSessionChecked(true)
         lastHandledDeepLinkGenerationRef.current = deepLinkGeneration
@@ -276,7 +294,16 @@ function SetupPageContent() {
                 has_app_access: !!user.user.hasAppAccess,
             })
         }
-    }, [sessionChecked, isFetchingUser, user, router, fetchUser, urlBadgeCampaigns, deepLinkGeneration])
+    }, [
+        sessionChecked,
+        isFetchingUser,
+        user,
+        router,
+        fetchUser,
+        urlBadgeCampaigns,
+        deepLinkGeneration,
+        searchParamsString,
+    ])
 
     const handleContinueSession = () => {
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED)
