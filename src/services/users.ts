@@ -10,7 +10,7 @@ import { serverFetch } from '@/utils/api-fetch'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { chargesApi } from './charges'
 import { type TCharge } from './services.types'
-import { BASE_URL } from '@/constants/general.consts'
+import { appBaseUrl } from '@/utils/url.utils'
 
 type ApiAccount = {
     identifier: string
@@ -87,7 +87,7 @@ export const usersApi = {
         return chargesApi.create({
             pricing_type: 'fixed_price',
             local_price: { amount, currency: 'USD' },
-            baseUrl: BASE_URL,
+            baseUrl: appBaseUrl(),
             requestId: undefined,
             requestProps: {
                 chainId: PEANUT_WALLET_CHAIN.id.toString(),

@@ -1,9 +1,9 @@
 'use client'
 import { getNextDepositIndex } from '@/app/actions/claimLinks'
-import { BASE_URL } from '@/constants/general.consts'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { saveToLocalStorage } from '@/utils/general.utils'
 import { generateKeysFromString, getLinkFromParams } from '@/utils/peanut-link.utils'
+import { shareableUrl } from '@/utils/url.utils'
 import {
     getContractAbi,
     getContractAddress,
@@ -120,7 +120,7 @@ export const useCreateLink = () => {
                         contractVersion,
                         depositIdx,
                         password,
-                        `${BASE_URL}/claim`,
+                        shareableUrl('/claim'),
                         undefined
                     )
                     return {

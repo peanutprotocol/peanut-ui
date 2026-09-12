@@ -13,7 +13,7 @@ import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from '@/components
 import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { BASE_URL } from '@/constants/general.consts'
+import { payLinkUrl } from '@/utils/url.utils'
 import { serverFetch } from '@/utils/api-fetch'
 import { openExternalUrl } from '@/utils/capacitor'
 import { pixKeyToQrPayUrl } from '@/utils/pix.utils'
@@ -215,7 +215,7 @@ export default function QRScannerOverlay() {
     const searchParams = useSearchParams()
     const toast = useToast()
     const { user } = useAuth()
-    const payUserUrl = user?.user.username ? `${BASE_URL}/pay/${user.user.username}` : ''
+    const payUserUrl = user?.user.username ? payLinkUrl(`/${user.user.username}`) : ''
     const { triggerHaptic } = useAppHaptic()
     const { isQRScannerOpen, setIsQRScannerOpen } = useModalsContext()
     const isChainRolledOut = useChainRollout()
