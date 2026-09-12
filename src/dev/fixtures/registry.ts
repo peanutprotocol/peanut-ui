@@ -798,7 +798,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'get-paid-revoked': {
         route: '/get-paid?screen=details&corridor=ACH_US',
-        about: 'The account no longer accepts money and the details are in somebody payroll file.',
+        about: 'The account no longer accepts money and the details are already in a payroll file somewhere.',
         responses: {
             ...VA_READY_RESPONSE,
             'GET /users/deposit-accounts': { depositAccounts: [{ ...DEPOSIT_ACCOUNT_USD, status: 'revoked' }] },
@@ -813,7 +813,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'get-paid-ar': {
         route: '/get-paid?screen=details&corridor=BANK_TRANSFER_AR',
-        about: 'Argentina: the provider CVU only credits the user own transfers, so it is never shared.',
+        about: 'Argentina: the provider CVU only credits transfers the user sends themselves, so it is never shared.',
     },
 
     'home-add-drawer': {

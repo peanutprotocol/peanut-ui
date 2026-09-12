@@ -3960,11 +3960,10 @@
             "subheading": "Real bank details your employer, client or platform already knows how to use.",
             "previewTitle": "What your details will look like",
             "previewCaption": "An example only — your real numbers appear once the account is open.",
-            "benefitWho": "Who can pay you depends on {currency}'s terms. You will see them as soon as the account is open.",
+            "conditionTerms": "Who can pay you depends on {currency}'s terms. You will see them as soon as the account is open.",
             "benefitStable": "Hand these details over once — they stay the same for every payment after.",
             "benefitBalance": "Money arrives in your Peanut balance as USD.",
-            "benefitCap": "A person can send up to {cap} each time. A company has no limit.",
-            "benefitNoReference": "No reference or memo to remember.",
+            "conditionNoReference": "No reference or memo to remember.",
             "cta": "Open {currency} account",
             "errorTitle": "We could not open the account"
         },
@@ -4113,12 +4112,12 @@
                 "why": "Our banking partner limits a single payment from a private person. More than {cap} at once is sent back, so ask for several payments or for the money to come from a company account."
             },
             "individualsNotAllowed": {
-                "line": "A payment from a person own account is sent back, for now.",
+                "line": "For now, a payment from someone's personal account is sent back.",
                 "payer": "Please pay from a company account. A payment from a personal account is sent back.",
                 "why": "Our banking partner has not yet agreed an amount for payments from private people on this currency. We will say so here the day it does."
             },
             "businessOnly": {
-                "line": "A business can pay you — an employer, a client or a platform. A payment from a person own account is sent back.",
+                "line": "A business can pay you — an employer, a client or a platform. A payment from a personal account is sent back.",
                 "payer": "Only a business can pay into this account: an employer, a client or a platform. A payment from a personal account is sent back.",
                 "why": "Our banking partner accepts company transfers on this currency and not personal ones. A personal transfer is returned to the sender a few days later."
             },
