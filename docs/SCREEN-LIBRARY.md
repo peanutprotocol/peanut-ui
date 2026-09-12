@@ -22,6 +22,8 @@ A failed capture command still writes `capture.json`, with failures attached to
 specific states. The comparison command creates `manifest.json`, images,
 `offline/index.html`, and `offline.tar.gz`. Open the offline HTML directly; it
 needs no backend, login, or network. Reports preserve failed/unavailable states.
+Those per-state gaps are publishable and do not fail the capture job; harness,
+build, and runtime failures still fail the command.
 
 The shared registry is `src/dev/screens/catalogue.ts`. It imports named API
 fixtures, route checkpoints and surface metadata. Add stable IDs, concrete
