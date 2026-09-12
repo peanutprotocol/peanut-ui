@@ -63,6 +63,13 @@ export interface WaitlistStateResponse {
     releasedAt: string | null
 }
 
+export class CardAuthenticationRequiredError extends Error {
+    constructor() {
+        super('Authentication required')
+        this.name = 'CardAuthenticationRequiredError'
+    }
+}
+
 /**
  * Fail fast — loud and local — instead of an opaque 401 from an
  * unauthenticated request. apiFetch itself awaits authReady() and attaches
@@ -79,7 +86,7 @@ export interface WaitlistStateResponse {
 async function assertAuthenticated(): Promise<void> {
     if (isDemoMode() || isCapacitor()) return
     await authReady()
-    if (!getAuthToken()) throw new Error('Authentication required')
+    if (!getAuthToken()) throw new CardAuthenticationRequiredError()
 }
 
 export const cardApi = {

@@ -86,7 +86,11 @@ jest.mock('@/components/Global/UnsupportedBrowserModal', () => ({
 }))
 jest.mock('@/assets/mascot', () => ({ PeanutWavingHello: { src: '' } }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
-jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), captureMessage: jest.fn() }))
+jest.mock('@sentry/nextjs', () => ({
+    captureException: jest.fn(),
+    captureMessage: jest.fn(),
+    addBreadcrumb: jest.fn(),
+}))
 
 const landing: ISetupStep = {
     screenId: 'landing',
@@ -131,7 +135,9 @@ it('shows retry and support when no current setup step can render', async () => 
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
     expect(mockSupport).toHaveBeenCalledWith(true)
-    expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
+    expect(Sentry.addBreadcrumb).toHaveBeenCalledWith(
+        expect.objectContaining({ category: 'setup.recovery', level: 'info', message: 'Setup recovery required' })
+    )
     expect(useSetupStepAnalytics).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: false }))
 })
 
@@ -172,6 +178,11 @@ it('recovers from an initialization exception', async () => {
     renderWithIntl(<SetupPage />)
     await advance(100)
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+        'Setup initialization failed',
+        expect.objectContaining({ level: 'error', tags: { reason: 'initialization_failed' } })
+    )
+    expect(Sentry.addBreadcrumb).not.toHaveBeenCalled()
 })
 
 it('ignores an authenticator check that completes after initialization timed out', async () => {
@@ -189,6 +200,11 @@ it('ignores an authenticator check that completes after initialization timed out
     renderWithIntl(<SetupPage />)
     await advance(15000)
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+        'Setup initialization failed',
+        expect.objectContaining({ level: 'error', tags: { reason: 'initialization_timeout' } })
+    )
+    expect(Sentry.addBreadcrumb).not.toHaveBeenCalled()
     await act(async () => {
         resolveSupport(true)
     })
@@ -434,9 +450,11 @@ it('bounces a completed session home without showing the recovery screen', async
     expect(mockRouter.replace).toHaveBeenCalledWith('/home')
     expect(screen.getByRole('status')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+    expect(Sentry.addBreadcrumb).not.toHaveBeenCalled()
     expect(Sentry.captureMessage).not.toHaveBeenCalled()
     // the initialization bound must not turn the pending bounce into a fault either
     await advance(15000)
     expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+    expect(Sentry.addBreadcrumb).not.toHaveBeenCalled()
     expect(Sentry.captureMessage).not.toHaveBeenCalled()
 })
