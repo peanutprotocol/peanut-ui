@@ -18,7 +18,7 @@ jobs:
             before: ${{ steps.refs.outputs.before }}
             after: ${{ steps.refs.outputs.after }}
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
                   fetch-depth: 0
                   persist-credentials: false
@@ -56,26 +56,26 @@ jobs:
             matrix:
                 side: [before, after]
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
                   ref: ${{ github.event.pull_request.head.sha || github.sha }}
                   path: harness
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
                   persist-credentials: false
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
                   ref: ${{ matrix.side == 'before' && needs.refs.outputs.before || needs.refs.outputs.after }}
                   path: target
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
                   persist-credentials: false
-            - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+            - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
               with:
                   version: 10.30.1
-            - uses: actions/setup-node@v4
+            - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
               with:
-                  node-version: '20'
+                  node-version: '22'
             - name: Install capture tools
               working-directory: harness
               run: pnpm install --frozen-lockfile
@@ -87,7 +87,7 @@ jobs:
               env:
                   TARGET_SHA: ${{ matrix.side == 'before' && needs.refs.outputs.before || needs.refs.outputs.after }}
               run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture
-            - uses: actions/upload-artifact@v4
+            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
               if: always()
               with:
                   name: screen-library-${{ matrix.side }}-${{ github.run_attempt }}
