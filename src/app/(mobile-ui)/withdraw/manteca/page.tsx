@@ -219,6 +219,13 @@ function MantecaBankWithdrawFlow() {
         amount: usdAmount,
         currency: selectedCountry?.currency,
     })
+    // the card is the only thing that can replace the amount message, so the
+    // message rule reads the same props the card is rendered from
+    const limitsCardProps = getLimitsWarningCardProps({
+        validation: limitsValidation,
+        flowType: 'offramp',
+        currency: limitsValidation.currency,
+    })
 
     // Synchronous twin of the balanceErrorMessage effect below (same
     // minimum/ceiling predicates, live balance). Effect-set state lags the
@@ -927,7 +934,7 @@ function MantecaBankWithdrawFlow() {
                         error={
                             shouldShowAmountError({
                                 showError: !!balanceErrorMessage,
-                                showsLimitsCard: true,
+                                showsLimitsCard: !!limitsCardProps,
                                 limitsBlocking: limitsValidation.isBlocking,
                             })
                                 ? balanceErrorMessage
@@ -953,25 +960,17 @@ function MantecaBankWithdrawFlow() {
                     </FieldColumn>
 
                     {/* limits warning/error card - uses centralized helper for props */}
-                    {(() => {
-                        const limitsCardProps = getLimitsWarningCardProps({
-                            validation: limitsValidation,
-                            flowType: 'offramp',
-                            currency: limitsValidation.currency,
-                        })
-                        if (!limitsCardProps) return null
-                        return (
-                            <LimitsWarningCard
-                                {...limitsCardProps}
-                                onIncreaseLimits={
-                                    isBrEligible && limitsValidation.isBlocking
-                                        ? limitIncreaseFlow.handleInitiate
-                                        : undefined
-                                }
-                                isIncreaseLimitsLoading={limitIncreaseFlow.isLoading}
-                            />
-                        )
-                    })()}
+                    {limitsCardProps && (
+                        <LimitsWarningCard
+                            {...limitsCardProps}
+                            onIncreaseLimits={
+                                isBrEligible && limitsValidation.isBlocking
+                                    ? limitIncreaseFlow.handleInitiate
+                                    : undefined
+                            }
+                            isIncreaseLimitsLoading={limitIncreaseFlow.isLoading}
+                        />
+                    )}
 
                     <Button
                         variant="purple"

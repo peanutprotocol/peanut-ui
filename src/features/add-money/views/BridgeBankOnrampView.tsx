@@ -139,7 +139,13 @@ export function BridgeBankOnrampView() {
     }
 
     if (urlState.step === 'inputAmount') {
-        const showLimitsCard = limitsValidation.isBlocking || limitsValidation.isWarning
+        // the card is the only thing that can replace the amount message, so the
+        // message rule reads the same props the card is rendered from
+        const limitsCardProps = getLimitsWarningCardProps({
+            validation: limitsValidation,
+            flowType: 'onramp',
+            currency: 'USD',
+        })
 
         return (
             <div className="space-y-8 flex flex-col justify-start">
@@ -151,7 +157,7 @@ export function BridgeBankOnrampView() {
                         error={
                             shouldShowAmountError({
                                 showError: !!validationError,
-                                showsLimitsCard: true,
+                                showsLimitsCard: !!limitsCardProps,
                                 limitsBlocking: limitsValidation.isBlocking,
                             })
                                 ? validationError
@@ -178,15 +184,7 @@ export function BridgeBankOnrampView() {
                     </FieldColumn>
 
                     {/* limits warning/error card */}
-                    {showLimitsCard &&
-                        (() => {
-                            const limitsCardProps = getLimitsWarningCardProps({
-                                validation: limitsValidation,
-                                flowType: 'onramp',
-                                currency: 'USD',
-                            })
-                            return limitsCardProps ? <LimitsWarningCard {...limitsCardProps} /> : null
-                        })()}
+                    {limitsCardProps && <LimitsWarningCard {...limitsCardProps} />}
 
                     {!limitsValidation.isBlocking && (
                         <Notification priority="attention">{t('amountMustMatchBank')}</Notification>
@@ -220,7 +218,7 @@ export function BridgeBankOnrampView() {
                     </Button>
                     {shouldShowAmountError({
                         showError: error.showError && !!error.errorMessage,
-                        showsLimitsCard: true,
+                        showsLimitsCard: !!limitsCardProps,
                         limitsBlocking: limitsValidation.isBlocking,
                     }) && <Notification priority="error">{error.errorMessage}</Notification>}
                     {localCurrency !== 'USD' && isRateError && <RateUnavailable onRetry={refetchRate} />}
