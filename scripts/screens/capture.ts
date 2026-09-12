@@ -7,6 +7,7 @@ import sharp from 'sharp'
 import { SCREENS } from '../../src/dev/screens/catalogue'
 import { answer, ADAPTER_VERSION } from './adapter'
 import { hash, storeAsset, validateCapture, materializeCatalogue } from './core.mjs'
+import { captureExitCode } from './capture-status.mjs'
 
 import { routePatterns, routePatternFor } from './routes.mjs'
 import { inventory } from './inventory.mjs'
@@ -458,8 +459,11 @@ async function main() {
                 )
                 await page.screenshot({ path: join(out, 'diagnostics', `${screen.id}.png`) }).catch(() => undefined)
                 const reason = String(e instanceof Error ? e.message : e).slice(0, 950)
-                results.push({ ...metadata, status: historical ? 'unavailable' : 'failed', reason })
-                console.log(`UNAVAILABLE ${screen.id}: ${reason.split('\n')[0]}`)
+                // Expected historical gaps are classified before this harness
+                // runs. An exception here is a real runtime failure on either
+                // revision and must keep the capture job red.
+                results.push({ ...metadata, status: 'failed', reason })
+                console.log(`FAILED ${screen.id}: ${reason.split('\n')[0]}`)
             } finally {
                 await context.close()
             }
@@ -478,7 +482,10 @@ async function main() {
                 }, {}),
             })
         )
-        if (!report.complete) process.exitCode = 1
+        // Incomplete captures are valid gallery reports: the manifest records
+        // expected gaps and the publisher can still expose them. A caught
+        // Runtime failures on either revision remain red capture jobs.
+        process.exitCode = captureExitCode(results)
     } finally {
         await browser.close()
     }

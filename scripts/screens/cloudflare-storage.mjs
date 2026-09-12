@@ -85,22 +85,54 @@ async function cloudflareRequest(url, options) {
 }
 export async function uploadPreview(config, name, bytes, request = cloudflareRequest) {
     if (!/^[a-f0-9]{64}\.(png|webp)$/.test(name)) throw new Error('Invalid preview name')
-    const id = `peanut-screen-${name.slice(0, 64)}`
+    // Cloudflare Images image IDs are limited to 32 characters. The metadata
+    // carries the complete source digest and filename for reuse verification.
+    const id = `ps-${name.slice(0, 29)}`
     const endpoint = `https://api.cloudflare.com/client/v4/accounts/${config.CLOUDFLARE_ACCOUNT_ID}/images/v1`
     const headers = { Authorization: `Bearer ${config.CLOUDFLARE_API_TOKEN}` }
-    // Verify original bytes on reuse, never trust a custom ID alone.
-    let response = await request(`${endpoint}/${id}/blob`, { headers })
-    if (response.status === 404) {
+
+    const source = { sourceSha256: name.slice(0, 64), sourceFilename: name }
+    const matchesSource = (image) =>
+        image?.id === id && image.meta?.sourceSha256 === source.sourceSha256 && image.meta?.sourceFilename === name
+    const readImage = async () => {
+        const response = await request(`${endpoint}/${id}`, { headers })
+        if (response.status === 404) return null
+        if (!response.ok) throw new Error('Cloudflare Images lookup failed')
+        const data = await response.json()
+        if (!data.success || data.result?.id !== id) throw new Error('Cloudflare Images lookup failed')
+        return data.result
+    }
+    const uploadImage = async () => {
         const body = new FormData()
         body.set('id', id)
         body.set('requireSignedURLs', 'false')
+        body.set('metadata', JSON.stringify(source))
         body.set('file', new Blob([bytes], { type: name.endsWith('.png') ? 'image/png' : 'image/webp' }), name)
         const uploaded = await request(endpoint, { method: 'POST', headers, body })
-        if (!uploaded.ok || !(await uploaded.json()).success) throw new Error('Cloudflare Images upload failed')
-        response = await request(`${endpoint}/${id}/blob`, { headers })
+        const data = await uploaded.json().catch(() => ({}))
+        if (!uploaded.ok || !data.success || data.result?.id !== id) throw new Error('Cloudflare Images upload failed')
+        return data.result
     }
-    if (!response.ok || !Buffer.from(await response.arrayBuffer()).equals(bytes))
-        throw new Error('Cloudflare preview original mismatch or unavailable')
+
+    let image = await readImage()
+    if (!image) image = await uploadImage()
+    if (!matchesSource(image)) {
+        // Migrate images uploaded before source metadata was added, but never
+        // overwrite a populated, conflicting identity.
+        if (image.meta && Object.keys(image.meta).length > 0) throw new Error('Cloudflare preview metadata mismatch')
+        if (image.filename !== name) throw new Error('Cloudflare preview identity mismatch')
+        const repaired = await request(`${endpoint}/${id}`, {
+            method: 'PATCH',
+            headers: { ...headers, 'content-type': 'application/json' },
+            body: JSON.stringify({ metadata: source }),
+        })
+        const data = await repaired.json().catch(() => ({}))
+        if (!repaired.ok || !data.success || !matchesSource(data.result))
+            throw new Error('Cloudflare preview metadata repair failed')
+        image = data.result
+    }
+    if (!matchesSource(image)) throw new Error('Cloudflare preview metadata mismatch')
+
     const delivery = `https://imagedelivery.net/${config.SCREEN_LIBRARY_IMAGES_HASH}/${id}/${config.SCREEN_LIBRARY_IMAGES_VARIANT}`
     const check = await request(delivery, { method: 'HEAD' })
     if (!check.ok || !check.headers.get('content-type')?.startsWith('image/'))

@@ -1,0 +1,62 @@
+name: Screen library baseline
+
+on:
+    # A baseline is independent of PR commits and is refreshed once per UTC
+    # day. The manual trigger is useful after enabling the workflow or after a
+    # long artifact-retention gap.
+    schedule:
+        - cron: '17 0 * * *'
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    capture:
+        runs-on: macos-26-intel
+        timeout-minutes: 60
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  ref: dev
+                  path: harness
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+                  persist-credentials: false
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  ref: dev
+                  path: target
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+                  persist-credentials: false
+            - name: Resolve dev revision
+              id: revision
+              run: echo "sha=$(git -C target rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+            - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+              with:
+                  version: 10.30.1
+            - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+              with:
+                  node-version: '22'
+            - name: Install capture tools
+              working-directory: harness
+              run: pnpm install --frozen-lockfile
+            - name: Install pinned browser
+              working-directory: harness
+              run: pnpm exec playwright install --with-deps --no-shell chromium
+            - name: Build and capture exact dev revision
+              working-directory: harness
+              env:
+                  TARGET_SHA: ${{ steps.revision.outputs.sha }}
+              run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture
+            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+              if: always()
+              with:
+                  # The scheduler's run SHA is the default branch commit; the
+                  # artifact name binds the capture to the dev SHA checked out
+                  # above so the trusted publisher can select it exactly.
+                  name: screen-library-baseline-${{ steps.revision.outputs.sha }}-${{ github.run_attempt }}
+                  path: capture/
+                  if-no-files-found: error
+                  retention-days: 7

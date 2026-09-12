@@ -20,29 +20,51 @@ jobs:
         if: github.repository == 'peanutprotocol/peanut-ui' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         runs-on: ubuntu-24.04
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
                   ref: dev
                   persist-credentials: false
                   fetch-depth: 0
-            - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+            - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
               with:
                   version: 10.30.1
-            - uses: actions/setup-node@v4
+            - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
               with:
-                  node-version: '20'
+                  node-version: '22'
             # Install only trusted publisher dependencies from the committed lockfile.
             - run: npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/screens/publisher
             - name: Link isolated publisher dependencies
               run: ln -s "$GITHUB_WORKSPACE/scripts/screens/publisher/node_modules" node_modules
             - name: Download capture artifacts from this run
-              uses: actions/download-artifact@v4
+              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
               with:
                   github-token: ${{ github.token }}
                   run-id: ${{ github.run_id }}
                   pattern: screen-library-*
                   merge-multiple: false
                   path: incoming
+            - name: Resolve verified daily baseline when needed
+              id: baseline
+              env:
+                  RUN_ID: ${{ github.run_id }}
+                  REPOSITORY: ${{ github.repository }}
+              run: |
+                  set -euo pipefail
+                  if test -s "incoming/screen-library-before-${GITHUB_RUN_ATTEMPT}/capture.json"; then
+                      echo 'mode=current' >> "$GITHUB_OUTPUT"
+                  else
+                      echo 'mode=external' >> "$GITHUB_OUTPUT"
+                      node scripts/screens/resolve-baseline.mjs >> "$GITHUB_OUTPUT"
+                  fi
+            - name: Download verified daily baseline
+              if: steps.baseline.outputs.mode == 'external'
+              uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              with:
+                  github-token: ${{ github.token }}
+                  repository: ${{ github.repository }}
+                  run-id: ${{ steps.baseline.outputs.run_id }}
+                  name: ${{ steps.baseline.outputs.artifact_name }}
+                  path: incoming/baseline
             - name: Verify provenance and publish
               env:
                   GH_TOKEN: ${{ github.token }}
@@ -56,4 +78,7 @@ jobs:
                   RUN_ID: ${{ github.run_id }}
                   RUN_ATTEMPT: ${{ github.run_attempt }}
                   REPOSITORY: ${{ github.repository }}
+                  SCREEN_LIBRARY_BASELINE_DIR: ${{ steps.baseline.outputs.mode == 'external' && 'incoming/baseline' || '' }}
+                  SCREEN_LIBRARY_BASELINE_RUN_ID: ${{ steps.baseline.outputs.run_id }}
+                  SCREEN_LIBRARY_BASELINE_ARTIFACT: ${{ steps.baseline.outputs.artifact_name }}
               run: node scripts/screens/publish-run.mjs

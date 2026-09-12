@@ -1,6 +1,17 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { selectCapturePair } from './capture-artifacts.mjs'
+import { selectCaptureArtifact, selectCapturePair } from './capture-artifacts.mjs'
+
+test('selects the newest valid artifact for one side', () => {
+    assert.deepEqual(
+        selectCaptureArtifact(
+            ['screen-library-after-1', 'screen-library-after-2', 'screen-library-after-3'],
+            'after',
+            (name) => !name.endsWith('-3')
+        ),
+        { attempt: 2, name: 'incoming/screen-library-after-2' }
+    )
+})
 
 test('selects the newest complete capture pair and ignores unrelated artifacts', () => {
     const selected = selectCapturePair([
