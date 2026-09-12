@@ -442,6 +442,25 @@ describe('post-auth redirect reads one snapshot', () => {
         expect(getRedirectOrigin()).toBe('deep-link')
     })
 
+    it('binds mirror ownership to the value written by that generation', () => {
+        setRedirectUrl('/profile', 'session-end')
+        const staleOwner = localStorage.getItem('redirect-v2-mirror-owner')
+        expect(staleOwner).not.toBeNull()
+        expect(JSON.parse(staleOwner!)).toEqual({
+            generationId: JSON.parse(localStorage.getItem('redirect-v2')!).generationId,
+            destination: '/profile',
+        })
+
+        setRedirectUrl('/card', 'deep-link')
+
+        // A late owner write from the older publication must not claim a
+        // different value written by a legacy tab.
+        localStorage.setItem('redirect-v2-mirror-owner', staleOwner!)
+        localStorage.setItem('redirect', JSON.stringify('/receipt?id=abc'))
+
+        expect(getRedirectUrl()).toBe('/receipt?id=abc')
+    })
+
     it('identifies a stale mirror while its ownership write is pending', () => {
         setRedirectUrl('/profile', 'session-end')
         let interleaved = false
