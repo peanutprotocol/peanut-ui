@@ -91,7 +91,7 @@ export function DepositAccountsFlow({
             <PageStack>
                 <NavHeader title={t('title')} onPrev={onExit} />
                 <div className="flex flex-col gap-6">
-                    <DepositDetailsSkeleton rows={rail.detailRowCount} withNotice />
+                    <DepositDetailsSkeleton rows={rail.detailRowCount} />
                 </div>
             </PageStack>
         )

@@ -3963,20 +3963,11 @@
             "benefitCap": "A person can send up to {cap} each time. A company has no limit.",
             "benefitNoReference": "No reference or memo to remember.",
             "cta": "Open {currency} account",
-            "errorTitle": "We could not open the account",
-            "benefit": {
-                "anyone": "Anyone can pay you: an employer, a client, a platform.",
-                "business-only": "A company can pay you — an employer, a client or a platform. A payment from a person's own account is sent back.",
-                "unknown": "Any amount, with no reference to remember. Whether someone else can pay in is not confirmed yet.",
-                "own-name-only": "Top up from a bank account in your own name."
-            }
+            "errorTitle": "We could not open the account"
         },
         "details": {
             "heading": "{currency} · {rail}",
             "provisioning": "Setting up your {currency} details. This usually takes under a minute.",
-            "pooledTitle": "The account is not in your name",
-            "pooledShared": "Payers see {holder}, the partner that holds {currency} accounts for Peanut, not {user}. That is expected.",
-            "pooledOwnNameOnly": "{holder} holds {currency} deposits for Peanut. Send from your own bank account, and the money reaches your balance.",
             "sectionTitle": "Bank details",
             "returnedTitle": "A payment was returned",
             "returnedBody": "{amount} from {payer} on {date} went back to the sender: {reason}",
@@ -3988,24 +3979,16 @@
             "failedTitle": "We could not open your {currency} account",
             "failedBody": "Nothing was charged. Try again in a moment, or choose another currency.",
             "failedRetry": "Try again",
-            "sender": {
-                "anyone": "Anyone can pay any amount into these details. There is no reference to remember.",
-                "business-only": "A company can pay any amount into these details. A payment from a person's own account is sent back.",
-                "unknown": "Any amount can be paid into these details, with no reference to remember. We have not confirmed with our partner whether someone else can pay in — tell us if a payment comes back.",
-                "own-name-only": "Top up from a bank account in your own name. These details do not accept payments from anyone else."
-            },
-            "personCap": "A person can send up to {cap} each time. A company has no limit.",
             "revokedTitle": "Your {currency} details no longer work",
             "revokedBody": "Anything sent to them is returned to the sender. Tell anyone who pays you to stop using them, and open new details.",
             "topUpCta": "Add {currency} instead",
-            "exactAmountCta": "Deposit a set amount instead"
+            "exactAmountCta": "Deposit a set amount instead",
+            "whoCanPay": "Who can pay you"
         },
         "share": {
             "heading": "What the payer sees",
             "subheading": "Send this to whoever is paying you. It stays the same for every payment.",
             "sectionTitle": "Pay {user} in {currency}",
-            "nameWarningTitle": "Tell them about the name",
-            "nameWarningBody": "The account is held by {holder}, so that is the name on the transfer, not {user}. Some payroll forms reject a name they do not expect.",
             "shareCta": "Share",
             "copyCta": "Copy as text",
             "copied": "Details copied",
@@ -4016,11 +3999,7 @@
             "textOutro": "Sent from Peanut · peanut.me",
             "sheetTitleOwn": "My bank details",
             "sheetTitlePooled": "Bank details to pay {user}",
-            "senderWarningTitle": "Tell them who can pay",
-            "textSender": {
-                "business-only": "Only a company can pay into this account: an employer, a client or a platform. A payment from a person's own account is sent back.",
-                "unknown": "Please pay from a company account. We have not yet confirmed with our partner that a payment from a private account is accepted. If a payment comes back, tell me and we will sort it out."
-            }
+            "calloutTitle": "Tell them this"
         },
         "rows": {
             "accountHolder": "Account holder",
@@ -4097,6 +4076,63 @@
             "emailTitle": "We need an email address",
             "emailBody": "Your identity is verified. We never got an email address to pass on, so the account cannot be opened until you add one.",
             "emailCta": "Add your email"
+        },
+        "rules": {
+            "providerHeld": {
+                "line": "The account is held by our banking partner on your behalf.",
+                "payer": "The account is held by our banking partner on behalf of {user}.",
+                "why": "Money paid in still lands in your Peanut balance. The name on the account is the partner, not you, so a payroll form that checks the name needs the account holder shown above."
+            },
+            "anyone": {
+                "line": "Anyone can pay you: an employer, a client or a platform.",
+                "payer": "Anyone can pay into this account.",
+                "why": "Our banking partner accepts payments from other people on this currency, so you can hand these details to whoever is paying you."
+            },
+            "businessesUnlimited": {
+                "line": "A business can pay you any amount — an employer, a client or a platform.",
+                "payer": "A business can pay any amount into this account.",
+                "why": "A bank treats a company transfer as a business payment, so our banking partner sets no limit on it. Salary and invoices go through unchanged."
+            },
+            "familyExempt": {
+                "line": "Family who share your surname can pay you any amount.",
+                "payer": "Family who share the account holder surname can pay any amount.",
+                "why": "A transfer from a relative with the same surname is matched against the name on the account, so it is not read as a payment from a stranger and the per-payment limit does not apply."
+            },
+            "individualCap": {
+                "line": "Anyone else can pay you up to {cap} in one payment.",
+                "payer": "Anyone else can send up to {cap} in one payment.",
+                "why": "Our banking partner limits a single payment from a private person. More than {cap} at once is sent back, so ask for several payments or for the money to come from a company account."
+            },
+            "individualsNotAllowed": {
+                "line": "A payment from a person own account is sent back, for now.",
+                "payer": "Please pay from a company account. A payment from a personal account is sent back.",
+                "why": "Our banking partner has not yet agreed an amount for payments from private people on this currency. We will say so here the day it does."
+            },
+            "businessOnly": {
+                "line": "A business can pay you — an employer, a client or a platform. A payment from a person own account is sent back.",
+                "payer": "Only a business can pay into this account: an employer, a client or a platform. A payment from a personal account is sent back.",
+                "why": "Our banking partner accepts company transfers on this currency and not personal ones. A personal transfer is returned to the sender a few days later."
+            },
+            "minimum": {
+                "line": "The smallest payment is {min}.",
+                "payer": "The smallest payment is {min}.",
+                "why": "Below {min} the bank rail refuses the transfer, so a test payment of a few cents never arrives."
+            },
+            "stateRestricted": {
+                "line": "Only you can pay in, from a bank account in your own name.",
+                "payer": "Only the account holder can pay into this account.",
+                "why": "The state on your address does not allow anyone but you to pay into an account like this one. Your own transfers work as normal, and the details stay valid."
+            },
+            "ownName": {
+                "line": "Top up from a bank account in your own name.",
+                "payer": "Only the account holder can pay into this account.",
+                "why": "Our banking partner only credits a transfer that comes from an account in your own name. A payment from anyone else is returned to them."
+            },
+            "unpublished": {
+                "line": "Any amount, and no reference to remember.",
+                "payer": "Any amount, and no reference to remember.",
+                "why": "We only state what our banking partner has confirmed for this currency, and it has said nothing about payments from other people. The details work; if a payment ever comes back, tell us and we will sort it out."
+            }
         }
     }
 }

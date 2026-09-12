@@ -36,14 +36,16 @@ export function ShareDepositDetailsScreen({
     onBack: () => void
 }) {
     const toast = useToast()
-    const { t, rowLabels, railLabels, senderNotes } = useDepositAccountCopy()
+    const { t, rowLabels, railLabels, ruleLines } = useDepositAccountCopy()
 
     if (!account.instructions) return null
 
     const ownName = account.matching.nameOnAccount === 'user'
-    const holder = account.instructions.accountHolderName
     const rows = instructionRows(account.instructions, rowLabels, railLabels)
-    const senderNote = senderNotes[account.matching.sender]
+    // The same rules the details screen states, in the payer's voice. One
+    // resolver feeds both the callout and the copied text, so what the user
+    // reads and what the payer reads can never disagree.
+    const rules = ruleLines(account.matching, account.rules, userName).map((line) => line.payer)
     const text = buildShareText(
         account,
         {
@@ -52,7 +54,7 @@ export function ShareDepositDetailsScreen({
             reference: account.instructions.memo
                 ? t('share.textReference', { memo: account.instructions.memo })
                 : undefined,
-            senderNotes,
+            rules,
             outro: t('share.textOutro'),
         },
         rowLabels,
@@ -70,21 +72,13 @@ export function ShareDepositDetailsScreen({
                 </Section>
 
                 {/*
-                 * The same sentence the copied text carries, said on screen.
-                 * The user is about to hand these details to somebody, and who
-                 * may pay in decides whether that payment arrives or comes
-                 * back weeks later.
+                 * One notification, listing every rule the payer has to know.
+                 * These sentences are already inside the text the user is about
+                 * to send, so the callout is a preview of them rather than a
+                 * second set of warnings stacked under the card.
                  */}
-                {senderNote && (
-                    <Notification priority="attention" title={t('share.senderWarningTitle')}>
-                        {senderNote}
-                    </Notification>
-                )}
-
-                {!ownName && (
-                    <Notification priority="attention" title={t('share.nameWarningTitle')}>
-                        {t('share.nameWarningBody', { holder, user: userName })}
-                    </Notification>
+                {rules.length > 0 && (
+                    <Notification priority="attention" title={t('share.calloutTitle')} items={rules} />
                 )}
             </div>
             <PageStack.Footer>
