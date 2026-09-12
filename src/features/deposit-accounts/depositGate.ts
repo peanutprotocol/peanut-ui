@@ -14,7 +14,7 @@ import type { GateState } from '@/utils/capability-gate'
  * needs support. Sending all of them to "Verify your identity" is how a
  * verified user ends up in a Sumsub run that cannot help them.
  */
-export type DepositGateAction = 'verify' | 'accept-tos' | 'provide-email' | 'support' | 'none'
+type DepositGateAction = 'verify' | 'accept-tos' | 'provide-email' | 'support' | 'none'
 
 export interface DepositGateView {
     /** rows are tappable */

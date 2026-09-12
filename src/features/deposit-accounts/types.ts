@@ -9,7 +9,7 @@
  * today, and each changes what the UI is allowed to say.
  */
 
-export type DepositProvider = 'bridge' | 'manteca'
+type DepositProvider = 'bridge' | 'manteca'
 
 export type DepositCorridor = 'ACH_US' | 'SEPA_EU' | 'FASTER_PAYMENTS_GB' | 'SPEI_MX' | 'PIX_BR' | 'BANK_TRANSFER_AR'
 
@@ -34,7 +34,7 @@ export type DepositAccountStatus =
     | 'revoked'
 
 /** whose name the payer reads on the account */
-export type NameOnAccount = 'user' | 'provider'
+type NameOnAccount = 'user' | 'provider'
 
 /**
  * Who may pay into it.
@@ -49,10 +49,10 @@ export type NameOnAccount = 'user' | 'provider'
 export type SenderPolicy = 'anyone' | 'business-only' | 'own-name-only' | 'unknown'
 
 /** whether a reference must travel with the payment for it to arrive */
-export type MemoPolicy = 'none' | 'required'
+type MemoPolicy = 'none' | 'required'
 
 /** whether the account accepts any amount or one agreed amount per payment */
-export type AmountPolicy = 'flexible' | 'exact'
+type AmountPolicy = 'flexible' | 'exact'
 
 export interface DepositMatching {
     nameOnAccount: NameOnAccount

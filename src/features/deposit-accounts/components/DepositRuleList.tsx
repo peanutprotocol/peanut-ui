@@ -28,6 +28,11 @@ export function RuleWithInfo({ text, why }: { text: string; why: string }) {
 /**
  * The rules for one account, each with the reason behind it one tap away.
  *
+ * One call site, and kept as its own component anyway: it pairs with
+ * `RuleWithInfo`, which the same screen also uses on its own for the
+ * single-fact empty state. Both belong to the one place that knows how a rule
+ * is rendered.
+ *
  * `BulletList` is the DS list for "unordered facts, benefits, or conditions"
  * (design.md, list decision table) and its items take a ReactNode, which is
  * what lets the (i) sit at the end of the sentence it explains. Every rule
