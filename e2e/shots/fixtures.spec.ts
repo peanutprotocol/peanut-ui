@@ -38,6 +38,10 @@ const LOADERS = '.animate-spin img[alt="Peanut mascot"], .animate-pulse'
 // 'disabled'` in the screenshot call only rewinds CSS animations; framer-motion
 // drives inline transitions from JS, so those need the stylesheet too.
 const FREEZE_CSS = `
+/* the fixture strip is scaffolding, never product — it belongs in no shot */
+[data-fixture-banner] {
+    display: none !important;
+}
 *, *::before, *::after {
     animation: none !important;
     transition: none !important;
@@ -81,7 +85,6 @@ async function settle(page: Page): Promise<void> {
             )
         })
     }, LOADERS)
-    await page.addStyleTag({ content: FREEZE_CSS })
     await page.evaluate(() => document.fonts.ready.then(() => undefined))
     // next/image decodes lazily; an image that lands after the shot is the
     // classic one-pixel-different rerun. Only in-viewport images count: the
@@ -130,6 +133,9 @@ for (const [name, fixture] of Object.entries(FIXTURES)) {
         await page.addInitScript(seenOnceModals)
 
         await page.goto(fixtureHref(fixture.route, name), { waitUntil: 'domcontentloaded' })
+        // Before the wait, not after: a loading fixture never reaches settle,
+        // and it needs the strip hidden as much as every other shot does.
+        await page.addStyleTag({ content: FREEZE_CSS })
         // A fixture whose whole subject is a loader has nothing to settle to.
         // Waiting for the loader itself, rather than a fixed delay, is what
         // keeps the shot off the app's own boot mascot.

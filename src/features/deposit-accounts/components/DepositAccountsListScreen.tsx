@@ -64,16 +64,15 @@ export function DepositAccountsListScreen({
         const unclaimable = unclaimableReason(corridor)
         if (unclaimable) return unclaimable
         if (!claimable) return t('list.rowBlocked')
-        const params = { arrival: arrival(corridor) }
-        if (!account || account.status === 'unclaimed') return t('list.rowUnclaimed', params)
-        if (account.status === 'provisioning') return t('list.rowProvisioning')
-        if (account.status === 'failed') return t('list.rowFailed')
-        if (account.status === 'revoked') return t('list.rowRevoked')
-        if (account.status === 'unavailable') return t('list.rowUnavailable')
-        // "Ready to share" is a promise about a payer, not about the account,
-        // so it is only true where somebody else may pay in at all
-        if (!isShareable(account.matching.sender)) return t('list.rowActive', params)
-        return t('list.rowReady', params)
+        // no badge carries this one, so the body has to
+        if (account?.status === 'unavailable') return t('list.rowUnavailable')
+        // "Not set up yet" is the cue to tap, and there is no badge beside an
+        // unclaimed row to repeat it.
+        if (!account || account.status === 'unclaimed') return t('list.rowUnclaimed', { arrival: arrival(corridor) })
+        // Every other state wears a badge. The badge says where the account
+        // stands; the body says when money arrives — saying both in both
+        // places is how a row ended up reading "Ready to share" beside "Ready".
+        return arrival(corridor)
     }
 
     // a corridor that cannot be held as an account still works for the user's
