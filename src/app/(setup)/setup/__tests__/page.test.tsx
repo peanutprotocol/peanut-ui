@@ -86,7 +86,7 @@ jest.mock('@/components/Global/UnsupportedBrowserModal', () => ({
 }))
 jest.mock('@/assets/mascot', () => ({ PeanutWavingHello: { src: '' } }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
-jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), captureMessage: jest.fn() }))
+jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), addBreadcrumb: jest.fn() }))
 
 const landing: ISetupStep = {
     screenId: 'landing',
@@ -131,7 +131,9 @@ it('shows retry and support when no current setup step can render', async () => 
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
     expect(mockSupport).toHaveBeenCalledWith(true)
-    expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
+    expect(Sentry.addBreadcrumb).toHaveBeenCalledWith(
+        expect.objectContaining({ category: 'setup.recovery', level: 'info', message: 'Setup recovery required' })
+    )
     expect(useSetupStepAnalytics).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: false }))
 })
 
@@ -434,9 +436,9 @@ it('bounces a completed session home without showing the recovery screen', async
     expect(mockRouter.replace).toHaveBeenCalledWith('/home')
     expect(screen.getByRole('status')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
-    expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    expect(Sentry.addBreadcrumb).not.toHaveBeenCalled()
     // the initialization bound must not turn the pending bounce into a fault either
     await advance(15000)
     expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
-    expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    expect(Sentry.addBreadcrumb).not.toHaveBeenCalled()
 })
