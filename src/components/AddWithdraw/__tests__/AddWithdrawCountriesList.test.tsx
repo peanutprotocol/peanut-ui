@@ -503,3 +503,65 @@ describe('bank country back navigation', () => {
         expect(mockSetSelectedMethod).toHaveBeenCalledWith(null)
     })
 })
+
+/**
+ * The bank form can be reached without passing the rail list: a country with
+ * one live rail skips it, and a refresh or a shared `?view=form` link starts
+ * there. Flow memory does not survive either, so the screen has to stand on
+ * its own — both on the way out and on the way back.
+ */
+describe('AddWithdrawCountriesList — the bank form entered cold', () => {
+    beforeEach(() => {
+        mockPush.mockClear()
+        mockSetSelectedMethod.mockClear()
+        mockSetSelectedBankAccount.mockClear()
+        mockBankFormProps.mockClear()
+        mockNuqsParams = { view: 'form' }
+        setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
+        ;(addBankAccount as jest.Mock).mockResolvedValue({ data: { id: 'acct-new' } })
+        mockFetchUser.mockResolvedValue({ accounts: [{ id: 'acct-new', bridgeAccountId: 'ext-new' }] })
+    })
+
+    afterEach(() => {
+        mockNuqsParams = {}
+        ;(addBankAccount as jest.Mock).mockReset()
+        mockFetchUser.mockReset()
+        mockFetchUser.mockResolvedValue(undefined)
+    })
+
+    it('names the bank method before the amount step, so the step guard does not bounce the user back', async () => {
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+        const props = mockBankFormProps.mock.calls.at(-1)?.[0] as {
+            onSuccess: (payload: unknown, rawData: unknown) => Promise<{ error?: string }>
+        }
+        await act(async () => {
+            await props.onSuccess(
+                { countryCode: 'US', countryName: 'Testland', accountOwnerName: { firstName: 'Ada', lastName: 'L' } },
+                {}
+            )
+        })
+
+        expect(mockSetSelectedMethod).toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'bridge', countryPath: 'testland', title: 'To Bank' })
+        )
+        expect(mockPush).toHaveBeenCalledWith('/withdraw?step=amount')
+    })
+
+    it('the same applies to an account that already exists', () => {
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+        const props = mockBankFormProps.mock.calls.at(-1)?.[0] as {
+            onExistingAccount: (account: unknown) => void
+        }
+        props.onExistingAccount({ id: 'acct-1' })
+
+        expect(mockSetSelectedMethod).toHaveBeenCalledWith(expect.objectContaining({ type: 'bridge' }))
+        expect(mockPush).toHaveBeenCalledWith('/withdraw?step=amount')
+    })
+
+    it('back returns to the country pick, not the one-row rail list the user never chose', () => {
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+        fireEvent.click(screen.getByTestId('nav-header'))
+
+        expect(mockPush).toHaveBeenCalledWith('/withdraw?showAll=true')
+    })
+})

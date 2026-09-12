@@ -117,7 +117,7 @@ jest.mock('@/components/Common/CountryList', () => ({
 jest.mock('@/features/destinations/country-rails', () => ({
     soleLiveRailForCountry: (id: string) =>
         ({
-            DE: { id: 'de-sepa-instant-withdraw', title: 'Euro bank transfers' },
+            DE: { id: 'de-default-bank-withdraw', title: 'To Bank' },
             BR: { id: 'br-pix-withdraw', title: 'Pix', path: '/withdraw/manteca?method=pix&country=brazil' },
         })[id] ?? null,
 }))
@@ -341,7 +341,7 @@ describe('WithdrawMethodView — picking a country', () => {
         fireEvent.click(screen.getByTestId('country-germany'))
 
         expect(mockSetSelectedMethod).toHaveBeenCalledWith(
-            expect.objectContaining({ type: 'bridge', countryPath: 'germany', title: 'Euro bank transfers' })
+            expect.objectContaining({ type: 'bridge', countryPath: 'germany', title: 'To Bank' })
         )
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/germany?view=form')
     })

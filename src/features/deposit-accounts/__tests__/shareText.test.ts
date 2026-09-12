@@ -79,11 +79,14 @@ describe('the shared text carries the account rules', () => {
         expect(out).toContain('Family who share the account holder surname')
     })
 
-    it('says only what is confirmed where nothing is published', () => {
+    it('warns the payer where nothing is published, rather than going quiet', () => {
         const out = text('unknown')
         expect(out).toContain('04-00-53')
         expect(out).toContain('Any amount, and no reference to remember')
-        expect(out).not.toContain('confirmed')
+        // the text is read by somebody who will never see a Peanut screen, so
+        // the one thing we cannot promise has to travel with the numbers
+        expect(out).toContain('not confirmed on this currency yet')
+        expect(out).toContain('may be sent back')
     })
 })
 

@@ -32,14 +32,12 @@ export function ClaimAccountScreen({
     rail,
     isClaiming,
     error,
-    userName,
     onClaim,
     onBack,
 }: {
     rail: DepositRail
     isClaiming: boolean
     error?: string
-    userName: string
     onClaim: () => void
     onBack: () => void
 }) {
@@ -51,9 +49,10 @@ export function ClaimAccountScreen({
 
     // A sample of the shape the real card will have, never real numbers: the
     // backend only returns instructions once the account exists, so anything
-    // more specific here would be a promise the claim has not made yet.
+    // more specific here would be a promise the claim has not made yet. The
+    // account holder is left out for the same reason — on a provider-held
+    // corridor the name is our banking partner, not the user's.
     const previewRows: DepositDetailRow[] = [
-        { key: 'accountHolder', label: rowLabels.accountHolder, value: userName, copyable: false },
         { key: 'accountNumber', label: rowLabels.accountNumber, value: '•••• •••• 4821', copyable: false },
     ]
 

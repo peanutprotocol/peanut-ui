@@ -1737,7 +1737,7 @@
             "cryptoDescription": "Deposit from a wallet or exchange",
             "bankTransfer": "Bank transfer",
             "kycRequired": "KYC required",
-            "bankTransferDescription": "Details in your name that anyone can pay"
+            "bankTransferDescription": "Reusable bank details to get paid"
         },
         "networkDrawer": {
             "title": "Choose Network",
@@ -1897,9 +1897,7 @@
         "methods": {
             "mercadopago": "MercadoPago",
             "pix": "Pix",
-            "bankTransfer": "Bank Transfer",
-            "euroBankTransfers": "Euro bank transfers",
-            "euroBankTransfersDescription": "Usually arrives within 20 minutes, up to 1 business day."
+            "bankTransfer": "Bank Transfer"
         },
         "initial": {
             "placeholderEns": "Address or ENS",
@@ -3519,13 +3517,9 @@
         "savedAddresses": {
             "title": "Crypto address book",
             "lastUsed": "{days, plural, =0 {Used today} =1 {Used yesterday} other {Used # days ago}}",
-            "editTitle": "Edit address",
-            "editAria": "Edit {nickname}",
-            "nicknameLabel": "Nickname",
             "nicknamePlaceholder": "e.g. Binance",
             "deleteCta": "Delete address",
             "savePrompt": "Save to address book",
-            "editFailed": "Could not update the address. Try again.",
             "nicknameRequired": "Add a nickname to save this address."
         },
         "savedDestinations": {
@@ -4146,7 +4140,7 @@
             },
             "unpublished": {
                 "line": "Any amount, and no reference to remember.",
-                "payer": "Any amount, and no reference to remember.",
+                "payer": "Any amount, and no reference to remember. A payment from someone other than the account holder is not confirmed on this currency yet, and it may be sent back.",
                 "why": "We only state what our banking partner has confirmed for this currency, and it has said nothing about payments from other people. The details work; if a payment ever comes back, tell us and we will sort it out."
             }
         }

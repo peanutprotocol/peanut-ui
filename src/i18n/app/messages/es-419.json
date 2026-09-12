@@ -1737,7 +1737,7 @@
             "cryptoDescription": "Deposita desde una billetera o exchange",
             "bankTransfer": "Transferencia bancaria",
             "kycRequired": "Requiere KYC",
-            "bankTransferDescription": "Datos a tu nombre que cualquiera puede pagar"
+            "bankTransferDescription": "Datos bancarios reutilizables para cobrar"
         },
         "networkDrawer": {
             "title": "Elegir red",
@@ -1897,9 +1897,7 @@
         "methods": {
             "mercadopago": "MercadoPago",
             "pix": "Pix",
-            "bankTransfer": "Transferencia bancaria",
-            "euroBankTransfers": "Transferencias bancarias en euros",
-            "euroBankTransfersDescription": "Normalmente llega en 20 minutos; puede tardar hasta 1 día hábil."
+            "bankTransfer": "Transferencia bancaria"
         },
         "initial": {
             "placeholderEns": "Dirección o ENS",
@@ -3519,13 +3517,9 @@
         "savedAddresses": {
             "title": "Libreta de direcciones cripto",
             "lastUsed": "{days, plural, =0 {Usada hoy} =1 {Usada ayer} other {Usada hace # días}}",
-            "editTitle": "Editar dirección",
-            "editAria": "Editar {nickname}",
-            "nicknameLabel": "Apodo",
             "nicknamePlaceholder": "p. ej. Binance",
             "deleteCta": "Eliminar dirección",
             "savePrompt": "Guardar en la libreta",
-            "editFailed": "No pudimos actualizar la dirección. Intentá de nuevo.",
             "nicknameRequired": "Agregá un apodo para guardar esta dirección."
         },
         "savedDestinations": {
@@ -4146,7 +4140,7 @@
             },
             "unpublished": {
                 "line": "Cualquier monto y sin referencia que recordar.",
-                "payer": "Cualquier monto y sin referencia que recordar.",
+                "payer": "Cualquier monto y sin referencia que recordar. Un pago de alguien que no sea el titular de la cuenta todavía no está confirmado en esta moneda y puede ser devuelto.",
                 "why": "Solo indicamos lo que nuestro socio bancario confirmó para esta moneda, y no dijo nada sobre pagos de otras personas. Los datos funcionan; si alguna vez un pago se devuelve, avísanos y lo resolvemos."
             }
         }

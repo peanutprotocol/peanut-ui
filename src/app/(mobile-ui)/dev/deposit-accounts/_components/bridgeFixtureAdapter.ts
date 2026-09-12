@@ -76,7 +76,7 @@ const BRIDGE_STATUS: Record<string, DepositAccount['status']> = {
 }
 
 function statusFrom(bridgeStatus: string): DepositAccount['status'] {
-    return BRIDGE_STATUS[bridgeStatus] ?? 'revoked'
+    return BRIDGE_STATUS[bridgeStatus.toLowerCase()] ?? 'revoked'
 }
 
 /**
@@ -166,7 +166,7 @@ function rulesFor(corridor: DepositCorridor, sender: SenderPolicy): DepositRules
  */
 export function fromBridgeVirtualAccount(raw: BridgeVirtualAccount, userLegalName: string): DepositAccount | null {
     const source = raw.source_deposit_instructions
-    const corridor = CORRIDOR_BY_CURRENCY[source.currency]
+    const corridor = CORRIDOR_BY_CURRENCY[source.currency.toLowerCase()]
     if (!corridor) return null
 
     const instructions = instructionsFrom(source)

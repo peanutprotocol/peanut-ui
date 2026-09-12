@@ -1,6 +1,6 @@
 import { AccountType, type Account, type SavedAddress } from '@/interfaces/interfaces'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
-import { savedAddressLabel } from '@/utils/saved-address.utils'
+import { savedAddressLabel, shortSavedAddress } from '@/utils/saved-address.utils'
 
 /**
  * One shape for everything a withdrawal can be sent to — a saved bank account
@@ -92,7 +92,9 @@ export function savedAddressDestination(saved: SavedAddress): SavedDestination {
     return {
         id: saved.id,
         name: saved.nickname || null,
-        autoName: savedAddressLabel(saved.nickname, saved.address),
+        // the address book asks for a nickname when a row is saved, but a row
+        // that reaches us without one must not render as a bare " · ...aeC9"
+        autoName: saved.nickname ? savedAddressLabel(saved.nickname, saved.address) : shortSavedAddress(saved.address),
         identifier: saved.address,
         lastUsedAt: saved.lastUsedAt ?? null,
         createdAt: saved.createdAt,

@@ -90,7 +90,7 @@ test('blocks an amount above the balance and allows an amount within it', () => 
 
 // TASK-22589: the amount is the last step now, so this flow is entered without
 // one and collects it here in the local currency.
-test('an entry with no ?amount= opens this flow own amount step', () => {
+test("an entry with no ?amount= opens this flow's own amount step", () => {
     setup()
     expect(screen.getByText(/amount to withdraw/i)).toBeInTheDocument()
 })

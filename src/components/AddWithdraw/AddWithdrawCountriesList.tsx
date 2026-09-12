@@ -24,6 +24,7 @@ import { type AddBankAccountPayload } from '@/app/actions/types/users.types'
 import { useOptionalWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
 import { useWithdrawAmount } from '@/features/withdraw/useWithdrawAmount'
 import { withdrawAmountStepUrl } from '@/features/withdraw/routes'
+import { liveRailsForCountry } from '@/features/destinations/country-rails'
 import { type Account } from '@/interfaces/interfaces'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
@@ -133,6 +134,17 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const currentCountry = countryData.find(
         (country) => country.type === 'country' && country.path === countrySlugFromUrl
     )
+
+    // The country's live withdraw rails answer two questions on this screen:
+    // which rail the bank form is collecting details for, and whether the rail
+    // list was skipped on the way in. One live rail means it was — the country
+    // pick goes straight to the form (see WithdrawMethodView).
+    const liveRails = useMemo(
+        () => (flow === 'withdraw' && currentCountry ? liveRailsForCountry(currentCountry.id, 'withdraw') : []),
+        [flow, currentCountry]
+    )
+    const bankRail = liveRails.find((rail) => rail.id.endsWith('-default-bank-withdraw'))
+    const railListSkipped = liveRails.length === 1
 
     // Provider-blind bank-channel deposit gate, country-scoped to the rail
     // jurisdiction of the country the user is on. Reads through
@@ -269,6 +281,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
             // The destination is settled — the amount step is next, and it is
             // the last thing the user fills in before the review.
+            selectBankMethod()
             router.push(withdrawAmountStepUrl({ method: isBankFromSend ? methodParam : null, amount: urlAmount }))
             return {}
         }
@@ -287,23 +300,36 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         return {}
     }
 
-    const handleWithdrawMethodClick = (method: SpecificPaymentMethod) => {
-        const title = method.id.endsWith('-sepa-instant-withdraw') ? t('methods.euroBankTransfers') : method.title
-        if (method.path && method.path.includes('/manteca')) {
-            // Manteca methods route directly (has own amount input)
-            const extraParams = isBankFromSend ? `method=${methodParam}` : undefined
-            router.push(rewriteMethodPath(method.path, extraParams))
-        } else if (method.id.includes('default-bank-withdraw') || method.id.includes('sepa-instant-withdraw')) {
-            if (checkBridgeGate(() => handleWithdrawMethodClick(method))) return
-
-            // Bridge methods: set in context and open the bank-account form.
-            // The amount comes after the destination now (TASK-22589).
+    /**
+     * Name the bank rail in flow memory. The form can also be entered cold — a
+     * refresh, or a link straight to `?view=form` — and memory does not survive
+     * that, so both handoffs out of the form call this rather than assume the
+     * rail list set it. Without it the amount step's guard sees no method and
+     * bounces the user back, losing the account they just added.
+     */
+    const selectBankMethod = useCallback(
+        (title?: string) => {
             withdrawFlow?.setSelectedMethod({
                 type: 'bridge',
                 countryPath: currentCountry?.path,
                 currency: currentCountry?.currency,
-                title,
+                title: title ?? bankRail?.title,
             })
+        },
+        [withdrawFlow, currentCountry, bankRail]
+    )
+
+    const handleWithdrawMethodClick = (method: SpecificPaymentMethod) => {
+        if (method.path && method.path.includes('/manteca')) {
+            // Manteca methods route directly (has own amount input)
+            const extraParams = isBankFromSend ? `method=${methodParam}` : undefined
+            router.push(rewriteMethodPath(method.path, extraParams))
+        } else if (method.id.includes('default-bank-withdraw')) {
+            if (checkBridgeGate(() => handleWithdrawMethodClick(method))) return
+
+            // Bridge methods: set in context and open the bank-account form.
+            // The amount comes after the destination now (TASK-22589).
+            selectBankMethod(method.title)
             void setViewParam('form')
             return
         } else if (method.id.includes('crypto-withdraw')) {
@@ -442,9 +468,20 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         void setUrlAmount(null)
                         // ensure kyc modal isn't open so late success events don't flip view
                         setIsKycModalOpen(false)
-
-                        // otherwise go back to list
                         withdrawFlow?.setSelectedMethod(null)
+
+                        // The rail list was skipped on the way in, so going back
+                        // to it would land the user on a screen they never chose.
+                        // Return them to the country pick instead.
+                        if (railListSkipped) {
+                            withdrawFlow?.setSelectedBankAccount(null)
+                            router.push(
+                                isBankFromSend
+                                    ? `/withdraw?showAll=true&method=${methodParam}`
+                                    : '/withdraw?showAll=true'
+                            )
+                            return
+                        }
                         void setViewParam(null)
                     }}
                 />
@@ -458,6 +495,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     onExistingAccount={(account) => {
                         // the typed account already exists — select it and carry
                         // on to the amount step, keeping the send marker
+                        selectBankMethod()
                         withdrawFlow?.setSelectedBankAccount(account)
                         router.push(
                             withdrawAmountStepUrl({ method: isBankFromSend ? methodParam : null, amount: urlAmount })
@@ -478,12 +516,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             <Section title={title}>
                 <div className="flex flex-col">
                     {paymentMethods.map((method, index) => {
-                        const copy = method.id.endsWith('-sepa-instant-withdraw')
-                            ? {
-                                  title: t('methods.euroBankTransfers'),
-                                  description: t('methods.euroBankTransfersDescription'),
-                              }
-                            : method
                         // BRL-via-PIX onramp is warn-only under maintenance: tag the Pix option but
                         // keep it clickable (do not set isDisabled).
                         const isPixOnrampUnderMaintenance =
@@ -494,13 +526,13 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                             <ListItem
                                 key={method.id}
                                 disabled={method.isSoon}
-                                title={copy.title}
-                                body={<div className="text-body-xs">{copy.description}</div>}
+                                title={method.title}
+                                body={<div className="text-body-xs">{method.description}</div>}
                                 leading={
                                     typeof method.icon === 'string' || method.icon === undefined ? (
                                         <AvatarWithBadge
                                             icon={method.icon as IconName}
-                                            name={copy.title ?? method.id}
+                                            name={method.title ?? method.id}
                                             size="extra-small"
                                             inlineStyle={{
                                                 backgroundColor:
@@ -508,7 +540,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                                         ? 'var(--color-background-icon-bubble-yellow)'
                                                         : method.id === 'crypto-add' || method.id === 'crypto-withdraw'
                                                           ? 'var(--color-background-icon-bubble-yellow)'
-                                                          : getColorForUsername(copy.title).lightShade,
+                                                          : getColorForUsername(method.title).lightShade,
                                                 color: method.icon === ('bank' as IconName) ? 'black' : 'black',
                                             }}
                                         />

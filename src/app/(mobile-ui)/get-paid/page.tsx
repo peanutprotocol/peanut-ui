@@ -5,6 +5,7 @@ import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccoun
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { useDepositGateRemediation } from '@/features/deposit-accounts/useDepositGateRemediation'
 import { useAuth } from '@/context/authContext'
+import { useFlagsSettled } from '@/hooks/useFlagsSettled'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { useRouter } from 'next/navigation'
@@ -27,6 +28,9 @@ const ONE_OFF_TRANSFER_HREF = '/add-money?method=bank'
  */
 export default function GetPaidPage() {
     const enabled = useDepositAccountsEnabled()
+    // An unanswered flag reads as `false`, so redirecting on it would send an
+    // enabled user to the legacy flow before PostHog answers.
+    const flagsSettled = useFlagsSettled()
     const { accounts, gates, isLoading, isError, claimingCorridor, claimError, claim, refetch } = useDepositAccounts()
     const { user } = useAuth()
     const { resolveGate, modals } = useDepositGateRemediation()
@@ -40,8 +44,8 @@ export default function GetPaidPage() {
     const safeBack = useSafeBack('/home')
 
     useEffect(() => {
-        if (!enabled) router.replace(ONE_OFF_TRANSFER_HREF)
-    }, [enabled, router])
+        if (flagsSettled && !enabled) router.replace(ONE_OFF_TRANSFER_HREF)
+    }, [flagsSettled, enabled, router])
 
     if (!enabled) return null
 

@@ -90,9 +90,12 @@ describe('destinationLabel', () => {
         expect(destinationLabel(accountDestination(pix, { countryName: 'Brazil' }))).toBe('PIX · ada@peanut.me')
     })
 
-    it('crypto: the nickname, and the address tail when there is none', () => {
+    it('crypto: the nickname, and the address alone when there is none', () => {
         expect(destinationLabel(savedAddressDestination(savedAddress()))).toBe('Binance')
-        expect(destinationLabel(savedAddressDestination(savedAddress({ nickname: '' })))).toBe(' · ...aeC9')
+        // a row with no nickname must not render as a bare separator
+        const unnamed = destinationLabel(savedAddressDestination(savedAddress({ nickname: '' })))
+        expect(unnamed.startsWith(' · ')).toBe(false)
+        expect(unnamed).toContain('aeC9')
     })
 })
 

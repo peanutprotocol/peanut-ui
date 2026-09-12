@@ -11,6 +11,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import type { GateState } from '@/utils/capability-gate'
 import { depositGateView } from '../depositGate'
 import { DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, isClaimable, isShareable } from '../rails'
+import { isHeld } from '../resolveScreen'
 import type { DepositAccount, DepositCorridor } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { CorridorFlag } from './CorridorFlag'
@@ -50,12 +51,17 @@ export function DepositAccountsListScreen({
     const { t, arrival, railName, unclaimableReason } = useDepositAccountCopy()
 
     const views = DEPOSIT_RAIL_ORDER.map((corridor) => ({ corridor, view: depositGateView(gates[corridor]) }))
-    // The banner names the first corridor the user could hold but cannot. Every
+    // The banner names one corridor the user could hold but cannot. Every
     // corridor normally shares one blocker (identity), so this is one sentence
     // rather than six; where they differ, the row's own body says so.
-    const blocked = views.find(({ corridor, view }) => isClaimable(DEPOSIT_RAILS[corridor]) && view.notice)
+    //
+    // Where they differ, a blocker the user can clear outranks one that only
+    // says to wait — otherwise a SEPA queue hides the button that would unlock
+    // the other five corridors.
+    const blockedViews = views.filter(({ corridor, view }) => isClaimable(DEPOSIT_RAILS[corridor]) && view.notice)
+    const blocked = blockedViews.find(({ view }) => view.notice?.action !== 'none') ?? blockedViews[0]
 
-    const rowBody = (corridor: DepositCorridor, account: DepositAccount | undefined, claimable: boolean): string => {
+    const rowBody = (corridor: DepositCorridor, account: DepositAccount | undefined, openable: boolean): string => {
         // The corridors come from a local catalogue and the accounts from the
         // network, so the rows can paint before anything is known about them.
         // Saying "not set up yet" in that gap is a wrong answer that corrects
@@ -63,7 +69,7 @@ export function DepositAccountsListScreen({
         if (isLoading) return arrival(corridor)
         const unclaimable = unclaimableReason(corridor)
         if (unclaimable) return unclaimable.text
-        if (!claimable) return t('list.rowBlocked')
+        if (!openable) return t('list.rowBlocked')
         // no badge carries this one, so the body has to
         if (account?.status === 'unavailable') return t('list.rowUnavailable')
         // "Not set up yet" is the cue to tap, and there is no badge beside an
@@ -125,10 +131,12 @@ export function DepositAccountsListScreen({
                         {views.map(({ corridor, view }) => {
                             const rail = DEPOSIT_RAILS[corridor]
                             const account = accounts[corridor]
-                            // a corridor with no standing account to claim is
-                            // still worth opening: its details are the user's
-                            // own top-up route, and no gate governs reading them
-                            const openable = isClaimable(rail) ? view.claimable : true
+                            // The gate governs opening a NEW account, not
+                            // reading one that already exists — resolveScreen
+                            // serves those details read-only. A corridor with
+                            // nothing to claim is always open: its details are
+                            // the user's own top-up route.
+                            const openable = !isClaimable(rail) || view.claimable || isHeld(account)
                             const disabled = isError || isLoading || !openable
 
                             return (

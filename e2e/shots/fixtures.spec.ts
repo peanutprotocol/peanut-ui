@@ -50,6 +50,18 @@ const FREEZE_CSS = `
 }
 `
 
+// Unpins the app shell's inner scroller so the document itself grows, and
+// takes the fixed bottom nav out of the frame it would otherwise cover.
+const FULL_PAGE_CSS = `
+#scrollable-content {
+    overflow: visible !important;
+    height: auto !important;
+}
+[data-testid='app-shell-nav'] {
+    display: none !important;
+}
+`
+
 // Two one-time modals cover every /home fixture on a first visit — the
 // high-balance warning and the "You're unlocked" celebration. Left alone they
 // hide the state under test behind the same two dialogs on eight screens.
@@ -154,6 +166,18 @@ for (const [name, fixture] of Object.entries(FIXTURES)) {
                 message: `fixture mode never engaged — is this a NEXT_PUBLIC_VERCEL_ENV=preview build?`,
             })
             .toBe(name)
+
+        // Full-page capture needs the DOCUMENT to be the scroller. The app
+        // shell scrolls an inner element inside a `min-h-dvh` column, so
+        // `fullPage: true` alone returns the viewport and nothing more — the
+        // share screen's caveats never made it into the PNG. Letting the page
+        // grow then puts the fixed bottom nav over the last line, so hide it:
+        // the app reserves space for it, that reservation is inside the
+        // scroller we just unpinned.
+        if (fixture.fullPage) {
+            await page.addStyleTag({ content: FULL_PAGE_CSS })
+            await settle(page)
+        }
 
         await mkdir(OUT_DIR, { recursive: true })
         await page.screenshot({

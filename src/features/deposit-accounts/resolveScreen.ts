@@ -22,6 +22,14 @@ import type { GateState } from '@/utils/capability-gate'
  * The fallback is always the most informative screen the user is entitled to,
  * never an error.
  */
+/**
+ * Does the user already hold this account? A held account has details to read
+ * whatever the gate says later — the gate governs opening a new one.
+ */
+export function isHeld(account: DepositAccount | undefined): boolean {
+    return account !== undefined && account.status !== 'unclaimed'
+}
+
 export function resolveScreen(
     requested: DepositAccountScreen,
     rail: DepositRail,
@@ -29,7 +37,7 @@ export function resolveScreen(
     gate: GateState
 ): DepositAccountScreen {
     const { claimable } = depositGateView(gate)
-    const held = account !== undefined && account.status !== 'unclaimed'
+    const held = isHeld(account)
 
     if (requested === 'claim') {
         // nothing to claim: the corridor does not offer an account, the gate

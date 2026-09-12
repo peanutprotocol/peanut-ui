@@ -25,11 +25,29 @@ const NONE: Record<DepositCorridor, DepositAccount | undefined> = {
     BANK_TRANSFER_AR: undefined,
 }
 
-const list = (isLoading: boolean, opts: { gates?: Record<DepositCorridor, GateState>; isError?: boolean } = {}) =>
+/** a corridor the user already holds, active and receiving money */
+const heldAccount = (corridor: DepositCorridor): DepositAccount => ({
+    id: `acct-${corridor}`,
+    railId: `bridge.${corridor.toLowerCase()}`,
+    country: 'DE',
+    currency: 'EUR',
+    status: 'active',
+    isPrimary: true,
+    matching: { nameOnAccount: 'user', sender: 'anyone', memo: 'none', amount: 'flexible' },
+})
+
+const list = (
+    isLoading: boolean,
+    opts: {
+        gates?: Record<DepositCorridor, GateState>
+        isError?: boolean
+        accounts?: Record<DepositCorridor, DepositAccount | undefined>
+    } = {}
+) =>
     render(
         <NextIntlClientProvider locale="en" messages={messages}>
             <DepositAccountsListScreen
-                accounts={NONE}
+                accounts={opts.accounts ?? NONE}
                 gates={opts.gates ?? allGates()}
                 isLoading={isLoading}
                 isError={opts.isError ?? false}
@@ -123,7 +141,7 @@ describe('DepositAccountsListScreen when the accounts cannot be read', () => {
  * the flow must not offer to open an account the user may already hold.
  */
 describe('DepositAccountsFlow while the accounts are loading', () => {
-    const flow = (isLoading: boolean, gates: Record<DepositCorridor, GateState> = allGates()) =>
+    const flow = (isLoading: boolean, gates: Record<DepositCorridor, GateState> = allGates(), isError = false) =>
         render(
             <NextIntlClientProvider locale="en" messages={messages}>
                 <NuqsTestingAdapter searchParams="?screen=details&corridor=SEPA_EU">
@@ -131,6 +149,7 @@ describe('DepositAccountsFlow while the accounts are loading', () => {
                         accounts={NONE}
                         gates={gates}
                         isLoading={isLoading}
+                        isError={isError}
                         userName="Demo User"
                         onExit={() => {}}
                         onClaim={() => {}}
@@ -160,5 +179,59 @@ describe('DepositAccountsFlow while the accounts are loading', () => {
         gates.ACH_US = READY
         flow(false, gates)
         expect(screen.queryByRole('button', { name: /open eur account/i })).not.toBeInTheDocument()
+    })
+})
+
+/**
+ * The gate says whether a user may OPEN an account. It does not say whether
+ * they may read one they already hold — money is arriving on those details
+ * whatever the gate decided afterwards.
+ */
+describe('DepositAccountsListScreen when a corridor is blocked after the fact', () => {
+    it('keeps an account the user already holds open to read', () => {
+        const gates = allGates({ kind: 'needs-enrollment' })
+        const { container } = list(false, { gates, accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') } })
+
+        expect(rowOf(container, 'SEPA_EU')).not.toHaveAttribute('aria-disabled', 'true')
+        // the corridor with nothing to read stays shut
+        expect(rowOf(container, 'ACH_US')).toHaveAttribute('aria-disabled', 'true')
+    })
+
+    it('names a blocker the user can clear, not one that only says to wait', () => {
+        const gates = allGates({ kind: 'waiting-on-provider', userMessage: null })
+        gates.ACH_US = { kind: 'needs-identity' }
+        list(false, { gates })
+
+        expect(screen.getByText('Verify your identity first')).toBeInTheDocument()
+        expect(screen.queryByText('We are setting this up')).not.toBeInTheDocument()
+    })
+})
+
+/**
+ * A read that failed says nothing about what the user holds. A deep link into
+ * it must not reach a live claim button on an account that may already exist.
+ */
+describe('DepositAccountsFlow when the accounts cannot be read', () => {
+    it('falls back to the list and its retry rather than offering the claim', () => {
+        render(
+            <NextIntlClientProvider locale="en" messages={messages}>
+                <NuqsTestingAdapter searchParams="?screen=claim&corridor=SEPA_EU">
+                    <DepositAccountsFlow
+                        accounts={NONE}
+                        gates={allGates()}
+                        isLoading={false}
+                        isError
+                        userName="Demo User"
+                        onExit={() => {}}
+                        onClaim={() => {}}
+                        onResolveGate={() => {}}
+                        onRetry={() => {}}
+                    />
+                </NuqsTestingAdapter>
+            </NextIntlClientProvider>
+        )
+
+        expect(screen.queryByRole('button', { name: /open eur account/i })).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument()
     })
 })

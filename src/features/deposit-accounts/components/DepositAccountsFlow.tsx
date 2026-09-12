@@ -67,12 +67,16 @@ export function DepositAccountsFlow({
     const rail = DEPOSIT_RAILS[corridor]
     const account = accounts[corridor]
     const gate = gates[corridor]
-    const resolved = resolveScreen(screen, rail, account, gate)
+    // A read that failed says nothing about what the user holds, so a deep link
+    // must not resolve past the list: the empty fallback map would read as "not
+    // claimed yet" and offer to open an account the user may already have. The
+    // list carries the error and the retry.
+    const resolved = isError ? 'list' : resolveScreen(screen, rail, account, gate)
 
     // A user who asked for a screen and was handed a lesser one hit the gate.
     // Reported per corridor and per gate kind, because "blocked" as one number
     // cannot tell a queue waiting on a provider from users with a button to press.
-    const gateBlocked = !isLoading && screen !== 'list' && resolved !== screen && gate.kind !== 'ready'
+    const gateBlocked = !isLoading && !isError && screen !== 'list' && resolved !== screen && gate.kind !== 'ready'
     useEffect(() => {
         if (gateBlocked) trackGateBlocked(corridor, gate.kind)
     }, [gateBlocked, corridor, gate.kind])
@@ -121,7 +125,6 @@ export function DepositAccountsFlow({
                 isClaiming={claimingCorridor === corridor}
                 // a failure on another corridor is not this screen's news
                 error={claimError?.corridor === corridor ? claimError.message : undefined}
-                userName={userName}
                 // no screen change here: once the account exists, resolveScreen
                 // moves the user on by itself, and if it never does the error
                 // renders on this screen rather than nowhere
