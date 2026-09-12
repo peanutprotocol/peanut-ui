@@ -231,10 +231,12 @@ describe('shouldIgnoreError — critical-flow captures', () => {
     it.each([
         ['Error', 'Permission dismissed'],
         ['Error', 'Authentication was not completed'],
-        ['Error', 'Login not verified'],
         ['CardAuthenticationRequiredError', 'Authentication required'],
         ['RainCooldownError', 'A previous withdrawal is still active'],
-        ['ApiError', 'You reached the limit of 10 cross-chain withdrawals per hour.'],
+        [
+            'ApiError',
+            'You reached the limit of 10 cross-chain withdrawals per hour. Try again in about 10 minutes. Arbitrum withdrawals have no limit, or contact support to raise yours.',
+        ],
         ['ApiError', 'Company has exceeded their debt limit'],
     ])('still ignores expected behavior in a critical flow: %s / %s', (type, value) => {
         expect(shouldIgnoreError(eventWith({ type, value, tags }))).toBe(true)
@@ -258,9 +260,8 @@ describe('shouldIgnoreError — expected product and SDK outcomes', () => {
         'Permission dismissed',
         'Permission blocked',
         'Authentication was not completed',
-        'Login not verified',
-        'You reached the limit of 20 cross-chain withdrawals per day.',
-        'You reached the limit of 30 cross-chain withdrawals per 30 days.',
+        'You reached the limit of 20 cross-chain withdrawals per day. Try again in about 3 hours. Arbitrum withdrawals have no limit, or contact support to raise yours.',
+        'You reached the limit of 30 cross-chain transfers per 30 days. Try again in about 2 days, or contact support to raise your limit.',
         'You reached the limit for withdrawals to other networks. Try again later.',
         '[PostHog.js] This capture call is ignored due to client rate limiting.',
     ])('ignores %s', (message) => {
@@ -269,11 +270,25 @@ describe('shouldIgnoreError — expected product and SDK outcomes', () => {
 
     it('keeps nearby technical failures', () => {
         expect(shouldIgnoreError(eventWith({ type: 'Error', value: 'Permission SDK missing app ID' }))).toBe(false)
+        expect(shouldIgnoreError(eventWith({ type: 'Error', value: 'Login not verified' }))).toBe(false)
+        expect(
+            shouldIgnoreError(
+                eventWith({ type: 'Error', value: 'Login not verified because the auth API returned 500' })
+            )
+        ).toBe(false)
         expect(
             shouldIgnoreError(eventWith({ type: 'Error', value: 'Permission blocked by invalid OneSignal config' }))
         ).toBe(false)
         expect(shouldIgnoreError(eventWith({ type: 'Error', value: 'Rain request failed with HTTP 500' }))).toBe(false)
         expect(shouldIgnoreError(eventWith({ type: 'Error', value: 'PostHog capture transport failed' }))).toBe(false)
+        expect(
+            shouldIgnoreError(
+                eventWith({
+                    type: 'ApiError',
+                    value: 'You reached the limit of 10 cross-chain transfers per hour because the provider returned HTTP 500',
+                })
+            )
+        ).toBe(false)
     })
 })
 

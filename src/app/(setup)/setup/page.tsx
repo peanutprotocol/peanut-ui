@@ -140,14 +140,20 @@ function SetupPageContent() {
               : null))
 
     useEffect(() => {
-        if (recoveryReason) {
+        if (!recoveryReason) return
+        if (recoveryReason === 'missing_step') {
             Sentry.addBreadcrumb({
                 category: 'setup.recovery',
                 level: 'info',
                 message: 'Setup recovery required',
                 data: { reason: recoveryReason },
             })
+            return
         }
+        Sentry.captureMessage('Setup initialization failed', {
+            level: 'error',
+            tags: { reason: recoveryReason },
+        })
     }, [recoveryReason])
 
     useEffect(() => {

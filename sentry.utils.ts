@@ -109,10 +109,10 @@ const EXPECTED_BEHAVIOR_MESSAGES = [
     /^Permission dismissed\.?$/i,
     /^Permission blocked\.?$/i,
     /^Authentication was not completed\.?$/i,
-    /^Login not verified\.?$/i,
-    /^You reached the limit of 10 cross-chain withdrawals per hour\.?$/i,
-    /^You reached the limit of 20 cross-chain withdrawals per day\.?$/i,
-    /^You reached the limit of 30 cross-chain withdrawals per 30 days\.?$/i,
+    // The API includes a variable cooldown and support hint in these messages.
+    // Match only the complete, known cap contract so a technical failure that
+    // happens to mention a limit still reaches Sentry.
+    /^You reached the limit of (?:10|20|30) cross-chain (?:withdrawals|transfers) per (?:hour|day|30 days)\. Try again in .+$/i,
     /^You reached the limit for withdrawals to other networks(?:\..*)?$/i,
     /^Company has exceeded their debt limit\.?$/i,
     /^\[PostHog\.js\] This capture call is ignored due to client rate limiting\.?$/i,
