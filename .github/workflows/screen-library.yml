@@ -50,7 +50,7 @@ jobs:
                   capture_before=true
                   if [ "$EVENT" = pull_request ]; then
                     capture_before=false
-                    if git diff --name-only "$before...$after" | rg -q '^(scripts/screens/|src/dev/screens/|src/dev/surfaces/|src/dev/fixtures/|src/utils/demo-api\.ts$|src/constants/(demo-data|residence\.consts)\.ts$|pnpm-lock\.yaml$)'; then
+                    if git diff --name-only "$before...$after" | rg '^(scripts/screens/|src/dev/screens/|src/dev/surfaces/|src/dev/fixtures/|src/utils/demo-api\.ts$|src/constants/(demo-data|residence\.consts)\.ts$|pnpm-lock\.yaml$)' >/dev/null; then
                       capture_before=true
                     fi
                   fi
