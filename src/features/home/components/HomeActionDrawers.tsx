@@ -11,6 +11,8 @@ import { useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import posthog from 'posthog-js'
 
 type HomeDrawerKey = 'sendToFriends' | 'withdrawToOwnAccounts'
 type HomeDrawerBodyKey = 'sendToFriendsDescription' | 'withdrawToOwnAccountsDescription'
@@ -114,7 +116,17 @@ export function HomeActionDrawers() {
     const depositAccounts = useDepositAccountsEnabled()
     const options = content === 'add' ? addOptions(depositAccounts) : content ? DRAWER_OPTIONS[content] : []
 
-    const navigate = async (href: string) => {
+    const navigate = async (option: DrawerOption) => {
+        const href = option.href
+        // Funnel continuity across the flag flip. With the flag off, the bank
+        // arm of `deposit_method_selected` fires on the country click inside
+        // /add-money; /get-paid has no country step, so the funnel would show a
+        // cliff at exactly the moment the flag went on. The row that made the
+        // choice reports it instead — once, and only on the arm that skips the
+        // country list.
+        if (option.key === 'bank' && depositAccounts) {
+            posthog.capture(ANALYTICS_EVENTS.DEPOSIT_METHOD_SELECTED, { method_type: 'bank' })
+        }
         // clear the drawer param first so browser-back from the destination
         // lands on a closed home; nuqs queues url updates, so await the reset
         // before routing or the ?drawer entry can survive in history
@@ -157,7 +169,7 @@ export function HomeActionDrawers() {
                                             : undefined
                                     }
                                     chevron
-                                    onClick={() => navigate(option.href)}
+                                    onClick={() => navigate(option)}
                                     data-testid={`home-drawer-${content}-${option.key}`}
                                 />
                             ))}

@@ -4,13 +4,17 @@ import { useCapabilities } from '@/hooks/useCapabilities'
 import { claimDepositAccount, fetchDepositAccounts } from '@/services/deposit-accounts'
 import type { GateState } from '@/utils/capability-gate'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { trackClaimFailed, trackClaimStarted } from './analytics'
 import { mantecaArgentinaAccount, mantecaBrazilAccount } from './mantecaCorridors'
 import { DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, railIdFor } from './rails'
 import type { DepositAccount, DepositCorridor } from './types'
 
 export const DEPOSIT_ACCOUNTS_QUERY_KEY = ['deposit-accounts'] as const
+
+/** how long a provisioning account is given before the screen stops waiting */
+export const PROVISIONING_POLL_MS = 5_000
+export const MAX_PROVISIONING_POLLS = 24
 
 /** the corridor a claim failed on, so a stale error cannot be shown on another */
 export interface DepositClaimError {
@@ -38,7 +42,11 @@ export interface UseDepositAccountsResult {
  *
  * A provisioning account refetches on a short interval — the provider usually
  * takes under a minute, and the alternative is a user staring at a skeleton
- * that never resolves until they navigate away and back.
+ * that never resolves until they navigate away and back. The interval is
+ * capped: past two minutes the provider is not coming back on its own, and an
+ * uncapped 5s poll on a phone left open is a battery bill with no answer at
+ * the end of it. The corridor reads as failed then, which is the one state
+ * with a retry on it.
  */
 export function useDepositAccounts(): UseDepositAccountsResult {
     const queryClient = useQueryClient()
@@ -46,12 +54,26 @@ export function useDepositAccounts(): UseDepositAccountsResult {
     const [claimingCorridor, setClaimingCorridor] = useState<DepositCorridor | undefined>()
     const [claimError, setClaimError] = useState<DepositClaimError | undefined>()
 
+    // answers that still said "provisioning", counted since the last one that
+    // did not — the poll's budget, and what turns the wait into a failure
+    const [provisioningPolls, setProvisioningPolls] = useState(0)
+
     const query = useQuery({
         queryKey: DEPOSIT_ACCOUNTS_QUERY_KEY,
         queryFn: fetchDepositAccounts,
         refetchInterval: (q) =>
-            (q.state.data ?? []).some((account) => account.status === 'provisioning') ? 5_000 : false,
+            provisioningPolls < MAX_PROVISIONING_POLLS && hasProvisioning(q.state.data) ? PROVISIONING_POLL_MS : false,
     })
+
+    const { dataUpdatedAt } = query
+    useEffect(() => {
+        if (!dataUpdatedAt) return
+        setProvisioningPolls((polls) => (hasProvisioning(query.data) ? polls + 1 : 0))
+        // one bump per answer from the server, not per render
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [dataUpdatedAt])
+
+    const provisioningTimedOut = provisioningPolls >= MAX_PROVISIONING_POLLS
 
     const claim = useMutation({
         mutationFn: claimDepositAccount,
@@ -61,6 +83,8 @@ export function useDepositAccounts(): UseDepositAccountsResult {
             // failure must not sit on this screen while this one is in flight
             setClaimError(undefined)
             setClaimingCorridor(corridor)
+            // a retry buys the new account its own budget
+            setProvisioningPolls(0)
             trackClaimStarted(corridor)
         },
         onError: (error: Error, method: string) => {
@@ -96,10 +120,18 @@ export function useDepositAccounts(): UseDepositAccountsResult {
         }
         for (const account of query.data ?? []) {
             const corridor = corridorFromRailId(account.railId)
-            if (corridor) byCorridor[corridor] = preferred(byCorridor[corridor], account)
+            if (!corridor) continue
+            // The wait is over and the provider never answered. `failed` is the
+            // honest name for it AND the only state the details screen offers a
+            // retry on — a skeleton that stopped refreshing offers nothing.
+            const resolved =
+                provisioningTimedOut && account.status === 'provisioning'
+                    ? { ...account, status: 'failed' as const }
+                    : account
+            byCorridor[corridor] = preferred(byCorridor[corridor], resolved)
         }
         return byCorridor
-    }, [query.data])
+    }, [query.data, provisioningTimedOut])
 
     const gates = useMemo((): Record<DepositCorridor, GateState> => {
         const out = {} as Record<DepositCorridor, GateState>
@@ -125,8 +157,15 @@ export function useDepositAccounts(): UseDepositAccountsResult {
         claimingCorridor,
         claimError,
         claim: doClaim,
-        refetch: () => void query.refetch(),
+        refetch: () => {
+            setProvisioningPolls(0)
+            void query.refetch()
+        },
     }
+}
+
+function hasProvisioning(accounts: DepositAccount[] | undefined): boolean {
+    return (accounts ?? []).some((account) => account.status === 'provisioning')
 }
 
 /**

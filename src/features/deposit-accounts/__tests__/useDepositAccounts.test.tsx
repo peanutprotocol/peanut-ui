@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
-import { useDepositAccounts } from '../useDepositAccounts'
+import { MAX_PROVISIONING_POLLS, PROVISIONING_POLL_MS, useDepositAccounts } from '../useDepositAccounts'
 import type { DepositAccount } from '../types'
 import type { GateScope, GateState } from '@/utils/capability-gate'
 
@@ -117,5 +117,52 @@ describe('useDepositAccounts', () => {
         claimDepositAccount.mockResolvedValue(account({ railId: 'bridge.ach_us' }))
         act(() => result.current.claim('ACH_US'))
         await waitFor(() => expect(result.current.claimError).toBeUndefined())
+    })
+})
+
+/**
+ * A provisioning account used to poll every 5s for as long as the screen was
+ * open — on a phone, forever, for an account the provider had stopped working
+ * on. The wait now has a budget, and what it runs out into is the one state
+ * with a retry on it.
+ */
+describe('useDepositAccounts caps the provisioning poll', () => {
+    beforeEach(() => jest.useFakeTimers())
+    afterEach(() => jest.useRealTimers())
+
+    it('reads the corridor as failed once the budget is spent, and stops asking', async () => {
+        fetchDepositAccounts.mockResolvedValue([account({ status: 'provisioning' })])
+
+        const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+        await waitFor(() => expect(result.current.accounts.SEPA_EU?.status).toBe('provisioning'))
+
+        // the poll's own clock: every tick is one answer that still said
+        // provisioning, so the budget is spent in MAX_PROVISIONING_POLLS ticks
+        for (let i = 0; i < MAX_PROVISIONING_POLLS; i++) {
+            await act(async () => {
+                jest.advanceTimersByTime(PROVISIONING_POLL_MS)
+            })
+        }
+
+        await waitFor(() => expect(result.current.accounts.SEPA_EU?.status).toBe('failed'))
+        const callsAtTimeout = fetchDepositAccounts.mock.calls.length
+        await act(async () => {
+            jest.advanceTimersByTime(PROVISIONING_POLL_MS * 5)
+        })
+        expect(fetchDepositAccounts).toHaveBeenCalledTimes(callsAtTimeout)
+    })
+
+    it('keeps polling while the account is still within its budget', async () => {
+        fetchDepositAccounts.mockResolvedValue([account({ status: 'provisioning' })])
+
+        const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+        await waitFor(() => expect(result.current.accounts.SEPA_EU?.status).toBe('provisioning'))
+
+        const before = fetchDepositAccounts.mock.calls.length
+        await act(async () => {
+            jest.advanceTimersByTime(PROVISIONING_POLL_MS)
+        })
+        expect(fetchDepositAccounts.mock.calls.length).toBeGreaterThan(before)
+        expect(result.current.accounts.SEPA_EU?.status).toBe('provisioning')
     })
 })

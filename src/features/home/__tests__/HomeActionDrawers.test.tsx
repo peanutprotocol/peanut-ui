@@ -22,6 +22,12 @@ jest.mock('@/hooks/useAppHaptic', () => ({
     useAppHaptic: () => ({ triggerHaptic: jest.fn() }),
 }))
 
+const mockCapture = jest.fn()
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: { capture: (...args: unknown[]) => mockCapture(...args) },
+}))
+
 // Get-paid is dark until Bridge grants the Virtual Accounts SKU, so the bank
 // row has two truths and both have to hold.
 let depositAccountsEnabled = true
@@ -121,6 +127,30 @@ describe('HomeActionDrawers', () => {
 
         fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank'))
+    })
+
+    /*
+     * The deposit funnel must not break where the flag flips. With get-paid
+     * off, the bank arm of deposit_method_selected fires on the country click
+     * inside /add-money; get-paid has no country step, so the row reports the
+     * choice itself — and only on that arm, or the flag-off path would count
+     * the same user twice.
+     */
+    it('reports the bank arm of the deposit funnel when it routes to get-paid', async () => {
+        renderWithUrl('?drawer=add')
+
+        fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/get-paid'))
+        expect(mockCapture).toHaveBeenCalledWith('deposit_method_selected', { method_type: 'bank' })
+    })
+
+    it('leaves the funnel event to the country click while get-paid is off', async () => {
+        depositAccountsEnabled = false
+        renderWithUrl('?drawer=add')
+
+        fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank'))
+        expect(mockCapture).not.toHaveBeenCalled()
     })
 
     it('carries a query-bearing returnTo onto the bank destination', async () => {
