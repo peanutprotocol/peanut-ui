@@ -90,7 +90,7 @@ jest.mock('@/components/Common/SavedAccountsView', () => ({
     ),
 }))
 jest.mock('@/components/Common/CountryList', () => ({ CountryList: () => null }))
-jest.mock('@/features/withdraw/components/AddressBook/SavedAddressEditDrawer', () => ({
+jest.mock('@/features/destinations/DestinationEditDrawer', () => ({
     __esModule: true,
     default: () => null,
 }))

@@ -3528,6 +3528,14 @@
             "editFailed": "Could not update the address. Try again.",
             "nicknameRequired": "Add a nickname to save this address."
         },
+        "savedDestinations": {
+            "editTitle": "Edit name",
+            "nameLabel": "Name",
+            "namePlaceholder": "e.g. Payroll",
+            "deleteCta": "Delete",
+            "editFailed": "Could not save the name. Try again.",
+            "editAria": "Edit {name}"
+        },
         "forceIosPwaInstall": {
             "videoUnsupported": "Your browser does not support the video tag.",
             "title": "Get the full experience",

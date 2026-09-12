@@ -3528,6 +3528,14 @@
             "editFailed": "No pudimos actualizar la dirección. Intentá de nuevo.",
             "nicknameRequired": "Agregá un apodo para guardar esta dirección."
         },
+        "savedDestinations": {
+            "editTitle": "Editar nombre",
+            "nameLabel": "Nombre",
+            "namePlaceholder": "p. ej. Sueldo",
+            "deleteCta": "Eliminar",
+            "editFailed": "No pudimos guardar el nombre. Intentá de nuevo.",
+            "editAria": "Editar {name}"
+        },
         "forceIosPwaInstall": {
             "videoUnsupported": "Tu navegador no admite la etiqueta de video.",
             "title": "Vive la experiencia completa",

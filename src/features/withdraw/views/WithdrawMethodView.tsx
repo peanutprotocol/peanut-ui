@@ -20,7 +20,11 @@ import { soleLiveRailForCountry } from '@/features/destinations/country-rails'
 import { clearScannedDestination, withdrawTokenForChain } from '@/features/withdraw/destination'
 import { useWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
 import { useSavedAddresses } from '@/hooks/useSavedAddresses'
-import SavedAddressEditDrawer from '@/features/withdraw/components/AddressBook/SavedAddressEditDrawer'
+import DestinationEditDrawer, { type EditableDestination } from '@/features/destinations/DestinationEditDrawer'
+import { useRenameAccount } from '@/features/destinations/useRenameAccount'
+import { ACCOUNT_LABEL_MAX } from '@/features/destinations/consts'
+import { SAVED_ADDRESS_NICKNAME_MAX, shortSavedAddress } from '@/utils/saved-address.utils'
+import { maskAccountIdentifier } from '@/utils/account-mask.utils'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import type { SavedAddress } from '@/interfaces/interfaces'
 import { useRouter } from 'next/navigation'
@@ -51,6 +55,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
     const router = useRouter()
     const { user } = useAuth()
     const t = useTranslations('withdraw')
+    const tGlobal = useTranslations('global')
     const { setSelectedBankAccount, setSelectedMethod, setRecipient, setIsValidRecipient } = useWithdrawFlow()
     // crypto address book — its rows render beside the saved bank accounts
     const {
@@ -60,7 +65,8 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
         remove: removeSavedAddress,
     } = useSavedAddresses()
     const { setSelectedChainID, setSelectedTokenAddress, supportedChainsAndTokens } = useContext(tokenSelectorContext)
-    const [editingSavedAddress, setEditingSavedAddress] = useState<SavedAddress | null>(null)
+    const [editing, setEditing] = useState<EditableDestination | null>(null)
+    const renameAccount = useRenameAccount()
     const [, startTransition] = useTransition()
     const [showAllParam, setShowAll] = useQueryState('showAll', parseAsBoolean.withDefault(false))
 
@@ -170,12 +176,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
     if (!showAll && (savedAccounts.length > 0 || savedAddresses.length > 0)) {
         return (
             <>
-                <SavedAddressEditDrawer
-                    saved={editingSavedAddress}
-                    onClose={() => setEditingSavedAddress(null)}
-                    onRename={(id, nickname) => renameSavedAddress.mutateAsync({ id, nickname })}
-                    onDelete={(id) => removeSavedAddress.mutateAsync(id)}
-                />
+                <DestinationEditDrawer destination={editing} onClose={() => setEditing(null)} />
                 <SavedAccountsView
                     pageTitle={pageTitle}
                     onPrev={onExit}
@@ -207,7 +208,26 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                     onSelectNewMethodClick={() => setShowAll(true)}
                     savedAddresses={savedAddresses}
                     onSavedAddressClick={handleSavedAddressClick}
-                    onSavedAddressEdit={setEditingSavedAddress}
+                    onSavedAddressEdit={(saved) =>
+                        setEditing({
+                            id: saved.id,
+                            name: saved.nickname,
+                            identifier: shortSavedAddress(saved.address),
+                            maxLength: SAVED_ADDRESS_NICKNAME_MAX,
+                            rename: (id, name) => renameSavedAddress.mutateAsync({ id, nickname: name }),
+                            remove: (id) => removeSavedAddress.mutateAsync(id),
+                            removeLabel: tGlobal('savedAddresses.deleteCta'),
+                        })
+                    }
+                    onAccountEdit={(account) =>
+                        setEditing({
+                            id: account.id,
+                            name: account.label ?? '',
+                            identifier: maskAccountIdentifier(account.identifier, account.type),
+                            maxLength: ACCOUNT_LABEL_MAX,
+                            rename: renameAccount,
+                        })
+                    }
                     onCryptoClick={handleCryptoTileClick}
                     onMercadoPagoClick={
                         isMercadoPagoAvailable
