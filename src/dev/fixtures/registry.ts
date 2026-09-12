@@ -134,9 +134,19 @@ const HUGE_HISTORY_ENTRY = {
 }
 
 /**
- * A dollar account: the one corridor where Bridge documents a private payer,
- * with the cap that proves it. Values are documentation examples.
+ * Sandbox opens every account in the user's own name, so each fixture below
+ * carries the demo user as the holder and `nameOnAccount: 'user'`. The one
+ * exception is DEPOSIT_ACCOUNT_PROVIDER_HELD, which exists to prove the other
+ * branch.
+ *
+ * `matching.sender` and `rules` are copied from what the backend returns per
+ * rail (peanut-api-ts `src/deposit-accounts/bridge-adapter.ts`). The screens
+ * read nothing else, so a fixture IS the corridor as far as they are
+ * concerned.
  */
+const HOLDER = 'Demo User'
+
+/** Dollars: third-party payments are allowed, on published terms. */
 const DEPOSIT_ACCOUNT_USD = {
     id: 'fixture-deposit-usd',
     railId: 'bridge.ach_us',
@@ -144,20 +154,59 @@ const DEPOSIT_ACCOUNT_USD = {
     currency: 'USD',
     status: 'active',
     isPrimary: true,
-    matching: { nameOnAccount: 'provider', sender: 'anyone', memo: 'none', amount: 'flexible' },
+    matching: { nameOnAccount: 'user', sender: 'anyone', memo: 'none', amount: 'flexible' },
+    rules: {
+        individualPerPaymentCap: { amount: '4000', currency: 'USD' },
+        familySameSurnameExempt: true,
+        businessesUnlimited: true,
+    },
     instructions: {
-        accountHolderName: 'Bridge Ventures Inc',
+        accountHolderName: HOLDER,
         bankName: 'Lead Bank',
         bankAddress: '1801 Main St, Kansas City, MO 64108',
         accountNumber: '9600000000000001',
         routingNumber: '101019644',
-        beneficiaryName: 'Bridge Ventures Inc',
+        beneficiaryName: HOLDER,
         beneficiaryAddress: '1000 Brannan St, San Francisco, CA 94103',
         paymentRails: ['ach_push', 'wire', 'fednow'],
     },
 }
 
-/** Sterling: documented as first-party and third-party BUSINESS payments only. */
+/**
+ * The same dollar account held by a New York or Texas resident. No third party
+ * may pay in at all, so the policy narrows to own-name-only and the terms
+ * collapse to the reason.
+ */
+const DEPOSIT_ACCOUNT_USD_STATE_RESTRICTED = {
+    ...DEPOSIT_ACCOUNT_USD,
+    id: 'fixture-deposit-usd-state',
+    matching: { ...DEPOSIT_ACCOUNT_USD.matching, sender: 'own-name-only' },
+    rules: { reason: 'state-restricted' },
+}
+
+/** Euros: businesses only until an individual volume is agreed, 1 EUR floor. */
+const DEPOSIT_ACCOUNT_EUR = {
+    id: 'fixture-deposit-eur',
+    railId: 'bridge.sepa_eu',
+    country: 'DEU',
+    currency: 'EUR',
+    status: 'active',
+    isPrimary: true,
+    matching: { nameOnAccount: 'user', sender: 'business-only', memo: 'none', amount: 'flexible' },
+    rules: { businessesUnlimited: true, individualsAllowed: false, min: { amount: '1', currency: 'EUR' } },
+    instructions: {
+        accountHolderName: HOLDER,
+        bankName: 'Modern Treasury Bank',
+        bankAddress: 'Rue du Commerce 4, 1000 Brussels, Belgium',
+        iban: 'DE89 3704 0044 0532 0130 00',
+        bic: 'MTBEBEBB',
+        beneficiaryName: HOLDER,
+        beneficiaryAddress: 'Prinsengracht 263, 1016 GV Amsterdam, Netherlands',
+        paymentRails: ['sepa'],
+    },
+}
+
+/** Sterling: business payments only, and no published terms beyond that. */
 const DEPOSIT_ACCOUNT_GBP = {
     id: 'fixture-deposit-gbp',
     railId: 'bridge.faster_payments_gb',
@@ -165,13 +214,50 @@ const DEPOSIT_ACCOUNT_GBP = {
     currency: 'GBP',
     status: 'active',
     isPrimary: true,
-    matching: { nameOnAccount: 'provider', sender: 'business-only', memo: 'none', amount: 'flexible' },
+    matching: { nameOnAccount: 'user', sender: 'business-only', memo: 'none', amount: 'flexible' },
     instructions: {
-        accountHolderName: 'Bridge Building Sp. z o.o.',
+        accountHolderName: HOLDER,
         bankName: 'Clear Junction Limited',
         accountNumber: '00000001',
         sortCode: '04-00-53',
         paymentRails: ['faster_payments'],
+    },
+}
+
+/**
+ * Pesos: nothing is published about who may pay in, so the account carries no
+ * `rules` and the screens say only what is confirmed. SPEI also returns a
+ * CLABE and no bank name, which is why rows follow field presence.
+ */
+const DEPOSIT_ACCOUNT_MXN = {
+    id: 'fixture-deposit-mxn',
+    railId: 'bridge.spei_mx',
+    country: 'MEX',
+    currency: 'MXN',
+    status: 'active',
+    isPrimary: true,
+    matching: { nameOnAccount: 'user', sender: 'unknown', memo: 'none', amount: 'flexible' },
+    instructions: {
+        accountHolderName: HOLDER,
+        clabe: '646180111800000000',
+        paymentRails: ['spei'],
+    },
+}
+
+/**
+ * The one fixture where the payer does NOT read the user's name: the account
+ * is held by our banking partner on the user's behalf. The holder string is
+ * invented and partner-neutral on purpose — the screens must never name a
+ * provider, and a fixture is a screenshot waiting to happen.
+ */
+const DEPOSIT_ACCOUNT_PROVIDER_HELD = {
+    ...DEPOSIT_ACCOUNT_EUR,
+    id: 'fixture-deposit-provider-held',
+    matching: { ...DEPOSIT_ACCOUNT_EUR.matching, nameOnAccount: 'provider' },
+    instructions: {
+        ...DEPOSIT_ACCOUNT_EUR.instructions,
+        accountHolderName: 'Northwind Payments B.V.',
+        beneficiaryName: 'Northwind Payments B.V.',
     },
 }
 
@@ -632,7 +718,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'get-paid': {
         route: '/get-paid',
         about: 'The hub: one euro account held, the rest open to claim.',
-        responses: VA_READY_RESPONSE,
+        responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
     },
     'get-paid-empty': {
         route: '/get-paid',
@@ -654,18 +740,39 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'get-paid-details-eur': {
         route: '/get-paid?screen=details&corridor=SEPA_EU',
-        about: 'Euro details. The holder is the partner, not the user — the notice says so.',
-        responses: VA_READY_RESPONSE,
+        about: 'Euro details: businesses only until an individual volume is agreed, with a 1 EUR floor.',
+        responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
     },
     'get-paid-details-usd': {
         route: '/get-paid?screen=details&corridor=ACH_US',
-        about: 'Dollar details: the one corridor where a private payer is proved, with its cap.',
+        about: 'Dollar details: businesses and same-surname family unlimited, anyone else capped.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_USD] } },
+    },
+    'get-paid-details-usd-state-restricted': {
+        route: '/get-paid?screen=details&corridor=ACH_US',
+        about: 'The same dollar account for a resident of a state where no third party may pay in.',
+        responses: {
+            ...VA_READY_RESPONSE,
+            'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_USD_STATE_RESTRICTED] },
+        },
     },
     'get-paid-details-gbp': {
         route: '/get-paid?screen=details&corridor=FASTER_PAYMENTS_GB',
-        about: 'Sterling details, where only a business may pay in.',
+        about: 'Sterling details, where only a business may pay in and nothing else is published.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_GBP] } },
+    },
+    'get-paid-details-mxn': {
+        route: '/get-paid?screen=details&corridor=SPEI_MX',
+        about: 'Peso details: no terms are published, so the screen says only what is confirmed.',
+        responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_MXN] } },
+    },
+    'get-paid-details-provider-held': {
+        route: '/get-paid?screen=details&corridor=SEPA_EU',
+        about: 'The account is held by our banking partner, so the payer reads a name that is not the user.',
+        responses: {
+            ...VA_READY_RESPONSE,
+            'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_PROVIDER_HELD] },
+        },
     },
     'get-paid-provisioning': {
         route: '/get-paid?screen=details&corridor=ACH_US',
@@ -700,9 +807,9 @@ export const FIXTURES: Record<string, Fixture> = {
     'get-paid-share': {
         route: '/get-paid?screen=share&corridor=SEPA_EU',
         about: 'What the payer will see, before the user sends it to them.',
-        // The holder caveat sits under the details card, below the fold.
+        // The caveats sit under the details card, below the fold.
         fullPage: true,
-        responses: VA_READY_RESPONSE,
+        responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
     },
     'get-paid-ar': {
         route: '/get-paid?screen=details&corridor=BANK_TRANSFER_AR',

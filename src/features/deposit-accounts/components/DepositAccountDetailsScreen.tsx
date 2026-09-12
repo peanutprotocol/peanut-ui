@@ -184,10 +184,7 @@ export function DepositAccountDetailsScreen({
                             <DepositDetailsCard rows={rows} />
                         </Section>
 
-                        <p className="text-body-xs text-foreground-secondary">
-                            {arrivalDetail(rail.corridor)}
-                            {rail.personCap ? ` ${t('details.personCap', { cap: rail.personCap })}` : ''}
-                        </p>
+                        <p className="text-body-xs text-foreground-secondary">{arrivalDetail(rail.corridor)}</p>
 
                         {ownNameOnly && topUpHref && (
                             <LinkButton href={topUpHref}>

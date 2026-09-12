@@ -10207,21 +10207,6 @@ export interface paths {
                         };
                     };
                 };
-                /** @description The declared residence changed too recently. Only the residence keys were refused — every other field in the request was applied. Retry the residence change at `retryAt`; `/users/me` reports the same instant as `residence.nextChangeAllowedAt`. */
-                429: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @enum {string} */
-                            code: "RESIDENCE_CHANGE_COOLDOWN";
-                            error: string;
-                            /** Format: date-time */
-                            retryAt: string;
-                        };
-                    };
-                };
                 /** @description Default Response */
                 500: {
                     headers: {
@@ -10742,6 +10727,21 @@ export interface paths {
                                     sender: "anyone" | "business-only" | "own-name-only" | "unknown";
                                 };
                                 railId: string;
+                                rules?: {
+                                    businessesUnlimited?: boolean;
+                                    familySameSurnameExempt?: boolean;
+                                    individualPerPaymentCap?: {
+                                        amount: string;
+                                        currency: string;
+                                    };
+                                    individualsAllowed?: boolean;
+                                    min?: {
+                                        amount: string;
+                                        currency: string;
+                                    };
+                                    /** @enum {string} */
+                                    reason?: "state-restricted";
+                                };
                                 status: "provisioning" | "active" | "retiring" | "revoked" | "failed";
                             }[];
                         };
@@ -10813,6 +10813,21 @@ export interface paths {
                                     sender: "anyone" | "business-only" | "own-name-only" | "unknown";
                                 };
                                 railId: string;
+                                rules?: {
+                                    businessesUnlimited?: boolean;
+                                    familySameSurnameExempt?: boolean;
+                                    individualPerPaymentCap?: {
+                                        amount: string;
+                                        currency: string;
+                                    };
+                                    individualsAllowed?: boolean;
+                                    min?: {
+                                        amount: string;
+                                        currency: string;
+                                    };
+                                    /** @enum {string} */
+                                    reason?: "state-restricted";
+                                };
                                 status: "provisioning" | "active" | "retiring" | "revoked" | "failed";
                             };
                         };

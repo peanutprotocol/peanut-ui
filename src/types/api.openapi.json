@@ -16197,37 +16197,6 @@
                         },
                         "description": "Default Response"
                     },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "description": "The declared residence changed too recently. Only the residence keys were refused \u2014 every other field in the request was applied. Retry the residence change at `retryAt`; `/users/me` reports the same instant as `residence.nextChangeAllowedAt`.",
-                                    "properties": {
-                                        "code": {
-                                            "enum": [
-                                                "RESIDENCE_CHANGE_COOLDOWN"
-                                            ],
-                                            "type": "string"
-                                        },
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "retryAt": {
-                                            "format": "date-time",
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error",
-                                        "code",
-                                        "retryAt"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "The declared residence changed too recently. Only the residence keys were refused \u2014 every other field in the request was applied. Retry the residence change at `retryAt`; `/users/me` reports the same instant as `residence.nextChangeAllowedAt`."
-                    },
                     "500": {
                         "content": {
                             "application/json": {
@@ -17437,6 +17406,56 @@
                                                     "railId": {
                                                         "type": "string"
                                                     },
+                                                    "rules": {
+                                                        "properties": {
+                                                            "businessesUnlimited": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "familySameSurnameExempt": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "individualPerPaymentCap": {
+                                                                "properties": {
+                                                                    "amount": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "currency": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "amount",
+                                                                    "currency"
+                                                                ],
+                                                                "type": "object"
+                                                            },
+                                                            "individualsAllowed": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "min": {
+                                                                "properties": {
+                                                                    "amount": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "currency": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "amount",
+                                                                    "currency"
+                                                                ],
+                                                                "type": "object"
+                                                            },
+                                                            "reason": {
+                                                                "enum": [
+                                                                    "state-restricted"
+                                                                ],
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    },
                                                     "status": {
                                                         "anyOf": [
                                                             {
@@ -17705,6 +17724,56 @@
                                                 },
                                                 "railId": {
                                                     "type": "string"
+                                                },
+                                                "rules": {
+                                                    "properties": {
+                                                        "businessesUnlimited": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "familySameSurnameExempt": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "individualPerPaymentCap": {
+                                                            "properties": {
+                                                                "amount": {
+                                                                    "type": "string"
+                                                                },
+                                                                "currency": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "amount",
+                                                                "currency"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        "individualsAllowed": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "min": {
+                                                            "properties": {
+                                                                "amount": {
+                                                                    "type": "string"
+                                                                },
+                                                                "currency": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "amount",
+                                                                "currency"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        "reason": {
+                                                            "enum": [
+                                                                "state-restricted"
+                                                            ],
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "type": "object"
                                                 },
                                                 "status": {
                                                     "anyOf": [

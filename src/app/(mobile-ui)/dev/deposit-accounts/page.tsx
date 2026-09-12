@@ -1,7 +1,6 @@
 'use client'
 
 import { DepositAccountsFlow } from '@/features/deposit-accounts/components/DepositAccountsFlow'
-import Link from 'next/link'
 import { useState } from 'react'
 import DevNoteCard from '../_components/DevNoteCard'
 import DevPageShell from '../_components/DevPageShell'
@@ -24,8 +23,7 @@ const SCENARIOS: { value: SandboxScenario; label: string; hint: string }[] = [
  *
  * The Virtual Accounts SKU is `not_allowed` in production and ungated in
  * sandbox, so every bank detail on these screens is a payload Bridge really
- * returned (captured 2026-09-11). The product decisions behind the flow, and
- * the directions still open, are at /dev/deposit-accounts/directions.
+ * returned (captured 2026-09-11).
  */
 export default function DepositAccountsPrototypePage() {
     const [scenario, setScenario] = useState<SandboxScenario>('live')
@@ -35,11 +33,6 @@ export default function DepositAccountsPrototypePage() {
         <DevPageShell
             title="Deposit accounts"
             description="Claim bank details in your own name, per region, and hand them to whoever pays you. Real Bridge sandbox payloads through the product adapters."
-            actions={
-                <Link href="/dev/deposit-accounts/directions" className="text-body-s underline">
-                    Product directions
-                </Link>
-            }
         >
             <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
                 <aside className="order-last flex w-full flex-col gap-6 lg:order-first lg:max-w-sm">
