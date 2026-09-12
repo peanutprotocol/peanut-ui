@@ -4,8 +4,7 @@ import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
-import { useQuery } from '@tanstack/react-query'
-import { cardApi, type CardInfoResponse } from '@/services/card'
+import { useCardInfo } from '@/hooks/useCardInfo'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -55,14 +54,11 @@ export function useActivationStatus(): ActivationStatus {
     const { balance, isFetchingBalance } = useWallet()
     const { isKycApproved } = useCapabilities()
     const { overview } = useRainCardOverview()
-    const userId = user?.user?.userId
 
-    const { data: cardInfo } = useQuery<CardInfoResponse>({
-        queryKey: ['card-info', userId],
-        queryFn: () => cardApi.getInfo(),
-        enabled: !!userId,
-        staleTime: 30_000,
-    })
+    // Share the canonical user-scoped card-info query with home and card
+    // surfaces. Having a second query with the same key but different
+    // stale-time options made refetch timing harder to reason about.
+    const { hasCardAccess } = useCardInfo()
 
     // Read the dismissal flag after mount to avoid hydration mismatch.
     const [cardDismissed, setCardDismissed] = useState(false)
@@ -135,7 +131,6 @@ export function useActivationStatus(): ActivationStatus {
         // `completed` arm is belt-and-braces only: no shipped surface renders
         // ActivationCTAs for an isActivated user (home swaps to the carousel),
         // so it can only matter in the isActivated=false + milestone-lag edge.
-        const hasCardAccess = cardInfo?.hasCardAccess ?? false
         const hasCard = !!findActiveCard(overview)
         // Funded = the BE milestone says so, OR the live chain balance is
         // positive — a user whose inbound is still mid-poller (milestone stuck
@@ -147,7 +142,7 @@ export function useActivationStatus(): ActivationStatus {
         }
 
         return { isActivated, activatedAt, activationStep }
-    }, [user?.user, isKycApproved, balance, cardInfo?.hasCardAccess, overview, cardDismissed])
+    }, [user?.user, isKycApproved, balance, hasCardAccess, overview, cardDismissed])
 
     return { ...derived, isLoading, dismissCardStep }
 }

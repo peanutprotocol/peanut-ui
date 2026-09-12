@@ -4,7 +4,7 @@ import type { CountryData } from '@/components/AddMoney/consts'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
-import { getRedirectUrl, clearRedirectUrl, getFromLocalStorage } from '@/utils/general.utils'
+import { clearRedirectUrl, getFromLocalStorage, getStoredRedirect } from '@/utils/general.utils'
 import { addMoneyCountryUrl, rewriteMethodPath } from '@/utils/native-routes'
 import { isBridgeSupportedCountry } from '@/utils/regions.utils'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
@@ -58,11 +58,12 @@ export function useAddMoneyFlow() {
         }
 
         // check if we have a saved redirect url (from request fulfillment or similar flows)
-        const redirectUrl = getRedirectUrl()
+        const redirect = getStoredRedirect()
+        const redirectUrl = redirect?.destination
         const fromRequestFulfillment = getFromLocalStorage('fromRequestFulfillment')
 
         if (redirectUrl && fromRequestFulfillment) {
-            clearRedirectUrl()
+            clearRedirectUrl(redirect)
             if (typeof localStorage !== 'undefined') {
                 localStorage.removeItem('fromRequestFulfillment')
             }

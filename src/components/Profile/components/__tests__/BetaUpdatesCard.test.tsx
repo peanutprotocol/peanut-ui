@@ -1,8 +1,8 @@
 /**
- * The card is native-only. The tap gesture controls discoverability; the
- * PEANUT_TEAM badge is what decides who may JOIN. It must never decide who may
- * leave, and it must never hide the card — a blocked device has to be able to
- * read why. Beyond that, every join outcome has to read honestly: a tester told
+ * The card is native-only. The tap gesture controls discoverability; Capgo's
+ * channel self-assignment is what decides who may JOIN. The PEANUT_TEAM record
+ * must never make the visible switch inert, and it must never decide who may
+ * leave. Beyond that, every join outcome has to read honestly: a tester told
  * to restart when nothing was downloaded goes looking for a build that isn't
  * there.
  */
@@ -20,9 +20,6 @@ jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => toast }))
 const channel = { current: {} as UseOtaChannel }
 jest.mock('@/hooks/useOtaChannel', () => ({ useOtaChannel: () => channel.current }))
 
-let badges: { code: string }[] = [{ code: 'PEANUT_TEAM' }]
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { badges } } }) }))
-
 const setup = (overrides: Partial<UseOtaChannel> = {}) => {
     channel.current = {
         supported: true,
@@ -39,7 +36,6 @@ const switching = (result: OtaChannelSwitchResult) => ({ setBeta: jest.fn().mock
 
 beforeEach(() => {
     jest.clearAllMocks()
-    badges = [{ code: 'PEANUT_TEAM' }]
 })
 
 it('renders nothing off native, where there is no OTA layer at all', () => {
@@ -47,24 +43,18 @@ it('renders nothing off native, where there is no OTA layer at all', () => {
     expect(screen.queryByRole('switch')).not.toBeInTheDocument()
 })
 
-describe('badge gating', () => {
-    it('will not let an account without the badge join', () => {
-        badges = []
+describe('channel switching access', () => {
+    it('keeps the join control enabled when the profile refresh has no badge', async () => {
         setup()
-        expect(screen.getByRole('switch')).toBeDisabled()
+        const toggle = screen.getByRole('switch')
+        expect(toggle).toBeEnabled()
+        fireEvent.click(toggle)
+        await waitFor(() => expect(channel.current.setBeta).toHaveBeenCalledWith(true))
     })
 
-    // A missing badge must never look like silence: that is how the previous
-    // PostHog gate hid the switch from its own testers for months.
-    it('tells a blocked account why, and what to ask for', () => {
-        badges = []
-        setup()
-        expect(screen.getByText(/not enabled for this account/i)).toBeInTheDocument()
-    })
-
-    // Revoking the badge mid-beta must not strand a device on beta code.
-    it('still lets a device already on beta leave once the badge is revoked', async () => {
-        badges = []
+    // The off switch is the only way back to the store bundle, so a device
+    // already on beta must remain able to leave after any profile change.
+    it('still lets a device already on beta leave', async () => {
         setup({
             isBeta: true,
             status: { channel: 'staging', bundleVersion: '1.1.10846', deviceId: 'abc-123', onBuiltinBundle: false },
@@ -73,12 +63,6 @@ describe('badge gating', () => {
         expect(toggle).toBeEnabled()
         fireEvent.click(toggle)
         await waitFor(() => expect(channel.current.setBeta).toHaveBeenCalledWith(false))
-    })
-
-    it('says nothing about eligibility to an account holding the badge', () => {
-        setup()
-        expect(screen.queryByText(/not enabled for this account/i)).not.toBeInTheDocument()
-        expect(screen.getByRole('switch')).toBeEnabled()
     })
 })
 

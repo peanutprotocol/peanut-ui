@@ -1,6 +1,6 @@
 'use client'
 
-import { getRedirectUrl, clearRedirectUrl } from '@/utils/general.utils'
+import { clearRedirectUrl, getStoredRedirect, type StoredRedirect } from '@/utils/general.utils'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import ActionModal from '../ActionModal'
@@ -19,6 +19,7 @@ export const PostSignupActionManager = ({
         title: string
         description: string
         icon: IconName
+        redirect: StoredRedirect
         action: () => void
     } | null>(null)
     const router = useRouter()
@@ -29,15 +30,17 @@ export const PostSignupActionManager = ({
     const { isVerified: isIdentityVerified } = useIdentityVerification()
 
     const checkClaimModalAfterKYC = () => {
-        const redirectUrl = getRedirectUrl()
-        if (isIdentityVerified && redirectUrl) {
+        const redirect = getStoredRedirect()
+        if (isIdentityVerified && redirect) {
+            const redirectUrl = redirect.destination
             const matchedAction = POST_SIGNUP_ACTIONS.find((action) => action.pathPattern.test(redirectUrl))
             if (matchedAction) {
                 setActionConfig({
                     ...matchedAction.config,
+                    redirect,
                     action: () => {
                         router.push(redirectUrl)
-                        clearRedirectUrl()
+                        clearRedirectUrl(redirect)
                         setShowModal(false)
                     },
                 })
@@ -61,7 +64,7 @@ export const PostSignupActionManager = ({
             visible={showModal}
             onClose={() => {
                 setShowModal(false)
-                clearRedirectUrl()
+                if (actionConfig) clearRedirectUrl(actionConfig.redirect)
             }}
             preventClose // Prevent closing the modal by clicking outside
             title={actionConfig.title}

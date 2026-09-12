@@ -306,7 +306,7 @@
             "unlockBadge": "Desbloquear",
             "yourBadges": "Seus selos",
             "points": "Pontos",
-            "personalDetails": "Dados pessoais",
+            "personalDetails": "Editar perfil",
             "unlockedRegions": "Canais de pagamento",
             "paymentLimits": "Limites de pagamento",
             "showMyFullName": "Mostrar meu nome completo",
@@ -324,15 +324,23 @@
                 "name": "Nome",
                 "surname": "Sobrenome",
                 "bio": "Bio",
-                "email": "E-mail",
+                "email": "E-mail para notificações",
                 "phoneNumber": "Número de telefone",
                 "website": "Site"
             },
             "soonBadge": "Em breve!",
             "saveChanges": "Salvar alterações",
             "errors": {
-                "nameRequired": "Informe seu nome."
-            }
+                "nameRequired": "Informe seu nome.",
+                "invalidEmail": "Digite um endereço de e-mail válido.",
+                "emailInUse": "Este e-mail já está associado a outra conta.",
+                "invalidCode": "Digite o código de 6 dígitos recebido por e-mail."
+            },
+            "verifiedNameHelp": "Seu nome vem da verificação de identidade e não pode ser editado aqui. Fale com o suporte se precisar corrigi-lo.",
+            "emailCode": "Código de verificação",
+            "emailCodeHelp": "Enviamos um código para {email}. Seu e-mail atual continuará ativo até você verificar o novo.",
+            "sendCode": "Enviar código",
+            "requestNewCode": "Solicitar outro código"
         },
         "regions": {
             "title": "Regiões e verificação",
@@ -572,7 +580,7 @@
             "beta": {
                 "heading": "Atualizações beta",
                 "description": "Receba versões do canal {channel} antes de chegarem a todos. Apenas para testes internos.",
-                "channelLabel": "Canal de atualizações",
+                "channelLabel": "Canal de atualizações atual",
                 "defaultChannel": "Padrão",
                 "bundleLabel": "Pacote em uso",
                 "deviceLabel": "ID do dispositivo",
@@ -586,7 +594,6 @@
                 "leftOverride": "Este aparelho foi colocado em beta pelo painel do Capgo, então o app não consegue tirá-lo. Peça a um administrador para remover a atribuição de canal do aparelho.",
                 "leftUnconfirmed": "Não foi possível falar com o Capgo para confirmar a mudança, então este aparelho continua na versão beta. Tente de novo quando estiver online.",
                 "closed": "O canal {channel} ainda não aceita testadores. Peça a um administrador para permitir a autoatribuição no Capgo.",
-                "notEligible": "As atualizações beta ainda não estão habilitadas para esta conta. Toque cinco vezes no número da versão para tentar de novo.",
                 "failed": "Não foi possível alterar o canal de atualizações.",
                 "revealed": "O interruptor de atualizações beta está visível abaixo.",
                 "appOnly": "As atualizações beta só estão disponíveis no app do Peanut."

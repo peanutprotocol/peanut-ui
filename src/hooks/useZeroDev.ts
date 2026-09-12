@@ -10,7 +10,7 @@ import {
     getFromCookie,
     removeFromCookie,
     saveToCookie,
-    saveToLocalStorage,
+    setRedirectUrl,
     updateUserPreferences,
 } from '@/utils/general.utils'
 import { clearAuthState } from '@/utils/auth.utils'
@@ -172,7 +172,7 @@ export const useZeroDev = () => {
 
                             // Keep an already-published migration continuation
                             // through setup only after the matching claim confirms.
-                            if (destination !== '/home') saveToLocalStorage('redirect', destination)
+                            if (destination !== '/home') setRedirectUrl(destination)
                             if (pending.some((tag) => tag.toLowerCase() === acceptedBadgeCampaigns[0].toLowerCase())) {
                                 captureException(new Error('accept-time legacy acquisition retained for retry'), {
                                     tags: { error_type: 'invite_accept_campaign_retryable' },

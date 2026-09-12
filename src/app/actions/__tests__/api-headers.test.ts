@@ -30,6 +30,13 @@ jest.mock('@/utils/capacitor', () => ({
     isCapacitor: jest.fn(() => false),
 }))
 
+jest.mock('@/services/step-up', () => ({
+    withStepUpHeader: jest.fn(async (headers: Record<string, string>) => ({
+        ...headers,
+        'x-step-up-token': 'fresh-proof',
+    })),
+}))
+
 // mock getCurrencyPrice for the onramp test
 jest.mock('@/app/actions/currency', () => ({
     getCurrencyPrice: jest.fn(() => Promise.resolve({ buy: 1, sell: 1 })),
@@ -109,6 +116,16 @@ describe('action functions Content-Type headers', () => {
 
         const headers = getLastCallHeaders()
         expect(headers['Content-Type']).toBe('application/json')
+        expect(headers['x-step-up-token']).toBeUndefined()
+    })
+
+    it('requires step-up for replacement-email issuance and redemption', async () => {
+        const { requestEmailChange, updateUserById } = require('@/app/actions/users')
+        await requestEmailChange('new@example.com')
+        expect(getLastCallHeaders()['x-step-up-token']).toBe('fresh-proof')
+
+        await updateUserById({ userId: 'user', email: 'new@example.com', emailVerificationCode: '123456' })
+        expect(getLastCallHeaders()['x-step-up-token']).toBe('fresh-proof')
     })
 
     it('should include Content-Type in getKycDetails', async () => {
