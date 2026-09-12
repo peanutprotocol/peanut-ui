@@ -1,3 +1,5 @@
+import ActionModal from '@/components/Global/ActionModal'
+import { useTranslations } from 'next-intl'
 import { KycRestartCooldownModal } from './KycRestartCooldownModal'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { KycVerificationInProgressModal } from '@/components/Kyc/KycVerificationInProgressModal'
@@ -17,8 +19,17 @@ interface SumsubKycModalsProps {
  * pair with useMultiPhaseKycFlow hook for the logic.
  */
 export const SumsubKycModals = ({ flow, onCooldownClose }: SumsubKycModalsProps) => {
+    const t = useTranslations('kyc.correction')
     return (
         <>
+            <ActionModal
+                visible={flow.showCorrection}
+                onClose={flow.dismissCorrection}
+                title={t('title')}
+                description={flow.verificationSession?.reasonCode === 'INVALID_TAX_ID' ? t('taxId') : t('details')}
+                tone="warning"
+                ctas={[{ text: t('correct'), variant: 'purple', onClick: flow.correctVerificationData }]}
+            />
             <KycRestartCooldownModal
                 cooldown={flow.errorCooldown}
                 onClose={() => {
@@ -27,6 +38,11 @@ export const SumsubKycModals = ({ flow, onCooldownClose }: SumsubKycModalsProps)
                 }}
             />
             <SumsubKycWrapper
+                sessionKey={
+                    flow.verificationSession
+                        ? `${flow.verificationSession.id}:${flow.verificationSession.generation}`
+                        : undefined
+                }
                 visible={flow.showWrapper}
                 accessToken={flow.accessToken}
                 onClose={flow.handleSdkClose}

@@ -3045,6 +3045,12 @@
                 "description": "This verification step is no longer needed. Your current status is on your profile.",
                 "cta": "See my status"
             }
+        },
+        "correction": {
+            "title": "Correct your bank verification details",
+            "taxId": "Your identity is verified, but we could not validate your tax ID for this country. Check and correct it to enable bank transfers.",
+            "details": "Some information needs correcting before bank transfers can be enabled. Your identity verification is saved.",
+            "correct": "Correct details"
         }
     },
     "identity": {

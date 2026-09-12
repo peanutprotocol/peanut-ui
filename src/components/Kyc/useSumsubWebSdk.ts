@@ -38,6 +38,7 @@ type UseSumsubWebSdkArgs = Omit<SumsubSdkProps, 'onClose'>
  */
 export function useSumsubWebSdk({
     visible,
+    sessionKey,
     accessToken,
     onComplete,
     onSubmitted,
@@ -45,6 +46,9 @@ export function useSumsubWebSdk({
     onRefreshToken,
     isMultiLevel,
 }: UseSumsubWebSdkArgs) {
+    const accessTokenRef = useRef(accessToken)
+    accessTokenRef.current = accessToken
+    const hasAccessToken = !!accessToken
     const [sdkLoaded, setSdkLoaded] = useState(false)
     const [sdkLoadError, setSdkLoadError] = useState(false)
     // Callback ref, NOT useRef: Modal is a headlessui <Transition>, which promotes
@@ -131,7 +135,7 @@ export function useSumsubWebSdk({
 
     // initialize sdk as soon as the modal is visible and all deps are ready
     useEffect(() => {
-        if (!visible || !accessToken || !sdkLoaded || !sdkContainer) return
+        if (!visible || !hasAccessToken || !sdkLoaded || !sdkContainer) return
 
         // clean up previous instance
         if (sdkInstanceRef.current) {
@@ -220,7 +224,7 @@ export function useSumsubWebSdk({
             const handleActionCompleted = handleStatusEvent('onApplicantActionStatusChanged')
 
             const sdk = window.snsWebSdk
-                .init(accessToken, stableOnRefreshToken)
+                .init(accessTokenRef.current!, stableOnRefreshToken)
                 .withConf({ lang: sumsubLocaleRef.current, theme: 'light' })
                 .withOptions({ addViewportTag: false, adaptIframeHeight: true })
                 .on('onApplicantSubmitted', handleSubmitted)
@@ -293,7 +297,8 @@ export function useSumsubWebSdk({
         }
     }, [
         visible,
-        accessToken,
+        hasAccessToken,
+        sessionKey,
         sdkLoaded,
         sdkContainer,
         stableOnComplete,

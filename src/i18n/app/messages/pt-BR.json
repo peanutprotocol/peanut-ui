@@ -3045,6 +3045,12 @@
                 "description": "Esta etapa de verificação não é mais necessária. Seu status atual está no seu perfil.",
                 "cta": "Ver meu status"
             }
+        },
+        "correction": {
+            "title": "Corrija os dados da verificação bancária",
+            "taxId": "Sua identidade foi verificada, mas não conseguimos validar seu documento fiscal para este país. Confira e corrija os dados para habilitar transferências bancárias.",
+            "details": "Algumas informações precisam ser corrigidas para habilitar transferências bancárias. Sua verificação de identidade está salva.",
+            "correct": "Corrigir dados"
         }
     },
     "identity": {

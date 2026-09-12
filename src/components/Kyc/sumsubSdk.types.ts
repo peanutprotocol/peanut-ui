@@ -4,6 +4,7 @@
  * interchangeable from a call site's point of view.
  */
 export interface SumsubSdkProps {
+    sessionKey?: string
     visible: boolean
     accessToken: string | null
     onClose: () => void

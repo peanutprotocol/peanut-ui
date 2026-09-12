@@ -1,8 +1,8 @@
 import { act } from '@testing-library/react'
 import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import posthog from 'posthog-js'
-import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
-import { initiateSumsubKyc } from '@/app/actions/sumsub'
+import { deriveCapabilityPhaseSignals, useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
+import { getVerificationSession, refreshVerificationSession, initiateSumsubKyc } from '@/app/actions/sumsub'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 // Pins the KYC_REJECTED capture + user-store refresh effect: it must be
@@ -19,6 +19,8 @@ jest.mock('@/app/actions/sumsub', () => ({
     // isTerminalActionCode must come from the real module, or the hook's
     // terminal-refusal branch calls undefined and every initiate bails.
     initiateSumsubKyc: jest.fn(),
+    getVerificationSession: jest.fn(),
+    refreshVerificationSession: jest.fn(),
     initiateSelfHealResubmission: jest.fn(),
     restartIdentityVerification: jest.fn(),
     startKycAction: jest.fn(),
@@ -174,5 +176,150 @@ describe('useMultiPhaseKycFlow — KYC_REJECTED capture effect', () => {
             expect(rejectedCaptures()).toHaveLength(1)
             expect(mockFetchUser).toHaveBeenCalledTimes(1)
         })
+    })
+})
+
+describe('deposit session regression contracts', () => {
+    const session = (state: 'COLLECTING' | 'SUBMISSION_PENDING' | 'CORRECTION_REQUIRED' | 'READY', generation = 0) => ({
+        id: 'session-1',
+        generation,
+        state,
+        reasonCode: state === 'CORRECTION_REQUIRED' ? 'INVALID_TAX_ID' : null,
+        targetCountry: 'AR',
+        externalActionId: `manteca-user-${generation}-AR`,
+        isMultiLevel: false,
+    })
+    beforeEach(() => {
+        jest.useFakeTimers()
+        jest.clearAllMocks()
+        mockInitiate.mockReset()
+        ;(getVerificationSession as jest.Mock).mockResolvedValue(session('SUBMISSION_PENDING'))
+        mockFetchUser.mockResolvedValue(null)
+    })
+    afterEach(() => jest.useRealTimers())
+    it('accepted documents wait via read-only progress, ignore base APPROVED and complete only once READY', async () => {
+        mockInitiate.mockResolvedValue({
+            data: {
+                token: null,
+                applicantId: 'app',
+                status: 'IN_REVIEW',
+                actionType: 'manteca',
+                session: session('SUBMISSION_PENDING'),
+            },
+        })
+        const success = jest.fn()
+        const { result } = renderHook(() => useMultiPhaseKycFlow({ onKycSuccess: success }))
+        await act(async () => {
+            await result.current.handleInitiateKyc('LATAM', undefined, true, 'AR')
+        })
+        await act(async () => {
+            mockWs.handler?.('APPROVED')
+            await jest.advanceTimersByTimeAsync(12000)
+        })
+        expect(success).not.toHaveBeenCalled()
+        expect(result.current.showWrapper).toBe(false)
+        expect(mockInitiate).toHaveBeenCalledTimes(1)
+        expect(getVerificationSession).toHaveBeenCalledWith('session-1')
+        ;(getVerificationSession as jest.Mock).mockResolvedValue(session('READY'))
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(4000)
+        })
+        expect(success).toHaveBeenCalledTimes(1)
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(8000)
+        })
+        expect(success).toHaveBeenCalledTimes(1)
+    })
+    it('correction is explicit and retains the target country', async () => {
+        mockInitiate.mockResolvedValueOnce({
+            error: 'correct data',
+            data: { token: null, applicantId: 'app', status: 'IN_REVIEW', session: session('CORRECTION_REQUIRED') },
+        })
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        await act(async () => {
+            await result.current.handleInitiateKyc('LATAM', undefined, true, 'AR')
+        })
+        expect(result.current.showCorrection).toBe(true)
+        expect(result.current.showWrapper).toBe(false)
+        mockInitiate.mockResolvedValueOnce({
+            data: {
+                token: 'new-token',
+                applicantId: 'app',
+                status: 'APPROVED',
+                actionType: 'manteca',
+                session: session('COLLECTING', 1),
+            },
+        })
+        await act(async () => {
+            await result.current.correctVerificationData()
+        })
+        expect(mockInitiate).toHaveBeenLastCalledWith(
+            expect.objectContaining({ regionIntent: 'LATAM', targetCountry: 'AR', correctSession: true })
+        )
+        expect(result.current.showWrapper).toBe(true)
+        ;(refreshVerificationSession as jest.Mock).mockResolvedValue('refreshed')
+        await act(async () => {
+            expect(await result.current.refreshToken()).toBe('refreshed')
+        })
+        expect(refreshVerificationSession).toHaveBeenCalledWith(
+            expect.objectContaining({ id: 'session-1', generation: 1 })
+        )
+        expect(mockInitiate).toHaveBeenCalledTimes(2)
+    })
+    it('a generic drawer resume uses the server workflow descriptor', async () => {
+        mockInitiate.mockResolvedValue({
+            data: {
+                token: 'workflow-token',
+                applicantId: 'app',
+                status: 'PENDING',
+                workflow: { regionIntent: 'EU', isMultiLevel: true },
+            },
+        })
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        await act(async () => {
+            await result.current.handleInitiateKyc()
+        })
+        expect(result.current.isMultiLevel).toBe(true)
+        await act(async () => {
+            mockWs.handler?.('ACTION_REQUIRED')
+        })
+        expect(result.current.showWrapper).toBe(true)
+    })
+    it('skipping terms is dismissal, never successful verification', () => {
+        const success = jest.fn()
+        const { result } = renderHook(() => useMultiPhaseKycFlow({ onKycSuccess: success }))
+        act(() => result.current.handleSkipTerms())
+        expect(success).not.toHaveBeenCalled()
+    })
+    it.each(['blocked', 'requires-info', 'unavailable', 'pending'])(
+        'a %s deposit rail cannot be success even when QR is enabled',
+        (status) => {
+            const capabilities = {
+                rails: [
+                    { provider: 'bridge', channel: 'bank', country: 'EU', currency: 'EUR', status },
+                    { provider: 'manteca', channel: 'qr-only', country: 'AR', currency: 'ARS', status: 'enabled' },
+                ],
+                nextActions: [],
+                restrictions: [],
+            }
+            expect(deriveCapabilityPhaseSignals(capabilities as never, 'EU').allSettled).toBe(false)
+        }
+    )
+    it('an enabled account in another country cannot complete an AR deposit flow', () => {
+        const capabilities = {
+            rails: [
+                {
+                    provider: 'manteca',
+                    channel: 'bank',
+                    country: 'BR',
+                    currency: 'BRL',
+                    status: 'enabled',
+                    operations: { deposit: 'enabled' },
+                },
+            ],
+            nextActions: [],
+            restrictions: [],
+        }
+        expect(deriveCapabilityPhaseSignals(capabilities as never, 'LATAM', 'AR').allSettled).toBe(false)
     })
 })
