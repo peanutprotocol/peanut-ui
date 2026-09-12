@@ -471,6 +471,8 @@ export const FIXTURES: Record<string, Fixture> = {
     'withdraw-amount-error': {
         route: '/withdraw?method=crypto&step=amount&amount=999999',
         about: 'Withdraw amount step with its inline error — the amount is above the balance.',
+        // the error is validated on a 300ms debounce, so the shot waits for it
+        waitFor: '[data-testid="error-alert"]',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS] } },
     },
     // Named bank accounts beside the named address book: destinationLabel on

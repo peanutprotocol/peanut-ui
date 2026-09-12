@@ -27,9 +27,11 @@ export type Fixture = {
      */
     fullPage?: true
     /**
-     * A selector the capture waits for before it shoots. Set it on a
-     * `isLoadingState` fixture so the shot is the loader the fixture is named
-     * for, rather than whatever loader the app happens to show first.
+     * A selector the capture waits for before it shoots. On an `isLoadingState`
+     * fixture it names the loader the fixture is for, rather than whatever
+     * loader the app happens to show first. On any other fixture it names a
+     * subject that arrives after the page has settled — a debounced validation
+     * message, say — so the shot is not the frame before it.
      */
     waitFor?: string
 }

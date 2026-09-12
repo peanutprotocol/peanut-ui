@@ -154,7 +154,13 @@ for (const [name, fixture] of Object.entries(FIXTURES)) {
         if (fixture.isLoadingState) {
             if (fixture.waitFor) await page.locator(fixture.waitFor).first().waitFor({ state: 'visible' })
             else await page.waitForTimeout(2000)
-        } else await settle(page)
+        } else {
+            await settle(page)
+            // A fixture whose subject arrives after a debounce — the amount
+            // error is 300ms behind the amount — names it, so the shot waits
+            // for the thing it is a shot of rather than the frame before it.
+            if (fixture.waitFor) await page.locator(fixture.waitFor).first().waitFor({ state: 'visible' })
+        }
 
         // A build without NEXT_PUBLIC_VERCEL_ENV=preview ignores the param and
         // bounces every protected route to /setup — which settles fine, so the
