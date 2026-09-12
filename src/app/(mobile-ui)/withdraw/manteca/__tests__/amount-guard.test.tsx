@@ -87,3 +87,10 @@ test('blocks an amount above the balance and allows an amount within it', () => 
     fireEvent.change(field, { target: { value: '6000' } })
     expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled()
 })
+
+// TASK-22589: the amount is the last step now, so this flow is entered without
+// one and collects it here in the local currency.
+test('an entry with no ?amount= opens this flow own amount step', () => {
+    setup()
+    expect(screen.getByText(/amount to withdraw/i)).toBeInTheDocument()
+})

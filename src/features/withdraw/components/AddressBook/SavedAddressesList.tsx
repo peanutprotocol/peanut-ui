@@ -67,6 +67,7 @@ export default function SavedAddressesList({ savedAddresses, onSelect, onEdit }:
                                     aria-label={t('savedDestinations.editAria', {
                                         name: destinationLabel(savedAddressDestination(saved)),
                                     })}
+                                    data-testid="destination-edit"
                                     className="flex h-8 w-8 items-center justify-center rounded-full transition-colors duration-instant hover:bg-background-disabled active:bg-background-disabled"
                                     onClick={(e) => {
                                         e.stopPropagation()

@@ -89,7 +89,38 @@ jest.mock('@/components/Common/SavedAccountsView', () => ({
         </div>
     ),
 }))
-jest.mock('@/components/Common/CountryList', () => ({ CountryList: () => null }))
+// the country list is driven through its onCountryClick — one row per country
+// the rail tests need
+jest.mock('@/components/Common/CountryList', () => ({
+    CountryList: ({ onCountryClick }: { onCountryClick: (c: unknown) => void }) => (
+        <div>
+            {[
+                { id: 'DE', path: 'germany', currency: 'EUR', title: 'Germany' },
+                { id: 'AR', path: 'argentina', currency: 'ARS', title: 'Argentina' },
+                { id: 'BR', path: 'brazil', currency: 'BRL', title: 'Brazil' },
+                { id: 'IN', path: 'india', currency: 'INR', title: 'India' },
+            ].map((country) => (
+                <button
+                    key={country.id}
+                    data-testid={`country-${country.path}`}
+                    onClick={() => onCountryClick(country)}
+                >
+                    {country.title}
+                </button>
+            ))}
+        </div>
+    ),
+}))
+
+// what each country leaves the user to choose: Germany one bank rail, Brazil
+// one Manteca rail, Argentina two, India none live
+jest.mock('@/features/destinations/country-rails', () => ({
+    soleLiveRailForCountry: (id: string) =>
+        ({
+            DE: { id: 'de-sepa-instant-withdraw', title: 'Euro bank transfers' },
+            BR: { id: 'br-pix-withdraw', title: 'Pix', path: '/withdraw/manteca?method=pix&country=brazil' },
+        })[id] ?? null,
+}))
 jest.mock('@/features/destinations/DestinationEditDrawer', () => ({
     __esModule: true,
     default: () => null,
@@ -146,7 +177,8 @@ jest.mock('@/utils/general.utils', () => ({
     getFromLocalStorage: () => null,
 }))
 jest.mock('@/utils/native-routes', () => ({
-    withdrawCountryUrl: (path: string) => `/withdraw/${path}`,
+    withdrawCountryUrl: (path: string, qs = '') => `/withdraw/${path}${qs}`,
+    rewriteMethodPath: (path: string, extra?: string) => (extra ? `${path}&${extra}` : path),
 }))
 
 const MANTECA_ACCOUNT = {
@@ -295,5 +327,44 @@ describe('WithdrawMethodView — destination state and routing (Chip review roun
         fireEvent.click(row())
 
         expect(takeScannedDestination(scanId)).toBeNull()
+    })
+})
+
+/**
+ * The country pick (TASK-22589). A country with one live rail has nothing to
+ * choose, so the one-row per-country list is skipped; a country with several
+ * still shows them, once.
+ */
+describe('WithdrawMethodView — picking a country', () => {
+    it('one live bank rail: straight to the bank form, named in the URL', () => {
+        renderView({ showAll: 'true' })
+        fireEvent.click(screen.getByTestId('country-germany'))
+
+        expect(mockSetSelectedMethod).toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'bridge', countryPath: 'germany', title: 'Euro bank transfers' })
+        )
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/germany?view=form')
+    })
+
+    it('one live Manteca rail: straight to that flow, with no amount to seed', () => {
+        renderView({ showAll: 'true' })
+        fireEvent.click(screen.getByTestId('country-brazil'))
+
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
+    })
+
+    it('several live rails: the per-country list still gets shown', () => {
+        renderView({ showAll: 'true' })
+        fireEvent.click(screen.getByTestId('country-argentina'))
+
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/argentina')
+        expect(mockSetSelectedMethod).not.toHaveBeenCalled()
+    })
+
+    it('no live rail: the per-country list shows the coming-soon state', () => {
+        renderView({ showAll: 'true' })
+        fireEvent.click(screen.getByTestId('country-india'))
+
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/india')
     })
 })

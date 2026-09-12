@@ -391,7 +391,7 @@ describe('useBridgeOfframpFlow — context-loss recovery preserves the URL amoun
         mockBankAccount = null
         renderFlow({ amount: '50', step: 'review' })
 
-        expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/us?amount=50')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/us?amount=50&view=form')
     })
 
     it('from the send flow, the method marker rides along with the amount', () => {
@@ -399,7 +399,7 @@ describe('useBridgeOfframpFlow — context-loss recovery preserves the URL amoun
         mockIsBankFromSend = true
         renderFlow({ amount: '50', step: 'review' })
 
-        expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/us?method=bank&amount=50')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/us?method=bank&amount=50&view=form')
     })
 
     it('no amount at all: recovery to the flow entry keeps only the send marker', () => {

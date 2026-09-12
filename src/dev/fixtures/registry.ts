@@ -68,6 +68,14 @@ const BANK_ACCOUNTS = [
     },
 ]
 
+// The same two bank accounts, but named by the user and with a last withdrawal
+// on them — what the picker sorts and titles by (TASK-22589). The Spanish one
+// was used more recently, so it sorts above the US one that was added later.
+const NAMED_BANK_ACCOUNTS = [
+    { ...BANK_ACCOUNTS[0], label: 'Payroll', lastUsedAt: '2026-08-12T09:00:00.000Z' },
+    { ...BANK_ACCOUNTS[1], label: null, lastUsedAt: '2026-06-02T09:00:00.000Z' },
+]
+
 // The activity list is not only transactions: it also injects a row per badge
 // in `user.badges` and one identity-verification row. An empty state needs all
 // three cleared, or "no transactions" still renders four rows.
@@ -353,12 +361,52 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
-    // ?amount= arrives from the shared amount step and opens the bank-details
-    // form directly — the first Field-composed form (TASK-21454).
+    // ?view=form names the screen; the amount is collected after it now.
     'withdraw-bank-form': {
-        route: '/withdraw/spain?amount=50',
-        about: 'Bridge bank-account form for Spain, amount pre-entered — Field label/error chrome.',
+        route: '/withdraw/spain?view=form',
+        about: 'Bridge bank-account form for Spain — Field label/error chrome.',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
+    },
+    // ---- the pick-first order (TASK-22589) ----
+    // The first screen of the flow: pick where the money goes, before any amount.
+    'withdraw-pick': {
+        route: '/withdraw',
+        about: 'Withdraw: the destination pick, saved accounts most-recently-used first.',
+        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS] } },
+    },
+    // Manteca is entered with no amount now and collects it itself, in the
+    // local currency — the amount as the last step before the review.
+    'withdraw-amount-last': {
+        route: '/withdraw/manteca?method=bank-transfer&country=argentina',
+        about: 'Withdraw amount as the last step, in local currency, with its own minimum.',
+        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS] } },
+    },
+    // Over the balance, so the inline error under the input is on screen.
+    'withdraw-amount-error': {
+        route: '/withdraw?method=crypto&step=amount&amount=999999',
+        about: 'Withdraw amount step with its inline error — the amount is above the balance.',
+        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS] } },
+    },
+    // Named bank accounts beside the named address book: destinationLabel on
+    // every row, masked identifier underneath.
+    'withdraw-destination-names': {
+        route: '/withdraw',
+        about: 'Saved destinations with the names the user gave them, banks and addresses together.',
+        responses: {
+            'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS] },
+            'GET /users/saved-addresses': {
+                savedAddresses: [
+                    {
+                        id: 'fixture-saved-1',
+                        address: '0x28c6c06298d514db089934071355e5743bf21d60',
+                        chainId: '42161',
+                        nickname: 'Binance',
+                        lastUsedAt: '2026-08-14T09:00:00.000Z',
+                        createdAt: '2026-05-01T00:00:00.000Z',
+                    },
+                ],
+            },
+        },
     },
     limits: { route: '/limits', about: 'Payment limits: the unlocked regions and the crypto note.' },
     // Masked state only ('****' — same span as the digits). Revealing needs a

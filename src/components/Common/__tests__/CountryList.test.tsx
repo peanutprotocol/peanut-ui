@@ -8,6 +8,10 @@
  * 2. Argentina stays disabled — its Manteca rails in this flow are own-account
  *    offramps (same ruling that keeps Mercado Pago off the send list, PR #2813).
  * 3. Bridge countries (e.g. Germany) stay selectable.
+ *
+ * Also pinned: which country sits at the top of the list (TASK-22589). A
+ * KYC-verified residence wins over the IP lookup — the IP moves when the user
+ * travels or turns on a VPN, the residence the rails are bound to does not.
  */
 import React from 'react'
 import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
@@ -26,8 +30,14 @@ jest.mock('next/image', () => ({
     },
 }))
 
+let mockGeoCountry: string | null = null
 jest.mock('@/hooks/useGeoLocation', () => ({
-    useGeoLocation: () => ({ countryCode: null, isLoading: false }),
+    useGeoLocation: () => ({ countryCode: mockGeoCountry, isLoading: false }),
+}))
+
+let mockResidence: string | null = null
+jest.mock('@/context/authContext', () => ({
+    useOptionalAuth: () => ({ user: { residence: { declared: null, verified: mockResidence } } }),
 }))
 
 jest.mock('@/components/Global/EasterEggDrawer', () => ({
@@ -83,5 +93,36 @@ describe('CountryList — enforceSupportedCountries (send->bank flow)', () => {
         expect(germany).not.toHaveAttribute('aria-disabled')
         fireEvent.click(germany)
         expect(onCountryClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'germany' }))
+    })
+})
+
+describe('CountryList — which country comes first', () => {
+    const renderList = () =>
+        render(<CountryList inputTitle="How?" viewMode="add-withdraw" flow="withdraw" onCountryClick={jest.fn()} />)
+
+    const firstCountry = () => screen.getAllByRole('button')[0].textContent ?? ''
+
+    afterEach(() => {
+        mockGeoCountry = null
+        mockResidence = null
+    })
+
+    it('the verified residence wins over the IP country', () => {
+        mockResidence = 'BR'
+        mockGeoCountry = 'DE'
+        renderList()
+        expect(firstCountry()).toContain('Brazil')
+    })
+
+    it('falls back to the IP country when no residence is verified', () => {
+        mockResidence = null
+        mockGeoCountry = 'DE'
+        renderList()
+        expect(firstCountry()).toContain('Germany')
+    })
+
+    it('with neither, the preferred corridors keep their declared order', () => {
+        renderList()
+        expect(firstCountry()).toContain('United States')
     })
 })
