@@ -22,6 +22,13 @@ jest.mock('@/hooks/useAppHaptic', () => ({
     useAppHaptic: () => ({ triggerHaptic: jest.fn() }),
 }))
 
+// Get-paid is dark until Bridge grants the Virtual Accounts SKU, so the bank
+// row has two truths and both have to hold.
+let depositAccountsEnabled = true
+jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
+    useDepositAccountsEnabled: () => depositAccountsEnabled,
+}))
+
 beforeAll(() => {
     window.matchMedia =
         window.matchMedia ||
@@ -41,6 +48,7 @@ beforeAll(() => {
 beforeEach(() => {
     jest.clearAllMocks()
     resetBottomNavVisibilityForTests()
+    depositAccountsEnabled = true
 })
 
 const renderWithUrl = (search: string, onUrlUpdate?: (e: UrlUpdateEvent) => void) =>
@@ -105,6 +113,14 @@ describe('HomeActionDrawers', () => {
         const last = urlUpdates[urlUpdates.length - 1]
         expect(last.searchParams.get('drawer')).toBeNull()
         expect(last.searchParams.get('returnTo')).toBeNull()
+    })
+
+    it('sends the bank row back to the one-off transfer flow while get-paid is off', async () => {
+        depositAccountsEnabled = false
+        renderWithUrl('?drawer=add')
+
+        fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank'))
     })
 
     it('carries a query-bearing returnTo onto the bank destination', async () => {

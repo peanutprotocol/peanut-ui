@@ -29,7 +29,7 @@ export const DIRECTION_QUESTIONS: DirectionQuestion[] = [
         id: 'entry',
         question: 'Where does a user meet this?',
         stake: 'It decides how many people ever hold an account, and what they think it is for.',
-        built: 'Direction A — the flow lives at its own route and Add money links to it.',
+        built: 'Direction A, behind the `deposit-accounts` flag — the flow lives at its own route, and the Add drawer\u2019s bank row points at it only while the flag is on. Off, that row is the one-off transfer flow it always was.',
         options: [
             {
                 key: 'A',
