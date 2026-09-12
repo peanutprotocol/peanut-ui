@@ -46,6 +46,7 @@ jobs:
             - name: Resolve verified daily baseline when needed
               id: baseline
               env:
+                  GH_TOKEN: ${{ github.token }}
                   RUN_ID: ${{ github.run_id }}
                   REPOSITORY: ${{ github.repository }}
               run: |

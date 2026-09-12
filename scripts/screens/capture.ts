@@ -50,11 +50,23 @@ async function main() {
                 .map((p) => `${p}\0${readFileSync(p)}`)
                 .join('\0')
         )
-    const browser = await chromium.launch({
-        headless: true,
-        channel: 'chromium',
-        ...(arg('executable') ? { executablePath: arg('executable') } : {}),
-    })
+    let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined
+    let launchError: unknown
+    for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+            browser = await chromium.launch({
+                headless: true,
+                channel: 'chromium',
+                timeout: 60000,
+                ...(arg('executable') ? { executablePath: arg('executable') } : {}),
+            })
+            break
+        } catch (error) {
+            launchError = error
+            if (attempt < 3) await new Promise((done) => setTimeout(done, attempt * 1000))
+        }
+    }
+    if (!browser) throw launchError
     const contextOptions = {
         viewport: { width: 393, height: 852 },
         deviceScaleFactor: 1,
