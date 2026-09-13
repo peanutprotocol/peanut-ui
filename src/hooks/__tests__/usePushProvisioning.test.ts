@@ -4,7 +4,7 @@ import { usePushProvisioning } from '@/hooks/usePushProvisioning'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { rainApi, RainCardRateLimitError, type RainProvisioningDataResponse } from '@/services/rain'
 import { isAndroidNative, isIOSNative } from '@/utils/capacitor'
-import { addCardToWallet, getPushProvisioningAvailability } from '@/utils/push-provisioning'
+import { addCardToWallet, getPushProvisioningAvailability, rememberCardForWallet } from '@/utils/push-provisioning'
 
 jest.mock('@/services/rain', () => {
     const actual = jest.requireActual('@/services/rain')
@@ -12,7 +12,12 @@ jest.mock('@/services/rain', () => {
 })
 jest.mock('@/utils/push-provisioning', () => {
     const actual = jest.requireActual('@/utils/push-provisioning')
-    return { ...actual, getPushProvisioningAvailability: jest.fn(), addCardToWallet: jest.fn() }
+    return {
+        ...actual,
+        getPushProvisioningAvailability: jest.fn(),
+        addCardToWallet: jest.fn(),
+        rememberCardForWallet: jest.fn(),
+    }
 })
 jest.mock('@/utils/capacitor', () => {
     const actual = jest.requireActual('@/utils/capacitor')
@@ -27,6 +32,7 @@ const mockedAvailability = getPushProvisioningAvailability as jest.MockedFunctio
     typeof getPushProvisioningAvailability
 >
 const mockedAddCard = addCardToWallet as jest.MockedFunction<typeof addCardToWallet>
+const mockedRememberCard = rememberCardForWallet as jest.MockedFunction<typeof rememberCardForWallet>
 const mockedIsIOS = isIOSNative as jest.MockedFunction<typeof isIOSNative>
 const mockedIsAndroid = isAndroidNative as jest.MockedFunction<typeof isAndroidNative>
 
@@ -54,6 +60,7 @@ describe('usePushProvisioning', () => {
         mockedIsIOS.mockReturnValue(true)
         mockedIsAndroid.mockReturnValue(false)
         mockedAvailability.mockResolvedValue({ available: true, alreadyInWallet: false })
+        mockedRememberCard.mockResolvedValue()
         mockedGetProvisioningData.mockResolvedValue(provisioningData)
         jest.spyOn(posthog, 'capture').mockImplementation(() => undefined as never)
     })
@@ -62,6 +69,7 @@ describe('usePushProvisioning', () => {
         const { result } = renderHook(() => usePushProvisioning(card))
         await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
         expect(mockedAvailability).toHaveBeenCalledWith('0420')
+        expect(mockedRememberCard).toHaveBeenCalledWith({ peanutCardId: 'card-1', last4: '0420' })
     })
 
     it('keeps the manual carousel for a card already in the wallet', async () => {
@@ -95,6 +103,7 @@ describe('usePushProvisioning', () => {
 
         expect(mockedGetProvisioningData).toHaveBeenCalledWith('card-1', 'apple')
         expect(mockedAddCard).toHaveBeenCalledWith({
+            peanutCardId: 'card-1',
             cardId: 'mea-card-1',
             cardSecret: 'secret',
             cardholderName: 'Ada Lovelace',

@@ -8,6 +8,7 @@ import { isIOSNative } from '@/utils/capacitor'
 import {
     addCardToWallet,
     getPushProvisioningAvailability,
+    rememberCardForWallet,
     PUSH_PROVISIONING_FLAG,
     type AddCardToWalletResult,
 } from '@/utils/push-provisioning'
@@ -41,13 +42,15 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
             setNativeAvailable(false)
             return
         }
-        void getPushProvisioningAvailability(card.last4).then(({ available, alreadyInWallet }) => {
-            if (!cancelled) setNativeAvailable(available && !alreadyInWallet)
-        })
+        void rememberCardForWallet({ peanutCardId: card.id, last4: card.last4 }).then(() =>
+            getPushProvisioningAvailability(card.last4).then(({ available, alreadyInWallet }) => {
+                if (!cancelled) setNativeAvailable(available && !alreadyInWallet)
+            })
+        )
         return () => {
             cancelled = true
         }
-    }, [flagOn, card.last4])
+    }, [flagOn, card.id, card.last4])
 
     const addToWallet = useCallback(async (): Promise<AddCardToWalletResult> => {
         const wallet = isIOSNative() ? 'apple' : 'google'
@@ -56,6 +59,7 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
         try {
             const data = await rainApi.getProvisioningData(card.id, wallet)
             const result = await addCardToWallet({
+                peanutCardId: card.id,
                 cardId: data.cardId,
                 cardSecret: data.cardSecret,
                 cardholderName: data.cardholderName,

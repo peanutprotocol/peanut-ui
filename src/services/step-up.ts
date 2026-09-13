@@ -36,6 +36,9 @@ function currentRpId(): string {
 /** Drops the cached proof. Call on logout, or after a 401 from a gated route. */
 export function clearStepUpToken(): void {
     clearCachedStepUpToken()
+    void import('@/utils/push-provisioning')
+        .then(({ clearWalletStepUpToken }) => clearWalletStepUpToken())
+        .catch(() => {})
 }
 
 /**
@@ -44,6 +47,9 @@ export function clearStepUpToken(): void {
  */
 export function primeStepUpToken(token: string, expiresIn: number): void {
     setCachedStepUpToken(token, expiresIn)
+    void import('@/utils/push-provisioning')
+        .then(({ syncWalletStepUpToken }) => syncWalletStepUpToken(token, expiresIn))
+        .catch(() => {})
 }
 
 export async function getStepUpToken(): Promise<string> {
@@ -87,6 +93,9 @@ export async function getStepUpToken(): Promise<string> {
 
     const { token, expiresIn } = (await verifyResponse.json()) as { token: string; expiresIn: number }
     setCachedStepUpToken(token, expiresIn)
+    void import('@/utils/push-provisioning')
+        .then(({ syncWalletStepUpToken }) => syncWalletStepUpToken(token, expiresIn))
+        .catch(() => {})
     return token
 }
 

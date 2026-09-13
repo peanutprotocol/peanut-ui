@@ -21,6 +21,7 @@ class IssuerAuthorizationExtensionHandler: UIViewController, PKIssuerProvisionin
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        guard completionHandler != nil else { return }
         authenticateUser()
     }
 
@@ -31,12 +32,18 @@ class IssuerAuthorizationExtensionHandler: UIViewController, PKIssuerProvisionin
             completionHandler?(.canceled)
             return
         }
+        guard WalletExtensionAuth.sessionToken() != nil else {
+            completionHandler?(.canceled)
+            return
+        }
         context.evaluatePolicy(
             .deviceOwnerAuthentication,
             localizedReason: NSLocalizedString("Confirm it's you to add your card to Apple Pay", comment: "")
         ) { [weak self] success, _ in
             DispatchQueue.main.async {
-                self?.completionHandler?(success ? .authorized : .canceled)
+                guard let self, let completionHandler = self.completionHandler else { return }
+                self.completionHandler = nil
+                completionHandler(success ? .authorized : .canceled)
             }
         }
     }

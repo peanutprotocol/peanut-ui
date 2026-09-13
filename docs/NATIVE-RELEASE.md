@@ -822,9 +822,27 @@ MeaWallet config. Production iOS archives compile with
 The iOS sync step uses `MEAWALLET_NEXUS_USER_IOS` and
 `MEAWALLET_NEXUS_PASSWORD_IOS`. The archive also requires the iOS encrypted
 config in `MEAWALLET_CONFIG_BASE64_IOS`; the Xcode build phase refuses a missing
-or empty config and copies it into the app bundle. Both provisioning Swift files
-are app target sources and the bridge registers the plugin. Local builds can still
-use the stub.
+or empty config and copies it into the app and issuer-extension bundles. The
+issuer and authorization UI extensions are embedded in the app and share only
+non-sensitive card metadata plus OS-protected session credentials. Local builds
+can still use the stub.
+
+### Apple Pay issuer-provisioning gate
+
+Apple must approve `com.apple.developer.payment-pass-provisioning` for the app,
+the issuer extension, and the authorization UI extension. The entitlement is
+committed in all three targets so the signed archive is explicit, but it is not
+effective until Apple Developer portal App IDs and the corresponding profiles
+contain it. The iOS workflow therefore requires these additional secrets after
+approval:
+
+- `IOS_WALLET_EXTENSION_PROVISIONING_PROFILE_BASE64`
+- `IOS_WALLET_EXTENSION_UI_PROVISIONING_PROFILE_BASE64`
+
+The workflow decodes both profiles, verifies the entitlement, embeds both
+extensions, and checks the exported IPA before TestFlight upload. Until those
+profiles exist, the PostHog `push-provisioning` flag must remain off; a merged
+PR alone cannot make Apple Wallet accept a card.
 
 After both store builds succeed, App Release Android & iOS writes a compiled-capability
 attestation into the annotated release tag. OTA checks that attestation in

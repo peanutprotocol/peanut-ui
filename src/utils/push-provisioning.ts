@@ -13,6 +13,8 @@ export interface PushProvisioningAvailability {
 }
 
 export interface AddCardToWalletArgs {
+    /** Peanut's internal card UUID, used by Wallet extensions to fetch credentials. */
+    peanutCardId?: string
     cardId: string
     cardSecret: string
     cardholderName?: string
@@ -38,6 +40,11 @@ export interface AddCardToWalletResult {
 
 interface PushProvisioningPlugin {
     isAvailable(options: { last4?: string }): Promise<PushProvisioningAvailability>
+    rememberCard(options: { peanutCardId: string; last4: string; displayName?: string }): Promise<void>
+    setWalletSession(options: { token: string }): Promise<void>
+    setWalletStepUpToken(options: { token: string; expiresIn: number }): Promise<void>
+    clearWalletSession(options: Record<string, never>): Promise<void>
+    clearWalletStepUpToken(options: Record<string, never>): Promise<void>
     addCard(options: AddCardToWalletArgs): Promise<AddCardToWalletResult>
 }
 
@@ -69,4 +76,33 @@ export async function addCardToWallet(args: AddCardToWalletArgs): Promise<AddCar
         added: false,
         error: error instanceof Error ? error.message : 'unavailable',
     }))
+}
+
+/** Mirror non-sensitive card metadata so Apple Wallet can discover the issuer. */
+export async function rememberCardForWallet(card: {
+    peanutCardId: string
+    last4: string
+    displayName?: string
+}): Promise<void> {
+    await PushProvisioning.call('rememberCard', card, () => undefined)
+}
+
+/** Keep the app's current JWT in the keychain access group used by Wallet. */
+export async function syncWalletSession(token: string): Promise<void> {
+    await PushProvisioning.call('setWalletSession', { token }, () => undefined)
+}
+
+/** Remove the Wallet extension's bearer credential and card metadata on logout. */
+export async function clearWalletSession(): Promise<void> {
+    await PushProvisioning.call('clearWalletSession', {}, () => undefined)
+}
+
+/** Cache the current short-lived step-up proof for a direct Wallet invocation. */
+export async function syncWalletStepUpToken(token: string, expiresIn: number): Promise<void> {
+    await PushProvisioning.call('setWalletStepUpToken', { token, expiresIn }, () => undefined)
+}
+
+/** Drop the extension copy when the in-app step-up proof is invalidated. */
+export async function clearWalletStepUpToken(): Promise<void> {
+    await PushProvisioning.call('clearWalletStepUpToken', {}, () => undefined)
 }

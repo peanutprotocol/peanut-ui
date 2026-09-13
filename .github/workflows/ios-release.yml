@@ -18,6 +18,8 @@ name: App Release iOS
 #   APPLE_TEAM_ID                                  Apple Developer team id
 #   IOS_DIST_CERT_P12_BASE64 / IOS_DIST_CERT_PASSWORD   Apple Distribution cert (.p12, base64) + its password
 #   IOS_PROVISIONING_PROFILE_BASE64                App Store provisioning profile (.mobileprovision, base64)
+#   IOS_WALLET_EXTENSION_PROVISIONING_PROFILE_BASE64      issuer extension profile
+#   IOS_WALLET_EXTENSION_UI_PROVISIONING_PROFILE_BASE64   authorization UI extension profile
 #   SUBMODULE_TOKEN                                read access to the src/content submodule
 # Plus the production NEXT_PUBLIC_* the static export bakes in (see the env step).
 
@@ -243,10 +245,46 @@ jobs:
                       exit 1
                   fi
 
+            - name: Install Wallet extension provisioning profiles
+              id: wallet_provision
+              env:
+                  IOS_WALLET_EXTENSION_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_WALLET_EXTENSION_PROVISIONING_PROFILE_BASE64 }}
+                  IOS_WALLET_EXTENSION_UI_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_WALLET_EXTENSION_UI_PROVISIONING_PROFILE_BASE64 }}
+              run: |
+                  if [ -z "$IOS_WALLET_EXTENSION_PROVISIONING_PROFILE_BASE64" ] || [ -z "$IOS_WALLET_EXTENSION_UI_PROVISIONING_PROFILE_BASE64" ]; then
+                    echo "::error::Wallet issuer extension provisioning profiles are required after Apple grants payment-pass-provisioning"
+                    exit 1
+                  fi
+                  PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+                  mkdir -p "$PROFILE_DIR"
+                  install_wallet_profile() {
+                    local encoded="$1"
+                    local label="$2"
+                    local path="/tmp/$label.mobileprovision"
+                    local plist="/tmp/$label.plist"
+                    printf '%s' "$encoded" | base64 -d > "$path"
+                    security cms -D -i "$path" > "$plist"
+                    local uuid=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$plist")
+                    local name=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$plist")
+                    local payment=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:com.apple.developer.payment-pass-provisioning' "$plist" 2>/dev/null || true)
+                    if [ "$payment" != "true" ]; then
+                      echo "::error::$label profile does not contain com.apple.developer.payment-pass-provisioning — Apple approval and a regenerated profile are required"
+                      exit 1
+                    fi
+                    cp "$path" "$PROFILE_DIR/$uuid.mobileprovision"
+                    echo "$label profile: $name ($uuid)"
+                    output_name="${label//-/_}_name"
+                    echo "$output_name=$name" >> "$GITHUB_OUTPUT"
+                  }
+                  install_wallet_profile "$IOS_WALLET_EXTENSION_PROVISIONING_PROFILE_BASE64" wallet-extension
+                  install_wallet_profile "$IOS_WALLET_EXTENSION_UI_PROVISIONING_PROFILE_BASE64" wallet-extension-ui
+
             - name: Archive & export IPA
               env:
                   APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
                   PROFILE_NAME: ${{ steps.provision.outputs.name }}
+                  WALLET_EXTENSION_PROFILE_NAME: ${{ steps.wallet_provision.outputs.wallet_extension_name }}
+                  WALLET_EXTENSION_UI_PROFILE_NAME: ${{ steps.wallet_provision.outputs.wallet_extension_ui_name }}
                   # Monotonic, always-increments-even-on-rerun. TestFlight requires each
                   # upload's build number to exceed the last.
                   IOS_BUILD_NUMBER: ${{ github.run_number }}
@@ -282,6 +320,10 @@ jobs:
                       <dict>
                           <key>me.peanut.wallet</key>
                           <string>${PROFILE_NAME}</string>
+                          <key>me.peanut.wallet.PushProvisioningExtension</key>
+                          <string>${WALLET_EXTENSION_PROFILE_NAME}</string>
+                          <key>me.peanut.wallet.PushProvisioningExtensionUI</key>
+                          <string>${WALLET_EXTENSION_UI_PROFILE_NAME}</string>
                       </dict>
                       <key>uploadSymbols</key>
                       <true/>
@@ -332,6 +374,22 @@ jobs:
                       echo "::error::exported ipa aps-environment is '${APS:-missing}', expected production — push would be dead in this build"
                       exit 1
                   fi
+                  for EXT in PushProvisioningExtension PushProvisioningExtensionUI; do
+                      EXT_PATH="/tmp/ipa-check/Payload/App.app/PlugIns/$EXT.appex"
+                      if [ ! -d "$EXT_PATH" ]; then
+                          echo "::error::exported ipa is missing $EXT.appex"
+                          exit 1
+                      fi
+                      PAYMENT=$(
+                          codesign -d --entitlements :- "$EXT_PATH" 2>/dev/null \
+                              | plutil -extract com.apple.developer.payment-pass-provisioning raw -o - - 2>/dev/null || true
+                      )
+                      if [ "$PAYMENT" != "1" ]; then
+                          echo "::error::$EXT.appex is missing the Apple payment-pass-provisioning entitlement"
+                          exit 1
+                      fi
+                  done
+                  echo "Wallet issuer extensions and payment-pass-provisioning entitlement present"
                   # An empty, unexpanded, or malformed SentryDSN ships a build with native
                   # crash reporting silently off — sentry-cocoa disables itself on a DSN it
                   # cannot parse, and nothing downstream would tell us. Stricter than the
