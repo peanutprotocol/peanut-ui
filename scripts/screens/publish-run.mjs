@@ -6,6 +6,7 @@ import { integrationBase } from './integration.mjs'
 import { reviewProvenance } from './review-provenance.mjs'
 import { verifyRunIdentity } from './run-identity.mjs'
 import { selectCaptureArtifact, selectCapturePairs } from './capture-artifacts.mjs'
+import { selectBaselineArtifacts } from './baseline-artifacts.mjs'
 import { normalizePublicOrigin } from './public-origin.mjs'
 const LOCALES = {
     en: 'English',
@@ -106,7 +107,7 @@ function verifyExternalBaseline(expected) {
     if (!validArtifacts.length) throw new Error('External baseline artifact is missing or expired')
     if (baselineArtifact && !validArtifacts.some((artifact) => artifact.name === baselineArtifact))
         throw new Error('External baseline artifact identity mismatch')
-    return baselineDir
+    return { dir: baselineDir, kind: dailyBaseline ? 'daily' : 'integration', artifact: baselineArtifact }
 }
 
 const captureNames = readdirSync('incoming')
@@ -135,15 +136,23 @@ if (capturePairs.length) {
 } else {
     if (run.event !== 'pull_request' || requiresSameRunBaseline || !process.env.SCREEN_LIBRARY_BASELINE_DIR)
         throw new Error('No complete before/after capture artifact pairs were found in this run')
-    const baselineDir = verifyExternalBaseline(expectedBase)
-    const baselineDirs = readdirSync(baselineDir, { withFileTypes: true })
+    const baseline = verifyExternalBaseline(expectedBase)
+    const baselineDirNames = readdirSync(baseline.dir, { withFileTypes: true })
         .filter((entry) => entry.isDirectory())
-        .map((entry) => join(baselineDir, entry.name))
-    if (existsSync(join(baselineDir, 'capture.json'))) baselineDirs.push(baselineDir)
+        .map((entry) => entry.name)
+    const selectedBaselineArtifacts = selectBaselineArtifacts(baselineDirNames, baseline.kind, expectedBase)
+    if (selectedBaselineArtifacts.length !== Object.keys(LOCALES).length)
+        throw new Error('External baseline is missing one or more locale artifacts')
+    if (baseline.artifact && !baselineDirNames.includes(baseline.artifact))
+        throw new Error('External baseline artifact was not downloaded')
     const baselines = new Map()
-    for (const dir of baselineDirs) {
-        if (!existsSync(join(dir, 'capture.json'))) continue
+    for (const artifact of selectedBaselineArtifacts) {
+        const dir = join(baseline.dir, artifact.name)
+        if (!existsSync(join(dir, 'capture.json')))
+            throw new Error(`External baseline artifact is missing capture.json: ${artifact.name}`)
         const capture = validateCapture(JSON.parse(readFileSync(join(dir, 'capture.json'), 'utf8')))
+        if (capture.locale !== artifact.locale || capture.commit !== expectedBase)
+            throw new Error(`External baseline artifact identity mismatch: ${artifact.name}`)
         baselines.set(capture.locale, dir)
     }
     capturePairs = Object.keys(LOCALES).map((locale) => {

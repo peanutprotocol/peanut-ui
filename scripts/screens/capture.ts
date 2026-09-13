@@ -9,6 +9,7 @@ import { APP_LOCALES, type AppLocale } from '../../src/i18n/app/config'
 import { answer, ADAPTER_VERSION } from './adapter'
 import { hash, storeAsset, validateCapture, materializeCatalogue } from './core.mjs'
 import { captureExitCode } from './capture-status.mjs'
+import { localizedCaptureText } from './capture-copy.mjs'
 
 import { routePatterns, routePatternFor } from './routes.mjs'
 import { inventory } from './inventory.mjs'
@@ -21,6 +22,7 @@ async function main() {
         localeArg = arg('locale', 'en')
     if (!APP_LOCALES.includes(localeArg as AppLocale)) throw new Error(`Unsupported capture locale: ${localeArg}`)
     const captureLocale = localeArg as AppLocale
+    const captureText = localizedCaptureText(captureLocale)
     const target = new URL(arg('url', 'http://127.0.0.1:3080'))
     if (!['127.0.0.1', 'localhost'].includes(target.hostname))
         throw new Error('Capture only supports isolated local builds')
@@ -155,6 +157,11 @@ async function main() {
     try {
         for (const screen of SCREENS) {
             const metadata = { id: screen.id, name: screen.name, flow: screen.flow, kind: screen.kind }
+            const expectedText = screen.expectText ? captureText(screen.expectText) : undefined
+            const clicks = screen.clicks.map(captureText)
+            const actions = screen.actions?.map((action) =>
+                'click' in action ? { ...action, click: captureText(action.click) } : action
+            )
             if (
                 (screen.requiresSource && !existsSync(join(source, screen.requiresSource))) ||
                 screen.exclusion ||
@@ -388,14 +395,14 @@ async function main() {
                     throw new Error(
                         `HTTP ${response?.status()} for requested route (expected ${screen.expectedHttpStatus})`
                     )
-                if (screen.expectText)
+                if (expectedText)
                     await page
-                        .getByText(screen.expectText, { exact: false })
+                        .getByText(expectedText, { exact: false })
                         .first()
                         .waitFor({ state: 'visible', timeout: 15000 })
-                for (const label of screen.clicks)
+                for (const label of clicks)
                     await page.getByText(label, { exact: false }).first().click({ timeout: 10000 })
-                for (const action of screen.actions ?? []) {
+                for (const action of actions ?? []) {
                     if ('click' in action) await page.getByText(action.click, { exact: false }).first().click()
                     else await page.locator(action.fill.selector).fill(action.fill.value)
                 }
@@ -508,10 +515,7 @@ async function main() {
                     previous = next
                 }
                 if (!stable) throw new Error('Screen did not stabilize')
-                if (
-                    screen.expectText &&
-                    !(await page.getByText(screen.expectText, { exact: false }).first().isVisible())
-                )
+                if (expectedText && !(await page.getByText(expectedText, { exact: false }).first().isVisible()))
                     throw new Error('Expected screen content disappeared before capture')
                 if (transportFailures.size)
                     throw new Error(`Local build transport failed: ${[...transportFailures].join(', ')}`)
