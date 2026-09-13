@@ -27,8 +27,6 @@ function mantecaCorridor(railId: string, country: string, currency: string, id: 
         matching: {
             nameOnAccount: 'provider',
             sender: 'own-name-only',
-            memo: 'none',
-            amount: 'exact',
         },
     }
 }

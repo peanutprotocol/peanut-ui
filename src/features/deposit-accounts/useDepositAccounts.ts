@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { trackClaimFailed, trackClaimStarted } from './analytics'
 import { mantecaArgentinaAccount, mantecaBrazilAccount } from './mantecaCorridors'
 import { DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, railIdFor } from './rails'
-import type { DepositAccount, DepositCorridor } from './types'
+import type { DepositAccount, DepositAccountView, DepositCorridor } from './types'
 
 export const DEPOSIT_ACCOUNTS_QUERY_KEY = ['deposit-accounts'] as const
 
@@ -23,7 +23,7 @@ export interface DepositClaimError {
 }
 
 export interface UseDepositAccountsResult {
-    accounts: Record<DepositCorridor, DepositAccount | undefined>
+    accounts: Record<DepositCorridor, DepositAccountView | undefined>
     /** the capability gate for EACH corridor, asked one rail id at a time */
     gates: Record<DepositCorridor, GateState>
     isLoading: boolean
@@ -45,7 +45,7 @@ export interface UseDepositAccountsResult {
  * that never resolves until they navigate away and back. The interval is
  * capped: past two minutes the provider is not coming back on its own, and an
  * uncapped 5s poll on a phone left open is a battery bill with no answer at
- * the end of it. The corridor reads as failed then, which is the one state
+ * the end of it. The corridor reads as timed out then, which is the one state
  * with a retry on it.
  */
 export function useDepositAccounts(): UseDepositAccountsResult {
@@ -55,7 +55,7 @@ export function useDepositAccounts(): UseDepositAccountsResult {
     const [claimError, setClaimError] = useState<DepositClaimError | undefined>()
 
     // answers that still said "provisioning", counted since the last one that
-    // did not — the poll's budget, and what turns the wait into a failure
+    // did not — the poll's budget, and what ends the wait
     const [provisioningPolls, setProvisioningPolls] = useState(0)
 
     const query = useQuery({
@@ -109,8 +109,8 @@ export function useDepositAccounts(): UseDepositAccountsResult {
      * details a NEW payer should be given, so it decides — response order must
      * not, or a rotation can put retired details in a payroll form.
      */
-    const accounts = useMemo((): Record<DepositCorridor, DepositAccount | undefined> => {
-        const byCorridor: Record<DepositCorridor, DepositAccount | undefined> = {
+    const accounts = useMemo((): Record<DepositCorridor, DepositAccountView | undefined> => {
+        const byCorridor: Record<DepositCorridor, DepositAccountView | undefined> = {
             ACH_US: undefined,
             SEPA_EU: undefined,
             FASTER_PAYMENTS_GB: undefined,
@@ -121,12 +121,14 @@ export function useDepositAccounts(): UseDepositAccountsResult {
         for (const account of query.data ?? []) {
             const corridor = corridorFromRailId(account.railId)
             if (!corridor) continue
-            // The wait is over and the provider never answered. `failed` is the
-            // honest name for it AND the only state the details screen offers a
-            // retry on — a skeleton that stopped refreshing offers nothing.
+            // The wait is over and the provider never answered. The status
+            // stays `provisioning`, because that is still what the backend
+            // says; `timedOut` is the client's own answer, and the only state
+            // the details screen offers a retry on — a skeleton that stopped
+            // refreshing offers nothing.
             const resolved =
                 provisioningTimedOut && account.status === 'provisioning'
-                    ? { ...account, status: 'failed' as const }
+                    ? { ...account, timedOut: true as const }
                     : account
             byCorridor[corridor] = preferred(byCorridor[corridor], resolved)
         }
@@ -176,10 +178,10 @@ function hasProvisioning(accounts: DepositAccount[] | undefined): boolean {
  * wins, and only then does arrival order decide, so the worst case is
  * arbitrary rather than wrong.
  */
-function preferred(current: DepositAccount | undefined, next: DepositAccount): DepositAccount {
+function preferred(current: DepositAccountView | undefined, next: DepositAccountView): DepositAccountView {
     if (!current) return next
     if (next.isPrimary !== current.isPrimary) return next.isPrimary ? next : current
-    const retiring = (account: DepositAccount) => account.status === 'retiring'
+    const retiring = (account: DepositAccountView) => account.status === 'retiring'
     if (retiring(current) !== retiring(next)) return retiring(current) ? next : current
     return current
 }

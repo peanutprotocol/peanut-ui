@@ -73,7 +73,6 @@ describe('instructionRowKeys renders the rows a corridor actually has', () => {
         expect(
             keysOf({
                 accountHolderName: 'Ana Pérez',
-                taxId: '20-12345678-9',
                 bankName: 'Banco',
                 iban: 'DE89',
                 bic: 'NOWWDEFF',
@@ -81,7 +80,7 @@ describe('instructionRowKeys renders the rows a corridor actually has', () => {
                 beneficiaryAddress: 'Calle 2',
                 paymentRails: ['sepa'],
             })
-        ).toEqual(['accountHolder', 'taxId', 'bank', 'iban', 'bic', 'bankAddress', 'beneficiaryAddress', 'accepts'])
+        ).toEqual(['accountHolder', 'bank', 'iban', 'bic', 'bankAddress', 'beneficiaryAddress', 'accepts'])
     })
 
     it('drops every row the provider left empty, and the accepts row with no rail', () => {

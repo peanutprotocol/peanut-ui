@@ -1,7 +1,7 @@
 import { depositGateView } from './depositGate'
 import { isClaimable, isShareable } from './rails'
 import type { DepositAccountScreen } from './params'
-import type { DepositAccount, DepositRail } from './types'
+import type { DepositAccountView, DepositRail } from './types'
 import type { GateState } from '@/utils/capability-gate'
 
 /**
@@ -26,14 +26,14 @@ import type { GateState } from '@/utils/capability-gate'
  * Does the user already hold this account? A held account has details to read
  * whatever the gate says later — the gate governs opening a new one.
  */
-export function isHeld(account: DepositAccount | undefined): boolean {
+export function isHeld(account: DepositAccountView | undefined): boolean {
     return account !== undefined && account.status !== 'unclaimed'
 }
 
 export function resolveScreen(
     requested: DepositAccountScreen,
     rail: DepositRail,
-    account: DepositAccount | undefined,
+    account: DepositAccountView | undefined,
     gate: GateState
 ): DepositAccountScreen {
     const { claimable } = depositGateView(gate)

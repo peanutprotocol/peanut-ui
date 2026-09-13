@@ -4,9 +4,8 @@
  * the screens read the policy fields below and never branch on the provider.
  *
  * The policy fields are the whole design. Whether the payer sees the user's
- * name, whether a stranger may pay at all, whether a reference must travel
- * with the payment, whether the amount is fixed — each differs per corridor
- * today, and each changes what the UI is allowed to say.
+ * name and whether a stranger may pay at all differ per corridor today, and
+ * each changes what the UI is allowed to say.
  */
 
 type DepositProvider = 'bridge' | 'manteca'
@@ -18,20 +17,12 @@ export type DepositCorridor = 'ACH_US' | 'SEPA_EU' | 'FASTER_PAYMENTS_GB' | 'SPE
  * `provisioning` — claimed, the provider has not returned details yet.
  * `active` — details are ready to share.
  * `unavailable` — the corridor cannot serve this user (region, provider).
- * `failed` — provisioning was attempted and did not complete.
- * `revoked` — the account existed and no longer accepts money. Distinct from
- *   `failed` on purpose: the details are in somebody else's payroll file, and
- *   Bridge returns anything sent to a deactivated account, so the user has to
- *   be told to stop handing them out rather than to try again.
+ * `revoked` — the account existed and no longer accepts money. It gets its own
+ *   state because the details are in somebody else's payroll file, and Bridge
+ *   returns anything sent to a deactivated account, so the user has to be told
+ *   to stop handing them out rather than to try again.
  */
-export type DepositAccountStatus =
-    | 'unclaimed'
-    | 'provisioning'
-    | 'active'
-    | 'retiring'
-    | 'unavailable'
-    | 'failed'
-    | 'revoked'
+export type DepositAccountStatus = 'unclaimed' | 'provisioning' | 'active' | 'retiring' | 'unavailable' | 'revoked'
 
 /** whose name the payer reads on the account */
 type NameOnAccount = 'user' | 'provider'
@@ -48,17 +39,9 @@ type NameOnAccount = 'user' | 'provider'
  */
 export type SenderPolicy = 'anyone' | 'business-only' | 'own-name-only' | 'unknown'
 
-/** whether a reference must travel with the payment for it to arrive */
-type MemoPolicy = 'none' | 'required'
-
-/** whether the account accepts any amount or one agreed amount per payment */
-type AmountPolicy = 'flexible' | 'exact'
-
 export interface DepositMatching {
     nameOnAccount: NameOnAccount
     sender: SenderPolicy
-    memo: MemoPolicy
-    amount: AmountPolicy
 }
 
 /**
@@ -90,9 +73,9 @@ export interface DepositRules {
 /**
  * Provider instructions, normalised. Every field is optional except the
  * holder name, because corridors genuinely differ: Mexican SPEI returns a
- * CLABE and no bank name at all, UK Faster Payments returns no beneficiary
- * name, and Argentine transfers return a CVU with a tax id. Presence is the
- * only reliable signal — never assume a field by currency.
+ * CLABE and no bank name at all, and UK Faster Payments returns no beneficiary
+ * name. Presence is the only reliable signal — never assume a field by
+ * currency.
  */
 export interface DepositInstructions {
     accountHolderName: string
@@ -106,10 +89,6 @@ export interface DepositInstructions {
     routingNumber?: string
     sortCode?: string
     clabe?: string
-    cvu?: string
-    alias?: string
-    taxId?: string
-    memo?: string
     /** verbatim provider rail ids, e.g. ['ach_push', 'fednow', 'wire'] */
     paymentRails: string[]
 }
@@ -136,6 +115,19 @@ export interface DepositAccount {
     instructions?: DepositInstructions
 }
 
+/**
+ * What the screens actually render: the account the backend returned, plus the
+ * one fact only the client knows.
+ *
+ * `timedOut` is set when the provisioning poll spent its budget and the
+ * provider never answered. It is not a status: the backend has not said the
+ * account failed, and nothing in this flag ever travels back over the wire —
+ * which is why it sits beside `DepositAccount` rather than inside it.
+ */
+export interface DepositAccountView extends DepositAccount {
+    timedOut?: true
+}
+
 /** presentation facts the provider payload does not carry */
 export interface DepositRail {
     corridor: DepositCorridor
@@ -153,7 +145,6 @@ export interface DepositRail {
 /** every row a corridor can show; the label for each lives in the catalog */
 export type DepositRowKey =
     | 'accountHolder'
-    | 'taxId'
     | 'bank'
     | 'iban'
     | 'bic'
@@ -161,11 +152,8 @@ export type DepositRowKey =
     | 'accountNumber'
     | 'routingNumber'
     | 'clabe'
-    | 'cvu'
-    | 'alias'
     | 'bankAddress'
     | 'beneficiaryAddress'
-    | 'paymentReference'
     | 'accepts'
 
 export type DepositRowLabels = Record<DepositRowKey, string>

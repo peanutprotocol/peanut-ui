@@ -6,8 +6,6 @@ const money = (amount: string, currency: string) => `${currency} ${amount}`
 const matching = (over: Partial<DepositMatching> = {}): DepositMatching => ({
     nameOnAccount: 'user',
     sender: 'anyone',
-    memo: 'none',
-    amount: 'flexible',
     ...over,
 })
 

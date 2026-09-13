@@ -6,8 +6,6 @@ export interface ShareTextCopy {
     introOwn: string
     /** "Bank details to pay {user} in {currency}:" */
     introPooled: string
-    /** "Put {memo} in the reference field…" */
-    reference?: string
     /**
      * The account's rules, in the payer's voice. The text is forwarded to
      * people who will never see a Peanut screen, so every rule the app states
@@ -45,10 +43,6 @@ export function buildShareText(
             .filter((row) => row.copyable !== false)
             .map((row) => `${row.label}: ${row.value}`),
     ]
-
-    if (account.matching.memo === 'required' && copy.reference) {
-        lines.push('', copy.reference)
-    }
 
     if (copy.rules.length > 0) lines.push('', ...copy.rules)
 

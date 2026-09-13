@@ -7,7 +7,7 @@ import { trackDetailsViewed, trackGateBlocked } from '../analytics'
 import { DEPOSIT_ACCOUNT_PARAMS } from '../params'
 import { DEPOSIT_RAILS, isClaimable } from '../rails'
 import { resolveScreen } from '../resolveScreen'
-import type { DepositAccount, DepositCorridor } from '../types'
+import type { DepositAccountView, DepositCorridor } from '../types'
 import type { DepositClaimError } from '../useDepositAccounts'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
@@ -20,7 +20,7 @@ import { DepositAccountsListScreen } from './DepositAccountsListScreen'
 import { ShareDepositDetailsScreen } from './ShareDepositDetailsScreen'
 
 export interface DepositAccountsFlowProps {
-    accounts: Record<DepositCorridor, DepositAccount | undefined>
+    accounts: Record<DepositCorridor, DepositAccountView | undefined>
     /** `gateFor('deposit', { railId })` per corridor — the app primitive, one rail at a time */
     gates: Record<DepositCorridor, GateState>
     /** true until the held accounts are known — the corridor list is local, they are not */
@@ -85,7 +85,10 @@ export function DepositAccountsFlow({
         if (gateBlocked) trackGateBlocked(corridor, gate.kind)
     }, [gateBlocked, corridor, gate.kind])
 
-    const viewedStatus = resolved === 'details' && account ? account.status : undefined
+    // the client's own timeout is reported as its own state — a details view
+    // that gave up is not the same event as one still waiting
+    const viewedStatus =
+        resolved === 'details' && account ? (account.timedOut ? 'timed-out' : account.status) : undefined
     useEffect(() => {
         if (viewedStatus) trackDetailsViewed(corridor, viewedStatus)
     }, [viewedStatus, corridor])

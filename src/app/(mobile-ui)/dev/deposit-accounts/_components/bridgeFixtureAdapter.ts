@@ -118,7 +118,7 @@ function isUserName(holder: string, userLegalName: string): boolean {
  * reference — verified against sandbox on 2026-09-11: no `deposit_message`,
  * no reference field, on any corridor. That is the whole difference from the
  * transfers SKU we run today, where every deposit is one pre-agreed amount
- * with a mandatory memo.
+ * with a mandatory memo, and it is why neither is a policy field.
  */
 export function fromBridgeVirtualAccount(raw: BridgeVirtualAccount, userLegalName: string): DepositAccount | null {
     const source = raw.source_deposit_instructions
@@ -139,8 +139,6 @@ export function fromBridgeVirtualAccount(raw: BridgeVirtualAccount, userLegalNam
         matching: {
             nameOnAccount: isUserName(instructions.accountHolderName, userLegalName) ? 'user' : 'provider',
             sender,
-            memo: 'none',
-            amount: 'flexible',
         },
         ...(rules ? { rules } : {}),
         instructions,

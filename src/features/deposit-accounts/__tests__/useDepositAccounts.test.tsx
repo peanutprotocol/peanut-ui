@@ -31,7 +31,7 @@ const account = (over: Partial<DepositAccount> = {}): DepositAccount => ({
     currency: 'EUR',
     status: 'active',
     isPrimary: true,
-    matching: { nameOnAccount: 'user', sender: 'unknown', memo: 'none', amount: 'flexible' },
+    matching: { nameOnAccount: 'user', sender: 'unknown' },
     instructions: { accountHolderName: 'Ana Pérez', iban: 'DE00', paymentRails: ['sepa'] },
     ...over,
 })
@@ -130,7 +130,7 @@ describe('useDepositAccounts caps the provisioning poll', () => {
     beforeEach(() => jest.useFakeTimers())
     afterEach(() => jest.useRealTimers())
 
-    it('reads the corridor as failed once the budget is spent, and stops asking', async () => {
+    it('marks the corridor timed out once the budget is spent, and stops asking', async () => {
         fetchDepositAccounts.mockResolvedValue([account({ status: 'provisioning' })])
 
         const { result } = renderHook(() => useDepositAccounts(), { wrapper })
@@ -144,7 +144,10 @@ describe('useDepositAccounts caps the provisioning poll', () => {
             })
         }
 
-        await waitFor(() => expect(result.current.accounts.SEPA_EU?.status).toBe('failed'))
+        // the provider never said the account failed, so the wire status
+        // stands and the timeout is the client's own answer beside it
+        await waitFor(() => expect(result.current.accounts.SEPA_EU?.timedOut).toBe(true))
+        expect(result.current.accounts.SEPA_EU?.status).toBe('provisioning')
         const callsAtTimeout = fetchDepositAccounts.mock.calls.length
         await act(async () => {
             jest.advanceTimersByTime(PROVISIONING_POLL_MS * 5)

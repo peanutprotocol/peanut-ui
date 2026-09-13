@@ -162,7 +162,7 @@ const DEPOSIT_ACCOUNT_USD = {
     currency: 'USD',
     status: 'active',
     isPrimary: true,
-    matching: { nameOnAccount: 'user', sender: 'anyone', memo: 'none', amount: 'flexible' },
+    matching: { nameOnAccount: 'user', sender: 'anyone' },
     rules: {
         individualPerPaymentCap: { amount: '4000', currency: 'USD' },
         familySameSurnameExempt: true,
@@ -200,7 +200,7 @@ const DEPOSIT_ACCOUNT_EUR = {
     currency: 'EUR',
     status: 'active',
     isPrimary: true,
-    matching: { nameOnAccount: 'user', sender: 'business-only', memo: 'none', amount: 'flexible' },
+    matching: { nameOnAccount: 'user', sender: 'business-only' },
     rules: { businessesUnlimited: true, individualsAllowed: false, min: { amount: '1', currency: 'EUR' } },
     instructions: {
         accountHolderName: HOLDER,
@@ -222,7 +222,7 @@ const DEPOSIT_ACCOUNT_GBP = {
     currency: 'GBP',
     status: 'active',
     isPrimary: true,
-    matching: { nameOnAccount: 'user', sender: 'business-only', memo: 'none', amount: 'flexible' },
+    matching: { nameOnAccount: 'user', sender: 'business-only' },
     instructions: {
         accountHolderName: HOLDER,
         bankName: 'Clear Junction Limited',
@@ -244,7 +244,7 @@ const DEPOSIT_ACCOUNT_MXN = {
     currency: 'MXN',
     status: 'active',
     isPrimary: true,
-    matching: { nameOnAccount: 'user', sender: 'unknown', memo: 'none', amount: 'flexible' },
+    matching: { nameOnAccount: 'user', sender: 'unknown' },
     instructions: {
         accountHolderName: HOLDER,
         clabe: '646180111800000000',
@@ -762,8 +762,12 @@ export const FIXTURES: Record<string, Fixture> = {
 
     // ---------------------------------------------------------------------
     // Standing deposit accounts (/get-paid). One fixture per state a payer or
-    // a holder can be looking at — the four policy fields on `matching` are
+    // a holder can be looking at — the two policy fields on `matching` are
     // what each screen reads, so the states differ by policy, not by country.
+    //
+    // The timed-out details screen has no fixture on purpose: it is reached
+    // only after the client spends its provisioning poll budget, which no set
+    // of mocked responses can produce. `useDepositAccounts.test` covers it.
     // ---------------------------------------------------------------------
     'get-paid': {
         route: '/get-paid',
@@ -833,16 +837,6 @@ export const FIXTURES: Record<string, Fixture> = {
             ...VA_READY_RESPONSE,
             'GET /users/deposit-accounts': {
                 depositAccounts: [{ ...DEPOSIT_ACCOUNT_USD, status: 'provisioning', instructions: undefined }],
-            },
-        },
-    },
-    'get-paid-failed': {
-        route: '/get-paid?step=details&corridor=ACH_US',
-        about: 'Opening the account did not complete; the user can try again.',
-        responses: {
-            ...VA_READY_RESPONSE,
-            'GET /users/deposit-accounts': {
-                depositAccounts: [{ ...DEPOSIT_ACCOUNT_USD, status: 'failed', instructions: undefined }],
             },
         },
     },

@@ -49,17 +49,6 @@ describe('bridge adapter', () => {
         expect(byCurrency('GBP').matching.nameOnAccount).toBe('provider')
     })
 
-    it('carries no reference on any corridor', () => {
-        accounts.forEach((account) => {
-            expect(account.matching.memo).toBe('none')
-            expect(account.instructions?.memo).toBeUndefined()
-        })
-    })
-
-    it('takes any amount on every corridor', () => {
-        accounts.forEach((account) => expect(account.matching.amount).toBe('flexible'))
-    })
-
     /**
      * The harness mirrors peanut-api-ts `src/deposit-accounts/bridge-adapter.ts`,
      * which reads `product/providers/fiat/bridge-contracts-and-rail-rules.md`

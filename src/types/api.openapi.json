@@ -17553,9 +17553,6 @@
                                                             "accountNumber": {
                                                                 "type": "string"
                                                             },
-                                                            "alias": {
-                                                                "type": "string"
-                                                            },
                                                             "bankAddress": {
                                                                 "type": "string"
                                                             },
@@ -17574,13 +17571,7 @@
                                                             "clabe": {
                                                                 "type": "string"
                                                             },
-                                                            "cvu": {
-                                                                "type": "string"
-                                                            },
                                                             "iban": {
-                                                                "type": "string"
-                                                            },
-                                                            "memo": {
                                                                 "type": "string"
                                                             },
                                                             "paymentRails": {
@@ -17593,9 +17584,6 @@
                                                                 "type": "string"
                                                             },
                                                             "sortCode": {
-                                                                "type": "string"
-                                                            },
-                                                            "taxId": {
                                                                 "type": "string"
                                                             }
                                                         },
@@ -17610,38 +17598,6 @@
                                                     },
                                                     "matching": {
                                                         "properties": {
-                                                            "amount": {
-                                                                "anyOf": [
-                                                                    {
-                                                                        "enum": [
-                                                                            "flexible"
-                                                                        ],
-                                                                        "type": "string"
-                                                                    },
-                                                                    {
-                                                                        "enum": [
-                                                                            "exact"
-                                                                        ],
-                                                                        "type": "string"
-                                                                    }
-                                                                ]
-                                                            },
-                                                            "memo": {
-                                                                "anyOf": [
-                                                                    {
-                                                                        "enum": [
-                                                                            "none"
-                                                                        ],
-                                                                        "type": "string"
-                                                                    },
-                                                                    {
-                                                                        "enum": [
-                                                                            "required"
-                                                                        ],
-                                                                        "type": "string"
-                                                                    }
-                                                                ]
-                                                            },
                                                             "nameOnAccount": {
                                                                 "anyOf": [
                                                                     {
@@ -17689,9 +17645,7 @@
                                                         },
                                                         "required": [
                                                             "nameOnAccount",
-                                                            "sender",
-                                                            "memo",
-                                                            "amount"
+                                                            "sender"
                                                         ],
                                                         "type": "object"
                                                     },
@@ -17771,12 +17725,6 @@
                                                             {
                                                                 "enum": [
                                                                     "revoked"
-                                                                ],
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "enum": [
-                                                                    "failed"
                                                                 ],
                                                                 "type": "string"
                                                             }
@@ -17872,9 +17820,6 @@
                                                         "accountNumber": {
                                                             "type": "string"
                                                         },
-                                                        "alias": {
-                                                            "type": "string"
-                                                        },
                                                         "bankAddress": {
                                                             "type": "string"
                                                         },
@@ -17893,13 +17838,7 @@
                                                         "clabe": {
                                                             "type": "string"
                                                         },
-                                                        "cvu": {
-                                                            "type": "string"
-                                                        },
                                                         "iban": {
-                                                            "type": "string"
-                                                        },
-                                                        "memo": {
                                                             "type": "string"
                                                         },
                                                         "paymentRails": {
@@ -17912,9 +17851,6 @@
                                                             "type": "string"
                                                         },
                                                         "sortCode": {
-                                                            "type": "string"
-                                                        },
-                                                        "taxId": {
                                                             "type": "string"
                                                         }
                                                     },
@@ -17929,38 +17865,6 @@
                                                 },
                                                 "matching": {
                                                     "properties": {
-                                                        "amount": {
-                                                            "anyOf": [
-                                                                {
-                                                                    "enum": [
-                                                                        "flexible"
-                                                                    ],
-                                                                    "type": "string"
-                                                                },
-                                                                {
-                                                                    "enum": [
-                                                                        "exact"
-                                                                    ],
-                                                                    "type": "string"
-                                                                }
-                                                            ]
-                                                        },
-                                                        "memo": {
-                                                            "anyOf": [
-                                                                {
-                                                                    "enum": [
-                                                                        "none"
-                                                                    ],
-                                                                    "type": "string"
-                                                                },
-                                                                {
-                                                                    "enum": [
-                                                                        "required"
-                                                                    ],
-                                                                    "type": "string"
-                                                                }
-                                                            ]
-                                                        },
                                                         "nameOnAccount": {
                                                             "anyOf": [
                                                                 {
@@ -18008,9 +17912,7 @@
                                                     },
                                                     "required": [
                                                         "nameOnAccount",
-                                                        "sender",
-                                                        "memo",
-                                                        "amount"
+                                                        "sender"
                                                     ],
                                                     "type": "object"
                                                 },
@@ -18090,12 +17992,6 @@
                                                         {
                                                             "enum": [
                                                                 "revoked"
-                                                            ],
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "enum": [
-                                                                "failed"
                                                             ],
                                                             "type": "string"
                                                         }

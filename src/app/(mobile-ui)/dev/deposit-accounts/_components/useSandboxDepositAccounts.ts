@@ -4,7 +4,7 @@ import fixture from './bridge-sandbox-virtual-accounts.json'
 import { fromBridgeVirtualAccounts, type BridgeVirtualAccount } from './bridgeFixtureAdapter'
 import { mantecaArgentinaAccount, mantecaBrazilAccount } from '@/features/deposit-accounts/mantecaCorridors'
 import { DEPOSIT_RAIL_ORDER } from '@/features/deposit-accounts/rails'
-import type { DepositAccount, DepositCorridor } from '@/features/deposit-accounts/types'
+import type { DepositAccount, DepositAccountView, DepositCorridor } from '@/features/deposit-accounts/types'
 import { corridorFromRailId } from '@/features/deposit-accounts/useDepositAccounts'
 import type { GateState } from '@/utils/capability-gate'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -15,7 +15,7 @@ export const SANDBOX_USER_NAME = 'Sandbox User'
 /** how long a claim spends provisioning before the details appear */
 const PROVISIONING_MS = 1400
 
-export type SandboxScenario = 'live' | 'all-claimed' | 'provisioning' | 'failed' | 'kyc'
+export type SandboxScenario = 'live' | 'all-claimed' | 'provisioning' | 'timed-out' | 'kyc'
 
 /**
  * The prototype's data source: real Bridge sandbox payloads, captured by
@@ -57,7 +57,7 @@ export function useSandboxDepositAccounts(scenario: SandboxScenario) {
     }, [])
 
     const accounts = useMemo(() => {
-        const byCorridor: Record<DepositCorridor, DepositAccount | undefined> = {
+        const byCorridor: Record<DepositCorridor, DepositAccountView | undefined> = {
             ACH_US: undefined,
             SEPA_EU: undefined,
             FASTER_PAYMENTS_GB: undefined,
@@ -103,9 +103,11 @@ function withScenarioStatus(
     scenario: SandboxScenario,
     claimed: DepositCorridor[],
     claiming: DepositCorridor | undefined
-): DepositAccount {
+): DepositAccountView {
     if (scenario === 'provisioning') return { ...account, status: 'provisioning' }
-    if (scenario === 'failed') return { ...account, status: 'failed' }
+    // the wait the app gives the provider, spent — a client-side state, so the
+    // status stays what the provider last said
+    if (scenario === 'timed-out') return { ...account, status: 'provisioning', timedOut: true }
     if (scenario === 'all-claimed') return account
 
     if (claiming === corridor) return { ...account, status: 'provisioning' }

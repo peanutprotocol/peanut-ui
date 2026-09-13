@@ -33,7 +33,7 @@ const heldAccount = (corridor: DepositCorridor): DepositAccount => ({
     currency: 'EUR',
     status: 'active',
     isPrimary: true,
-    matching: { nameOnAccount: 'user', sender: 'anyone', memo: 'none', amount: 'flexible' },
+    matching: { nameOnAccount: 'user', sender: 'anyone' },
 })
 
 const list = (

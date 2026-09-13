@@ -12,7 +12,7 @@ import Link from 'next/link'
 import { rewriteMethodPath } from '@/utils/native-routes'
 import { instructionRows } from '../instructionRows'
 import { isShareable } from '../rails'
-import type { DepositAccount, DepositRail } from '../types'
+import type { DepositAccountView, DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { DepositDetailsCard } from './DepositDetailsCard'
 import { DepositRuleList, RuleWithInfo } from './DepositRuleList'
@@ -41,7 +41,7 @@ export function DepositAccountDetailsScreen({
     onRetry,
 }: {
     rail: DepositRail
-    account: DepositAccount
+    account: DepositAccountView
     /** the name a payer reads when the account is NOT in the user's own name */
     userName: string
     onBack: () => void
@@ -111,7 +111,9 @@ export function DepositAccountDetailsScreen({
         )
     }
 
-    if (account.status === 'failed') {
+    // The provider never answered inside the wait we give it. Only the client
+    // knows this, so it is checked before the status branches below.
+    if (account.timedOut) {
         return (
             <PageStack>
                 <NavHeader title={t('title')} onPrev={onBack} />
@@ -120,11 +122,11 @@ export function DepositAccountDetailsScreen({
                     <TitleBlock
                         align="center"
                         size="s"
-                        title={t('details.failedTitle', { currency: rail.currency })}
-                        description={t('details.failedBody')}
+                        title={t('details.timedOutTitle', { currency: rail.currency })}
+                        description={t('details.timedOutBody')}
                     />
                     <Button variant="purple" className="w-full" onClick={onRetry}>
-                        {t('details.failedRetry')}
+                        {t('details.timedOutRetry')}
                     </Button>
                     <Button variant="transparent" className="w-full" onClick={onBack}>
                         {t('details.unavailableCta')}

@@ -10797,25 +10797,19 @@ export interface paths {
                                 instructions?: {
                                     accountHolderName: string;
                                     accountNumber?: string;
-                                    alias?: string;
                                     bankAddress?: string;
                                     bankName?: string;
                                     beneficiaryAddress?: string;
                                     beneficiaryName?: string;
                                     bic?: string;
                                     clabe?: string;
-                                    cvu?: string;
                                     iban?: string;
-                                    memo?: string;
                                     paymentRails: string[];
                                     routingNumber?: string;
                                     sortCode?: string;
-                                    taxId?: string;
                                 };
                                 isPrimary: boolean;
                                 matching: {
-                                    amount: "flexible" | "exact";
-                                    memo: "none" | "required";
                                     nameOnAccount: "user" | "provider";
                                     sender: "anyone" | "business-only" | "own-name-only" | "unknown";
                                 };
@@ -10835,7 +10829,7 @@ export interface paths {
                                     /** @enum {string} */
                                     reason?: "state-restricted";
                                 };
-                                status: "provisioning" | "active" | "retiring" | "revoked" | "failed";
+                                status: "provisioning" | "active" | "retiring" | "revoked";
                             }[];
                         };
                     };
@@ -10883,25 +10877,19 @@ export interface paths {
                                 instructions?: {
                                     accountHolderName: string;
                                     accountNumber?: string;
-                                    alias?: string;
                                     bankAddress?: string;
                                     bankName?: string;
                                     beneficiaryAddress?: string;
                                     beneficiaryName?: string;
                                     bic?: string;
                                     clabe?: string;
-                                    cvu?: string;
                                     iban?: string;
-                                    memo?: string;
                                     paymentRails: string[];
                                     routingNumber?: string;
                                     sortCode?: string;
-                                    taxId?: string;
                                 };
                                 isPrimary: boolean;
                                 matching: {
-                                    amount: "flexible" | "exact";
-                                    memo: "none" | "required";
                                     nameOnAccount: "user" | "provider";
                                     sender: "anyone" | "business-only" | "own-name-only" | "unknown";
                                 };
@@ -10921,7 +10909,7 @@ export interface paths {
                                     /** @enum {string} */
                                     reason?: "state-restricted";
                                 };
-                                status: "provisioning" | "active" | "retiring" | "revoked" | "failed";
+                                status: "provisioning" | "active" | "retiring" | "revoked";
                             };
                         };
                     };

@@ -73,7 +73,6 @@ export function useDepositAccountCopy() {
     const rowLabels: DepositRowLabels = useMemo(
         () => ({
             accountHolder: t('rows.accountHolder'),
-            taxId: t('rows.taxId'),
             bank: t('rows.bank'),
             iban: t('rows.iban'),
             bic: t('rows.bic'),
@@ -81,11 +80,8 @@ export function useDepositAccountCopy() {
             accountNumber: t('rows.accountNumber'),
             routingNumber: t('rows.routingNumber'),
             clabe: t('rows.clabe'),
-            cvu: t('rows.cvu'),
-            alias: t('rows.alias'),
             bankAddress: t('rows.bankAddress'),
             beneficiaryAddress: t('rows.beneficiaryAddress'),
-            paymentReference: t('rows.paymentReference'),
             accepts: t('rows.accepts'),
         }),
         [t]

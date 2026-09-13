@@ -51,9 +51,6 @@ export function ShareDepositDetailsScreen({
         {
             introOwn: t('share.textIntroOwn', { currency: rail.currency }),
             introPooled: t('share.textIntroPooled', { user: userName, currency: rail.currency }),
-            reference: account.instructions.memo
-                ? t('share.textReference', { memo: account.instructions.memo })
-                : undefined,
             rules,
             outro: t('share.textOutro'),
         },

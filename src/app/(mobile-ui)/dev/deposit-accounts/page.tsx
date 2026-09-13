@@ -13,7 +13,7 @@ const SCENARIOS: { value: SandboxScenario; label: string; hint: string }[] = [
     { value: 'live', label: 'Live', hint: 'Nothing held until you claim it — the real transition' },
     { value: 'all-claimed', label: 'Claimed', hint: 'Every Bridge corridor already active' },
     { value: 'provisioning', label: 'Setting up', hint: 'The skeleton while the provider works' },
-    { value: 'failed', label: 'Failed', hint: 'Provisioning did not complete' },
+    { value: 'timed-out', label: 'Timed out', hint: 'The wait for the provider ran out' },
     { value: 'kyc', label: 'KYC gate', hint: 'Identity not verified yet' },
 ]
 

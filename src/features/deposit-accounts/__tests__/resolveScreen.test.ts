@@ -13,7 +13,7 @@ const account = (over: Partial<DepositAccount> = {}): DepositAccount => ({
     currency: 'EUR',
     isPrimary: true,
     status: 'active',
-    matching: { nameOnAccount: 'user', sender: 'anyone', memo: 'none', amount: 'flexible' },
+    matching: { nameOnAccount: 'user', sender: 'anyone' },
     instructions: { accountHolderName: 'Ana Pérez', paymentRails: ['sepa'] },
     ...over,
 })
@@ -29,7 +29,7 @@ describe('resolveScreen', () => {
     it('sends a share link for own-name-only details back to the details', () => {
         const own = account({
             railId: 'manteca.bank_transfer_ar',
-            matching: { nameOnAccount: 'provider', sender: 'own-name-only', memo: 'none', amount: 'exact' },
+            matching: { nameOnAccount: 'provider', sender: 'own-name-only' },
         })
         expect(resolveScreen('share', ars, own, READY)).toBe('details')
     })

@@ -31,9 +31,9 @@ export function acceptedRails(instructions: DepositInstructions, labels: RailLab
  * who is paid, at which bank, into which account, and what the account
  * accepts.
  *
- * Presence decides, never currency. Mexican SPEI has no bank name; UK Faster
- * Payments has no beneficiary address; Argentine transfers carry a tax id no
- * other corridor has. A row appears when its field does.
+ * Presence decides, never currency. Mexican SPEI has no bank name and UK
+ * Faster Payments has no beneficiary address. A row appears when its field
+ * does.
  */
 export function instructionRowKeys(
     instructions: DepositInstructions,
@@ -47,7 +47,6 @@ export function instructionRowKeys(
         if (value) rows.push({ key, value })
     }
 
-    push('taxId', instructions.taxId)
     push('bank', instructions.bankName)
     push('iban', instructions.iban)
     push('bic', instructions.bic)
@@ -55,13 +54,10 @@ export function instructionRowKeys(
     push('accountNumber', instructions.accountNumber)
     push('routingNumber', instructions.routingNumber)
     push('clabe', instructions.clabe)
-    push('cvu', instructions.cvu)
-    push('alias', instructions.alias)
     push('bankAddress', instructions.bankAddress)
     // the recipient's address, not the bank's — some payroll and bank forms
     // have a field for it, and without a row here a payer pastes the bank's
     push('beneficiaryAddress', instructions.beneficiaryAddress)
-    push('paymentReference', instructions.memo)
 
     if (instructions.paymentRails.length > 0) {
         rows.push({ key: 'accepts', value: acceptedRails(instructions, railLabels) })

@@ -387,7 +387,7 @@ const DEMO_DEPOSIT_ACCOUNT_EUR = {
     currency: 'EUR',
     status: 'active',
     isPrimary: true,
-    matching: { nameOnAccount: 'user', sender: DEPOSIT_RAIL_POLICY.SEPA_EU.sender, memo: 'none', amount: 'flexible' },
+    matching: { nameOnAccount: 'user', sender: DEPOSIT_RAIL_POLICY.SEPA_EU.sender },
     rules: DEPOSIT_RAIL_POLICY.SEPA_EU.rules,
     instructions: {
         accountHolderName: 'Demo User',

@@ -1693,7 +1693,7 @@
         },
         "details": {
             "unavailableTitle": "Todavía no tenés datos en {currency}",
-            "failedBody": "No se cobró nada. Probá de nuevo en un momento o elegí otra moneda.",
+            "timedOutBody": "No se cobró nada. Probá de nuevo en un momento o elegí otra moneda.",
             "revokedBody": "Lo que manden a esos datos vuelve a quien lo envió. Avisale a quien te paga que deje de usarlos y abrí datos nuevos.",
             "topUpCta": "Ingresar {currency} de otra forma",
             "exactAmountCta": "Depositar un monto fijo"
@@ -1701,7 +1701,6 @@
         "share": {
             "subheading": "Enviale esto a quien te vaya a pagar. Es lo mismo para cada pago.",
             "textIntroOwn": "Estos son mis datos bancarios para cobrar en {currency}:",
-            "textReference": "Poné {memo} en el campo de referencia de la transferencia. Sin eso, el pago se devuelve.",
             "calloutTitle": "Contales esto"
         },
         "gate": {

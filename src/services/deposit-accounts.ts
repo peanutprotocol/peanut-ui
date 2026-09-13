@@ -5,8 +5,8 @@
  * them.
  *
  * The backend returns `matching` and `instructions` and nothing about the
- * provider, so every screen renders each corridor from the same four policy
- * fields. See `src/features/deposit-accounts/types.ts` for why those four
+ * provider, so every screen renders each corridor from the same two policy
+ * fields. See `src/features/deposit-accounts/types.ts` for why those two
  * decide what the app is allowed to say.
  */
 

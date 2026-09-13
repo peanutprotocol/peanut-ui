@@ -24,7 +24,7 @@ const account = (sender: SenderPolicy, rules?: DepositRules, over: Partial<Depos
     currency: 'GBP',
     status: 'active',
     isPrimary: true,
-    matching: { nameOnAccount: 'user', sender, memo: 'none', amount: 'flexible' },
+    matching: { nameOnAccount: 'user', sender },
     ...(rules ? { rules } : {}),
     instructions: { accountHolderName: 'Ana Pérez', sortCode: '04-00-53', paymentRails: ['faster_payments'] },
     ...over,

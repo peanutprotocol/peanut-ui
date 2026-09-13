@@ -12,7 +12,7 @@ import type { GateState } from '@/utils/capability-gate'
 import { depositGateView } from '../depositGate'
 import { DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, isClaimable, isShareable } from '../rails'
 import { isHeld } from '../resolveScreen'
-import type { DepositAccount, DepositCorridor, DepositRail } from '../types'
+import type { DepositAccountView, DepositCorridor, DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { DepositGateNotice } from './DepositGateNotice'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
@@ -37,7 +37,7 @@ export function DepositAccountsListScreen({
     onResolveGate,
     onRetry,
 }: {
-    accounts: Record<DepositCorridor, DepositAccount | undefined>
+    accounts: Record<DepositCorridor, DepositAccountView | undefined>
     /** the app's own answer to "can this user deposit here" — one gate per corridor */
     gates: Record<DepositCorridor, GateState>
     /** the corridor catalogue is static, but which of them the user holds is not */
@@ -81,10 +81,11 @@ export function DepositAccountsListScreen({
      * the accounts call returned, so the rail decides that case rather than the
      * payload — a failed read must not invite a claim on AR or BR.
      */
-    const rowBadge = (rail: DepositRail, account: DepositAccount | undefined) => {
+    const rowBadge = (rail: DepositRail, account: DepositAccountView | undefined) => {
         if (isLoading) return <div className="h-5 w-16 animate-pulse rounded bg-foreground-primary/10" />
         if (!isClaimable(rail) || account?.status === 'unavailable')
             return <StatusBadge status="custom" customText={t('list.badgeUnavailable')} />
+        if (account?.timedOut) return <StatusBadge status="failed" />
         switch (account?.status) {
             case 'active':
             case 'retiring':
@@ -96,8 +97,6 @@ export function DepositAccountsListScreen({
                 )
             case 'provisioning':
                 return <StatusBadge status="pending" />
-            case 'failed':
-                return <StatusBadge status="failed" />
             case 'revoked':
                 return <StatusBadge status="closed" customText={t('list.badgeRevoked')} />
             default:
