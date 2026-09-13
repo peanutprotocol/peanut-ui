@@ -16,6 +16,7 @@ jobs:
         runs-on: ubuntu-24.04
         outputs:
             revisions: ${{ steps.revisions.outputs.revisions }}
+            dev_sha: ${{ steps.revisions.outputs.dev_sha }}
         steps:
             - name: Resolve active baseline revisions
               id: revisions
@@ -47,6 +48,7 @@ jobs:
                   matrix="$(printf '%s\n' "${revisions[@]}" | jq -Rsc 'split("\n") | map(select(test("^[a-f0-9]{40}$"))) | unique | sort')"
                   [ "$matrix" != "[]" ]
                   echo "revisions=$matrix" >> "$GITHUB_OUTPUT"
+                  echo "dev_sha=$dev_sha" >> "$GITHUB_OUTPUT"
 
     capture:
         needs: revisions
@@ -60,7 +62,7 @@ jobs:
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
-                  ref: ${{ matrix.sha }}
+                  ref: ${{ needs.revisions.outputs.dev_sha }}
                   path: harness
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
