@@ -247,6 +247,12 @@ label {
 .filters label:first-child {
     flex: 1;
 }
+#dashboard-filters {
+    justify-content: flex-end;
+}
+#dashboard-filters label {
+    flex: 0 1 280px;
+}
 input,
 select,
 button {

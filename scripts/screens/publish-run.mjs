@@ -5,8 +5,15 @@ import { validateCapture, verifyAsset } from './core.mjs'
 import { integrationBase } from './integration.mjs'
 import { reviewProvenance } from './review-provenance.mjs'
 import { verifyRunIdentity } from './run-identity.mjs'
-import { selectCaptureArtifact, selectCapturePair } from './capture-artifacts.mjs'
+import { selectCaptureArtifact, selectCapturePairs } from './capture-artifacts.mjs'
 import { normalizePublicOrigin } from './public-origin.mjs'
+const LOCALES = {
+    en: 'English',
+    'es-419': 'Español',
+    'es-AR': 'Español (Argentina)',
+    'pt-BR': 'Português (Brasil)',
+}
+const localeSlug = (locale) => ({ en: 'en', 'es-419': 'es-419', 'es-AR': 'es-ar', 'pt-BR': 'pt-br' })[locale]
 const repo = process.env.REPOSITORY,
     runId = process.env.RUN_ID,
     attempt = process.env.RUN_ATTEMPT
@@ -57,23 +64,24 @@ function verifyExternalBaseline(expected) {
     const baselineDir = process.env.SCREEN_LIBRARY_BASELINE_DIR
     const baselineRunId = process.env.SCREEN_LIBRARY_BASELINE_RUN_ID
     const baselineArtifact = process.env.SCREEN_LIBRARY_BASELINE_ARTIFACT
-    if (
-        !baselineDir ||
-        !/^\d+$/.test(baselineRunId ?? '') ||
-        !/^(screen-library-baseline-[a-f0-9]{40}-|screen-library-after-)[1-9]\d*$/.test(baselineArtifact ?? '')
-    )
-        throw new Error('External baseline identity is missing')
+    if (!baselineDir || !/^\d+$/.test(baselineRunId ?? '')) throw new Error('External baseline identity is missing')
     const source = api(`actions/runs/${baselineRunId}`)
     const defaultBranch = api('').default_branch
+    const artifacts = api(`actions/runs/${baselineRunId}/artifacts?per_page=100`).artifacts ?? []
+    const localeSuffix = '(?:en|es-419|es-AR|pt-BR)'
     const dailyBaseline =
         source.path === '.github/workflows/screen-library-baseline.yml' &&
         ['schedule', 'workflow_dispatch'].includes(source.event) &&
         source.head_branch === defaultBranch &&
-        new RegExp(`^screen-library-baseline-${expected}-[1-9]\\d*$`).test(baselineArtifact)
+        artifacts.some((artifact) =>
+            new RegExp(`^screen-library-baseline-${expected}-(?:${localeSuffix}-)?[1-9]\\d*$`).test(artifact.name)
+        )
     const integrationBaseline =
         source.path === '.github/workflows/screen-library.yml' &&
         source.event === 'push' &&
-        /^screen-library-after-[1-9]\d*$/.test(baselineArtifact)
+        artifacts.some((artifact) =>
+            new RegExp(`^screen-library-after-(?:${localeSuffix}-)?[1-9]\\d*$`).test(artifact.name)
+        )
     if (
         (!dailyBaseline && !integrationBaseline) ||
         source.status !== 'completed' ||
@@ -82,13 +90,23 @@ function verifyExternalBaseline(expected) {
         (integrationBaseline && (source.head_branch !== 'dev' || source.head_sha !== expected))
     )
         throw new Error('External baseline run provenance mismatch')
-    const artifact = (api(`actions/runs/${baselineRunId}/artifacts?per_page=100`).artifacts ?? []).find(
-        (candidate) => candidate.name === baselineArtifact
-    )
-    const created = Date.parse(artifact?.created_at ?? '')
-    if (!artifact || artifact.expired || !Number.isFinite(created) || Date.now() - created > 30 * 60 * 60 * 1000)
-        throw new Error('External baseline artifact is missing or expired')
-    if (!existsSync(join(baselineDir, 'capture.json'))) throw new Error('External baseline capture is missing')
+    const validArtifacts = artifacts.filter((artifact) => {
+        const dailyName = new RegExp(`^screen-library-baseline-${expected}-(?:${localeSuffix}-)?[1-9]\\d*$`).test(
+            artifact.name
+        )
+        const integrationName = new RegExp(`^screen-library-after-(?:${localeSuffix}-)?[1-9]\\d*$`).test(artifact.name)
+        const created = Date.parse(artifact.created_at ?? '')
+        return (
+            (dailyName || integrationName) &&
+            !artifact.expired &&
+            Number.isFinite(created) &&
+            Date.now() - created <= 30 * 60 * 60 * 1000
+        )
+    })
+    if (!validArtifacts.length) throw new Error('External baseline artifact is missing or expired')
+    if (baselineArtifact && !validArtifacts.some((artifact) => artifact.name === baselineArtifact))
+        throw new Error('External baseline artifact identity mismatch')
+    return baselineDir
 }
 
 const captureNames = readdirSync('incoming')
@@ -110,81 +128,111 @@ const requiresSameRunBaseline = captureNames.some((name) => {
         throw new Error('Invalid screen library baseline requirement')
     }
 })
-let capturePair
-try {
-    capturePair = selectCapturePair(captureNames, ({ before, after }) => hasCapture(before) && hasCapture(after))
-} catch (error) {
-    if (run.event !== 'pull_request' || requiresSameRunBaseline || !process.env.SCREEN_LIBRARY_BASELINE_DIR) throw error
-    const afterCapture = selectCaptureArtifact(captureNames, 'after', hasCapture)
-    verifyExternalBaseline(expectedBase)
-    capturePair = {
-        attempt: afterCapture.attempt,
-        before: process.env.SCREEN_LIBRARY_BASELINE_DIR,
-        after: afterCapture.name,
+let capturePairs = selectCapturePairs(captureNames, ({ before, after }) => hasCapture(before) && hasCapture(after))
+if (capturePairs.length) {
+    if (capturePairs.length !== Object.keys(LOCALES).length)
+        throw new Error('Incomplete locale matrix: every supported locale needs a before/after pair')
+} else {
+    if (run.event !== 'pull_request' || requiresSameRunBaseline || !process.env.SCREEN_LIBRARY_BASELINE_DIR)
+        throw new Error('No complete before/after capture artifact pairs were found in this run')
+    const baselineDir = verifyExternalBaseline(expectedBase)
+    const baselineDirs = readdirSync(baselineDir, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => join(baselineDir, entry.name))
+    if (existsSync(join(baselineDir, 'capture.json'))) baselineDirs.push(baselineDir)
+    const baselines = new Map()
+    for (const dir of baselineDirs) {
+        if (!existsSync(join(dir, 'capture.json'))) continue
+        const capture = validateCapture(JSON.parse(readFileSync(join(dir, 'capture.json'), 'utf8')))
+        baselines.set(capture.locale, dir)
     }
+    capturePairs = Object.keys(LOCALES).map((locale) => {
+        const after = selectCaptureArtifact(captureNames, 'after', hasCapture, locale)
+        const before = baselines.get(locale)
+        if (!before) throw new Error(`External baseline is missing locale ${locale}`)
+        return { locale, attempt: after.attempt, before, after: after.name }
+    })
 }
-const captureAttempt = capturePair.attempt
-const dirs = [capturePair.before, capturePair.after]
-const [before, after] = dirs.map((dir) => validateCapture(JSON.parse(readFileSync(join(dir, 'capture.json'), 'utf8'))))
-if (after.commit !== run.head_sha) throw new Error('Capture does not match triggering run head')
-if (before.commit !== expectedBase)
-    throw new Error('Capture baseline does not match verified integration/review/history baseline')
 const date = run.created_at.slice(0, 10)
-const canonicalPath =
-    run.event === 'workflow_dispatch'
-        ? `${date}/compare-main-2026-08-27/${after.commit}`
-        : pr
-          ? `${date}/pr-${pr.number}/${after.commit}`
-          : `${date}/compare-dev/${after.commit}`
-const path = `${canonicalPath}/run-${runId}-${attempt}`
-execFileSync('node', ['scripts/screens/report.mjs', ...dirs, 'publication'], { stdio: 'inherit' })
-const env = {
-    ...process.env,
-    EXPECTED_HEAD: after.commit,
-    EXPECTED_BASE: before.commit,
-    DEV_SEQUENCE: String(run.run_number),
-    CAPTURE_ATTEMPT: String(captureAttempt),
-}
-execFileSync('node', ['scripts/screens/publish.mjs', 'publication', path], { stdio: 'inherit', env })
-// Historical reports retain both full source libraries as well as their comparison.
-const libraries =
-    run.event === 'workflow_dispatch'
-        ? [
-              [before, dirs[0], 'main'],
-              [after, dirs[1], 'dev'],
-          ]
-        : run.event === 'push'
-          ? [[after, dirs[1], 'dev']]
-          : []
-for (const [capture, source, branch] of libraries) {
-    const destination = `library-${branch}`
-    mkdirSync(`${destination}/assets`, { recursive: true })
-    for (const screen of capture.screens)
-        if (screen.status === 'captured')
-            for (const name of [screen.image, screen.thumbnail]) {
-                verifyAsset(join(source, 'assets'), name)
-                copyFileSync(join(source, 'assets', name), join(destination, 'assets', name))
-            }
-    writeFileSync(`${destination}/manifest.json`, JSON.stringify(capture))
-    execFileSync(
-        'node',
-        ['scripts/screens/publish.mjs', destination, `${date}/${branch}-${capture.commit}/run-${runId}-${attempt}`],
-        {
-            stdio: 'inherit',
-            env: {
-                ...env,
-                EXPECTED_HEAD: capture.commit,
-                EXPECTED_BASE: '',
-                CAPTURE_ATTEMPT: String(captureAttempt),
-            },
-        }
+const reports = []
+for (const capturePair of capturePairs) {
+    const captureAttempt = capturePair.attempt
+    const dirs = [capturePair.before, capturePair.after]
+    const [before, after] = dirs.map((dir) =>
+        validateCapture(JSON.parse(readFileSync(join(dir, 'capture.json'), 'utf8')))
     )
+    if (before.locale !== capturePair.locale || after.locale !== capturePair.locale)
+        throw new Error(`Capture locale identity mismatch for ${capturePair.locale}`)
+    if (after.commit !== run.head_sha) throw new Error('Capture does not match triggering run head')
+    if (before.commit !== expectedBase)
+        throw new Error('Capture baseline does not match verified integration/review/history baseline')
+    const slug = localeSlug(after.locale)
+    const canonicalPath =
+        run.event === 'workflow_dispatch'
+            ? `${date}/compare-main-2026-08-27/${slug}/${after.commit}`
+            : pr
+              ? `${date}/pr-${pr.number}/${slug}/${after.commit}`
+              : `${date}/compare-dev/${slug}/${after.commit}`
+    const path = `${canonicalPath}/run-${runId}-${attempt}`
+    const reportDir = `publication-${slug}`
+    execFileSync('node', ['scripts/screens/report.mjs', ...dirs, reportDir], { stdio: 'inherit' })
+    const env = {
+        ...process.env,
+        EXPECTED_HEAD: after.commit,
+        EXPECTED_BASE: before.commit,
+        DEV_SEQUENCE: String(run.run_number),
+        CAPTURE_ATTEMPT: String(captureAttempt),
+    }
+    execFileSync('node', ['scripts/screens/publish.mjs', reportDir, path], { stdio: 'inherit', env })
+    reports.push({ locale: after.locale, path, before, after })
+    // Historical reports retain both full source libraries as well as their comparison.
+    const libraries =
+        run.event === 'workflow_dispatch'
+            ? [
+                  [before, dirs[0], 'main'],
+                  [after, dirs[1], 'dev'],
+              ]
+            : run.event === 'push'
+              ? [[after, dirs[1], 'dev']]
+              : []
+    for (const [capture, source, branch] of libraries) {
+        const destination = `library-${branch}-${slug}`
+        mkdirSync(`${destination}/assets`, { recursive: true })
+        for (const screen of capture.screens)
+            if (screen.status === 'captured')
+                for (const name of [screen.image, screen.thumbnail]) {
+                    verifyAsset(join(source, 'assets'), name)
+                    copyFileSync(join(source, 'assets', name), join(destination, 'assets', name))
+                }
+        writeFileSync(`${destination}/manifest.json`, JSON.stringify(capture))
+        execFileSync(
+            'node',
+            [
+                'scripts/screens/publish.mjs',
+                destination,
+                `${date}/${branch}/${slug}/${capture.commit}/run-${runId}-${attempt}`,
+            ],
+            {
+                stdio: 'inherit',
+                env: {
+                    ...env,
+                    EXPECTED_HEAD: capture.commit,
+                    EXPECTED_BASE: '',
+                    CAPTURE_ATTEMPT: String(captureAttempt),
+                },
+            }
+        )
+    }
 }
 
 if (pr) {
     const marker = '<!-- screen-library -->'
     const publicOrigin = normalizePublicOrigin(process.env.SCREEN_LIBRARY_PUBLIC_URL)
-    const body = `${marker}\n[Open screen comparison](${publicOrigin}/screens/${path}/)\n\n${run.event === 'push' ? 'After merge' : 'Review preview'}: ${before.commit} → ${after.commit}. ${before.complete && after.complete ? 'Capture complete.' : 'Incomplete capture; unavailable states are listed in the report.'}`
+    const body = `${marker}\n${reports
+        .map(({ locale, path }) => `[${LOCALES[locale]}](${publicOrigin}/screens/${path}/)`)
+        .join(
+            ' · '
+        )}\n\n[Open screen library dashboard](${publicOrigin}/screens/)\n\n${run.event === 'push' ? 'After merge' : 'Review preview'}: ${reports[0].before.commit} → ${reports[0].after.commit}. ${reports.every(({ before, after }) => before.complete && after.complete) ? 'Capture complete in all locales.' : 'Incomplete capture; unavailable states are listed in the report.'}`
     const comments = JSON.parse(
         execFileSync(
             'gh',

@@ -1,4 +1,7 @@
-const devPath = /^\d{4}-\d{2}-\d{2}\/dev-[a-f0-9]{40}(?:\/run-[0-9]+-[0-9]+)?$/
+const devPath =
+    /^\d{4}-\d{2}-\d{2}\/(?:dev-[a-f0-9]{40}|dev\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40})(?:\/run-[0-9]+-[0-9]+)?$/
+
+const entryLocale = (entry) => entry.locale ?? 'en'
 
 export function sortEntries(entries) {
     return [...entries].sort(
@@ -10,7 +13,8 @@ export function sortEntries(entries) {
 }
 
 export function selectLatest(entries) {
-    return sortEntries(entries).find((entry) => entry.complete === true && devPath.test(entry.path ?? '')) ?? null
+    const complete = sortEntries(entries).filter((entry) => entry.complete === true && devPath.test(entry.path ?? ''))
+    return complete.find((entry) => entryLocale(entry) === 'en') ?? complete[0] ?? null
 }
 
 /** Rebuild shared pointers from immutable entry objects after a publication. */

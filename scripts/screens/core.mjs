@@ -9,6 +9,7 @@ const sha = /^[a-f0-9]{40}$/
 const digest = /^[a-f0-9]{64}$/
 const asset = /^[a-f0-9]{64}\.(png|webp)$/
 const id = /^[a-z0-9][a-z0-9-]{0,119}$/
+const supportedLocales = new Set(['en', 'es-419', 'es-AR', 'pt-BR'])
 const assert = (ok, message) => {
     if (!ok) throw new Error(message)
 }
@@ -20,7 +21,12 @@ export function validateCapture(input) {
     assert(input?.schema === 1 && input.type === 'capture', 'Unsupported capture schema')
     assert(sha.test(input.commit) && sha.test(input.contentCommit), 'Invalid commit provenance')
     assert(digest.test(input.harness) && digest.test(input.fixtures), 'Missing harness/fixture identity')
-    assert(input.profile === 'en-393x852' && input.width === 393 && input.height === 852, 'Unsupported capture profile')
+    const captureLocale = input.locale ?? 'en'
+    assert(supportedLocales.has(captureLocale), 'Invalid capture locale')
+    assert(
+        input.profile === `${captureLocale}-393x852` && input.width === 393 && input.height === 852,
+        'Unsupported capture profile'
+    )
     assert(
         Array.isArray(input.screens) && input.screens.length > 0 && input.screens.length <= 2000,
         'Invalid catalogue'
@@ -69,6 +75,7 @@ export function validateCapture(input) {
         type: 'capture',
         commit: input.commit,
         publicBase: input.publicBase ? text(input.publicBase) : undefined,
+        locale: captureLocale,
         contentCommit: input.contentCommit,
         harness: input.harness,
         fixtures: input.fixtures,
@@ -90,7 +97,9 @@ export function validateCapture(input) {
     }
 }
 export function sameEnvironment(a, b) {
-    return ['harness', 'fixtures', 'environment', 'profile', 'adapter', 'publicBase'].every((k) => a[k] === b[k])
+    return ['harness', 'fixtures', 'environment', 'profile', 'locale', 'adapter', 'publicBase'].every(
+        (k) => a[k] === b[k]
+    )
 }
 export function verifyAsset(dir, name) {
     assert(asset.test(name), 'Unsafe asset name')
@@ -146,7 +155,16 @@ export function compare(beforeInput, afterInput, assetsDir) {
             ...(pixels ? { diff: storeAsset(assetsDir, PNG.sync.write(diff)) } : {}),
         }
     })
-    return { schema: 1, type: 'comparison', before, after, complete: before.complete && after.complete, screens }
+    assert(before.locale === after.locale, 'Capture locales differ; compare the same locale')
+    return {
+        schema: 1,
+        type: 'comparison',
+        locale: before.locale,
+        before,
+        after,
+        complete: before.complete && after.complete,
+        screens,
+    }
 }
 export function reviewRefs(base, head, git) {
     assert(sha.test(base) && sha.test(head), 'Expected immutable SHAs')

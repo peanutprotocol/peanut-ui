@@ -5,6 +5,7 @@ const repo = process.env.REPOSITORY,
 const baselineWorkflow = '.github/workflows/screen-library-baseline.yml'
 const screenWorkflow = '.github/workflows/screen-library.yml'
 const maxAgeMs = 30 * 60 * 60 * 1000
+const localeSuffix = '(?:en|es-419|es-AR|pt-BR)'
 
 if (!/^[\w.-]+\/[\w.-]+$/.test(repo ?? '') || !/^\d+$/.test(runId ?? ''))
     throw new Error('Invalid baseline lookup identity')
@@ -35,7 +36,8 @@ const artifacts = pages.flatMap((page) => page.artifacts ?? [])
 const candidates = artifacts
     .filter((artifact) => {
         if (artifact.expired || !artifact.workflow_run?.id) return false
-        if (!new RegExp(`^screen-library-baseline-${expectedBase}-[1-9]\\d*$`).test(artifact.name)) return false
+        if (!new RegExp(`^screen-library-baseline-${expectedBase}-(?:${localeSuffix}-)?[1-9]\\d*$`).test(artifact.name))
+            return false
         const created = Date.parse(artifact.created_at ?? '')
         return Number.isFinite(created) && Date.now() - created <= maxAgeMs
     })
@@ -61,7 +63,7 @@ for (const artifact of candidates) {
 const integrationCandidates = artifacts
     .filter((artifact) => {
         if (artifact.expired || !artifact.workflow_run?.id) return false
-        if (!/^screen-library-after-[1-9]\d*$/.test(artifact.name)) return false
+        if (!new RegExp(`^screen-library-after-(?:${localeSuffix}-)?[1-9]\\d*$`).test(artifact.name)) return false
         const created = Date.parse(artifact.created_at ?? '')
         return Number.isFinite(created) && Date.now() - created <= maxAgeMs
     })

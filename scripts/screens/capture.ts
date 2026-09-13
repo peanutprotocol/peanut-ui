@@ -5,6 +5,7 @@ import { release } from 'node:os'
 import { execFileSync } from 'node:child_process'
 import sharp from 'sharp'
 import { SCREENS } from '../../src/dev/screens/catalogue'
+import { APP_LOCALES, type AppLocale } from '../../src/i18n/app/config'
 import { answer, ADAPTER_VERSION } from './adapter'
 import { hash, storeAsset, validateCapture, materializeCatalogue } from './core.mjs'
 import { captureExitCode } from './capture-status.mjs'
@@ -16,7 +17,10 @@ async function main() {
     const arg = (name: string, fallback = '') =>
         process.argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3) ?? fallback
     const source = resolve(arg('source', '.')),
-        out = resolve(arg('out', 'e2e/__shots__/library'))
+        out = resolve(arg('out', 'e2e/__shots__/library')),
+        localeArg = arg('locale', 'en')
+    if (!APP_LOCALES.includes(localeArg as AppLocale)) throw new Error(`Unsupported capture locale: ${localeArg}`)
+    const captureLocale = localeArg as AppLocale
     const target = new URL(arg('url', 'http://127.0.0.1:3080'))
     if (!['127.0.0.1', 'localhost'].includes(target.hostname))
         throw new Error('Capture only supports isolated local builds')
@@ -93,7 +97,7 @@ async function main() {
         isMobile: true,
         hasTouch: true,
         userAgent: devices['Pixel 7'].userAgent,
-        locale: 'en-US',
+        locale: captureLocale,
         timezoneId: 'UTC',
         colorScheme: 'light' as const,
         reducedMotion: 'reduce' as const,
@@ -109,7 +113,7 @@ async function main() {
     const selected = arg('only').split(',').filter(Boolean)
     const requireFullCatalogue = arg('full-catalogue') === 'true'
     if (requireFullCatalogue && selected.length) throw new Error('Full catalogue capture cannot use --only')
-    const environment = `${process.platform}-${process.arch}-${release()};node=${process.version};chromium=${browser.version()};dpr=1;en-US;UTC;light;reduced-motion`
+    const environment = `${process.platform}-${process.arch}-${release()};node=${process.version};chromium=${browser.version()};dpr=1;locale=${captureLocale};browser=${captureLocale};UTC;light;reduced-motion`
     const harness = identity([
         ...walk('scripts/screens').filter((p) => !p.endsWith('.test.mjs')),
         ...walk('src/dev/screens'),
@@ -127,6 +131,7 @@ async function main() {
             schema: 1,
             type: 'capture',
             commit,
+            locale: captureLocale,
             contentCommit: git('rev-parse', 'HEAD:src/content'),
             publicBase: buildIdentity.publicBase,
             harness,
@@ -135,7 +140,7 @@ async function main() {
             adapter: ADAPTER_VERSION,
             capturedAt: new Date().toISOString(),
             reconstruction: historical,
-            profile: 'en-393x852',
+            profile: `${captureLocale}-393x852`,
             width: 393,
             height: 852,
             screens: materializeCatalogue(SCREENS, results),
@@ -195,7 +200,7 @@ async function main() {
             try {
                 await page.addInitScript('window.__name = (target) => target')
                 await page.clock.setFixedTime(new Date('2026-09-01T12:00:00Z'))
-                await page.addInitScript(() => {
+                await page.addInitScript((locale) => {
                     ;(window as unknown as { __screenCapture: boolean }).__screenCapture = true
                     // A constant draw is independent of unrelated startup call order.
                     Math.random = () => 0.42
@@ -216,8 +221,9 @@ async function main() {
                     sessionStorage.setItem('user_geo_country_code', 'DE')
                     sessionStorage.setItem('user_geo_country_code_timestamp', String(Date.now()))
                     document.cookie = 'jwt-token=fixture; path=/'
-                    document.cookie = 'NEXT_LOCALE=en; path=/'
-                })
+                    document.cookie = `app-locale=${locale}; path=/`
+                    document.cookie = `NEXT_LOCALE=${locale}; path=/`
+                }, captureLocale)
                 if (screen.camera)
                     await page.addInitScript((mode) => {
                         // A stationary synthetic camera frame keeps app-owned scanner UI

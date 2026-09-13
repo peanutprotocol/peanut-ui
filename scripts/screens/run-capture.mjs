@@ -8,6 +8,8 @@ import { prepare } from './prepare.mjs'
 import { hash } from './core.mjs'
 const [sourceArg, sha, outArg] = process.argv.slice(2)
 const requireFullCatalogue = process.argv.includes('--full-catalogue')
+const locale = process.argv.find((arg) => arg.startsWith('--locale='))?.slice('--locale='.length) ?? 'en'
+if (!['en', 'es-419', 'es-AR', 'pt-BR'].includes(locale)) throw new Error('Unsupported capture locale')
 if (!/^[a-f0-9]{40}$/.test(sha ?? '')) throw new Error('Expected immutable target SHA')
 const source = resolve(sourceArg),
     out = resolve(outArg),
@@ -109,6 +111,7 @@ try {
             'tsx',
             'scripts/screens/capture.ts',
             ...(requireFullCatalogue ? ['--full-catalogue=true'] : []),
+            `--locale=${locale}`,
             `--source=${source}`,
             `--sha=${sha}`,
             `--url=${base}`,
