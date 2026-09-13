@@ -77,11 +77,16 @@ test('different harness, fixtures or environment requires recapture', () => {
         assert.throws(() => compare(capture([screen('home')]), r, dir), /environments differ/)
     }
 })
+test('captures from different locales cannot be compared', () => {
+    const portuguese = { ...capture([screen('home')]), locale: 'pt-BR', profile: 'pt-BR-393x852' }
+    assert.throws(() => compare(capture([screen('home')]), portuguese, dir), /environments differ/)
+})
 test('reject empty, duplicate, path traversal, and forged completion', () => {
     assert.throws(() => validateCapture(capture([])))
     assert.throws(() => validateCapture(capture([screen('home'), screen('home')])))
     assert.throws(() => validateCapture(capture([screen('../escape')])))
     assert.throws(() => validateCapture(capture([{ ...screen('home'), image: '../../secret' }])))
+    assert.throws(() => validateCapture({ ...capture([screen('home')]), locale: 'fr', profile: 'fr-393x852' }))
     assert.equal(
         validateCapture({ ...capture([{ ...screen('home'), status: 'failed', reason: 'timeout' }]), complete: true })
             .complete,

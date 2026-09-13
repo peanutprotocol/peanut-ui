@@ -11,6 +11,13 @@ const offline = location.protocol === 'file:'
 const assetBase = offline ? './assets/' : '/screen-data/assets/'
 const previewUrlPattern =
     /^https:\/\/imagedelivery\.net\/[\w-]+\/(?:peanut-screen-[a-f0-9]{64}|ps-[a-f0-9]{29})\/[\w-]+$/
+const LOCALE_LABELS = {
+    en: 'English',
+    'es-419': 'Español',
+    'es-AR': 'Español (Argentina)',
+    'pt-BR': 'Português (Brasil)',
+}
+const localeLabel = (locale) => LOCALE_LABELS[locale] ?? locale ?? 'English'
 const asset = (name) => {
     if (!/^[a-f0-9]{64}\.(png|webp)$/.test(name || '')) return null
     const preview = !offline && report?.previewUrls?.[name]
@@ -27,16 +34,27 @@ const image = (name, alt) => {
 }
 let rows = [],
     report,
-    active
+    active,
+    viewMode = 'all',
+    indexEntries = []
 const unavailable = (s) => !s || s.status !== 'captured'
 function zoom(row, mode = 'side') {
     active = row
+    const single = mode === 'screen' || (report?.type === 'comparison' && viewMode === 'all')
+    if (single) mode = 'screen'
     $('zoom-title').textContent = row.name
     $('zoom-images').replaceChildren()
     $('slider-label').hidden = mode !== 'overlay'
+    $('side').hidden = single
+    $('overlay').hidden = single
+    $('difference').hidden = single
     const before = row.before,
         after = row.after
-    if (mode === 'difference') {
+    if (mode === 'screen') {
+        const screen = after ?? before
+        if (screen?.image) $('zoom-images').append(image(screen.image, row.name))
+        else $('zoom-images').append(el('p', screen?.reason ?? 'No screenshot available.'))
+    } else if (mode === 'difference') {
         if (row.diff) $('zoom-images').append(image(row.diff, 'Pixel difference'))
         else $('zoom-images').append(el('p', 'No pixel difference image available.'))
     } else if (mode === 'overlay' && !unavailable(before) && !unavailable(after)) {
@@ -56,13 +74,16 @@ function zoom(row, mode = 'side') {
 function render() {
     const q = $('search').value.toLowerCase(),
         flow = $('flow').value,
-        status = $('status').value
+        status = $('status').value,
+        changedMode = report?.type === 'comparison' && viewMode === 'changed'
     const filtered = rows.filter(
         (r) =>
             (!q || `${r.name} ${r.id} ${r.flow}`.toLowerCase().includes(q)) &&
             (!flow || flow === r.flow) &&
+            (!changedMode || r.status !== 'unchanged') &&
             (!status || (status === 'differences' ? r.status !== 'unchanged' : status === r.status))
     )
+    if (report?.type === 'comparison') $('title').textContent = changedMode ? 'See what changed.' : 'Every screen.'
     $('screens').replaceChildren()
     for (const row of filtered) {
         const tile = el('article', undefined, 'tile')
@@ -74,9 +95,10 @@ function render() {
             el('div', `${row.flow} · ${row.kind === 'component' ? 'Isolated component' : 'App route'}`, 'meta')
         )
         tile.append(head)
-        const pair = el('div', undefined, `pair${report.type === 'capture' ? ' single' : ''}`)
-        for (const [label, s] of report.type === 'capture'
-            ? [['Screen', row.after]]
+        const showSingle = report.type === 'capture' || viewMode === 'all'
+        const pair = el('div', undefined, `pair${showSingle ? ' single' : ''}`)
+        for (const [label, s] of showSingle
+            ? [['Screen', row.after ?? row.before]]
             : [
                   ['Before', row.before],
                   ['After', row.after],
@@ -87,7 +109,7 @@ function render() {
                 const b = el('button')
                 b.setAttribute('aria-label', `Enlarge ${row.name}, ${label}`)
                 b.append(image(s.thumbnail || s.image, row.name))
-                b.onclick = () => zoom(row)
+                b.onclick = () => zoom(row, showSingle ? 'screen' : 'side')
                 fig.append(b)
             } else fig.append(el('div', s?.reason ?? 'Not in this version', 'missing'))
             pair.append(fig)
@@ -136,11 +158,46 @@ function showEmptyState(kind = 'unpublished') {
           ? 'Published report not found'
           : 'Temporary loading issue'
     $('coverage').hidden = true
+    $('dashboard-filters').hidden = true
     $('screen-filters').hidden = true
     $('route-coverage').hidden = true
     $('versions').hidden = true
     $('screens').hidden = true
     $('empty-state').hidden = false
+}
+function renderLanding() {
+    const current = $('locale').value
+    const requested = new URLSearchParams(location.search ?? '').get('locale')
+    const locales = [...new Set(indexEntries.map((entry) => entry.locale))].sort((a, b) => {
+        if (a === 'en') return -1
+        if (b === 'en') return 1
+        return a.localeCompare(b)
+    })
+    $('locale').replaceChildren(
+        ...locales.map((value) => {
+            const option = el('option', localeLabel(value))
+            option.value = value
+            return option
+        })
+    )
+    const selected = locales.includes(current)
+        ? current
+        : locales.includes(requested)
+          ? requested
+          : locales.includes('en')
+            ? 'en'
+            : locales[0]
+    $('locale').value = selected
+    const visible = indexEntries.filter((entry) => entry.locale === selected)
+    $('coverage').textContent =
+        `${visible.length} published ${localeLabel(selected)} ${visible.length === 1 ? 'version' : 'versions'}`
+    $('versions').replaceChildren()
+    for (const v of visible) {
+        if (!/^[a-z0-9/-]+$/.test(v.path)) continue
+        const a = el('a', `${v.date} · ${v.label}${v.complete ? '' : ' · Incomplete'}`, 'version')
+        a.href = `/screens/${v.path}/`
+        $('versions').append(a)
+    }
 }
 async function start() {
     if (offline) document.querySelector('.brand').href = './index.html'
@@ -159,15 +216,17 @@ async function start() {
             showEmptyState()
             return
         }
-        $('coverage').textContent = `${index.length} published versions`
+        indexEntries = index
+            .filter((entry) => entry && typeof entry === 'object' && typeof entry.path === 'string')
+            .map((entry) => ({ ...entry, locale: entry.locale ?? 'en' }))
+        if (!indexEntries.length) {
+            showEmptyState()
+            return
+        }
+        $('dashboard-filters').hidden = false
         $('screen-filters').hidden = true
         $('route-coverage').hidden = true
-        for (const v of index) {
-            if (!/^[a-z0-9/-]+$/.test(v.path)) continue
-            const a = el('a', `${v.date} · ${v.label}${v.complete ? '' : ' · Incomplete'}`, 'version')
-            a.href = `/screens/${v.path}/`
-            $('versions').append(a)
-        }
+        renderLanding()
         return
     }
     let reportPath = path
@@ -175,6 +234,7 @@ async function start() {
     if (!offline && !/^[a-z0-9/-]+$/.test(reportPath)) throw new Error('Invalid report path')
     report = offline ? window.SCREEN_REPORT : await loadJSON(`/screen-data/reports/${reportPath}/manifest.json`)
     if (!report || report.schema !== 1) throw new Error('Unsupported report')
+    $('dashboard-filters').hidden = true
     rows =
         report.type === 'capture'
             ? report.screens.map((s) => ({
@@ -185,10 +245,14 @@ async function start() {
             : report.screens
     const before = report.before,
         after = report.type === 'capture' ? report : report.after
+    viewMode = report.type === 'capture' ? 'all' : 'changed'
+    $('view-mode').value = viewMode
+    $('view-mode-control').hidden = report.type === 'capture'
     $('title').textContent = report.type === 'capture' ? 'The screen library.' : 'See what changed.'
     $('description').textContent = before?.reconstruction
         ? 'Reconstructed historical code compared with dev. All account data is synthetic.'
-        : 'App-owned mobile screens and states. Fixed English mobile viewport and synthetic account data.'
+        : `App-owned mobile screens and states. ${localeLabel(report.locale)} mobile viewport and synthetic account data.`
+    $('footer').textContent = `App-owned mobile UI · ${localeLabel(report.locale)} · 393 × 852 · Synthetic data`
     for (const [label, m] of [
         ['Before', before],
         ['After', after],
@@ -237,12 +301,20 @@ async function start() {
     }
     render()
     if (location.hash) {
+        viewMode = 'all'
+        $('view-mode').value = 'all'
         $('status').value = ''
         render()
         document.getElementById(location.hash.slice(1))?.scrollIntoView()
     }
 }
 for (const name of ['search', 'flow', 'status']) $(name).addEventListener('input', render)
+$('locale').addEventListener('change', renderLanding)
+$('view-mode').addEventListener('change', () => {
+    viewMode = $('view-mode').value
+    $('status').value = viewMode === 'changed' ? 'differences' : ''
+    render()
+})
 $('close').onclick = () => $('zoom').close()
 $('side').onclick = () => zoom(active, 'side')
 $('overlay').onclick = () => zoom(active, 'overlay')

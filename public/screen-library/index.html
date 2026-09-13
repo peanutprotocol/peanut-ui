@@ -42,8 +42,16 @@
                     </div>
                 </div>
             </section>
+            <nav id="dashboard-filters" class="filters" aria-label="Filter published versions" hidden>
+                <label>Locale<select id="locale"></select></label>
+            </nav>
             <nav id="screen-filters" class="filters" aria-label="Filter screens">
                 <label>Search<input id="search" type="search" placeholder="Screen, state or flow" /></label
+                ><label id="view-mode-control"
+                    >View<select id="view-mode">
+                        <option value="changed">See changed screens</option>
+                        <option value="all">See all screens</option>
+                    </select></label
                 ><label
                     >Flow<select id="flow">
                         <option value="">All flows</option>
@@ -84,6 +92,6 @@
             </div>
             <div id="zoom-images"></div>
         </dialog>
-        <footer>App-owned mobile UI · English · 393 × 852 · Synthetic data</footer>
+        <footer id="footer">App-owned mobile UI · English · 393 × 852 · Synthetic data</footer>
     </body>
 </html>

@@ -43,6 +43,17 @@ test('latest ignores newer PR entries and incomplete dev entries', () => {
     assert.equal(selectLatest(entries).path, entries[2].path)
 })
 
+test('latest prefers the English locale when the dev catalogue has a locale matrix', () => {
+    const matrix = ['es-419', 'pt-br', 'en'].map((locale) => ({
+        path: `2026-09-12/dev/${locale}/${sha('e')}`,
+        locale: locale === 'es-419' ? 'es-419' : locale === 'pt-br' ? 'pt-BR' : 'en',
+        complete: true,
+        sequence: 9,
+        attempt: 1,
+    }))
+    assert.equal(selectLatest(matrix).locale, 'en')
+})
+
 test('an interrupted pointer update can be retried safely', async () => {
     const storage = memoryStorage({ failLatest: true })
     await assert.rejects(updateIndexes(storage), /transient/)

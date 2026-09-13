@@ -8,6 +8,12 @@ const elementIds = [
     'search',
     'flow',
     'status',
+    'view-mode',
+    'view-mode-control',
+    'locale',
+    'title',
+    'description',
+    'provenance',
     'close',
     'side',
     'overlay',
@@ -25,11 +31,13 @@ const elementIds = [
     'empty-status',
     'empty-retry',
     'screen-filters',
+    'dashboard-filters',
     'route-coverage',
     'route-inventory',
     'versions',
     'screens',
     'download',
+    'footer',
 ]
 
 class Element {
@@ -40,9 +48,17 @@ class Element {
         this.open = false
         this.parentElement = { hidden: false }
         this.value = ''
+        this.textContent = ''
+        this.className = ''
+        this.listeners = new Map()
     }
 
-    addEventListener() {}
+    addEventListener(type, listener) {
+        this.listeners.set(type, listener)
+    }
+    dispatch(type) {
+        this.listeners.get(type)?.({ target: this })
+    }
     append(...children) {
         this.children.push(...children)
     }
@@ -54,7 +70,7 @@ class Element {
     }
 }
 
-async function loadLanding(pathname, { ok = true, index = [] } = {}) {
+async function loadLanding(pathname, { ok = true, index = [], report } = {}) {
     const elements = new Map(elementIds.map((id) => [id, new Element(id)]))
     const brand = new Element('brand')
     let resolveResponse
@@ -69,12 +85,13 @@ async function loadLanding(pathname, { ok = true, index = [] } = {}) {
     const context = vm.createContext({
         console,
         document,
+        URLSearchParams,
         fetch: () => response,
-        location: { pathname, protocol: 'https:', reload() {} },
+        location: { pathname, protocol: 'https:', search: '', hash: '', reload() {} },
         window: {},
     })
     vm.runInContext(viewer, context, { filename: 'public/screen-library/viewer.js' })
-    resolveResponse({ ok, status: ok ? 200 : 404, json: async () => index })
+    resolveResponse({ ok, status: ok ? 200 : 404, json: async () => report ?? index })
     await new Promise((resolve) => setImmediate(resolve))
     return elements
 }
@@ -91,10 +108,92 @@ test('landing catalogue hides controls and route coverage on the root URL and de
             ],
         })
         assert.equal(elements.get('screen-filters').hidden, true, pathname)
+        assert.equal(elements.get('dashboard-filters').hidden, false, pathname)
         assert.equal(elements.get('route-coverage').hidden, true, pathname)
         assert.equal(elements.get('versions').children.length, 1, pathname)
         assert.equal(elements.get('screens').children.length, 0, pathname)
     }
+})
+
+test('landing locale selector filters published versions', async () => {
+    const elements = await loadLanding('/', {
+        index: [
+            {
+                path: '2026-09-11/pr-1/en/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                date: '2026-09-11',
+                label: 'English',
+                locale: 'en',
+            },
+            {
+                path: '2026-09-11/pr-1/es-419/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                date: '2026-09-11',
+                label: 'Español',
+                locale: 'es-419',
+            },
+        ],
+    })
+    assert.equal(elements.get('locale').children.length, 2)
+    assert.equal(elements.get('locale').value, 'en')
+    assert.equal(elements.get('versions').children.length, 1)
+    elements.get('locale').value = 'es-419'
+    elements.get('locale').dispatch('change')
+    assert.equal(elements.get('versions').children.length, 1)
+    assert.match(elements.get('versions').children[0].textContent, /Español/)
+})
+
+test('comparison reports can switch from changed screens to the full catalogue', async () => {
+    const image = 'a'.repeat(64) + '.png'
+    const report = {
+        schema: 1,
+        type: 'comparison',
+        locale: 'en',
+        complete: true,
+        before: {
+            commit: 'a'.repeat(40),
+            capturedAt: 'now',
+            environment: 'test',
+            contentCommit: 'a',
+            harness: 'a',
+            fixtures: 'a',
+        },
+        after: {
+            commit: 'b'.repeat(40),
+            capturedAt: 'now',
+            environment: 'test',
+            contentCommit: 'b',
+            harness: 'b',
+            fixtures: 'b',
+        },
+        screens: [
+            {
+                id: 'changed',
+                name: 'Changed screen',
+                flow: 'Home',
+                kind: 'route',
+                status: 'changed',
+                before: { status: 'captured', image, thumbnail: image },
+                after: { status: 'captured', image, thumbnail: image },
+            },
+            {
+                id: 'unchanged',
+                name: 'Unchanged screen',
+                flow: 'Home',
+                kind: 'route',
+                status: 'unchanged',
+                before: { status: 'captured', image, thumbnail: image },
+                after: { status: 'captured', image, thumbnail: image },
+            },
+        ],
+    }
+    const elements = await loadLanding('/screens/2026-09-11/pr-1/en/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/', {
+        report,
+    })
+    assert.equal(elements.get('view-mode').value, 'changed')
+    assert.equal(elements.get('screens').children.length, 1)
+    elements.get('view-mode').value = 'all'
+    elements.get('view-mode').dispatch('change')
+    assert.equal(elements.get('screens').children.length, 2)
+    assert.equal(elements.get('screens').children[0].children[1].className, 'pair single')
 })
 
 test('landing page shows a friendly empty state when captures are not published', async () => {

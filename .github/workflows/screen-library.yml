@@ -69,6 +69,10 @@ jobs:
         # verified daily baseline; harness-changing PRs also run capture_before.
         runs-on: macos-26-intel
         timeout-minutes: 60
+        strategy:
+            fail-fast: false
+            matrix:
+                locale: [en, es-419, es-AR, pt-BR]
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
@@ -100,12 +104,22 @@ jobs:
               working-directory: harness
               env:
                   TARGET_SHA: ${{ needs.refs.outputs.after }}
-              run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture
+              run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --locale=${{ matrix.locale }}
             - name: Record required baseline mode
               if: github.event_name == 'pull_request' && needs.refs.outputs.capture_before == 'true'
               run: echo '{"requireSameRunBaseline":true}' > capture/screen-library-requirement.json
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
               if: always()
+              with:
+                  name: screen-library-after-${{ matrix.locale }}-${{ github.run_attempt }}
+                  path: capture/
+                  if-no-files-found: error
+                  retention-days: 14
+            # The reusable publisher is intentionally pinned to trusted dev.
+            # Keep an English alias so the old publisher can still render a
+            # preview while this matrix change is being reviewed.
+            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+              if: always() && matrix.locale == 'en'
               with:
                   name: screen-library-after-${{ github.run_attempt }}
                   path: capture/
@@ -120,6 +134,10 @@ jobs:
         if: github.event_name != 'pull_request' || needs.refs.outputs.capture_before == 'true'
         runs-on: macos-26-intel
         timeout-minutes: 60
+        strategy:
+            fail-fast: false
+            matrix:
+                locale: [en, es-419, es-AR, pt-BR]
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
@@ -151,9 +169,16 @@ jobs:
               working-directory: harness
               env:
                   TARGET_SHA: ${{ needs.refs.outputs.before }}
-              run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture
+              run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --locale=${{ matrix.locale }}
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
               if: always()
+              with:
+                  name: screen-library-before-${{ matrix.locale }}-${{ github.run_attempt }}
+                  path: capture/
+                  if-no-files-found: error
+                  retention-days: 14
+            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+              if: always() && matrix.locale == 'en'
               with:
                   name: screen-library-before-${{ github.run_attempt }}
                   path: capture/
