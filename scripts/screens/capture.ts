@@ -22,7 +22,7 @@ async function main() {
         localeArg = arg('locale', 'en')
     if (!APP_LOCALES.includes(localeArg as AppLocale)) throw new Error(`Unsupported capture locale: ${localeArg}`)
     const captureLocale = localeArg as AppLocale
-    const captureText = localizedCaptureText(captureLocale)
+    const captureText = localizedCaptureText(captureLocale, source)
     const target = new URL(arg('url', 'http://127.0.0.1:3080'))
     if (!['127.0.0.1', 'localhost'].includes(target.hostname))
         throw new Error('Capture only supports isolated local builds')

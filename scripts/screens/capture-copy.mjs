@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 
 const LOCALES = ['en', 'es-419', 'es-AR', 'pt-BR']
 const COPY_PATHS = new Map([
@@ -15,8 +15,8 @@ const COPY_PATHS = new Map([
     ['A small update to our terms', 'global.reConsent.title'],
 ])
 
-const read = (locale) =>
-    JSON.parse(readFileSync(fileURLToPath(new URL(`../../src/i18n/app/messages/${locale}.json`, import.meta.url))))
+const read = (source, locale) =>
+    JSON.parse(readFileSync(join(source, 'src/i18n/app/messages', `${locale}.json`), 'utf8'))
 
 const merge = (base, override) => {
     const result = { ...base }
@@ -34,18 +34,18 @@ const merge = (base, override) => {
     return result
 }
 
-const messagesFor = (locale) => {
+const messagesFor = (locale, source) => {
     if (!LOCALES.includes(locale)) throw new Error(`Unsupported capture locale: ${locale}`)
-    const english = read('en')
+    const english = read(source, 'en')
     if (locale === 'en') return english
-    const regional = merge(english, read(locale === 'es-AR' ? 'es-419' : locale))
-    return locale === 'es-AR' ? merge(regional, read('es-AR')) : regional
+    const regional = merge(english, read(source, locale === 'es-AR' ? 'es-419' : locale))
+    return locale === 'es-AR' ? merge(regional, read(source, 'es-AR')) : regional
 }
 
 const get = (messages, path) => path.split('.').reduce((value, key) => value?.[key], messages)
 
-export function localizedCaptureText(locale) {
-    const messages = messagesFor(locale)
+export function localizedCaptureText(locale, source) {
+    const messages = messagesFor(locale, source)
     const translations = new Map(
         [...COPY_PATHS]
             .map(([english, path]) => [english, get(messages, path)])
