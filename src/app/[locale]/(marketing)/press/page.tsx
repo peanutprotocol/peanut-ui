@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { type Metadata } from 'next'
 import Image from 'next/image'
+import Link from 'next/link'
 import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { MarketingHero } from '@/components/Marketing/MarketingHero'
 import { MarketingShell } from '@/components/Marketing/MarketingShell'
@@ -183,7 +184,12 @@ export default async function PressPage({ params }: PageProps) {
 
                     {fm.brand_assets && fm.brand_assets.length > 0 && (
                         <section className="flex flex-col gap-4">
-                            <h2 className="text-xl font-bold">{i18n.pressBrandAssets}</h2>
+                            <div className="flex flex-wrap items-baseline justify-between gap-2">
+                                <h2 className="text-xl font-bold">{i18n.pressBrandAssets}</h2>
+                                <Link href={`/${locale}/press/brand`} className="text-sm text-n-1 underline">
+                                    {i18n.pressBrandLink}
+                                </Link>
+                            </div>
                             <div className="grid gap-4 md:grid-cols-2">
                                 {fm.brand_assets.map((group) => (
                                     <Card key={group.label} className="gap-3 p-6">
