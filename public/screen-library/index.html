@@ -10,11 +10,9 @@
     </head>
     <body>
         <header>
-            <a class="brand" href="/screens/">peanut <span>Screen library</span></a
-            ><a id="download" hidden>Download offline report ↗</a>
+            <a class="brand" href="/screens/">peanut <span>Screen library</span></a>
         </header>
         <main>
-            <div class="eyebrow">PRODUCT / VISUAL HISTORY</div>
             <h1 id="title">Every screen.<br />Every change.</h1>
             <p id="description">Browse app states and compare versions of Peanut.</p>
             <details>
@@ -47,11 +45,12 @@
             </nav>
             <nav id="screen-filters" class="filters" aria-label="Filter screens">
                 <label>Search<input id="search" type="search" placeholder="Screen, state or flow" /></label
-                ><label id="view-mode-control"
-                    >View<select id="view-mode">
-                        <option value="changed">See changed screens</option>
-                        <option value="all">See all screens</option>
-                    </select></label
+                ><label id="view-mode-control" class="switch-control"
+                    ><span>See all screens</span
+                    ><input id="view-mode" type="checkbox" role="switch" aria-label="See all screens" /><span
+                        class="switch"
+                        aria-hidden="true"
+                    ></span></label
                 ><label
                     >Flow<select id="flow">
                         <option value="">All flows</option>
@@ -71,12 +70,9 @@
                     </select></label
                 >
             </nav>
-            <details id="route-coverage">
-                <summary>Route coverage and exclusions</summary>
-                <div id="route-inventory"></div>
-            </details>
             <section id="versions" aria-label="Versions"></section>
             <section id="screens" aria-label="Screens"></section>
+            <div id="screen-load-more" class="load-more" hidden aria-live="polite">Scroll to load more screens</div>
         </main>
         <dialog id="zoom">
             <div class="dialog-head">
@@ -92,6 +88,6 @@
             </div>
             <div id="zoom-images"></div>
         </dialog>
-        <footer id="footer">App-owned mobile UI · English · 393 × 852 · Synthetic data</footer>
+        <footer id="footer">English · 393 × 852 · Synthetic data</footer>
     </body>
 </html>
