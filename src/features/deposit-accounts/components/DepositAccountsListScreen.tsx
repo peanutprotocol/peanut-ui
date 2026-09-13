@@ -7,10 +7,11 @@ import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
 import type { GateState } from '@/utils/capability-gate'
 import { depositGateView } from '../depositGate'
-import { DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, isClaimable, isShareable } from '../rails'
+import { DEPOSIT_RAILS, isClaimable, isShareable } from '../rails'
 import { isHeld } from '../resolveScreen'
 import type { DepositAccountView, DepositCorridor, DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
@@ -21,6 +22,10 @@ import Image from 'next/image'
 /**
  * The hub: every corridor this user could hold, and where each one stands.
  *
+ * The rows come from the user's own rails, so a corridor they have no rail for
+ * is absent rather than present and unavailable — a German user reading an
+ * "Unavailable" ARS row learns nothing and doubts the four rows above it.
+ *
  * Eligibility is settled here, before any details exist, and per corridor. The
  * failure worth designing against is a user who deposits first and learns
  * their region is unsupported afterwards, when the money has already left —
@@ -28,6 +33,7 @@ import Image from 'next/image'
  * tappable.
  */
 export function DepositAccountsListScreen({
+    corridors,
     accounts,
     gates,
     isLoading,
@@ -37,10 +43,12 @@ export function DepositAccountsListScreen({
     onResolveGate,
     onRetry,
 }: {
+    /** the corridors this user has a rail for, in catalogue order */
+    corridors: DepositCorridor[]
     accounts: Record<DepositCorridor, DepositAccountView | undefined>
     /** the app's own answer to "can this user deposit here" — one gate per corridor */
     gates: Record<DepositCorridor, GateState>
-    /** the corridor catalogue is static, but which of them the user holds is not */
+    /** the corridors and the accounts are both network answers */
     isLoading: boolean
     /** the accounts could not be read at all */
     isError: boolean
@@ -51,7 +59,7 @@ export function DepositAccountsListScreen({
 }) {
     const { t, arrival, railName } = useDepositAccountCopy()
 
-    const views = DEPOSIT_RAIL_ORDER.map((corridor) => ({ corridor, view: depositGateView(gates[corridor]) }))
+    const views = corridors.map((corridor) => ({ corridor, view: depositGateView(gates[corridor]) }))
     // The banner names one corridor the user could hold but cannot. Every
     // corridor normally shares one blocker (identity), so this is one sentence
     // rather than six; where they differ, the row's own body says so.
@@ -66,9 +74,8 @@ export function DepositAccountsListScreen({
     // "when does the money land". Saying it in both places is how a row ended
     // up reading "Not set up yet" under a "Ready" pill.
     const rowBody = (corridor: DepositCorridor, openable: boolean): string => {
-        // The corridors come from a local catalogue and the accounts from the
-        // network, so the rows can paint before anything is known about them.
-        // The arrival time is true in that gap too.
+        // The rows can paint before the accounts arrive. The arrival time is
+        // true in that gap too; the status is not, so the badge carries it.
         if (isLoading) return arrival(corridor)
         if (!openable) return t('list.rowBlocked')
         return arrival(corridor)
@@ -132,36 +139,45 @@ export function DepositAccountsListScreen({
                     />
                 )}
 
-                <Section title={t('list.sectionTitle')}>
-                    <ListGroup>
-                        {views.map(({ corridor, view }) => {
-                            const rail = DEPOSIT_RAILS[corridor]
-                            const account = accounts[corridor]
-                            // The gate governs opening a NEW account, not
-                            // reading one that already exists — resolveScreen
-                            // serves those details read-only. A corridor with
-                            // nothing to claim is always open: its details are
-                            // the user's own top-up route.
-                            const openable = !isClaimable(rail) || view.claimable || isHeld(account)
-                            const disabled = isError || isLoading || !openable
+                {/*
+                 * No bank rail at all, so there is no corridor to offer. Saying
+                 * so is the honest answer; an empty list under a section title
+                 * reads as a screen that failed to load.
+                 */}
+                {!isError && !isLoading && corridors.length === 0 ? (
+                    <EmptyState icon="globe-lock" title={t('list.emptyTitle')} description={t('list.emptyBody')} />
+                ) : (
+                    <Section title={t('list.sectionTitle')}>
+                        <ListGroup>
+                            {views.map(({ corridor, view }) => {
+                                const rail = DEPOSIT_RAILS[corridor]
+                                const account = accounts[corridor]
+                                // The gate governs opening a NEW account, not
+                                // reading one that already exists — resolveScreen
+                                // serves those details read-only. A corridor with
+                                // nothing to claim is always open: its details are
+                                // the user's own top-up route.
+                                const openable = !isClaimable(rail) || view.claimable || isHeld(account)
+                                const disabled = isError || isLoading || !openable
 
-                            return (
-                                <ListItem
-                                    key={corridor}
-                                    leading={<CorridorFlag iso2={rail.flagIso2} />}
-                                    title={`${rail.currency} · ${railName(corridor)}`}
-                                    body={rowBody(corridor, openable)}
-                                    bodyWrap
-                                    trailing={rowBadge(rail, account)}
-                                    chevron={!disabled}
-                                    disabled={disabled}
-                                    onClick={() => onOpen(corridor)}
-                                    data-testid={`deposit-account-${corridor}`}
-                                />
-                            )
-                        })}
-                    </ListGroup>
-                </Section>
+                                return (
+                                    <ListItem
+                                        key={corridor}
+                                        leading={<CorridorFlag iso2={rail.flagIso2} />}
+                                        title={`${rail.currency} · ${railName(corridor)}`}
+                                        body={rowBody(corridor, openable)}
+                                        bodyWrap
+                                        trailing={rowBadge(rail, account)}
+                                        chevron={!disabled}
+                                        disabled={disabled}
+                                        onClick={() => onOpen(corridor)}
+                                        data-testid={`deposit-account-${corridor}`}
+                                    />
+                                )
+                            })}
+                        </ListGroup>
+                    </Section>
+                )}
             </div>
         </PageStack>
     )

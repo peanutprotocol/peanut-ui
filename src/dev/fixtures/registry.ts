@@ -269,69 +269,55 @@ const DEPOSIT_ACCOUNT_PROVIDER_HELD = {
     },
 }
 
-/** No bank rail is usable until identity is verified — the gate every bank surface reads. */
-const BLOCKED_BANK_CAPABILITIES = {
-    rails: [],
-    nextActions: [{ kind: 'verify_identity', railIds: [] }],
+/**
+ * The Bridge bank rails, the set a user verified through Bridge carries.
+ *
+ * The corridor rows come from the user's rails — `corridorsFromRails` in
+ * features/deposit-accounts/rails.ts — so this list IS what /get-paid shows.
+ * The Manteca corridors are deliberately absent: they belong to an Argentine
+ * or Brazilian user, and the fixture that wants one says so (`get-paid-ar`).
+ */
+const BRIDGE_BANK_RAILS = [
+    { id: 'bridge.ach_us', provider: 'bridge', method: 'ACH_US', channel: 'bank', country: 'US', currency: 'USD' },
+    { id: 'bridge.sepa_eu', provider: 'bridge', method: 'SEPA_EU', channel: 'bank', country: 'EU', currency: 'EUR' },
+    {
+        id: 'bridge.faster_payments_gb',
+        provider: 'bridge',
+        method: 'FASTER_PAYMENTS_GB',
+        channel: 'bank',
+        country: 'GB',
+        currency: 'GBP',
+    },
+    { id: 'bridge.spei_mx', provider: 'bridge', method: 'SPEI_MX', channel: 'bank', country: 'MX', currency: 'MXN' },
+]
+
+const VA_READY_CAPABILITIES = {
+    rails: BRIDGE_BANK_RAILS.map((rail) => ({ ...rail, status: 'enabled' })),
+    nextActions: [],
     restrictions: [],
 }
 
 /**
- * A fully verified user, enrolled on every corridor /get-paid offers.
+ * The same corridors, before identity is verified.
  *
- * The gate is asked one rail id at a time (`railIdFor` in
- * features/deposit-accounts/rails.ts), so a corridor missing from this list
- * renders as needs-enrollment, not as the state the fixture is named for. The
- * demo API enrolls three rails, which is right for the walkthrough and wrong
- * for these screens — hence a per-fixture override rather than a wider default.
+ * The rails are present and `requires-info`: an unverified user still has a
+ * region, so the rows exist and the gate says what is missing. An empty rail
+ * list is a user with no bank region at all — that is the empty state, not this.
  */
-const VA_READY_CAPABILITIES = {
+const BLOCKED_BANK_CAPABILITIES = {
+    rails: BRIDGE_BANK_RAILS.map((rail) => ({
+        ...rail,
+        status: 'requires-info',
+        blockingActions: ['sumsub:identity'],
+        reason: { code: 'identity_not_verified', userMessage: 'Verify your identity to open an account.' },
+    })),
+    nextActions: [{ key: 'sumsub:identity', kind: 'sumsub', purpose: 'unlock-bank', levelKey: 'identity' }],
+    restrictions: [],
+}
+
+/** An Argentine user: one Manteca bank rail, and no Bridge corridor at all. */
+const MANTECA_AR_CAPABILITIES = {
     rails: [
-        {
-            id: 'bridge.ach_us',
-            provider: 'bridge',
-            method: 'ACH_US',
-            channel: 'bank',
-            country: 'US',
-            currency: 'USD',
-            status: 'enabled',
-        },
-        {
-            id: 'bridge.sepa_eu',
-            provider: 'bridge',
-            method: 'SEPA_EU',
-            channel: 'bank',
-            country: 'EU',
-            currency: 'EUR',
-            status: 'enabled',
-        },
-        {
-            id: 'bridge.faster_payments_gb',
-            provider: 'bridge',
-            method: 'FASTER_PAYMENTS_GB',
-            channel: 'bank',
-            country: 'GB',
-            currency: 'GBP',
-            status: 'enabled',
-        },
-        {
-            id: 'bridge.spei_mx',
-            provider: 'bridge',
-            method: 'SPEI_MX',
-            channel: 'bank',
-            country: 'MX',
-            currency: 'MXN',
-            status: 'enabled',
-        },
-        {
-            id: 'manteca.pix_br',
-            provider: 'manteca',
-            method: 'PIX_BR',
-            channel: 'bank',
-            country: 'BR',
-            currency: 'BRL',
-            status: 'enabled',
-        },
         {
             id: 'manteca.bank_transfer_ar',
             provider: 'manteca',
@@ -858,6 +844,10 @@ export const FIXTURES: Record<string, Fixture> = {
     'get-paid-ar': {
         route: '/get-paid?step=details&corridor=BANK_TRANSFER_AR',
         about: 'Argentina: the provider CVU only credits transfers the user sends themselves, so it is never shared.',
+        responses: {
+            'GET /users/me': { capabilities: MANTECA_AR_CAPABILITIES },
+            'GET /users/deposit-accounts': { depositAccounts: [] },
+        },
     },
 
     'home-add-drawer': {

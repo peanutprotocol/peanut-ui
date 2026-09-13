@@ -14,16 +14,19 @@ import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import NavHeader from '@/components/Global/NavHeader'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { ClaimAccountScreen } from './ClaimAccountScreen'
+import { CorridorUnavailableScreen } from './CorridorUnavailableScreen'
 import { DepositDetailsSkeleton } from './DepositDetailsSkeleton'
 import { DepositAccountDetailsScreen } from './DepositAccountDetailsScreen'
 import { DepositAccountsListScreen } from './DepositAccountsListScreen'
 import { ShareDepositDetailsScreen } from './ShareDepositDetailsScreen'
 
 export interface DepositAccountsFlowProps {
+    /** the corridors this user has a rail for — a deep link to any other lands on the list */
+    corridors: DepositCorridor[]
     accounts: Record<DepositCorridor, DepositAccountView | undefined>
     /** `gateFor('deposit', { railId })` per corridor — the app primitive, one rail at a time */
     gates: Record<DepositCorridor, GateState>
-    /** true until the held accounts are known — the corridor list is local, they are not */
+    /** true until the corridors and the held accounts are known */
     isLoading?: boolean
     /** the accounts could not be read; the list says so instead of offering claims */
     isError?: boolean
@@ -48,6 +51,7 @@ export interface DepositAccountsFlowProps {
  * explanation.
  */
 export function DepositAccountsFlow({
+    corridors,
     accounts,
     gates,
     isLoading = false,
@@ -75,7 +79,13 @@ export function DepositAccountsFlow({
     // must not resolve past the list: the empty fallback map would read as "not
     // claimed yet" and offer to open an account the user may already have. The
     // list carries the error and the retry.
-    const resolved = isError ? 'list' : resolveScreen(screen, rail, account, gate)
+    //
+    // A corridor the user has no rail for goes the same way. `?corridor=` is a
+    // user input, and a stale link naming ARS must not open an Argentine screen
+    // for somebody in Germany. Only once the corridors are known, though —
+    // before that every corridor looks absent.
+    const offered = isLoading || corridors.includes(corridor)
+    const resolved = isError || !offered ? 'list' : resolveScreen(screen, rail, account, gate)
 
     // A user who asked for a screen and was handed a lesser one hit the gate.
     // Reported per corridor and per gate kind, because "blocked" as one number
@@ -125,6 +135,12 @@ export function DepositAccountsFlow({
         setParams({ corridor: next, step: needsClaim ? 'claim' : 'details' })
     }
 
+    // A corridor that is not a standing account has no account to wait for and
+    // none to render — its details screen is the education and the top-up route.
+    if (resolved === 'details' && (!isClaimable(rail) || account?.status === 'unavailable')) {
+        return <CorridorUnavailableScreen rail={rail} onBack={() => setParams({ step: 'list' })} />
+    }
+
     if (resolved === 'claim') {
         return (
             <ClaimAccountScreen
@@ -167,6 +183,7 @@ export function DepositAccountsFlow({
 
     return (
         <DepositAccountsListScreen
+            corridors={corridors}
             accounts={accounts}
             gates={gates}
             isLoading={isLoading}

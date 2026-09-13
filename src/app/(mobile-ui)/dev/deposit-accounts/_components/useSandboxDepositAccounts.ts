@@ -2,10 +2,8 @@
 
 import fixture from './bridge-sandbox-virtual-accounts.json'
 import { fromBridgeVirtualAccounts, type BridgeVirtualAccount } from './bridgeFixtureAdapter'
-import { mantecaArgentinaAccount, mantecaBrazilAccount } from '@/features/deposit-accounts/mantecaCorridors'
-import { DEPOSIT_RAIL_ORDER } from '@/features/deposit-accounts/rails'
+import { corridorFromRailId, DEPOSIT_RAIL_ORDER } from '@/features/deposit-accounts/rails'
 import type { DepositAccount, DepositAccountView, DepositCorridor } from '@/features/deposit-accounts/types'
-import { corridorFromRailId } from '@/features/deposit-accounts/useDepositAccounts'
 import type { GateState } from '@/utils/capability-gate'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -21,11 +19,11 @@ export type SandboxScenario = 'live' | 'all-claimed' | 'provisioning' | 'timed-o
  * The prototype's data source: real Bridge sandbox payloads, captured by
  * mono `projects/virtual-accounts/capture-sandbox-vas.sh`, run through the
  * same adapters a product build would use. Nothing here is a hand-written
- * bank detail — the only invented values are the Manteca Argentine ones,
- * which come from the shipped constants.
+ * bank detail.
  *
  * A product build replaces this hook with `GET /users/deposit-accounts` and
- * `POST /users/deposit-accounts`; every screen below it stays as it is.
+ * `POST /users/deposit-accounts`, and takes its corridors from the user's own
+ * rails; the prototype offers all of them, so every screen can be reviewed.
  */
 export function useSandboxDepositAccounts(scenario: SandboxScenario) {
     const bridgeAccounts = useMemo(
@@ -62,8 +60,8 @@ export function useSandboxDepositAccounts(scenario: SandboxScenario) {
             SEPA_EU: undefined,
             FASTER_PAYMENTS_GB: undefined,
             SPEI_MX: undefined,
-            PIX_BR: mantecaBrazilAccount(),
-            BANK_TRANSFER_AR: mantecaArgentinaAccount(),
+            PIX_BR: undefined,
+            BANK_TRANSFER_AR: undefined,
         }
 
         bridgeAccounts.forEach((account) => {
@@ -75,6 +73,7 @@ export function useSandboxDepositAccounts(scenario: SandboxScenario) {
     }, [bridgeAccounts, scenario, claimed, claiming])
 
     return {
+        corridors: DEPOSIT_RAIL_ORDER,
         accounts,
         userName: SANDBOX_USER_NAME,
         // a product build asks gateFor('deposit', { railId }) once per corridor;

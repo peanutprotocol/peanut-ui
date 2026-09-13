@@ -3954,6 +3954,8 @@
             "badgeNotSetUp": "Sin configurar",
             "badgeUnavailable": "No disponible",
             "badgeRevoked": "Revocada",
+            "emptyTitle": "Todavía no hay cuentas para tu región",
+            "emptyBody": "Abrimos datos bancarios en las monedas que admite tu región verificada. Todavía no hay ninguna para ti. Vuelve a mirar cuando agregues otro país o moneda.",
             "errorTitle": "No pudimos cargar tus cuentas",
             "errorBody": "Tus cuentas están bien: solo no pudimos leerlas. Revisa tu conexión e inténtalo de nuevo.",
             "errorRetry": "Intentar de nuevo"

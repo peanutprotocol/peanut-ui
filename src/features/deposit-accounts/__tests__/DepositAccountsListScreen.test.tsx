@@ -39,6 +39,7 @@ const heldAccount = (corridor: DepositCorridor): DepositAccount => ({
 const list = (
     isLoading: boolean,
     opts: {
+        corridors?: DepositCorridor[]
         gates?: Record<DepositCorridor, GateState>
         isError?: boolean
         accounts?: Record<DepositCorridor, DepositAccount | undefined>
@@ -47,6 +48,7 @@ const list = (
     render(
         <NextIntlClientProvider locale="en" messages={messages}>
             <DepositAccountsListScreen
+                corridors={opts.corridors ?? DEPOSIT_RAIL_ORDER}
                 accounts={opts.accounts ?? NONE}
                 gates={opts.gates ?? allGates()}
                 isLoading={isLoading}
@@ -104,6 +106,38 @@ describe('DepositAccountsListScreen', () => {
     it('does not open a corridor whose state is not known yet', () => {
         const { container } = list(true)
         expect(rowOf(container, 'SEPA_EU')).toHaveAttribute('aria-disabled', 'true')
+    })
+})
+
+/**
+ * The rows are the user's own rails. A corridor the user has no rail for is
+ * absent, not present and unavailable — the whole screen used to offer an
+ * Argentine row to somebody in Germany, who could only read "Unavailable".
+ */
+describe("DepositAccountsListScreen renders the user's corridors and no others", () => {
+    it('shows an Argentine user their Manteca corridors alone', () => {
+        const { container } = list(false, { corridors: ['PIX_BR', 'BANK_TRANSFER_AR'] })
+
+        expect(rowOf(container, 'BANK_TRANSFER_AR')).toBeInTheDocument()
+        expect(rowOf(container, 'PIX_BR')).toBeInTheDocument()
+        expect(rowOf(container, 'SEPA_EU')).not.toBeInTheDocument()
+        expect(rowOf(container, 'ACH_US')).not.toBeInTheDocument()
+    })
+
+    it('shows a European user their Bridge corridors alone', () => {
+        const { container } = list(false, { corridors: ['SEPA_EU', 'FASTER_PAYMENTS_GB', 'ACH_US', 'SPEI_MX'] })
+
+        for (const corridor of ['SEPA_EU', 'FASTER_PAYMENTS_GB', 'ACH_US', 'SPEI_MX'] as const) {
+            expect(rowOf(container, corridor)).toBeInTheDocument()
+        }
+        expect(rowOf(container, 'BANK_TRANSFER_AR')).not.toBeInTheDocument()
+    })
+
+    it('says so plainly when the user has no bank rail at all', () => {
+        const { container } = list(false, { corridors: [] })
+
+        expect(screen.getByText(messages.depositAccounts.list.emptyTitle)).toBeInTheDocument()
+        expect(rowOf(container, 'SEPA_EU')).not.toBeInTheDocument()
     })
 })
 
@@ -168,6 +202,7 @@ describe('DepositAccountsFlow while the accounts are loading', () => {
             <NextIntlClientProvider locale="en" messages={messages}>
                 <NuqsTestingAdapter searchParams="?step=details&corridor=SEPA_EU">
                     <DepositAccountsFlow
+                        corridors={DEPOSIT_RAIL_ORDER}
                         accounts={NONE}
                         gates={gates}
                         isLoading={isLoading}
@@ -239,6 +274,7 @@ describe('DepositAccountsFlow when the accounts cannot be read', () => {
             <NextIntlClientProvider locale="en" messages={messages}>
                 <NuqsTestingAdapter searchParams="?step=claim&corridor=SEPA_EU">
                     <DepositAccountsFlow
+                        corridors={DEPOSIT_RAIL_ORDER}
                         accounts={NONE}
                         gates={allGates()}
                         isLoading={false}
@@ -259,6 +295,37 @@ describe('DepositAccountsFlow when the accounts cannot be read', () => {
 })
 
 /**
+ * `?corridor=` is a user input like any other. A link minted for a corridor the
+ * user has no rail for has to land somewhere true.
+ */
+describe('DepositAccountsFlow when a link names a corridor the user has no rail for', () => {
+    it('falls back to the list rather than opening a corridor that is not theirs', () => {
+        render(
+            <NextIntlClientProvider locale="en" messages={messages}>
+                <NuqsTestingAdapter searchParams="?step=details&corridor=BANK_TRANSFER_AR">
+                    <DepositAccountsFlow
+                        corridors={['SEPA_EU']}
+                        accounts={NONE}
+                        gates={allGates()}
+                        isLoading={false}
+                        userName="Demo User"
+                        onExit={() => {}}
+                        onClaim={() => {}}
+                        onResolveGate={() => {}}
+                        onRetry={() => {}}
+                    />
+                </NuqsTestingAdapter>
+            </NextIntlClientProvider>
+        )
+
+        expect(
+            screen.queryByText(messages.depositAccounts.details.unavailableTitle.replace('{currency}', 'ARS'))
+        ).not.toBeInTheDocument()
+        expect(screen.getByText(messages.depositAccounts.list.heading)).toBeInTheDocument()
+    })
+})
+
+/**
  * The cursor shipped as `?screen=` and was renamed to `?step=`, the name every
  * other flow in the app uses. Links already minted must still land.
  */
@@ -268,6 +335,7 @@ describe('DepositAccountsFlow accepts the cursor by its old name', () => {
             <NextIntlClientProvider locale="en" messages={messages}>
                 <NuqsTestingAdapter searchParams="?screen=claim&corridor=SEPA_EU">
                     <DepositAccountsFlow
+                        corridors={DEPOSIT_RAIL_ORDER}
                         accounts={NONE}
                         gates={allGates()}
                         userName="Demo User"

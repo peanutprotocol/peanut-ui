@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { MAX_PROVISIONING_POLLS, PROVISIONING_POLL_MS, useDepositAccounts } from '../useDepositAccounts'
 import type { DepositAccount } from '../types'
+import type { RailCapability } from '@/types/capabilities'
 import type { GateScope, GateState } from '@/utils/capability-gate'
 
 const fetchDepositAccounts = jest.fn()
@@ -17,12 +18,19 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 // the capability block, expressed the way the gate is actually asked: one
 // answer per rail id, so a test can enable one corridor and block the rest
 let gatesByRailId: Record<string, GateState> = {}
+// the rails the capability block names — what the corridor rows are built from
+let userRails: RailCapability[] = []
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
         gateFor: (_op: string, scope?: GateScope) =>
             (scope?.railId && gatesByRailId[scope.railId]) || ({ kind: 'needs-enrollment' } as GateState),
+        rails: userRails,
+        isLoading: false,
     }),
 }))
+
+const bankRail = (id: string, method: string): RailCapability =>
+    ({ id, method, channel: 'bank', status: 'enabled' }) as RailCapability
 
 const account = (over: Partial<DepositAccount> = {}): DepositAccount => ({
     id: 'a',
@@ -44,9 +52,34 @@ const wrapper = ({ children }: { children: ReactNode }) => {
 beforeEach(() => {
     jest.clearAllMocks()
     gatesByRailId = {}
+    userRails = [bankRail('bridge.sepa_eu', 'SEPA_EU'), bankRail('bridge.ach_us', 'ACH_US')]
 })
 
 describe('useDepositAccounts', () => {
+    /**
+     * The corridor rows used to come from a local table, so every user read an
+     * unavailable ARS row. They come from the user's own rails now.
+     */
+    it('offers the corridors the user has a rail for, and no others', async () => {
+        userRails = [bankRail('manteca.bank_transfer_ar', 'BANK_TRANSFER_AR'), bankRail('manteca.pix_br', 'PIX_BR')]
+        fetchDepositAccounts.mockResolvedValue([])
+
+        const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+        expect(result.current.corridors).toEqual(['PIX_BR', 'BANK_TRANSFER_AR'])
+    })
+
+    it('offers no corridor to a user with no bank rail', async () => {
+        userRails = []
+        fetchDepositAccounts.mockResolvedValue([])
+
+        const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+        expect(result.current.corridors).toEqual([])
+    })
+
     it('maps each returned account onto its corridor', async () => {
         fetchDepositAccounts.mockResolvedValue([account(), account({ id: 'b', railId: 'bridge.ach_us' })])
 

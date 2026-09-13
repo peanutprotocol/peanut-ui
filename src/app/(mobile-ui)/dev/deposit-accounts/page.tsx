@@ -80,6 +80,7 @@ export default function DepositAccountsPrototypePage() {
                             the app, where AppShell owns that gutter. */}
                         <div className="flex min-h-160 flex-col p-4">
                             <DepositAccountsFlow
+                                corridors={sandbox.corridors}
                                 accounts={sandbox.accounts}
                                 userName={sandbox.userName}
                                 gates={sandbox.gates}

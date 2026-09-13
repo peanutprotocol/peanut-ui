@@ -3954,6 +3954,8 @@
             "badgeNotSetUp": "Not set up",
             "badgeUnavailable": "Unavailable",
             "badgeRevoked": "Revoked",
+            "emptyTitle": "No accounts for your region yet",
+            "emptyBody": "We open bank details in the currencies your verified region supports. None are open to you yet — check back after you add a new country or currency.",
             "errorTitle": "We could not load your accounts",
             "errorBody": "Your accounts are fine — we just could not read them. Check your connection and try again.",
             "errorRetry": "Try again"

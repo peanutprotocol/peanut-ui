@@ -8,14 +8,12 @@ import { Section } from '@/components/0_Bruddle/Section'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
-import Link from 'next/link'
-import { rewriteMethodPath } from '@/utils/native-routes'
 import { instructionRows } from '../instructionRows'
 import { isShareable } from '../rails'
 import type { DepositAccountView, DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { DepositDetailsCard } from './DepositDetailsCard'
-import { DepositRuleList, RuleWithInfo } from './DepositRuleList'
+import { DepositRuleList } from './DepositRuleList'
 import { DepositDetailsSkeleton } from './DepositDetailsSkeleton'
 
 /**
@@ -48,48 +46,7 @@ export function DepositAccountDetailsScreen({
     onShare: () => void
     onRetry: () => void
 }) {
-    const { t, rowLabels, railLabels, arrivalDetail, railName, ruleLines, unclaimableReason } = useDepositAccountCopy()
-    // The Manteca top-up lives at /add-money/[country]/manteca, a dynamic route
-    // the native static export does not ship. rewriteMethodPath turns it into
-    // the query-backed parent the export does have; on web it is a no-op.
-    const topUpHref = rail.topUpHref ? rewriteMethodPath(rail.topUpHref) : undefined
-
-    if (account.status === 'unavailable') {
-        const unclaimable = unclaimableReason(rail.corridor)
-        return (
-            <PageStack>
-                <NavHeader title={t('title')} onPrev={onBack} />
-                <PageStack.Center>
-                    <EmptyState
-                        icon="globe-lock"
-                        title={t('details.unavailableTitle', { currency: rail.currency })}
-                        description={
-                            unclaimable ? (
-                                <RuleWithInfo text={unclaimable.text} why={unclaimable.why} />
-                            ) : (
-                                t('details.unavailableBody')
-                            )
-                        }
-                        cta={
-                            topUpHref ? (
-                                // a corridor with no standing account still has a
-                                // real way in — send them to it rather than back
-                                <Link href={topUpHref}>
-                                    <Button variant="stroke" size="small">
-                                        {t('details.topUpCta', { currency: rail.currency })}
-                                    </Button>
-                                </Link>
-                            ) : (
-                                <Button variant="stroke" size="small" onClick={onBack}>
-                                    {t('details.unavailableCta')}
-                                </Button>
-                            )
-                        }
-                    />
-                </PageStack.Center>
-            </PageStack>
-        )
-    }
+    const { t, rowLabels, railLabels, arrivalDetail, railName, ruleLines } = useDepositAccountCopy()
 
     if (account.status === 'revoked') {
         return (
@@ -167,12 +124,6 @@ export function DepositAccountDetailsScreen({
                         <Section title={t('details.whoCanPay')}>
                             <DepositRuleList lines={rules} />
                         </Section>
-
-                        {ownNameOnly && topUpHref && (
-                            <LinkButton href={topUpHref}>
-                                {t('details.topUpCta', { currency: rail.currency })}
-                            </LinkButton>
-                        )}
 
                         {/*
                          * The one-off transfer flow, kept and reachable. A

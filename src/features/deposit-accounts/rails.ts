@@ -1,12 +1,18 @@
+import type { RailCapability } from '@/types/capabilities'
 import type { DepositCorridor, DepositRail, SenderPolicy } from './types'
 
 /**
- * The corridor catalogue: structure only. Every sentence a user reads lives in
- * the message catalog under `depositAccounts.corridors`, keyed by corridor —
- * rail names included, because "ACH or wire" and "Bank transfer" are English
- * sentences wearing a proper noun's clothes. Only the invariant part (SEPA,
- * SPEI, Pix) is a real proper noun, and the catalog holds it anyway so one
- * lookup answers the whole label.
+ * How each corridor PRESENTS: flag, currency, arrival, row count. It never
+ * decides which corridors a user sees — `corridorsFromRails` does, from the
+ * rails the capabilities endpoint returns. A table that also picked the rows
+ * showed every user an unavailable ARS row, including users in Germany.
+ *
+ * Every sentence a user reads lives in the message catalog under
+ * `depositAccounts.corridors`, keyed by corridor — rail names included,
+ * because "ACH or wire" and "Bank transfer" are English sentences wearing a
+ * proper noun's clothes. Only the invariant part (SEPA, SPEI, Pix) is a real
+ * proper noun, and the catalog holds it anyway so one lookup answers the whole
+ * label.
  */
 export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
     SEPA_EU: {
@@ -92,4 +98,32 @@ export function isShareable(sender: SenderPolicy): boolean {
  */
 export function railIdFor(corridor: DepositCorridor): string {
     return `${DEPOSIT_RAILS[corridor].provider}.${corridor.toLowerCase()}`
+}
+
+/**
+ * `bridge.ach_us` → `ACH_US`. The corridor key IS the rail method code in both
+ * repos, so this only has to undo the provider prefix and the lower-casing the
+ * capability contract applies to rail ids.
+ */
+export function corridorFromRailId(railId: string): DepositCorridor | undefined {
+    const method = railId.split('.')[1]?.toUpperCase()
+    return method && method in DEPOSIT_RAILS ? (method as DepositCorridor) : undefined
+}
+
+/**
+ * Which corridors this user has a row for.
+ *
+ * One row per bank rail the capabilities name, whatever its status: a rail in
+ * the block means the corridor is part of this user's world, and its status
+ * decides what the row says rather than whether it exists. A user with no AR
+ * rail never reads about ARS.
+ */
+export function corridorsFromRails(rails: RailCapability[]): DepositCorridor[] {
+    const held = new Set<DepositCorridor>()
+    for (const rail of rails) {
+        if (rail.channel !== 'bank') continue
+        const corridor = corridorFromRailId(rail.id)
+        if (corridor) held.add(corridor)
+    }
+    return DEPOSIT_RAIL_ORDER.filter((corridor) => held.has(corridor))
 }

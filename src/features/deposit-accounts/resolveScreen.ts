@@ -59,7 +59,11 @@ export function resolveScreen(
     }
 
     if (requested === 'details') {
-        if (!account) return isClaimable(rail) && claimable ? 'claim' : 'list'
+        // A corridor nobody can hold has no account and still has a details
+        // screen: why it is not a standing account, and the top-up route that
+        // is its real way in.
+        if (!isClaimable(rail)) return 'details'
+        if (!account) return claimable ? 'claim' : 'list'
         if (account.status === 'unclaimed') return claimable ? 'claim' : 'list'
         return 'details'
     }

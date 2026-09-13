@@ -6,8 +6,7 @@ import type { GateState } from '@/utils/capability-gate'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { trackClaimFailed, trackClaimStarted } from './analytics'
-import { mantecaArgentinaAccount, mantecaBrazilAccount } from './mantecaCorridors'
-import { DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, railIdFor } from './rails'
+import { corridorFromRailId, corridorsFromRails, DEPOSIT_RAIL_ORDER, railIdFor } from './rails'
 import type { DepositAccount, DepositAccountView, DepositCorridor } from './types'
 
 export const DEPOSIT_ACCOUNTS_QUERY_KEY = ['deposit-accounts'] as const
@@ -23,9 +22,12 @@ export interface DepositClaimError {
 }
 
 export interface UseDepositAccountsResult {
+    /** the corridors this user has a rail for, in catalogue order */
+    corridors: DepositCorridor[]
     accounts: Record<DepositCorridor, DepositAccountView | undefined>
     /** the capability gate for EACH corridor, asked one rail id at a time */
     gates: Record<DepositCorridor, GateState>
+    /** true until both the corridors and the held accounts are known */
     isLoading: boolean
     /** the accounts could not be read — distinct from "you hold none" */
     isError: boolean
@@ -36,9 +38,9 @@ export interface UseDepositAccountsResult {
 }
 
 /**
- * Everything the get-paid flow needs, from the places that own it: the
- * accounts from the backend, and whether the user may deposit on each corridor
- * from the capability gate every other bank surface uses.
+ * Everything the get-paid flow needs, from the places that own it: which
+ * corridors exist for this user and whether they may deposit on each from the
+ * capability block, and the accounts they hold from the backend.
  *
  * A provisioning account refetches on a short interval — the provider usually
  * takes under a minute, and the alternative is a user staring at a skeleton
@@ -50,7 +52,7 @@ export interface UseDepositAccountsResult {
  */
 export function useDepositAccounts(): UseDepositAccountsResult {
     const queryClient = useQueryClient()
-    const { gateFor } = useCapabilities()
+    const { gateFor, rails, isLoading: capabilitiesLoading } = useCapabilities()
     const [claimingCorridor, setClaimingCorridor] = useState<DepositCorridor | undefined>()
     const [claimError, setClaimError] = useState<DepositClaimError | undefined>()
 
@@ -98,11 +100,13 @@ export function useDepositAccounts(): UseDepositAccountsResult {
         },
     })
 
+    /** the rows this user gets, straight from their rails */
+    const corridors = useMemo(() => corridorsFromRails(rails), [rails])
+
     /**
-     * The corridor map the screens read. Bridge corridors come from the
-     * backend; Manteca's two are assembled here because they are not accounts
-     * anybody holds — both mint their coordinates per deposit, so there is
-     * nothing per-user to store and nothing standing to fetch.
+     * The accounts the user holds, by corridor. A corridor with no account is
+     * the normal case: only Bridge corridors are standing accounts, and one
+     * that has never been claimed has nothing to return either.
      *
      * One corridor can carry several accounts during a provider rotation: the
      * new one and the retiring predecessor it replaces. `isPrimary` names the
@@ -115,8 +119,8 @@ export function useDepositAccounts(): UseDepositAccountsResult {
             SEPA_EU: undefined,
             FASTER_PAYMENTS_GB: undefined,
             SPEI_MX: undefined,
-            PIX_BR: mantecaBrazilAccount(),
-            BANK_TRANSFER_AR: mantecaArgentinaAccount(),
+            PIX_BR: undefined,
+            BANK_TRANSFER_AR: undefined,
         }
         for (const account of query.data ?? []) {
             const corridor = corridorFromRailId(account.railId)
@@ -152,9 +156,10 @@ export function useDepositAccounts(): UseDepositAccountsResult {
     const doClaim = useCallback((corridor: DepositCorridor) => claim.mutate(corridor), [claim])
 
     return {
+        corridors,
         accounts,
         gates,
-        isLoading: query.isLoading,
+        isLoading: query.isLoading || capabilitiesLoading,
         isError: query.isError,
         claimingCorridor,
         claimError,
@@ -184,14 +189,4 @@ function preferred(current: DepositAccountView | undefined, next: DepositAccount
     const retiring = (account: DepositAccountView) => account.status === 'retiring'
     if (retiring(current) !== retiring(next)) return retiring(current) ? next : current
     return current
-}
-
-/**
- * `bridge.ach_us` → `ACH_US`. The corridor key IS the rail method code in both
- * repos, so this only has to undo the provider prefix and the lower-casing the
- * capability contract applies to rail ids.
- */
-export function corridorFromRailId(railId: string): DepositCorridor | undefined {
-    const method = railId.split('.')[1]?.toUpperCase()
-    return method && method in DEPOSIT_RAILS ? (method as DepositCorridor) : undefined
 }
