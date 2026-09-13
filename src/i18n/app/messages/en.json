@@ -3986,7 +3986,7 @@
             "timedOutBody": "Nothing was charged. Try again in a moment, or choose another currency.",
             "timedOutRetry": "Try again",
             "revokedTitle": "Your {currency} details no longer work",
-            "revokedBody": "Anything sent to them is returned to the sender. Tell anyone who pays you to stop using them, and open new details.",
+            "revokedBody": "Anything sent to them is returned to the sender. Tell anyone who pays you to stop using them, then contact support to have them replaced.",
             "revokedCta": "Contact support",
             "topUpCta": "Add {currency} instead",
             "exactAmountCta": "Deposit a set amount instead",

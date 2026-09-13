@@ -1694,7 +1694,7 @@
         "details": {
             "unavailableTitle": "Todavía no tenés datos en {currency}",
             "timedOutBody": "No se cobró nada. Probá de nuevo en un momento o elegí otra moneda.",
-            "revokedBody": "Lo que manden a esos datos vuelve a quien lo envió. Avisale a quien te paga que deje de usarlos y abrí datos nuevos.",
+            "revokedBody": "Lo que manden a esos datos vuelve a quien lo envió. Avisale a quien te paga que deje de usarlos y escribí a soporte para reemplazarlos.",
             "topUpCta": "Ingresar {currency} de otra forma",
             "exactAmountCta": "Depositar un monto fijo"
         },

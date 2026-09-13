@@ -3986,7 +3986,7 @@
             "timedOutBody": "No se cobró nada. Inténtalo de nuevo en un momento o elige otra moneda.",
             "timedOutRetry": "Intentar de nuevo",
             "revokedTitle": "Tus datos en {currency} ya no funcionan",
-            "revokedBody": "Lo que envíen a esos datos vuelve a quien lo mandó. Avisa a quien te paga que deje de usarlos y abre datos nuevos.",
+            "revokedBody": "Lo que envíen a esos datos vuelve a quien lo mandó. Avisa a quien te paga que deje de usarlos y escribe a soporte para reemplazarlos.",
             "revokedCta": "Contactar soporte",
             "topUpCta": "Ingresar {currency} de otra forma",
             "exactAmountCta": "Depositar un monto fijo",
