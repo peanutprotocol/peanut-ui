@@ -111,6 +111,12 @@ export default function DevToolsPage() {
             icon: 'info',
         },
         {
+            name: 'Shake to pay',
+            description: 'Previews the nearby-receiver search animation and Peanut avatar cards.',
+            path: '/dev/shake-pay-nearby',
+            icon: 'user',
+        },
+        {
             name: 'WebAuthn ceremony log',
             description:
                 'Every passkey sheet this app session requested, tagged with the call path that asked — for diagnosing repeat prompts on a device.',
