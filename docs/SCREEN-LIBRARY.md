@@ -80,7 +80,9 @@ offline archives retain the original capture files. No Vercel Blob store is need
 DevOps setup:
 
 1. Enable Cloudflare Images and create a public `screenpreview` variant
-   (393×852, fit scale-down, no cropping; no signed URL requirement).
+   (393×852, fit scale-down, no cropping; no signed URL requirement). Keep
+   Cloudflare Images' built-in public variant enabled; it is used for the
+   original-size zoom, overlay, and difference views.
 2. Create a dedicated private R2 bucket. Retain objects
    indefinitely; respect object Cache-Control (index/latest use 60 seconds).
 3. Create two Cloudflare API tokens with separate values:
@@ -136,15 +138,15 @@ libraries advance that pointer; PR preview completion cannot move it.
 
 `Screen library` builds the changed side without write credentials on PR
 updates. The trusted publisher resolves the exact merge-base capture from a
-successful dev integration run or the scheduled daily baseline workflow; it
+successful dev integration run or the scheduled/main-update baseline workflow; it
 rejects stale, unrelated, or mismatched-harness baselines. Pushes and the
 historical dispatch retain same-run two-sided captures. When a PR changes the
 capture harness, fixtures, catalogue, or lockfile, the caller recaptures the
 base with that PR harness instead of reusing an incompatible baseline. Full
 catalogues run even for shared-style changes.
 
-`Screen library baseline` refreshes the dev baseline once per UTC day at
-00:17. Its artifact is retained for seven days and is accepted only when the
+`Screen library baseline` refreshes the dev baseline after a main-branch update
+and once per UTC day. Its artifact is retained for seven days and is accepted only when the
 artifact run, branch, SHA, workflow, age, and capture manifest all match the
 verified baseline. If the baseline is unavailable or the capture harness
 changed, publication fails closed instead of comparing against an arbitrary
@@ -157,8 +159,8 @@ consumes the caller's exact after artifact and, for PRs, one separately
 resolved baseline artifact. Same-run before/after artifacts remain the fallback
 for integration and historical runs. It also runs after capture failures so
 available evidence can be published with explicit gaps. Cancelled runs do not
-publish. The scheduled baseline workflow must be registered on the repository's
-default branch for GitHub's schedule trigger to fire.
+publish. The baseline workflow must be registered on the repository's default
+branch so its schedule and main-branch trigger can fire.
 
 Merge publisher PR #3107 into dev first, then caller/catalogue PR #3108. Both
 PRs target dev. Once storage is configured, that dev push captures and publishes

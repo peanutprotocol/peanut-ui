@@ -32,11 +32,9 @@ const elementIds = [
     'empty-retry',
     'screen-filters',
     'dashboard-filters',
-    'route-coverage',
-    'route-inventory',
     'versions',
     'screens',
-    'download',
+    'screen-load-more',
     'footer',
 ]
 
@@ -48,6 +46,7 @@ class Element {
         this.open = false
         this.parentElement = { hidden: false }
         this.value = ''
+        this.checked = false
         this.textContent = ''
         this.className = ''
         this.listeners = new Map()
@@ -68,6 +67,12 @@ class Element {
     setAttribute(name, value) {
         this[name] = value
     }
+    showModal() {
+        this.open = true
+    }
+    close() {
+        this.open = false
+    }
 }
 
 async function loadLanding(pathname, { ok = true, index = [], report } = {}) {
@@ -86,8 +91,11 @@ async function loadLanding(pathname, { ok = true, index = [], report } = {}) {
         console,
         document,
         URLSearchParams,
-        fetch: () => response,
-        location: { pathname, protocol: 'https:', search: '', hash: '', reload() {} },
+        fetch: (url) =>
+            url.endsWith('/index.json')
+                ? Promise.resolve({ ok: true, status: 200, json: async () => index })
+                : response,
+        location: { pathname, protocol: 'https:', search: '', hash: '', href: '', reload() {} },
         window: {},
     })
     vm.runInContext(viewer, context, { filename: 'public/screen-library/viewer.js' })
@@ -96,7 +104,7 @@ async function loadLanding(pathname, { ok = true, index = [], report } = {}) {
     return elements
 }
 
-test('landing catalogue hides controls and route coverage on the root URL and deployed alias', async () => {
+test('landing catalogue hides screen controls on the root URL and deployed alias', async () => {
     for (const pathname of ['/', '/screen-library/index.html']) {
         const elements = await loadLanding(pathname, {
             index: [
@@ -109,7 +117,6 @@ test('landing catalogue hides controls and route coverage on the root URL and de
         })
         assert.equal(elements.get('screen-filters').hidden, true, pathname)
         assert.equal(elements.get('dashboard-filters').hidden, false, pathname)
-        assert.equal(elements.get('route-coverage').hidden, true, pathname)
         assert.equal(elements.get('versions').children.length, 1, pathname)
         assert.equal(elements.get('screens').children.length, 0, pathname)
     }
@@ -184,16 +191,83 @@ test('comparison reports can switch from changed screens to the full catalogue',
                 after: { status: 'captured', image, thumbnail: image },
             },
         ],
+        previewUrls: {
+            [image]: `https://imagedelivery.net/3RfIxQn88kFXdTrxhfIMXw/ps-${'a'.repeat(29)}/screenpreview`,
+        },
+        originalUrls: {
+            [image]: `https://imagedelivery.net/3RfIxQn88kFXdTrxhfIMXw/ps-${'a'.repeat(29)}/public`,
+        },
     }
     const elements = await loadLanding('/screens/2026-09-11/pr-1/en/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/', {
         report,
     })
-    assert.equal(elements.get('view-mode').value, 'changed')
+    assert.equal(elements.get('view-mode').checked, false)
     assert.equal(elements.get('screens').children.length, 1)
-    elements.get('view-mode').value = 'all'
+    elements.get('screens').children[0].children[1].children[0].children[1].onclick()
+    assert.equal(
+        elements.get('zoom-images').children[0].src,
+        `https://imagedelivery.net/3RfIxQn88kFXdTrxhfIMXw/ps-${'a'.repeat(29)}/public`
+    )
+    elements.get('view-mode').checked = true
     elements.get('view-mode').dispatch('change')
     assert.equal(elements.get('screens').children.length, 2)
     assert.equal(elements.get('screens').children[0].children[1].className, 'pair single')
+})
+
+test('screen lists load the first page and leave the next page for scroll loading', async () => {
+    const image = 'a'.repeat(64) + '.png'
+    const report = {
+        schema: 1,
+        type: 'capture',
+        locale: 'en',
+        complete: true,
+        capturedAt: '2026-09-09T18:00:00Z',
+        screens: Array.from({ length: 25 }, (_, index) => ({
+            id: `screen-${index}`,
+            name: `Screen ${index}`,
+            flow: 'Home',
+            kind: 'route',
+            status: 'captured',
+            image,
+            thumbnail: image,
+        })),
+    }
+    const elements = await loadLanding('/screens/2026-09-11/pr-1/en/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/', {
+        report,
+    })
+    assert.equal(elements.get('screens').children.length, 24)
+    assert.equal(elements.get('screen-load-more').hidden, false)
+})
+
+test('report pages expose the locale selector and use a long-form capture date', async () => {
+    const report = {
+        schema: 1,
+        type: 'capture',
+        locale: 'en',
+        complete: true,
+        capturedAt: '2026-09-09T18:00:00Z',
+        screens: [],
+    }
+    const elements = await loadLanding('/screens/2026-09-11/pr-1/en/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/', {
+        index: [
+            {
+                path: '2026-09-11/pr-1/en/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                locale: 'en',
+            },
+            {
+                path: '2026-09-11/pr-1/es-419/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                locale: 'es-419',
+            },
+        ],
+        report,
+    })
+    assert.equal(elements.get('dashboard-filters').hidden, false)
+    assert.equal(elements.get('locale').children.length, 2)
+    assert.equal(elements.get('locale').value, 'en')
+    assert.equal(elements.get('description').children[0].textContent, 'September 9, 2026')
+    elements.get('locale').value = 'es-419'
+    elements.get('locale').dispatch('change')
+    assert.equal(elements.get('locale').value, 'es-419')
 })
 
 test('landing page shows a friendly empty state when captures are not published', async () => {
@@ -203,7 +277,6 @@ test('landing page shows a friendly empty state when captures are not published'
         assert.match(elements.get('empty-title').textContent, /almost here/i)
         assert.equal(elements.get('coverage').hidden, true)
         assert.equal(elements.get('screen-filters').hidden, true)
-        assert.equal(elements.get('route-coverage').hidden, true)
     }
 })
 

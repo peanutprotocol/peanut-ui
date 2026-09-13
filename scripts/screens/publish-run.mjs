@@ -70,9 +70,9 @@ function verifyExternalBaseline(expected) {
     const defaultBranch = api('').default_branch
     const artifacts = api(`actions/runs/${baselineRunId}/artifacts?per_page=100`).artifacts ?? []
     const localeSuffix = '(?:en|es-419|es-AR|pt-BR)'
-    const dailyBaseline =
+    const baselineRun =
         source.path === '.github/workflows/screen-library-baseline.yml' &&
-        ['schedule', 'workflow_dispatch'].includes(source.event) &&
+        ['push', 'schedule', 'workflow_dispatch'].includes(source.event) &&
         source.head_branch === defaultBranch &&
         artifacts.some((artifact) =>
             new RegExp(`^screen-library-baseline-${expected}-(?:${localeSuffix}-)?[1-9]\\d*$`).test(artifact.name)
@@ -84,7 +84,7 @@ function verifyExternalBaseline(expected) {
             new RegExp(`^screen-library-after-(?:${localeSuffix}-)?[1-9]\\d*$`).test(artifact.name)
         )
     if (
-        (!dailyBaseline && !integrationBaseline) ||
+        (!baselineRun && !integrationBaseline) ||
         source.status !== 'completed' ||
         source.conclusion !== 'success' ||
         source.head_repository?.full_name !== repo ||
@@ -92,13 +92,13 @@ function verifyExternalBaseline(expected) {
     )
         throw new Error('External baseline run provenance mismatch')
     const validArtifacts = artifacts.filter((artifact) => {
-        const dailyName = new RegExp(`^screen-library-baseline-${expected}-(?:${localeSuffix}-)?[1-9]\\d*$`).test(
+        const baselineName = new RegExp(`^screen-library-baseline-${expected}-(?:${localeSuffix}-)?[1-9]\\d*$`).test(
             artifact.name
         )
         const integrationName = new RegExp(`^screen-library-after-(?:${localeSuffix}-)?[1-9]\\d*$`).test(artifact.name)
         const created = Date.parse(artifact.created_at ?? '')
         return (
-            (dailyName || integrationName) &&
+            (baselineName || integrationName) &&
             !artifact.expired &&
             Number.isFinite(created) &&
             Date.now() - created <= 30 * 60 * 60 * 1000
@@ -107,7 +107,7 @@ function verifyExternalBaseline(expected) {
     if (!validArtifacts.length) throw new Error('External baseline artifact is missing or expired')
     if (baselineArtifact && !validArtifacts.some((artifact) => artifact.name === baselineArtifact))
         throw new Error('External baseline artifact identity mismatch')
-    return { dir: baselineDir, kind: dailyBaseline ? 'daily' : 'integration', artifact: baselineArtifact }
+    return { dir: baselineDir, kind: baselineRun ? 'baseline' : 'integration', artifact: baselineArtifact }
 }
 
 const captureNames = readdirSync('incoming')

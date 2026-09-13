@@ -4,7 +4,7 @@ import { selectBaselineArtifacts } from './baseline-artifacts.mjs'
 
 const sha = 'a'.repeat(40)
 
-test('daily baseline selection ignores integration artifacts and binds the expected revision', () => {
+test('baseline selection ignores integration artifacts and binds the expected revision', () => {
     const result = selectBaselineArtifacts(
         [
             `screen-library-baseline-${sha}-en-2`,
@@ -13,7 +13,7 @@ test('daily baseline selection ignores integration artifacts and binds the expec
             `screen-library-baseline-${sha}-pt-BR-2`,
             'screen-library-after-en-9',
         ],
-        'daily',
+        'baseline',
         sha
     )
     assert.deepEqual(

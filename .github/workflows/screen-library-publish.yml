@@ -43,7 +43,7 @@ jobs:
                   pattern: screen-library-*
                   merge-multiple: false
                   path: incoming
-            - name: Resolve verified daily baseline when needed
+            - name: Resolve verified baseline when needed
               id: baseline
               env:
                   GH_TOKEN: ${{ github.token }}
@@ -57,7 +57,7 @@ jobs:
                       echo 'mode=external' >> "$GITHUB_OUTPUT"
                       node scripts/screens/resolve-baseline.mjs >> "$GITHUB_OUTPUT"
                   fi
-            - name: Download verified daily baseline
+            - name: Download verified baseline
               if: steps.baseline.outputs.mode == 'external'
               uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
               with:

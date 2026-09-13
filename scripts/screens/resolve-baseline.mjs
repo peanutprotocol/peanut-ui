@@ -47,7 +47,7 @@ for (const artifact of candidates) {
     const run = api(`actions/runs/${artifact.workflow_run.id}`)
     const sourceIsTrusted =
         run.path === baselineWorkflow &&
-        ['schedule', 'workflow_dispatch'].includes(run.event) &&
+        ['push', 'schedule', 'workflow_dispatch'].includes(run.event) &&
         run.head_repository?.full_name === repo &&
         run.head_branch === defaultBranch
     if (!sourceIsTrusted || run.status !== 'completed' || run.conclusion !== 'success') continue
@@ -59,7 +59,7 @@ for (const artifact of candidates) {
 }
 
 // A successful dev integration run is also a trusted baseline source. This
-// keeps a newly merged dev revision usable before the next scheduled run.
+// keeps a newly merged dev revision usable before the next baseline refresh.
 const integrationCandidates = artifacts
     .filter((artifact) => {
         if (artifact.expired || !artifact.workflow_run?.id) return false

@@ -66,7 +66,7 @@ jobs:
     capture_after:
         needs: refs
         # PR commits capture the changed revision. Product-only PRs reuse the
-        # verified daily baseline; harness-changing PRs also run capture_before.
+        # verified baseline; harness-changing PRs also run capture_before.
         runs-on: macos-26-intel
         timeout-minutes: 60
         strategy:
@@ -130,7 +130,7 @@ jobs:
         needs: refs
         # Pushes and historical dispatch keep same-run pairs. A PR only needs
         # this expensive job when its harness/fixture identity can differ from
-        # the daily baseline; ordinary product-only PRs reuse that baseline.
+        # the verified baseline; ordinary product-only PRs reuse that baseline.
         if: github.event_name != 'pull_request' || needs.refs.outputs.capture_before == 'true'
         runs-on: macos-26-intel
         timeout-minutes: 60

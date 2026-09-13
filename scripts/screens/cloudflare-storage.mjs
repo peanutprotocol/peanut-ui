@@ -133,9 +133,15 @@ export async function uploadPreview(config, name, bytes, request = cloudflareReq
     }
     if (!matchesSource(image)) throw new Error('Cloudflare preview metadata mismatch')
 
-    const delivery = `https://imagedelivery.net/${config.SCREEN_LIBRARY_IMAGES_HASH}/${id}/${config.SCREEN_LIBRARY_IMAGES_VARIANT}`
-    const check = await request(delivery, { method: 'HEAD' })
-    if (!check.ok || !check.headers.get('content-type')?.startsWith('image/'))
-        throw new Error('Cloudflare preview delivery is not public')
-    return delivery
+    const delivery = (variant) => `https://imagedelivery.net/${config.SCREEN_LIBRARY_IMAGES_HASH}/${id}/${variant}`
+    const checkDelivery = async (url, label) => {
+        const check = await request(url, { method: 'HEAD' })
+        if (!check.ok || !check.headers.get('content-type')?.startsWith('image/'))
+            throw new Error(`Cloudflare ${label} delivery is not public`)
+    }
+    const preview = delivery(config.SCREEN_LIBRARY_IMAGES_VARIANT)
+    await checkDelivery(preview, 'preview')
+    const original = delivery('public')
+    if (original !== preview) await checkDelivery(original, 'original')
+    return { preview, original }
 }

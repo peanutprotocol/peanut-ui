@@ -86,6 +86,10 @@ test('publication writes the entry commit marker before shared pointers', async 
         assert.ok(storage.calls.indexOf('index.json') > entryIndex)
         assert.ok(storage.calls.indexOf('latest.json') > entryIndex)
         assert.equal(JSON.parse(storage.objects.get(storage.calls[entryIndex]).toString()).captureAttempt, 1)
+        const manifest = JSON.parse(
+            storage.objects.get(`reports/2026-09-11/dev-${commit}/run-123-1/manifest.json`).toString()
+        )
+        assert.equal(manifest.originalUrls[name], manifest.previewUrls[name])
         assert.equal(hash(PNG.sync.write(image)), name.split('.')[0])
     } finally {
         rmSync(dir, { recursive: true, force: true })

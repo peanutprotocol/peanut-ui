@@ -42,7 +42,8 @@ export async function publishReport({ inputDir, reportPath, env = process.env, s
             }
     if (report.type === 'comparison') for (const screen of report.screens) if (screen.diff) refs.add(screen.diff)
     const options = { allowOverwrite: false }
-    const previewUrls = {}
+    const previewUrls = {},
+        originalUrls = {}
     async function immutable(path, body, contentType) {
         // Conflict on a rerun is acceptable only when the remote bytes agree.
         try {
@@ -65,7 +66,9 @@ export async function publishReport({ inputDir, reportPath, env = process.env, s
                 const meta = await sharp(bytes, { limitInputPixels: 393 * 852 }).metadata()
                 if (meta.width !== 197 || meta.height !== 427) throw new Error('Invalid thumbnail dimensions')
             }
-            previewUrls[name] = await preview(name, bytes)
+            const urls = await preview(name, bytes)
+            previewUrls[name] = typeof urls === 'string' ? urls : urls.preview
+            originalUrls[name] = typeof urls === 'string' ? urls : urls.original
             copyFileSync(join(assets, name), join(offline, 'assets', name))
         }
         const json = JSON.stringify(report)
@@ -96,7 +99,7 @@ export async function publishReport({ inputDir, reportPath, env = process.env, s
         // Commit marker last. Incomplete captures remain explicitly incomplete in the viewer.
         const manifest = await immutable(
             `reports/${reportPath}/manifest.json`,
-            JSON.stringify({ ...report, previewUrls }),
+            JSON.stringify({ ...report, previewUrls, originalUrls }),
             'application/json'
         )
         const date = reportPath.slice(0, 10)
