@@ -52,8 +52,11 @@ const text = (sender: SenderPolicy, rules?: DepositRules) => {
  * their transfer comes back weeks later.
  */
 describe('the shared text carries the account rules', () => {
-    it('tells a GBP payer that only a business may pay', () => {
-        expect(text('business-only')).toContain('Only a business can pay into this account')
+    it('answers every payer, so the holder never has to', () => {
+        const out = text('business-only')
+        expect(out).toContain("From the account holder's own account: yes")
+        expect(out).toContain('From a business: any amount')
+        expect(out).toContain('From another person: not yet')
     })
 
     it('states the euro terms the backend published, and no more', () => {
@@ -62,31 +65,29 @@ describe('the shared text carries the account rules', () => {
             individualsAllowed: false,
             min: { amount: '1', currency: 'EUR' },
         })
-        expect(out).toContain('A business can pay any amount')
-        expect(out).toContain('Please pay from a company account')
+        expect(out).toContain('From a business: any amount')
+        expect(out).toContain('From another person: not yet')
         expect(out).toContain('The smallest payment is EUR 1')
-        // the published terms replace the generic restriction sentence
-        expect(out).not.toContain('Only a business can pay into this account')
     })
 
-    it('gives a dollar payer the cap and the exemptions', () => {
+    it('gives a dollar payer the cap as a strict limit, and the exemptions', () => {
         const out = text('anyone', {
             individualPerPaymentCap: { amount: '4000', currency: 'USD' },
             familySameSurnameExempt: true,
             businessesUnlimited: true,
         })
-        expect(out).toContain('up to USD 4000 in one payment')
-        expect(out).toContain('Family who share the account holder surname')
+        expect(out).toContain('less than USD 4000 each time')
+        expect(out).not.toContain('up to USD 4000')
+        expect(out).toContain('Family who share the account holder surname: any amount')
     })
 
     it('warns the payer where nothing is published, rather than going quiet', () => {
         const out = text('unknown')
         expect(out).toContain('04-00-53')
-        expect(out).toContain('Any amount, and no reference to remember')
         // the text is read by somebody who will never see a Peanut screen, so
         // the one thing we cannot promise has to travel with the numbers
-        expect(out).toContain('not confirmed on this currency yet')
-        expect(out).toContain('may be sent back')
+        expect(out).toContain('From a business: not confirmed')
+        expect(out).toContain('From another person: not confirmed')
     })
 })
 

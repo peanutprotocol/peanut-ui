@@ -348,6 +348,10 @@ export interface TransactionDetails {
     /** Catalog key (under `transaction`) for FE-generated memos (the test
      *  deposit). Render sites prefer `t(memoKey)` over the raw `memo`. */
     memoKey?: 'memoTestDeposit'
+    /** Catalog key (under `transaction`) that replaces the row's type label
+     *  when the type alone would be wrong — a deposit going back to the payer
+     *  is not "Bank deposit". */
+    actionLabelKey?: 'type.beingReturned'
     attachmentUrl?: string
     cancelledDate?: string | Date
     txHash?: string
@@ -546,6 +550,13 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     // map raw entry.status via the shared helper.
     if (!strategyOverrodeUiStatus) uiStatus = mapEntryStatusToUiStatus(entry, direction)
 
+    // A deposit whose refund is on its way back to the payer. The intent stays
+    // non-terminal on purpose, so the status alone reads as an ordinary deposit
+    // still in progress — `extraData.refundInFlight` is the only thing that
+    // says the money is going the other way (peanut-api-ts `src/db/history.ts`).
+    const isDepositBeingReturned = direction === 'bank_deposit' && entry.extraData?.refundInFlight === true
+    if (isDepositBeingReturned) uiStatus = 'processing'
+
     // Active dispute trumps the underlying spend's status — a card spend
     // that's been contested isn't really "completed" from the user's POV,
     // even though Rain settled it. Flip the pill to `pending` while the
@@ -617,6 +628,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         // in the drawer, so a duplicate "Comment" row is just noise. Backend
         // already sets memo=undefined for card entries, but defend in depth.
         memoKey: isTestDeposit ? 'memoTestDeposit' : undefined,
+        actionLabelKey: isDepositBeingReturned ? ('type.beingReturned' as const) : undefined,
         memo: (() => {
             if (isTestDeposit) return 'Your peanut wallet is ready to use!'
             const kind = intentKindOf(entry)

@@ -2071,6 +2071,7 @@
             "bank_claim": "Claim",
             "bank_withdraw": "Withdraw",
             "bank_deposit": "Add",
+            "beingReturned": "Being returned to the payer",
             "bank_request_fulfillment": "Request paid via bank",
             "card_pay": "Pay",
             "refund": "Refund",
@@ -3958,7 +3959,8 @@
             "emptyBody": "We open bank details in the currencies your verified region supports. None are open to you yet — check back after you add a new country or currency.",
             "errorTitle": "We could not load your accounts",
             "errorBody": "Your accounts are fine — we just could not read them. Check your connection and try again.",
-            "errorRetry": "Try again"
+            "errorRetry": "Try again",
+            "rowRevoked": "Closed — anything sent to these details is returned"
         },
         "claim": {
             "heading": "Bank details in {currency}",
@@ -3985,6 +3987,7 @@
             "timedOutRetry": "Try again",
             "revokedTitle": "Your {currency} details no longer work",
             "revokedBody": "Anything sent to them is returned to the sender. Tell anyone who pays you to stop using them, and open new details.",
+            "revokedCta": "Contact support",
             "topUpCta": "Add {currency} instead",
             "exactAmountCta": "Deposit a set amount instead",
             "whoCanPay": "Who can pay you"
@@ -4080,7 +4083,9 @@
             "supportCta": "Contact support",
             "emailTitle": "We need an email address",
             "emailBody": "Your identity is verified. We never got an email address to pass on, so the account cannot be opened until you add one.",
-            "emailCta": "Add your email"
+            "emailCta": "Add your email",
+            "notYetTitle": "Not available to you yet",
+            "notYetBody": "We are opening this gradually."
         },
         "rules": {
             "providerHeld": {
@@ -4088,35 +4093,50 @@
                 "payer": "The account is held by our banking partner on behalf of {user}.",
                 "why": "Money paid in still lands in your Peanut balance. The name on the account is the partner, not you, so a payroll form that checks the name needs the account holder shown above."
             },
-            "anyone": {
-                "line": "Anyone can pay you: an employer, a client or a platform.",
-                "payer": "Anyone can pay into this account.",
+            "ownAccount": {
+                "line": "From your own account: yes.",
+                "payer": "From the account holder's own account: yes.",
+                "why": "Money you send yourself is a top-up, not a payment from someone else, and it works on every currency here. Some currencies still carry a per-payment limit at our banking partner — if a large transfer of your own comes back, contact support."
+            },
+            "businessAny": {
+                "line": "From a business: any amount.",
+                "payer": "From a business: any amount.",
+                "why": "A bank reads a company transfer as a business payment, so our banking partner sets no limit on it. Salary and invoices go through unchanged."
+            },
+            "businessNotYet": {
+                "line": "From a business: not yet.",
+                "payer": "From a business: not yet.",
+                "why": "Our banking partner has not opened company payments on this currency. We will say so here the day it does."
+            },
+            "businessUnconfirmed": {
+                "line": "From a business: not confirmed.",
+                "payer": "From a business: not confirmed.",
+                "why": "Our banking partner has not confirmed payments from a business on this currency. The details work; if a payment ever comes back, tell us and we will sort it out."
+            },
+            "individualAny": {
+                "line": "From another person: any amount.",
+                "payer": "From another person: any amount.",
                 "why": "Our banking partner accepts payments from other people on this currency, so you can hand these details to whoever is paying you."
             },
-            "businessesUnlimited": {
-                "line": "A business can pay you any amount — an employer, a client or a platform.",
-                "payer": "A business can pay any amount into this account.",
-                "why": "A bank treats a company transfer as a business payment, so our banking partner sets no limit on it. Salary and invoices go through unchanged."
-            },
-            "familyExempt": {
-                "line": "Family who share your surname can pay you any amount.",
-                "payer": "Family who share the account holder surname can pay any amount.",
-                "why": "A transfer from a relative with the same surname is matched against the name on the account, so it is not read as a payment from a stranger and the per-payment limit does not apply."
-            },
             "individualCap": {
-                "line": "Anyone else can pay you up to {cap} in one payment.",
-                "payer": "Anyone else can send up to {cap} in one payment.",
-                "why": "Our banking partner limits a single payment from a private person. More than {cap} at once is sent back, so ask for several payments or for the money to come from a company account."
+                "line": "From another person: less than {cap} each time.",
+                "payer": "From another person: less than {cap} each time.",
+                "why": "Our banking partner caps a single payment from a private person at {cap}. A business is not capped. If someone needs to pay you more than {cap} in one payment, contact support."
             },
-            "individualsNotAllowed": {
-                "line": "For now, a payment from someone's personal account is sent back.",
-                "payer": "Please pay from a company account. A payment from a personal account is sent back.",
+            "individualCapFamily": {
+                "line": "From another person: less than {cap} each time. Family who share your surname: any amount.",
+                "payer": "From another person: less than {cap} each time. Family who share the account holder surname: any amount.",
+                "why": "Our banking partner caps a single payment from a private person at {cap}. A business is not capped, and neither is family who share your surname. If someone needs to pay you more than {cap} in one payment, contact support."
+            },
+            "individualNotYet": {
+                "line": "From another person: not yet.",
+                "payer": "From another person: not yet.",
                 "why": "Our banking partner has not yet agreed an amount for payments from private people on this currency. We will say so here the day it does."
             },
-            "businessOnly": {
-                "line": "A business can pay you — an employer, a client or a platform. A payment from a personal account is sent back.",
-                "payer": "Only a business can pay into this account: an employer, a client or a platform. A payment from a personal account is sent back.",
-                "why": "Our banking partner accepts company transfers on this currency and not personal ones. A personal transfer is returned to the sender a few days later."
+            "individualUnconfirmed": {
+                "line": "From another person: not confirmed.",
+                "payer": "From another person: not confirmed.",
+                "why": "We only state what our banking partner has confirmed for this currency, and it has said nothing about payments from other people. The details work; if a payment ever comes back, tell us and we will sort it out."
             },
             "minimum": {
                 "line": "The smallest payment is {min}.",
@@ -4132,11 +4152,6 @@
                 "line": "Top up from a bank account in your own name.",
                 "payer": "Only the account holder can pay into this account.",
                 "why": "Our banking partner only credits a transfer that comes from an account in your own name. A payment from anyone else is returned to them."
-            },
-            "unpublished": {
-                "line": "Any amount, and no reference to remember.",
-                "payer": "Any amount, and no reference to remember. A payment from someone other than the account holder is not confirmed on this currency yet, and it may be sent back.",
-                "why": "We only state what our banking partner has confirmed for this currency, and it has said nothing about payments from other people. The details work; if a payment ever comes back, tell us and we will sort it out."
             }
         }
     }

@@ -2071,6 +2071,7 @@
             "bank_claim": "Resgate",
             "bank_withdraw": "Saque",
             "bank_deposit": "Depósito",
+            "beingReturned": "Voltando para quem pagou",
             "bank_request_fulfillment": "Cobrança paga por banco",
             "card_pay": "Pagamento",
             "refund": "Reembolso",
@@ -3958,7 +3959,8 @@
             "emptyBody": "Abrimos dados bancários nas moedas que a sua região verificada aceita. Ainda não há nenhuma para você. Volte aqui quando adicionar outro país ou moeda.",
             "errorTitle": "Não conseguimos carregar suas contas",
             "errorBody": "Suas contas estão bem: só não conseguimos lê-las. Verifique sua conexão e tente de novo.",
-            "errorRetry": "Tentar de novo"
+            "errorRetry": "Tentar de novo",
+            "rowRevoked": "Fechada: o que for enviado para estes dados volta"
         },
         "claim": {
             "heading": "Dados bancários em {currency}",
@@ -3985,6 +3987,7 @@
             "timedOutRetry": "Tentar de novo",
             "revokedTitle": "Seus dados em {currency} não funcionam mais",
             "revokedBody": "O que for enviado para eles volta para quem enviou. Avise quem paga você para parar de usá-los e abra dados novos.",
+            "revokedCta": "Falar com o suporte",
             "topUpCta": "Depositar {currency} de outro jeito",
             "exactAmountCta": "Depositar um valor definido",
             "whoCanPay": "Quem pode te pagar"
@@ -4080,7 +4083,9 @@
             "supportCta": "Falar com o suporte",
             "emailTitle": "Precisamos de um e-mail",
             "emailBody": "Sua identidade está verificada. Nunca recebemos um e-mail para repassar ao nosso parceiro, então a conta não pode ser aberta até você adicionar um.",
-            "emailCta": "Adicione seu e-mail"
+            "emailCta": "Adicione seu e-mail",
+            "notYetTitle": "Ainda não está disponível para você",
+            "notYetBody": "Estamos abrindo aos poucos."
         },
         "rules": {
             "providerHeld": {
@@ -4088,35 +4093,50 @@
                 "payer": "A conta é mantida pelo nosso parceiro bancário em nome de {user}.",
                 "why": "O dinheiro que entra continua chegando ao seu saldo na Peanut. O nome na conta é o do parceiro, não o seu, então um formulário de folha de pagamento que confere o nome precisa do titular mostrado acima."
             },
-            "anyone": {
-                "line": "Qualquer pessoa pode te pagar: um empregador, um cliente ou uma plataforma.",
-                "payer": "Qualquer pessoa pode pagar nesta conta.",
+            "ownAccount": {
+                "line": "Da sua própria conta: sim.",
+                "payer": "Da conta do próprio titular: sim.",
+                "why": "O dinheiro que você envia para si mesmo é um depósito seu, não um pagamento de outra pessoa, e funciona em todas as moedas desta tela. Algumas moedas ainda têm um limite por pagamento no nosso parceiro bancário — se uma transferência grande sua voltar, fale com o suporte."
+            },
+            "businessAny": {
+                "line": "De uma empresa: qualquer valor.",
+                "payer": "De uma empresa: qualquer valor.",
+                "why": "Um banco lê a transferência de uma empresa como pagamento comercial, então nosso parceiro bancário não coloca limite. Salário e faturas passam sem mudança."
+            },
+            "businessNotYet": {
+                "line": "De uma empresa: ainda não.",
+                "payer": "De uma empresa: ainda não.",
+                "why": "Nosso parceiro bancário ainda não liberou pagamentos de empresas nesta moeda. Vamos avisar aqui no dia em que liberar."
+            },
+            "businessUnconfirmed": {
+                "line": "De uma empresa: não confirmado.",
+                "payer": "De uma empresa: não confirmado.",
+                "why": "Nosso parceiro bancário não confirmou pagamentos de empresas nesta moeda. Os dados funcionam; se algum pagamento voltar, nos avise e a gente resolve."
+            },
+            "individualAny": {
+                "line": "De outra pessoa: qualquer valor.",
+                "payer": "De outra pessoa: qualquer valor.",
                 "why": "Nosso parceiro bancário aceita pagamentos de outras pessoas nesta moeda, então você pode passar estes dados a quem for te pagar."
             },
-            "businessesUnlimited": {
-                "line": "Uma empresa pode te pagar qualquer valor: um empregador, um cliente ou uma plataforma.",
-                "payer": "Uma empresa pode pagar qualquer valor nesta conta.",
-                "why": "Um banco trata a transferência de uma empresa como pagamento comercial, então nosso parceiro bancário não coloca limite. Salário e faturas passam sem mudança."
-            },
-            "familyExempt": {
-                "line": "Familiares que têm o seu sobrenome podem te pagar qualquer valor.",
-                "payer": "Familiares que têm o sobrenome do titular podem pagar qualquer valor.",
-                "why": "Uma transferência de um familiar com o mesmo sobrenome é conferida com o nome da conta, então não é lida como pagamento de um desconhecido e o limite por pagamento não vale."
-            },
             "individualCap": {
-                "line": "Qualquer outra pessoa pode te pagar até {cap} por pagamento.",
-                "payer": "Qualquer outra pessoa pode enviar até {cap} em um pagamento.",
-                "why": "Nosso parceiro bancário limita um pagamento único de uma pessoa física. Mais de {cap} de uma vez volta para quem enviou, então peça vários pagamentos ou que o dinheiro venha de uma conta de empresa."
+                "line": "De outra pessoa: menos de {cap} por pagamento.",
+                "payer": "De outra pessoa: menos de {cap} por pagamento.",
+                "why": "Nosso parceiro bancário limita a {cap} um pagamento único de uma pessoa física. Uma empresa não tem esse limite. Se alguém precisar te pagar mais de {cap} em um único pagamento, fale com o suporte."
             },
-            "individualsNotAllowed": {
-                "line": "Por enquanto, um pagamento da conta de uma pessoa física volta para ela.",
-                "payer": "Por favor, pague de uma conta de empresa. Um pagamento de conta pessoal volta para quem enviou.",
+            "individualCapFamily": {
+                "line": "De outra pessoa: menos de {cap} por pagamento. Familiares com o seu sobrenome: qualquer valor.",
+                "payer": "De outra pessoa: menos de {cap} por pagamento. Familiares com o sobrenome do titular: qualquer valor.",
+                "why": "Nosso parceiro bancário limita a {cap} um pagamento único de uma pessoa física. Uma empresa não tem esse limite, e familiares com o seu sobrenome também não. Se alguém precisar te pagar mais de {cap} em um único pagamento, fale com o suporte."
+            },
+            "individualNotYet": {
+                "line": "De outra pessoa: ainda não.",
+                "payer": "De outra pessoa: ainda não.",
                 "why": "Nosso parceiro bancário ainda não acertou um valor para pagamentos de pessoas físicas nesta moeda. Vamos avisar aqui no dia em que acertar."
             },
-            "businessOnly": {
-                "line": "Uma empresa pode te pagar: um empregador, um cliente ou uma plataforma. Um pagamento da conta de uma pessoa física volta para ela.",
-                "payer": "Só uma empresa pode pagar nesta conta: um empregador, um cliente ou uma plataforma. Um pagamento de conta pessoal volta para quem enviou.",
-                "why": "Nosso parceiro bancário aceita transferências de empresas nesta moeda e não as pessoais. Uma transferência pessoal volta para quem enviou alguns dias depois."
+            "individualUnconfirmed": {
+                "line": "De outra pessoa: não confirmado.",
+                "payer": "De outra pessoa: não confirmado.",
+                "why": "Só informamos o que nosso parceiro bancário confirmou para esta moeda, e ele não falou nada sobre pagamentos de outras pessoas. Os dados funcionam; se algum pagamento voltar, nos avise e a gente resolve."
             },
             "minimum": {
                 "line": "O menor pagamento é {min}.",
@@ -4132,11 +4152,6 @@
                 "line": "Deposite de uma conta bancária no seu nome.",
                 "payer": "Só o titular pode pagar nesta conta.",
                 "why": "Nosso parceiro bancário só credita uma transferência que venha de uma conta no seu nome. Um pagamento de qualquer outra pessoa volta para quem enviou."
-            },
-            "unpublished": {
-                "line": "Qualquer valor e sem referência para lembrar.",
-                "payer": "Qualquer valor e sem referência para lembrar. Um pagamento de alguém que não seja o titular da conta ainda não está confirmado nesta moeda e pode ser devolvido.",
-                "why": "Só informamos o que nosso parceiro bancário confirmou para esta moeda, e ele não falou nada sobre pagamentos de outras pessoas. Os dados funcionam; se algum pagamento voltar, nos avise e a gente resolve."
             }
         }
     }

@@ -254,3 +254,44 @@ describe('useDepositAccounts caps the provisioning poll', () => {
         expect(result.current.accounts.SEPA_EU?.status).toBe('provisioning')
     })
 })
+
+/**
+ * The claim route carries a server-side rollout gate. A user outside the
+ * rollout is refused there whatever the client-side flag says, and that is not
+ * a failure they can retry their way out of — so the screen has to know the
+ * difference between "we could not open it" and "this is not open to you yet".
+ */
+describe('useDepositAccounts on a refused claim', () => {
+    class FakeApiError extends Error {
+        readonly status: number
+        constructor(message: string, status: number) {
+            super(message)
+            this.name = 'ApiError'
+            this.status = status
+        }
+    }
+
+    it.each([403, 404])('reads a %s as not available yet, never as a failure to retry', async (status) => {
+        fetchDepositAccounts.mockResolvedValue([])
+        claimDepositAccount.mockRejectedValue(new FakeApiError('deposit accounts are not enabled', status))
+
+        const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+        act(() => result.current.claim('SEPA_EU'))
+        await waitFor(() => expect(result.current.claimError?.corridor).toBe('SEPA_EU'))
+        expect(result.current.claimError?.unavailable).toBe(true)
+    })
+
+    it('keeps an ordinary failure retryable', async () => {
+        fetchDepositAccounts.mockResolvedValue([])
+        claimDepositAccount.mockRejectedValue(new FakeApiError('Could not open the account', 500))
+
+        const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+        act(() => result.current.claim('SEPA_EU'))
+        await waitFor(() => expect(result.current.claimError?.corridor).toBe('SEPA_EU'))
+        expect(result.current.claimError?.unavailable).toBe(false)
+    })
+})

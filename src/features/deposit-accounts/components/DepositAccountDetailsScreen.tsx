@@ -37,6 +37,7 @@ export function DepositAccountDetailsScreen({
     onBack,
     onShare,
     onRetry,
+    onContactSupport,
 }: {
     rail: DepositRail
     account: DepositAccountView
@@ -47,6 +48,8 @@ export function DepositAccountDetailsScreen({
     onBack: () => void
     onShare: () => void
     onRetry: () => void
+    /** revoked details have no self-service fix — this is the only way out */
+    onContactSupport: () => void
 }) {
     const { t, rowLabels, railLabels, arrivalDetail, railName, ruleLines } = useDepositAccountCopy()
 
@@ -60,9 +63,22 @@ export function DepositAccountDetailsScreen({
                         title={t('details.revokedTitle', { currency: rail.currency })}
                         description={t('details.revokedBody')}
                         cta={
-                            <Button variant="stroke" size="small" onClick={onBack}>
-                                {t('details.unavailableCta')}
-                            </Button>
+                            /*
+                             * There is no self-service way out. Claiming again
+                             * returns the same dead account — the provider's
+                             * create call is idempotent per customer and
+                             * currency — so the screen that says the details
+                             * are dead hands the user to a person instead of
+                             * to a button that loops.
+                             */
+                            <div className="flex w-full flex-col gap-2">
+                                <Button variant="purple" size="small" onClick={onContactSupport}>
+                                    {t('details.revokedCta')}
+                                </Button>
+                                <Button variant="transparent" size="small" onClick={onBack}>
+                                    {t('details.unavailableCta')}
+                                </Button>
+                            </div>
                         }
                     />
                 </PageStack.Center>

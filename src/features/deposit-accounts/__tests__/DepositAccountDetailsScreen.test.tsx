@@ -18,7 +18,7 @@ const provisioning: DepositAccountView = {
     matching: { nameOnAccount: 'user', sender: 'anyone' },
 }
 
-const details = (account: DepositAccountView, onRetry = () => {}, canShare = false) =>
+const details = (account: DepositAccountView, onRetry = () => {}, canShare = false, onContactSupport = () => {}) =>
     render(
         <NextIntlClientProvider locale="en" messages={messages}>
             <ToastProvider>
@@ -30,6 +30,7 @@ const details = (account: DepositAccountView, onRetry = () => {}, canShare = fal
                     onBack={() => {}}
                     onShare={() => {}}
                     onRetry={onRetry}
+                    onContactSupport={onContactSupport}
                 />
             </ToastProvider>
         </NextIntlClientProvider>
@@ -81,5 +82,29 @@ describe('the details screen share footer', () => {
         expect(
             screen.queryByRole('button', { name: messages.depositAccounts.details.shareCta })
         ).not.toBeInTheDocument()
+    })
+})
+
+/**
+ * Revoked details have no self-service fix. Claiming again returns the same
+ * dead account — the provider's create call is idempotent per customer and
+ * currency — so the screen hands the user to a person rather than to a button
+ * that loops back to the same failure.
+ */
+describe('the details screen for revoked details', () => {
+    const revoked: DepositAccountView = { ...provisioning, status: 'revoked' }
+
+    it('offers support, which is the only way out', () => {
+        const onContactSupport = jest.fn()
+        details(revoked, () => {}, false, onContactSupport)
+
+        fireEvent.click(screen.getByRole('button', { name: messages.depositAccounts.details.revokedCta }))
+        expect(onContactSupport).toHaveBeenCalled()
+    })
+
+    it('still says what the dead details do to money sent to them', () => {
+        details(revoked)
+
+        expect(screen.getByText(messages.depositAccounts.details.revokedBody)).toBeInTheDocument()
     })
 })

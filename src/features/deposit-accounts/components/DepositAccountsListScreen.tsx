@@ -77,6 +77,10 @@ export function DepositAccountsListScreen({
         // The rows can paint before the accounts arrive. The arrival time is
         // true in that gap too; the status is not, so the badge carries it.
         if (isLoading) return arrival(corridor)
+        // A revoked row is closed, not blocked: "verify your identity" would be
+        // an instruction that changes nothing. The badge says revoked and the
+        // body says what a payer sending money there gets.
+        if (accounts[corridor]?.status === 'revoked') return t('list.rowRevoked')
         if (!openable) return t('list.rowBlocked')
         return arrival(corridor)
     }
@@ -163,14 +167,24 @@ export function DepositAccountsListScreen({
                                 // serves those details read-only. A corridor with
                                 // nothing to claim is always open: its details are
                                 // the user's own top-up route.
-                                const openable = !isClaimable(rail) || view.claimable || isHeld(account)
+                                // A revoked corridor has nothing to offer: the
+                                // details are dead and the provider has no
+                                // replacement to give, so the row states the
+                                // status and does not invite a tap.
+                                const openable =
+                                    account?.status !== 'revoked' &&
+                                    (!isClaimable(rail) || view.claimable || isHeld(account))
                                 const disabled = isError || isLoading || !openable
 
                                 return (
                                     <ListItem
                                         key={corridor}
                                         leading={<CorridorFlag iso2={rail.flagIso2} />}
-                                        title={`${rail.currency} · ${railName(corridor)}`}
+                                        /* a ReactNode title wraps; a bare
+                                           string is truncated to one line, and
+                                           "GBP · Faster Payments" does not fit
+                                           at 375 */
+                                        title={<span>{`${rail.currency} · ${railName(corridor)}`}</span>}
                                         body={rowBody(corridor, openable)}
                                         bodyWrap
                                         trailing={rowBadge(rail, account, gates[corridor])}

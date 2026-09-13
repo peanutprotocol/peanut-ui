@@ -12,16 +12,18 @@ import type { DepositMatching, DepositRules } from './types'
  */
 export type DepositRuleKey =
     | 'providerHeld'
-    | 'anyone'
-    | 'businessesUnlimited'
-    | 'familyExempt'
+    | 'ownAccount'
+    | 'businessAny'
+    | 'businessNotYet'
+    | 'businessUnconfirmed'
+    | 'individualAny'
     | 'individualCap'
-    | 'individualsNotAllowed'
-    | 'businessOnly'
+    | 'individualCapFamily'
+    | 'individualNotYet'
+    | 'individualUnconfirmed'
     | 'minimum'
     | 'stateRestricted'
     | 'ownName'
-    | 'unpublished'
 
 export interface DepositRuleLine {
     key: DepositRuleKey
@@ -31,12 +33,13 @@ export interface DepositRuleLine {
 
 /**
  * The rules for one account, in the order a user needs them: who holds it,
- * then who may pay in, then on what terms.
+ * then each payer in turn — the user's own account, a business, another
+ * person — and finally the floor.
  *
- * A rule is stated only where the response carries it. An account with no
- * `rules` at all is the common case — Bridge publishes terms for two corridors
- * and is silent about the rest — and silence gets the one sentence that is
- * true everywhere rather than a guess dressed as a promise.
+ * Three lines, always the same three, because the question a holder has is
+ * "can THIS person pay me" and a missing line reads as a yes. Where the rail
+ * publishes nothing about a payer, the line says so rather than disappearing:
+ * "not confirmed" is an answer, silence is not.
  */
 export function depositRuleLines(
     matching: DepositMatching,
@@ -47,31 +50,56 @@ export function depositRuleLines(
 
     if (matching.nameOnAccount === 'provider') lines.push({ key: 'providerHeld' })
 
+    // Nobody but the holder may pay in, so there is no third-party answer to
+    // give and the two lines below would both read "no".
     if (matching.sender === 'own-name-only') {
         lines.push({ key: rules?.reason === 'state-restricted' ? 'stateRestricted' : 'ownName' })
         return lines
     }
 
-    if (rules?.businessesUnlimited) lines.push({ key: 'businessesUnlimited' })
-    if (rules?.familySameSurnameExempt) lines.push({ key: 'familyExempt' })
-    if (rules?.individualPerPaymentCap) {
-        const { amount, currency } = rules.individualPerPaymentCap
-        lines.push({ key: 'individualCap', values: { cap: formatMoney(amount, currency) } })
-    }
-    if (rules?.individualsAllowed === false) lines.push({ key: 'individualsNotAllowed' })
+    // The user's OWN transfer is not a third-party payment, and no rail
+    // restricts it. Saying so first is the fix for copy that read
+    // "a payment from a personal account is sent back" on a business-only
+    // corridor — which forbade the user's own top-up, the one payment that
+    // always works. The Add-money bank row leads here now, so that sentence
+    // was telling users their own deposit would bounce.
+    lines.push({ key: 'ownAccount' })
+
+    lines.push({ key: businessKey(matching, rules) })
+    lines.push(individualLine(matching, rules, formatMoney))
+
     if (rules?.min) {
         lines.push({ key: 'minimum', values: { min: formatMoney(rules.min.amount, rules.min.currency) } })
     }
 
-    // Nothing published for this corridor. `business-only` is itself a
-    // published restriction and says so; `anyone` and `unknown` differ only in
-    // what we may promise, so `unknown` states what every corridor does and
-    // stops there.
-    if (!lines.some((line) => line.key !== 'providerHeld')) {
-        if (matching.sender === 'business-only') lines.push({ key: 'businessOnly' })
-        else if (matching.sender === 'anyone') lines.push({ key: 'anyone' })
-        else lines.push({ key: 'unpublished' })
-    }
-
     return lines
+}
+
+/** what a company transfer may do on this corridor */
+function businessKey(matching: DepositMatching, rules: DepositRules | undefined): DepositRuleKey {
+    if (rules?.businessesUnlimited === true) return 'businessAny'
+    if (rules?.businessesUnlimited === false) return 'businessNotYet'
+    // no published term: `business-only` is itself the statement that a
+    // business may pay, and silence about everything else stays silence
+    if (matching.sender === 'business-only' || matching.sender === 'anyone') return 'businessAny'
+    return 'businessUnconfirmed'
+}
+
+/** what a payment from another private person may do on this corridor */
+function individualLine(
+    matching: DepositMatching,
+    rules: DepositRules | undefined,
+    formatMoney: (amount: string, currency: string) => string
+): DepositRuleLine {
+    if (rules?.individualsAllowed === false) return { key: 'individualNotYet' }
+    if (rules?.individualPerPaymentCap) {
+        const { amount, currency } = rules.individualPerPaymentCap
+        return {
+            key: rules.familySameSurnameExempt ? 'individualCapFamily' : 'individualCap',
+            values: { cap: formatMoney(amount, currency) },
+        }
+    }
+    if (matching.sender === 'anyone') return { key: 'individualAny' }
+    if (matching.sender === 'business-only') return { key: 'individualNotYet' }
+    return { key: 'individualUnconfirmed' }
 }

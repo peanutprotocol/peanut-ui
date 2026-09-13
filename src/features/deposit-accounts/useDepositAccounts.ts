@@ -1,6 +1,7 @@
 'use client'
 
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { apiErrorStatus } from '@/services/api-error'
 import { claimDepositAccount, fetchDepositAccounts } from '@/services/deposit-accounts'
 import type { GateState } from '@/utils/capability-gate'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -19,6 +20,14 @@ export const MAX_PROVISIONING_POLLS = 24
 export interface DepositClaimError {
     corridor: DepositCorridor
     message: string
+    /**
+     * The backend refused to open an account for this user at all — the
+     * server-side rollout gate on the claim route, a missing provider customer,
+     * an unserved rail. It is not a failure the user can retry their way out
+     * of, so the screen says "not available to you yet" in the gate's own words
+     * rather than showing a backend sentence written for us.
+     */
+    unavailable: boolean
 }
 
 export interface UseDepositAccountsResult {
@@ -101,7 +110,7 @@ export function useDepositAccounts(): UseDepositAccountsResult {
         },
         onError: (error: Error, method: string) => {
             const corridor = method as DepositCorridor
-            setClaimError({ corridor, message: error.message })
+            setClaimError({ corridor, message: error.message, unavailable: isNotAvailableYet(error) })
             trackClaimFailed(corridor, error.message)
         },
         onSettled: async () => {
@@ -196,6 +205,20 @@ export function useDepositAccounts(): UseDepositAccountsResult {
 }
 
 /** is any account still provisioning AND still inside its own budget? */
+/**
+ * A refusal to open an account at all, rather than a failed attempt.
+ *
+ * The claim route carries a server-side rollout gate, and a user outside the
+ * rollout is refused there whatever the client-side flag says. It answers 403;
+ * 404 is the same shape of answer from the checks beside it (no provider
+ * customer, no rail for this corridor). Neither is worth a retry, and neither
+ * should reach a user as the backend's own sentence.
+ */
+function isNotAvailableYet(error: unknown): boolean {
+    const status = apiErrorStatus(error)
+    return status === 403 || status === 404
+}
+
 function hasAccountStillWaiting(accounts: DepositAccount[] | undefined, polls: Record<string, number>): boolean {
     return (accounts ?? []).some(
         (account) => account.status === 'provisioning' && (polls[account.id] ?? 0) < MAX_PROVISIONING_POLLS

@@ -133,6 +133,14 @@ export interface HistoryEntryExtraData {
     // Reaper-set on FAILED transitions for orphaned PENDING intents.
     failReason?: string | null
 
+    /**
+     * A deposit on a standing account whose refund is on its way back to the
+     * payer. The intent stays non-terminal and carries this flag (peanut-api-ts
+     * `src/db/history.ts`), so the status alone reads as an ordinary deposit
+     * still in progress.
+     */
+    refundInFlight?: boolean | null
+
     // Card-spend cluster. Populated for Rain CARD_SPEND / card-refund
     // intents only.
     parentRainTxId?: string | null

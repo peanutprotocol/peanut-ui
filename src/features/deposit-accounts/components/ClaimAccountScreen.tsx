@@ -32,12 +32,15 @@ export function ClaimAccountScreen({
     rail,
     isClaiming,
     error,
+    isUnavailable = false,
     onClaim,
     onBack,
 }: {
     rail: DepositRail
     isClaiming: boolean
     error?: string
+    /** the backend refused to open an account for this user at all */
+    isUnavailable?: boolean
     onClaim: () => void
     onBack: () => void
 }) {
@@ -103,7 +106,18 @@ export function ClaimAccountScreen({
                 </Button>
                 {/* one Notification, max: an error the user must act on replaces
                     the general conditions rather than stacking beside them */}
-                {error ? (
+                {isUnavailable ? (
+                    /*
+                     * Not a failure the user can retry their way out of: the
+                     * rollout gate on the claim route, or a rail that is not
+                     * served for them yet. Same words the corridor gate uses
+                     * when it is only a wait, and never the backend's own
+                     * sentence.
+                     */
+                    <Notification priority="attention" title={t('gate.notYetTitle')}>
+                        {t('gate.notYetBody')}
+                    </Notification>
+                ) : error ? (
                     <Notification priority="error" title={t('claim.errorTitle')}>
                         {error}
                     </Notification>

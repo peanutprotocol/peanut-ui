@@ -24,7 +24,10 @@ import type { GateState } from '@/utils/capability-gate'
  */
 /**
  * Does the user already hold this account? A held account has details to read
- * whatever the gate says later — the gate governs opening a new one.
+ * whatever the gate says later — the gate governs opening a new one. A revoked
+ * account is still held: the details are in a payer's records and the screen
+ * has to explain why money sent to them will not arrive, and the provider has
+ * no replacement to give on the same corridor.
  */
 export function isHeld(account: DepositAccountView | undefined): boolean {
     return account !== undefined && account.status !== 'unclaimed'
@@ -61,7 +64,10 @@ export function resolveScreen(
 
     if (requested === 'claim') {
         // nothing to claim: the corridor does not offer an account, the gate
-        // has not cleared, or the user already has one
+        // has not cleared, or the user already has one. A REVOKED account is
+        // still one: the provider's create call is idempotent per customer and
+        // currency, so asking again returns the dead account rather than a
+        // replacement. Replacing it needs backend work that does not exist.
         if (!isClaimable(rail) || !claimable || held) return held ? 'details' : 'list'
         return 'claim'
     }

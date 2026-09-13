@@ -5,6 +5,7 @@ import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccoun
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { useDepositGateRemediation } from '@/features/deposit-accounts/useDepositGateRemediation'
 import { useAuth } from '@/context/authContext'
+import { useModalsContext } from '@/context/ModalsContext'
 import { useFlagsSettled } from '@/hooks/useFlagsSettled'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
@@ -35,6 +36,7 @@ export default function GetPaidPage() {
         useDepositAccounts()
     const { user } = useAuth()
     const { resolveGate, modals } = useDepositGateRemediation()
+    const { openSupportWithMessage } = useModalsContext()
     const router = useRouter()
 
     // The flow is reached from the home Add drawer, from /request, and by
@@ -67,6 +69,11 @@ export default function GetPaidPage() {
                 onClaim={claim}
                 onResolveGate={resolveGate}
                 onRetry={refetch}
+                // Revoked details have no self-service fix: claiming again
+                // returns the same dead account, because the provider's create
+                // call is idempotent per customer and currency. The corridor
+                // rides along so support does not have to ask which one.
+                onContactSupport={(corridor) => openSupportWithMessage(`Revoked deposit details: ${corridor}`)}
             />
             {modals}
         </>

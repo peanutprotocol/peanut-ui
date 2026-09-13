@@ -83,6 +83,29 @@ describe('resolveScreen', () => {
  * details, or one whose gate had since closed offered a Share button the
  * resolver refused.
  */
+/**
+ * A revoked corridor has no claim route. The provider's create call is
+ * idempotent per customer and currency, so claiming again returns the same
+ * dead account rather than a replacement — an "open new details" button would
+ * loop into the same failure. The screen offers support instead.
+ */
+describe('resolveScreen on a revoked corridor', () => {
+    const revoked = account({ status: 'revoked' })
+
+    it('never reaches the claim step, whatever the gate says', () => {
+        expect(resolveScreen('claim', eur, revoked, READY)).toBe('details')
+        expect(resolveScreen('claim', eur, revoked, BLOCKED)).toBe('details')
+    })
+
+    it('serves the revoked details, which explain why money sent there comes back', () => {
+        expect(resolveScreen('details', eur, revoked, READY)).toBe('details')
+    })
+
+    it('does not offer to share details that no longer receive', () => {
+        expect(resolveScreen('share', eur, revoked, READY)).toBe('details')
+    })
+})
+
 describe('canShare', () => {
     it('agrees with the resolver on every account the footer can be shown for', () => {
         const cases = [

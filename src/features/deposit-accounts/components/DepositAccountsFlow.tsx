@@ -38,6 +38,8 @@ export interface DepositAccountsFlowProps {
     onClaim: (corridor: DepositCorridor) => void
     onResolveGate: (gate: GateState) => void
     onRetry: () => void
+    /** revoked details are a dead end in the app — a person has to pick it up */
+    onContactSupport: (corridor: DepositCorridor) => void
 }
 
 /**
@@ -63,6 +65,7 @@ export function DepositAccountsFlow({
     onClaim,
     onResolveGate,
     onRetry,
+    onContactSupport,
 }: DepositAccountsFlowProps) {
     const [{ step: screen, corridor, screen: legacyStep }, setParams] = useQueryStates(DEPOSIT_ACCOUNT_PARAMS)
     // Links minted while the cursor was called `?screen=` still open the flow
@@ -148,6 +151,7 @@ export function DepositAccountsFlow({
                 isClaiming={claimingCorridor === corridor}
                 // a failure on another corridor is not this screen's news
                 error={claimError?.corridor === corridor ? claimError.message : undefined}
+                isUnavailable={claimError?.corridor === corridor && claimError.unavailable}
                 // no screen change here: once the account exists, resolveScreen
                 // moves the user on by itself, and if it never does the error
                 // renders on this screen rather than nowhere
@@ -167,6 +171,7 @@ export function DepositAccountsFlow({
                 onBack={() => setParams({ step: 'list' })}
                 onShare={() => setParams({ step: 'share' })}
                 onRetry={() => onClaim(corridor)}
+                onContactSupport={() => onContactSupport(corridor)}
             />
         )
     }

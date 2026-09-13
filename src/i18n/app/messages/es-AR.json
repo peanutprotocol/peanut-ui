@@ -1711,23 +1711,26 @@
             "emailCta": "Agregá tu email"
         },
         "rules": {
-            "anyone": {
+            "ownAccount": {
+                "why": "La plata que te enviás a vos mismo es una recarga, no un pago de otra persona, y funciona en todas las monedas de esta pantalla. Algunas monedas igual tienen un límite por pago en nuestro socio bancario: si una transferencia grande tuya se devuelve, escribí a soporte."
+            },
+            "individualAny": {
                 "why": "Nuestro socio bancario acepta pagos de otras personas en esta moneda, así que podés dar estos datos a quien te pague."
             },
             "individualCap": {
-                "why": "Nuestro socio bancario limita un pago único de una persona. Más de {cap} de una vez se devuelve, así que pedí varios pagos o que la plata venga de una cuenta de empresa."
+                "why": "Nuestro socio bancario limita a {cap} un pago único de una persona. Una empresa no tiene ese límite. Si alguien necesita pagarte más de {cap} en un solo pago, escribí a soporte."
             },
-            "individualsNotAllowed": {
-                "payer": "Por favor pagá desde una cuenta de empresa. Un pago desde una cuenta personal se devuelve."
+            "individualCapFamily": {
+                "why": "Nuestro socio bancario limita a {cap} un pago único de una persona. Una empresa no tiene ese límite, y los familiares con tu mismo apellido tampoco. Si alguien necesita pagarte más de {cap} en un solo pago, escribí a soporte."
+            },
+            "individualUnconfirmed": {
+                "why": "Solo indicamos lo que nuestro socio bancario confirmó para esta moneda, y no dijo nada sobre pagos de otras personas. Los datos funcionan; si alguna vez un pago se devuelve, avisanos y lo resolvemos."
             },
             "stateRestricted": {
                 "line": "Solo vos podés ingresar plata, desde una cuenta bancaria a tu nombre."
             },
             "ownName": {
                 "line": "Ingresá plata desde una cuenta bancaria a tu nombre."
-            },
-            "unpublished": {
-                "why": "Solo indicamos lo que nuestro socio bancario confirmó para esta moneda, y no dijo nada sobre pagos de otras personas. Los datos funcionan; si alguna vez un pago se devuelve, avisanos y lo resolvemos."
             }
         }
     }

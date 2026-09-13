@@ -89,6 +89,7 @@ export default function DepositAccountsPrototypePage() {
                                 onClaim={sandbox.claim}
                                 onResolveGate={() => setScenario('live')}
                                 onRetry={sandbox.reset}
+                                onContactSupport={() => {}}
                             />
                         </div>
                     </div>

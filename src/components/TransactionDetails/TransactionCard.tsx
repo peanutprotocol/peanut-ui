@@ -300,7 +300,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
                                 ? t('type.setup')
                                 : isPerkRewardEntry
                                   ? t('type.reward')
-                                  : t(getActionLabelKey(type, status))}
+                                  : t(transaction.actionLabelKey ?? getActionLabelKey(type, status))}
                         </span>
                         {showStatusChip && status && <StatusPill status={status} />}
                         {isAdjustedCardSpend && <span>{t('adjustedSuffix')}</span>}

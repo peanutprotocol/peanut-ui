@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import messages from '@/i18n/app/messages/en.json'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
@@ -44,6 +44,7 @@ const list = (
         gates?: Record<DepositCorridor, GateState>
         isError?: boolean
         accounts?: Record<DepositCorridor, DepositAccount | undefined>
+        onOpen?: (corridor: DepositCorridor) => void
     } = {}
 ) =>
     render(
@@ -55,7 +56,7 @@ const list = (
                 isLoading={isLoading}
                 isError={opts.isError ?? false}
                 onBack={() => {}}
-                onOpen={() => {}}
+                onOpen={opts.onOpen ?? (() => {})}
                 onResolveGate={() => {}}
                 onRetry={() => {}}
             />
@@ -119,6 +120,28 @@ describe('DepositAccountsListScreen', () => {
 
         expect(inRow(container, 'SEPA_EU').queryByText('Ready')).not.toBeInTheDocument()
         expect(inRow(container, 'SEPA_EU').getByText('Active')).toBeInTheDocument()
+    })
+
+    /**
+     * A revoked corridor is closed, not blocked. There is no replacement to
+     * claim — the provider's create call is idempotent per customer and
+     * currency — so the row states the status and does not invite a tap, and
+     * the body says what happens to money sent to the dead details rather than
+     * telling the user to verify an identity that is already verified.
+     */
+    it('closes a revoked row rather than inviting a claim on it', () => {
+        const revoked = { ...heldAccount('SEPA_EU'), status: 'revoked' as const }
+        const onOpen = jest.fn()
+        const { container } = list(false, { accounts: { ...NONE, SEPA_EU: revoked }, onOpen })
+
+        fireEvent.click(rowOf(container, 'SEPA_EU') as HTMLElement)
+        expect(onOpen).not.toHaveBeenCalled()
+
+        expect(inRow(container, 'SEPA_EU').getByText(messages.depositAccounts.list.badgeRevoked)).toBeInTheDocument()
+        expect(inRow(container, 'SEPA_EU').getByText(messages.depositAccounts.list.rowRevoked)).toBeInTheDocument()
+        expect(
+            inRow(container, 'SEPA_EU').queryByText(messages.depositAccounts.list.rowBlocked)
+        ).not.toBeInTheDocument()
     })
 
     // Neither Manteca corridor is a standing account, and the rail says so
@@ -238,6 +261,7 @@ describe('DepositAccountsFlow while the accounts are loading', () => {
                         onClaim={() => {}}
                         onResolveGate={() => {}}
                         onRetry={() => {}}
+                        onContactSupport={() => {}}
                     />
                 </NuqsTestingAdapter>
             </NextIntlClientProvider>
@@ -310,6 +334,7 @@ describe('DepositAccountsFlow when the accounts cannot be read', () => {
                         onClaim={() => {}}
                         onResolveGate={() => {}}
                         onRetry={() => {}}
+                        onContactSupport={() => {}}
                     />
                 </NuqsTestingAdapter>
             </NextIntlClientProvider>
@@ -339,6 +364,7 @@ describe('DepositAccountsFlow when a link names a corridor the user has no rail 
                         onClaim={() => {}}
                         onResolveGate={() => {}}
                         onRetry={() => {}}
+                        onContactSupport={() => {}}
                     />
                 </NuqsTestingAdapter>
             </NextIntlClientProvider>
@@ -369,6 +395,7 @@ describe('DepositAccountsFlow accepts the cursor by its old name', () => {
                         onClaim={() => {}}
                         onResolveGate={() => {}}
                         onRetry={() => {}}
+                        onContactSupport={() => {}}
                     />
                 </NuqsTestingAdapter>
             </NextIntlClientProvider>
