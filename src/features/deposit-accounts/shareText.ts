@@ -1,5 +1,5 @@
 import { instructionRows, type RailLabels } from './instructionRows'
-import type { DepositAccount, DepositRowLabels } from './types'
+import type { DepositAccountView, DepositRowLabels } from './types'
 
 export interface ShareTextCopy {
     /** "Here are my bank details to get paid in {currency}:" */
@@ -29,7 +29,7 @@ export interface ShareTextCopy {
  * not a banner next to it.
  */
 export function buildShareText(
-    account: DepositAccount,
+    account: DepositAccountView,
     copy: ShareTextCopy,
     rowLabels: DepositRowLabels,
     railLabels: RailLabels

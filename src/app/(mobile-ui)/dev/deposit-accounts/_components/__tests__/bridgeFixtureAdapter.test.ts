@@ -64,23 +64,30 @@ describe('bridge adapter', () => {
     /** Terms ride with the policy, corridor by corridor. */
     it('carries the published terms', () => {
         expect(byCurrency('USD').rules).toEqual({
-            individualPerPaymentCap: { amount: '4000', currency: 'USD' },
-            familySameSurnameExempt: true,
-            businessesUnlimited: true,
+            ownAccount: { allowed: true },
+            thirdPartyBusiness: 'unlimited',
+            thirdPartyIndividual: {
+                policy: 'capped',
+                capBelow: { amount: '4000', currency: 'USD' },
+                familySameSurnameExempt: true,
+            },
         })
         expect(byCurrency('EUR').rules).toEqual({
-            businessesUnlimited: true,
-            individualsAllowed: false,
+            ownAccount: { allowed: true },
+            thirdPartyBusiness: 'unlimited',
+            thirdPartyIndividual: { policy: 'unavailable' },
             min: { amount: '1', currency: 'EUR' },
         })
         expect(byCurrency('GBP').rules).toEqual({
-            businessesUnlimited: true,
-            individualsAllowed: false,
+            ownAccount: { allowed: true },
+            thirdPartyBusiness: 'unlimited',
+            thirdPartyIndividual: { policy: 'unavailable' },
             min: { amount: '2', currency: 'GBP' },
         })
         expect(byCurrency('MXN').rules).toEqual({
-            individualPerPaymentCap: { amount: '15000', currency: 'MXN' },
-            businessesUnlimited: true,
+            ownAccount: { allowed: true, max: { amount: '1000000', currency: 'MXN' } },
+            thirdPartyBusiness: 'unlimited',
+            thirdPartyIndividual: { policy: 'capped', volumeLimit: { amount: '15000', currency: 'MXN' } },
             min: { amount: '50', currency: 'MXN' },
         })
     })

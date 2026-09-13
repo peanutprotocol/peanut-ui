@@ -4096,7 +4096,17 @@
             "ownAccount": {
                 "line": "Da sua própria conta: sim.",
                 "payer": "Da conta do próprio titular: sim.",
-                "why": "O dinheiro que você envia para si mesmo é um depósito seu, não um pagamento de outra pessoa, e funciona em todas as moedas desta tela. Algumas moedas ainda têm um limite por pagamento no nosso parceiro bancário — se uma transferência grande sua voltar, fale com o suporte."
+                "why": "O dinheiro que você envia para si mesmo é um depósito seu, não um pagamento de outra pessoa, e nosso parceiro bancário não coloca limite nele nesta moeda."
+            },
+            "ownAccountMax": {
+                "line": "Da sua própria conta: até {max}.",
+                "payer": "Da conta do próprio titular: até {max}.",
+                "why": "O dinheiro que você envia para si mesmo é um depósito seu, não um pagamento de outra pessoa. Nosso parceiro bancário aceita até {max} da sua própria conta nesta moeda. Se uma transferência maior sua voltar, fale com o suporte."
+            },
+            "ownAccountNo": {
+                "line": "Da sua própria conta: ainda não.",
+                "payer": "Da conta do próprio titular: ainda não.",
+                "why": "Nosso parceiro bancário não aceita uma transferência da sua própria conta bancária nesta moeda. Vamos avisar aqui no dia em que aceitar."
             },
             "businessAny": {
                 "line": "De uma empresa: qualquer valor.",
@@ -4127,6 +4137,11 @@
                 "line": "De outra pessoa: menos de {cap} por pagamento. Familiares com o seu sobrenome: qualquer valor.",
                 "payer": "De outra pessoa: menos de {cap} por pagamento. Familiares com o sobrenome do titular: qualquer valor.",
                 "why": "Nosso parceiro bancário limita a {cap} um pagamento único de uma pessoa física. Uma empresa não tem esse limite, e familiares com o seu sobrenome também não. Se alguém precisar te pagar mais de {cap} em um único pagamento, fale com o suporte."
+            },
+            "individualVolume": {
+                "line": "De outra pessoa: até {limit} no total. Pergunte ao suporte sobre o período.",
+                "payer": "De outra pessoa: até {limit} no total. Peça ao titular para confirmar o período com o suporte.",
+                "why": "Nosso parceiro bancário limita a {limit} o total que outras pessoas físicas podem pagar nesta conta. Ele não publica o período que esse total cobre, então fale com o suporte antes de um pagamento grande. Uma empresa não tem esse limite."
             },
             "individualNotYet": {
                 "line": "De outra pessoa: ainda não.",

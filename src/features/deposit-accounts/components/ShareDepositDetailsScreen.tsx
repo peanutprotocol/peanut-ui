@@ -12,7 +12,7 @@ import { copyTextToClipboard } from '@/utils/clipboard.utils'
 import { trackShared } from '../analytics'
 import { instructionRows } from '../instructionRows'
 import { buildShareText } from '../shareText'
-import type { DepositAccount, DepositRail } from '../types'
+import type { DepositAccountView, DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { DepositDetailsCard } from './DepositDetailsCard'
 
@@ -31,7 +31,7 @@ export function ShareDepositDetailsScreen({
     onBack,
 }: {
     rail: DepositRail
-    account: DepositAccount
+    account: DepositAccountView
     userName: string
     onBack: () => void
 }) {

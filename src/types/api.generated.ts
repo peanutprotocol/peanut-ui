@@ -10815,19 +10815,32 @@ export interface paths {
                                 };
                                 railId: string;
                                 rules?: {
-                                    businessesUnlimited?: boolean;
-                                    familySameSurnameExempt?: boolean;
-                                    individualPerPaymentCap?: {
-                                        amount: string;
-                                        currency: string;
-                                    };
-                                    individualsAllowed?: boolean;
                                     min?: {
                                         amount: string;
                                         currency: string;
                                     };
+                                    ownAccount: {
+                                        allowed: boolean;
+                                        max?: {
+                                            amount: string;
+                                            currency: string;
+                                        };
+                                    };
                                     /** @enum {string} */
                                     reason?: "state-restricted";
+                                    thirdPartyBusiness: "unlimited" | "unavailable" | "unknown";
+                                    thirdPartyIndividual: {
+                                        capBelow?: {
+                                            amount: string;
+                                            currency: string;
+                                        };
+                                        familySameSurnameExempt?: boolean;
+                                        policy: "allowed" | "capped" | "unavailable" | "unknown";
+                                        volumeLimit?: {
+                                            amount: string;
+                                            currency: string;
+                                        };
+                                    };
                                 };
                                 status: "provisioning" | "active" | "retiring" | "revoked";
                             }[];
@@ -10895,19 +10908,32 @@ export interface paths {
                                 };
                                 railId: string;
                                 rules?: {
-                                    businessesUnlimited?: boolean;
-                                    familySameSurnameExempt?: boolean;
-                                    individualPerPaymentCap?: {
-                                        amount: string;
-                                        currency: string;
-                                    };
-                                    individualsAllowed?: boolean;
                                     min?: {
                                         amount: string;
                                         currency: string;
                                     };
+                                    ownAccount: {
+                                        allowed: boolean;
+                                        max?: {
+                                            amount: string;
+                                            currency: string;
+                                        };
+                                    };
                                     /** @enum {string} */
                                     reason?: "state-restricted";
+                                    thirdPartyBusiness: "unlimited" | "unavailable" | "unknown";
+                                    thirdPartyIndividual: {
+                                        capBelow?: {
+                                            amount: string;
+                                            currency: string;
+                                        };
+                                        familySameSurnameExempt?: boolean;
+                                        policy: "allowed" | "capped" | "unavailable" | "unknown";
+                                        volumeLimit?: {
+                                            amount: string;
+                                            currency: string;
+                                        };
+                                    };
                                 };
                                 status: "provisioning" | "active" | "retiring" | "revoked";
                             };
@@ -10921,6 +10947,18 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code: string;
                             error: string;
                         };
                     };

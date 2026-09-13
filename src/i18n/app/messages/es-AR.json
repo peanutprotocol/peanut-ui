@@ -1712,7 +1712,10 @@
         },
         "rules": {
             "ownAccount": {
-                "why": "La plata que te enviás a vos mismo es una recarga, no un pago de otra persona, y funciona en todas las monedas de esta pantalla. Algunas monedas igual tienen un límite por pago en nuestro socio bancario: si una transferencia grande tuya se devuelve, escribí a soporte."
+                "why": "La plata que te enviás a vos mismo es una recarga, no un pago de otra persona, y nuestro socio bancario no le pone límite en esta moneda."
+            },
+            "ownAccountMax": {
+                "why": "La plata que te enviás a vos mismo es una recarga, no un pago de otra persona. Nuestro socio bancario acepta hasta {max} desde tu propia cuenta en esta moneda. Si una transferencia tuya más grande se devuelve, escribí a soporte."
             },
             "individualAny": {
                 "why": "Nuestro socio bancario acepta pagos de otras personas en esta moneda, así que podés dar estos datos a quien te pague."
@@ -1722,6 +1725,11 @@
             },
             "individualCapFamily": {
                 "why": "Nuestro socio bancario limita a {cap} un pago único de una persona. Una empresa no tiene ese límite, y los familiares con tu mismo apellido tampoco. Si alguien necesita pagarte más de {cap} en un solo pago, escribí a soporte."
+            },
+            "individualVolume": {
+                "line": "Desde otra persona: hasta {limit} en total. Preguntá a soporte por el periodo.",
+                "payer": "Desde otra persona: hasta {limit} en total. Pedile al titular que consulte el periodo con soporte.",
+                "why": "Nuestro socio bancario limita a {limit} el total que otras personas pueden pagar a esta cuenta. No publica el periodo que cubre ese total, así que escribí a soporte antes de un pago grande. Una empresa no tiene ese límite."
             },
             "individualUnconfirmed": {
                 "why": "Solo indicamos lo que nuestro socio bancario confirmó para esta moneda, y no dijo nada sobre pagos de otras personas. Los datos funcionan; si alguna vez un pago se devuelve, avisanos y lo resolvemos."

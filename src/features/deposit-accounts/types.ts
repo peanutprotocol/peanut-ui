@@ -6,26 +6,47 @@
  * The policy fields are the whole design. Whether the payer sees the user's
  * name and whether a stranger may pay at all differ per corridor today, and
  * each changes what the UI is allowed to say.
+ *
+ * The wire types are DERIVED from the generated contract rather than restated
+ * here. A hand-written copy typechecks against a response it no longer
+ * matches, so `pnpm gen:api` stayed green while the screens read fields the
+ * API had dropped. Now a dropped field fails the build at every reader.
  */
+
+import type { paths } from '@/types/api.generated'
+
+type DepositAccountsResponse = paths['/users/deposit-accounts']['get']['responses'][200]['content']['application/json']
+
+/**
+ * One account, exactly as `GET /users/deposit-accounts` returns it. The FE
+ * adds nothing: `railId` carries the corridor, `matching` carries what the
+ * screens are allowed to say, and the provider is deliberately absent.
+ */
+export type DepositAccount = DepositAccountsResponse['depositAccounts'][number]
 
 type DepositProvider = 'bridge' | 'manteca'
 
 export type DepositCorridor = 'ACH_US' | 'SEPA_EU' | 'FASTER_PAYMENTS_GB' | 'SPEI_MX' | 'PIX_BR' | 'BANK_TRANSFER_AR'
 
 /**
- * `unclaimed` — the corridor is open to this user, no account exists yet.
  * `provisioning` — claimed, the provider has not returned details yet.
  * `active` — details are ready to share.
- * `unavailable` — the corridor cannot serve this user (region, provider).
+ * `retiring` — replaced by a newer account, still accepting money.
  * `revoked` — the account existed and no longer accepts money. It gets its own
  *   state because the details are in somebody else's payroll file, and Bridge
  *   returns anything sent to a deactivated account, so the user has to be told
  *   to stop handing them out rather than to try again.
+ *
+ * `unclaimed` and `unavailable` are NOT wire states. The backend returns no
+ * row for a corridor nobody has claimed and no row for one it cannot serve, so
+ * the client names those two itself — which is why they live on
+ * `DepositAccountView` and never on the account the service returns.
  */
-export type DepositAccountStatus = 'unclaimed' | 'provisioning' | 'active' | 'retiring' | 'unavailable' | 'revoked'
+export type ClientDepositStatus = 'unclaimed' | 'unavailable'
 
-/** whose name the payer reads on the account */
-type NameOnAccount = 'user' | 'provider'
+export type DepositAccountStatus = DepositAccount['status'] | ClientDepositStatus
+
+export type DepositMatching = DepositAccount['matching']
 
 /**
  * Who may pay into it.
@@ -37,38 +58,26 @@ type NameOnAccount = 'user' | 'provider'
  * "anyone can pay you" promise, because that promise is the whole product and
  * a wrong one sends somebody's salary back.
  */
-export type SenderPolicy = 'anyone' | 'business-only' | 'own-name-only' | 'unknown'
-
-export interface DepositMatching {
-    nameOnAccount: NameOnAccount
-    sender: SenderPolicy
-}
+export type SenderPolicy = DepositMatching['sender']
 
 /**
  * The documented terms behind a corridor's sender policy, as the backend
- * returns them. Every field is optional and absence means "nothing published",
- * never a default: a corridor with no terms carries no `rules` at all rather
- * than a row of zeros the screens would read as promises.
+ * returns them. The three payers are answered separately, because every rail
+ * lets the holder pay themselves in and the restrictions are about other
+ * people: one enum for all three said "business only" on EUR and GBP, which
+ * reads as "your own top-up is returned". A corridor with nothing published
+ * carries no `rules` at all rather than a row of defaults the screens would
+ * read as promises.
  *
  * Source of truth is peanut-api-ts `src/deposit-accounts/bridge-adapter.ts`,
  * which derives these from
  * `product/providers/fiat/bridge-contracts-and-rail-rules.md` §3. The app
  * renders them and authors none of them.
  */
-export interface DepositRules {
-    /** most one private person may send in one payment */
-    individualPerPaymentCap?: { amount: string; currency: string }
-    /** family sharing the user's surname is not held to the cap */
-    familySameSurnameExempt?: boolean
-    /** a registered business may send any amount */
-    businessesUnlimited?: boolean
-    /** whether a private person may pay in at all */
-    individualsAllowed?: boolean
-    /** smallest payment the rail accepts */
-    min?: { amount: string; currency: string }
-    /** why the policy is narrower than the corridor's own rule */
-    reason?: 'state-restricted'
-}
+export type DepositRules = NonNullable<DepositAccount['rules']>
+
+/** an amount with its currency, as every limit in `DepositRules` carries it */
+export type DepositAmount = NonNullable<DepositRules['min']>
 
 /**
  * Provider instructions, normalised. Every field is optional except the
@@ -77,54 +86,20 @@ export interface DepositRules {
  * name. Presence is the only reliable signal — never assume a field by
  * currency.
  */
-export interface DepositInstructions {
-    accountHolderName: string
-    beneficiaryName?: string
-    beneficiaryAddress?: string
-    bankName?: string
-    bankAddress?: string
-    iban?: string
-    bic?: string
-    accountNumber?: string
-    routingNumber?: string
-    sortCode?: string
-    clabe?: string
-    /** verbatim provider rail ids, e.g. ['ach_push', 'fednow', 'wire'] */
-    paymentRails: string[]
-}
-
-/**
- * One account, exactly as `GET /users/deposit-accounts` returns it. The FE
- * adds nothing: `railId` carries the corridor, `matching` carries what the
- * screens are allowed to say, and the provider is deliberately absent.
- */
-export interface DepositAccount {
-    id: string
-    /** `${provider}.${method}` — e.g. 'bridge.ach_us' */
-    railId: string
-    country: string
-    /** ISO 4217, upper case: EUR */
-    currency: string
-    status: DepositAccountStatus
-    /** the details we hand to a NEW payer; a retiring account is false */
-    isPrimary: boolean
-    matching: DepositMatching
-    /** the terms behind `matching.sender`; absent where none are published */
-    rules?: DepositRules
-    /** present once status is `active` */
-    instructions?: DepositInstructions
-}
+export type DepositInstructions = NonNullable<DepositAccount['instructions']>
 
 /**
  * What the screens actually render: the account the backend returned, plus the
- * one fact only the client knows.
+ * two facts only the client knows.
  *
  * `timedOut` is set when the provisioning poll spent its budget and the
  * provider never answered. It is not a status: the backend has not said the
  * account failed, and nothing in this flag ever travels back over the wire —
- * which is why it sits beside `DepositAccount` rather than inside it.
+ * which is why it sits beside `DepositAccount` rather than inside it. The
+ * widened `status` is there for the same reason.
  */
-export interface DepositAccountView extends DepositAccount {
+export interface DepositAccountView extends Omit<DepositAccount, 'status'> {
+    status: DepositAccountStatus
     timedOut?: true
 }
 

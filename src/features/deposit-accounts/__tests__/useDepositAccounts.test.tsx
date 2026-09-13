@@ -264,16 +264,25 @@ describe('useDepositAccounts caps the provisioning poll', () => {
 describe('useDepositAccounts on a refused claim', () => {
     class FakeApiError extends Error {
         readonly status: number
-        constructor(message: string, status: number) {
+        readonly code: string | undefined
+        constructor(message: string, status: number, code?: string) {
             super(message)
             this.name = 'ApiError'
             this.status = status
+            this.code = code
         }
     }
 
-    it.each([403, 404])('reads a %s as not available yet, never as a failure to retry', async (status) => {
+    const refusals: Array<[string, FakeApiError]> = [
+        // the rollout gate on the claim route names itself
+        ['403 DEPOSIT_ACCOUNTS_NOT_AVAILABLE', new FakeApiError('not enabled', 403, 'DEPOSIT_ACCOUNTS_NOT_AVAILABLE')],
+        // no provider customer, or no rail for this corridor
+        ['404', new FakeApiError('no rail', 404)],
+    ]
+
+    it.each(refusals)('reads a %s as not available yet, never as a failure to retry', async (_name, error) => {
         fetchDepositAccounts.mockResolvedValue([])
-        claimDepositAccount.mockRejectedValue(new FakeApiError('deposit accounts are not enabled', status))
+        claimDepositAccount.mockRejectedValue(error)
 
         const { result } = renderHook(() => useDepositAccounts(), { wrapper })
         await waitFor(() => expect(result.current.isLoading).toBe(false))
@@ -281,6 +290,23 @@ describe('useDepositAccounts on a refused claim', () => {
         act(() => result.current.claim('SEPA_EU'))
         await waitFor(() => expect(result.current.claimError?.corridor).toBe('SEPA_EU'))
         expect(result.current.claimError?.unavailable).toBe(true)
+    })
+
+    /**
+     * A 403 the deposit gate did not write is a different refusal — an expired
+     * session, most often. Relabelling it "not available to you yet" sends the
+     * user to wait for a rollout instead of signing in again.
+     */
+    it('leaves a 403 from anything but the deposit gate retryable', async () => {
+        fetchDepositAccounts.mockResolvedValue([])
+        claimDepositAccount.mockRejectedValue(new FakeApiError('Forbidden', 403))
+
+        const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+        act(() => result.current.claim('SEPA_EU'))
+        await waitFor(() => expect(result.current.claimError?.corridor).toBe('SEPA_EU'))
+        expect(result.current.claimError?.unavailable).toBe(false)
     })
 
     it('keeps an ordinary failure retryable', async () => {

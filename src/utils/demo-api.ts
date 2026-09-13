@@ -12,6 +12,7 @@ import {
 import { DEMO_ADDRESS, DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_LIMITS, DEMO_USER } from '@/constants/demo-data'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { DEPOSIT_RAIL_POLICY } from '@/features/deposit-accounts/__fixtures__/railPolicy'
+import type { DepositAccount } from '@/features/deposit-accounts/types'
 
 const CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
 const CREATED_AT = '2026-01-01T00:00:00.000Z'
@@ -399,7 +400,7 @@ const DEMO_DEPOSIT_ACCOUNT_EUR = {
         beneficiaryAddress: 'Prinsengracht 263, 1016 GV Amsterdam, Netherlands',
         paymentRails: ['sepa'],
     },
-}
+} satisfies DepositAccount
 
 const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     // user

@@ -1,7 +1,7 @@
 'use client'
 
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { apiErrorStatus } from '@/services/api-error'
+import { API_ERROR_CODES, apiErrorStatus, wireErrorCode } from '@/services/api-error'
 import { claimDepositAccount, fetchDepositAccounts } from '@/services/deposit-accounts'
 import type { GateState } from '@/utils/capability-gate'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -209,14 +209,18 @@ export function useDepositAccounts(): UseDepositAccountsResult {
  * A refusal to open an account at all, rather than a failed attempt.
  *
  * The claim route carries a server-side rollout gate, and a user outside the
- * rollout is refused there whatever the client-side flag says. It answers 403;
- * 404 is the same shape of answer from the checks beside it (no provider
- * customer, no rail for this corridor). Neither is worth a retry, and neither
- * should reach a user as the backend's own sentence.
+ * rollout is refused there whatever the client-side flag says. It answers 403
+ * with `DEPOSIT_ACCOUNTS_NOT_AVAILABLE`; 404 is the same shape of answer from
+ * the checks beside it (no provider customer, no rail for this corridor).
+ * Neither is worth a retry, and neither should reach a user as the backend's
+ * own sentence.
+ *
+ * The code is read as well as the status, so a 403 the gate did not write —
+ * an expired session, say — is not relabelled as "not available to you yet".
  */
 function isNotAvailableYet(error: unknown): boolean {
-    const status = apiErrorStatus(error)
-    return status === 403 || status === 404
+    if (wireErrorCode(error) === API_ERROR_CODES.DEPOSIT_ACCOUNTS_NOT_AVAILABLE) return true
+    return apiErrorStatus(error) === 404
 }
 
 function hasAccountStillWaiting(accounts: DepositAccount[] | undefined, polls: Record<string, number>): boolean {

@@ -14,15 +14,17 @@ import type { DepositCorridor, DepositRules, SenderPolicy } from '../types'
  * both read this table, so a rail rule that changes upstream is wrong in one
  * place instead of two.
  *
- * From §3 and Bridge's rail-specific docs, per corridor:
- *   USD — third-party permitted; from a person only under $4,000; a shared
- *     surname exempts family; businesses unlimited.
- *   EUR — businesses unlimited, individuals not agreed with the account
+ * From §3 and Bridge's rail-specific docs, per corridor. Every rail takes the
+ * holder's own transfer; the terms below are about everybody else:
+ *   USD — a business unlimited; another person only under $4,000, with a
+ *     shared surname exempting family.
+ *   EUR — a business unlimited, another person not agreed with the account
  *     manager yet, 1 EUR floor.
- *   GBP — Bridge's pooled entity holds the account, business payments only,
- *     2 GBP floor.
- *   MXN — third party permitted, individuals capped at 15,000 MXN per
- *     payment, businesses unlimited, 50 MXN floor.
+ *   GBP — Bridge's pooled entity holds the account, a business unlimited,
+ *     another person unavailable, 2 GBP floor.
+ *   MXN — the holder up to 1,000,000 MXN, a business unlimited, another
+ *     person to a 15,000 MXN volume limit with no period published,
+ *     50 MXN floor.
  *   BRL / ARS — own name only.
  */
 export interface DepositRailPolicy {
@@ -34,24 +36,39 @@ export const DEPOSIT_RAIL_POLICY: Record<DepositCorridor, DepositRailPolicy> = {
     ACH_US: {
         sender: 'anyone',
         rules: {
-            individualPerPaymentCap: { amount: '4000', currency: 'USD' },
-            familySameSurnameExempt: true,
-            businessesUnlimited: true,
+            ownAccount: { allowed: true },
+            thirdPartyBusiness: 'unlimited',
+            thirdPartyIndividual: {
+                policy: 'capped',
+                capBelow: { amount: '4000', currency: 'USD' },
+                familySameSurnameExempt: true,
+            },
         },
     },
     SEPA_EU: {
         sender: 'business-only',
-        rules: { businessesUnlimited: true, individualsAllowed: false, min: { amount: '1', currency: 'EUR' } },
+        rules: {
+            ownAccount: { allowed: true },
+            thirdPartyBusiness: 'unlimited',
+            thirdPartyIndividual: { policy: 'unavailable' },
+            min: { amount: '1', currency: 'EUR' },
+        },
     },
     FASTER_PAYMENTS_GB: {
         sender: 'business-only',
-        rules: { businessesUnlimited: true, individualsAllowed: false, min: { amount: '2', currency: 'GBP' } },
+        rules: {
+            ownAccount: { allowed: true },
+            thirdPartyBusiness: 'unlimited',
+            thirdPartyIndividual: { policy: 'unavailable' },
+            min: { amount: '2', currency: 'GBP' },
+        },
     },
     SPEI_MX: {
         sender: 'anyone',
         rules: {
-            individualPerPaymentCap: { amount: '15000', currency: 'MXN' },
-            businessesUnlimited: true,
+            ownAccount: { allowed: true, max: { amount: '1000000', currency: 'MXN' } },
+            thirdPartyBusiness: 'unlimited',
+            thirdPartyIndividual: { policy: 'capped', volumeLimit: { amount: '15000', currency: 'MXN' } },
             min: { amount: '50', currency: 'MXN' },
         },
     },

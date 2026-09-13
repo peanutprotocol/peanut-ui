@@ -61,8 +61,9 @@ describe('the shared text carries the account rules', () => {
 
     it('states the euro terms the backend published, and no more', () => {
         const out = text('business-only', {
-            businessesUnlimited: true,
-            individualsAllowed: false,
+            ownAccount: { allowed: true },
+            thirdPartyBusiness: 'unlimited',
+            thirdPartyIndividual: { policy: 'unavailable' },
             min: { amount: '1', currency: 'EUR' },
         })
         expect(out).toContain('From a business: any amount')
@@ -72,13 +73,29 @@ describe('the shared text carries the account rules', () => {
 
     it('gives a dollar payer the cap as a strict limit, and the exemptions', () => {
         const out = text('anyone', {
-            individualPerPaymentCap: { amount: '4000', currency: 'USD' },
-            familySameSurnameExempt: true,
-            businessesUnlimited: true,
+            ownAccount: { allowed: true },
+            thirdPartyBusiness: 'unlimited',
+            thirdPartyIndividual: {
+                policy: 'capped',
+                capBelow: { amount: '4000', currency: 'USD' },
+                familySameSurnameExempt: true,
+            },
         })
         expect(out).toContain('less than USD 4000 each time')
         expect(out).not.toContain('up to USD 4000')
         expect(out).toContain('Family who share the account holder surname: any amount')
+    })
+
+    it('sends the peso volume limit out with the numbers, period and all', () => {
+        const out = text('anyone', {
+            ownAccount: { allowed: true, max: { amount: '1000000', currency: 'MXN' } },
+            thirdPartyBusiness: 'unlimited',
+            thirdPartyIndividual: { policy: 'capped', volumeLimit: { amount: '15000', currency: 'MXN' } },
+        })
+        expect(out).toContain("From the account holder's own account: up to MXN 1000000")
+        expect(out).toContain('up to MXN 15000 in total')
+        // a volume limit is not a per-payment cap, and the text must not read as one
+        expect(out).not.toContain('less than MXN 15000')
     })
 
     it('warns the payer where nothing is published, rather than going quiet', () => {

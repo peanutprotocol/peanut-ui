@@ -11,6 +11,7 @@
 
 import type { Fixture } from './types'
 import { DEPOSIT_RAIL_POLICY } from '@/features/deposit-accounts/__fixtures__/railPolicy'
+import type { DepositAccount } from '@/features/deposit-accounts/types'
 import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
 
 // Hugo's overflow case: a username no header was designed for, and a points
@@ -163,12 +164,8 @@ const DEPOSIT_ACCOUNT_USD = {
     currency: 'USD',
     status: 'active',
     isPrimary: true,
-    matching: { nameOnAccount: 'user', sender: 'anyone' },
-    rules: {
-        individualPerPaymentCap: { amount: '4000', currency: 'USD' },
-        familySameSurnameExempt: true,
-        businessesUnlimited: true,
-    },
+    matching: { nameOnAccount: 'user', sender: DEPOSIT_RAIL_POLICY.ACH_US.sender },
+    rules: DEPOSIT_RAIL_POLICY.ACH_US.rules,
     instructions: {
         accountHolderName: HOLDER,
         bankName: 'Lead Bank',
@@ -179,7 +176,7 @@ const DEPOSIT_ACCOUNT_USD = {
         beneficiaryAddress: '1000 Brannan St, San Francisco, CA 94103',
         paymentRails: ['ach_push', 'wire', 'fednow'],
     },
-}
+} satisfies DepositAccount
 
 /**
  * The same dollar account held by a New York or Texas resident. No third party
@@ -189,9 +186,14 @@ const DEPOSIT_ACCOUNT_USD = {
 const DEPOSIT_ACCOUNT_USD_STATE_RESTRICTED = {
     ...DEPOSIT_ACCOUNT_USD,
     id: 'fixture-deposit-usd-state',
-    matching: { ...DEPOSIT_ACCOUNT_USD.matching, sender: 'own-name-only' },
-    rules: { reason: 'state-restricted' },
-}
+    matching: { ...DEPOSIT_ACCOUNT_USD.matching, sender: 'own-name-only' as const },
+    rules: {
+        ownAccount: { allowed: true },
+        thirdPartyBusiness: 'unavailable',
+        thirdPartyIndividual: { policy: 'unavailable' },
+        reason: 'state-restricted',
+    },
+} satisfies DepositAccount
 
 /** Euros: businesses only until an individual volume is agreed, 1 EUR floor. */
 const DEPOSIT_ACCOUNT_EUR = {
@@ -201,8 +203,8 @@ const DEPOSIT_ACCOUNT_EUR = {
     currency: 'EUR',
     status: 'active',
     isPrimary: true,
-    matching: { nameOnAccount: 'user', sender: 'business-only' },
-    rules: { businessesUnlimited: true, individualsAllowed: false, min: { amount: '1', currency: 'EUR' } },
+    matching: { nameOnAccount: 'user', sender: DEPOSIT_RAIL_POLICY.SEPA_EU.sender },
+    rules: DEPOSIT_RAIL_POLICY.SEPA_EU.rules,
     instructions: {
         accountHolderName: HOLDER,
         bankName: 'Modern Treasury Bank',
@@ -213,7 +215,7 @@ const DEPOSIT_ACCOUNT_EUR = {
         beneficiaryAddress: 'Prinsengracht 263, 1016 GV Amsterdam, Netherlands',
         paymentRails: ['sepa'],
     },
-}
+} satisfies DepositAccount
 
 /** Sterling: business payments only, unlimited, with a 2 GBP floor. */
 const DEPOSIT_ACCOUNT_GBP = {
@@ -232,7 +234,7 @@ const DEPOSIT_ACCOUNT_GBP = {
         sortCode: '04-00-53',
         paymentRails: ['faster_payments'],
     },
-}
+} satisfies DepositAccount
 
 /**
  * Pesos: third party permitted, individuals capped per payment, businesses
@@ -253,7 +255,7 @@ const DEPOSIT_ACCOUNT_MXN = {
         clabe: '646180111800000000',
         paymentRails: ['spei'],
     },
-}
+} satisfies DepositAccount
 
 /**
  * The one fixture where the payer does NOT read the user's name: the account
@@ -270,7 +272,7 @@ const DEPOSIT_ACCOUNT_PROVIDER_HELD = {
         accountHolderName: 'Northwind Payments B.V.',
         beneficiaryName: 'Northwind Payments B.V.',
     },
-}
+} satisfies DepositAccount
 
 /**
  * The Bridge bank rails, the set a user verified through Bridge carries.

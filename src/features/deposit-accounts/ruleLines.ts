@@ -13,12 +13,15 @@ import type { DepositMatching, DepositRules } from './types'
 export type DepositRuleKey =
     | 'providerHeld'
     | 'ownAccount'
+    | 'ownAccountMax'
+    | 'ownAccountNo'
     | 'businessAny'
     | 'businessNotYet'
     | 'businessUnconfirmed'
     | 'individualAny'
     | 'individualCap'
     | 'individualCapFamily'
+    | 'individualVolume'
     | 'individualNotYet'
     | 'individualUnconfirmed'
     | 'minimum'
@@ -30,6 +33,9 @@ export interface DepositRuleLine {
     /** already-formatted interpolation values for the catalog string */
     values?: Record<string, string>
 }
+
+/** turns an amount into the string the catalog interpolates */
+export type FormatMoney = (amount: string, currency: string) => string
 
 /**
  * The rules for one account, in the order a user needs them: who holds it,
@@ -44,7 +50,7 @@ export interface DepositRuleLine {
 export function depositRuleLines(
     matching: DepositMatching,
     rules: DepositRules | undefined,
-    formatMoney: (amount: string, currency: string) => string
+    formatMoney: FormatMoney
 ): DepositRuleLine[] {
     const lines: DepositRuleLine[] = []
 
@@ -63,7 +69,7 @@ export function depositRuleLines(
     // corridor — which forbade the user's own top-up, the one payment that
     // always works. The Add-money bank row leads here now, so that sentence
     // was telling users their own deposit would bounce.
-    lines.push({ key: 'ownAccount' })
+    lines.push(ownAccountLine(rules, formatMoney))
 
     lines.push({ key: businessKey(matching, rules) })
     lines.push(individualLine(matching, rules, formatMoney))
@@ -75,29 +81,72 @@ export function depositRuleLines(
     return lines
 }
 
+/**
+ * What the holder's own transfer may do.
+ *
+ * A published ceiling is stated as the ceiling; its absence is "yes" and never
+ * "unlimited", because no rail page promises an unlimited first-party deposit
+ * and a ceiling we have not read is not the same as one that does not exist.
+ */
+function ownAccountLine(rules: DepositRules | undefined, formatMoney: FormatMoney): DepositRuleLine {
+    if (rules?.ownAccount.allowed === false) return { key: 'ownAccountNo' }
+    const max = rules?.ownAccount.max
+    if (max) return { key: 'ownAccountMax', values: { max: formatMoney(max.amount, max.currency) } }
+    return { key: 'ownAccount' }
+}
+
 /** what a company transfer may do on this corridor */
 function businessKey(matching: DepositMatching, rules: DepositRules | undefined): DepositRuleKey {
-    if (rules?.businessesUnlimited === true) return 'businessAny'
-    if (rules?.businessesUnlimited === false) return 'businessNotYet'
+    switch (rules?.thirdPartyBusiness) {
+        case 'unlimited':
+            return 'businessAny'
+        case 'unavailable':
+            return 'businessNotYet'
+        case 'unknown':
+            return 'businessUnconfirmed'
+    }
     // no published term: `business-only` is itself the statement that a
     // business may pay, and silence about everything else stays silence
     if (matching.sender === 'business-only' || matching.sender === 'anyone') return 'businessAny'
     return 'businessUnconfirmed'
 }
 
-/** what a payment from another private person may do on this corridor */
+/**
+ * What a payment from another private person may do on this corridor.
+ *
+ * `capBelow` and `volumeLimit` are different promises and get different
+ * sentences: the first is a per-payment ceiling the payer can plan around, the
+ * second is a running total with no period published — so the line says to ask
+ * support rather than implying the figure resets every month.
+ */
 function individualLine(
     matching: DepositMatching,
     rules: DepositRules | undefined,
-    formatMoney: (amount: string, currency: string) => string
+    formatMoney: FormatMoney
 ): DepositRuleLine {
-    if (rules?.individualsAllowed === false) return { key: 'individualNotYet' }
-    if (rules?.individualPerPaymentCap) {
-        const { amount, currency } = rules.individualPerPaymentCap
-        return {
-            key: rules.familySameSurnameExempt ? 'individualCapFamily' : 'individualCap',
-            values: { cap: formatMoney(amount, currency) },
+    const individual = rules?.thirdPartyIndividual
+    switch (individual?.policy) {
+        case 'allowed':
+            return { key: 'individualAny' }
+        case 'unavailable':
+            return { key: 'individualNotYet' }
+        case 'capped': {
+            if (individual.capBelow) {
+                const { amount, currency } = individual.capBelow
+                return {
+                    key: individual.familySameSurnameExempt ? 'individualCapFamily' : 'individualCap',
+                    values: { cap: formatMoney(amount, currency) },
+                }
+            }
+            if (individual.volumeLimit) {
+                const { amount, currency } = individual.volumeLimit
+                return { key: 'individualVolume', values: { limit: formatMoney(amount, currency) } }
+            }
+            // capped with no figure states no terms at all
+            return { key: 'individualUnconfirmed' }
         }
+        case 'unknown':
+            return { key: 'individualUnconfirmed' }
     }
     if (matching.sender === 'anyone') return { key: 'individualAny' }
     if (matching.sender === 'business-only') return { key: 'individualNotYet' }

@@ -4096,7 +4096,17 @@
             "ownAccount": {
                 "line": "From your own account: yes.",
                 "payer": "From the account holder's own account: yes.",
-                "why": "Money you send yourself is a top-up, not a payment from someone else, and it works on every currency here. Some currencies still carry a per-payment limit at our banking partner — if a large transfer of your own comes back, contact support."
+                "why": "Money you send yourself is a top-up, not a payment from someone else, and our banking partner sets no limit on it for this currency."
+            },
+            "ownAccountMax": {
+                "line": "From your own account: up to {max}.",
+                "payer": "From the account holder's own account: up to {max}.",
+                "why": "Money you send yourself is a top-up, not a payment from someone else. Our banking partner accepts up to {max} from your own account on this currency. If a larger transfer of your own comes back, contact support."
+            },
+            "ownAccountNo": {
+                "line": "From your own account: not yet.",
+                "payer": "From the account holder's own account: not yet.",
+                "why": "Our banking partner does not accept a transfer from your own bank account on this currency. We will say so here the day it does."
             },
             "businessAny": {
                 "line": "From a business: any amount.",
@@ -4127,6 +4137,11 @@
                 "line": "From another person: less than {cap} each time. Family who share your surname: any amount.",
                 "payer": "From another person: less than {cap} each time. Family who share the account holder surname: any amount.",
                 "why": "Our banking partner caps a single payment from a private person at {cap}. A business is not capped, and neither is family who share your surname. If someone needs to pay you more than {cap} in one payment, contact support."
+            },
+            "individualVolume": {
+                "line": "From another person: up to {limit} in total. Ask support about the period.",
+                "payer": "From another person: up to {limit} in total. Ask the account holder to check the period with support.",
+                "why": "Our banking partner caps the total other private people may pay into this account at {limit}. It does not publish the period that total covers, so contact support before a large payment. A business is not capped."
             },
             "individualNotYet": {
                 "line": "From another person: not yet.",

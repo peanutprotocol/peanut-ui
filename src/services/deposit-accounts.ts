@@ -13,11 +13,15 @@
 import { apiErrorFromResponse } from '@/services/api-error'
 import { apiFetch } from '@/utils/api-fetch'
 import type { DepositAccount } from '@/features/deposit-accounts/types'
+import type { paths } from '@/types/api.generated'
+
+type DepositAccountsResponse = paths['/users/deposit-accounts']['get']['responses'][200]['content']['application/json']
+type ClaimResponse = paths['/users/deposit-accounts']['post']['responses'][200]['content']['application/json']
 
 export async function fetchDepositAccounts(): Promise<DepositAccount[]> {
     const response = await apiFetch('/users/deposit-accounts', { method: 'GET' })
     if (!response.ok) throw await apiErrorFromResponse(response, 'Could not load your deposit accounts')
-    const body = (await response.json()) as { depositAccounts: DepositAccount[] }
+    const body = (await response.json()) as DepositAccountsResponse
     return body.depositAccounts
 }
 
@@ -32,6 +36,6 @@ export async function claimDepositAccount(method: string): Promise<DepositAccoun
         body: JSON.stringify({ method }),
     })
     if (!response.ok) throw await apiErrorFromResponse(response, 'Could not open the account')
-    const body = (await response.json()) as { depositAccount: DepositAccount }
+    const body = (await response.json()) as ClaimResponse
     return body.depositAccount
 }

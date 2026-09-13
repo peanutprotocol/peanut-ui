@@ -1,3 +1,4 @@
+import { DEPOSIT_RAIL_POLICY } from '../__fixtures__/railPolicy'
 import { depositRuleLines } from '../ruleLines'
 import type { DepositMatching, DepositRules } from '../types'
 
@@ -17,38 +18,37 @@ const keysOf = (matchingIn: DepositMatching, rules: DepositRules | undefined) =>
  * one question per payer: your own account, a business, another person. The
  * rails below are the published terms in
  * `product/providers/fiat/bridge-contracts-and-rail-rules.md` §3 and Bridge's
- * rail-specific docs, as peanut-api-ts serves them.
+ * rail-specific docs, as peanut-api-ts serves them — read from the shared
+ * fixture table so a rule that changes upstream is wrong in one place.
  *
  * The own-account line is the one that matters most: the old copy said "a
  * payment from a personal account is sent back" on a business-only corridor,
  * which told the holder their OWN top-up would bounce. It never would.
  */
 describe('depositRuleLines', () => {
-    it('USD: own account and a business unlimited, another person under the cap, family exempt', () => {
-        const rules: DepositRules = {
-            individualPerPaymentCap: { amount: '4000', currency: 'USD' },
-            familySameSurnameExempt: true,
-            businessesUnlimited: true,
-        }
-        const lines = depositRuleLines(matching({ sender: 'anyone' }), rules, money)
+    it('USD: own account yes, a business unlimited, another person under the cap, family exempt', () => {
+        const { sender, rules } = DEPOSIT_RAIL_POLICY.ACH_US
+        const lines = depositRuleLines(matching({ sender }), rules, money)
         expect(lines.map((l) => l.key)).toEqual(['ownAccount', 'businessAny', 'individualCapFamily'])
         expect(lines.find((l) => l.key === 'individualCapFamily')?.values).toEqual({ cap: 'USD 4000' })
     })
 
     it('USD, NY/TX: only the holder may pay in, and the state is the reason', () => {
         const restricted = matching({ sender: 'own-name-only' })
-        expect(keysOf(restricted, { reason: 'state-restricted' })).toEqual(['stateRestricted'])
+        const rules: DepositRules = {
+            ownAccount: { allowed: true },
+            thirdPartyBusiness: 'unavailable',
+            thirdPartyIndividual: { policy: 'unavailable' },
+            reason: 'state-restricted',
+        }
+        expect(keysOf(restricted, rules)).toEqual(['stateRestricted'])
         // no reason published at all — same policy, different (weaker) claim
         expect(keysOf(restricted, undefined)).toEqual(['ownName'])
     })
 
-    it('EUR: own account any amount, a business unlimited, another person not yet, with a floor', () => {
-        const rules: DepositRules = {
-            businessesUnlimited: true,
-            individualsAllowed: false,
-            min: { amount: '1', currency: 'EUR' },
-        }
-        expect(keysOf(matching({ sender: 'business-only' }), rules)).toEqual([
+    it('EUR: own account yes, a business unlimited, another person not yet, with a floor', () => {
+        const { sender, rules } = DEPOSIT_RAIL_POLICY.SEPA_EU
+        expect(keysOf(matching({ sender }), rules)).toEqual([
             'ownAccount',
             'businessAny',
             'individualNotYet',
@@ -57,12 +57,8 @@ describe('depositRuleLines', () => {
     })
 
     it('GBP: the same shape, with the sterling floor', () => {
-        const rules: DepositRules = {
-            businessesUnlimited: true,
-            individualsAllowed: false,
-            min: { amount: '2', currency: 'GBP' },
-        }
-        expect(keysOf(matching({ sender: 'business-only' }), rules)).toEqual([
+        const { sender, rules } = DEPOSIT_RAIL_POLICY.FASTER_PAYMENTS_GB
+        expect(keysOf(matching({ sender }), rules)).toEqual([
             'ownAccount',
             'businessAny',
             'individualNotYet',
@@ -70,15 +66,18 @@ describe('depositRuleLines', () => {
         ])
     })
 
-    it('MXN: a business unlimited, another person capped per payment with no family exemption', () => {
-        const rules: DepositRules = {
-            individualPerPaymentCap: { amount: '15000', currency: 'MXN' },
-            businessesUnlimited: true,
-            min: { amount: '50', currency: 'MXN' },
-        }
-        const lines = depositRuleLines(matching({ sender: 'anyone' }), rules, money)
-        expect(lines.map((l) => l.key)).toEqual(['ownAccount', 'businessAny', 'individualCap', 'minimum'])
-        expect(lines.find((l) => l.key === 'individualCap')?.values).toEqual({ cap: 'MXN 15000' })
+    /**
+     * The peso rail is the one that distinguishes the two limits. The holder's
+     * own deposit has a ceiling, and the individual figure is a VOLUME limit
+     * with no period published — so it must not render as the per-payment "less
+     * than" sentence the dollar rail gets.
+     */
+    it('MXN: the holder capped, a business unlimited, another person held to a volume limit', () => {
+        const { sender, rules } = DEPOSIT_RAIL_POLICY.SPEI_MX
+        const lines = depositRuleLines(matching({ sender }), rules, money)
+        expect(lines.map((l) => l.key)).toEqual(['ownAccountMax', 'businessAny', 'individualVolume', 'minimum'])
+        expect(lines.find((l) => l.key === 'ownAccountMax')?.values).toEqual({ max: 'MXN 1000000' })
+        expect(lines.find((l) => l.key === 'individualVolume')?.values).toEqual({ limit: 'MXN 15000' })
     })
 
     /**
@@ -94,16 +93,28 @@ describe('depositRuleLines', () => {
         ])
     })
 
+    it('a corridor that refuses the holder their own top-up never reads as a yes', () => {
+        expect(
+            keysOf(matching({ sender: 'unknown' }), {
+                ownAccount: { allowed: false },
+                thirdPartyBusiness: 'unknown',
+                thirdPartyIndividual: { policy: 'unknown' },
+            })
+        ).toEqual(['ownAccountNo', 'businessUnconfirmed', 'individualUnconfirmed'])
+    })
+
     it('ARS and BRL: only the holder pays in, and no third-party line is offered', () => {
-        expect(keysOf(matching({ sender: 'own-name-only' }), undefined)).toEqual(['ownName'])
+        expect(keysOf(matching({ sender: DEPOSIT_RAIL_POLICY.PIX_BR.sender }), undefined)).toEqual(['ownName'])
     })
 
     it('a provider-held account states that first, ahead of every payer line', () => {
-        expect(keysOf(matching({ nameOnAccount: 'provider', sender: 'business-only' }), undefined)).toEqual([
+        const { sender, rules } = DEPOSIT_RAIL_POLICY.FASTER_PAYMENTS_GB
+        expect(keysOf(matching({ nameOnAccount: 'provider', sender }), rules)).toEqual([
             'providerHeld',
             'ownAccount',
             'businessAny',
             'individualNotYet',
+            'minimum',
         ])
     })
 })
