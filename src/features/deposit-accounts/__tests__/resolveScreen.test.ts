@@ -1,5 +1,5 @@
 import { DEPOSIT_RAILS } from '../rails'
-import { resolveScreen } from '../resolveScreen'
+import { canShare, resolveScreen } from '../resolveScreen'
 import type { DepositAccount } from '../types'
 import type { GateState } from '@/utils/capability-gate'
 
@@ -74,5 +74,28 @@ describe('resolveScreen', () => {
 
     it('passes a legitimate share through', () => {
         expect(resolveScreen('share', eur, account(), READY)).toBe('share')
+    })
+})
+
+/**
+ * The footer and the resolver have to give the same answer. They did not: the
+ * footer asked the sender policy alone, so a retiring account, one without
+ * details, or one whose gate had since closed offered a Share button the
+ * resolver refused.
+ */
+describe('canShare', () => {
+    it('agrees with the resolver on every account the footer can be shown for', () => {
+        const cases = [
+            account(),
+            account({ status: 'retiring' }),
+            account({ status: 'provisioning' }),
+            account({ instructions: undefined }),
+            account({ matching: { nameOnAccount: 'user', sender: 'own-name-only' } }),
+        ]
+        for (const gate of [READY, BLOCKED]) {
+            for (const candidate of cases) {
+                expect(canShare(candidate, gate)).toBe(resolveScreen('share', eur, candidate, gate) === 'share')
+            }
+        }
     })
 })

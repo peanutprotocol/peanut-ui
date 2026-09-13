@@ -3961,7 +3961,7 @@
             "errorRetry": "Tentar de novo"
         },
         "claim": {
-            "heading": "Sua própria conta em {currency}",
+            "heading": "Dados bancários em {currency}",
             "subheading": "Dados bancários reais que seu empregador, cliente ou plataforma já sabe usar.",
             "previewTitle": "Como seus dados vão aparecer",
             "previewCaption": "Só um exemplo — seus números reais aparecem quando a conta for aberta.",

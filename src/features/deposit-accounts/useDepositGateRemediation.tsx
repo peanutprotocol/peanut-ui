@@ -55,7 +55,7 @@ export function useDepositGateRemediation(): { resolveGate: (gate: GateState) =>
             default:
                 // needs-identity, needs-enrollment, fixable-rejection,
                 // restart-identity: all start in the same modal, which reads the
-                // gate to pick its words and which run to start
+                // gate to pick its words and which run to start — see onVerify
                 setKycModalGate(gate)
         }
     }
@@ -67,6 +67,12 @@ export function useDepositGateRemediation(): { resolveGate: (gate: GateState) =>
                 visible={kycModalGate !== undefined}
                 onClose={() => setKycModalGate(undefined)}
                 onVerify={async () => {
+                    if (kycModalGate?.kind === 'restart-identity') {
+                        // the identity run itself is what the provider
+                        // refused, so it is started again rather than resumed
+                        await sumsubFlow.handleRestartIdentity()
+                        return
+                    }
                     if (kycModalGate?.kind === 'fixable-rejection') {
                         // a document the provider rejected is resubmitted, not
                         // re-collected from scratch

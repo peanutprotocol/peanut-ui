@@ -3961,7 +3961,7 @@
             "errorRetry": "Try again"
         },
         "claim": {
-            "heading": "Your own {currency} account",
+            "heading": "Bank details in {currency}",
             "subheading": "Real bank details your employer, client or platform already knows how to use.",
             "previewTitle": "What your details will look like",
             "previewCaption": "An example only — your real numbers appear once the account is open.",

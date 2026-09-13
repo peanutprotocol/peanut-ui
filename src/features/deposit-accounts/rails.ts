@@ -117,9 +117,21 @@ export function corridorFromRailId(railId: string): DepositCorridor | undefined 
  * the block means the corridor is part of this user's world, and its status
  * decides what the row says rather than whether it exists. A user with no AR
  * rail never reads about ARS.
+ *
+ * A corridor the user already HOLDS an account on is a row too, even with no
+ * rail behind it. The capability block leaves an inactive catalogue rail out;
+ * the accounts endpoint deliberately keeps the account, because details that
+ * are already in a payer's records still have to be readable. Taking the rails
+ * alone would drop that account off the list and bounce its details URL back,
+ * with nowhere left to see what a payer is still sending money to. The gate on
+ * such a corridor is not `ready`, so it reads as the account it is and offers
+ * no claim.
  */
-export function corridorsFromRails(rails: RailCapability[]): DepositCorridor[] {
-    const held = new Set<DepositCorridor>()
+export function corridorsFromRails(
+    rails: RailCapability[],
+    heldCorridors: Iterable<DepositCorridor> = []
+): DepositCorridor[] {
+    const held = new Set<DepositCorridor>(heldCorridors)
     for (const rail of rails) {
         if (rail.channel !== 'bank') continue
         const corridor = corridorFromRailId(rail.id)

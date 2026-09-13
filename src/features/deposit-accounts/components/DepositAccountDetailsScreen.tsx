@@ -9,7 +9,6 @@ import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
 import { instructionRows } from '../instructionRows'
-import { isShareable } from '../rails'
 import type { DepositAccountView, DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { DepositDetailsCard } from './DepositDetailsCard'
@@ -34,6 +33,7 @@ export function DepositAccountDetailsScreen({
     rail,
     account,
     userName,
+    canShare,
     onBack,
     onShare,
     onRetry,
@@ -42,6 +42,8 @@ export function DepositAccountDetailsScreen({
     account: DepositAccountView
     /** the name a payer reads when the account is NOT in the user's own name */
     userName: string
+    /** may these details be handed to a payer — the resolver's own answer */
+    canShare: boolean
     onBack: () => void
     onShare: () => void
     onRetry: () => void
@@ -96,7 +98,6 @@ export function DepositAccountDetailsScreen({
     const provisioning = account.status === 'provisioning'
     const rows = account.instructions ? instructionRows(account.instructions, rowLabels, railLabels) : []
     const ownNameOnly = account.matching.sender === 'own-name-only'
-    const shareable = isShareable(account.matching.sender)
     const rules = ruleLines(account.matching, account.rules, userName)
 
     return (
@@ -141,9 +142,14 @@ export function DepositAccountDetailsScreen({
                 )}
             </div>
 
-            {shareable && (
+            {/*
+             * The resolver decides this, not the sender policy alone. A button
+             * the resolver would send straight back here is worse than no
+             * button: the user presses it and nothing appears to happen.
+             */}
+            {canShare && (
                 <PageStack.Footer>
-                    <Button variant="purple" className="w-full" icon="share" disabled={provisioning} onClick={onShare}>
+                    <Button variant="purple" className="w-full" icon="share" onClick={onShare}>
                         {t('details.shareCta')}
                     </Button>
                 </PageStack.Footer>

@@ -6,7 +6,7 @@ import { useEffect } from 'react'
 import { trackDetailsViewed, trackGateBlocked } from '../analytics'
 import { DEPOSIT_ACCOUNT_PARAMS } from '../params'
 import { DEPOSIT_RAILS, isClaimable } from '../rails'
-import { resolveScreen } from '../resolveScreen'
+import { canShare, resolveScreen } from '../resolveScreen'
 import type { DepositAccountView, DepositCorridor } from '../types'
 import type { DepositClaimError } from '../useDepositAccounts'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -163,6 +163,7 @@ export function DepositAccountsFlow({
                 rail={rail}
                 account={account}
                 userName={userName}
+                canShare={canShare(account, gate)}
                 onBack={() => setParams({ step: 'list' })}
                 onShare={() => setParams({ step: 'share' })}
                 onRetry={() => onClaim(corridor)}

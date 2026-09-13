@@ -30,6 +30,26 @@ export function isHeld(account: DepositAccountView | undefined): boolean {
     return account !== undefined && account.status !== 'unclaimed'
 }
 
+/**
+ * May these details be handed to a payer right now?
+ *
+ * One predicate, because the footer button and the resolver used to disagree:
+ * the button asked only whether the rail's sender policy allows it, and the
+ * resolver also wants live details and a corridor the user may still act on.
+ * A retiring account, or one whose gate has since closed, therefore offered a
+ * Share button that bounced straight back to the details with nothing said.
+ */
+export function canShare(account: DepositAccountView | undefined, gate: GateState): boolean {
+    if (!account?.instructions || account.status !== 'active') return false
+    if (!isShareable(account.matching.sender)) return false
+    // Handing details to a payer is an action on a corridor, so it needs that
+    // corridor's gate. Reading details the user already holds is not: a
+    // corridor that goes blocked after the fact still has money to explain,
+    // and hiding it would strand the user mid-conversation with whoever is
+    // paying them.
+    return depositGateView(gate).claimable
+}
+
 export function resolveScreen(
     requested: DepositAccountScreen,
     rail: DepositRail,
@@ -47,14 +67,7 @@ export function resolveScreen(
     }
 
     if (requested === 'share') {
-        if (!account?.instructions || account.status !== 'active') return held ? 'details' : 'list'
-        if (!isShareable(account.matching.sender)) return 'details'
-        // Handing details to a payer is an action on a corridor, so it needs
-        // that corridor's gate. Reading details the user already holds is not:
-        // a corridor that goes blocked after the fact still has money to
-        // explain, and hiding it would strand the user mid-conversation with
-        // whoever is paying them.
-        if (!claimable) return 'details'
+        if (!canShare(account, gate)) return held ? 'details' : 'list'
         return 'share'
     }
 

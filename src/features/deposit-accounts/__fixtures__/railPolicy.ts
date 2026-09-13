@@ -14,14 +14,15 @@ import type { DepositCorridor, DepositRules, SenderPolicy } from '../types'
  * both read this table, so a rail rule that changes upstream is wrong in one
  * place instead of two.
  *
- * From §3, per corridor:
+ * From §3 and Bridge's rail-specific docs, per corridor:
  *   USD — third-party permitted; from a person only under $4,000; a shared
  *     surname exempts family; businesses unlimited.
  *   EUR — businesses unlimited, individuals not agreed with the account
  *     manager yet, 1 EUR floor.
- *   GBP — Bridge's pooled entity holds the account, business payments only.
- *   MXN — Bridge documents no third-party policy, and silence is not
- *     permission.
+ *   GBP — Bridge's pooled entity holds the account, business payments only,
+ *     2 GBP floor.
+ *   MXN — third party permitted, individuals capped at 15,000 MXN per
+ *     payment, businesses unlimited, 50 MXN floor.
  *   BRL / ARS — own name only.
  */
 export interface DepositRailPolicy {
@@ -42,8 +43,18 @@ export const DEPOSIT_RAIL_POLICY: Record<DepositCorridor, DepositRailPolicy> = {
         sender: 'business-only',
         rules: { businessesUnlimited: true, individualsAllowed: false, min: { amount: '1', currency: 'EUR' } },
     },
-    FASTER_PAYMENTS_GB: { sender: 'business-only' },
-    SPEI_MX: { sender: 'unknown' },
+    FASTER_PAYMENTS_GB: {
+        sender: 'business-only',
+        rules: { businessesUnlimited: true, individualsAllowed: false, min: { amount: '2', currency: 'GBP' } },
+    },
+    SPEI_MX: {
+        sender: 'anyone',
+        rules: {
+            individualPerPaymentCap: { amount: '15000', currency: 'MXN' },
+            businessesUnlimited: true,
+            min: { amount: '50', currency: 'MXN' },
+        },
+    },
     PIX_BR: { sender: 'own-name-only' },
     BANK_TRANSFER_AR: { sender: 'own-name-only' },
 }

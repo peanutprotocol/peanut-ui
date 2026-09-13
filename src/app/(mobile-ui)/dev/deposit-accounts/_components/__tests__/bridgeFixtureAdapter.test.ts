@@ -51,19 +51,18 @@ describe('bridge adapter', () => {
     /**
      * The harness mirrors peanut-api-ts `src/deposit-accounts/bridge-adapter.ts`,
      * which reads `product/providers/fiat/bridge-contracts-and-rail-rules.md`
-     * §3: USD permits third parties on published terms, EUR and GBP take
-     * business payments only, and MXN is documented nowhere — silence is not
-     * permission, so it stays unknown.
+     * §3 and Bridge's rail-specific docs: USD and MXN permit third parties on
+     * published terms, EUR and GBP take business payments only.
      */
     it('carries the per-rail sender policy the backend publishes', () => {
         expect(byCurrency('USD').matching.sender).toBe('anyone')
         expect(byCurrency('GBP').matching.sender).toBe('business-only')
         expect(byCurrency('EUR').matching.sender).toBe('business-only')
-        expect(byCurrency('MXN').matching.sender).toBe('unknown')
+        expect(byCurrency('MXN').matching.sender).toBe('anyone')
     })
 
-    /** Terms ride with the policy, and a corridor with none carries none. */
-    it('carries the published terms, and nothing where there are none', () => {
+    /** Terms ride with the policy, corridor by corridor. */
+    it('carries the published terms', () => {
         expect(byCurrency('USD').rules).toEqual({
             individualPerPaymentCap: { amount: '4000', currency: 'USD' },
             familySameSurnameExempt: true,
@@ -74,8 +73,16 @@ describe('bridge adapter', () => {
             individualsAllowed: false,
             min: { amount: '1', currency: 'EUR' },
         })
-        expect(byCurrency('GBP').rules).toBeUndefined()
-        expect(byCurrency('MXN').rules).toBeUndefined()
+        expect(byCurrency('GBP').rules).toEqual({
+            businessesUnlimited: true,
+            individualsAllowed: false,
+            min: { amount: '2', currency: 'GBP' },
+        })
+        expect(byCurrency('MXN').rules).toEqual({
+            individualPerPaymentCap: { amount: '15000', currency: 'MXN' },
+            businessesUnlimited: true,
+            min: { amount: '50', currency: 'MXN' },
+        })
     })
 
     it('treats a deactivated account as revoked, not as still setting up', () => {

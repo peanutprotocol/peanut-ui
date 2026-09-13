@@ -34,6 +34,7 @@ const heldAccount = (corridor: DepositCorridor): DepositAccount => ({
     status: 'active',
     isPrimary: true,
     matching: { nameOnAccount: 'user', sender: 'anyone' },
+    instructions: { accountHolderName: 'Ana Pérez', iban: 'DE00', paymentRails: ['sepa'] },
 })
 
 const list = (
@@ -93,6 +94,31 @@ describe('DepositAccountsListScreen', () => {
 
         expect(inRow(container, 'SEPA_EU').getByText('Ready')).toBeInTheDocument()
         expect(inRow(container, 'SEPA_EU').getByText('Same business day')).toBeInTheDocument()
+    })
+
+    /**
+     * A failed read says nothing about what the user holds. "Not set up" is a
+     * claim about their account, and the all-undefined fallback map cannot
+     * make it — the retry notice above owns this state.
+     */
+    it('claims nothing about a corridor when the accounts could not be read', () => {
+        const { container } = list(false, { isError: true })
+
+        expect(inRow(container, 'SEPA_EU').queryByText('Not set up')).not.toBeInTheDocument()
+        expect(screen.getByText(messages.depositAccounts.list.errorTitle)).toBeInTheDocument()
+    })
+
+    /**
+     * "Ready" means a payer can be handed these details today. A retiring
+     * account cannot be, so it reads as active rather than ready — the same
+     * answer the details footer gives.
+     */
+    it('does not call a retiring corridor ready', () => {
+        const retiring = { ...heldAccount('SEPA_EU'), status: 'retiring' as const }
+        const { container } = list(false, { accounts: { ...NONE, SEPA_EU: retiring } })
+
+        expect(inRow(container, 'SEPA_EU').queryByText('Ready')).not.toBeInTheDocument()
+        expect(inRow(container, 'SEPA_EU').getByText('Active')).toBeInTheDocument()
     })
 
     // Neither Manteca corridor is a standing account, and the rail says so

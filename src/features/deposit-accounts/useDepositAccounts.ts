@@ -56,26 +56,36 @@ export function useDepositAccounts(): UseDepositAccountsResult {
     const [claimingCorridor, setClaimingCorridor] = useState<DepositCorridor | undefined>()
     const [claimError, setClaimError] = useState<DepositClaimError | undefined>()
 
-    // answers that still said "provisioning", counted since the last one that
-    // did not — the poll's budget, and what ends the wait
-    const [provisioningPolls, setProvisioningPolls] = useState(0)
+    // answers that still said "provisioning", counted per account since the last
+    // one that did not — each account's own budget, and what ends its wait. One
+    // shared counter made the budgets contagious: an account that started
+    // waiting late inherited whatever an older one had already spent, and
+    // claiming a second corridor handed the first one a fresh wait it had not
+    // earned.
+    const [provisioningPolls, setProvisioningPolls] = useState<Record<string, number>>({})
 
     const query = useQuery({
         queryKey: DEPOSIT_ACCOUNTS_QUERY_KEY,
         queryFn: fetchDepositAccounts,
         refetchInterval: (q) =>
-            provisioningPolls < MAX_PROVISIONING_POLLS && hasProvisioning(q.state.data) ? PROVISIONING_POLL_MS : false,
+            hasAccountStillWaiting(q.state.data, provisioningPolls) ? PROVISIONING_POLL_MS : false,
     })
 
     const { dataUpdatedAt } = query
     useEffect(() => {
         if (!dataUpdatedAt) return
-        setProvisioningPolls((polls) => (hasProvisioning(query.data) ? polls + 1 : 0))
+        setProvisioningPolls((polls) => {
+            const next: Record<string, number> = {}
+            for (const account of query.data ?? []) {
+                // an account that stopped provisioning keeps no count, so a
+                // later wait on it starts from its own zero
+                if (account.status === 'provisioning') next[account.id] = (polls[account.id] ?? 0) + 1
+            }
+            return next
+        })
         // one bump per answer from the server, not per render
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [dataUpdatedAt])
-
-    const provisioningTimedOut = provisioningPolls >= MAX_PROVISIONING_POLLS
 
     const claim = useMutation({
         mutationFn: claimDepositAccount,
@@ -85,8 +95,8 @@ export function useDepositAccounts(): UseDepositAccountsResult {
             // failure must not sit on this screen while this one is in flight
             setClaimError(undefined)
             setClaimingCorridor(corridor)
-            // a retry buys the new account its own budget
-            setProvisioningPolls(0)
+            // the account this opens is new, so it arrives with no count
+            // against it and waits its own full budget
             trackClaimStarted(corridor)
         },
         onError: (error: Error, method: string) => {
@@ -99,9 +109,6 @@ export function useDepositAccounts(): UseDepositAccountsResult {
             await queryClient.invalidateQueries({ queryKey: DEPOSIT_ACCOUNTS_QUERY_KEY })
         },
     })
-
-    /** the rows this user gets, straight from their rails */
-    const corridors = useMemo(() => corridorsFromRails(rails), [rails])
 
     /**
      * The accounts the user holds, by corridor. A corridor with no account is
@@ -131,13 +138,28 @@ export function useDepositAccounts(): UseDepositAccountsResult {
             // the details screen offers a retry on — a skeleton that stopped
             // refreshing offers nothing.
             const resolved =
-                provisioningTimedOut && account.status === 'provisioning'
+                account.status === 'provisioning' && (provisioningPolls[account.id] ?? 0) >= MAX_PROVISIONING_POLLS
                     ? { ...account, timedOut: true as const }
                     : account
             byCorridor[corridor] = preferred(byCorridor[corridor], resolved)
         }
         return byCorridor
-    }, [query.data, provisioningTimedOut])
+    }, [query.data, provisioningPolls])
+
+    /**
+     * The rows this user gets: their own rails, plus any corridor they already
+     * hold an account on. A rail that leaves the catalogue takes the capability
+     * with it and leaves the account standing, and an account a payer may still
+     * be sending money to has to stay readable.
+     */
+    const corridors = useMemo(
+        () =>
+            corridorsFromRails(
+                rails,
+                DEPOSIT_RAIL_ORDER.filter((corridor) => accounts[corridor])
+            ),
+        [rails, accounts]
+    )
 
     const gates = useMemo((): Record<DepositCorridor, GateState> => {
         const out = {} as Record<DepositCorridor, GateState>
@@ -165,14 +187,19 @@ export function useDepositAccounts(): UseDepositAccountsResult {
         claimError,
         claim: doClaim,
         refetch: () => {
-            setProvisioningPolls(0)
+            // an explicit retry is the user saying to wait again, on every
+            // account that is still waiting
+            setProvisioningPolls({})
             void query.refetch()
         },
     }
 }
 
-function hasProvisioning(accounts: DepositAccount[] | undefined): boolean {
-    return (accounts ?? []).some((account) => account.status === 'provisioning')
+/** is any account still provisioning AND still inside its own budget? */
+function hasAccountStillWaiting(accounts: DepositAccount[] | undefined, polls: Record<string, number>): boolean {
+    return (accounts ?? []).some(
+        (account) => account.status === 'provisioning' && (polls[account.id] ?? 0) < MAX_PROVISIONING_POLLS
+    )
 }
 
 /**

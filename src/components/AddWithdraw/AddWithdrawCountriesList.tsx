@@ -492,6 +492,10 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                             )
                             return
                         }
+                        // the screen is named by `step` now, so clearing
+                        // `view` alone left the user on the form they asked to
+                        // leave
+                        void setStepParam(null)
                         void setViewParam(null)
                     }}
                 />

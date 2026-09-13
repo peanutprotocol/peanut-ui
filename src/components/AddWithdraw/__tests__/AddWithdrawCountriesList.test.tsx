@@ -163,6 +163,19 @@ jest.mock('@/utils/withdraw.utils', () => ({ getCountryCodeForWithdraw: (id: str
 // top-level `Object.values(BRIDGE_ALPHA3_TO_ALPHA2)` at import time, which throws
 // under jest when consts is stubbed). The gate is mocked, so neither return value
 // affects these assertions — stub both so the real consts is never evaluated.
+// The country's live withdraw rails decide whether the rail list was skipped
+// on the way in. `null` keeps the real table, so only the test that needs a
+// multi-rail country pays for the mock.
+let mockLiveRails: unknown[] | null = null
+jest.mock('@/features/destinations/country-rails', () => {
+    const actual = jest.requireActual('@/features/destinations/country-rails')
+    return {
+        ...actual,
+        liveRailsForCountry: (...args: unknown[]) =>
+            mockLiveRails ?? (actual.liveRailsForCountry as (...a: unknown[]) => unknown)(...args),
+    }
+})
+
 jest.mock('@/utils/bridge.utils', () => ({ railJurisdictionForBank: () => 'US' }))
 jest.mock('@/utils/regions.utils', () => ({ getBankRegionIntent: () => 'STANDARD' }))
 
@@ -533,6 +546,7 @@ describe('AddWithdrawCountriesList — the bank form entered cold', () => {
 
     afterEach(() => {
         mockNuqsParams = {}
+        mockLiveRails = null
         ;(addBankAccount as jest.Mock).mockReset()
         mockFetchUser.mockReset()
         mockFetchUser.mockResolvedValue(undefined)
@@ -572,5 +586,24 @@ describe('AddWithdrawCountriesList — the bank form entered cold', () => {
         fireEvent.click(screen.getByTestId('nav-header'))
 
         expect(mockPush).toHaveBeenCalledWith('/withdraw?showAll=true')
+    })
+
+    /**
+     * A country with more than one rail HAS a rail list to go back to, and the
+     * screen is named by `step` now. Clearing `view` alone left the user on
+     * the same form, pressing back with nothing happening.
+     */
+    it('back leaves the form for the rail list when the country has more than one rail', async () => {
+        mockLiveRails = [
+            { id: 'testland-default-bank-withdraw', title: 'To Bank' },
+            { id: 'testland-cash-withdraw', title: 'Cash' },
+        ]
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+        expect(screen.getByTestId('bank-form')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByTestId('nav-header'))
+
+        await waitFor(() => expect(screen.queryByTestId('bank-form')).not.toBeInTheDocument())
+        expect(mockPush).not.toHaveBeenCalled()
     })
 })

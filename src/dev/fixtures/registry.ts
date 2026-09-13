@@ -10,6 +10,7 @@
 // this registry replaced it.
 
 import type { Fixture } from './types'
+import { DEPOSIT_RAIL_POLICY } from '@/features/deposit-accounts/__fixtures__/railPolicy'
 import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
 
 // Hugo's overflow case: a username no header was designed for, and a points
@@ -214,7 +215,7 @@ const DEPOSIT_ACCOUNT_EUR = {
     },
 }
 
-/** Sterling: business payments only, and no published terms beyond that. */
+/** Sterling: business payments only, unlimited, with a 2 GBP floor. */
 const DEPOSIT_ACCOUNT_GBP = {
     id: 'fixture-deposit-gbp',
     railId: 'bridge.faster_payments_gb',
@@ -222,7 +223,8 @@ const DEPOSIT_ACCOUNT_GBP = {
     currency: 'GBP',
     status: 'active',
     isPrimary: true,
-    matching: { nameOnAccount: 'user', sender: 'business-only' },
+    matching: { nameOnAccount: 'user', sender: DEPOSIT_RAIL_POLICY.FASTER_PAYMENTS_GB.sender },
+    rules: DEPOSIT_RAIL_POLICY.FASTER_PAYMENTS_GB.rules,
     instructions: {
         accountHolderName: HOLDER,
         bankName: 'Clear Junction Limited',
@@ -233,9 +235,9 @@ const DEPOSIT_ACCOUNT_GBP = {
 }
 
 /**
- * Pesos: nothing is published about who may pay in, so the account carries no
- * `rules` and the screens say only what is confirmed. SPEI also returns a
- * CLABE and no bank name, which is why rows follow field presence.
+ * Pesos: third party permitted, individuals capped per payment, businesses
+ * unlimited, 50 MXN floor. SPEI also returns a CLABE and no bank name, which
+ * is why rows follow field presence.
  */
 const DEPOSIT_ACCOUNT_MXN = {
     id: 'fixture-deposit-mxn',
@@ -244,7 +246,8 @@ const DEPOSIT_ACCOUNT_MXN = {
     currency: 'MXN',
     status: 'active',
     isPrimary: true,
-    matching: { nameOnAccount: 'user', sender: 'unknown' },
+    matching: { nameOnAccount: 'user', sender: DEPOSIT_RAIL_POLICY.SPEI_MX.sender },
+    rules: DEPOSIT_RAIL_POLICY.SPEI_MX.rules,
     instructions: {
         accountHolderName: HOLDER,
         clabe: '646180111800000000',
@@ -798,12 +801,12 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'get-paid-details-gbp': {
         route: '/get-paid?step=details&corridor=FASTER_PAYMENTS_GB',
-        about: 'Sterling details, where only a business may pay in and nothing else is published.',
+        about: 'Sterling details, where only a business may pay in, above a floor.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_GBP] } },
     },
     'get-paid-details-mxn': {
         route: '/get-paid?step=details&corridor=SPEI_MX',
-        about: 'Peso details: no terms are published, so the screen says only what is confirmed.',
+        about: 'Peso details: a per-payment cap on individuals, and a floor under every payment.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_MXN] } },
     },
     'get-paid-details-provider-held': {

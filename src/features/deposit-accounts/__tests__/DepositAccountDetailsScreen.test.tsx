@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import { ToastProvider } from '@/components/0_Bruddle/Toast'
 import messages from '@/i18n/app/messages/en.json'
 import { NextIntlClientProvider } from 'next-intl'
 import { DepositAccountDetailsScreen } from '../components/DepositAccountDetailsScreen'
@@ -17,17 +18,20 @@ const provisioning: DepositAccountView = {
     matching: { nameOnAccount: 'user', sender: 'anyone' },
 }
 
-const details = (account: DepositAccountView, onRetry = () => {}) =>
+const details = (account: DepositAccountView, onRetry = () => {}, canShare = false) =>
     render(
         <NextIntlClientProvider locale="en" messages={messages}>
-            <DepositAccountDetailsScreen
-                rail={DEPOSIT_RAILS.ACH_US}
-                account={account}
-                userName="Ana Pérez"
-                onBack={() => {}}
-                onShare={() => {}}
-                onRetry={onRetry}
-            />
+            <ToastProvider>
+                <DepositAccountDetailsScreen
+                    rail={DEPOSIT_RAILS.ACH_US}
+                    account={account}
+                    userName="Ana Pérez"
+                    canShare={canShare}
+                    onBack={() => {}}
+                    onShare={() => {}}
+                    onRetry={onRetry}
+                />
+            </ToastProvider>
         </NextIntlClientProvider>
     )
 
@@ -51,5 +55,31 @@ describe('the details screen when the provisioning wait runs out', () => {
         expect(screen.queryByTestId('deposit-details-skeleton')).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: messages.depositAccounts.details.timedOutRetry }))
         expect(onRetry).toHaveBeenCalled()
+    })
+})
+
+/**
+ * The footer used to ask only whether the rail's sender policy allows sharing,
+ * while the resolver also wanted live details and an open corridor. A retiring
+ * account therefore offered a Share button that bounced straight back here,
+ * with nothing said to the user.
+ */
+describe('the details screen share footer', () => {
+    const active: DepositAccountView = {
+        ...provisioning,
+        status: 'active',
+        instructions: { accountHolderName: 'Ana Pérez', accountNumber: '9600', paymentRails: ['ach_push'] },
+    }
+
+    it('offers Share when the resolver would serve it', () => {
+        details(active, () => {}, true)
+        expect(screen.getByRole('button', { name: messages.depositAccounts.details.shareCta })).toBeInTheDocument()
+    })
+
+    it('offers no Share button when the resolver would send it back', () => {
+        details({ ...active, status: 'retiring' }, () => {}, false)
+        expect(
+            screen.queryByRole('button', { name: messages.depositAccounts.details.shareCta })
+        ).not.toBeInTheDocument()
     })
 })

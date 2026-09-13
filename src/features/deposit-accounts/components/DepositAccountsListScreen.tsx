@@ -11,8 +11,8 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
 import type { GateState } from '@/utils/capability-gate'
 import { depositGateView } from '../depositGate'
-import { DEPOSIT_RAILS, isClaimable, isShareable } from '../rails'
-import { isHeld } from '../resolveScreen'
+import { DEPOSIT_RAILS, isClaimable } from '../rails'
+import { canShare, isHeld } from '../resolveScreen'
 import type { DepositAccountView, DepositCorridor, DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { DepositGateNotice } from './DepositGateNotice'
@@ -88,10 +88,14 @@ export function DepositAccountsListScreen({
      * the accounts call returned, so the rail decides that case rather than the
      * payload — a failed read must not invite a claim on AR or BR.
      */
-    const rowBadge = (rail: DepositRail, account: DepositAccountView | undefined) => {
+    const rowBadge = (rail: DepositRail, account: DepositAccountView | undefined, gate: GateState) => {
         if (isLoading) return <div className="h-5 w-16 animate-pulse rounded bg-foreground-primary/10" />
         if (!isClaimable(rail) || account?.status === 'unavailable')
             return <StatusBadge status="custom" customText={t('list.badgeUnavailable')} />
+        // A read that failed says nothing about what the user holds. "Not set
+        // up" is a claim about their account, and the fallback map cannot make
+        // it — the notice above owns this state.
+        if (isError) return null
         if (account?.timedOut) return <StatusBadge status="failed" />
         switch (account?.status) {
             case 'active':
@@ -99,7 +103,9 @@ export function DepositAccountsListScreen({
                 return (
                     <StatusBadge
                         status="completed"
-                        customText={isShareable(account.matching.sender) ? t('list.badgeReady') : t('list.badgeActive')}
+                        // "Ready" means a payer can be handed these details
+                        // today — the same answer the details footer gives
+                        customText={canShare(account, gate) ? t('list.badgeReady') : t('list.badgeActive')}
                     />
                 )
             case 'provisioning':
@@ -167,7 +173,7 @@ export function DepositAccountsListScreen({
                                         title={`${rail.currency} · ${railName(corridor)}`}
                                         body={rowBody(corridor, openable)}
                                         bodyWrap
-                                        trailing={rowBadge(rail, account)}
+                                        trailing={rowBadge(rail, account, gates[corridor])}
                                         chevron={!disabled}
                                         disabled={disabled}
                                         onClick={() => onOpen(corridor)}
