@@ -228,14 +228,16 @@ h1 {
     font-size: 12px;
     font-weight: 700;
 }
+.filters-stack {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--paper);
+}
 .filters {
     display: flex;
     gap: 16px;
     padding: 20px 0 26px;
-    position: sticky;
-    top: 0;
-    background: var(--paper);
-    z-index: 1;
 }
 label {
     display: flex;
@@ -252,9 +254,6 @@ label {
 }
 #dashboard-filters label {
     flex: 0 1 280px;
-}
-#dashboard-filters:not([hidden]) + #screen-filters {
-    top: 74px;
 }
 .switch-control {
     position: relative;

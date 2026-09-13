@@ -72,7 +72,7 @@ function verifyExternalBaseline(expected) {
     const localeSuffix = '(?:en|es-419|es-AR|pt-BR)'
     const baselineRun =
         source.path === '.github/workflows/screen-library-baseline.yml' &&
-        ['push', 'workflow_dispatch'].includes(source.event) &&
+        ['push', 'schedule', 'workflow_dispatch'].includes(source.event) &&
         source.head_branch === defaultBranch &&
         artifacts.some((artifact) =>
             new RegExp(`^screen-library-baseline-${expected}-(?:${localeSuffix}-)?[1-9]\\d*$`).test(artifact.name)

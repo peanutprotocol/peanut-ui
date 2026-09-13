@@ -91,7 +91,10 @@ async function loadLanding(pathname, { ok = true, index = [], report } = {}) {
         console,
         document,
         URLSearchParams,
-        fetch: (url) => (url.endsWith('/index.json') ? Promise.resolve({ ok: true, status: 200, json: async () => index }) : response),
+        fetch: (url) =>
+            url.endsWith('/index.json')
+                ? Promise.resolve({ ok: true, status: 200, json: async () => index })
+                : response,
         location: { pathname, protocol: 'https:', search: '', hash: '', href: '', reload() {} },
         window: {},
     })
@@ -191,6 +194,9 @@ test('comparison reports can switch from changed screens to the full catalogue',
         previewUrls: {
             [image]: `https://imagedelivery.net/3RfIxQn88kFXdTrxhfIMXw/ps-${'a'.repeat(29)}/screenpreview`,
         },
+        originalUrls: {
+            [image]: `https://imagedelivery.net/3RfIxQn88kFXdTrxhfIMXw/ps-${'a'.repeat(29)}/public`,
+        },
     }
     const elements = await loadLanding('/screens/2026-09-11/pr-1/en/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/', {
         report,
@@ -198,7 +204,10 @@ test('comparison reports can switch from changed screens to the full catalogue',
     assert.equal(elements.get('view-mode').checked, false)
     assert.equal(elements.get('screens').children.length, 1)
     elements.get('screens').children[0].children[1].children[0].children[1].onclick()
-    assert.equal(elements.get('zoom-images').children[0].src, `/screen-data/assets/${image}`)
+    assert.equal(
+        elements.get('zoom-images').children[0].src,
+        `https://imagedelivery.net/3RfIxQn88kFXdTrxhfIMXw/ps-${'a'.repeat(29)}/public`
+    )
     elements.get('view-mode').checked = true
     elements.get('view-mode').dispatch('change')
     assert.equal(elements.get('screens').children.length, 2)
@@ -258,10 +267,7 @@ test('report pages expose the locale selector and use a long-form capture date',
     assert.equal(elements.get('description').children[0].textContent, 'September 9, 2026')
     elements.get('locale').value = 'es-419'
     elements.get('locale').dispatch('change')
-    assert.equal(
-        elements.get('locale').value,
-        'es-419'
-    )
+    assert.equal(elements.get('locale').value, 'es-419')
 })
 
 test('landing page shows a friendly empty state when captures are not published', async () => {

@@ -30,12 +30,14 @@ test('new PNG upload verifies source metadata and public delivery before publish
             },
         }),
         new Response(null, { headers: { 'content-type': 'image/webp' } }),
+        new Response(null, { headers: { 'content-type': 'image/webp' } }),
     ]
     const url = await uploadPreview(config, name, bytes, async (url, options) => {
         calls.push({ url, options })
         return responses.shift()
     })
-    assert.match(url, /^https:\/\/imagedelivery.net\/hash\//)
+    assert.match(url.preview, /^https:\/\/imagedelivery.net\/hash\//)
+    assert.match(url.original, /\/public$/)
     assert.equal(calls[1].options.body.get('requireSignedURLs'), 'false')
     assert.deepEqual(JSON.parse(calls[1].options.body.get('metadata')), {
         sourceSha256: name.slice(0, 64),
@@ -60,8 +62,9 @@ test('deduplicated image is reused only when source metadata matches', async () 
               })
             : new Response(null, { headers: { 'content-type': 'image/webp' } })
     })
-    assert.match(url, /\/screenpreview$/)
-    assert.equal(calls.length, 2)
+    assert.match(url.preview, /\/screenpreview$/)
+    assert.match(url.original, /\/public$/)
+    assert.equal(calls.length, 3)
 })
 test('legacy image metadata is repaired when its source filename matches', async () => {
     const name = 'd'.repeat(64) + '.png'
@@ -81,8 +84,9 @@ test('legacy image metadata is repaired when its source filename matches', async
             })
         return new Response(null, { headers: { 'content-type': 'image/png' } })
     })
-    assert.match(url, /\/screenpreview$/)
-    assert.equal(calls, 3)
+    assert.match(url.preview, /\/screenpreview$/)
+    assert.match(url.original, /\/public$/)
+    assert.equal(calls, 4)
 })
 test('API failures and private/missing variants cannot publish a valid image URL', async () => {
     for (const status of [401, 429, 500])
@@ -106,6 +110,30 @@ test('API failures and private/missing variants cannot publish a valid image URL
         ),
         /not public/
     )
+})
+
+test('a private original variant blocks publication', async () => {
+    const name = 'f'.repeat(64) + '.png'
+    let calls = 0
+    await assert.rejects(
+        uploadPreview(config, name, Buffer.from('x'), async (requestUrl, options) => {
+            calls += 1
+            if (calls === 1)
+                return Response.json({
+                    success: true,
+                    result: {
+                        id: `ps-${name.slice(0, 29)}`,
+                        filename: name,
+                        meta: { sourceSha256: name.slice(0, 64), sourceFilename: name },
+                    },
+                })
+            return calls === 2
+                ? new Response(null, { headers: { 'content-type': 'image/webp' } })
+                : new Response(null, { status: 403 })
+        }),
+        /original delivery is not public/
+    )
+    assert.equal(calls, 3)
 })
 
 test('EU buckets use the jurisdiction endpoint and reject malformed jurisdictions', () => {

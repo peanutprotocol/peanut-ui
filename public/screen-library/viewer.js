@@ -43,8 +43,10 @@ const formatCaptureDate = (value) => {
 }
 const asset = (name, { preview = true } = {}) => {
     if (!/^[a-f0-9]{64}\.(png|webp)$/.test(name || '')) return null
-    const previewUrl = preview && !offline && report?.previewUrls?.[name]
-    if (typeof previewUrl === 'string' && previewUrlPattern.test(previewUrl)) return previewUrl
+    const configuredUrl = !offline && (preview ? report?.previewUrls?.[name] : report?.originalUrls?.[name])
+    const legacyUrl = !offline && !preview && !configuredUrl ? report?.previewUrls?.[name] : configuredUrl
+    if (typeof legacyUrl === 'string' && previewUrlPattern.test(legacyUrl)) return legacyUrl
+    if (!offline) return null
     return assetBase + name
 }
 const image = (name, alt, options) => {
@@ -86,10 +88,7 @@ function zoom(row, mode = 'side') {
         else $('zoom-images').append(el('p', 'No pixel difference image available.'))
     } else if (mode === 'overlay' && !unavailable(before) && !unavailable(after)) {
         const n = el('div', undefined, 'overlay')
-        n.append(
-            image(before.image, 'Before', { preview: false }),
-            image(after.image, 'After', { preview: false })
-        )
+        n.append(image(before.image, 'Before', { preview: false }), image(after.image, 'After', { preview: false }))
         $('zoom-images').append(n)
         $('slider').value = '50'
     } else {
