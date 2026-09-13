@@ -2,6 +2,7 @@
 
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
@@ -33,6 +34,11 @@ export interface LimitsWarningCardProps {
 }
 
 const NAVIGATION_CHECK_DELAY_MS = 1500
+
+function normalizePathname(pathname: string): string {
+    const normalized = pathname.replace(/\/+$/, '')
+    return normalized || '/'
+}
 
 function bodyPointerEvents(): string {
     if (typeof document === 'undefined' || !document.body) return 'unknown'
@@ -116,8 +122,7 @@ export default function LimitsWarningCard({
         // leave the user on a usable screen with a retry instead of a dead CTA.
         navigationTimer.current = window.setTimeout(() => {
             const pointerEventsAfter = bodyPointerEvents()
-            const pathname = window.location.pathname
-            const reachedLimits = pathname === href || pathname.endsWith(href)
+            const reachedLimits = normalizePathname(window.location.pathname) === normalizePathname(href)
             captureNavigation({
                 ...context,
                 outcome: reachedLimits ? 'completed' : 'failed',
@@ -174,7 +179,7 @@ export default function LimitsWarningCard({
                                     <button
                                         type="button"
                                         onClick={() => handleLimitsNavigation(item.href!)}
-                                        className="underline underline-offset-2"
+                                        className="pointer-events-auto underline underline-offset-2"
                                     >
                                         {item.icon && <Icon name={item.icon} className="mr-1" size={16} />}
                                         <span>{itemText(item)}</span>
@@ -218,12 +223,12 @@ export default function LimitsWarningCard({
                     </>
                 ) : null}
                 {navigationError && (
-                    <div role="alert" className="flex items-center justify-between gap-2 text-body-xs text-error-4">
-                        <span>{tCommon('genericError')}</span>
+                    <div className="flex items-center justify-between gap-2">
+                        <FieldError className="m-0">{tCommon('genericError')}</FieldError>
                         <button
                             type="button"
                             onClick={() => handleLimitsNavigation('/limits')}
-                            className="shrink-0 font-semibold underline"
+                            className="pointer-events-auto shrink-0 font-semibold underline"
                         >
                             {tCommon('tryAgain')}
                         </button>

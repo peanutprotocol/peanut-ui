@@ -103,6 +103,7 @@ describe('LimitsWarningCard native navigation', () => {
     afterEach(() => {
         jest.useRealTimers()
         document.body.style.pointerEvents = ''
+        window.history.replaceState({}, '', '/')
     })
 
     test.each(['ARS', 'BRL'] as const)(
@@ -115,6 +116,7 @@ describe('LimitsWarningCard native navigation', () => {
 
             fireEvent.click(screen.getByRole('button', { name: 'Check my limits.' }))
             expect(mockPush).toHaveBeenCalledWith('/limits')
+            expect(screen.getByRole('button', { name: 'Check my limits.' })).toHaveClass('pointer-events-auto')
             expect(mockCapture).toHaveBeenNthCalledWith(
                 1,
                 'limits_check_link_navigation',
@@ -138,12 +140,12 @@ describe('LimitsWarningCard native navigation', () => {
                 })
             )
             expect(screen.getByRole('alert')).toHaveTextContent('Something went wrong')
-            expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+            expect(screen.getByRole('button', { name: 'Try again' })).toHaveClass('pointer-events-auto')
         }
     )
 
-    test('records completion when the route reaches /limits', () => {
-        mockPush.mockImplementation(() => window.history.pushState({}, '', '/limits'))
+    test('records completion when the native route reaches /limits/', () => {
+        mockPush.mockImplementation(() => window.history.pushState({}, '', '/limits/'))
         renderBlockingCard('ARS')
 
         fireEvent.click(screen.getByRole('button', { name: 'Check my limits.' }))
