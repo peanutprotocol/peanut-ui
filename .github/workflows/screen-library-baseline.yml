@@ -12,25 +12,62 @@ permissions:
     contents: read
 
 jobs:
+    revisions:
+        runs-on: ubuntu-24.04
+        outputs:
+            revisions: ${{ steps.revisions.outputs.revisions }}
+        steps:
+            - name: Resolve active baseline revisions
+              id: revisions
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  repo="$GITHUB_REPOSITORY"
+                  dev_sha="$(gh api "repos/$repo/git/ref/heads/dev" --jq '.object.sha')"
+                  revisions=("$dev_sha")
+                  prs="$(gh api --paginate --slurp "repos/$repo/pulls?state=open&base=dev&per_page=100")"
+
+                  while IFS=$'\t' read -r number base_sha head_sha head_repo; do
+                      [ -n "$number" ] || continue
+                      if [ "$head_repo" != "$repo" ]; then
+                          echo "Skipping fork PR #$number; its code is not a trusted capture source."
+                          continue
+                      fi
+
+                      if merge_base="$(gh api "repos/$repo/compare/$base_sha...$head_sha" --jq '.merge_base_commit.sha')"; then
+                          revisions+=("$merge_base")
+                      else
+                          echo "::warning::Unable to resolve merge base for PR #$number ($base_sha...$head_sha)"
+                      fi
+                  done < <(jq -r '.[][] | [.number, .base.sha, .head.sha, .head.repo.full_name] | @tsv' <<< "$prs")
+
+                  matrix="$(printf '%s\n' "${revisions[@]}" | jq -Rsc 'split("\n") | map(select(test("^[a-f0-9]{40}$"))) | unique | sort')"
+                  [ "$matrix" != "[]" ]
+                  echo "revisions=$matrix" >> "$GITHUB_OUTPUT"
+
     capture:
+        needs: revisions
+        strategy:
+            fail-fast: false
+            max-parallel: 4
+            matrix:
+                sha: ${{ fromJSON(needs.revisions.outputs.revisions) }}
         runs-on: macos-26-intel
         timeout-minutes: 60
         steps:
-            - name: Resolve immutable dev revision
-              id: revision
-              env:
-                  GH_TOKEN: ${{ github.token }}
-              run: echo "sha=$(gh api repos/${GITHUB_REPOSITORY}/git/ref/heads/dev --jq .object.sha)" >> "$GITHUB_OUTPUT"
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
-                  ref: ${{ steps.revision.outputs.sha }}
+                  ref: ${{ matrix.sha }}
                   path: harness
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
                   persist-credentials: false
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
-                  ref: ${{ steps.revision.outputs.sha }}
+                  ref: ${{ matrix.sha }}
                   path: target
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
@@ -50,12 +87,12 @@ jobs:
             - name: Build and capture full dev catalogue
               working-directory: harness
               env:
-                  TARGET_SHA: ${{ steps.revision.outputs.sha }}
+                  TARGET_SHA: ${{ matrix.sha }}
               run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --full-catalogue
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
               if: always()
               with:
-                  name: screen-library-baseline-${{ steps.revision.outputs.sha }}-${{ github.run_attempt }}
+                  name: screen-library-baseline-${{ matrix.sha }}-${{ github.run_attempt }}
                   path: capture/
                   if-no-files-found: error
                   retention-days: 7
