@@ -47,11 +47,11 @@ jobs:
             - name: Install pinned browser
               working-directory: harness
               run: pnpm exec playwright install --with-deps --no-shell chromium
-            - name: Build and capture exact dev revision
+            - name: Build and capture full dev catalogue
               working-directory: harness
               env:
                   TARGET_SHA: ${{ steps.revision.outputs.sha }}
-              run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture
+              run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --full-catalogue
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
               if: always()
               with:

@@ -107,6 +107,8 @@ async function main() {
     const staticResponses = new Map<string, { status: number; headers: Record<string, string>; body: Buffer }>()
     const results: Record<string, unknown>[] = []
     const selected = arg('only').split(',').filter(Boolean)
+    const requireFullCatalogue = arg('full-catalogue') === 'true'
+    if (requireFullCatalogue && selected.length) throw new Error('Full catalogue capture cannot use --only')
     const environment = `${process.platform}-${process.arch}-${release()};node=${process.version};chromium=${browser.version()};dpr=1;en-US;UTC;light;reduced-motion`
     const harness = identity([
         ...walk('scripts/screens').filter((p) => !p.endsWith('.test.mjs')),
@@ -550,10 +552,13 @@ async function main() {
                 }, {}),
             })
         )
+        if (requireFullCatalogue && !report.complete) {
+            console.error('Full catalogue capture is incomplete; refusing to publish this baseline')
+        }
         // Incomplete captures are valid gallery reports: the manifest records
         // expected gaps and the publisher can still expose them. A caught
         // Runtime failures on either revision remain red capture jobs.
-        process.exitCode = captureExitCode(results)
+        process.exitCode = Math.max(captureExitCode(results), requireFullCatalogue && !report.complete ? 1 : 0)
     } finally {
         await browser.close()
     }
