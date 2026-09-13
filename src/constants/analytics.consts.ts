@@ -103,6 +103,11 @@ export const ANALYTICS_EVENTS = {
     DEPOSIT_COMPLETED: 'deposit_completed',
     DEPOSIT_FAILED: 'deposit_failed',
 
+    // ── Limits ──
+    // The warning-card route check is intentionally separate from the payment
+    // funnel: a native WebView can swallow a same-origin push without throwing.
+    LIMITS_CHECK_LINK_NAVIGATION: 'limits_check_link_navigation',
+
     // ── Withdraw ──
     WITHDRAW_AMOUNT_ENTERED: 'withdraw_amount_entered',
     WITHDRAW_METHOD_SELECTED: 'withdraw_method_selected',
