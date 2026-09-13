@@ -1,5 +1,18 @@
 const artifactName = /^screen-library-(before|after)-([1-9]\d*)$/
 
+export function selectCaptureArtifact(names, side, hasCapture = () => true) {
+    const attempts = new Map()
+    for (const name of names) {
+        const match = artifactName.exec(name)
+        if (!match || match[1] !== side) continue
+        const attempt = Number(match[2])
+        attempts.set(attempt, name)
+    }
+    for (const [attempt, name] of [...attempts.entries()].sort(([a], [b]) => b - a))
+        if (hasCapture(name)) return { attempt, name: `incoming/${name}` }
+    throw new Error(`No valid ${side} capture artifact was found in this run`)
+}
+
 /**
  * Select the newest complete before/after artifact pair from one Actions run.
  * The artifact list is already scoped by run-id by the workflow.

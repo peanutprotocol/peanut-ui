@@ -15,39 +15,94 @@ test('configuration requires each credential and rejects unsafe delivery origins
     for (const url of ['http://example.com', 'https://user:pass@example.com', 'https://example.com/path'])
         assert.throws(() => configuration({ ...config, SCREEN_LIBRARY_PUBLIC_URL: url }))
 })
-test('new PNG upload verifies original bytes and public delivery before publishing', async () => {
+test('new PNG upload verifies source metadata and public delivery before publishing', async () => {
     const bytes = Buffer.from('original'),
+        name = 'b'.repeat(64) + '.png',
         calls = []
     const responses = [
         new Response(null, { status: 404 }),
-        Response.json({ success: true }),
-        new Response(bytes),
+        Response.json({
+            success: true,
+            result: {
+                id: `ps-${name.slice(0, 29)}`,
+                filename: name,
+                meta: { sourceSha256: name.slice(0, 64), sourceFilename: name },
+            },
+        }),
         new Response(null, { headers: { 'content-type': 'image/webp' } }),
     ]
-    const url = await uploadPreview(config, 'b'.repeat(64) + '.png', bytes, async (url, options) => {
+    const url = await uploadPreview(config, name, bytes, async (url, options) => {
         calls.push({ url, options })
         return responses.shift()
     })
     assert.match(url, /^https:\/\/imagedelivery.net\/hash\//)
     assert.equal(calls[1].options.body.get('requireSignedURLs'), 'false')
+    assert.deepEqual(JSON.parse(calls[1].options.body.get('metadata')), {
+        sourceSha256: name.slice(0, 64),
+        sourceFilename: name,
+    })
     assert.equal(calls[1].options.body.get('file').type, 'image/png')
-    assert.equal(calls[3].options.headers, undefined)
+    assert.equal(calls[2].options.headers, undefined)
 })
-test('deduplicated image is reused only when original bytes match', async () => {
-    await assert.rejects(
-        uploadPreview(config, 'c'.repeat(64) + '.webp', Buffer.from('expected'), async () => new Response('different')),
-        /mismatch/
-    )
+test('deduplicated image is reused only when source metadata matches', async () => {
+    const name = 'c'.repeat(64) + '.webp'
+    const calls = []
+    const url = await uploadPreview(config, name, Buffer.from('expected'), async (requestUrl, options) => {
+        calls.push({ requestUrl, options })
+        return calls.length === 1
+            ? Response.json({
+                  success: true,
+                  result: {
+                      id: `ps-${name.slice(0, 29)}`,
+                      filename: name,
+                      meta: { sourceSha256: name.slice(0, 64), sourceFilename: name },
+                  },
+              })
+            : new Response(null, { headers: { 'content-type': 'image/webp' } })
+    })
+    assert.match(url, /\/screenpreview$/)
+    assert.equal(calls.length, 2)
+})
+test('legacy image metadata is repaired when its source filename matches', async () => {
+    const name = 'd'.repeat(64) + '.png'
+    let calls = 0
+    const url = await uploadPreview(config, name, Buffer.from('legacy'), async (requestUrl, options) => {
+        calls += 1
+        if (calls === 1)
+            return Response.json({ success: true, result: { id: `ps-${name.slice(0, 29)}`, filename: name } })
+        if (calls === 2)
+            return Response.json({
+                success: true,
+                result: {
+                    id: `ps-${name.slice(0, 29)}`,
+                    filename: name,
+                    meta: { sourceSha256: name.slice(0, 64), sourceFilename: name },
+                },
+            })
+        return new Response(null, { headers: { 'content-type': 'image/png' } })
+    })
+    assert.match(url, /\/screenpreview$/)
+    assert.equal(calls, 3)
 })
 test('API failures and private/missing variants cannot publish a valid image URL', async () => {
     for (const status of [401, 429, 500])
         await assert.rejects(
             uploadPreview(config, 'c'.repeat(64) + '.png', Buffer.from('x'), async () => new Response(null, { status }))
         )
+    const name = 'e'.repeat(64) + '.png'
     let calls = 0
     await assert.rejects(
-        uploadPreview(config, 'c'.repeat(64) + '.png', Buffer.from('x'), async () =>
-            ++calls === 1 ? new Response('x') : new Response(null, { status: 403 })
+        uploadPreview(config, name, Buffer.from('x'), async () =>
+            ++calls === 1
+                ? Response.json({
+                      success: true,
+                      result: {
+                          id: `ps-${name.slice(0, 29)}`,
+                          filename: name,
+                          meta: { sourceSha256: name.slice(0, 64), sourceFilename: name },
+                      },
+                  })
+                : new Response(null, { status: 403 })
         ),
         /not public/
     )
