@@ -48,7 +48,9 @@ offline archives retain the original capture files. No Vercel Blob store is need
 DevOps setup:
 
 1. Enable Cloudflare Images and create a public `screenpreview` variant
-   (393×852, fit scale-down, no cropping; no signed URL requirement).
+   (393×852, fit scale-down, no cropping; no signed URL requirement). Keep
+   Cloudflare Images' built-in public variant enabled; it is used for the
+   original-size zoom, overlay, and difference views.
 2. Create a dedicated private R2 bucket. Retain objects
    indefinitely; respect object Cache-Control (index/latest use 60 seconds).
 3. Create two Cloudflare API tokens with separate values:

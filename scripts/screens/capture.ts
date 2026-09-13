@@ -5,8 +5,11 @@ import { release } from 'node:os'
 import { execFileSync } from 'node:child_process'
 import sharp from 'sharp'
 import { SCREENS } from '../../src/dev/screens/catalogue'
+import { APP_LOCALES, type AppLocale } from '../../src/i18n/app/config'
 import { answer, ADAPTER_VERSION } from './adapter'
 import { hash, storeAsset, validateCapture, materializeCatalogue } from './core.mjs'
+import { captureExitCode } from './capture-status.mjs'
+import { localizedCaptureText } from './capture-copy.mjs'
 
 import { routePatterns, routePatternFor } from './routes.mjs'
 import { inventory } from './inventory.mjs'
@@ -15,10 +18,34 @@ async function main() {
     const arg = (name: string, fallback = '') =>
         process.argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3) ?? fallback
     const source = resolve(arg('source', '.')),
-        out = resolve(arg('out', 'e2e/__shots__/library'))
+        out = resolve(arg('out', 'e2e/__shots__/library')),
+        localeArg = arg('locale', 'en')
+    if (!APP_LOCALES.includes(localeArg as AppLocale)) throw new Error(`Unsupported capture locale: ${localeArg}`)
+    const captureLocale = localeArg as AppLocale
+    const captureText = localizedCaptureText(captureLocale, source)
     const target = new URL(arg('url', 'http://127.0.0.1:3080'))
     if (!['127.0.0.1', 'localhost'].includes(target.hostname))
         throw new Error('Capture only supports isolated local builds')
+    type AssetOverlay = { path: string; file: string; source: string; before: string; after: string }
+    const assetOverlays: AssetOverlay[] = arg('asset-overlays') ? JSON.parse(arg('asset-overlays')) : []
+    const overlayBytes = new Map<string, Buffer>()
+    for (const overlay of assetOverlays) {
+        if (
+            !/^\/[\w./-]+$/.test(overlay?.path ?? '') ||
+            overlay.path.includes('..') ||
+            !/^public\/[\w./-]+$/.test(overlay?.file ?? '') ||
+            overlay.file.includes('..') ||
+            !/^[a-f0-9]{64}$/.test(overlay?.before ?? '') ||
+            !/^[a-f0-9]{64}$/.test(overlay?.after ?? '') ||
+            !existsSync(overlay?.source ?? '')
+        )
+            throw new Error('Invalid capture asset overlay')
+        const targetBytes = readFileSync(join(source, overlay.file))
+        const sourceBytes = readFileSync(overlay.source)
+        if (hash(targetBytes) !== overlay.before || hash(sourceBytes) !== overlay.after)
+            throw new Error('Capture asset overlay identity mismatch')
+        overlayBytes.set(overlay.path, sourceBytes)
+    }
     // The browser sees one origin on both revisions, including location.origin
     // links and QR payloads. Every app request is fulfilled from the local build.
     const base = new URL('https://staging.peanut.me')
@@ -49,18 +76,30 @@ async function main() {
                 .map((p) => `${p}\0${readFileSync(p)}`)
                 .join('\0')
         )
-    const browser = await chromium.launch({
-        headless: true,
-        channel: 'chromium',
-        ...(arg('executable') ? { executablePath: arg('executable') } : {}),
-    })
+    let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined
+    let launchError: unknown
+    for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+            browser = await chromium.launch({
+                headless: true,
+                channel: 'chromium',
+                timeout: 60000,
+                ...(arg('executable') ? { executablePath: arg('executable') } : {}),
+            })
+            break
+        } catch (error) {
+            launchError = error
+            if (attempt < 3) await new Promise((done) => setTimeout(done, attempt * 1000))
+        }
+    }
+    if (!browser) throw launchError
     const contextOptions = {
         viewport: { width: 393, height: 852 },
         deviceScaleFactor: 1,
         isMobile: true,
         hasTouch: true,
         userAgent: devices['Pixel 7'].userAgent,
-        locale: 'en-US',
+        locale: captureLocale,
         timezoneId: 'UTC',
         colorScheme: 'light' as const,
         reducedMotion: 'reduce' as const,
@@ -74,7 +113,9 @@ async function main() {
     const staticResponses = new Map<string, { status: number; headers: Record<string, string>; body: Buffer }>()
     const results: Record<string, unknown>[] = []
     const selected = arg('only').split(',').filter(Boolean)
-    const environment = `${process.platform}-${process.arch}-${release()};node=${process.version};chromium=${browser.version()};dpr=1;en-US;UTC;light;reduced-motion`
+    const requireFullCatalogue = arg('full-catalogue') === 'true'
+    if (requireFullCatalogue && selected.length) throw new Error('Full catalogue capture cannot use --only')
+    const environment = `${process.platform}-${process.arch}-${release()};node=${process.version};chromium=${browser.version()};dpr=1;locale=${captureLocale};browser=${captureLocale};UTC;light;reduced-motion`
     const harness = identity([
         ...walk('scripts/screens').filter((p) => !p.endsWith('.test.mjs')),
         ...walk('src/dev/screens'),
@@ -92,6 +133,7 @@ async function main() {
             schema: 1,
             type: 'capture',
             commit,
+            locale: captureLocale,
             contentCommit: git('rev-parse', 'HEAD:src/content'),
             publicBase: buildIdentity.publicBase,
             harness,
@@ -100,18 +142,26 @@ async function main() {
             adapter: ADAPTER_VERSION,
             capturedAt: new Date().toISOString(),
             reconstruction: historical,
-            profile: 'en-393x852',
+            profile: `${captureLocale}-393x852`,
             width: 393,
             height: 852,
             screens: materializeCatalogue(SCREENS, results),
             inventory: inventory(source, SCREENS),
-            adapterFiles: existsSync(join(source, '.screen-capture-adapter.json'))
-                ? JSON.parse(readFileSync(join(source, '.screen-capture-adapter.json'), 'utf8')).changed
-                : [],
+            adapterFiles: [
+                ...(existsSync(join(source, '.screen-capture-adapter.json'))
+                    ? JSON.parse(readFileSync(join(source, '.screen-capture-adapter.json'), 'utf8')).changed
+                    : []),
+                ...assetOverlays.map(({ file, before, after }) => ({ path: file, before, after })),
+            ],
         })
     try {
         for (const screen of SCREENS) {
             const metadata = { id: screen.id, name: screen.name, flow: screen.flow, kind: screen.kind }
+            const expectedText = screen.expectText ? captureText(screen.expectText) : undefined
+            const clicks = screen.clicks.map(captureText)
+            const actions = screen.actions?.map((action) =>
+                'click' in action ? { ...action, click: captureText(action.click) } : action
+            )
             if (
                 (screen.requiresSource && !existsSync(join(source, screen.requiresSource))) ||
                 screen.exclusion ||
@@ -157,7 +207,7 @@ async function main() {
             try {
                 await page.addInitScript('window.__name = (target) => target')
                 await page.clock.setFixedTime(new Date('2026-09-01T12:00:00Z'))
-                await page.addInitScript(() => {
+                await page.addInitScript((locale) => {
                     ;(window as unknown as { __screenCapture: boolean }).__screenCapture = true
                     // A constant draw is independent of unrelated startup call order.
                     Math.random = () => 0.42
@@ -178,8 +228,9 @@ async function main() {
                     sessionStorage.setItem('user_geo_country_code', 'DE')
                     sessionStorage.setItem('user_geo_country_code_timestamp', String(Date.now()))
                     document.cookie = 'jwt-token=fixture; path=/'
-                    document.cookie = 'NEXT_LOCALE=en; path=/'
-                })
+                    document.cookie = `app-locale=${locale}; path=/`
+                    document.cookie = `NEXT_LOCALE=${locale}; path=/`
+                }, captureLocale)
                 if (screen.camera)
                     await page.addInitScript((mode) => {
                         // A stationary synthetic camera frame keeps app-owned scanner UI
@@ -216,6 +267,39 @@ async function main() {
                                 contentType: 'text/html',
                                 body: '<!doctype html><script>parent.postMessage({type:"CRISP_FAILED"}, location.origin)</script>',
                             })
+                        const media = url.origin === base.origin ? overlayBytes.get(url.pathname) : undefined
+                        if (media && request.method() === 'GET') {
+                            const range = request.headers().range
+                            const match = range?.match(/^bytes=(\d+)-(\d*)$/)
+                            if (!match) {
+                                return route.fulfill({
+                                    status: 200,
+                                    headers: {
+                                        'accept-ranges': 'bytes',
+                                        'content-length': String(media.length),
+                                        'content-type': 'video/quicktime',
+                                    },
+                                    body: media,
+                                })
+                            }
+                            const start = Number(match[1])
+                            const end = Math.min(match[2] ? Number(match[2]) : media.length - 1, media.length - 1)
+                            if (start > end || start >= media.length)
+                                return route.fulfill({
+                                    status: 416,
+                                    headers: { 'content-range': `bytes */${media.length}` },
+                                })
+                            return route.fulfill({
+                                status: 206,
+                                headers: {
+                                    'accept-ranges': 'bytes',
+                                    'content-length': String(end - start + 1),
+                                    'content-range': `bytes ${start}-${end}/${media.length}`,
+                                    'content-type': 'video/quicktime',
+                                },
+                                body: media.subarray(start, end + 1),
+                            })
+                        }
                         // All API transports, including local same-origin test API, use synthetic answers.
                         if (
                             url.hostname === 'api.peanut.me' ||
@@ -311,14 +395,14 @@ async function main() {
                     throw new Error(
                         `HTTP ${response?.status()} for requested route (expected ${screen.expectedHttpStatus})`
                     )
-                if (screen.expectText)
+                if (expectedText)
                     await page
-                        .getByText(screen.expectText, { exact: false })
+                        .getByText(expectedText, { exact: false })
                         .first()
                         .waitFor({ state: 'visible', timeout: 15000 })
-                for (const label of screen.clicks)
+                for (const label of clicks)
                     await page.getByText(label, { exact: false }).first().click({ timeout: 10000 })
-                for (const action of screen.actions ?? []) {
+                for (const action of actions ?? []) {
                     if ('click' in action) await page.getByText(action.click, { exact: false }).first().click()
                     else await page.locator(action.fill.selector).fill(action.fill.value)
                 }
@@ -431,10 +515,7 @@ async function main() {
                     previous = next
                 }
                 if (!stable) throw new Error('Screen did not stabilize')
-                if (
-                    screen.expectText &&
-                    !(await page.getByText(screen.expectText, { exact: false }).first().isVisible())
-                )
+                if (expectedText && !(await page.getByText(expectedText, { exact: false }).first().isVisible()))
                     throw new Error('Expected screen content disappeared before capture')
                 if (transportFailures.size)
                     throw new Error(`Local build transport failed: ${[...transportFailures].join(', ')}`)
@@ -458,8 +539,11 @@ async function main() {
                 )
                 await page.screenshot({ path: join(out, 'diagnostics', `${screen.id}.png`) }).catch(() => undefined)
                 const reason = String(e instanceof Error ? e.message : e).slice(0, 950)
-                results.push({ ...metadata, status: historical ? 'unavailable' : 'failed', reason })
-                console.log(`UNAVAILABLE ${screen.id}: ${reason.split('\n')[0]}`)
+                // Expected historical gaps are classified before this harness
+                // runs. An exception here is a real runtime failure on either
+                // revision and must keep the capture job red.
+                results.push({ ...metadata, status: 'failed', reason })
+                console.log(`FAILED ${screen.id}: ${reason.split('\n')[0]}`)
             } finally {
                 await context.close()
             }
@@ -478,7 +562,13 @@ async function main() {
                 }, {}),
             })
         )
-        if (!report.complete) process.exitCode = 1
+        if (requireFullCatalogue && !report.complete) {
+            console.error('Full catalogue capture is incomplete; refusing to publish this baseline')
+        }
+        // Incomplete captures are valid gallery reports: the manifest records
+        // expected gaps and the publisher can still expose them. A caught
+        // Runtime failures on either revision remain red capture jobs.
+        process.exitCode = Math.max(captureExitCode(results), requireFullCatalogue && !report.complete ? 1 : 0)
     } finally {
         await browser.close()
     }

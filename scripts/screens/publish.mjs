@@ -9,7 +9,14 @@ import { createStorage } from './cloudflare-storage.mjs'
 import { updateIndexes } from './publication-index.mjs'
 
 const immutableReportPath =
-    /^\d{4}-\d{2}-\d{2}\/((?:dev|main)-[a-f0-9]{40}|compare-dev\/[a-f0-9]{40}|pr-[1-9][0-9]*\/[a-f0-9]{40}|compare-main-\d{4}-\d{2}-\d{2}\/[a-f0-9]{40})(?:\/run-[0-9]+-[0-9]+)?$/
+    /^\d{4}-\d{2}-\d{2}\/((?:dev|main)-[a-f0-9]{40}|(?:dev|main)\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|compare-dev\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|pr-[1-9][0-9]*\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|compare-main-\d{4}-\d{2}-\d{2}\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40})(?:\/run-[0-9]+-[0-9]+)?$/
+
+const localeInfo = {
+    en: { slug: 'en', label: 'English' },
+    'es-419': { slug: 'es-419', label: 'Español' },
+    'es-AR': { slug: 'es-ar', label: 'Español (Argentina)' },
+    'pt-BR': { slug: 'pt-br', label: 'Português (Brasil)' },
+}
 
 export async function publishReport({ inputDir, reportPath, env = process.env, storage } = {}) {
     if (!immutableReportPath.test(reportPath ?? '')) throw new Error('Invalid immutable report path')
@@ -35,7 +42,8 @@ export async function publishReport({ inputDir, reportPath, env = process.env, s
             }
     if (report.type === 'comparison') for (const screen of report.screens) if (screen.diff) refs.add(screen.diff)
     const options = { allowOverwrite: false }
-    const previewUrls = {}
+    const previewUrls = {},
+        originalUrls = {}
     async function immutable(path, body, contentType) {
         // Conflict on a rerun is acceptable only when the remote bytes agree.
         try {
@@ -58,7 +66,9 @@ export async function publishReport({ inputDir, reportPath, env = process.env, s
                 const meta = await sharp(bytes, { limitInputPixels: 393 * 852 }).metadata()
                 if (meta.width !== 197 || meta.height !== 427) throw new Error('Invalid thumbnail dimensions')
             }
-            previewUrls[name] = await preview(name, bytes)
+            const urls = await preview(name, bytes)
+            previewUrls[name] = typeof urls === 'string' ? urls : urls.preview
+            originalUrls[name] = typeof urls === 'string' ? urls : urls.original
             copyFileSync(join(assets, name), join(offline, 'assets', name))
         }
         const json = JSON.stringify(report)
@@ -89,7 +99,7 @@ export async function publishReport({ inputDir, reportPath, env = process.env, s
         // Commit marker last. Incomplete captures remain explicitly incomplete in the viewer.
         const manifest = await immutable(
             `reports/${reportPath}/manifest.json`,
-            JSON.stringify({ ...report, previewUrls }),
+            JSON.stringify({ ...report, previewUrls, originalUrls }),
             'application/json'
         )
         const date = reportPath.slice(0, 10)
@@ -99,6 +109,8 @@ export async function publishReport({ inputDir, reportPath, env = process.env, s
                 path: reportPath,
                 date,
                 label: reportPath.slice(11),
+                locale: report.locale ?? 'en',
+                localeLabel: localeInfo[report.locale ?? 'en']?.label ?? report.locale ?? 'English',
                 complete: report.complete,
                 sequence: Number(env.DEV_SEQUENCE ?? 0),
                 attempt: Number(env.RUN_ATTEMPT ?? 0),

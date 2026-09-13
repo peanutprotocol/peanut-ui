@@ -38,18 +38,19 @@ function memoryStorage() {
     }
 }
 
-function capture(image) {
+function capture(image, locale = 'en') {
     return {
         schema: 1,
         type: 'capture',
         commit,
+        locale,
         contentCommit: 'b'.repeat(40),
         harness: 'c'.repeat(64),
         fixtures: 'd'.repeat(64),
         environment: 'test',
         adapter: 'v1',
         capturedAt: '2026-09-11T00:00:00Z',
-        profile: 'en-393x852',
+        profile: `${locale}-393x852`,
         width: 393,
         height: 852,
         screens: [
@@ -85,7 +86,39 @@ test('publication writes the entry commit marker before shared pointers', async 
         assert.ok(storage.calls.indexOf('index.json') > entryIndex)
         assert.ok(storage.calls.indexOf('latest.json') > entryIndex)
         assert.equal(JSON.parse(storage.objects.get(storage.calls[entryIndex]).toString()).captureAttempt, 1)
+        const manifest = JSON.parse(
+            storage.objects.get(`reports/2026-09-11/dev-${commit}/run-123-1/manifest.json`).toString()
+        )
+        assert.equal(manifest.originalUrls[name], manifest.previewUrls[name])
         assert.equal(hash(PNG.sync.write(image)), name.split('.')[0])
+    } finally {
+        rmSync(dir, { recursive: true, force: true })
+    }
+})
+
+test('publication accepts locale-scoped dev paths and records the locale', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'screen-publish-locale-test-'))
+    try {
+        const assets = join(dir, 'assets')
+        mkdirSync(assets)
+        const image = new PNG({ width: 393, height: 852 })
+        image.data.fill(127)
+        const name = storeAsset(assets, PNG.sync.write(image))
+        writeFileSync(join(dir, 'manifest.json'), JSON.stringify(capture(name, 'pt-BR')))
+        const storage = memoryStorage()
+        await publishReport({
+            inputDir: dir,
+            reportPath: `2026-09-11/dev/pt-br/${commit}/run-123-1`,
+            env: {
+                SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.example',
+                DEV_SEQUENCE: '123',
+                RUN_ATTEMPT: '1',
+                CAPTURE_ATTEMPT: '1',
+            },
+            storage,
+        })
+        const entryPath = storage.calls.find((pathname) => pathname.startsWith('entries/'))
+        assert.equal(JSON.parse(storage.objects.get(entryPath).toString()).locale, 'pt-BR')
     } finally {
         rmSync(dir, { recursive: true, force: true })
     }

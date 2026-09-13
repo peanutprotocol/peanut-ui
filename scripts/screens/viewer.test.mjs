@@ -8,6 +8,12 @@ const elementIds = [
     'search',
     'flow',
     'status',
+    'view-mode',
+    'view-mode-control',
+    'locale',
+    'title',
+    'description',
+    'provenance',
     'close',
     'side',
     'overlay',
@@ -25,11 +31,11 @@ const elementIds = [
     'empty-status',
     'empty-retry',
     'screen-filters',
-    'route-coverage',
-    'route-inventory',
+    'dashboard-filters',
     'versions',
     'screens',
-    'download',
+    'screen-load-more',
+    'footer',
 ]
 
 class Element {
@@ -40,9 +46,18 @@ class Element {
         this.open = false
         this.parentElement = { hidden: false }
         this.value = ''
+        this.checked = false
+        this.textContent = ''
+        this.className = ''
+        this.listeners = new Map()
     }
 
-    addEventListener() {}
+    addEventListener(type, listener) {
+        this.listeners.set(type, listener)
+    }
+    dispatch(type) {
+        this.listeners.get(type)?.({ target: this })
+    }
     append(...children) {
         this.children.push(...children)
     }
@@ -52,9 +67,15 @@ class Element {
     setAttribute(name, value) {
         this[name] = value
     }
+    showModal() {
+        this.open = true
+    }
+    close() {
+        this.open = false
+    }
 }
 
-async function loadLanding(pathname, { ok = true, index = [] } = {}) {
+async function loadLanding(pathname, { ok = true, index = [], report } = {}) {
     const elements = new Map(elementIds.map((id) => [id, new Element(id)]))
     const brand = new Element('brand')
     let resolveResponse
@@ -69,17 +90,21 @@ async function loadLanding(pathname, { ok = true, index = [] } = {}) {
     const context = vm.createContext({
         console,
         document,
-        fetch: () => response,
-        location: { pathname, protocol: 'https:', reload() {} },
+        URLSearchParams,
+        fetch: (url) =>
+            url.endsWith('/index.json')
+                ? Promise.resolve({ ok: true, status: 200, json: async () => index })
+                : response,
+        location: { pathname, protocol: 'https:', search: '', hash: '', href: '', reload() {} },
         window: {},
     })
     vm.runInContext(viewer, context, { filename: 'public/screen-library/viewer.js' })
-    resolveResponse({ ok, status: ok ? 200 : 404, json: async () => index })
+    resolveResponse({ ok, status: ok ? 200 : 404, json: async () => report ?? index })
     await new Promise((resolve) => setImmediate(resolve))
     return elements
 }
 
-test('landing catalogue hides controls and route coverage on the root URL and deployed alias', async () => {
+test('landing catalogue hides screen controls on the root URL and deployed alias', async () => {
     for (const pathname of ['/', '/screen-library/index.html']) {
         const elements = await loadLanding(pathname, {
             index: [
@@ -91,10 +116,158 @@ test('landing catalogue hides controls and route coverage on the root URL and de
             ],
         })
         assert.equal(elements.get('screen-filters').hidden, true, pathname)
-        assert.equal(elements.get('route-coverage').hidden, true, pathname)
+        assert.equal(elements.get('dashboard-filters').hidden, false, pathname)
         assert.equal(elements.get('versions').children.length, 1, pathname)
         assert.equal(elements.get('screens').children.length, 0, pathname)
     }
+})
+
+test('landing locale selector filters published versions', async () => {
+    const elements = await loadLanding('/', {
+        index: [
+            {
+                path: '2026-09-11/pr-1/en/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                date: '2026-09-11',
+                label: 'English',
+                locale: 'en',
+            },
+            {
+                path: '2026-09-11/pr-1/es-419/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                date: '2026-09-11',
+                label: 'Español',
+                locale: 'es-419',
+            },
+        ],
+    })
+    assert.equal(elements.get('locale').children.length, 2)
+    assert.equal(elements.get('locale').value, 'en')
+    assert.equal(elements.get('versions').children.length, 1)
+    elements.get('locale').value = 'es-419'
+    elements.get('locale').dispatch('change')
+    assert.equal(elements.get('versions').children.length, 1)
+    assert.match(elements.get('versions').children[0].textContent, /Español/)
+})
+
+test('comparison reports can switch from changed screens to the full catalogue', async () => {
+    const image = 'a'.repeat(64) + '.png'
+    const report = {
+        schema: 1,
+        type: 'comparison',
+        locale: 'en',
+        complete: true,
+        before: {
+            commit: 'a'.repeat(40),
+            capturedAt: 'now',
+            environment: 'test',
+            contentCommit: 'a',
+            harness: 'a',
+            fixtures: 'a',
+        },
+        after: {
+            commit: 'b'.repeat(40),
+            capturedAt: 'now',
+            environment: 'test',
+            contentCommit: 'b',
+            harness: 'b',
+            fixtures: 'b',
+        },
+        screens: [
+            {
+                id: 'changed',
+                name: 'Changed screen',
+                flow: 'Home',
+                kind: 'route',
+                status: 'changed',
+                before: { status: 'captured', image, thumbnail: image },
+                after: { status: 'captured', image, thumbnail: image },
+            },
+            {
+                id: 'unchanged',
+                name: 'Unchanged screen',
+                flow: 'Home',
+                kind: 'route',
+                status: 'unchanged',
+                before: { status: 'captured', image, thumbnail: image },
+                after: { status: 'captured', image, thumbnail: image },
+            },
+        ],
+        previewUrls: {
+            [image]: `https://imagedelivery.net/3RfIxQn88kFXdTrxhfIMXw/ps-${'a'.repeat(29)}/screenpreview`,
+        },
+        originalUrls: {
+            [image]: `https://imagedelivery.net/3RfIxQn88kFXdTrxhfIMXw/ps-${'a'.repeat(29)}/public`,
+        },
+    }
+    const elements = await loadLanding('/screens/2026-09-11/pr-1/en/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/', {
+        report,
+    })
+    assert.equal(elements.get('view-mode').checked, false)
+    assert.equal(elements.get('screens').children.length, 1)
+    elements.get('screens').children[0].children[1].children[0].children[1].onclick()
+    assert.equal(
+        elements.get('zoom-images').children[0].src,
+        `https://imagedelivery.net/3RfIxQn88kFXdTrxhfIMXw/ps-${'a'.repeat(29)}/public`
+    )
+    elements.get('view-mode').checked = true
+    elements.get('view-mode').dispatch('change')
+    assert.equal(elements.get('screens').children.length, 2)
+    assert.equal(elements.get('screens').children[0].children[1].className, 'pair single')
+})
+
+test('screen lists load the first page and leave the next page for scroll loading', async () => {
+    const image = 'a'.repeat(64) + '.png'
+    const report = {
+        schema: 1,
+        type: 'capture',
+        locale: 'en',
+        complete: true,
+        capturedAt: '2026-09-09T18:00:00Z',
+        screens: Array.from({ length: 25 }, (_, index) => ({
+            id: `screen-${index}`,
+            name: `Screen ${index}`,
+            flow: 'Home',
+            kind: 'route',
+            status: 'captured',
+            image,
+            thumbnail: image,
+        })),
+    }
+    const elements = await loadLanding('/screens/2026-09-11/pr-1/en/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/', {
+        report,
+    })
+    assert.equal(elements.get('screens').children.length, 24)
+    assert.equal(elements.get('screen-load-more').hidden, false)
+})
+
+test('report pages expose the locale selector and use a long-form capture date', async () => {
+    const report = {
+        schema: 1,
+        type: 'capture',
+        locale: 'en',
+        complete: true,
+        capturedAt: '2026-09-09T18:00:00Z',
+        screens: [],
+    }
+    const elements = await loadLanding('/screens/2026-09-11/pr-1/en/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/', {
+        index: [
+            {
+                path: '2026-09-11/pr-1/en/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                locale: 'en',
+            },
+            {
+                path: '2026-09-11/pr-1/es-419/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                locale: 'es-419',
+            },
+        ],
+        report,
+    })
+    assert.equal(elements.get('dashboard-filters').hidden, false)
+    assert.equal(elements.get('locale').children.length, 2)
+    assert.equal(elements.get('locale').value, 'en')
+    assert.equal(elements.get('description').children[0].textContent, 'September 9, 2026')
+    elements.get('locale').value = 'es-419'
+    elements.get('locale').dispatch('change')
+    assert.equal(elements.get('locale').value, 'es-419')
 })
 
 test('landing page shows a friendly empty state when captures are not published', async () => {
@@ -104,7 +277,6 @@ test('landing page shows a friendly empty state when captures are not published'
         assert.match(elements.get('empty-title').textContent, /almost here/i)
         assert.equal(elements.get('coverage').hidden, true)
         assert.equal(elements.get('screen-filters').hidden, true)
-        assert.equal(elements.get('route-coverage').hidden, true)
     }
 })
 

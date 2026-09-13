@@ -6,7 +6,7 @@ continues to provide that evidence. Native system dialogs are outside v1.
 
 ## Capture and compare
 
-Use Node 20, pnpm 10.30.1, an initialized content submodule, and the browser
+Use Node 22, pnpm 10.30.1, an initialized content submodule, and the browser
 installed by this checkout's pinned Playwright. Each target is a separate
 checkout at an immutable SHA. Never reuse a running development server.
 
@@ -22,6 +22,8 @@ A failed capture command still writes `capture.json`, with failures attached to
 specific states. The comparison command creates `manifest.json`, images,
 `offline/index.html`, and `offline.tar.gz`. Open the offline HTML directly; it
 needs no backend, login, or network. Reports preserve failed/unavailable states.
+Those per-state gaps are publishable and do not fail the capture job; harness,
+build, and runtime failures still fail the command.
 
 The shared registry is `src/dev/screens/catalogue.ts`. It imports named API
 fixtures, route checkpoints and surface metadata. Add stable IDs, concrete
@@ -78,7 +80,9 @@ offline archives retain the original capture files. No Vercel Blob store is need
 DevOps setup:
 
 1. Enable Cloudflare Images and create a public `screenpreview` variant
-   (393×852, fit scale-down, no cropping; no signed URL requirement).
+   (393×852, fit scale-down, no cropping; no signed URL requirement). Keep
+   Cloudflare Images' built-in public variant enabled; it is used for the
+   original-size zoom, overlay, and difference views.
 2. Create a dedicated private R2 bucket. Retain objects
    indefinitely; respect object Cache-Control (index/latest use 60 seconds).
 3. Create two Cloudflare API tokens with separate values:
@@ -132,17 +136,31 @@ libraries advance that pointer; PR preview completion cannot move it.
 
 ## CI activation and provenance
 
-`Screen library` builds both sides without write credentials. PR previews use
-the exact merge base and head; merge reports use the first parent, expanding to
-the complete integrated patch sequence for rebase merges. Captures are not
-reused from a best-effort cache. Full catalogues run even for shared-style changes.
+`Screen library` builds the changed side without write credentials on PR
+updates. The trusted publisher resolves the exact merge-base capture from a
+successful dev integration run or the scheduled/main-update baseline workflow; it
+rejects stale, unrelated, or mismatched-harness baselines. Pushes and the
+historical dispatch retain same-run two-sided captures. When a PR changes the
+capture harness, fixtures, catalogue, or lockfile, the caller recaptures the
+base with that PR harness instead of reusing an incompatible baseline. Full
+catalogues run even for shared-style changes.
+
+`Screen library baseline` refreshes the dev baseline after a main-branch update
+and once per UTC day. Its artifact is retained for seven days and is accepted only when the
+artifact run, branch, SHA, workflow, age, and capture manifest all match the
+verified baseline. If the baseline is unavailable or the capture harness
+changed, publication fails closed instead of comparing against an arbitrary
+revision; run the baseline workflow manually after enabling it.
 
 `Publish screen library` is a reusable `workflow_call` job invoked after the
-capture matrix finishes. The caller resolves the reusable workflow from `dev`,
-and the publisher checks out `dev`; PR checkout code never runs in that job.
-It consumes only the caller's exact run and attempt. It also runs after capture
-failures so available evidence can be published with explicit gaps. Cancelled
-runs do not publish. There is no default-branch activation requirement.
+capture jobs finish. The caller resolves the reusable workflow from `dev`, and
+the publisher checks out `dev`; PR checkout code never runs in that job. It
+consumes the caller's exact after artifact and, for PRs, one separately
+resolved baseline artifact. Same-run before/after artifacts remain the fallback
+for integration and historical runs. It also runs after capture failures so
+available evidence can be published with explicit gaps. Cancelled runs do not
+publish. The baseline workflow must be registered on the repository's default
+branch so its schedule and main-branch trigger can fire.
 
 Merge publisher PR #3107 into dev first, then caller/catalogue PR #3108. Both
 PRs target dev. Once storage is configured, that dev push captures and publishes

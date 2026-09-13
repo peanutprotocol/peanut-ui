@@ -103,6 +103,11 @@ export const ANALYTICS_EVENTS = {
     DEPOSIT_COMPLETED: 'deposit_completed',
     DEPOSIT_FAILED: 'deposit_failed',
 
+    // ── Limits ──
+    // The warning-card route check is intentionally separate from the payment
+    // funnel: a native WebView can swallow a same-origin push without throwing.
+    LIMITS_CHECK_LINK_NAVIGATION: 'limits_check_link_navigation',
+
     // ── Standing deposit accounts (/get-paid) ──
     // Bank details the user holds and hands to a payer. `corridor` is the rail
     // method code (ACH_US, SEPA_EU…) and is the ONLY thing these carry: the
