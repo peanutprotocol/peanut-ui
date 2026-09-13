@@ -9,14 +9,12 @@ const el = (tag, value, className) => {
 }
 const offline = location.protocol === 'file:'
 const assetBase = offline ? './assets/' : '/screen-data/assets/'
+const previewUrlPattern =
+    /^https:\/\/imagedelivery\.net\/[\w-]+\/(?:peanut-screen-[a-f0-9]{64}|ps-[a-f0-9]{29})\/[\w-]+$/
 const asset = (name) => {
     if (!/^[a-f0-9]{64}\.(png|webp)$/.test(name || '')) return null
     const preview = !offline && report?.previewUrls?.[name]
-    if (
-        typeof preview === 'string' &&
-        /^https:\/\/imagedelivery\.net\/[\w-]+\/peanut-screen-[a-f0-9]{64}\/[\w-]+$/.test(preview)
-    )
-        return preview
+    if (typeof preview === 'string' && previewUrlPattern.test(preview)) return preview
     return assetBase + name
 }
 const image = (name, alt) => {
