@@ -109,6 +109,25 @@ it.each(['no_new_version_available', 'No new version available'])(
     }
 )
 
+it.each([
+    'disable_auto_update_to_major',
+    'disable_auto_update_to_minor',
+    'disable_auto_update_to_metadata, message: Cannot upgrade version, min update version > current version',
+])('treats a %s rejection as requiring a store update, not as a reportable failure', async (message) => {
+    const onStoreUpdateRequired = jest.fn()
+    const onUpdateFailed = jest.fn()
+    mockUpdater.getLatest.mockRejectedValue(new Error(message))
+
+    await initCapgoUpdater({ onStoreUpdateRequired, onUpdateFailed })
+    await jest.advanceTimersByTimeAsync(5_000)
+
+    expect(onStoreUpdateRequired).toHaveBeenCalledTimes(1)
+    expect(onUpdateFailed).not.toHaveBeenCalled()
+    expect(info).not.toHaveBeenCalled()
+    expect(error).not.toHaveBeenCalled()
+    expect(window.localStorage.getItem('capgoUpdateFailureStreak')).toBeNull()
+})
+
 it('resets the streak after a successful check', async () => {
     mockUpdater.getLatest.mockRejectedValue(new Error('Failed to fetch'))
     await launch()

@@ -167,8 +167,14 @@ async function checkAndStageUpdate(callbacks: OtaUpdateCallbacks = {}): Promise<
 }
 
 // The bundle Capgo serves was built for a newer native version than the one
-// installed (major/minor gate), so no OTA can land until the store binary does.
-const NEWER_BINARY_ERRORS = ['disable_auto_update_to_major', 'disable_auto_update_to_minor']
+// installed, so no OTA can land until the store binary does. The metadata case
+// is the explicit per-bundle min_update_version floor; it is an expected refusal,
+// not an updater failure worth escalating to Sentry.
+const NEWER_BINARY_ERRORS = [
+    'disable_auto_update_to_major',
+    'disable_auto_update_to_minor',
+    'disable_auto_update_to_metadata',
+]
 
 function isNewerBinaryRejection(message: string): boolean {
     return NEWER_BINARY_ERRORS.some((pattern) => message.includes(pattern))
