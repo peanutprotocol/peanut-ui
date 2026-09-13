@@ -11,6 +11,7 @@ import {
 } from '@/constants/zerodev.consts'
 import { DEMO_ADDRESS, DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_LIMITS, DEMO_USER } from '@/constants/demo-data'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import { DEPOSIT_RAIL_POLICY } from '@/features/deposit-accounts/__fixtures__/railPolicy'
 
 const CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
 const CREATED_AT = '2026-01-01T00:00:00.000Z'
@@ -374,10 +375,10 @@ let demoAvatarKey: string | null = null
  * documentation coordinates instead of real ones.
  *
  * Sandbox opens the account in the user's own name, so `nameOnAccount` is
- * `user` and the holder is the demo user. `matching.sender` and `rules` are
- * the backend's answer for SEPA and the only thing the screens read: euro
- * takes business payments, individuals are not agreed yet, and the rail has a
- * 1 EUR floor.
+ * `user` and the holder is the demo user. Who may pay in, and on what terms,
+ * is NOT written here: it comes from the one fixture table that mirrors the
+ * backend's rail rules, so demo and the design harness cannot disagree about
+ * what a euro account promises.
  */
 const DEMO_DEPOSIT_ACCOUNT_EUR = {
     id: 'demo-deposit-account-eur',
@@ -386,8 +387,8 @@ const DEMO_DEPOSIT_ACCOUNT_EUR = {
     currency: 'EUR',
     status: 'active',
     isPrimary: true,
-    matching: { nameOnAccount: 'user', sender: 'business-only', memo: 'none', amount: 'flexible' },
-    rules: { businessesUnlimited: true, individualsAllowed: false, min: { amount: '1', currency: 'EUR' } },
+    matching: { nameOnAccount: 'user', sender: DEPOSIT_RAIL_POLICY.SEPA_EU.sender, memo: 'none', amount: 'flexible' },
+    rules: DEPOSIT_RAIL_POLICY.SEPA_EU.rules,
     instructions: {
         accountHolderName: 'Demo User',
         bankName: 'Modern Treasury Bank',

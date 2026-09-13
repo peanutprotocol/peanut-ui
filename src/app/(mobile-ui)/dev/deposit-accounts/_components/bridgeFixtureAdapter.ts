@@ -1,10 +1,5 @@
-import type {
-    DepositAccount,
-    DepositCorridor,
-    DepositInstructions,
-    DepositRules,
-    SenderPolicy,
-} from '@/features/deposit-accounts/types'
+import { DEPOSIT_RAIL_POLICY } from '@/features/deposit-accounts/__fixtures__/railPolicy'
+import type { DepositAccount, DepositCorridor, DepositInstructions } from '@/features/deposit-accounts/types'
 
 /**
  * HARNESS ONLY. Production reads `GET /users/deposit-accounts`, where
@@ -119,45 +114,6 @@ function isUserName(holder: string, userLegalName: string): boolean {
 }
 
 /**
- * The sender policy and terms per corridor.
- *
- * This is the ONE place in the app that holds them, and it is harness code:
- * it mirrors peanut-api-ts `src/deposit-accounts/bridge-adapter.ts`, which is
- * the real source and derives them from
- * `product/providers/fiat/bridge-contracts-and-rail-rules.md` §3. The product
- * screens read `matching.sender` and `rules` off the response and author
- * neither.
- */
-const SENDER_BY_CORRIDOR: Record<DepositCorridor, SenderPolicy> = {
-    ACH_US: 'anyone',
-    SEPA_EU: 'business-only',
-    FASTER_PAYMENTS_GB: 'business-only',
-    SPEI_MX: 'unknown',
-    PIX_BR: 'own-name-only',
-    BANK_TRANSFER_AR: 'own-name-only',
-}
-
-function rulesFor(corridor: DepositCorridor, sender: SenderPolicy): DepositRules | undefined {
-    if (corridor === 'ACH_US') {
-        return sender === 'own-name-only'
-            ? { reason: 'state-restricted' }
-            : {
-                  individualPerPaymentCap: { amount: '4000', currency: 'USD' },
-                  familySameSurnameExempt: true,
-                  businessesUnlimited: true,
-              }
-    }
-    if (corridor === 'SEPA_EU') {
-        return {
-            businessesUnlimited: true,
-            individualsAllowed: sender === 'anyone',
-            min: { amount: '1', currency: 'EUR' },
-        }
-    }
-    return undefined
-}
-
-/**
  * A Bridge virtual account is reusable, takes any amount, and carries no
  * reference — verified against sandbox on 2026-09-11: no `deposit_message`,
  * no reference field, on any corridor. That is the whole difference from the
@@ -170,8 +126,8 @@ export function fromBridgeVirtualAccount(raw: BridgeVirtualAccount, userLegalNam
     if (!corridor) return null
 
     const instructions = instructionsFrom(source)
-    const sender = SENDER_BY_CORRIDOR[corridor]
-    const rules = rulesFor(corridor, sender)
+    // the one table both fixture producers read — never a second policy
+    const { sender, rules } = DEPOSIT_RAIL_POLICY[corridor]
 
     return {
         id: raw.id,
