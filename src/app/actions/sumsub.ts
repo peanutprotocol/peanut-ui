@@ -21,6 +21,7 @@ export type SumsubActionErrorCode =
     | 'manteca_us_nationality_restricted'
     | 'initiate_failed'
     | 'restart_failed'
+    | 'residence_change_failed'
     | 'resubmit_failed'
     | 'start_action_failed'
     | 'invalid_response'
@@ -202,6 +203,38 @@ export const restartIdentityVerification = async (
                     typeof resolved === 'string' && RESTART_REGION_INTENTS.has(resolved) ? resolved : undefined,
             },
         }
+    } catch (e: unknown) {
+        return caughtError(e)
+    }
+}
+
+export interface ResidenceChangeVerificationResponse {
+    token: string
+    levelName: string
+    applicantId: string
+    targetCountry: string
+}
+
+/**
+ * Resume the pending residence's dedicated Applicant Action. Unlike
+ * restartIdentityVerification this endpoint never resets the approved
+ * applicant's IDENTITY step.
+ */
+export const startResidenceChangeVerification = async (): Promise<{
+    data?: ResidenceChangeVerificationResponse
+    error?: string
+    code?: SumsubActionErrorCode
+}> => {
+    try {
+        const response = await serverFetch('/users/residence-change/start', { method: 'POST' })
+        const responseJson = await response.json()
+        if (!response.ok) {
+            return backendOrFallback(responseJson, 'Failed to start residence verification', 'residence_change_failed')
+        }
+        if (!responseJson.token || !responseJson.applicantId || !responseJson.targetCountry) {
+            return { error: 'Invalid response from server', code: 'invalid_response' }
+        }
+        return { data: responseJson }
     } catch (e: unknown) {
         return caughtError(e)
     }

@@ -375,7 +375,7 @@
                 "unverified": "Sin confirmar",
                 "change": "Cambiar",
                 "set": "Definir",
-                "pendingReverify": "Cambio a {country} pendiente de nueva verificación"
+                "pendingReverify": "Cambio a {country} pendiente de verificación"
             },
             "yourRegion": "Tu región",
             "groups": {
@@ -415,7 +415,7 @@
                 "title": "Cambiar tu residencia",
                 "description": "Elige el país donde vives legalmente: el que muestran tus documentos.",
                 "countryPlaceholder": "Selecciona tu país",
-                "verifiedMismatchNote": "Tus métodos de pago actuales siguen funcionando. Para que este sea tu país de residencia verificado, deberás verificarte de nuevo con documentos de ese país.",
+                "verifiedMismatchNote": "Tu residencia verificada no cambia hasta que se apruebe una nueva verificación. Mientras esté pendiente, la disponibilidad seguirá las reglas más estrictas de ambos países.",
                 "fullRestrictionNote": "Atención: las transferencias bancarias y la emisión de tarjetas no están disponibles para residentes de este país.",
                 "cardRestrictionNote": "Atención: la tarjeta no está disponible para residentes de este país.",
                 "bankingRestrictionNote": "Atención: las transferencias bancarias no están disponibles para residentes de este país.",

@@ -24,21 +24,20 @@ interface ResidenceChangeDrawerProps {
     declaredSecond?: string | null
     /** KYC-verified residence, when one exists */
     verified: string | null
-    /** refetch the user so the new declared residence lands everywhere */
+    /** Requested country waiting on the separate residence action. */
+    pending?: string | null
+    /** refetch the user so active and pending residence stay in sync */
     onSaved: () => Promise<unknown> | void
-    /** start identity re-verification at the current level (existing restart primitive) */
-    /** called with the newly declared residence when the user asked to submit documents */
-    onReverify: (iso2: string) => void
+    /** start the dedicated residence proof action for the pending country */
+    onReverify: () => void
 }
 
 /**
  * The residency-change flow, anchored on the Unlock payments residence row.
  *
- * Declared residence saves immediately (it is advisory prequalification).
- * When a verified residence exists and the pick differs, the modal says
- * plainly that rails keep working on the verified residence until the user
- * re-verifies with new-country documents, and offers that re-verification as
- * an explicit second action — never as a silent side effect of saving.
+ * First-time declarations save immediately. For a verified user the selected
+ * country is stored as pending: the active residence and completed identity
+ * remain untouched until the dedicated applicant action is reviewed GREEN.
  */
 const ResidenceChangeDrawer = ({
     visible,
@@ -47,6 +46,7 @@ const ResidenceChangeDrawer = ({
     declared,
     declaredSecond,
     verified,
+    pending,
     onSaved,
     onReverify,
 }: ResidenceChangeDrawerProps) => {
@@ -54,7 +54,7 @@ const ResidenceChangeDrawer = ({
     const tCommon = useTranslations('common')
     const restrictionSets = useResidenceRestrictionSets()
     const locale = useLocale()
-    const [selected, setSelected] = useState<string>(declared ?? verified ?? '')
+    const [selected, setSelected] = useState<string>(pending ?? declared ?? verified ?? '')
     const [isSaving, setIsSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -63,9 +63,9 @@ const ResidenceChangeDrawer = ({
     // each time the modal opens (the user may have loaded late, or saved).
     useEffect(() => {
         if (!visible) return
-        setSelected(declared ?? verified ?? '')
+        setSelected(pending ?? declared ?? verified ?? '')
         setError(null)
-    }, [visible, declared, verified])
+    }, [visible, pending, declared, verified])
 
     const countryOptions = useMemo(() => buildResidenceCountryOptions(locale), [locale])
 
@@ -98,8 +98,13 @@ const ResidenceChangeDrawer = ({
                 setError(result.error)
                 return false
             }
-            storeDeclaredResidence(userId, selected)
-            if (isReorder) storeSecondResidence(userId, declared)
+            // For a verified move the server deliberately keeps the approved
+            // country active. Do not let the device mirror race ahead and make
+            // another surface treat an unreviewed country as authoritative.
+            if (!differsFromVerified) {
+                storeDeclaredResidence(userId, selected)
+                if (isReorder) storeSecondResidence(userId, declared)
+            }
             posthog.capture(ANALYTICS_EVENTS.RESIDENCE_CHANGED, {
                 residence_country: selected,
                 differed_from_verified: differsFromVerified,
@@ -113,7 +118,7 @@ const ResidenceChangeDrawer = ({
                 console.error('failed to refetch user after residence change:', e)
             }
             onClose()
-            if (reverifyAfter) onReverify(selected)
+            if (reverifyAfter) onReverify()
             return true
         } finally {
             setIsSaving(false)

@@ -297,6 +297,7 @@ export const useMultiPhaseKycFlow = ({
         liveKycStatus,
         handleInitiateKyc: originalHandleInitiateKyc,
         handleRestartIdentity,
+        handleResidenceChange,
         handleSelfHealResubmit,
         handleStartAction,
         handleFixableRejection,
@@ -664,6 +665,7 @@ export const useMultiPhaseKycFlow = ({
         // initiation
         handleInitiateKyc,
         handleRestartIdentity,
+        handleResidenceChange,
         handleSelfHealResubmit,
         handleStartAction,
         handleFixableRejection,

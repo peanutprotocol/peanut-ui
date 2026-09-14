@@ -21,7 +21,7 @@ import { KycFailedModal } from '@/components/Kyc/modals/KycFailedModal'
 import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 import ActionModal from '@/components/Global/ActionModal'
 import { useModalsContext } from '@/context/ModalsContext'
-import { getRegionIntent, providerForRegionIntent, regionIntentForResidence, type Region } from '@/utils/regions.utils'
+import { getRegionIntent, providerForRegionIntent, type Region } from '@/utils/regions.utils'
 import { deriveRegionAccess, isBridgeSupportedCountry, pendingBankRailRegionPaths } from '@/utils/regions.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useQueryClient } from '@tanstack/react-query'
@@ -330,7 +330,7 @@ const UnlockPayments = () => {
               })
             : null
     const residenceCountryName = countryDisplayName(residenceIso2)
-    const declaredCountryName = countryDisplayName(residence?.declared ?? null)
+    const pendingCountryName = countryDisplayName(residence?.pending ?? null)
 
     // In-review line: submittedAt drives both the date and the 7-day
     // escalation. reviewedAt/updatedAt deliberately not used — the user cares
@@ -376,9 +376,9 @@ const UnlockPayments = () => {
                     onClick={() => setIsChangeModalOpen(true)}
                     aria-label={residenceIso2 ? t('residence.change') : t('residence.set')}
                 />
-                {residence?.verified && residence?.declared && residence.declared !== residence.verified && (
+                {residence?.verified && residence?.pending && (
                     <p className="text-center text-body-xs text-foreground-secondary">
-                        {t('residence.pendingReverify', { country: declaredCountryName ?? residence.declared })}
+                        {t('residence.pendingReverify', { country: pendingCountryName ?? residence.pending })}
                     </p>
                 )}
             </div>
@@ -468,6 +468,7 @@ const UnlockPayments = () => {
                 declared={residence?.declared ?? null}
                 declaredSecond={declaredSecondIso2}
                 verified={residence?.verified ?? null}
+                pending={residence?.pending ?? null}
                 onSaved={async () => {
                     // A residence change shifts everything derived from it:
                     // card eligibility (server recomputes from the declared
@@ -478,14 +479,10 @@ const UnlockPayments = () => {
                         queryClient.invalidateQueries({ queryKey: [LIMITS] }),
                     ])
                 }}
-                onReverify={(iso2) => {
-                    // The new residence decides which provider level the fresh
-                    // Sumsub token targets, and whether the SDK runs a second level.
-                    const intent = regionIntentForResidence(iso2)
-                    setActiveRegionIntent(intent)
+                onReverify={() => {
                     setReverifyRequested(true)
                     setErrorAcknowledged(false)
-                    void flow.handleRestartIdentity(intent)
+                    void flow.handleResidenceChange()
                 }}
             />
 
@@ -579,7 +576,7 @@ const UnlockPayments = () => {
                                   shadowSize: '4',
                                   disabled: flow.isLoading,
                                   onClick: () => {
-                                      if (reverifyRequested) void flow.handleRestartIdentity(activeRegionIntent)
+                                      if (reverifyRequested) void flow.handleResidenceChange()
                                       else void flow.handleInitiateKyc(activeRegionIntent, undefined, true)
                                   },
                               },

@@ -375,7 +375,7 @@
                 "unverified": "Not confirmed",
                 "change": "Change",
                 "set": "Set",
-                "pendingReverify": "Update to {country} pending re-verification"
+                "pendingReverify": "Change to {country} pending verification"
             },
             "yourRegion": "Your region",
             "groups": {
@@ -415,7 +415,7 @@
                 "title": "Change your residence",
                 "description": "Pick the country where you legally live: the one your documents show.",
                 "countryPlaceholder": "Select your country",
-                "verifiedMismatchNote": "Your current payment methods keep working. To make this your verified residence, you'll verify again with documents from that country.",
+                "verifiedMismatchNote": "Your verified residence stays unchanged until this passes a new verification. While it is pending, availability follows the stricter rules of both countries.",
                 "fullRestrictionNote": "Heads up: bank transfers and card issuing aren't available for residents of this country.",
                 "cardRestrictionNote": "Heads up: the card isn't available for residents of this country.",
                 "bankingRestrictionNote": "Heads up: bank transfers aren't available for residents of this country.",

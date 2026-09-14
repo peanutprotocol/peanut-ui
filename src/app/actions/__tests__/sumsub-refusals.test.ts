@@ -12,7 +12,12 @@
  * terminal classification and restores a futile retry.
  */
 
-import { initiateSumsubKyc, isTerminalActionCode, restartIdentityVerification } from '@/app/actions/sumsub'
+import {
+    initiateSumsubKyc,
+    isTerminalActionCode,
+    restartIdentityVerification,
+    startResidenceChangeVerification,
+} from '@/app/actions/sumsub'
 import { serverFetch } from '@/utils/api-fetch'
 
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
@@ -184,4 +189,31 @@ it('uses Retry-After for infrastructure rate limits', async () => {
         json: async () => ({ error: 'Too many requests' }),
     } as Response)
     expect((await restartIdentityVerification()).cooldown?.retryAt).toBe('2026-09-08T18:57:00.000Z')
+})
+
+describe('startResidenceChangeVerification — wire shape', () => {
+    it('uses the non-destructive residence endpoint and validates the action token', async () => {
+        respondWith(200, {
+            token: 'tok-residence',
+            applicantId: 'app-1',
+            levelName: 'peanut-residence-change',
+            targetCountry: 'PT',
+        })
+
+        const result = await startResidenceChangeVerification()
+
+        expect(mockFetch).toHaveBeenCalledWith('/users/residence-change/start', { method: 'POST' })
+        expect(result.data?.targetCountry).toBe('PT')
+        expect(result.data?.token).toBe('tok-residence')
+    })
+
+    it('never silently falls back to the identity-reset endpoint', async () => {
+        respondWith(409, { error: 'Save a new residence before starting verification.' })
+
+        const result = await startResidenceChangeVerification()
+
+        expect(result.error).toMatch(/save a new residence/i)
+        expect(mockFetch).toHaveBeenCalledTimes(1)
+        expect(mockFetch).not.toHaveBeenCalledWith('/users/identity/restart', expect.anything())
+    })
 })

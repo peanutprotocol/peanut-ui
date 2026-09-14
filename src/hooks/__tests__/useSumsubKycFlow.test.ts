@@ -5,6 +5,7 @@ import {
     initiateSumsubKyc,
     initiateSelfHealResubmission,
     restartIdentityVerification,
+    startResidenceChangeVerification,
     startKycAction,
 } from '@/app/actions/sumsub'
 
@@ -24,6 +25,7 @@ jest.mock('@/app/actions/sumsub', () => ({
     initiateSumsubKyc: jest.fn(),
     initiateSelfHealResubmission: jest.fn(),
     restartIdentityVerification: jest.fn(),
+    startResidenceChangeVerification: jest.fn(),
     startKycAction: jest.fn(),
 }))
 jest.mock('@/hooks/useWebSocket', () => ({
@@ -39,10 +41,14 @@ const mockInitiate = initiateSumsubKyc as jest.MockedFunction<typeof initiateSum
 const mockResubmit = initiateSelfHealResubmission as jest.MockedFunction<typeof initiateSelfHealResubmission>
 const mockStartAction = startKycAction as jest.MockedFunction<typeof startKycAction>
 const mockRestart = restartIdentityVerification as jest.MockedFunction<typeof restartIdentityVerification>
+const mockResidenceChange = startResidenceChangeVerification as jest.MockedFunction<
+    typeof startResidenceChangeVerification
+>
 
 describe('useSumsubKycFlow — cross-region routing', () => {
     beforeEach(() => {
         mockInitiate.mockReset()
+        mockResidenceChange.mockReset()
         mockWs.handler = undefined
     })
 
@@ -382,10 +388,9 @@ describe('useSumsubKycFlow — multi-level workflows', () => {
         expect(result.current.isMultiLevel).toBe(true)
     })
 
-    // A residence change re-opens identity through restart-identity with the
-    // NEW residence's intent; the hook prop only catches up on the next render,
-    // so the intent travels with the call and the second level must still run.
-    it('a residence re-verification carries its intent into the restart and stays multi-level', async () => {
+    // Call-time overrides are still required for the destructive document
+    // replacement flow; residence changes now have a separate action below.
+    it('a document restart carries its intent and stays multi-level', async () => {
         mockRestart.mockResolvedValue({ data: { token: 'tok_restart', applicantId: 'app_1', levelName: 'general' } })
         const { result } = renderHook(() => useSumsubKycFlow({}))
 
@@ -396,6 +401,35 @@ describe('useSumsubKycFlow — multi-level workflows', () => {
         expect(mockRestart).toHaveBeenCalledWith('LATAM')
         expect(result.current.showWrapper).toBe(true)
         expect(result.current.isMultiLevel).toBe(true)
+    })
+
+    it('opens a residence Applicant Action as single-level and never calls restart-identity', async () => {
+        mockRestart.mockClear()
+        mockResidenceChange.mockResolvedValue({
+            data: {
+                token: 'tok_residence',
+                applicantId: 'app_1',
+                levelName: 'peanut-residence-change',
+                targetCountry: 'PT',
+            },
+        })
+        const onManualClose = jest.fn()
+        const { result } = renderHook(() => useSumsubKycFlow({ onManualClose }))
+
+        await act(async () => {
+            await result.current.handleResidenceChange()
+        })
+
+        expect(mockResidenceChange).toHaveBeenCalledTimes(1)
+        expect(mockRestart).not.toHaveBeenCalled()
+        expect(result.current.showWrapper).toBe(true)
+        expect(result.current.isActionFlow).toBe(true)
+        expect(result.current.isMultiLevel).toBe(false)
+
+        act(() => result.current.handleSdkComplete())
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.isVerificationProgressModalOpen).toBe(false)
+        expect(onManualClose).toHaveBeenCalledTimes(1)
     })
 
     // The backend derives the intent from the declared residence when the caller
