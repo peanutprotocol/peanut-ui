@@ -12,7 +12,10 @@ type Listener = (event: { reason?: unknown; error?: unknown; message?: string })
  * exact code that ships in the HTML, without fighting jsdom's read-only
  * window.location.
  */
-function bootScript({ brokenStorage = false }: { brokenStorage?: boolean } = {}) {
+function bootScript({
+    standalone = false,
+    brokenStorage = false,
+}: { standalone?: boolean; brokenStorage?: boolean } = {}) {
     const listeners: Record<string, Listener[]> = {}
     const reload = jest.fn()
     const store = new Map<string, string>()
@@ -20,6 +23,7 @@ function bootScript({ brokenStorage = false }: { brokenStorage?: boolean } = {})
         addEventListener: (type: string, fn: Listener) => {
             ;(listeners[type] = listeners[type] || []).push(fn)
         },
+        matchMedia: (_query: string) => ({ matches: standalone }),
         location: { reload },
     }
     const sessionStorage = brokenStorage
@@ -84,6 +88,12 @@ describe('CHUNK_ERROR_RECOVERY_SCRIPT', () => {
         expect(reload).not.toHaveBeenCalled()
     })
 
+    it('does not reload an installed PWA', () => {
+        const { reload, emitRejection } = bootScript({ standalone: true })
+        emitRejection(chunkError())
+        expect(reload).not.toHaveBeenCalled()
+    })
+
     it('does not auto-reload when sessionStorage is unavailable (no loop protection)', () => {
         const { reload, emitRejection } = bootScript({ brokenStorage: true })
         emitRejection(chunkError())
@@ -120,6 +130,10 @@ describe('recoverFromChunkError', () => {
         sessionStorage.clear()
         reload = jest.fn()
         Object.defineProperty(window, 'location', { value: { ...originalLocation, reload }, writable: true })
+        Object.defineProperty(window, 'matchMedia', {
+            writable: true,
+            value: jest.fn(() => ({ matches: false })),
+        })
     })
 
     afterEach(() => {
@@ -133,6 +147,15 @@ describe('recoverFromChunkError', () => {
 
     it('returns false and skips reload for non-chunk errors', () => {
         expect(recoverFromChunkError(new Error('Failed to fetch'))).toBe(false)
+        expect(reload).not.toHaveBeenCalled()
+    })
+
+    it('returns false and skips reload for an installed PWA', () => {
+        Object.defineProperty(window, 'matchMedia', {
+            writable: true,
+            value: jest.fn(() => ({ matches: true })),
+        })
+        expect(recoverFromChunkError(chunkError())).toBe(false)
         expect(reload).not.toHaveBeenCalled()
     })
 
