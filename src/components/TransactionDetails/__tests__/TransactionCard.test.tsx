@@ -394,6 +394,38 @@ describe('TransactionCard — counterparty avatar', () => {
         expect(img(container)).toHaveAttribute('src', '/merchant-logo.png')
     })
 
+    // The person's handle drives the letter, not the name the row displays —
+    // one person looks the same in the feed, in contacts and on their profile.
+    it('draws the letter from the handle even when the row shows a full name', () => {
+        const tx = {
+            ...eligibleTx(),
+            userName: 'satoshi',
+            fullName: 'Hal Finney',
+            showFullName: true,
+            avatarKey: null,
+        } as TransactionDetails
+
+        const { container } = renderRow(tx)
+
+        expect(img(container)).toHaveAttribute('src', '/avatars/letter/s.webp')
+    })
+
+    // A peer with a display name but no handle has an address in `userName`,
+    // which draws no letter — the display name is the only one left.
+    it('falls back to the display name when the handle is an address', () => {
+        const tx = {
+            ...eligibleTx(),
+            userName: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+            fullName: 'Nancy Drew',
+            showFullName: true,
+            avatarKey: null,
+        } as TransactionDetails
+
+        const { container } = renderRow(tx)
+
+        expect(img(container)).toHaveAttribute('src', '/avatars/letter/n.webp')
+    })
+
     it('leaves a bank row on its bank icon', () => {
         const tx = { ...eligibleTx('bank_request_fulfillment'), avatarKey: 'basic.frog' } as TransactionDetails
 

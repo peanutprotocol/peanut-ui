@@ -123,6 +123,11 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
     const userNameForAvatar =
         transaction.showFullName && transaction.fullName ? transaction.fullName : transaction.userName
+    // The sticker's letter follows the handle instead, so a peer with no pick
+    // looks the same here as on their profile. A counterparty with only a
+    // display name has their address in `userName`, which draws no letter — the
+    // display name is the only thing left to derive one from.
+    const avatarNameForAvatar = isAddress(transaction.userName) ? userNameForAvatar : transaction.userName
     const avatarUrl = getAvatarUrl(transaction)
     // check if this is a test transaction (setup confirmation)
     const isTest = isTestTransaction(name)
@@ -263,6 +268,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         <TransactionAvatarBadge
             initials={initials}
             userName={userNameForAvatar}
+            avatarName={avatarNameForAvatar}
             avatarKey={transaction.avatarKey}
             isLinkTransaction={isLinkTx}
             transactionType={type}

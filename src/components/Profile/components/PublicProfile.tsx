@@ -136,7 +136,14 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     )
 
     useEffect(() => {
+        // The [...recipient] route reuses this component instance across
+        // profile navigations, so clear the strongest identity signal up front
+        // and ignore a response the next navigation has already superseded —
+        // otherwise Bob's profile wears Alice's avatar until his fetch lands.
+        let superseded = false
+        setAvatarKey(null)
         usersApi.getByUsername(username).then((apiUser) => {
+            if (superseded) return
             if (apiUser?.fullName) setFullName(apiUser.fullName)
             // get the profile owner's showFullName preference
             setShowFullName(apiUser?.showFullName ?? false)
@@ -145,6 +152,9 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
             setProfileBadges(apiUser?.badges ?? [])
             setAvatarKey(apiUser?.avatarKey ?? null)
         })
+        return () => {
+            superseded = true
+        }
     }, [username])
 
     // interaction-status is the complete "sent money before" source (covers send-link

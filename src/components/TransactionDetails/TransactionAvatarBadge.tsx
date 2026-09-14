@@ -26,6 +26,14 @@ interface TransactionAvatarBadgeProps {
      * this holds.
      */
     avatarKey?: string | null
+    /**
+     * The counterparty's handle, when the row has one. The letter sticker
+     * follows it so a peer without a pick looks the same here as on their
+     * profile, even though `userName` above honours their showFullName choice
+     * (it also has to stay the display name — it is the address discriminator).
+     * Falls back to `userName`.
+     */
+    avatarName?: string
 }
 
 /**
@@ -41,6 +49,7 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
     context,
     countryCode,
     avatarKey,
+    avatarName,
 }) => {
     let displayIconName: IconName | undefined = undefined
     let displayInitials: string | undefined = initials
@@ -133,7 +142,7 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
                 // are: their picked avatar, or the letter sticker drawn from
                 // the name this row already displays (TASK-22625). `decorative`
                 // because that name is on screen right next to it.
-                return <UserAvatar name={userName} avatarKey={avatarKey} size={size} decorative />
+                return <UserAvatar name={avatarName || userName} avatarKey={avatarKey} size={size} decorative />
             } else {
                 // fallback for send/request if no initials and not link/address
                 displayIconName = 'wallet-outline'

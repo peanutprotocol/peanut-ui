@@ -164,8 +164,10 @@ const InvitesPage = () => {
                                         <TransactionAvatarBadge
                                             initials={getInitialsFromName(displayName)}
                                             // The invitee's own handle, so the letter fallback
-                                            // matches their profile.
-                                            userName={username}
+                                            // matches their profile. An invitee without one keeps
+                                            // the display name — an empty name reads as "not a
+                                            // user" and drops to a wallet icon.
+                                            userName={username || displayName}
                                             avatarKey={invite.avatarKey}
                                             isLinkTransaction={false}
                                             transactionType={'send'}

@@ -1,5 +1,6 @@
 import AvatarWithBadge, { type AvatarSize } from '@/components/Profile/AvatarWithBadge'
 import { UserAvatar } from '@/components/Avatar/UserAvatar'
+import { avatarSrc, letterAvatarSrc } from '@/components/Avatar/avatar.utils'
 import { type RecipientType } from '@/lib/url-parser/types/payment'
 import { printableAddress } from '@/utils/general.utils'
 import { AVATAR_TEXT_DARK, getColorForUsername } from '@/utils/color.utils'
@@ -174,8 +175,14 @@ export default function PeanutActionDetailsCard({
 
     // No icon means the avatar slot stood for a person — the only case where an
     // avatar belongs. A caller-supplied brand logo still wins.
+    //
+    // The art check is load-bearing: the claim views and CountryListRouter
+    // hardcode recipientType="USERNAME" while passing a resolved display name,
+    // which is a shortened address whenever the counterparty has no Peanut
+    // account. Those draw neither a pick nor a letter, so they keep the
+    // initials bubble they had.
     const avatarIcon = getAvatarIcon()
-    const showsPersonAvatar = !avatarIcon && !logo
+    const showsPersonAvatar = !avatarIcon && !logo && !!(avatarSrc(avatarKey) ?? letterAvatarSrc(recipientName))
 
     const isWithdrawBankAccount = transactionType === 'WITHDRAW_BANK_ACCOUNT' && recipientType === 'BANK_ACCOUNT'
     const isAddBankAccount = transactionType === 'ADD_MONEY_BANK_ACCOUNT'

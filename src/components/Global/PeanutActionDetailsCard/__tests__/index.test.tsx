@@ -117,3 +117,22 @@ describe('PeanutActionDetailsCard — counterparty avatar', () => {
         expect(container.querySelector('svg')).not.toBeNull()
     })
 })
+
+// The claim views and CountryListRouter hardcode recipientType="USERNAME" and
+// pass a resolved display name, which is a shortened address for a sender with
+// no Peanut account. Those rows have no person to show.
+describe('PeanutActionDetailsCard — a hardcoded USERNAME with an address name', () => {
+    it('keeps the initials bubble for a shortened address', () => {
+        const { container } = renderWithIntl(
+            <PeanutActionDetailsCard
+                {...baseProps}
+                recipientType="USERNAME"
+                recipientName="0xf39F…2266"
+                transactionType="CLAIM_LINK"
+            />
+        )
+
+        expect(container.querySelector('img')).toBeNull()
+        expect(container).toHaveTextContent('0X')
+    })
+})

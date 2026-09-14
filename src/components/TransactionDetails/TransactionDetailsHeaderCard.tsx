@@ -238,6 +238,10 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
 
     // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
     const nameForAvatar = showFullName && fullName ? fullName : localizedUserName
+    // The sticker's letter follows the handle instead (same rule as the feed
+    // row), so the receipt and the profile agree. An address counterparty draws
+    // no letter from `userName`, so the display name is the fallback.
+    const avatarNameForAvatar = isAddress(userName) ? nameForAvatar : userName
 
     // check if this is a test transaction (setup confirmation)
     const isTest = isTestTransaction(userName)
@@ -292,6 +296,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                         <TransactionAvatarBadge
                             initials={initials}
                             userName={nameForAvatar}
+                            avatarName={avatarNameForAvatar}
                             avatarKey={avatarKey}
                             isLinkTransaction={isLinkTransaction}
                             transactionType={typeForAvatar}

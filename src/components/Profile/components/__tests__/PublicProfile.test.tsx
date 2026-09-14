@@ -308,6 +308,27 @@ describe('PublicProfile avatar', () => {
     })
 })
 
+// The [...recipient] route reuses this component across profile navigations.
+describe('PublicProfile avatar across navigations', () => {
+    beforeEach(() => {
+        mockAuth = { user: { user: { username: 'hal', hasAppAccess: true } }, isFetchingUser: false }
+    })
+
+    it('never wears the previous profile owner avatar', async () => {
+        mockGetByUsername.mockResolvedValue({ userId: 'user-1', avatarKey: 'basic.frog' })
+        const { rerender } = renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        await waitFor(() =>
+            expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', 'basic.frog')
+        )
+
+        // second profile: never resolves, so only the reset can clear the first
+        mockGetByUsername.mockReturnValue(new Promise(() => {}))
+        rerender(<PublicProfile username="hal" isLoggedIn />)
+
+        expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', '')
+    })
+})
+
 describe('PublicProfile back navigation', () => {
     beforeEach(() => {
         mockAuth = { user: { user: { username: 'hal', hasAppAccess: true } }, isFetchingUser: false }
