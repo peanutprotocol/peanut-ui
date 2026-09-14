@@ -1,6 +1,8 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import ts from 'typescript'
+import { APP_DIVERGENCE_CATEGORIES } from '../ds/audit/app/audit-app-data'
+import { AUDIT_CLUSTERS, AUDIT_ITEMS } from '../ds/audit/audit-data'
 
 const DEV_ROOT = join(__dirname, '..')
 const APP_DEV_ROOT = join(DEV_ROOT, '..', '..', 'dev')
@@ -23,6 +25,25 @@ const UNDOCUMENTED_DS_IMPORTS = [
     '@/components/Global/EasterEggDrawer',
     '@/components/Global/EmptyStates/NoDataEmptyState',
     '@/components/Global/Modal',
+] as const
+
+const RETIRED_AUDIT_NAMES = [
+    'StatusTag',
+    '.label',
+    'CSS .label',
+    '.custom-input',
+    '.text-link',
+    'purple-1',
+    'purple-3',
+    'teal-1',
+    'violet-3',
+    'btn-shadow (CSS',
+    'brutal-border (CSS',
+    'CSS .card + .card-title',
+    '.th-custom-skeleton',
+    '.row / .col',
+    'Orphan btn-*',
+    'CSS button classes — .btn-yellow',
 ] as const
 
 function sourceFiles(directory: string): string[] {
@@ -55,6 +76,16 @@ function rawJsxControls(sources: string[], relativeTo: string): string[] {
     return rawControls
 }
 
+function collectNames(value: unknown): string[] {
+    if (Array.isArray(value)) return value.flatMap(collectNames)
+    if (!value || typeof value !== 'object') return []
+
+    const record = value as Record<string, unknown>
+    return [typeof record.name === 'string' ? record.name : '', ...Object.values(record).flatMap(collectNames)].filter(
+        Boolean
+    )
+}
+
 describe('/dev shared chrome', () => {
     it('uses documented design-system components instead of custom visual helpers', () => {
         const sources = [...sourceFiles(DEV_ROOT), ...sourceFiles(APP_DEV_ROOT)]
@@ -84,6 +115,14 @@ describe('/dev shared chrome', () => {
         expect(rawJsxControls(sources, DS_ROOT)).toEqual([])
         expect(undocumentedImports).toEqual([])
         expect(existsSync(join(DS_ROOT, '_components', 'StatusTag.tsx'))).toBe(false)
+    })
+
+    it('does not inventory components and CSS deleted by the design-system cleanup', () => {
+        const names = collectNames([AUDIT_ITEMS, AUDIT_CLUSTERS, APP_DIVERGENCE_CATEGORIES])
+
+        for (const retiredName of RETIRED_AUDIT_NAMES) {
+            expect(names.filter((name) => name.includes(retiredName))).toEqual([])
+        }
     })
 
     it('uses design-system controls across every dev tool shell', () => {

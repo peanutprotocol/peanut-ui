@@ -30,10 +30,8 @@ export default function InfoTooltip({ label, children }: InfoTooltipProps) {
                 icon="info"
                 iconSize={16}
                 aria-label={`About ${label}`}
+                aria-describedby={id}
                 className="w-10 text-foreground-secondary"
-                onKeyDown={(event) => {
-                    if (event.key === 'Escape') event.currentTarget.blur()
-                }}
             />
         </Tooltip>
     )

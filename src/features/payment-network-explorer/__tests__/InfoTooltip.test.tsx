@@ -12,6 +12,7 @@ describe('InfoTooltip', () => {
         fireEvent.focus(button)
         const tooltip = await screen.findByRole('tooltip')
         const protectedContent = within(tooltip).getByText('Tooltip detail')
+        expect(button).toHaveAttribute('aria-describedby', tooltip.id)
         expect(tooltip.parentElement?.parentElement).toBe(document.body)
         expect(protectedContent).toHaveClass('ph-no-capture')
         expect(protectedContent).toHaveAttribute('data-private', 'true')
@@ -28,6 +29,6 @@ describe('InfoTooltip', () => {
         fireEvent.keyDown(button, { key: 'Escape' })
 
         await waitFor(() => expect(screen.queryByRole('tooltip')).not.toBeInTheDocument())
-        expect(button).not.toHaveFocus()
+        expect(button).toHaveFocus()
     })
 })
