@@ -80,9 +80,29 @@ class Element {
     }
 }
 
-async function loadLanding(pathname, { ok = true, index = [], report } = {}) {
+async function loadLanding(pathname, { ok = true, index = [], report, search = '', hash = '' } = {}) {
     const elements = new Map(elementIds.map((id) => [id, new Element(id)]))
     const brand = new Element('brand')
+    const location = {
+        pathname,
+        protocol: 'https:',
+        search,
+        hash,
+        href: '',
+        reload() {},
+    }
+    const historyCalls = []
+    const history = {
+        replaceState(_state, _title, href) {
+            historyCalls.push(href)
+            const next = new URL(href, 'https://screens.example')
+            location.pathname = next.pathname
+            location.search = next.search
+            location.hash = next.hash
+        },
+    }
+    elements.location = location
+    elements.historyCalls = historyCalls
     let resolveResponse
     const response = new Promise((resolve) => {
         resolveResponse = resolve
@@ -100,14 +120,8 @@ async function loadLanding(pathname, { ok = true, index = [], report } = {}) {
             url.endsWith('/index.json')
                 ? Promise.resolve({ ok: true, status: 200, json: async () => index })
                 : response,
-        location: {
-            pathname,
-            protocol: 'https:',
-            search: '',
-            hash: '',
-            href: '',
-            reload() {},
-        },
+        history,
+        location,
         window: {},
     })
     vm.runInContext(viewer, context, {
@@ -207,12 +221,14 @@ test('landing locale selector filters published versions', async () => {
     elements.get('locale').dispatch('change')
     assert.equal(elements.get('versions').children.length, 1)
     assert.match(elements.get('versions').children[0].textContent, /Español/)
+    assert.equal(elements.location.search, '?source=synthetic&locale=es-419')
 })
 
-test('landing source selector separates deterministic app states from real backend journeys', async () => {
+test('landing source selector restores and shares deterministic or real journey filters', async () => {
     const syntheticPath = '2026-09-14/dev/en/' + 'a'.repeat(40)
     const nutcrackerPath = '2026-09-14/nutcracker/en/' + 'b'.repeat(40)
     const elements = await loadLanding('/', {
+        search: '?source=nutcracker&locale=en',
         index: [
             { path: syntheticPath, date: '2026-09-14', label: 'dev', locale: 'en', source: 'synthetic' },
             {
@@ -225,13 +241,14 @@ test('landing source selector separates deterministic app states from real backe
         ],
     })
     assert.equal(elements.get('source').children.length, 2)
-    assert.equal(elements.get('source').value, 'synthetic')
-    assert.equal(elements.get('versions').children[0].href, `/screens/${syntheticPath}/`)
-    elements.get('source').value = 'nutcracker'
+    assert.equal(elements.get('source').value, 'nutcracker')
+    assert.equal(elements.get('versions').children[0].href, `/screens/${nutcrackerPath}/?source=nutcracker&locale=en`)
+    assert.match(elements.get('title').textContent, /Real backend journeys/)
+    elements.get('source').value = 'synthetic'
     elements.get('source').dispatch('change')
     assert.equal(elements.get('versions').children.length, 1)
-    assert.equal(elements.get('versions').children[0].href, `/screens/${nutcrackerPath}/`)
-    assert.match(elements.get('title').textContent, /Real backend journeys/)
+    assert.equal(elements.get('versions').children[0].href, `/screens/${syntheticPath}/?source=synthetic&locale=en`)
+    assert.equal(elements.location.search, '?source=synthetic&locale=en')
 })
 
 test('comparison reports ignore legacy public image URLs and can switch to the full catalogue', async () => {
@@ -295,6 +312,56 @@ test('comparison reports ignore legacy public image URLs and can switch to the f
     elements.get('view-mode').dispatch('change')
     assert.equal(elements.get('screens').children.length, 2)
     assert.equal(elements.get('screens').children[0].children[1].className, 'pair single')
+})
+
+test('report filters restore from and continuously update the shareable URL', async () => {
+    const image = 'a'.repeat(64) + '.png'
+    const path = '2026-09-11/pr-1/en/' + 'b'.repeat(40)
+    const report = {
+        schema: 1,
+        type: 'comparison',
+        locale: 'en',
+        complete: true,
+        before: { commit: 'a'.repeat(40), capturedAt: 'now', environment: 'test' },
+        after: { commit: 'b'.repeat(40), capturedAt: 'now', environment: 'test' },
+        screens: [
+            {
+                id: 'changed',
+                name: 'Changed screen',
+                flow: 'Home',
+                kind: 'route',
+                status: 'changed',
+                before: { status: 'captured', image, thumbnail: image },
+                after: { status: 'captured', image, thumbnail: image },
+            },
+            {
+                id: 'unchanged',
+                name: 'Unchanged screen',
+                flow: 'Home',
+                kind: 'route',
+                status: 'unchanged',
+                before: { status: 'captured', image, thumbnail: image },
+                after: { status: 'captured', image, thumbnail: image },
+            },
+        ],
+    }
+    const elements = await loadLanding(`/screens/${path}/`, {
+        index: [{ path, locale: 'en', source: 'synthetic' }],
+        report,
+        search: '?source=synthetic&locale=en&q=changed&flow=Home&status=changed&view=all',
+    })
+    assert.equal(elements.get('search').value, 'changed')
+    assert.equal(elements.get('flow').value, 'Home')
+    assert.equal(elements.get('status').value, 'changed')
+    assert.equal(elements.get('view-mode').checked, true)
+    assert.equal(elements.get('screens').children.length, 1)
+
+    elements.get('search').value = 'Changed screen'
+    elements.get('search').dispatch('input')
+    assert.equal(
+        elements.location.search,
+        '?source=synthetic&locale=en&q=Changed+screen&flow=Home&status=changed&view=all'
+    )
 })
 
 test('screen lists load the first page and leave the next page for scroll loading', async () => {

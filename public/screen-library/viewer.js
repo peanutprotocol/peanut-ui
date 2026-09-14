@@ -25,6 +25,19 @@ const localeLabel = (locale) => LOCALE_LABELS[locale] ?? locale ?? 'English'
 const localeCode = (locale) => LOCALE_CODES[locale] ?? locale ?? 'EN'
 const SOURCE_LABELS = { synthetic: 'App states', nutcracker: 'Real journeys' }
 const entrySource = (entry) => entry?.source ?? 'synthetic'
+const FILTER_STATUSES = new Set([
+    'differences',
+    'changed',
+    'added',
+    'removed',
+    'unchanged',
+    'unavailable',
+    'captured',
+    'passed',
+    'failed',
+    'excluded',
+    'absent',
+])
 const localeSlugs = new Set(['en', 'es-419', 'es-ar', 'pt-br'])
 const withoutLocale = (path) =>
     path
@@ -71,6 +84,32 @@ let rows = [],
     renderedCount = 0
 const PAGE_SIZE = 24
 const unavailable = (s) => !s || !s.image
+const requestedFilter = (name) => new URLSearchParams(location.search ?? '').get(name) ?? ''
+function shareableParams(overrides = {}) {
+    const params = new URLSearchParams()
+    const source = overrides.source ?? $('source').value
+    const locale = overrides.locale ?? $('locale').value
+    if (source) params.set('source', source)
+    if (locale) params.set('locale', locale)
+    if (report) {
+        const query = overrides.q ?? $('search').value.trim()
+        const flow = overrides.flow ?? $('flow').value
+        const status = overrides.status ?? $('status').value
+        if (query) params.set('q', query)
+        if (flow) params.set('flow', flow)
+        if (status) params.set('status', status)
+        if (report.type === 'comparison') params.set('view', overrides.view ?? viewMode)
+    }
+    return params
+}
+function shareableHref(pathname = location.pathname, overrides, hash = location.hash ?? '') {
+    const query = shareableParams(overrides).toString()
+    return `${pathname}${query ? `?${query}` : ''}${hash}`
+}
+function syncShareableUrl() {
+    if (!offline && typeof history !== 'undefined' && typeof history.replaceState === 'function')
+        history.replaceState(null, '', shareableHref())
+}
 function zoom(row, mode = 'side') {
     active = row
     const single = mode === 'screen' || report?.type !== 'comparison' || viewMode === 'all'
@@ -274,11 +313,10 @@ function populateLocale(entries, selected) {
     return value
 }
 function renderLanding() {
-    const selectedSource = populateSource(indexEntries, $('source').value)
+    const selectedSource = populateSource(indexEntries, $('source').value || requestedFilter('source'))
     const sourceEntries = indexEntries.filter((entry) => entrySource(entry) === selectedSource)
     const current = $('locale').value
-    const requested = new URLSearchParams(location.search ?? '').get('locale')
-    const selected = populateLocale(sourceEntries, current || requested)
+    const selected = populateLocale(sourceEntries, current || requestedFilter('locale'))
     const visible = sourceEntries.filter((entry) => entry.locale === selected)
     const real = selectedSource === 'nutcracker'
     $('title').textContent = real ? 'Real backend journeys.' : 'Every screen. Every change.'
@@ -291,9 +329,10 @@ function renderLanding() {
     for (const v of visible) {
         if (!/^[a-z0-9/-]+$/.test(v.path)) continue
         const a = el('a', `${v.date} · ${v.label}${v.complete ? '' : ' · Incomplete'}`, 'version')
-        a.href = `/screens/${v.path}/`
+        a.href = shareableHref(`/screens/${v.path}/`, { source: selectedSource, locale: selected }, '')
         $('versions').append(a)
     }
+    syncShareableUrl()
 }
 async function configureReportLocales(reportPath) {
     if (offline) {
@@ -429,8 +468,19 @@ async function start() {
         o.value = f
         $('flow').append(o)
     }
-    if (report.type === 'comparison') $('status').value = 'differences'
     await configureReportLocales(reportPath)
+    const requestedView = requestedFilter('view')
+    if (report.type === 'comparison' && ['all', 'changed'].includes(requestedView)) viewMode = requestedView
+    $('view-mode').checked = viewMode === 'all'
+    $('search').value = requestedFilter('q').slice(0, 200)
+    const requestedFlow = requestedFilter('flow')
+    $('flow').value = rows.some((row) => row.flow === requestedFlow) ? requestedFlow : ''
+    const requestedStatus = requestedFilter('status')
+    $('status').value = FILTER_STATUSES.has(requestedStatus)
+        ? requestedStatus
+        : report.type === 'comparison' && viewMode === 'changed'
+          ? 'differences'
+          : ''
     render()
     if (location.hash) {
         viewMode = 'all'
@@ -440,13 +490,18 @@ async function start() {
         while (!document.getElementById(location.hash.slice(1)) && renderedCount < filteredRows.length) appendNextPage()
         document.getElementById(location.hash.slice(1))?.scrollIntoView()
     }
+    syncShareableUrl()
 }
-for (const name of ['search', 'flow', 'status']) $(name).addEventListener('input', render)
+for (const name of ['search', 'flow', 'status'])
+    $(name).addEventListener('input', () => {
+        render()
+        syncShareableUrl()
+    })
 $('locale').addEventListener('change', () => {
     if (report && reportLocaleEntries.length) {
         const entry = reportLocaleEntries.find((candidate) => candidate.locale === $('locale').value)
         if (entry && /^[a-z0-9/-]+$/.test(entry.path) && !offline) {
-            location.href = `/screens/${entry.path}/`
+            location.href = shareableHref(`/screens/${entry.path}/`, { locale: entry.locale }, '')
             return
         }
     }
@@ -457,7 +512,14 @@ $('source').addEventListener('change', () => {
         const candidates = indexEntries.filter((entry) => entrySource(entry) === $('source').value)
         const entry = candidates.find((candidate) => candidate.locale === (report.locale ?? 'en')) ?? candidates[0]
         if (entry && /^[a-z0-9/-]+$/.test(entry.path) && !offline) {
-            location.href = `/screens/${entry.path}/`
+            location.href = shareableHref(
+                `/screens/${entry.path}/`,
+                {
+                    source: entrySource(entry),
+                    locale: entry.locale,
+                },
+                ''
+            )
             return
         }
     }
@@ -467,6 +529,7 @@ $('view-mode').addEventListener('change', () => {
     viewMode = $('view-mode').checked ? 'all' : 'changed'
     $('status').value = viewMode === 'changed' ? 'differences' : ''
     render()
+    syncShareableUrl()
 })
 $('close').onclick = () => $('zoom').close()
 $('side').onclick = () => zoom(active, 'side')

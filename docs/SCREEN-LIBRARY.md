@@ -8,6 +8,10 @@ complete visual baseline; Nutcracker supplies integration evidence for the subse
 of states reachable through real journeys. Native system dialogs remain outside
 the library.
 
+Gallery filters are URL-backed. Source, locale, search, flow, status, and
+all/changed mode are restored from the query string, so copying the browser URL
+shares the exact visible view.
+
 Only Nutcracker PNGs and a small allowlisted manifest are published. Replay
 credentials, database snapshots, API traces, console output and provider details
 stay in the private GitHub Actions artifact and never enter R2.
