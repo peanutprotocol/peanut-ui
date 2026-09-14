@@ -163,7 +163,10 @@ const InvitesPage = () => {
                                     <div className="flex items-center gap-3">
                                         <TransactionAvatarBadge
                                             initials={getInitialsFromName(displayName)}
-                                            userName={displayName}
+                                            // The invitee's own handle, so the letter fallback
+                                            // matches their profile.
+                                            userName={username}
+                                            avatarKey={invite.avatarKey}
                                             isLinkTransaction={false}
                                             transactionType={'send'}
                                             context="card"
