@@ -35,6 +35,8 @@ const elementIds = [
     'screen-filters',
     'dashboard-filters',
     'filters-row',
+    'date-filter',
+    'date-strip',
     'versions',
     'screens',
     'screen-load-more',
@@ -54,6 +56,7 @@ class Element {
         this.checked = false
         this.textContent = ''
         this.className = ''
+        this.dataset = {}
         this.listeners = new Map()
     }
 
@@ -79,6 +82,9 @@ class Element {
         this.open = false
     }
 }
+
+const versionGroups = (elements) => elements.get('versions').children
+const versionLinks = (elements) => versionGroups(elements).flatMap((group) => group.children[1]?.children ?? [])
 
 async function loadLanding(pathname, { ok = true, index = [], report, search = '', hash = '' } = {}) {
     const elements = new Map(elementIds.map((id) => [id, new Element(id)]))
@@ -190,7 +196,9 @@ test('landing catalogue hides screen controls on the root URL and deployed alias
         })
         assert.equal(elements.get('screen-filters').hidden, true, pathname)
         assert.equal(elements.get('dashboard-filters').hidden, false, pathname)
-        assert.equal(elements.get('versions').children.length, 1, pathname)
+        assert.equal(elements.get('date-filter').hidden, false, pathname)
+        assert.equal(versionGroups(elements).length, 1, pathname)
+        assert.equal(versionLinks(elements).length, 1, pathname)
         assert.equal(elements.get('screens').children.length, 0, pathname)
     }
 })
@@ -216,11 +224,11 @@ test('landing locale selector filters published versions', async () => {
     assert.equal(elements.get('locale').value, 'en')
     assert.equal(elements.get('locale').children[0].textContent, 'EN')
     assert.equal(elements.get('locale').children[1].textContent, 'ES-419')
-    assert.equal(elements.get('versions').children.length, 1)
+    assert.equal(versionLinks(elements).length, 1)
     elements.get('locale').value = 'es-419'
     elements.get('locale').dispatch('change')
-    assert.equal(elements.get('versions').children.length, 1)
-    assert.match(elements.get('versions').children[0].textContent, /Español/)
+    assert.equal(versionLinks(elements).length, 1)
+    assert.match(versionLinks(elements)[0].textContent, /Español/)
     assert.equal(elements.location.search, '?source=synthetic&locale=es-419')
 })
 
@@ -242,13 +250,51 @@ test('landing source selector restores and shares deterministic or real journey 
     })
     assert.equal(elements.get('source').children.length, 2)
     assert.equal(elements.get('source').value, 'nutcracker')
-    assert.equal(elements.get('versions').children[0].href, `/screens/${nutcrackerPath}/?source=nutcracker&locale=en`)
+    assert.equal(versionLinks(elements)[0].href, `/screens/${nutcrackerPath}/?source=nutcracker&locale=en`)
     assert.match(elements.get('title').textContent, /Real backend journeys/)
     elements.get('source').value = 'synthetic'
     elements.get('source').dispatch('change')
-    assert.equal(elements.get('versions').children.length, 1)
-    assert.equal(elements.get('versions').children[0].href, `/screens/${syntheticPath}/?source=synthetic&locale=en`)
+    assert.equal(versionLinks(elements).length, 1)
+    assert.equal(versionLinks(elements)[0].href, `/screens/${syntheticPath}/?source=synthetic&locale=en`)
     assert.equal(elements.location.search, '?source=synthetic&locale=en')
+})
+
+test('landing groups versions by date and exposes a shareable horizontal date filter', async () => {
+    const latest = '2026-09-14'
+    const older = '2026-09-12'
+    const index = [
+        { path: `${latest}/pr-2/en/${'b'.repeat(40)}`, date: latest, label: 'PR 2', locale: 'en' },
+        { path: `${latest}/dev/en/${'a'.repeat(40)}`, date: latest, label: 'Dev', locale: 'en' },
+        { path: `${older}/pr-1/en/${'c'.repeat(40)}`, date: older, label: 'PR 1', locale: 'en' },
+    ]
+    const elements = await loadLanding('/', {
+        index,
+    })
+    assert.equal(versionGroups(elements).length, 2)
+    assert.equal(versionGroups(elements)[0].children[0].textContent, 'September 14, 2026')
+    assert.equal(versionGroups(elements)[0].children[1].children.length, 2)
+    assert.equal(versionGroups(elements)[1].children[0].textContent, 'September 12, 2026')
+
+    const dateButtons = elements.get('date-strip').children
+    const latestButton = dateButtons.find((button) => button.textContent === '14 Sep')
+    const gapButton = dateButtons.find((button) => button.textContent === '13 Sep')
+    assert.equal(gapButton.disabled, true)
+    assert.match(gapButton.className, /unavailable/)
+    latestButton.onclick()
+    assert.equal(versionGroups(elements).length, 1)
+    assert.equal(versionLinks(elements).length, 2)
+    assert.equal(elements.location.search, '?source=synthetic&locale=en&date=2026-09-14')
+    assert.match(elements.get('coverage').textContent, /on September 14, 2026/)
+
+    const restored = await loadLanding('/', {
+        search: '?source=synthetic&locale=en&date=2026-09-12',
+        index,
+    })
+    assert.equal(versionGroups(restored).length, 1)
+    assert.equal(versionGroups(restored)[0].children[0].textContent, 'September 12, 2026')
+    restored.get('date-strip').children[0].onclick()
+    assert.equal(versionGroups(restored).length, 2)
+    assert.equal(restored.location.search, '?source=synthetic&locale=en')
 })
 
 test('comparison reports ignore legacy public image URLs and can switch to the full catalogue', async () => {
