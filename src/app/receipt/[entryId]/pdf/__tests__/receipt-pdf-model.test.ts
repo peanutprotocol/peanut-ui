@@ -61,10 +61,10 @@ describe('buildReceiptPdfModel — completed bank withdraw', () => {
 
     // Manteca synthetic ids are case-sensitive lookup keys: an id that was
     // uppercased could not be used to find the entry it belongs to.
-    test('keeps a mixed-case receipt id verbatim in its transaction row', () => {
+    test('keeps a mixed-case receipt id verbatim in its reference row', () => {
         const mixed = { ...baseTx, id: 'MaNtEcA-Qr-7f3B-AbCd' }
         const m = buildReceiptPdfModel(mixed, t, 'en')
-        expect(row(m, 'transaction.rows.transferId')).toBe('MaNtEcA-Qr-7f3B-AbCd')
+        expect(row(m, 'transaction.officialReceipt.reference')).toBe('MaNtEcA-Qr-7f3B-AbCd')
     })
 
     test('carries the official-document header and footer facts', () => {
@@ -94,6 +94,12 @@ describe('buildReceiptPdfModel — completed bank withdraw', () => {
         expect(row(model, 'transaction.rows.txId')).toBe(baseTx.txHash)
         // bank_withdraw carries its transfer reference
         expect(row(model, 'transaction.rows.transferId')).toBe(baseTx.id)
+        expect(row(model, 'transaction.officialReceipt.reference')).toBe(baseTx.id)
+        expect(labels(model).slice(-3)).toEqual([
+            'transaction.rows.txId',
+            'transaction.rows.transferId',
+            'transaction.officialReceipt.reference',
+        ])
         expect(labels(model)).not.toContain('transaction.rows.pointsEarned')
     })
 
@@ -151,6 +157,27 @@ describe('buildReceiptPdfModel — variants', () => {
         expect(value).toBeDefined()
         expect(value).not.toBe('ES9121000418450200051332')
         expect(value).toContain('1332')
+        expect(labels(model).slice(-4)).toEqual([
+            'IBAN',
+            'transaction.rows.txId',
+            'transaction.rows.transferId',
+            'transaction.officialReceipt.reference',
+        ])
+    })
+
+    test('keeps a reference when transaction and transfer ids are unavailable', () => {
+        const model = buildReceiptPdfModel(
+            withOverrides({ direction: 'card', txHash: undefined }, { transactionCardType: 'card_payment' }),
+            t,
+            'en'
+        )
+
+        expect(labels(model)).not.toContain('transaction.rows.txId')
+        expect(labels(model)).not.toContain('transaction.rows.transferId')
+        expect(model.rows.at(-1)).toEqual({
+            label: 'transaction.officialReceipt.reference',
+            value: baseTx.id,
+        })
     })
 
     test('cancelled entries drop fee/bank/transfer rows but keep the Date field', () => {
@@ -169,6 +196,10 @@ describe('buildReceiptPdfModel — variants', () => {
         expect(labels(model)).not.toContain('transaction.rows.fee')
         expect(labels(model)).not.toContain('transaction.rows.transferId')
         expect(labels(model)).not.toContain('IBAN')
+        expect(model.rows.at(-1)).toEqual({
+            label: 'transaction.officialReceipt.reference',
+            value: baseTx.id,
+        })
     })
 
     test('memo renders as the comment row, memoKey preferred over raw memo', () => {
@@ -262,23 +293,24 @@ describe('buildReceiptPdfModel — variants', () => {
 })
 
 describe('buildReceiptPdfModel — app locales', () => {
-    const localizedCopy: ReadonlyArray<[AppLocale, string, string]> = [
-        ['en', 'Transaction Receipt', 'Date'],
-        ['es-419', 'Comprobante de la transacción', 'Fecha'],
-        ['es-AR', 'Comprobante de la transacción', 'Fecha'],
-        ['pt-BR', 'Comprovante da transação', 'Data'],
+    const localizedCopy: ReadonlyArray<[AppLocale, string, string, string]> = [
+        ['en', 'Transaction Receipt', 'Date', 'Reference'],
+        ['es-419', 'Comprobante de la transacción', 'Fecha', 'Referencia'],
+        ['es-AR', 'Comprobante de la transacción', 'Fecha', 'Referencia'],
+        ['pt-BR', 'Comprovante da transação', 'Data', 'Referência'],
     ]
 
     test('covers every supported app locale', () => {
         expect(localizedCopy.map(([locale]) => locale)).toEqual(APP_LOCALES)
     })
 
-    test.each(localizedCopy)('renders receipt copy in %s', async (locale, title, dateLabel) => {
+    test.each(localizedCopy)('renders receipt copy in %s', async (locale, title, dateLabel, referenceLabel) => {
         const messages = await loadMessages(locale)
         const translate = createTranslator({ locale, messages }) as PdfTranslate
         const model = buildReceiptPdfModel(baseTx, translate, locale)
 
         expect(model.title).toBe(title)
         expect(model.rows[0].label).toBe(dateLabel)
+        expect(model.rows.at(-1)?.label).toBe(referenceLabel)
     })
 })

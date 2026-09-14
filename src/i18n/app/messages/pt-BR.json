@@ -2040,7 +2040,7 @@
         "drawerTitle": "Detalhes da transação",
         "officialReceipt": {
             "issuedBy": "Emitido pela Squirrel Labs Ltd",
-            "reference": "Referência do recibo",
+            "reference": "Referência",
             "issuedOn": "Emitido em",
             "pdf": {
                 "title": "Comprovante da transação",

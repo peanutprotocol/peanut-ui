@@ -164,20 +164,14 @@ export function buildReceiptPdfModel(
         push(t('transaction.rows.fee'), formatAmount(transaction.fee as number))
     }
 
-    if (transaction.txHash) {
-        push(t('transaction.rows.txId'), transaction.txHash)
+    if (transaction.memo?.trim() && allowCancelledSenderFields) {
+        push(t('common.comment'), transaction.memoKey ? t(`transaction.${transaction.memoKey}`) : transaction.memo)
     }
 
-    if (
-        (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim') &&
-        transaction.id &&
-        !isCancelled
-    ) {
-        push(t('transaction.rows.transferId'), transaction.id)
-    }
-
-    // Always masked: PDF files are explicitly downloadable/shareable, so the
-    // unmasked guest-claim exception the in-app receipt makes does not apply.
+    // Keep the account and identifier block at the end of the document. Always
+    // mask bank identifiers: PDF files are explicitly downloadable/shareable,
+    // so the unmasked guest-claim exception the in-app receipt makes does not
+    // apply.
     if (transaction.bankAccountDetails?.identifier && !isCancelled) {
         const labelKey = bankAccountLabelKey(transaction.bankAccountDetails.type)
         const label =
@@ -190,9 +184,21 @@ export function buildReceiptPdfModel(
         )
     }
 
-    if (transaction.memo?.trim() && allowCancelledSenderFields) {
-        push(t('common.comment'), transaction.memoKey ? t(`transaction.${transaction.memoKey}`) : transaction.memo)
+    if (transaction.txHash) {
+        push(t('transaction.rows.txId'), transaction.txHash)
     }
+
+    if (
+        (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim') &&
+        transaction.id &&
+        !isCancelled
+    ) {
+        push(t('transaction.rows.transferId'), transaction.id)
+    }
+
+    // The history-entry id is the one identifier every receipt can use to tie
+    // a renamed or printed document back to the source activity.
+    push(t('transaction.officialReceipt.reference'), transaction.id)
 
     const numericAmount = Number(transaction.amount)
     // A request pot's `amount` is its goal, not proof of money received. The
