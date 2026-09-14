@@ -3,7 +3,13 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import AvatarWithBadge, { type AvatarSize } from '@/components/Profile/AvatarWithBadge'
 import { UserAvatar } from '@/components/Avatar/UserAvatar'
 import { type TransactionType } from '@/components/TransactionDetails/transaction-types'
-import { AVATAR_LINK_BG, AVATAR_TEXT_DARK, AVATAR_TEXT_LIGHT, AVATAR_WALLET_BG } from '@/utils/color.utils'
+import {
+    AVATAR_LINK_BG,
+    AVATAR_TEXT_DARK,
+    AVATAR_TEXT_LIGHT,
+    AVATAR_WALLET_BG,
+    getColorForUsername,
+} from '@/utils/color.utils'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import React from 'react'
 import { isAddress } from 'viem'
@@ -34,6 +40,14 @@ interface TransactionAvatarBadgeProps {
      * Falls back to `userName`.
      */
     avatarName?: string
+    /**
+     * The authoritative "there is a person behind this row" flag, when the
+     * caller has one. `undefined` keeps this component's own heuristic (a named
+     * row that is not an address). Pass `false` for a row whose name is system
+     * copy — a reaper-failed transfer reads "Send didn't complete", which has
+     * initials and is not an address, so nothing else here would catch it.
+     */
+    isPeer?: boolean
 }
 
 /**
@@ -50,6 +64,7 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
     countryCode,
     avatarKey,
     avatarName,
+    isPeer,
 }) => {
     let displayIconName: IconName | undefined = undefined
     let displayInitials: string | undefined = initials
@@ -137,6 +152,14 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
                 displayInitials = undefined
                 calculatedBgColor = AVATAR_WALLET_BG
                 iconFillColor = AVATAR_TEXT_DARK
+            } else if (displayInitials && isPeer === false) {
+                // Named, but nobody is behind it — the transformer rewrote the
+                // name to system copy. Keep the initials circle: a sticker here
+                // would draw a face for a failure message.
+                const colors = getColorForUsername(userName)
+                calculatedBgColor = colors.lightShade
+                textColor = colors.darkShade
+                displayIconName = undefined
             } else if (displayInitials) {
                 // The one branch with a person behind it, so it shows who they
                 // are: their picked avatar, or the letter sticker drawn from

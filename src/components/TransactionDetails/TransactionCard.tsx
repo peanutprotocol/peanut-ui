@@ -270,6 +270,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
             userName={userNameForAvatar}
             avatarName={avatarNameForAvatar}
             avatarKey={transaction.avatarKey}
+            isPeer={transaction.isPeerActuallyUser}
             isLinkTransaction={isLinkTx}
             transactionType={type}
             context="card"

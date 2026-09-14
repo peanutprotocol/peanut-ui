@@ -426,6 +426,23 @@ describe('TransactionCard — counterparty avatar', () => {
         expect(img(container)).toHaveAttribute('src', '/avatars/letter/n.webp')
     })
 
+    // A reaper-failed transfer has its name rewritten to system copy ("Send
+    // didn't complete"): named, not an address, and nobody behind it.
+    it('draws no person avatar for a system failure label', () => {
+        const tx = {
+            ...eligibleTx(),
+            userName: "Send didn't complete",
+            isPeerActuallyUser: false,
+            avatarKey: null,
+        } as TransactionDetails
+
+        const { container } = renderRow(tx)
+
+        expect(img(container)).toBeNull()
+        // the initials circle it had before this PR, not a letter sticker
+        expect(container).toHaveTextContent('SD')
+    })
+
     it('leaves a bank row on its bank icon', () => {
         const tx = { ...eligibleTx('bank_request_fulfillment'), avatarKey: 'basic.frog' } as TransactionDetails
 

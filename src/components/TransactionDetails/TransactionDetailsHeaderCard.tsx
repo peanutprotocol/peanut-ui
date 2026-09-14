@@ -44,6 +44,9 @@ interface TransactionDetailsHeaderCardProps {
     /** The counterparty's picked profile avatar (TASK-22625). A merchant
      *  `avatarUrl` still wins — it identifies the payee more precisely. */
     avatarKey?: string | null
+    /** `false` for a row whose name is system copy (a reaper-failed transfer),
+     *  so the avatar slot does not draw a face for a failure message. */
+    isPeer?: boolean
     haveSentMoneyToUser?: boolean
     isNameClickable?: boolean
     isAvatarClickable?: boolean
@@ -214,6 +217,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     transactionType,
     avatarUrl,
     avatarKey,
+    isPeer,
     haveSentMoneyToUser = false,
     isNameClickable = false,
     isAvatarClickable = false,
@@ -298,6 +302,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                             userName={nameForAvatar}
                             avatarName={avatarNameForAvatar}
                             avatarKey={avatarKey}
+                            isPeer={isPeer}
                             isLinkTransaction={isLinkTransaction}
                             transactionType={typeForAvatar}
                             context="header"

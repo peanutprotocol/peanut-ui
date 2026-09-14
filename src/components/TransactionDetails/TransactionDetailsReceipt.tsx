@@ -190,6 +190,7 @@ export const TransactionDetailsReceipt = ({
                 transactionType={transaction.extraDataForDrawer?.transactionCardType}
                 avatarUrl={avatarUrl ?? getAvatarUrl(transaction)}
                 avatarKey={transaction.avatarKey}
+                isPeer={transaction.isPeerActuallyUser}
                 haveSentMoneyToUser={transaction.haveSentMoneyToUser}
                 isNameClickable={isNameClickable}
                 isAvatarClickable={isAvatarClickable}
