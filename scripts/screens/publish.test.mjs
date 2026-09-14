@@ -129,7 +129,10 @@ test('publication accepts sanitized Nutcracker journeys without changing the syn
     try {
         const assets = join(dir, 'assets')
         mkdirSync(assets)
-        const original = new PNG({ width: 1170, height: 1992 })
+        // Nutcracker captures full pages. At the exporter's 197px thumbnail
+        // width, this produces a 197x1970 WebP: valid for journeys, but larger
+        // than the synthetic capture decoder ceiling.
+        const original = new PNG({ width: 240, height: 2400 })
         original.data.fill(127)
         const originalName = storeAsset(assets, PNG.sync.write(original))
         const { default: sharp } = await import('sharp')

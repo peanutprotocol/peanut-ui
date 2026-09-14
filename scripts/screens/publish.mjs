@@ -74,7 +74,7 @@ export async function publishReport({ inputDir, reportPath, env = process.env, s
             const bytes = verifyAsset(assets, name, { variableDimensions: report.type === 'journeys' })
             if (name.endsWith('.webp')) {
                 const meta = await sharp(bytes, {
-                    limitInputPixels: 393 * 852,
+                    limitInputPixels: report.type === 'journeys' ? 197 * 2000 : 393 * 852,
                 }).metadata()
                 if (
                     meta.width !== 197 ||
