@@ -3,6 +3,8 @@ import { renderWithIntl } from '@/test-utils/intl'
 import { getRedirectUrl, saveToLocalStorage, setRedirectUrl } from '@/utils/general.utils'
 import SignTestTransaction from '../SignTestTransaction'
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const WALLET = '0x1111111111111111111111111111111111111111'
 
@@ -36,7 +38,13 @@ jest.mock('@/context/authContext', () => ({
 }))
 
 jest.mock('@/features/setup/SetupFlowContext', () => ({
-    useSetupFlowContext: () => ({ residenceCountry: '', secondResidenceCountry: '', setIsLoading: jest.fn() }),
+    useSetupFlowContext: () => ({
+        residenceCountry: '',
+        secondResidenceCountry: '',
+        setIsLoading: jest.fn(),
+        steps: [{ screenId: 'signup' }, { screenId: 'passkey-permission' }, { screenId: 'sign-test-transaction' }],
+        signupEntryFlow: 'default',
+    }),
 }))
 
 jest.mock('@/app/actions/users', () => ({ updateUserById: jest.fn() }))
@@ -75,10 +83,22 @@ describe('SignTestTransaction — the account-ready screen', () => {
 
         await screen.findByText(/works right now/i)
         await waitFor(() => expect(mockAddAccount).toHaveBeenCalled())
+        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_STEP_VIEWED, {
+            screen_id: 'account-ready',
+            step_index: 4,
+            total_steps: 4,
+            nav_type: 'forward',
+            flow_version: 1,
+            signup_entry_flow: 'default',
+        })
         expect(mockRouterPush).not.toHaveBeenCalled()
         expect(mockRouterReplace).not.toHaveBeenCalled()
 
         fireEvent.click(screen.getByRole('button', { name: /go to my account/i }))
+        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_ACCOUNT_READY_CTA_CLICKED, {
+            flow_version: 1,
+            signup_entry_flow: 'default',
+        })
         expect(mockRouterReplace).toHaveBeenCalledWith('/home')
         expect(mockRouterPush).not.toHaveBeenCalled()
     })
@@ -97,6 +117,11 @@ describe('SignTestTransaction — the account-ready screen', () => {
         fireEvent.click(cta)
         fireEvent.click(cta)
 
+        expect(
+            jest
+                .mocked(posthog.capture)
+                .mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.SIGNUP_ACCOUNT_READY_CTA_CLICKED)
+        ).toHaveLength(1)
         expect(mockRouterReplace).toHaveBeenCalledTimes(1)
         expect(mockRouterReplace).toHaveBeenCalledWith('/receipt?id=abc')
     })
