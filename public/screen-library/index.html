@@ -59,6 +59,7 @@
                 </div>
                 <div id="filters-row" class="filters-row">
                     <nav id="dashboard-filters" class="filters" aria-label="Filter published versions" hidden>
+                        <label id="source-control">Source<select id="source"></select></label>
                         <label id="locale-control">Locale<select id="locale"></select></label>
                     </nav>
                     <nav id="screen-filters" class="filters" aria-label="Filter screens">
@@ -78,6 +79,7 @@
                                 <option value="unchanged">Unchanged</option>
                                 <option value="unavailable">Unavailable</option>
                                 <option value="captured">Captured (library)</option>
+                                <option value="passed">Journey passed</option>
                                 <option value="failed">Capture failed</option>
                                 <option value="excluded">Excluded</option>
                                 <option value="absent">Absent in revision</option>
