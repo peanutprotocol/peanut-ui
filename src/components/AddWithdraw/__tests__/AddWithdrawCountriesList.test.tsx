@@ -16,11 +16,20 @@
 import React from 'react'
 import { render as rtlRender, screen, fireEvent, within, act, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
+import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import AddWithdrawCountriesList from '../AddWithdrawCountriesList'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { addBankAccount } from '@/app/actions/users'
 
-const render = (ui: React.ReactElement) => rtlRender(<IntlWrapper>{ui}</IntlWrapper>)
+// the screen is named in the URL (`?step=form`), so every render needs the
+// nuqs adapter — and the tests that want the bank form say so by setting it
+let mockNuqsParams: Record<string, string> = {}
+const withProviders = (ui: React.ReactElement) => (
+    <IntlWrapper>
+        <NuqsTestingAdapter searchParams={mockNuqsParams}>{ui}</NuqsTestingAdapter>
+    </IntlWrapper>
+)
+const render = (ui: React.ReactElement) => rtlRender(withProviders(ui))
 
 // ---- routing ----
 const mockPush = jest.fn()
@@ -154,6 +163,19 @@ jest.mock('@/utils/withdraw.utils', () => ({ getCountryCodeForWithdraw: (id: str
 // top-level `Object.values(BRIDGE_ALPHA3_TO_ALPHA2)` at import time, which throws
 // under jest when consts is stubbed). The gate is mocked, so neither return value
 // affects these assertions — stub both so the real consts is never evaluated.
+// The country's live withdraw rails decide whether the rail list was skipped
+// on the way in. `null` keeps the real table, so only the test that needs a
+// multi-rail country pays for the mock.
+let mockLiveRails: unknown[] | null = null
+jest.mock('@/features/destinations/country-rails', () => {
+    const actual = jest.requireActual('@/features/destinations/country-rails')
+    return {
+        ...actual,
+        liveRailsForCountry: (...args: unknown[]) =>
+            mockLiveRails ?? (actual.liveRailsForCountry as (...a: unknown[]) => unknown)(...args),
+    }
+})
+
 jest.mock('@/utils/bridge.utils', () => ({ railJurisdictionForBank: () => 'US' }))
 jest.mock('@/utils/regions.utils', () => ({ getBankRegionIntent: () => 'STANDARD' }))
 
@@ -264,8 +286,9 @@ describe('AddWithdrawCountriesList — bank gate', () => {
         render(<AddWithdrawCountriesList flow="withdraw" />)
         fireEvent.click(screen.getByText('To Bank'))
 
-        // method chosen → land on the amount step (named screen id in the URL)
-        expect(mockPush).toHaveBeenCalledWith('/withdraw?step=amount')
+        // rail chosen → the bank-account form, named in the URL. The amount
+        // step comes after the destination now (TASK-22589).
+        expect(screen.getByTestId('bank-form')).toBeInTheDocument()
         expect(screen.queryByTestId('initiate-kyc-modal')).toBeNull()
     })
 
@@ -346,17 +369,19 @@ describe('AddWithdrawCountriesList — existing-account shortcut (Chip round 9)'
         mockSetSelectedBankAccount.mockClear()
         mockBankFormProps.mockClear()
         mockUrlAmount = '50'
+        mockNuqsParams = { step: 'form', amount: '50' }
         setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
     })
 
     afterEach(() => {
         mockUrlAmount = ''
+        mockNuqsParams = {}
     })
 
-    it('withdraw flow: a typed account that already exists selects it and routes to review with the amount', () => {
+    it('withdraw flow: a typed account that already exists selects it and carries on to the amount step', () => {
         render(<AddWithdrawCountriesList flow="withdraw" />)
 
-        // flow=withdraw + ?amount= lands straight on the bank form
+        // ?step=form names the screen — the amount no longer implies it
         expect(screen.getByTestId('bank-form')).toBeInTheDocument()
         const props = mockBankFormProps.mock.calls.at(-1)?.[0] as {
             onExistingAccount?: (account: unknown) => void
@@ -368,8 +393,24 @@ describe('AddWithdrawCountriesList — existing-account shortcut (Chip round 9)'
 
         // the account becomes the withdraw flow's destination…
         expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(existing)
-        // …and the push carries the typed amount into the review page
-        expect(mockPush).toHaveBeenCalledWith('/withdraw/testland/bank?amount=50')
+        // …and the amount step is what comes next (TASK-22589: amount last)
+        expect(mockPush).toHaveBeenCalledWith('/withdraw?step=amount&amount=50')
+    })
+
+    it('an old ?amount= link with no named step still opens the bank form', async () => {
+        mockNuqsParams = { amount: '50' }
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+
+        await waitFor(() => expect(screen.getByTestId('bank-form')).toBeInTheDocument())
+    })
+
+    // The screen was called `?view=form` for one release before the flow
+    // adopted `?step=`, the name every other flow uses. Those links still land.
+    it('an old ?view=form link still opens the bank form', async () => {
+        mockNuqsParams = { view: 'form' }
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+
+        await waitFor(() => expect(screen.getByTestId('bank-form')).toBeInTheDocument())
     })
 })
 
@@ -405,6 +446,7 @@ describe('AddWithdrawCountriesList — new-account submit hand-off (Chip round 1
         mockSetSelectedBankAccount.mockClear()
         mockBankFormProps.mockClear()
         mockUrlAmount = '50'
+        mockNuqsParams = { step: 'form', amount: '50' }
         setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
         ;(addBankAccount as jest.Mock).mockResolvedValue({ data: { id: newAccount.id } })
         // the refetched user carries the freshly added account
@@ -413,13 +455,14 @@ describe('AddWithdrawCountriesList — new-account submit hand-off (Chip round 1
 
     afterEach(() => {
         mockUrlAmount = ''
+        mockNuqsParams = {}
         mockSearchParams = new URLSearchParams()
         ;(addBankAccount as jest.Mock).mockReset()
         mockFetchUser.mockReset()
         mockFetchUser.mockResolvedValue(undefined)
     })
 
-    it('withdraw flow: the added account becomes the destination and the push carries ?amount= to review', async () => {
+    it('withdraw flow: the added account becomes the destination and the push goes to the amount step', async () => {
         render(<AddWithdrawCountriesList flow="withdraw" />)
         expect(screen.getByTestId('bank-form')).toBeInTheDocument()
 
@@ -427,7 +470,7 @@ describe('AddWithdrawCountriesList — new-account submit hand-off (Chip round 1
 
         expect(result).toEqual({})
         expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(newAccount)
-        expect(mockPush).toHaveBeenCalledWith('/withdraw/testland/bank?amount=50')
+        expect(mockPush).toHaveBeenCalledWith('/withdraw?step=amount&amount=50')
     })
 
     it('entered from the send flow, the method marker rides along with the amount', async () => {
@@ -438,7 +481,7 @@ describe('AddWithdrawCountriesList — new-account submit hand-off (Chip round 1
 
         expect(result).toEqual({})
         expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(newAccount)
-        expect(mockPush).toHaveBeenCalledWith('/withdraw/testland/bank?method=bank&amount=50')
+        expect(mockPush).toHaveBeenCalledWith('/withdraw?step=amount&method=bank&amount=50')
     })
 })
 
@@ -461,19 +504,11 @@ it('closing a cooldown also closes the underlying bank initiation prompt', async
     fireEvent.click(screen.getByTestId('method-bank'))
     expect(screen.getByTestId('initiate-kyc-modal')).toBeInTheDocument()
     mockCooldown = { retryAt: '2026-09-08T18:57:00Z' }
-    rerender(
-        <IntlWrapper>
-            <AddWithdrawCountriesList flow="add" />
-        </IntlWrapper>
-    )
+    rerender(withProviders(<AddWithdrawCountriesList flow="add" />))
     expect(screen.queryByTestId('initiate-kyc-modal')).not.toBeInTheDocument()
     fireEvent.click(screen.getByText("I'll try later"))
     mockCooldown = null
-    rerender(
-        <IntlWrapper>
-            <AddWithdrawCountriesList flow="add" />
-        </IntlWrapper>
-    )
+    rerender(withProviders(<AddWithdrawCountriesList flow="add" />))
     expect(screen.queryByTestId('initiate-kyc-modal')).not.toBeInTheDocument()
     await waitFor(() => expect(screen.queryByText("I'll try later")).not.toBeInTheDocument())
 })
@@ -488,5 +523,87 @@ describe('bank country back navigation', () => {
         fireEvent.click(screen.getByTestId('nav-header'))
         expect(mockPush).toHaveBeenCalledWith(query ? '/withdraw?showAll=true&method=bank' : '/withdraw?showAll=true')
         expect(mockSetSelectedMethod).toHaveBeenCalledWith(null)
+    })
+})
+
+/**
+ * The bank form can be reached without passing the rail list: a country with
+ * one live rail skips it, and a refresh or a shared `?step=form` link starts
+ * there. Flow memory does not survive either, so the screen has to stand on
+ * its own — both on the way out and on the way back.
+ */
+describe('AddWithdrawCountriesList — the bank form entered cold', () => {
+    beforeEach(() => {
+        mockPush.mockClear()
+        mockSetSelectedMethod.mockClear()
+        mockSetSelectedBankAccount.mockClear()
+        mockBankFormProps.mockClear()
+        mockNuqsParams = { step: 'form' }
+        setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
+        ;(addBankAccount as jest.Mock).mockResolvedValue({ data: { id: 'acct-new' } })
+        mockFetchUser.mockResolvedValue({ accounts: [{ id: 'acct-new', bridgeAccountId: 'ext-new' }] })
+    })
+
+    afterEach(() => {
+        mockNuqsParams = {}
+        mockLiveRails = null
+        ;(addBankAccount as jest.Mock).mockReset()
+        mockFetchUser.mockReset()
+        mockFetchUser.mockResolvedValue(undefined)
+    })
+
+    it('names the bank method before the amount step, so the step guard does not bounce the user back', async () => {
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+        const props = mockBankFormProps.mock.calls.at(-1)?.[0] as {
+            onSuccess: (payload: unknown, rawData: unknown) => Promise<{ error?: string }>
+        }
+        await act(async () => {
+            await props.onSuccess(
+                { countryCode: 'US', countryName: 'Testland', accountOwnerName: { firstName: 'Ada', lastName: 'L' } },
+                {}
+            )
+        })
+
+        expect(mockSetSelectedMethod).toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'bridge', countryPath: 'testland', title: 'To Bank' })
+        )
+        expect(mockPush).toHaveBeenCalledWith('/withdraw?step=amount')
+    })
+
+    it('the same applies to an account that already exists', () => {
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+        const props = mockBankFormProps.mock.calls.at(-1)?.[0] as {
+            onExistingAccount: (account: unknown) => void
+        }
+        props.onExistingAccount({ id: 'acct-1' })
+
+        expect(mockSetSelectedMethod).toHaveBeenCalledWith(expect.objectContaining({ type: 'bridge' }))
+        expect(mockPush).toHaveBeenCalledWith('/withdraw?step=amount')
+    })
+
+    it('back returns to the country pick, not the one-row rail list the user never chose', () => {
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+        fireEvent.click(screen.getByTestId('nav-header'))
+
+        expect(mockPush).toHaveBeenCalledWith('/withdraw?showAll=true')
+    })
+
+    /**
+     * A country with more than one rail HAS a rail list to go back to, and the
+     * screen is named by `step` now. Clearing `view` alone left the user on
+     * the same form, pressing back with nothing happening.
+     */
+    it('back leaves the form for the rail list when the country has more than one rail', async () => {
+        mockLiveRails = [
+            { id: 'testland-default-bank-withdraw', title: 'To Bank' },
+            { id: 'testland-cash-withdraw', title: 'Cash' },
+        ]
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+        expect(screen.getByTestId('bank-form')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByTestId('nav-header'))
+
+        await waitFor(() => expect(screen.queryByTestId('bank-form')).not.toBeInTheDocument())
+        expect(mockPush).not.toHaveBeenCalled()
     })
 })

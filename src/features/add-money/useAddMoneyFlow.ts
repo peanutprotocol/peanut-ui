@@ -2,11 +2,10 @@
 
 import type { CountryData } from '@/components/AddMoney/consts'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
+import { soleLiveRailForCountry } from '@/features/destinations/country-rails'
 import { clearRedirectUrl, getFromLocalStorage, getStoredRedirect } from '@/utils/general.utils'
 import { addMoneyCountryUrl, rewriteMethodPath } from '@/utils/native-routes'
-import { isBridgeSupportedCountry } from '@/utils/regions.utils'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { useRouter } from 'next/navigation'
 import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
@@ -82,19 +81,14 @@ export function useAddMoneyFlow() {
             country: country.path,
         })
 
-        // The user already chose "Bank" — skip the redundant per-country method
-        // list and go straight to the deposit screen. AR/BR deposit via Manteca
-        // (which surfaces Pix / Mercado Pago itself); every other bank-supported
-        // country goes to the Bridge bank flow. Countries where bank isn't live
-        // yet keep the per-country screen, which is still useful there: it shows
-        // the "coming soon" bank state and the crypto fallback.
-        if (isMantecaSupportedCountryCode(country.id)) {
-            router.push(rewriteMethodPath(`/add-money/${country.path}/manteca`))
-        } else if (isBridgeSupportedCountry(country.id)) {
-            router.push(rewriteMethodPath(`/add-money/${country.path}/bank`))
-        } else {
-            router.push(addMoneyCountryUrl(country.path))
-        }
+        // The user already chose "Bank", so the country's bank rail is the only
+        // one left to pick — skip the one-row method list and open it. The rail
+        // knows where it lives (AR/BR deposit through their own screen, which
+        // surfaces Pix / Mercado Pago itself). A country whose bank rail is not
+        // live yet keeps the per-country screen: it shows the "coming soon"
+        // state and the crypto fallback. Same helper the withdraw pick uses.
+        const rail = soleLiveRailForCountry(country.id, 'add')
+        router.push(rail?.path ? rewriteMethodPath(rail.path) : addMoneyCountryUrl(country.path))
     }
 
     // Bare /add-money (no method, no country) is not a screen of its own any

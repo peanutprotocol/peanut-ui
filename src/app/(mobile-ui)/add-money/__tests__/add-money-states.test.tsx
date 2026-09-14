@@ -677,6 +677,17 @@ jest.mock('@/components/AddMoney/consts', () => ({
     ],
     ALL_COUNTRIES_ALPHA3_TO_ALPHA2: { ARG: 'AR', BRA: 'BR', USA: 'US', DEU: 'DE', MEX: 'MX', GBR: 'GB' },
     BRIDGE_ALPHA3_TO_ALPHA2: { USA: 'US', DEU: 'DE', MEX: 'MX', GBR: 'GB' },
+    // the bank rail per country — what the country pick reads to decide whether
+    // there is anything left to choose (soleLiveRailForCountry)
+    COUNTRY_SPECIFIC_METHODS: {
+        AR: { add: [{ id: 'bank-transfer-add', path: '/add-money/argentina/manteca' }], withdraw: [] },
+        BR: { add: [{ id: 'bank-transfer-add', path: '/add-money/brazil/manteca' }], withdraw: [] },
+        US: { add: [{ id: 'bank-transfer-add', path: '/add-money/us/bank' }], withdraw: [] },
+        DE: { add: [{ id: 'bank-transfer-add', path: '/add-money/germany/bank' }], withdraw: [] },
+        MX: { add: [{ id: 'bank-transfer-add', path: '/add-money/mexico/bank' }], withdraw: [] },
+        GB: { add: [{ id: 'bank-transfer-add', path: '/add-money/uk/bank' }], withdraw: [] },
+        XX: { add: [{ id: 'bank-transfer-add', path: '/add-money/unknown/bank', isSoon: true }], withdraw: [] },
+    },
 }))
 
 jest.mock('@/components/TransactionDetails/transactionTransformer', () => ({}))

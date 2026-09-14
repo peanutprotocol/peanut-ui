@@ -80,6 +80,9 @@ const definitions: Screen[] = [
         route: f.route,
         fixture: id,
         clicks: [],
+        // a fixture whose subject IS a loader says so, and the capture has to
+        // hear it — otherwise it waits out a skeleton that never leaves
+        expectsLoading: f.isLoadingState,
     })),
     ...PAGE_CAPTURES.map((p) => ({
         ...p,

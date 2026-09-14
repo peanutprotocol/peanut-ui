@@ -24,6 +24,9 @@ export function FixtureBanner() {
         // ensureActiveFixture on the next load, which clears the session and
         // the fake cookie.
         <a
+            // the shots pipeline hides the strip on this attribute: it is
+            // scaffolding, and a screenshot of it is a screenshot of the tool
+            data-fixture-banner=""
             href={`?${FIXTURE_PARAM}=off`}
             style={{
                 position: 'fixed',

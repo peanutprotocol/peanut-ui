@@ -1,0 +1,55 @@
+'use client'
+
+/**
+ * Deposit accounts — bank details the user holds and hands to whoever pays
+ * them.
+ *
+ * The backend returns `matching` and `instructions` and nothing about the
+ * provider, so every screen renders each corridor from the same two policy
+ * fields. See `src/features/deposit-accounts/types.ts` for why those two
+ * decide what the app is allowed to say.
+ */
+
+import { apiErrorFromResponse } from '@/services/api-error'
+import { apiFetch } from '@/utils/api-fetch'
+import type { ClaimableCorridor, DepositAccount } from '@/features/deposit-accounts/types'
+import type { paths } from '@/types/api.generated'
+
+type DepositAccountsResponse = paths['/users/deposit-accounts']['get']['responses'][200]['content']['application/json']
+type ClaimResponse = paths['/users/deposit-accounts']['post']['responses'][200]['content']['application/json']
+
+/**
+ * One read answers both questions the flow asks: what the user already holds,
+ * and what the corridors they do not hold would promise a payer. The second
+ * comes from the same resolver as the first, so the claim step states the
+ * terms rather than promising them later.
+ */
+export interface DepositAccountsSnapshot {
+    accounts: DepositAccount[]
+    claimable: ClaimableCorridor[]
+}
+
+export async function fetchDepositAccounts(): Promise<DepositAccountsSnapshot> {
+    const response = await apiFetch('/users/deposit-accounts', { method: 'GET' })
+    if (!response.ok) throw await apiErrorFromResponse(response, 'Could not load your deposit accounts')
+    const body = (await response.json()) as DepositAccountsResponse
+    // An API that predates the preview sends no `claimable` at all. The claim
+    // step then states no terms, which is what it did before this field
+    // existed — never a row of defaults the screen would read as promises.
+    return { accounts: body.depositAccounts, claimable: body.claimable ?? [] }
+}
+
+/**
+ * Claim the account for one corridor. Idempotent backend-side: claiming twice
+ * returns the same account rather than opening a second one, so a double tap
+ * is harmless.
+ */
+export async function claimDepositAccount(method: string): Promise<DepositAccount> {
+    const response = await apiFetch('/users/deposit-accounts', {
+        method: 'POST',
+        body: JSON.stringify({ method }),
+    })
+    if (!response.ok) throw await apiErrorFromResponse(response, 'Could not open the account')
+    const body = (await response.json()) as ClaimResponse
+    return body.depositAccount
+}

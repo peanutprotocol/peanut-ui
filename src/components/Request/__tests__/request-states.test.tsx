@@ -50,7 +50,13 @@ jest.mock('@sentry/nextjs', () => ({
 // PostHog
 jest.mock('posthog-js', () => ({
     __esModule: true,
-    default: { capture: jest.fn(), init: jest.fn() },
+    default: {
+        capture: jest.fn(),
+        init: jest.fn(),
+        // the get-paid link on this screen is flag-gated
+        isFeatureEnabled: jest.fn(() => false),
+        onFeatureFlags: jest.fn(() => () => {}),
+    },
 }))
 
 // ---------- hooks & services ----------
@@ -101,6 +107,8 @@ jest.mock('@/utils/general.utils', () => ({
     formatAmount: jest.fn((v: any) => v ?? '0'),
     printableAddress: jest.fn((a: string) => `${a.slice(0, 6)}...${a.slice(-4)}`),
     jsonStringify: jest.fn((v: any) => JSON.stringify(v)),
+    // the get-paid link names its origin through withReturnTo, which sanitizes
+    sanitizeRedirectURL: jest.fn((url: string) => url),
 }))
 
 jest.mock('@/utils/balance.utils', () => ({

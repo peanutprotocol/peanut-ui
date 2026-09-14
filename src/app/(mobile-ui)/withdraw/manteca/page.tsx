@@ -77,6 +77,7 @@ import { isVerifiedForCountry } from '@/utils/regions.utils'
 import PixKeySendView from '@/features/withdraw/views/PixKeySendView'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useWithdrawAmount } from '@/features/withdraw/useWithdrawAmount'
+import { shouldShowAmountError } from '@/features/limits/amount-error-gating'
 import { useMantecaAmountSeed } from '@/features/withdraw/useMantecaAmountSeed'
 import { WITHDRAW_MANTECA_STEPS } from '@/features/withdraw/types'
 import { mantecaStepGuards, type MantecaOutcome } from '@/features/withdraw/step-guards'
@@ -217,6 +218,13 @@ function MantecaBankWithdrawFlow() {
         flowType: 'offramp',
         amount: usdAmount,
         currency: selectedCountry?.currency,
+    })
+    // the card is the only thing that can replace the amount message, so the
+    // message rule reads the same props the card is rendered from
+    const limitsCardProps = getLimitsWarningCardProps({
+        validation: limitsValidation,
+        flowType: 'offramp',
+        currency: limitsValidation.currency,
     })
 
     // Synchronous twin of the balanceErrorMessage effect below (same
@@ -921,8 +929,18 @@ function MantecaBankWithdrawFlow() {
             {step === 'amount' && (
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <div className="text-heading-xs text-foreground-primary">{t('amountToWithdraw')}</div>
-                    {/* only show the balance error if limits blocking card is not displayed (warnings can coexist) */}
-                    <FieldColumn error={!limitsValidation.isBlocking ? balanceErrorMessage : undefined}>
+                    {/* the balance error yields to the limits card only when that card renders */}
+                    <FieldColumn
+                        error={
+                            shouldShowAmountError({
+                                showError: !!balanceErrorMessage,
+                                showsLimitsCard: !!limitsCardProps,
+                                limitsBlocking: limitsValidation.isBlocking,
+                            })
+                                ? balanceErrorMessage
+                                : undefined
+                        }
+                    >
                         <AmountInput
                             initialAmount={currencyAmount}
                             setPrimaryAmount={setCurrencyAmount}
@@ -942,25 +960,17 @@ function MantecaBankWithdrawFlow() {
                     </FieldColumn>
 
                     {/* limits warning/error card - uses centralized helper for props */}
-                    {(() => {
-                        const limitsCardProps = getLimitsWarningCardProps({
-                            validation: limitsValidation,
-                            flowType: 'offramp',
-                            currency: limitsValidation.currency,
-                        })
-                        if (!limitsCardProps) return null
-                        return (
-                            <LimitsWarningCard
-                                {...limitsCardProps}
-                                onIncreaseLimits={
-                                    isBrEligible && limitsValidation.isBlocking
-                                        ? limitIncreaseFlow.handleInitiate
-                                        : undefined
-                                }
-                                isIncreaseLimitsLoading={limitIncreaseFlow.isLoading}
-                            />
-                        )
-                    })()}
+                    {limitsCardProps && (
+                        <LimitsWarningCard
+                            {...limitsCardProps}
+                            onIncreaseLimits={
+                                isBrEligible && limitsValidation.isBlocking
+                                    ? limitIncreaseFlow.handleInitiate
+                                    : undefined
+                            }
+                            isIncreaseLimitsLoading={limitIncreaseFlow.isLoading}
+                        />
+                    )}
 
                     <Button
                         variant="purple"

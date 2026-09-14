@@ -39,6 +39,35 @@ describe('useWebSocket — history_entry handling', () => {
         for (const key of Object.keys(handlers)) delete handlers[key]
     })
 
+    /**
+     * The snapshots are overlaid on the fetched rows, so one the refetch drops
+     * kept rendering from memory: a watcher-first deposit that adoption later
+     * cancels stayed in the home list after REST had correctly stopped
+     * returning it. The kindless ping is the authoritative "ask again", so its
+     * answer wins over anything held locally.
+     */
+    it('kindless ping clears the snapshots it supersedes, so the refetched rows win', () => {
+        const { wrapper, client } = makeWrapper()
+        const invalidateSpy = jest.spyOn(client, 'invalidateQueries')
+
+        const { result } = renderHook(() => useWebSocket({ username: 'alice' }), { wrapper })
+
+        emitHistoryEntry({
+            uuid: 'watcher-deposit',
+            type: 'TRANSACTION_INTENT',
+            status: 'PENDING',
+            extraData: { kind: 'CRYPTO_DEPOSIT' },
+        } as unknown as HistoryEntry)
+        expect(result.current.historyEntries.map((e) => e.uuid)).toEqual(['watcher-deposit'])
+
+        emitHistoryEntry({ uuid: 'watcher-deposit', type: 'TRANSACTION_INTENT', status: 'CANCELLED' } as HistoryEntry)
+
+        expect(result.current.historyEntries).toHaveLength(0)
+        // nothing is lost by dropping them: the same ping asks for the rows
+        // again, and whatever REST still returns comes back with the answer
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: [TRANSACTIONS] })
+    })
+
     // Regression for the "Sent to Transaction $0.00" flash (PEANUT-UI-QCW):
     // charge completions arrive as minimal {uuid, status} pings with no
     // extraData — the BE expects a refetch. Rendering one routes the

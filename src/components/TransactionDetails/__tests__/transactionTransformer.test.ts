@@ -513,6 +513,37 @@ describe('mapTransactionDataForDrawer', () => {
         })
     })
 
+    /**
+     * A deposit on a standing account whose refund is on its way back to the
+     * payer. The intent stays non-terminal, so its status alone reads as an
+     * ordinary deposit still in progress — `extraData.refundInFlight` is the
+     * only thing that says the money is going the other way.
+     */
+    describe('a deposit being returned to the payer', () => {
+        const returning = baseEntry({
+            userRole: EHistoryUserRole.RECIPIENT,
+            recipientAccount: aliceUser,
+            status: EHistoryStatus.PAYMENT_SUBMITTED,
+            extraData: { kind: 'ONRAMP', provider: 'BRIDGE', refundInFlight: true },
+        })
+
+        it('names the return instead of the deposit, and stays in progress', () => {
+            const result = mapTransactionDataForDrawer(returning).transactionDetails
+            expect(result.actionLabelKey).toBe('type.beingReturned')
+            expect(result.status).toBe('processing')
+        })
+
+        it('leaves an ordinary deposit alone', () => {
+            const ordinary = baseEntry({
+                userRole: EHistoryUserRole.RECIPIENT,
+                recipientAccount: aliceUser,
+                status: EHistoryStatus.PAYMENT_SUBMITTED,
+                extraData: { kind: 'ONRAMP', provider: 'BRIDGE' },
+            })
+            expect(mapTransactionDataForDrawer(ordinary).transactionDetails.actionLabelKey).toBeUndefined()
+        })
+    })
+
     describe('refund credit rows (status + sign + flag)', () => {
         const negativeAuth = baseEntry({
             userRole: EHistoryUserRole.SENDER,

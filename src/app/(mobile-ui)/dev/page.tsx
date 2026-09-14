@@ -10,6 +10,13 @@ export default function DevToolsPage() {
     // static: true → plain <a> (file in public/, not an app route — Next Link can't client-navigate to it)
     const tools: { name: string; description: string; path: string; icon: IconName; static?: boolean }[] = [
         {
+            name: 'Deposit accounts',
+            description:
+                'Claim bank details in your own name, per region, and share them with whoever pays you — real Bridge sandbox payloads',
+            path: '/dev/deposit-accounts',
+            icon: 'bank',
+        },
+        {
             name: 'Full Graph',
             description:
                 'Interactive force-directed graph visualization of all users, invites, and P2P activity (admin only)',
