@@ -7,7 +7,14 @@ import type { GateState } from '@/utils/capability-gate'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { trackClaimFailed, trackClaimStarted } from './analytics'
-import { corridorFromRailId, corridorsFromRails, DEPOSIT_RAIL_ORDER, railIdFor } from './rails'
+import {
+    corridorFromRailId,
+    corridorsFromRails,
+    DEPOSIT_RAIL_ORDER,
+    DEPOSIT_RAILS,
+    isClaimable,
+    railIdFor,
+} from './rails'
 import type { ClaimableCorridor, DepositAccount, DepositAccountView, DepositCorridor } from './types'
 
 export const DEPOSIT_ACCOUNTS_QUERY_KEY = ['deposit-accounts'] as const
@@ -111,8 +118,14 @@ export function useDepositAccounts(): UseDepositAccountsResult {
             // failure must not sit on this screen while this one is in flight
             setClaimError(undefined)
             setClaimingCorridor(corridor)
-            // the account this opens is new, so it arrives with no count
-            // against it and waits its own full budget
+            // An idempotent retry keeps the account id, so reset only this corridor's budget.
+            setProvisioningPolls((polls) => {
+                const next = { ...polls }
+                for (const account of query.data?.accounts ?? []) {
+                    if (corridorFromRailId(account.railId) === corridor) delete next[account.id]
+                }
+                return next
+            })
             trackClaimStarted(corridor)
         },
         onError: (error: Error, method: string) => {
@@ -189,8 +202,15 @@ export function useDepositAccounts(): UseDepositAccountsResult {
             corridorsFromRails(
                 rails,
                 DEPOSIT_RAIL_ORDER.filter((corridor) => accounts[corridor])
+            ).filter(
+                (corridor) =>
+                    !query.data ||
+                    accounts[corridor] ||
+                    !isClaimable(DEPOSIT_RAILS[corridor]) ||
+                    gateFor('deposit', { railId: railIdFor(corridor) }).kind !== 'ready' ||
+                    claimable[corridor]
             ),
-        [rails, accounts]
+        [rails, accounts, query.data, gateFor, claimable]
     )
 
     const gates = useMemo((): Record<DepositCorridor, GateState> => {

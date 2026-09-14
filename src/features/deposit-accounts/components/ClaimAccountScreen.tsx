@@ -163,15 +163,17 @@ export function ClaimAccountScreen({
                         ]}
                     />
                 )}
-                <Button
-                    variant="purple"
-                    className="w-full"
-                    loading={isClaiming}
-                    disabled={isClaiming}
-                    onClick={onClaim}
-                >
-                    {t('claim.cta', { currency: rail.currency })}
-                </Button>
+                {!isUnavailable && (
+                    <Button
+                        variant="purple"
+                        className="w-full"
+                        loading={isClaiming}
+                        disabled={isClaiming}
+                        onClick={onClaim}
+                    >
+                        {t('claim.cta', { currency: rail.currency })}
+                    </Button>
+                )}
             </PageStack.Footer>
         </PageStack>
     )

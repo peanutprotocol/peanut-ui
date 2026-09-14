@@ -4097,7 +4097,7 @@
             "ownAccount": {
                 "line": "Da sua própria conta: sim.",
                 "payer": "Da conta do próprio titular: sim.",
-                "why": "O dinheiro que você envia para si mesmo é um depósito seu, não um pagamento de outra pessoa, e nosso parceiro bancário não coloca limite nele nesta moeda."
+                "why": "Você pode transferir da sua própria conta bancária. Fale com o suporte antes de enviar um valor alto."
             },
             "ownAccountMax": {
                 "line": "Da sua própria conta: até {max}.",
@@ -4121,7 +4121,7 @@
             },
             "businessUnconfirmed": {
                 "line": "De uma empresa: não confirmado.",
-                "payer": "De uma empresa: não confirmado.",
+                "payer": "De uma empresa: não confirmado. A transferência pode ser devolvida.",
                 "why": "Nosso parceiro bancário não confirmou pagamentos de empresas nesta moeda. Os dados funcionam; se algum pagamento voltar, nos avise e a gente resolve."
             },
             "individualAny": {
@@ -4151,7 +4151,7 @@
             },
             "individualUnconfirmed": {
                 "line": "De outra pessoa: não confirmado.",
-                "payer": "De outra pessoa: não confirmado.",
+                "payer": "De outra pessoa: não confirmado. A transferência pode ser devolvida.",
                 "why": "Só informamos o que nosso parceiro bancário confirmou para esta moeda, e ele não falou nada sobre pagamentos de outras pessoas. Os dados funcionam; se algum pagamento voltar, nos avise e a gente resolve."
             },
             "minimum": {

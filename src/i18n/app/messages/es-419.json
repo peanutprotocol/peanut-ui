@@ -4097,7 +4097,7 @@
             "ownAccount": {
                 "line": "Desde tu propia cuenta: sí.",
                 "payer": "Desde la cuenta propia del titular: sí.",
-                "why": "El dinero que te envías a ti mismo es una recarga, no un pago de otra persona, y nuestro socio bancario no le pone límite en esta moneda."
+                "why": "Puedes transferir desde tu propia cuenta bancaria. Contacta a soporte antes de enviar un monto grande."
             },
             "ownAccountMax": {
                 "line": "Desde tu propia cuenta: hasta {max}.",
@@ -4121,7 +4121,7 @@
             },
             "businessUnconfirmed": {
                 "line": "Desde una empresa: sin confirmar.",
-                "payer": "Desde una empresa: sin confirmar.",
+                "payer": "Desde una empresa: sin confirmar. La transferencia podría devolverse.",
                 "why": "Nuestro socio bancario no confirmó los pagos de empresas en esta moneda. Los datos funcionan; si alguna vez un pago se devuelve, avísanos y lo resolvemos."
             },
             "individualAny": {
@@ -4151,7 +4151,7 @@
             },
             "individualUnconfirmed": {
                 "line": "Desde otra persona: sin confirmar.",
-                "payer": "Desde otra persona: sin confirmar.",
+                "payer": "Desde otra persona: sin confirmar. La transferencia podría devolverse.",
                 "why": "Solo indicamos lo que nuestro socio bancario confirmó para esta moneda, y no dijo nada sobre pagos de otras personas. Los datos funcionan; si alguna vez un pago se devuelve, avísanos y lo resolvemos."
             },
             "minimum": {

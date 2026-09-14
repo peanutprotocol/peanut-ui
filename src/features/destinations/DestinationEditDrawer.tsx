@@ -45,7 +45,7 @@ export default function DestinationEditDrawer({ destination, onClose }: Destinat
     }, [destination])
 
     const trimmed = name.trim()
-    const canSave = !!destination && trimmed.length > 0 && trimmed !== destination.name
+    const canSave = !!destination && trimmed !== destination.name.trim()
 
     const run = async (kind: 'rename' | 'delete', fn: () => Promise<unknown>) => {
         setBusy(kind)

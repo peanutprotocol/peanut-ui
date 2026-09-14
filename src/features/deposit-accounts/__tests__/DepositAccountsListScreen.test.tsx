@@ -122,20 +122,13 @@ describe('DepositAccountsListScreen', () => {
         expect(inRow(container, 'SEPA_EU').getByText('Active')).toBeInTheDocument()
     })
 
-    /**
-     * A revoked corridor is closed, not blocked. There is no replacement to
-     * claim — the provider's create call is idempotent per customer and
-     * currency — so the row states the status and does not invite a tap, and
-     * the body says what happens to money sent to the dead details rather than
-     * telling the user to verify an identity that is already verified.
-     */
-    it('closes a revoked row rather than inviting a claim on it', () => {
+    it('opens revoked details so support stays reachable', () => {
         const revoked = { ...heldAccount('SEPA_EU'), status: 'revoked' as const }
         const onOpen = jest.fn()
         const { container } = list(false, { accounts: { ...NONE, SEPA_EU: revoked }, onOpen })
 
         fireEvent.click(rowOf(container, 'SEPA_EU') as HTMLElement)
-        expect(onOpen).not.toHaveBeenCalled()
+        expect(onOpen).toHaveBeenCalledWith('SEPA_EU')
 
         expect(inRow(container, 'SEPA_EU').getByText(messages.depositAccounts.list.badgeRevoked)).toBeInTheDocument()
         expect(inRow(container, 'SEPA_EU').getByText(messages.depositAccounts.list.rowRevoked)).toBeInTheDocument()

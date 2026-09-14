@@ -4097,7 +4097,7 @@
             "ownAccount": {
                 "line": "From your own account: yes.",
                 "payer": "From the account holder's own account: yes.",
-                "why": "Money you send yourself is a top-up, not a payment from someone else, and our banking partner sets no limit on it for this currency."
+                "why": "Transfers from your own bank account are supported. Contact support before sending a large amount."
             },
             "ownAccountMax": {
                 "line": "From your own account: up to {max}.",
@@ -4121,7 +4121,7 @@
             },
             "businessUnconfirmed": {
                 "line": "From a business: not confirmed.",
-                "payer": "From a business: not confirmed.",
+                "payer": "From a business: not confirmed. The transfer may be returned.",
                 "why": "Our banking partner has not confirmed payments from a business on this currency. The details work; if a payment ever comes back, tell us and we will sort it out."
             },
             "individualAny": {
@@ -4151,7 +4151,7 @@
             },
             "individualUnconfirmed": {
                 "line": "From another person: not confirmed.",
-                "payer": "From another person: not confirmed.",
+                "payer": "From another person: not confirmed. The transfer may be returned.",
                 "why": "We only state what our banking partner has confirmed for this currency, and it has said nothing about payments from other people. The details work; if a payment ever comes back, tell us and we will sort it out."
             },
             "minimum": {

@@ -40,6 +40,7 @@ describe('the claim screen when the backend refuses to open an account', () => {
         expect(screen.getByText(messages.depositAccounts.gate.notYetTitle)).toBeInTheDocument()
         expect(screen.getByText(messages.depositAccounts.gate.notYetBody)).toBeInTheDocument()
         expect(screen.queryByText('deposit accounts are not enabled')).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /open .* account/i })).not.toBeInTheDocument()
     })
 
     it('still shows an ordinary failure, which is worth retrying', () => {
@@ -72,7 +73,6 @@ describe('the CTA ends the page, so the shell reservation clears it', () => {
     it.each([
         ['the conditions', {}, messages.depositAccounts.claim.conditionNoReference],
         ['a failure', { error: 'Could not open the account' }, 'Could not open the account'],
-        ['the rollout refusal', { error: 'nope', isUnavailable: true }, messages.depositAccounts.gate.notYetBody],
         // the tallest the step gets: three rule lines and the state note, all
         // of which have to fit above the button rather than push it into the nav
         [

@@ -86,7 +86,7 @@ describe('useDepositAccounts', () => {
      */
     it('keeps a corridor the user holds an account on after its rail leaves the catalogue', async () => {
         userRails = [bankRail('bridge.ach_us', 'ACH_US')]
-        resolveAccounts([account({ railId: 'bridge.sepa_eu' })])
+        resolveAccounts([account({ railId: 'bridge.sepa_eu' })], [CLAIMABLE_USD_PREVIEW])
 
         const { result } = renderHook(() => useDepositAccounts(), { wrapper })
 
@@ -96,6 +96,15 @@ describe('useDepositAccounts', () => {
         // no rail means no gate, so the corridor reads its details and offers
         // no claim
         expect(result.current.gates.SEPA_EU.kind).toBe('needs-enrollment')
+    })
+
+    it('does not offer an enabled rail the API excludes from virtual-account claims', async () => {
+        userRails = [bankRail('bridge.ach_us', 'ACH_US'), bankRail('bridge.spei_mx', 'SPEI_MX')]
+        gatesByRailId = { 'bridge.ach_us': { kind: 'ready' }, 'bridge.spei_mx': { kind: 'ready' } }
+        resolveAccounts([], [CLAIMABLE_USD_PREVIEW])
+        const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+        expect(result.current.corridors).toEqual(['ACH_US'])
     })
 
     it('offers no corridor to a user with no bank rail', async () => {
@@ -266,6 +275,32 @@ describe('useDepositAccounts caps the provisioning poll', () => {
 
         await waitFor(() => expect(result.current.accounts.SEPA_EU?.timedOut).toBe(true))
         expect(result.current.accounts.ACH_US?.timedOut).toBeUndefined()
+    })
+
+    it('restarts only the retried account budget when an idempotent claim returns the same id', async () => {
+        const euro = account({ status: 'provisioning' })
+        resolveAccounts([euro, account({ id: 'b', railId: 'bridge.ach_us', status: 'provisioning' })])
+        claimDepositAccount.mockResolvedValue(euro)
+        const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+        await waitFor(() => expect(result.current.accounts.SEPA_EU?.status).toBe('provisioning'))
+        for (let i = 0; i < MAX_PROVISIONING_POLLS; i++) {
+            await act(async () => {
+                jest.advanceTimersByTime(PROVISIONING_POLL_MS)
+            })
+        }
+        expect(result.current.accounts.SEPA_EU?.timedOut).toBe(true)
+        expect(result.current.accounts.ACH_US?.timedOut).toBe(true)
+        await act(async () => {
+            result.current.claim('SEPA_EU')
+        })
+        await waitFor(() => expect(result.current.claimingCorridor).toBeUndefined())
+        expect(result.current.accounts.SEPA_EU?.timedOut).toBeUndefined()
+        expect(result.current.accounts.ACH_US?.timedOut).toBe(true)
+        const calls = fetchDepositAccounts.mock.calls.length
+        await act(async () => {
+            jest.advanceTimersByTime(PROVISIONING_POLL_MS)
+        })
+        expect(fetchDepositAccounts.mock.calls.length).toBeGreaterThan(calls)
     })
 
     it('keeps polling while the account is still within its budget', async () => {

@@ -104,7 +104,8 @@ describe('the shared text carries the account rules', () => {
         // the text is read by somebody who will never see a Peanut screen, so
         // the one thing we cannot promise has to travel with the numbers
         expect(out).toContain('From a business: not confirmed')
-        expect(out).toContain('From another person: not confirmed')
+        expect(out).toContain('From another person: not confirmed. The transfer may be returned.')
+        expect(out).toContain('From a business: not confirmed. The transfer may be returned.')
     })
 })
 

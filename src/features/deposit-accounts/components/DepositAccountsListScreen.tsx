@@ -167,13 +167,8 @@ export function DepositAccountsListScreen({
                                 // serves those details read-only. A corridor with
                                 // nothing to claim is always open: its details are
                                 // the user's own top-up route.
-                                // A revoked corridor has nothing to offer: the
-                                // details are dead and the provider has no
-                                // replacement to give, so the row states the
-                                // status and does not invite a tap.
-                                const openable =
-                                    account?.status !== 'revoked' &&
-                                    (!isClaimable(rail) || view.claimable || isHeld(account))
+                                // Revoked details still explain returned payments and provide support.
+                                const openable = !isClaimable(rail) || view.claimable || isHeld(account)
                                 const disabled = isError || isLoading || !openable
 
                                 return (

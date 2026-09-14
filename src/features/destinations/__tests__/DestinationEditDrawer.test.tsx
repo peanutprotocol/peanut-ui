@@ -71,3 +71,13 @@ it('keeps the drawer open and says so when the write fails', async () => {
     await screen.findByText(/could not save the name/i)
     expect(onClose).not.toHaveBeenCalled()
 })
+
+it('clears a saved label through the same rename adapter', async () => {
+    const destination = account({ name: 'Payroll' })
+    const onClose = open(destination)
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '   ' } })
+    expect(save()).toBeEnabled()
+    fireEvent.click(save())
+    await waitFor(() => expect(destination.rename).toHaveBeenCalledWith('account-1', ''))
+    expect(onClose).toHaveBeenCalled()
+})
