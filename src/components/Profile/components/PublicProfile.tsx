@@ -44,6 +44,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     const [fullName, setFullName] = useState<string>(username)
     const [showFullName, setShowFullName] = useState<boolean>(false)
     const [isKycVerified, setIsKycVerified] = useState<boolean>(false)
+    const [avatarKey, setAvatarKey] = useState<string | null>(null)
     const router = useRouter()
     const goBack = useSafeBack('/home')
     const { user, isFetchingUser } = useAuth()
@@ -142,6 +143,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
             setIsKycVerified(apiUser?.isVerified ?? false)
             setProfileUserId(apiUser?.userId ?? null)
             setProfileBadges(apiUser?.badges ?? [])
+            setAvatarKey(apiUser?.avatarKey ?? null)
         })
     }, [username])
 
@@ -177,6 +179,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                     isVerified={isKycVerified}
                     className="mb-6"
                     haveSentMoneyToUser={haveSentMoneyToUser}
+                    avatarKey={avatarKey}
                 />
 
                 {/* Action Buttons */}

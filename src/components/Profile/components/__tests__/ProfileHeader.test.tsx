@@ -6,12 +6,15 @@ import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts
 import { renderWithIntl } from '@/test-utils/intl'
 
 let mockAuthUsername: string | undefined
+let mockAuthAvatarKey: string | null
 const mockShareButton = jest.fn()
 const mockCopyToClipboard = jest.fn()
 const mockToast = { info: jest.fn(), error: jest.fn() }
 
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: mockAuthUsername ? { user: { username: mockAuthUsername } } : null }),
+    useAuth: () => ({
+        user: mockAuthUsername ? { user: { username: mockAuthUsername, avatarKey: mockAuthAvatarKey } } : null,
+    }),
 }))
 jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({ isVerified: false }),
@@ -30,10 +33,6 @@ jest.mock('@/components/Global/ShareButton', () => ({
     },
 }))
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
-jest.mock('@/components/Profile/AvatarWithBadge', () => ({
-    __esModule: true,
-    default: ({ name }: { name?: string }) => <div data-testid="counterparty-avatar">{name}</div>,
-}))
 jest.mock('@/components/Global/CopyToClipboard', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/UserHeader', () => ({
     VerifiedUserLabel: ({ name }: { name: string }) => <span data-testid="profile-name">{name}</span>,
@@ -52,6 +51,7 @@ beforeAll(() => {
 beforeEach(() => {
     jest.clearAllMocks()
     mockAuthUsername = 'satoshi'
+    mockAuthAvatarKey = null
     mockCopyToClipboard.mockResolvedValue(true)
 })
 
@@ -224,13 +224,38 @@ describe('ProfileHeader avatar', () => {
         expect(avatar.compareDocumentPosition(copy) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 
-    // The counterparty branch is untouched by the self-profile rework: their
-    // avatar, their name, and no pill — even when a picker callback is passed.
+    // Someone else's profile is never a picker: their name, no pill, and no
+    // button — even when a picker callback is passed.
     it('keeps the counterparty branch on someone else profile', () => {
         renderWithIntl(<ProfileHeader name="Hal Finney" username="hal" showShareButton onChangeAvatar={jest.fn()} />)
 
-        expect(screen.getByTestId('counterparty-avatar')).toHaveTextContent('Hal Finney')
         expect(screen.getByTestId('profile-name')).toHaveTextContent('Hal Finney')
         expect(screen.queryByRole('button')).not.toBeInTheDocument()
+    })
+
+    // TASK-22625: the profile owner's pick, not an initials circle. The letter
+    // fallback comes from the USERNAME, so it matches what they see of
+    // themselves everywhere else.
+    it("shows the counterparty's picked avatar", () => {
+        const { container } = renderWithIntl(
+            <ProfileHeader name="Hal Finney" username="hal" avatarKey="basic.frog" showShareButton />
+        )
+
+        expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/basic/frog.webp')
+    })
+
+    it('falls back to the username letter when the counterparty has no pick', () => {
+        const { container } = renderWithIntl(
+            <ProfileHeader name="Hal Finney" username="hal" avatarKey={null} showShareButton />
+        )
+
+        expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/letter/h.webp')
+    })
+
+    it("shows the signed-in user's own pick on their own profile", () => {
+        mockAuthAvatarKey = 'basic.frog'
+        const { container } = renderWithIntl(<ProfileHeader name="Satoshi" username="satoshi" showShareButton />)
+
+        expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/basic/frog.webp')
     })
 })
