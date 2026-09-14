@@ -37,7 +37,12 @@ let mockNative = true
 let mockSearchParams = new URLSearchParams()
 
 jest.mock('@/features/setup/SetupFlowContext', () => ({
-    useSetupFlowContext: () => ({ ...mockStore, resetSetupFlow: jest.fn(), setNoBackLockScreenId: jest.fn() }),
+    useSetupFlowContext: () => ({
+        ...mockStore,
+        resetSetupFlow: jest.fn(),
+        setNoBackLockScreenId: jest.fn(),
+        setSignupEntryFlow: jest.fn(),
+    }),
 }))
 jest.mock('@/hooks/useIosPwaInstallGate', () => ({
     useIosPwaInstallGate: () => ({ setShowIosPwaInstallScreen: jest.fn() }),
