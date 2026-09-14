@@ -197,6 +197,60 @@ describe('buildReceiptPdfModel — variants', () => {
         expect(model.amountDisplay).toBe('$47.25')
     })
 
+    test('goal-set request pot renders the collected total, not its requested goal', () => {
+        const model = buildReceiptPdfModel(
+            withOverrides(
+                {
+                    amount: 100,
+                    isRequestPotLink: true,
+                    totalAmountCollected: 40,
+                    status: 'closed',
+                },
+                { kind: 'P2P_REQUEST_FULFILL' }
+            ),
+            t,
+            'en'
+        )
+
+        expect(model.amountDisplay).toBe('$40.00')
+    })
+
+    test('claimed send link uses its claim timestamp as Date', () => {
+        const model = buildReceiptPdfModel(
+            withOverrides(
+                {
+                    direction: 'send',
+                    completedAt: '2026-08-20T15:22:00.000Z',
+                    claimedAt: '2026-08-22T09:30:00.000Z',
+                },
+                { kind: 'SEND_LINK' }
+            ),
+            t,
+            'en'
+        )
+
+        expect(row(model, 'transaction.officialReceipt.pdf.date')).toContain('August 22, 2026')
+    })
+
+    test('closed request pot uses its closure timestamp as Date', () => {
+        const model = buildReceiptPdfModel(
+            withOverrides(
+                {
+                    amount: 100,
+                    isRequestPotLink: true,
+                    totalAmountCollected: 40,
+                    status: 'closed',
+                    cancelledDate: '2026-08-23T17:45:00.000Z',
+                },
+                { kind: 'P2P_REQUEST_FULFILL' }
+            ),
+            t,
+            'en'
+        )
+
+        expect(row(model, 'transaction.officialReceipt.pdf.date')).toContain('August 23, 2026')
+    })
+
     test('unparsable dates fall back to an ASCII marker instead of throwing', () => {
         const model = buildReceiptPdfModel(
             withOverrides({ status: 'pending', createdAt: 'not-a-date', completedAt: undefined }),

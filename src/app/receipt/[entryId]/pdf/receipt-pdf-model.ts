@@ -119,11 +119,13 @@ export function buildReceiptPdfModel(
     // transactions that are still pending or have older history shapes.
     const receiptDate = isCancelled
         ? transaction.cancelledDate || transaction.createdAt || transaction.date
-        : status === 'refunded'
-          ? transaction.date || transaction.completedAt || transaction.createdAt
-          : status === 'completed'
-            ? transaction.completedAt || transaction.claimedAt || transaction.date || transaction.createdAt
-            : transaction.createdAt || transaction.date
+        : status === 'closed'
+          ? transaction.cancelledDate || transaction.date || transaction.createdAt
+          : status === 'refunded'
+            ? transaction.date || transaction.completedAt || transaction.createdAt
+            : status === 'completed'
+              ? transaction.claimedAt || transaction.completedAt || transaction.date || transaction.createdAt
+              : transaction.createdAt || transaction.date
     push(t('transaction.officialReceipt.pdf.date'), formatDate(receiptDate, locale))
 
     const cardType = drawer?.transactionCardType
@@ -193,13 +195,10 @@ export function buildReceiptPdfModel(
     }
 
     const numericAmount = Number(transaction.amount)
-    // A goal-less request pot carries `amount = 0`; the money actually
-    // received lives in its rollup total. Match the drawer headline so the
-    // downloadable receipt never reports $0 for a funded pot.
-    const receiptAmount =
-        transaction.isRequestPotLink && (!Number.isFinite(numericAmount) || numericAmount <= 0)
-            ? Number(transaction.totalAmountCollected)
-            : numericAmount
+    // A request pot's `amount` is its goal, not proof of money received. The
+    // receipt headline must always use the rollup's collected total, whether
+    // the pot had a goal or not.
+    const receiptAmount = transaction.isRequestPotLink ? Number(transaction.totalAmountCollected) : numericAmount
     const safeAmount = Number.isFinite(receiptAmount) ? Math.abs(receiptAmount) : 0
 
     return {
