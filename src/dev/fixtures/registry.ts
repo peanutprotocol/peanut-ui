@@ -174,7 +174,7 @@ const PEER_HISTORY_ENTRY = (
 
 const AVATAR_PEERS = [
     PEER('alice', 'Alice Nguyen', 'basic.frog'),
-    PEER('bob', 'Bob Carter', 'basic.cat'),
+    PEER('bob', 'Bob Carter', 'basic.avocado'),
     PEER('carol', 'Carol Diaz', 'badge.BUG_WHISPERER.beetle'),
     // No pick: the letter sticker of the USERNAME, beside a full name whose
     // initials it deliberately no longer uses.
