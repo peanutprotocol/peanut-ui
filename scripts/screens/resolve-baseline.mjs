@@ -4,7 +4,6 @@ const repo = process.env.REPOSITORY,
     runId = process.env.RUN_ID
 const baselineWorkflow = '.github/workflows/screen-library-baseline.yml'
 const screenWorkflow = '.github/workflows/screen-library.yml'
-const maxAgeMs = 30 * 60 * 60 * 1000
 const localeSuffix = '(?:en|es-419|es-AR|pt-BR)'
 
 if (!/^[\w.-]+\/[\w.-]+$/.test(repo ?? '') || !/^\d+$/.test(runId ?? ''))
@@ -38,8 +37,7 @@ const candidates = artifacts
         if (artifact.expired || !artifact.workflow_run?.id) return false
         if (!new RegExp(`^screen-library-baseline-${expectedBase}-(?:${localeSuffix}-)?[1-9]\\d*$`).test(artifact.name))
             return false
-        const created = Date.parse(artifact.created_at ?? '')
-        return Number.isFinite(created) && Date.now() - created <= maxAgeMs
+        return true
     })
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
 
@@ -64,8 +62,7 @@ const integrationCandidates = artifacts
     .filter((artifact) => {
         if (artifact.expired || !artifact.workflow_run?.id) return false
         if (!new RegExp(`^screen-library-after-(?:${localeSuffix}-)?[1-9]\\d*$`).test(artifact.name)) return false
-        const created = Date.parse(artifact.created_at ?? '')
-        return Number.isFinite(created) && Date.now() - created <= maxAgeMs
+        return true
     })
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
 
@@ -85,4 +82,4 @@ for (const artifact of integrationCandidates) {
     process.exit(0)
 }
 
-throw new Error(`No trusted baseline capture for ${expectedBase} is available within 30 hours`)
+throw new Error(`No trusted baseline capture for ${expectedBase} is available in retained artifacts`)

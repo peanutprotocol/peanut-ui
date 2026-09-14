@@ -147,10 +147,12 @@ catalogues run even for shared-style changes.
 
 `Screen library baseline` refreshes the dev baseline after a main-branch update.
 Its artifact is retained for seven days and is accepted only when the
-artifact run, branch, SHA, workflow, age, and capture manifest all match the
-verified baseline. If the baseline is unavailable or the capture harness
-changed, publication fails closed instead of comparing against an arbitrary
-revision; run the baseline workflow manually after enabling it.
+artifact is unexpired and its run, branch, SHA, workflow, and capture manifest
+all match the verified baseline. GitHub artifact expiration is the freshness
+boundary; there is no shorter wall-clock cutoff during quiet periods. If the
+baseline is unavailable or the capture harness changed, publication fails
+closed instead of comparing against an arbitrary revision; run the baseline
+workflow manually after enabling it.
 
 `Publish screen library` is a reusable `workflow_call` job invoked after the
 capture jobs finish. The caller resolves the reusable workflow from `dev`, and
