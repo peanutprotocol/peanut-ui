@@ -500,11 +500,16 @@ export const getExplorerUrl = (chainId: string) => {
  *  EVM chains keep using chain-details.json; non-EVM explorer shapes live in
  *  the canonical chain registry. */
 export const getTransactionExplorerUrl = (chainIdentifier: string, transactionHash: string) => {
-    const chain = resolveChainRegistryEntry(chainIdentifier)
+    const exactIdentifier = chainIdentifier.trim()
+    const chain = resolveChainRegistryEntry(exactIdentifier)
+    const aliasPrefix = chain?.aliasTransactionExplorerUrlPrefixes?.[exactIdentifier]
+    if (aliasPrefix) {
+        return `${aliasPrefix}${encodeURIComponent(transactionHash)}`
+    }
     if (chain?.transactionExplorerUrlPrefix) {
         return `${chain.transactionExplorerUrlPrefix}${encodeURIComponent(transactionHash)}`
     }
-    const baseUrl = getExplorerUrl(chain?.id ?? chainIdentifier)
+    const baseUrl = getExplorerUrl(chain?.id ?? exactIdentifier)
     return baseUrl ? `${baseUrl}/tx/${transactionHash}` : undefined
 }
 

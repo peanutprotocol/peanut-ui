@@ -1,6 +1,7 @@
 import { mapTransactionDataForDrawer } from '../transactionTransformer'
 import { EHistoryUserRole, EHistoryStatus, getTransactionSign, type HistoryEntry } from '@/utils/history.utils'
 import { pipelineAlert } from '@/utils/pipelineAlerts'
+import { getTransactionExplorerUrl } from '@/utils/general.utils'
 
 jest.mock('@/assets', () => ({}))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
@@ -538,6 +539,12 @@ describe('mapTransactionDataForDrawer', () => {
             expect(result.txHash).toBe(sourceHash)
             expect(result.explorerUrl).toContain(`/tx/${sourceHash}`)
             expect(result.explorerUrl).not.toContain('tronscan.org')
+        })
+
+        it('preserves the exact Arbitrum Sepolia network for a sandbox proof', () => {
+            const sourceHash = '0x' + 'e'.repeat(64)
+
+            expect(getTransactionExplorerUrl('421614', sourceHash)).toBe(`https://sepolia.arbiscan.io/tx/${sourceHash}`)
         })
     })
 

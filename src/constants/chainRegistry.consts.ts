@@ -43,6 +43,9 @@ export interface ChainRegistryEntry {
      *  chain-details.json. Keep this beside the chain identity so receipts do
      *  not grow a second network-name switch. */
     transactionExplorerUrlPrefix?: string
+    /** Exact-id explorer prefixes for aliases that share a provider routing
+     *  bucket but belong to a different network (for example a testnet). */
+    aliasTransactionExplorerUrlPrefixes?: Readonly<Record<string, string>>
     /** Present = advertised DEPOSIT chain. `tokens` only when narrower than
      *  the family default (USDT/USDC/ETH for EVM) — drives the "USDT only"
      *  funds-safety annotations. */
@@ -71,6 +74,9 @@ const CHAIN_REGISTRY_LITERAL = [
         family: 'evm',
         displayName: 'ARBITRUM',
         logoUrl: 'https://assets.coingecko.com/asset_platforms/images/33/standard/AO_logomark.png?1706606717',
+        aliasTransactionExplorerUrlPrefixes: {
+            '421614': 'https://sepolia.arbiscan.io/tx/',
+        },
         deposit: {},
         withdraw: { tokens: ['ETH', 'USDC', 'USDT'] },
     },
