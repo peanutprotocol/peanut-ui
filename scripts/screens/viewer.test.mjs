@@ -38,6 +38,8 @@ const elementIds = [
     'screens',
     'screen-load-more',
     'footer',
+    'auth-preview',
+    'auth-gate',
 ]
 
 class Element {
@@ -105,6 +107,38 @@ async function loadLanding(pathname, { ok = true, index = [], report } = {}) {
     await new Promise((resolve) => setImmediate(resolve))
     return elements
 }
+
+test('root shows the branded sign-in gate when Access redirects the catalogue request', async () => {
+    const elements = new Map(elementIds.map((id) => [id, new Element(id)]))
+    const brand = new Element('brand')
+    const body = {
+        classList: {
+            add(value) {
+                this.value = value
+            },
+        },
+    }
+    const document = {
+        body,
+        createElement: () => new Element(),
+        getElementById: (id) => elements.get(id),
+        querySelector: (selector) => (selector === '.brand' ? brand : null),
+    }
+    const context = vm.createContext({
+        console,
+        document,
+        URLSearchParams,
+        fetch: async () => ({ type: 'opaqueredirect', status: 0 }),
+        location: { pathname: '/', protocol: 'https:', search: '', hash: '', href: '', reload() {} },
+        window: {},
+    })
+    vm.runInContext(viewer, context, { filename: 'public/screen-library/viewer.js' })
+    await new Promise((resolve) => setImmediate(resolve))
+    assert.equal(elements.get('auth-gate').hidden, false)
+    assert.equal(elements.get('auth-preview').hidden, false)
+    assert.equal(elements.get('coverage').textContent, 'Private product library')
+    assert.equal(body.classList.value, 'auth-required')
+})
 
 test('landing catalogue hides screen controls on the root URL and deployed alias', async () => {
     for (const pathname of ['/', '/screen-library/index.html']) {
@@ -241,6 +275,33 @@ test('screen lists load the first page and leave the next page for scroll loadin
     })
     assert.equal(elements.get('screens').children.length, 24)
     assert.equal(elements.get('screen-load-more').hidden, false)
+})
+
+test('new reports use Access-protected same-origin screenshot URLs', async () => {
+    const image = 'a'.repeat(64) + '.png'
+    const report = {
+        schema: 1,
+        type: 'capture',
+        locale: 'en',
+        complete: true,
+        capturedAt: '2026-09-09T18:00:00Z',
+        screens: [
+            {
+                id: 'home',
+                name: 'Home',
+                flow: 'Home',
+                kind: 'route',
+                status: 'captured',
+                image,
+                thumbnail: image,
+            },
+        ],
+    }
+    const elements = await loadLanding('/screens/2026-09-11/dev/en/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/', {
+        report,
+    })
+    const screenshot = elements.get('screens').children[0].children[1].children[0].children[1].children[0]
+    assert.equal(screenshot.src, `/screen-data/assets/${image}`)
 })
 
 test('report pages expose the locale selector and use a long-form capture date', async () => {

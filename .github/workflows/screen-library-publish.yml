@@ -75,8 +75,6 @@ jobs:
                   SCREEN_LIBRARY_R2_BUCKET: ${{ vars.SCREEN_LIBRARY_R2_BUCKET }}
                   SCREEN_LIBRARY_R2_JURISDICTION: ${{ vars.SCREEN_LIBRARY_R2_JURISDICTION }}
                   SCREEN_LIBRARY_PUBLIC_URL: ${{ vars.SCREEN_LIBRARY_PUBLIC_URL }}
-                  SCREEN_LIBRARY_IMAGES_HASH: ${{ vars.SCREEN_LIBRARY_IMAGES_HASH }}
-                  SCREEN_LIBRARY_IMAGES_VARIANT: ${{ vars.SCREEN_LIBRARY_IMAGES_VARIANT }}
                   RUN_ID: ${{ github.run_id }}
                   RUN_ATTEMPT: ${{ github.run_attempt }}
                   REPOSITORY: ${{ github.repository }}

@@ -53,7 +53,6 @@ const asset = (name, { preview = true } = {}) => {
     const configuredUrl = !offline && (preview ? report?.previewUrls?.[name] : report?.originalUrls?.[name])
     const legacyUrl = !offline && !preview && !configuredUrl ? report?.previewUrls?.[name] : configuredUrl
     if (typeof legacyUrl === 'string' && previewUrlPattern.test(legacyUrl)) return legacyUrl
-    if (!offline) return null
     return assetBase + name
 }
 const image = (name, alt, options) => {
@@ -183,13 +182,29 @@ function render() {
     appendNextPage()
 }
 async function loadJSON(url) {
-    const r = await fetch(url)
+    const r = await fetch(url, offline ? undefined : { redirect: 'manual' })
+    if (r.type === 'opaqueredirect' || r.status === 0) {
+        const error = new Error('Authentication required')
+        error.authRequired = true
+        throw error
+    }
     if (!r.ok) {
         const error = new Error(`Report unavailable (${r.status})`)
         error.status = r.status
         throw error
     }
     return r.json()
+}
+function showAuthGate() {
+    document.body?.classList?.add('auth-required')
+    $('auth-preview').hidden = false
+    $('auth-gate').hidden = false
+    $('coverage').textContent = 'Private product library'
+    $('filters-row').hidden = true
+    $('view-mode-row').hidden = true
+    $('versions').hidden = true
+    $('screens').hidden = true
+    $('screen-load-more').hidden = true
 }
 function showEmptyState(kind = 'unpublished') {
     const unpublished = kind === 'unpublished'
@@ -405,6 +420,10 @@ if (typeof window.IntersectionObserver === 'function') {
     ).observe($('screen-load-more'))
 }
 start().catch((e) => {
+    if (e.authRequired) {
+        showAuthGate()
+        return
+    }
     const pathname = location.pathname
     const isHostedIndex =
         pathname === '/' ||

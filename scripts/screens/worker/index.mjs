@@ -1,4 +1,4 @@
-/** Public read-only report endpoint. Never exposes arbitrary bucket objects. */
+/** Access-protected read-only endpoint. Never exposes arbitrary bucket objects. */
 export default {
     async fetch(request, env) {
         const path = new URL(request.url).pathname
@@ -7,13 +7,21 @@ export default {
         if (!path.startsWith('/screen-data/')) return new Response('Not found', { status: 404 })
         const key = path.slice('/screen-data/'.length)
         const report = /^reports\/[a-z0-9/-]+\/(manifest\.json|offline\.tar\.gz)$/.test(key)
-        if (!['index.json', 'latest.json'].includes(key) && !report) return new Response('Not found', { status: 404 })
+        const asset = /^assets\/[a-f0-9]{64}\.(png|webp)$/.test(key)
+        if (!['index.json', 'latest.json'].includes(key) && !report && !asset)
+            return new Response('Not found', { status: 404 })
         try {
             const object = request.method === 'HEAD' ? await env.REPORTS.head(key) : await env.REPORTS.get(key)
             if (!object) return new Response('Not found', { status: 404 })
             const headers = new Headers({
-                'Content-Type': key.endsWith('.json') ? 'application/json' : 'application/gzip',
-                'Cache-Control': report ? 'public, max-age=31536000, immutable' : 'public, max-age=60',
+                'Content-Type': key.endsWith('.json')
+                    ? 'application/json'
+                    : key.endsWith('.png')
+                      ? 'image/png'
+                      : key.endsWith('.webp')
+                        ? 'image/webp'
+                        : 'application/gzip',
+                'Cache-Control': report || asset ? 'private, max-age=31536000, immutable' : 'private, max-age=60',
                 'X-Content-Type-Options': 'nosniff',
                 ETag: object.httpEtag,
             })
