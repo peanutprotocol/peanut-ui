@@ -225,6 +225,9 @@ export type HistoryEntry = {
               fullName?: string
               userId?: string
               showFullName?: boolean
+              /** Counterparty's picked profile avatar (TASK-22625). Absent for a
+               *  non-user account, and on an API that predates the field. */
+              avatarKey?: string | null
           }
         | undefined
     recipientAccount: {
@@ -235,6 +238,8 @@ export type HistoryEntry = {
         fullName?: string
         userId?: string
         showFullName?: boolean
+        /** Counterparty's picked profile avatar (TASK-22625). */
+        avatarKey?: string | null
     }
     extraData?: HistoryEntryExtraData
     claimedAt?: string | Date
