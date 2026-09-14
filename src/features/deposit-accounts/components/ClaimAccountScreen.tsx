@@ -20,12 +20,12 @@ import { DepositDetailsCard } from './DepositDetailsCard'
  * It sells the outcome (a real account, not a lookup) before it asks for the
  * tap: a preview of the details card so the shape is not a surprise, three
  * benefit rows for what the account actually buys them, and the conditions
- * — a bank's rules, not ours — held to one Notification below the CTA rather
+ * — a bank's rules, not ours — held to one Notification above the CTA rather
  * than stacked into the page.
  *
  * Who may pay in is a condition here, not a benefit: the rules travel on the
  * account, and no account exists yet, so this step can only say that the terms
- * are coming. It says so under the CTA with the other conditions rather than
+ * are coming. It says so with the other conditions rather than
  * spending a benefit row on a sentence that promises nothing.
  */
 export function ClaimAccountScreen({
@@ -94,16 +94,16 @@ export function ClaimAccountScreen({
                     />
                 </ListGroup>
             </div>
+            {/*
+             * The CTA is the LAST child, and that is load-bearing rather than
+             * taste. The shell reserves 6rem below the scroller to clear the
+             * fixed bottom nav, and the reservation clears whatever ends the
+             * page. With the Notification after it the reservation cleared the
+             * Notification instead, and at 375x667 the button first painted at
+             * y 602 against a nav that owns 597-667 — visibly there, 49px of it
+             * behind the nav, and a tap on it switched tabs.
+             */}
             <PageStack.Footer>
-                <Button
-                    variant="purple"
-                    className="w-full"
-                    loading={isClaiming}
-                    disabled={isClaiming}
-                    onClick={onClaim}
-                >
-                    {t('claim.cta', { currency: rail.currency })}
-                </Button>
                 {/* one Notification, max: an error the user must act on replaces
                     the general conditions rather than stacking beside them */}
                 {isUnavailable ? (
@@ -131,6 +131,15 @@ export function ClaimAccountScreen({
                         ]}
                     />
                 )}
+                <Button
+                    variant="purple"
+                    className="w-full"
+                    loading={isClaiming}
+                    disabled={isClaiming}
+                    onClick={onClaim}
+                >
+                    {t('claim.cta', { currency: rail.currency })}
+                </Button>
             </PageStack.Footer>
         </PageStack>
     )
