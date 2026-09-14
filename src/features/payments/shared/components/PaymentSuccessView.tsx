@@ -53,6 +53,8 @@ import { payLinkUrl } from '@/utils/url.utils'
 type UserDisplayInfo = {
     username?: string
     fullName?: string
+    /** Their picked profile avatar (TASK-22625); null means the letter fallback. */
+    avatarKey?: string | null
 }
 
 type DirectSuccessViewProps = {
@@ -206,6 +208,12 @@ const PaymentSuccessView = ({
                 amountDisplay: peanutFeeDisplayValue,
             },
             currency: usdAmount ? { amount: usdAmount, code: 'USD' } : undefined,
+            // The recipient we were handed, or the one the charge names. A
+            // handed-in recipient is authoritative: their explicit null means
+            // "no pick", not "look somewhere else".
+            avatarKey: user
+                ? (user.avatarKey ?? null)
+                : (chargeDetails.requestLink?.recipientAccount?.user?.avatarKey ?? null),
         }
 
         return details as TransactionDetails

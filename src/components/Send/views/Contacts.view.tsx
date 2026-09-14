@@ -7,7 +7,7 @@ import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { useContacts } from '@/hooks/useContacts'
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import { useState, useEffect } from 'react'
-import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
+import { UserAvatar } from '@/components/Avatar/UserAvatar'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import { SearchInput } from '@/components/SearchInput'
 import Loading from '@/components/Global/Loading'
@@ -157,7 +157,14 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                                                 />
                                             }
                                             body={`@${contact.username}`}
-                                            leading={<AvatarWithBadge size="extra-small" name={displayName} />}
+                                            leading={
+                                                <UserAvatar
+                                                    size="extra-small"
+                                                    name={contact.username}
+                                                    avatarKey={contact.avatarKey}
+                                                    decorative
+                                                />
+                                            }
                                             chevron
                                             onClick={() => handleUserSelect(contact.username)}
                                         />

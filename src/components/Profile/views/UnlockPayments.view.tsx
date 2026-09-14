@@ -141,7 +141,7 @@ const UnlockPayments = () => {
     const restrictions = useResidenceRestrictions()
     const { identity, isProcessing: isIdentityInReview, isRegionRestricted } = useIdentityVerification()
     const isKycDegraded = useKycDegraded()
-    const { isEligible } = useCardInfo()
+    const { cardInfo } = useCardInfo()
     const queryClient = useQueryClient()
     const { overview } = useRainCardOverview()
     const { mantecaLimits, bridgeLimits } = useLimits()
@@ -224,14 +224,21 @@ const UnlockPayments = () => {
                     argentina: unlockedRegions.some((region) => region.path === 'argentina'),
                 },
                 restrictions,
-                // Eligibility (residence-driven) decides availability here; the
-                // waitlist grant only gates activation and is handled on /card.
-                card: hasActiveCard ? 'active' : isEligible === false ? 'notAvailable' : 'get',
+                // New applications are public; retain known residence restrictions.
+                card: hasActiveCard ? 'active' : restrictions.card || cardInfo?.geoProhibited ? 'notAvailable' : 'get',
                 residenceIso2,
                 secondResidenceIso2: declaredSecondIso2,
                 isEuropeResidence: isEuropeIso2(residenceIso2) || isEuropeIso2(declaredSecondIso2),
             }),
-        [regionChipFor, unlockedRegions, restrictions, hasActiveCard, isEligible, residenceIso2, declaredSecondIso2]
+        [
+            regionChipFor,
+            unlockedRegions,
+            restrictions,
+            hasActiveCard,
+            cardInfo?.geoProhibited,
+            residenceIso2,
+            declaredSecondIso2,
+        ]
     )
 
     // ── modal machinery (carried over from the retired UnlockedRegions view) ──

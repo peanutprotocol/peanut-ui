@@ -35,6 +35,7 @@ export function ContributorsDrawer({ contributors }: ContributorsDrawerProps) {
             fulfillmentPayment: null,
             isUserVerified: false,
             isPeanutUser: !!c.username,
+            avatarKey: c.avatarKey ?? null,
         }))
     }, [contributors])
 

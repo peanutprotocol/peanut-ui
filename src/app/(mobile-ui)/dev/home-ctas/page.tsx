@@ -5,7 +5,6 @@ import type { StaticImageData } from 'next/image'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { Section } from '@/components/0_Bruddle/Section'
 import { type IconName } from '@/components/Global/Icons/Icon'
-import CardLaunchCTABanner from '@/components/Home/CardLaunchCTA/CardLaunchCTABanner'
 import CarouselCTA from '@/components/Home/HomeCarouselCTA/CarouselCTA'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
 import { type ActivationStep } from '@/hooks/useActivationStatus'
@@ -17,7 +16,7 @@ import DevPageShell from '../_components/DevPageShell'
  * /dev/home-ctas — force-renders every home-screen CTA in isolation so they can
  * be reviewed visually on demand, ignoring real auth/state/launch gating.
  *
- * Each CTA's container (CardLaunchCTA/index, HomeCarouselCTA/index,
+ * Each CTA's container (HomeCarouselCTA/index,
  * ActivationCTAs' parent) self-gates and would return null. This page renders
  * the *presentational* pieces directly with mock props, so what's below is the
  * full visual catalogue regardless of who's logged in.
@@ -61,23 +60,7 @@ const CAROUSEL_PREVIEWS: CarouselPreview[] = [
             </p>
         ),
     },
-    {
-        id: 'card-pioneer',
-        label: 'Card Pioneer — get your Peanut Card',
-        icon: 'credit-card',
-        iconContainerClassName: 'bg-action-primary',
-        iconSize: 16,
-        title: (
-            <span>
-                Get your <b>Peanut Card</b>
-            </span>
-        ),
-        description: (
-            <span>
-                Closed beta. <b>Badges skip the line.</b> $10 unlocks on your first $100 spend.
-            </span>
-        ),
-    },
+
     {
         id: 'qr-payment',
         label: 'QR payment nudge (KYC-approved user)',
@@ -169,11 +152,6 @@ export default function HomeCTAsPreviewPage() {
             width="prose"
         >
             <div className="flex flex-col gap-8">
-                {/* Card launch banner */}
-                <Section title="Card launch banner (CardLaunchCTABanner)" className="gap-3">
-                    <CardLaunchCTABanner onTryDoor={noop('onTryDoor')} onDismiss={noop('onDismiss')} />
-                </Section>
-
                 {/* Carousel CTAs */}
                 <Section title="Carousel CTAs (CarouselCTA)" className="gap-4">
                     {CAROUSEL_PREVIEWS.map((cta) => (

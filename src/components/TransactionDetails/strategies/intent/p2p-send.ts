@@ -26,6 +26,7 @@ export const p2pSendOrRequestFulfill: TransactionStrategy = (entry: HistoryEntry
                     : TRANSACTION_NAME_KEYS.recipient,
             fullName: entry.recipientAccount?.fullName ?? '',
             showFullName: entry.recipientAccount?.showFullName,
+            avatarKey: entry.recipientAccount?.avatarKey,
             isPeerActuallyUser: !!entry.recipientAccount?.isUser,
             isLinkTx: false,
         }
@@ -44,6 +45,7 @@ export const p2pSendOrRequestFulfill: TransactionStrategy = (entry: HistoryEntry
                         : TRANSACTION_NAME_KEYS.sender,
                 fullName: entry.senderAccount?.fullName ?? '',
                 showFullName: entry.senderAccount?.showFullName,
+                avatarKey: entry.senderAccount?.avatarKey,
                 isPeerActuallyUser: !!entry.senderAccount?.isUser,
                 isLinkTx: false,
             }
@@ -69,6 +71,7 @@ export const p2pSendOrRequestFulfill: TransactionStrategy = (entry: HistoryEntry
                 : TRANSACTION_NAME_KEYS.recipient,
         fullName: entry.recipientAccount?.fullName ?? '',
         showFullName: entry.recipientAccount?.showFullName,
+        avatarKey: entry.recipientAccount?.avatarKey,
         isPeerActuallyUser: !!entry.recipientAccount?.isUser,
         isLinkTx: false,
     }

@@ -43,6 +43,7 @@ export interface TRequestResponse {
         type: string
         user: {
             username: string
+            avatarKey?: string | null
         }
     }
     totalCollectedAmount: number
@@ -77,6 +78,7 @@ export interface RequestLink {
         type: string
         user: {
             username: string
+            avatarKey?: string | null
         }
     }
 }
@@ -153,6 +155,7 @@ export interface Payment {
         user: {
             username: string
             bridgeKycStatus?: string
+            avatarKey?: string | null
         } | null
     }
 }
@@ -213,6 +216,7 @@ export interface TRequestChargeResponse {
             user: {
                 username: string
                 bridgeKycStatus?: string
+                avatarKey?: string | null
             }
         }
     }
@@ -355,6 +359,7 @@ export type SendLink = {
         username: string
         fullName: string
         bridgeKycStatus: string
+        avatarKey?: string | null
         accounts: {
             identifier: string
             type: string
@@ -415,6 +420,8 @@ export interface PointsInvite {
     username: string
     fullName: string | null
     showFullName?: boolean
+    /** Invitee's picked profile avatar; null means the username-letter fallback. */
+    avatarKey?: string | null
     invitedAt: string
     kycStatus: BridgeKycStatus | null
     kycVerified: boolean

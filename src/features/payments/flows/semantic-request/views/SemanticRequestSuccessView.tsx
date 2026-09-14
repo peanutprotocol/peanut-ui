@@ -9,8 +9,6 @@
  * - provides reset callback on completion
  */
 
-import { useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
@@ -18,10 +16,7 @@ import { PointsAction } from '@/services/services.types'
 import { useTranslations } from 'next-intl'
 
 export function SemanticRequestSuccessView() {
-    const router = useRouter()
     const t = useTranslations('payment')
-    const searchParams = useSearchParams()
-    const context = searchParams.get('context')
 
     const {
         usdAmount,
@@ -34,14 +29,6 @@ export function SemanticRequestSuccessView() {
         isExternalWalletPayment,
     } = useSemanticRequestFlow()
 
-    // If this is a Card Pioneer payment, skip the generic success screen
-    // and redirect immediately to the Card Pioneer success page
-    useEffect(() => {
-        if (context === 'card-pioneer') {
-            router.push('/card?step=success')
-        }
-    }, [context, router])
-
     // determine recipient type from parsed url
     const recipientType = recipient?.recipientType || 'ADDRESS'
 
@@ -52,12 +39,6 @@ export function SemanticRequestSuccessView() {
         !!payment || isExternalWalletPayment, // For external wallet payments, we dont't have payment info on the FE, its handled by webooks on BE
         payment?.uuid
     )
-
-    // Don't render the generic success view for Card Pioneer payments
-    // (will redirect immediately via useEffect)
-    if (context === 'card-pioneer') {
-        return null
-    }
 
     return (
         <PaymentSuccessView
