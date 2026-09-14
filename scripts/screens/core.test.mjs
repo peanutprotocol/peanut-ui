@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os'
 import { PNG } from 'pngjs'
 import {
     validateCapture,
+    validateJourneys,
     compare,
     storeAsset,
     verifyAsset,
@@ -109,6 +110,60 @@ test('asset digest and dimensions are checked before decoding', () => {
     const p = new PNG({ width: 2, height: 2 })
     const tiny = storeAsset(dir, PNG.sync.write(p))
     assert.throws(() => verifyAsset(dir, tiny), /dimensions/)
+    const journey = new PNG({ width: 1170, height: 1992 })
+    const journeyName = storeAsset(dir, PNG.sync.write(journey))
+    assert.doesNotThrow(() => verifyAsset(dir, journeyName, { variableDimensions: true }))
+})
+
+test('Nutcracker journeys retain only allowlisted public metadata', () => {
+    const input = {
+        schema: 1,
+        type: 'journeys',
+        source: 'nutcracker',
+        commit: 'a'.repeat(40),
+        uiCommit: 'b'.repeat(40),
+        apiCommit: 'c'.repeat(40),
+        locale: 'en',
+        environment: 'sandbox',
+        capturedAt: '2026-09-14T00:00:00Z',
+        profile: 'en-iphone-14',
+        width: 390,
+        height: 664,
+        complete: true,
+        replaySecret: 'do-not-publish',
+        screens: [
+            {
+                id: 'send-success',
+                name: 'Send success',
+                flow: 'e2e-send',
+                route: '/send/success',
+                kind: 'route',
+                status: 'passed',
+                trustTier: 'full-e2e',
+                image: a,
+                thumbnail: b.replace(/\.png$/, '.webp'),
+                trace: { authorization: 'secret' },
+            },
+        ],
+    }
+    const output = validateJourneys(input)
+    assert.equal(output.complete, true)
+    assert.equal(output.replaySecret, undefined)
+    assert.equal(output.screens[0].trace, undefined)
+    assert.equal(output.screens[0].route, '/send/success')
+    assert.equal(output.screens[0].trustTier, 'full-e2e')
+    assert.equal(
+        validateJourneys({ ...input, complete: true, screens: [{ ...input.screens[0], status: 'failed' }] }).complete,
+        false
+    )
+    assert.throws(
+        () =>
+            validateJourneys({
+                ...input,
+                screens: [{ ...input.screens[0], trustTier: 'surface-only' }],
+            }),
+        /Invalid journey trust tier/
+    )
 })
 test('exact review merge-base and first-parent resolution', () => {
     const head = 'a'.repeat(40),

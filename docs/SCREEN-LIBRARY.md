@@ -1,8 +1,16 @@
 # Versioned screen library
 
-The library captures synthetic app states at English / 393×852. It is visual
-coverage, not proof that payments or provider integrations work. Nutcracker
-continues to provide that evidence. Native system dialogs are outside v1.
+The library combines two complementary sources. The app-state catalogue captures
+deterministic synthetic states at 393×852 in every supported locale. Nutcracker
+adds English screenshots from real Peanut backend journeys, provider sandboxes,
+Arbitrum Sepolia and an isolated Postgres database. Synthetic captures remain the
+complete visual baseline; Nutcracker supplies integration evidence for the subset
+of states reachable through real journeys. Native system dialogs remain outside
+the library.
+
+Only Nutcracker PNGs and a small allowlisted manifest are published. Replay
+credentials, database snapshots, API traces, console output and provider details
+stay in the private GitHub Actions artifact and never enter R2.
 
 ## Capture and compare
 

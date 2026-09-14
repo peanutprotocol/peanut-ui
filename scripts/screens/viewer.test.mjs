@@ -11,6 +11,7 @@ const elementIds = [
     'view-mode',
     'view-mode-control',
     'view-mode-row',
+    'source',
     'locale',
     'title',
     'description',
@@ -208,6 +209,31 @@ test('landing locale selector filters published versions', async () => {
     assert.match(elements.get('versions').children[0].textContent, /Español/)
 })
 
+test('landing source selector separates deterministic app states from real backend journeys', async () => {
+    const syntheticPath = '2026-09-14/dev/en/' + 'a'.repeat(40)
+    const nutcrackerPath = '2026-09-14/nutcracker/en/' + 'b'.repeat(40)
+    const elements = await loadLanding('/', {
+        index: [
+            { path: syntheticPath, date: '2026-09-14', label: 'dev', locale: 'en', source: 'synthetic' },
+            {
+                path: nutcrackerPath,
+                date: '2026-09-14',
+                label: 'Nutcracker',
+                locale: 'en',
+                source: 'nutcracker',
+            },
+        ],
+    })
+    assert.equal(elements.get('source').children.length, 2)
+    assert.equal(elements.get('source').value, 'synthetic')
+    assert.equal(elements.get('versions').children[0].href, `/screens/${syntheticPath}/`)
+    elements.get('source').value = 'nutcracker'
+    elements.get('source').dispatch('change')
+    assert.equal(elements.get('versions').children.length, 1)
+    assert.equal(elements.get('versions').children[0].href, `/screens/${nutcrackerPath}/`)
+    assert.match(elements.get('title').textContent, /Real backend journeys/)
+})
+
 test('comparison reports ignore legacy public image URLs and can switch to the full catalogue', async () => {
     const image = 'a'.repeat(64) + '.png'
     const report = {
@@ -321,6 +347,52 @@ test('new reports use Access-protected same-origin screenshot URLs', async () =>
     })
     const screenshot = elements.get('screens').children[0].children[1].children[0].children[1].children[0]
     assert.equal(screenshot.src, `/screen-data/assets/${image}`)
+})
+
+test('Nutcracker reports show real-backend provenance and retain a screenshot when its assertion failed', async () => {
+    const original = 'a'.repeat(64) + '.png'
+    const thumbnail = 'b'.repeat(64) + '.webp'
+    const commit = 'c'.repeat(40)
+    const report = {
+        schema: 1,
+        type: 'journeys',
+        source: 'nutcracker',
+        commit,
+        uiCommit: 'd'.repeat(40),
+        apiCommit: 'e'.repeat(40),
+        locale: 'en',
+        environment: 'sandbox',
+        capturedAt: '2026-09-14T08:00:00Z',
+        profile: 'en-iphone-14',
+        width: 390,
+        height: 664,
+        complete: false,
+        screens: [
+            {
+                id: 'send-success',
+                name: 'Send success',
+                flow: 'e2e-send',
+                kind: 'route',
+                route: '/send/success',
+                trustTier: 'full-e2e',
+                status: 'failed',
+                reason: 'Journey assertion failed',
+                image: original,
+                thumbnail,
+            },
+        ],
+    }
+    const path = `2026-09-14/nutcracker/en/${commit}/run-123-1`
+    const elements = await loadLanding(`/screens/${path}/`, {
+        index: [{ path, locale: 'en', source: 'nutcracker' }],
+        report,
+    })
+    assert.equal(elements.get('view-mode-row').hidden, true)
+    assert.match(elements.get('coverage').textContent, /Incomplete Nutcracker run/)
+    assert.match(elements.get('footer').textContent, /Nutcracker sandbox backend/)
+    assert.match(elements.get('provenance').children[0].children[0].textContent, /Nutcracker/)
+    const screenshot = elements.get('screens').children[0].children[1].children[0].children[1].children[0]
+    assert.equal(screenshot.src, `/screen-data/assets/${thumbnail}`)
 })
 
 test('report pages expose the locale selector and use a long-form capture date', async () => {

@@ -4,13 +4,13 @@ import { resolve, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { tmpdir } from 'node:os'
 import { execFileSync } from 'node:child_process'
-import { compare, validateCapture, verifyAsset } from './core.mjs'
+import { compare, validateCapture, validateJourneys, verifyAsset } from './core.mjs'
 import { createStorage } from './cloudflare-storage.mjs'
 import { updateIndexes } from './publication-index.mjs'
 import { migrateLegacyReports } from './private-assets.mjs'
 
 const immutableReportPath =
-    /^\d{4}-\d{2}-\d{2}\/((?:dev|main)-[a-f0-9]{40}|(?:dev|main)\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|compare-dev\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|pr-[1-9][0-9]*\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|compare-main-\d{4}-\d{2}-\d{2}\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40})(?:\/run-[0-9]+-[0-9]+)?$/
+    /^\d{4}-\d{2}-\d{2}\/((?:dev|main)-[a-f0-9]{40}|(?:dev|main)\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|compare-dev\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|pr-[1-9][0-9]*\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|compare-main-\d{4}-\d{2}-\d{2}\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|nutcracker\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40})(?:\/run-[0-9]+-[0-9]+)?$/
 
 const localeInfo = {
     en: { slug: 'en', label: 'English' },
@@ -33,17 +33,22 @@ export async function publishReport({ inputDir, reportPath, env = process.env, s
         assets = join(dir, 'assets')
     const input = JSON.parse(readFileSync(join(dir, 'manifest.json'), 'utf8'))
     // Recompute every classification. The downloaded report is untrusted data.
-    const report = input.type === 'capture' ? validateCapture(input) : compare(input.before, input.after, assets)
-    const after = report.type === 'capture' ? report : report.after
+    const report =
+        input.type === 'capture'
+            ? validateCapture(input)
+            : input.type === 'journeys'
+              ? validateJourneys(input)
+              : compare(input.before, input.after, assets)
+    const after = report.type === 'comparison' ? report.after : report
     if (!reportPath.replace(/\/run-[0-9]+-[0-9]+$/, '').endsWith(after.commit))
         throw new Error('Report path does not match captured commit')
     if (env.EXPECTED_HEAD && after.commit !== env.EXPECTED_HEAD) throw new Error('Head differs from triggering run')
     if (env.EXPECTED_BASE && report.before?.commit !== env.EXPECTED_BASE)
         throw new Error('Base differs from verified comparison')
     const refs = new Set()
-    for (const capture of report.type === 'capture' ? [report] : [report.before, report.after])
+    for (const capture of report.type === 'comparison' ? [report.before, report.after] : [report])
         for (const screen of capture.screens)
-            if (screen.status === 'captured') {
+            if (screen.image) {
                 refs.add(screen.image)
                 refs.add(screen.thumbnail)
             }
@@ -66,12 +71,18 @@ export async function publishReport({ inputDir, reportPath, env = process.env, s
     try {
         mkdirSync(join(offline, 'assets'))
         for (const name of refs) {
-            const bytes = verifyAsset(assets, name)
+            const bytes = verifyAsset(assets, name, { variableDimensions: report.type === 'journeys' })
             if (name.endsWith('.webp')) {
                 const meta = await sharp(bytes, {
                     limitInputPixels: 393 * 852,
                 }).metadata()
-                if (meta.width !== 197 || meta.height !== 427) throw new Error('Invalid thumbnail dimensions')
+                if (
+                    meta.width !== 197 ||
+                    (report.type === 'journeys'
+                        ? !Number.isInteger(meta.height) || meta.height < 120 || meta.height > 2000
+                        : meta.height !== 427)
+                )
+                    throw new Error('Invalid thumbnail dimensions')
             }
             await immutable(`assets/${name}`, bytes, name.endsWith('.png') ? 'image/png' : 'image/webp')
             copyFileSync(join(assets, name), join(offline, 'assets', name))
@@ -113,9 +124,10 @@ export async function publishReport({ inputDir, reportPath, env = process.env, s
             JSON.stringify({
                 path: reportPath,
                 date,
-                label: reportPath.slice(11),
+                label: report.type === 'journeys' ? `Nutcracker · ${report.commit.slice(0, 8)}` : reportPath.slice(11),
                 locale: report.locale ?? 'en',
                 localeLabel: localeInfo[report.locale ?? 'en']?.label ?? report.locale ?? 'English',
+                source: report.type === 'journeys' ? 'nutcracker' : 'synthetic',
                 complete: report.complete,
                 sequence: Number(env.DEV_SEQUENCE ?? 0),
                 attempt: Number(env.RUN_ATTEMPT ?? 0),
