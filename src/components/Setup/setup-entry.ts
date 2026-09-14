@@ -29,9 +29,15 @@ export interface SetupEntryInput {
  */
 export function resolveSetupEntryStep(input: SetupEntryInput): SetupEntryStep {
     if (input.knownDevice || input.stepParam === 'login') return 'landing'
+    // Once web signup is closed, every browser must enter through the landing
+    // screen. The removed PWA-install screens are still present in the setup
+    // sequence for native/backward compatibility, but must never be selected
+    // as the initial web step while the sunset gate is active.
+    if (input.webSignupClosed && !input.isCapacitor) return 'landing'
     // ?step=signup is what every campaign entrypoint sends; the invite cookie
-    // survives the PWA-install hop. Neither may skip the landing gate while web
-    // signups are closed, or claim/invite links deep-link into a closed form.
+    // survives the PWA-install hop. Keep the native sunset behavior unchanged:
+    // closed signup still lands there, while the browser guard above also
+    // prevents removed PWA steps from becoming the entry screen.
     const skipInviteGate = (input.hasInviteCode || input.stepParam === 'signup') && !input.webSignupClosed
     if (input.isCapacitor) return skipInviteGate ? 'signup' : 'landing'
     if (skipInviteGate) return 'signup'

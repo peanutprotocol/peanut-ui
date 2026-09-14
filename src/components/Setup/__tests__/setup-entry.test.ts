@@ -85,16 +85,25 @@ describe('resolveSetupEntryStep', () => {
             }
         })
 
-        it('does not skip the landing gate while web signups are closed', () => {
+        it.each([
+            ['desktop', {}],
+            ['desktop with ?step=signup', { stepParam: 'signup' }],
+            ['android browser', { deviceType: DeviceType.ANDROID }],
+            ['android browser with an invite', { deviceType: DeviceType.ANDROID, hasInviteCode: true }],
+            ['ios', { deviceType: DeviceType.IOS }],
+        ])('routes %s to Log In while web signups are closed', (_name, overrides) => {
+            expect(resolveSetupEntryStep({ ...base, ...overrides, webSignupClosed: true })).toBe('landing')
+        })
+
+        it('keeps the native landing behavior unchanged while web signups are closed', () => {
             expect(
                 resolveSetupEntryStep({
                     ...base,
-                    deviceType: DeviceType.IOS,
+                    isCapacitor: true,
                     hasInviteCode: true,
                     webSignupClosed: true,
                 })
             ).toBe('landing')
-            expect(resolveSetupEntryStep({ ...base, stepParam: 'signup', webSignupClosed: true })).toBe('pwa-install')
         })
 
         it('an unknown ?step value changes nothing', () => {
