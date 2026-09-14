@@ -350,3 +350,56 @@ describe('TransactionCard — secondary currency line requires a valid amount', 
         expect(screen.queryByText(/≈ ARS/)).toBeNull()
     })
 })
+
+// TASK-22625: the counterparty's picked avatar reaches the feed row. Only the
+// person branch — a merchant logo still wins, and a bank row keeps its icon.
+describe('TransactionCard — counterparty avatar', () => {
+    // The list always passes `transactionDetails.initials`; the person branch
+    // of TransactionAvatarBadge is gated on it.
+    const renderRow = (transaction: TransactionDetails, type: 'send' | 'bank_request_fulfillment' = 'send') =>
+        render(
+            <TransactionCard
+                type={type}
+                name="natalia"
+                amount={10}
+                status="completed"
+                initials="N"
+                transaction={transaction}
+                isSelected={false}
+                onOpen={openTransactionDetails}
+                onClose={jest.fn()}
+            />
+        )
+
+    const img = (container: HTMLElement) => container.querySelector('img')
+
+    it('renders the picked sticker for a person row', () => {
+        const { container } = renderRow({ ...eligibleTx(), avatarKey: 'basic.frog' } as TransactionDetails)
+
+        expect(img(container)).toHaveAttribute('src', '/avatars/basic/frog.webp')
+    })
+
+    it('falls back to the letter sticker of the displayed name without a pick', () => {
+        const { container } = renderRow({ ...eligibleTx(), avatarKey: null } as TransactionDetails)
+
+        expect(img(container)).toHaveAttribute('src', '/avatars/letter/n.webp')
+    })
+
+    it('lets a merchant logo win over the sticker', () => {
+        const tx = { ...eligibleTx(), avatarKey: 'basic.frog' } as TransactionDetails
+        ;(tx.extraDataForDrawer as Record<string, unknown>).rewardData = { avatarUrl: '/merchant-logo.png' }
+
+        const { container } = renderRow(tx)
+
+        expect(img(container)).toHaveAttribute('src', '/merchant-logo.png')
+    })
+
+    it('leaves a bank row on its bank icon', () => {
+        const tx = { ...eligibleTx('bank_request_fulfillment'), avatarKey: 'basic.frog' } as TransactionDetails
+
+        const { container } = renderRow(tx, 'bank_request_fulfillment')
+
+        expect(img(container)).toBeNull()
+        expect(container.querySelector('svg')).not.toBeNull()
+    })
+})

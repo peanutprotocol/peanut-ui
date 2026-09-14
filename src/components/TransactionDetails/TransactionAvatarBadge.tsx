@@ -1,14 +1,9 @@
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import AvatarWithBadge, { type AvatarSize } from '@/components/Profile/AvatarWithBadge'
+import { UserAvatar } from '@/components/Avatar/UserAvatar'
 import { type TransactionType } from '@/components/TransactionDetails/transaction-types'
-import {
-    AVATAR_LINK_BG,
-    AVATAR_TEXT_DARK,
-    AVATAR_TEXT_LIGHT,
-    AVATAR_WALLET_BG,
-    getColorForUsername,
-} from '@/utils/color.utils'
+import { AVATAR_LINK_BG, AVATAR_TEXT_DARK, AVATAR_TEXT_LIGHT, AVATAR_WALLET_BG } from '@/utils/color.utils'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import React from 'react'
 import { isAddress } from 'viem'
@@ -25,6 +20,12 @@ interface TransactionAvatarBadgeProps {
      * the badge renders the country flag instead of the generic bank icon.
      */
     countryCode?: string | null
+    /**
+     * The counterparty's picked profile avatar (TASK-22625). Only read on the
+     * person branch — a bank, link, wallet or card row keeps its icon whatever
+     * this holds.
+     */
+    avatarKey?: string | null
 }
 
 /**
@@ -39,6 +40,7 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
     transactionType,
     context,
     countryCode,
+    avatarKey,
 }) => {
     let displayIconName: IconName | undefined = undefined
     let displayInitials: string | undefined = initials
@@ -127,10 +129,11 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
                 calculatedBgColor = AVATAR_WALLET_BG
                 iconFillColor = AVATAR_TEXT_DARK
             } else if (displayInitials) {
-                const colors = getColorForUsername(userName)
-                calculatedBgColor = colors.lightShade
-                textColor = colors.darkShade
-                displayIconName = undefined
+                // The one branch with a person behind it, so it shows who they
+                // are: their picked avatar, or the letter sticker drawn from
+                // the name this row already displays (TASK-22625). `decorative`
+                // because that name is on screen right next to it.
+                return <UserAvatar name={userName} avatarKey={avatarKey} size={size} decorative />
             } else {
                 // fallback for send/request if no initials and not link/address
                 displayIconName = 'wallet-outline'

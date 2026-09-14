@@ -41,6 +41,9 @@ interface TransactionDetailsHeaderCardProps {
     isLinkTransaction?: boolean
     transactionType?: TransactionType
     avatarUrl?: string
+    /** The counterparty's picked profile avatar (TASK-22625). A merchant
+     *  `avatarUrl` still wins — it identifies the payee more precisely. */
+    avatarKey?: string | null
     haveSentMoneyToUser?: boolean
     isNameClickable?: boolean
     isAvatarClickable?: boolean
@@ -210,6 +213,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     isLinkTransaction = false,
     transactionType,
     avatarUrl,
+    avatarKey,
     haveSentMoneyToUser = false,
     isNameClickable = false,
     isAvatarClickable = false,
@@ -288,6 +292,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                         <TransactionAvatarBadge
                             initials={initials}
                             userName={nameForAvatar}
+                            avatarKey={avatarKey}
                             isLinkTransaction={isLinkTransaction}
                             transactionType={typeForAvatar}
                             context="header"

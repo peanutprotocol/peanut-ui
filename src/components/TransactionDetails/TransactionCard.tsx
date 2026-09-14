@@ -263,6 +263,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         <TransactionAvatarBadge
             initials={initials}
             userName={userNameForAvatar}
+            avatarKey={transaction.avatarKey}
             isLinkTransaction={isLinkTx}
             transactionType={type}
             context="card"
