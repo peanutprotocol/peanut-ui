@@ -203,9 +203,8 @@ describe('twMerge (DS-configured)', () => {
     })
 
     describe('component classes with Tailwind-shaped names', () => {
-        test('bg colours compose with the peanut patterns, which conflict among themselves', () => {
+        test('bg colours compose with the documented peanut pattern', () => {
             expect(twMerge('bg-peanut-repeat-normal bg-white')).toBe('bg-peanut-repeat-normal bg-white')
-            expect(twMerge('bg-peanut-repeat-normal bg-peanut-repeat-large')).toBe('bg-peanut-repeat-large')
             expect(stockTwMerge('bg-peanut-repeat-normal bg-white')).toBe('bg-white')
         })
     })

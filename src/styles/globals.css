@@ -973,12 +973,6 @@
     .bg-peanut-repeat-normal {
         @apply bg-[url('../assets/bg/peanut-bg.svg')] bg-[length:100px_100px] bg-repeat;
     }
-    .bg-peanut-repeat-large {
-        @apply bg-[url('../assets/bg/peanut-bg.svg')] bg-[length:200px_200px] bg-repeat;
-    }
-    .bg-peanut-repeat-small {
-        @apply bg-[url('../assets/bg/peanut-bg.svg')] bg-[length:50px_50px] bg-repeat;
-    }
 }
 
 /* Safe-area contract. --safe-area-inset-* is the raw source: on Android 15+

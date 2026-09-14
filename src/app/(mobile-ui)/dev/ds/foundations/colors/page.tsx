@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { useState } from 'react'
 import { Card } from '@/components/0_Bruddle/Card'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
@@ -25,12 +24,6 @@ function groupByPrefix(tokens: ThemeToken[]): Map<string, ThemeToken[]> {
 
 const SEMANTIC = groupByPrefix(COLOR_TOKENS.filter((t) => t.section === 'semantic'))
 const LEGACY = groupByPrefix(COLOR_TOKENS.filter((t) => t.section === 'legacy'))
-
-const BACKGROUNDS = [
-    { name: 'bg-peanut-repeat-normal', description: 'Normal peanut repeat pattern' },
-    { name: 'bg-peanut-repeat-large', description: 'Large peanut repeat pattern' },
-    { name: 'bg-peanut-repeat-small', description: 'Small peanut repeat pattern' },
-]
 
 export default function ColorsPage() {
     const [copiedColor, setCopiedColor] = useState<string | null>(null)
@@ -136,34 +129,22 @@ export default function ColorsPage() {
 
             {/* Background patterns */}
             <DocSection title="Background Patterns">
-                <DesignNote type="warning">
-                    DEAD IN PRODUCT —{' '}
+                <DesignNote type="info">
+                    The Mono design-system rulebook documents one brand background:{' '}
                     <code className="rounded-sm bg-background-default px-1 font-mono text-body-xs">
-                        bg-peanut-repeat-*
-                    </code>{' '}
-                    (normal / large / small) are defined in the Tailwind theme but rendered on{' '}
-                    <span className="underline">zero</span> real app screens (0 non-dev, non-test call-sites).
-                    Don&rsquo;t treat these as design-system tokens — they&rsquo;re delete-candidates. See{' '}
-                    <Link href="/dev/ds/audit/app" className="underline">
-                        App Divergences →
-                    </Link>
+                        bg-peanut-repeat-normal
+                    </code>
+                    . The undocumented large and small variants were removed.
                 </DesignNote>
-                <div className="space-y-2 opacity-60">
-                    {BACKGROUNDS.map((bg) => (
-                        <ListItem
-                            key={bg.name}
-                            onClick={() => copyClass(bg.name)}
-                            title={bg.name}
-                            body={bg.description}
-                            leading={
-                                <span
-                                    className={`${bg.name} size-8 rounded-sm border border-dashed border-border-default bg-background-badge-accent`}
-                                />
-                            }
-                            trailing={<Icon name={copiedColor === bg.name ? 'check' : 'copy'} size={16} />}
-                        />
-                    ))}
-                </div>
+                <ListItem
+                    onClick={() => copyClass('bg-peanut-repeat-normal')}
+                    title="bg-peanut-repeat-normal"
+                    body="Waving peanut repeat pattern"
+                    leading={
+                        <span className="bg-peanut-repeat-normal size-8 rounded-sm border border-dashed border-border-default bg-background-badge-accent" />
+                    }
+                    trailing={<Icon name={copiedColor === 'bg-peanut-repeat-normal' ? 'check' : 'copy'} size={16} />}
+                />
             </DocSection>
         </DocPage>
     )

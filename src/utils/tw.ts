@@ -90,7 +90,7 @@ export const twMerge = extendTailwindMerge<'ds-bg-peanut-repeat'>({
             'rounded-br': [{ 'rounded-br': [(value: string) => DS_RADIUS_TOKEN.test(value)] }],
             duration: [{ duration: DS_DURATION_TOKENS }],
             // background colours compose with the peanut pattern utilities.
-            'ds-bg-peanut-repeat': [{ 'bg-peanut-repeat': ['normal', 'large', 'small'] }],
+            'ds-bg-peanut-repeat': [{ 'bg-peanut-repeat': ['normal'] }],
         },
     },
 })
