@@ -494,6 +494,53 @@ describe('mapTransactionDataForDrawer', () => {
         }
     })
 
+    describe('cross-chain withdrawal transaction proof (TASK-22614)', () => {
+        const completedWithdraw = (destinationChain: string, destinationTxHash: string) =>
+            baseEntry({
+                txHash: '0x' + 'a'.repeat(64),
+                status: EHistoryStatus.COMPLETED,
+                userRole: EHistoryUserRole.SENDER,
+                recipientAccount: externalEoa,
+                extraData: { kind: 'CRYPTO_WITHDRAW', destinationChain, destinationTxHash },
+            })
+
+        it('links a completed Tron delivery to its destination transaction', () => {
+            const result = mapTransactionDataForDrawer(completedWithdraw('TRON', 'b'.repeat(64))).transactionDetails
+
+            expect(result.txHash).toBe('b'.repeat(64))
+            expect(result.explorerUrl).toBe(`https://tronscan.org/#/transaction/${'b'.repeat(64)}`)
+        })
+
+        it('preserves a case-sensitive Solana signature in the destination link', () => {
+            const signature = '2AgqhXGtYtBBaEPLtxUSuvXikE6bb1jF2nbYb61CSEhe78CqrDCCTcyDD6pDbDDjHsVGnrUfEDbKf2utWxM6TCqG'
+            const result = mapTransactionDataForDrawer(completedWithdraw('SOLANA', signature)).transactionDetails
+
+            expect(result.txHash).toBe(signature)
+            expect(result.explorerUrl).toBe(`https://solscan.io/tx/${signature}`)
+        })
+
+        it('keeps a pending withdrawal on the source proof even if destination fields arrive prematurely', () => {
+            const sourceHash = '0x' + 'c'.repeat(64)
+            const result = mapTransactionDataForDrawer(
+                baseEntry({
+                    txHash: sourceHash,
+                    status: EHistoryStatus.PENDING,
+                    userRole: EHistoryUserRole.SENDER,
+                    recipientAccount: externalEoa,
+                    extraData: {
+                        kind: 'CRYPTO_WITHDRAW',
+                        destinationChain: 'TRON',
+                        destinationTxHash: 'd'.repeat(64),
+                    },
+                })
+            ).transactionDetails
+
+            expect(result.txHash).toBe(sourceHash)
+            expect(result.explorerUrl).toContain(`/tx/${sourceHash}`)
+            expect(result.explorerUrl).not.toContain('tronscan.org')
+        })
+    })
+
     describe('unknown-kind default arm (forward-compat / regression guard)', () => {
         it('routes an unhandled kind to the fallback (undefined kind on output)', () => {
             // Per `isIntentKind` runtime guard — an unknown kind is NOT
