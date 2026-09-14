@@ -44,7 +44,7 @@ The shared registry is `src/dev/screens/catalogue.ts`. It imports named API
 fixtures, route checkpoints and surface metadata. Add stable IDs, concrete
 synthetic data, and explicit interactions for new states. An exclusion needs a
 reason. Never substitute a loading mascot, redirected page or harness placard
-for the requested screen. Animated GIF/WebP assets are frozen at their first frame; tutorial videos use a paused 0.5-second checkpoint. Original PNGs drive pixel comparison; WebP thumbnails
+for the requested screen. Animated GIF/WebP assets are frozen at their first frame; tutorial videos use a paused 0.5-second checkpoint. Remote images hidden behind Next.js image optimization use a deterministic neutral placeholder so third-party CDN availability cannot change or fail a capture. Original PNGs drive pixel comparison; WebP thumbnails
 are presentation only. Experimental design options are not product states.
 
 Run `node --import tsx scripts/screens/inventory.ts` to audit app routes against
