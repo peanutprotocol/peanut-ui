@@ -107,6 +107,8 @@ jest.mock('@/utils/general.utils', () => ({
     formatAmount: jest.fn((v: any) => v ?? '0'),
     printableAddress: jest.fn((a: string) => `${a.slice(0, 6)}...${a.slice(-4)}`),
     jsonStringify: jest.fn((v: any) => JSON.stringify(v)),
+    // the get-paid link names its origin through withReturnTo, which sanitizes
+    sanitizeRedirectURL: jest.fn((url: string) => url),
 }))
 
 jest.mock('@/utils/balance.utils', () => ({

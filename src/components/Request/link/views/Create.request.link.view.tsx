@@ -9,6 +9,7 @@ import AmountInput from '@/components/Global/AmountInput'
 import { useTranslations } from 'next-intl'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { withReturnTo } from '@/utils/return-to.utils'
 import { CreateRequestLinkCta } from './CreateRequestLinkCta'
 import { useCreateRequestLink } from './useCreateRequestLink'
 
@@ -90,7 +91,10 @@ export const CreateRequestLinkView = () => {
                 */}
                 {depositAccountsEnabled && (
                     <Link
-                        href="/get-paid"
+                        // name the origin rather than leaving it to history:
+                        // a user who reached /request by deep link has none, and
+                        // get-paid's back would drop them on /home instead of here
+                        href={withReturnTo('/get-paid', '/request')}
                         className="text-center text-body-s text-foreground-secondary underline underline-offset-4"
                     >
                         {t('bankDetailsAlternative')}
