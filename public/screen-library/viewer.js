@@ -17,7 +17,14 @@ const LOCALE_LABELS = {
     'es-AR': 'Español (Argentina)',
     'pt-BR': 'Português (Brasil)',
 }
+const LOCALE_CODES = {
+    en: 'EN',
+    'es-419': 'ES-419',
+    'es-AR': 'ES-AR',
+    'pt-BR': 'PT-BR',
+}
 const localeLabel = (locale) => LOCALE_LABELS[locale] ?? locale ?? 'English'
+const localeCode = (locale) => LOCALE_CODES[locale] ?? locale ?? 'EN'
 const localeSlugs = new Set(['en', 'es-419', 'es-ar', 'pt-br'])
 const withoutLocale = (path) =>
     path
@@ -166,6 +173,7 @@ function render() {
     if (report?.type === 'comparison') $('title').textContent = changedMode ? 'See what changed.' : 'Every screen.'
     filteredRows = filteredScreenRows()
     renderedCount = 0
+    $('screens').className = changedMode ? 'changed-screens' : 'all-screens'
     $('screens').replaceChildren()
     if (!filteredRows.length) {
         $('screens').append(el('p', 'No screens match these filters.'))
@@ -207,6 +215,8 @@ function showEmptyState(kind = 'unpublished') {
           ? 'Published report not found'
           : 'Temporary loading issue'
     $('coverage').hidden = true
+    $('filters-row').hidden = true
+    $('view-mode-row').hidden = true
     $('dashboard-filters').hidden = true
     $('screen-filters').hidden = true
     $('versions').hidden = true
@@ -223,7 +233,7 @@ function populateLocale(entries, selected) {
     const locales = sortLocales(entries.map((entry) => entry.locale))
     $('locale').replaceChildren(
         ...locales.map((value) => {
-            const option = el('option', localeLabel(value))
+            const option = el('option', localeCode(value))
             option.value = value
             return option
         })
@@ -290,6 +300,8 @@ async function start() {
         }
         $('dashboard-filters').hidden = false
         $('screen-filters').hidden = true
+        $('filters-row').hidden = false
+        $('view-mode-row').hidden = true
         renderLanding()
         return
     }
@@ -299,6 +311,8 @@ async function start() {
     report = offline ? window.SCREEN_REPORT : await loadJSON(`/screen-data/reports/${reportPath}/manifest.json`)
     if (!report || report.schema !== 1) throw new Error('Unsupported report')
     $('dashboard-filters').hidden = true
+    $('filters-row').hidden = false
+    $('view-mode-row').hidden = report.type === 'capture'
     rows =
         report.type === 'capture'
             ? report.screens.map((s) => ({
@@ -311,7 +325,6 @@ async function start() {
         after = report.type === 'capture' ? report : report.after
     viewMode = report.type === 'capture' ? 'all' : 'changed'
     $('view-mode').checked = viewMode === 'all'
-    $('view-mode-control').hidden = report.type === 'capture'
     $('title').textContent = report.type === 'capture' ? 'The screen library.' : 'See what changed.'
     const captureDate = formatCaptureDate(after?.capturedAt ?? report.capturedAt)
     $('description').replaceChildren(captureDate ? el('strong', captureDate) : el('span', ''))

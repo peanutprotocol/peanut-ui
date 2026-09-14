@@ -10,6 +10,7 @@ const elementIds = [
     'status',
     'view-mode',
     'view-mode-control',
+    'view-mode-row',
     'locale',
     'title',
     'description',
@@ -32,6 +33,7 @@ const elementIds = [
     'empty-retry',
     'screen-filters',
     'dashboard-filters',
+    'filters-row',
     'versions',
     'screens',
     'screen-load-more',
@@ -141,6 +143,8 @@ test('landing locale selector filters published versions', async () => {
     })
     assert.equal(elements.get('locale').children.length, 2)
     assert.equal(elements.get('locale').value, 'en')
+    assert.equal(elements.get('locale').children[0].textContent, 'EN')
+    assert.equal(elements.get('locale').children[1].textContent, 'ES-419')
     assert.equal(elements.get('versions').children.length, 1)
     elements.get('locale').value = 'es-419'
     elements.get('locale').dispatch('change')
@@ -262,6 +266,7 @@ test('report pages expose the locale selector and use a long-form capture date',
         report,
     })
     assert.equal(elements.get('dashboard-filters').hidden, false)
+    assert.equal(elements.get('view-mode-row').hidden, true)
     assert.equal(elements.get('locale').children.length, 2)
     assert.equal(elements.get('locale').value, 'en')
     assert.equal(elements.get('description').children[0].textContent, 'September 9, 2026')
@@ -277,6 +282,7 @@ test('landing page shows a friendly empty state when captures are not published'
         assert.match(elements.get('empty-title').textContent, /almost here/i)
         assert.equal(elements.get('coverage').hidden, true)
         assert.equal(elements.get('screen-filters').hidden, true)
+        assert.equal(elements.get('filters-row').hidden, true)
     }
 })
 

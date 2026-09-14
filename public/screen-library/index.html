@@ -41,36 +41,43 @@
                 </div>
             </section>
             <div class="filters-stack">
-                <nav id="dashboard-filters" class="filters" aria-label="Filter published versions" hidden>
-                    <label>Locale<select id="locale"></select></label>
-                </nav>
-                <nav id="screen-filters" class="filters" aria-label="Filter screens">
-                    <label>Search<input id="search" type="search" placeholder="Screen, state or flow" /></label
-                    ><label id="view-mode-control" class="switch-control"
+                <div id="view-mode-row" class="mode-row" hidden>
+                    <label id="view-mode-control" class="switch-control"
                         ><span>See all screens</span
                         ><input id="view-mode" type="checkbox" role="switch" aria-label="See all screens" /><span
                             class="switch"
                             aria-hidden="true"
-                        ></span></label
-                    ><label
-                        >Flow<select id="flow">
-                            <option value="">All flows</option>
-                        </select></label
-                    ><label
-                        >Show<select id="status">
-                            <option value="">All screens</option>
-                            <option value="differences">Changes and gaps</option>
-                            <option value="changed">Changed pixels</option>
-                            <option value="added">Added</option>
-                            <option value="removed">Removed</option>
-                            <option value="unchanged">Unchanged</option>
-                            <option value="unavailable">Unavailable</option>
-                            <option value="captured">Captured (library)</option>
-                            <option value="failed">Capture failed</option>
-                            <option value="excluded">Excluded</option>
-                        </select></label
-                    >
-                </nav>
+                        ></span
+                    ></label>
+                </div>
+                <div id="filters-row" class="filters-row">
+                    <nav id="dashboard-filters" class="filters" aria-label="Filter published versions" hidden>
+                        <label id="locale-control">Locale<select id="locale"></select></label>
+                    </nav>
+                    <nav id="screen-filters" class="filters" aria-label="Filter screens">
+                        <label id="search-control"
+                            >Search<input id="search" type="search" placeholder="Screen, state or flow" /></label
+                        ><label id="flow-control"
+                            >Flow<select id="flow">
+                                <option value="">All flows</option>
+                            </select></label
+                        ><label id="status-control"
+                            >Show<select id="status">
+                                <option value="">All screens</option>
+                                <option value="differences">Changes and gaps</option>
+                                <option value="changed">Changed pixels</option>
+                                <option value="added">Added</option>
+                                <option value="removed">Removed</option>
+                                <option value="unchanged">Unchanged</option>
+                                <option value="unavailable">Unavailable</option>
+                                <option value="captured">Captured (library)</option>
+                                <option value="failed">Capture failed</option>
+                                <option value="excluded">Excluded</option>
+                                <option value="absent">Absent in revision</option>
+                            </select></label
+                        >
+                    </nav>
+                </div>
             </div>
             <section id="versions" aria-label="Versions"></section>
             <section id="screens" aria-label="Screens"></section>

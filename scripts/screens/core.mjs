@@ -137,7 +137,13 @@ export function compare(beforeInput, afterInput, assetsDir) {
         if (a?.status === 'absent' && b?.status === 'captured') return { ...row, status: 'added' }
         if (b?.status === 'absent' && a?.status === 'captured') return { ...row, status: 'removed' }
         // Missing/failed capture is never proof of a product addition/removal.
-        if ((a && a.status !== 'captured') || (b && b.status !== 'captured')) return { ...row, status: 'unavailable' }
+        const gapStatuses = [a?.status, b?.status].filter((status) => status && status !== 'captured')
+        if (gapStatuses.length) {
+            const status = ['failed', 'unavailable', 'excluded', 'absent'].find((candidate) =>
+                gapStatuses.includes(candidate)
+            )
+            return { ...row, status: status ?? 'unavailable' }
+        }
         if (!a) return { ...row, status: before.complete ? 'added' : 'unavailable' }
         if (!b) return { ...row, status: after.complete ? 'removed' : 'unavailable' }
         const ad = verifyAsset(assetsDir, a.image),

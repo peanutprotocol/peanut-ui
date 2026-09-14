@@ -56,12 +56,21 @@ test('same pixels remain unchanged; changed pixels get a diff', () => {
 test('failure cannot become a removed or unchanged screen', () => {
     const failed = { id: 'home', name: 'Home', flow: 'Home', kind: 'route', status: 'failed', reason: 'Wrong route' }
     const r = compare(capture([screen('home')]), capture([failed]), dir)
-    assert.equal(r.screens[0].status, 'unavailable')
+    assert.equal(r.screens[0].status, 'failed')
     assert.equal(r.complete, false)
 })
 test('historical unsupported state is unavailable, not new', () => {
     const old = { ...screen('home'), status: 'unavailable', reason: 'Adapter unavailable' }
     assert.equal(compare(capture([old]), capture([screen('home')]), dir).screens[0].status, 'unavailable')
+})
+test('intentional exclusions and absent routes remain distinguishable from failures', () => {
+    const excluded = { ...screen('excluded'), status: 'excluded', reason: 'Alias covered elsewhere' }
+    const absent = { ...screen('absent'), status: 'absent', reason: 'Route does not exist' }
+    const r = compare(capture([excluded, absent]), capture([excluded, absent]), dir)
+    assert.deepEqual(
+        r.screens.map((s) => s.status),
+        ['absent', 'excluded']
+    )
 })
 test('only complete catalogues prove additions and removals', () => {
     const r = compare(capture([screen('old')]), capture([screen('new')]), dir)
