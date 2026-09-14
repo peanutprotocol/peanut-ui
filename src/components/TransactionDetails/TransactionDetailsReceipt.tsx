@@ -152,6 +152,19 @@ export const TransactionDetailsReceipt = ({
                 amountDisplay={amountDisplay}
                 contentRef={contentRef}
                 className={className}
+                actions={
+                    <ReceiptActions
+                        transaction={transaction}
+                        vm={vm}
+                        isPublic={isPublic}
+                        amountDisplay={amountDisplay}
+                        shouldShowQrShare={shouldShowQrShare}
+                        isLoading={isLoading}
+                        setIsLoading={setIsLoading}
+                        onClose={onClose}
+                        setIsModalOpen={setIsModalOpen}
+                    />
+                }
             />
         )
     }

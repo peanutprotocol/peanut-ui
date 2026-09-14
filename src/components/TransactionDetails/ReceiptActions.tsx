@@ -15,7 +15,7 @@ import { PrivateReceiptPdfActions } from './PrivateReceiptPdfActions'
 import { type ReceiptViewModel } from './useReceiptViewModel'
 import { useReceiptActions } from './useReceiptActions'
 import { type TransactionDetails } from './transactionTransformer'
-import { isRequestEntry, isSendLinkEntry, isSplittable } from './transaction-predicates'
+import { hasReceiptPage, isRequestEntry, isSendLinkEntry, isSplittable } from './transaction-predicates'
 import { buildSplitBillRequestUrl } from './splitBill.utils'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { openExternalUrl } from '@/utils/capacitor'
@@ -71,13 +71,17 @@ export function ReceiptActions({
         setIsModalOpen?.(showCancelLinkDrawer)
     }, [showCancelLinkDrawer, setIsModalOpen])
 
-    // `shouldShowShareReceipt` alone is TRUE for card spends (the txHash
-    // short-circuit in useReceiptViewModel); `getReceiptUrl` returning undefined
-    // is the real suppressor, so the CTA arithmetic must read the composite.
+    // An action/payment URL is not necessarily a public receipt URL. Only the
+    // dedicated receipt-page kinds may share it; every other completed kind
+    // uses the authenticated PDF actions even when it retains a pay link.
     const receiptUrl = getReceiptUrl(transaction)
-    const showPublicShareReceipt = vm.shouldShowShareReceipt && !!receiptUrl
+    const hasPublicReceiptPage = hasReceiptPage(transaction)
+    const showPublicShareReceipt = vm.shouldShowShareReceipt && hasPublicReceiptPage && !!receiptUrl
     const showPrivateReceiptActions =
-        vm.shouldShowShareReceipt && vm.shouldShowDownloadPdf && !receiptUrl && !!transaction.extraDataForDrawer?.kind
+        vm.shouldShowShareReceipt &&
+        vm.shouldShowDownloadPdf &&
+        !hasPublicReceiptPage &&
+        !!transaction.extraDataForDrawer?.kind
     const showSplitCta = !isPublic && isSplittable(transaction)
 
     const handleCloseRequest = async () => {

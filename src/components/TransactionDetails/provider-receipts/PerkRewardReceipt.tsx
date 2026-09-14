@@ -1,11 +1,10 @@
 'use client'
 
-import { type RefObject } from 'react'
+import { type ReactNode, type RefObject } from 'react'
 import { twMerge } from '@/utils/tw'
 import Card from '@/components/Global/Card'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { PerkIcon } from '@/components/TransactionDetails/PerkIcon'
-import { ReceiptSupportLink } from '@/components/TransactionDetails/ReceiptSupportLink'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { type HistoryEntryPerkReward } from '@/services/services.types'
 import { STATUS_LABEL_KEYS } from '@/components/Global/Badges/StatusBadge'
@@ -25,12 +24,14 @@ export function PerkRewardReceipt({
     amountDisplay,
     contentRef,
     className,
+    actions,
 }: {
     transaction: TransactionDetails
     perkRewardData: HistoryEntryPerkReward
     amountDisplay: string
     contentRef?: RefObject<HTMLDivElement>
     className?: string
+    actions: ReactNode
 }) {
     const t = useTranslations('transaction')
     const tCommon = useTranslations('common')
@@ -78,7 +79,7 @@ export function PerkRewardReceipt({
                 />
             </Card>
 
-            <ReceiptSupportLink />
+            {actions}
         </div>
     )
 }
