@@ -29,7 +29,7 @@ interface ResidenceChangeDrawerProps {
     /** refetch the user so active and pending residence stay in sync */
     onSaved: () => Promise<unknown> | void
     /** start the dedicated residence proof action for the pending country */
-    onReverify: () => void
+    onReverify: (targetCountry: string) => void
 }
 
 /**
@@ -118,7 +118,7 @@ const ResidenceChangeDrawer = ({
                 console.error('failed to refetch user after residence change:', e)
             }
             onClose()
-            if (reverifyAfter) onReverify()
+            if (reverifyAfter) onReverify(selected)
             return true
         } finally {
             setIsSaving(false)

@@ -200,9 +200,13 @@ describe('startResidenceChangeVerification — wire shape', () => {
             targetCountry: 'PT',
         })
 
-        const result = await startResidenceChangeVerification()
+        const result = await startResidenceChangeVerification('pt')
 
-        expect(mockFetch).toHaveBeenCalledWith('/users/residence-change/start', { method: 'POST' })
+        expect(mockFetch).toHaveBeenCalledWith('/users/residence-change/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ targetCountry: 'PT' }),
+        })
         expect(result.data?.targetCountry).toBe('PT')
         expect(result.data?.token).toBe('tok-residence')
     })
@@ -210,7 +214,7 @@ describe('startResidenceChangeVerification — wire shape', () => {
     it('never silently falls back to the identity-reset endpoint', async () => {
         respondWith(409, { error: 'Save a new residence before starting verification.' })
 
-        const result = await startResidenceChangeVerification()
+        const result = await startResidenceChangeVerification('PT')
 
         expect(result.error).toMatch(/save a new residence/i)
         expect(mockFetch).toHaveBeenCalledTimes(1)

@@ -247,7 +247,7 @@ const UnlockPayments = () => {
     const [isChangeModalOpen, setIsChangeModalOpen] = useState(false)
     const [activeRegionIntent, setActiveRegionIntent] = useState<KYCRegionIntent | undefined>(undefined)
     const [errorAcknowledged, setErrorAcknowledged] = useState(false)
-    const [reverifyRequested, setReverifyRequested] = useState(false)
+    const [reverifyTarget, setReverifyTarget] = useState<string | null>(null)
 
     const clickedRegionIntent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
     const clickedRegionProvider = providerForRegionIntent(clickedRegionIntent)
@@ -298,7 +298,7 @@ const UnlockPayments = () => {
     const handleStartKyc = useCallback(async () => {
         const intent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
         if (intent) setActiveRegionIntent(intent)
-        setReverifyRequested(false)
+        setReverifyTarget(null)
         setErrorAcknowledged(false)
         setSelectedRegion(null)
         // Always cross-region: a locked method has no functional rail behind it,
@@ -327,7 +327,7 @@ const UnlockPayments = () => {
 
     // A residence re-verification never sets a region intent, so without the
     // flag its failure would read as "Not available yet" instead of retriable.
-    const failedRegionRetriable = reverifyRequested || providerForRegionIntent(activeRegionIntent) !== null
+    const failedRegionRetriable = reverifyTarget !== null || providerForRegionIntent(activeRegionIntent) !== null
 
     const countryDisplayName = (iso2: string | null): string | null =>
         iso2
@@ -486,10 +486,10 @@ const UnlockPayments = () => {
                         queryClient.invalidateQueries({ queryKey: [LIMITS] }),
                     ])
                 }}
-                onReverify={() => {
-                    setReverifyRequested(true)
+                onReverify={(targetCountry) => {
+                    setReverifyTarget(targetCountry)
                     setErrorAcknowledged(false)
-                    void flow.handleResidenceChange()
+                    void flow.handleResidenceChange(targetCountry)
                 }}
             />
 
@@ -583,7 +583,7 @@ const UnlockPayments = () => {
                                   shadowSize: '4',
                                   disabled: flow.isLoading,
                                   onClick: () => {
-                                      if (reverifyRequested) void flow.handleResidenceChange()
+                                      if (reverifyTarget) void flow.handleResidenceChange(reverifyTarget)
                                       else void flow.handleInitiateKyc(activeRegionIntent, undefined, true)
                                   },
                               },

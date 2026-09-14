@@ -76,9 +76,10 @@ describe('useMultiPhaseKycFlow — residence action composition', () => {
         const { result } = renderHook(() => useMultiPhaseKycFlow({ onKycApproved }))
 
         await act(async () => {
-            await result.current.handleResidenceChange()
+            await result.current.handleResidenceChange('PT')
         })
         expect(result.current.showWrapper).toBe(true)
+        expect(mockResidenceChange).toHaveBeenCalledWith('PT')
 
         mockFetchUser.mockClear()
         ;(markSubmitted as jest.Mock).mockClear()

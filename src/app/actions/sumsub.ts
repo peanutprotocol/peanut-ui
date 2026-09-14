@@ -220,18 +220,28 @@ export interface ResidenceChangeVerificationResponse {
  * restartIdentityVerification this endpoint never resets the approved
  * applicant's IDENTITY step.
  */
-export const startResidenceChangeVerification = async (): Promise<{
+export const startResidenceChangeVerification = async (
+    targetCountry: string
+): Promise<{
     data?: ResidenceChangeVerificationResponse
     error?: string
     code?: SumsubActionErrorCode
 }> => {
     try {
-        const response = await serverFetch('/users/residence-change/start', { method: 'POST' })
+        const expectedTargetCountry = targetCountry.trim().toUpperCase()
+        if (!/^[A-Z]{2}$/.test(expectedTargetCountry)) {
+            return { error: 'Invalid residence country', code: 'residence_change_failed' }
+        }
+        const response = await serverFetch('/users/residence-change/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ targetCountry: expectedTargetCountry }),
+        })
         const responseJson = await response.json()
         if (!response.ok) {
             return backendOrFallback(responseJson, 'Failed to start residence verification', 'residence_change_failed')
         }
-        if (!responseJson.token || !responseJson.applicantId || !responseJson.targetCountry) {
+        if (!responseJson.token || !responseJson.applicantId || responseJson.targetCountry !== expectedTargetCountry) {
             return { error: 'Invalid response from server', code: 'invalid_response' }
         }
         return { data: responseJson }

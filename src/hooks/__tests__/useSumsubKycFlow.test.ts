@@ -417,10 +417,10 @@ describe('useSumsubKycFlow — multi-level workflows', () => {
         const { result } = renderHook(() => useSumsubKycFlow({ onManualClose }))
 
         await act(async () => {
-            await result.current.handleResidenceChange()
+            await result.current.handleResidenceChange('PT')
         })
 
-        expect(mockResidenceChange).toHaveBeenCalledTimes(1)
+        expect(mockResidenceChange).toHaveBeenCalledWith('PT')
         expect(mockRestart).not.toHaveBeenCalled()
         expect(result.current.showWrapper).toBe(true)
         expect(result.current.isActionFlow).toBe(true)
@@ -432,6 +432,37 @@ describe('useSumsubKycFlow — multi-level workflows', () => {
         expect(onManualClose).toHaveBeenCalledTimes(1)
     })
 
+    it('binds residence token refreshes to the country used to open the action', async () => {
+        mockResidenceChange
+            .mockResolvedValueOnce({
+                data: {
+                    token: 'tok_residence',
+                    applicantId: 'app_1',
+                    levelName: 'peanut-residence-change',
+                    targetCountry: 'PT',
+                },
+            })
+            .mockResolvedValueOnce({
+                data: {
+                    token: 'tok_refreshed',
+                    applicantId: 'app_1',
+                    levelName: 'peanut-residence-change',
+                    targetCountry: 'PT',
+                },
+            })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleResidenceChange('pt')
+        })
+        await act(async () => {
+            expect(await result.current.refreshToken()).toBe('tok_refreshed')
+        })
+
+        expect(mockResidenceChange).toHaveBeenNthCalledWith(1, 'PT')
+        expect(mockResidenceChange).toHaveBeenNthCalledWith(2, 'PT')
+    })
+
     it('uses residence-specific fallback copy when its action cannot start', async () => {
         mockResidenceChange.mockResolvedValue({
             error: 'Failed to start residence change verification',
@@ -440,7 +471,7 @@ describe('useSumsubKycFlow — multi-level workflows', () => {
         const { result } = renderHook(() => useSumsubKycFlow({}))
 
         await act(async () => {
-            await result.current.handleResidenceChange()
+            await result.current.handleResidenceChange('PT')
         })
 
         expect(result.current.error).toBe('Could not start residence verification. Please try again.')

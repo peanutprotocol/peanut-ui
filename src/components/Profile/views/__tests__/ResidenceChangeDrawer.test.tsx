@@ -79,7 +79,7 @@ describe('ResidenceChangeDrawer', () => {
         fireEvent.click(screen.getByText('Submit documents'))
         await waitFor(() => expect(onClose).toHaveBeenCalled())
         expect(mockedUpdate).toHaveBeenCalledWith({ userId: 'u1', residenceCountry: 'ES' })
-        expect(onReverify).toHaveBeenCalledWith()
+        expect(onReverify).toHaveBeenCalledWith('ES')
     })
 
     it('hides re-verification when declared matches verified', () => {

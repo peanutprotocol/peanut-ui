@@ -17846,6 +17846,25 @@
 						}
 					}
 				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"targetCountry": {
+										"pattern": "^[A-Za-z]{2}$",
+										"type": "string"
+									}
+								},
+								"required": [
+									"targetCountry"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
 				"responses": {
 					"200": {
 						"content": {

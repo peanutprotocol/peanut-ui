@@ -174,6 +174,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const levelNameRef = useRef<string | undefined>(undefined)
     // tracks the selected target country across initiate + refresh for country-scoped Manteca actions
     const targetCountryRef = useRef<string | undefined>(undefined)
+    const residenceChangeCountryRef = useRef<string | null>(null)
     // guards fetchCurrentStatus from running while handleInitiateKyc is in progress
     const initiatingRef = useRef(false)
     // guard: only fire onKycSuccess when the user initiated a kyc flow in this session.
@@ -588,6 +589,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         actionKeyRef.current = null
         if (residenceChangeRef.current) {
             residenceChangeRef.current = false
+            residenceChangeCountryRef.current = null
             setShowWrapper(false)
             setIsActionFlow(false)
             setIsMultiLevel(false)
@@ -610,6 +612,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // Only single-level completion consumes the deferred action.
     const handleClose = useCallback(() => {
         residenceChangeRef.current = false
+        residenceChangeCountryRef.current = null
         setShowWrapper(false)
         setIsActionFlow(false)
         setIsMultiLevel(false)
@@ -623,7 +626,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         if (verificationSessionRef.current) return refreshVerificationSession(verificationSessionRef.current)
 
         if (residenceChangeRef.current) {
-            const response = await startResidenceChangeVerification()
+            const targetCountry = residenceChangeCountryRef.current
+            if (!targetCountry) throw new Error('Residence verification target is missing')
+            const response = await startResidenceChangeVerification(targetCountry)
             if (response.error || !response.data?.token) {
                 throw new Error(response.error || 'Failed to refresh residence verification token')
             }
@@ -756,39 +761,45 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // Open the applicant action associated with the current pending residence.
     // This is intentionally not handleRestartIdentity: the base applicant stays
     // APPROVED and its ID documents stay active throughout this flow.
-    const handleResidenceChange = useCallback(async () => {
-        verificationSessionRef.current = null
-        setVerificationSession(null)
-        setShowCorrection(false)
-        setIsLoading(true)
-        setError(null)
-        setIsTerminalError(false)
-        userInitiatedRef.current = true
-        selfHealProviderRef.current = null
-        actionKeyRef.current = null
-        residenceChangeRef.current = true
+    const handleResidenceChange = useCallback(
+        async (targetCountry: string) => {
+            verificationSessionRef.current = null
+            setVerificationSession(null)
+            setShowCorrection(false)
+            setIsLoading(true)
+            setError(null)
+            setIsTerminalError(false)
+            userInitiatedRef.current = true
+            selfHealProviderRef.current = null
+            actionKeyRef.current = null
+            residenceChangeRef.current = true
+            residenceChangeCountryRef.current = targetCountry.trim().toUpperCase()
 
-        try {
-            const response = await startResidenceChangeVerification()
-            if (response.error || !response.data?.token) {
+            try {
+                const response = await startResidenceChangeVerification(residenceChangeCountryRef.current)
+                if (response.error || !response.data?.token) {
+                    userInitiatedRef.current = false
+                    residenceChangeRef.current = false
+                    residenceChangeCountryRef.current = null
+                    setError(response.error ? actionErrorMessage(response) : t('errorResidenceChangeFailed'))
+                    return
+                }
+                levelNameRef.current = response.data.levelName
+                setAccessToken(response.data.token)
+                setIsActionFlow(true)
+                setIsMultiLevel(false)
+                setShowWrapper(true)
+            } catch (e: unknown) {
                 userInitiatedRef.current = false
                 residenceChangeRef.current = false
-                setError(response.error ? actionErrorMessage(response) : t('errorResidenceChangeFailed'))
-                return
+                residenceChangeCountryRef.current = null
+                setError(e instanceof Error ? e.message : t('unexpectedError'))
+            } finally {
+                setIsLoading(false)
             }
-            levelNameRef.current = response.data.levelName
-            setAccessToken(response.data.token)
-            setIsActionFlow(true)
-            setIsMultiLevel(false)
-            setShowWrapper(true)
-        } catch (e: unknown) {
-            userInitiatedRef.current = false
-            residenceChangeRef.current = false
-            setError(e instanceof Error ? e.message : t('unexpectedError'))
-        } finally {
-            setIsLoading(false)
-        }
-    }, [t, actionErrorMessage, setError])
+        },
+        [t, actionErrorMessage, setError]
+    )
 
     // initiate self-heal document resubmission: calls the resubmit API
     // and opens the sumsub SDK with the action token. `requirementKey` targets a

@@ -10917,7 +10917,13 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody: {
+                content: {
+                    "application/json": {
+                        targetCountry: string;
+                    };
+                };
+            };
             responses: {
                 /** @description Default Response */
                 200: {
