@@ -88,7 +88,7 @@ export default function ShhhhhLandingPage() {
                         <p className="font-roboto-flex mt-6 text-xl leading-relaxed">{t('hero.body')}</p>
                         <Button
                             className="mt-8"
-                            variant="purple"
+                            variant="stroke"
                             shadowSize="4"
                             onClick={handleCTA}
                             loading={busy}
@@ -126,9 +126,15 @@ export default function ShhhhhLandingPage() {
                     </h2>
                     <div className="mt-10 border-y-2 border-n-1">
                         {faqKeys.map((key, index) => (
-                            <details key={key} className={`py-5 ${index > 0 ? 'border-t-2 border-n-1' : ''}`}>
-                                <summary className="cursor-pointer text-lg font-bold">
+                            <details key={key} className={`group py-5 ${index > 0 ? 'border-t-2 border-n-1' : ''}`}>
+                                <summary className="flex cursor-pointer list-none items-center justify-between text-lg font-bold [&::-webkit-details-marker]:hidden">
                                     {t(`faq.${key}.question`)}
+                                    <span aria-hidden className="ml-4 select-none group-open:hidden">
+                                        {'+'}
+                                    </span>
+                                    <span aria-hidden className="ml-4 hidden select-none group-open:inline">
+                                        {'−'}
+                                    </span>
                                 </summary>
                                 <p className="mt-4 text-lg leading-relaxed">{t(`faq.${key}.answer`)}</p>
                             </details>
@@ -143,7 +149,7 @@ export default function ShhhhhLandingPage() {
                 <p className="mt-6 text-xl">{t('ready.subtitle')}</p>
                 <Button
                     className="mx-auto mt-8"
-                    variant="purple"
+                    variant="stroke"
                     shadowSize="4"
                     onClick={handleCTA}
                     loading={busy}
