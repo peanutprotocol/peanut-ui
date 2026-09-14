@@ -9,7 +9,6 @@ import { SectionDivider } from '../../_components/SectionDivider'
 import { Playground } from '../../_components/Playground'
 import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
-import { StatusTag } from '../../_components/StatusTag'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
 
@@ -30,8 +29,8 @@ export default function ButtonPage() {
                     'Icon + label combinations for contextual actions (share, copy)',
                 ]}
                 dontUse={[
-                    'Navigation links — use Next.js Link instead',
-                    'Toggle states — use Checkbox or Switch',
+                    'Standalone navigation links — use LinkButton',
+                    'Toggle states — use Checkbox or Toggle',
                     'Inline text actions — use underlined text links',
                 ]}
             />
@@ -136,7 +135,7 @@ export default function ButtonPage() {
                                 <div className="mb-2 flex items-center gap-2">
                                     <span className="text-label-l">{variant}</span>
                                     <span className="text-body-xs text-foreground-secondary">{count}</span>
-                                    <StatusTag status={status} />
+                                    <span className="text-label-m text-foreground-secondary">{status}</span>
                                 </div>
                                 <Button variant={variant}>{variant}</Button>
                             </div>
@@ -145,7 +144,7 @@ export default function ButtonPage() {
                             <div className="mb-2 flex items-center gap-2">
                                 <span className="text-label-l">transparent-light</span>
                                 <span className="text-body-xs text-foreground-secondary">2 usages</span>
-                                <StatusTag status="limited" />
+                                <span className="text-label-m text-foreground-secondary">limited</span>
                             </div>
                             <div className="rounded-sm bg-foreground-primary p-3">
                                 <Button variant="transparent-light">transparent-light</Button>

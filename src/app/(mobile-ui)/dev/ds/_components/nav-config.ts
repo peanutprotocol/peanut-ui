@@ -26,6 +26,7 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
         { label: 'Shadows', icon: 'docs', href: '/dev/ds/foundations/shadows' },
         { label: 'Icons', icon: 'search', href: '/dev/ds/foundations/icons' },
         { label: 'Borders', icon: 'docs', href: '/dev/ds/foundations/borders' },
+        { label: 'Motion & haptics', icon: 'meter', href: '/dev/ds/foundations/motion-haptics' },
     ],
     primitives: [
         {

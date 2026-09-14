@@ -13,6 +13,7 @@
 import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
 import { Button } from '@/components/0_Bruddle/Button'
+import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { NumberedList } from '@/components/0_Bruddle/NumberedList'
@@ -94,14 +95,7 @@ export function PasskeyHelpB() {
                 </p>
                 <div className="flex flex-col gap-2">
                     <h2 className={MINI}>{t('tryTheseFixes')}</h2>
-                    <ul className="flex flex-col gap-2">
-                        {steps.map((step) => (
-                            <li key={step} className="flex items-start gap-2 text-body-s text-foreground-primary">
-                                <span className="mt-2 size-1.5 shrink-0 rounded-full bg-foreground-primary" />
-                                <span>{step}</span>
-                            </li>
-                        ))}
-                    </ul>
+                    <BulletList items={steps} />
                 </div>
             </div>
         </Shell>

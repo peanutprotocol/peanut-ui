@@ -1,6 +1,8 @@
 import { formatUsd } from './format'
 import { EDGE_TYPE_LABELS, RECIPROCITY_LABELS, type Reciprocity } from './selectors'
 import type { ExplorerNode, ExplorerRelationship } from './types'
+import { Card } from '@/components/0_Bruddle/Card'
+import { DataRow } from '@/components/0_Bruddle/DataRow'
 
 interface RelationshipDetailsProps {
     relationship: ExplorerRelationship
@@ -20,18 +22,12 @@ export default function RelationshipDetails({ relationship, nodes, reciprocity }
 
     return (
         <>
-            <p className="mb-3 font-mono text-[11px] break-all text-grey-1">{relationship.id}</p>
-            <dl className="space-y-2">
+            <p className="mb-3 font-mono text-body-xs break-all text-foreground-secondary">{relationship.id}</p>
+            <Card className="divide-y divide-dashed divide-border-default px-4">
                 {rows.map(([label, value]) => (
-                    <div
-                        key={label}
-                        className="grid grid-cols-[105px_minmax(0,1fr)] gap-2 border-b border-n-1/10 pb-2 text-xs"
-                    >
-                        <dt className="text-grey-1">{label}</dt>
-                        <dd className="font-semibold break-words">{value}</dd>
-                    </div>
+                    <DataRow key={label} label={label} value={value} />
                 ))}
-            </dl>
+            </Card>
         </>
     )
 }

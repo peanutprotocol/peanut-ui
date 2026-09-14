@@ -31,19 +31,21 @@ const SRC = join(ROOT, 'src')
 const BASELINE_PATH = join(ROOT, 'scripts', 'ds-lint-baseline.json')
 
 // allowlist for every metric: image-generation surfaces render standalone html
-// with no tailwind, raw values are the tool there, not debt. the ds showcase
-// pages display the token source itself (colors, spacing, type ramp rendered
-// programmatically from values), so raw values there are the feature. the
-// /dev/devices harness sizes its panes from measured pixel values and keeps its
-// chrome deliberately colorless, so the app inside the panes is what you judge.
+// with no tailwind, raw values are the tool there, not debt. the /dev/devices
+// harness sizes its panes from measured pixel values and keeps its chrome
+// deliberately colorless, so the app inside the panes is what you judge.
 const GLOBAL_ALLOW = [
     'components/og/',
     'app/api/og/',
     'ImageGeneration/',
-    'dev/ds/',
     'dev/components/',
     'dev/devices/',
     'dev/fixtures/', // fixture tooling incl. the on-camera banner — dev-only, DEV_TOOLS_ENABLED-gated
+    // static audit inventory quotes historical class names as data. The audit
+    // page chrome remains linted; only these non-rendered datasets are skipped.
+    'dev/ds/audit/audit-data.ts',
+    'dev/ds/audit/app/audit-app-data.ts',
+    'dev/ds/audit/components/audit-components-data.ts',
     'features/payment-network-explorer/', // team-gated /dev/payment-graph tool (same class as InvitesGraph) — not product UI
 ]
 
@@ -113,11 +115,9 @@ const countMatches = (text, re) => (text.match(re) ?? []).length
 const isTsx = (f) => f.path.endsWith('.tsx')
 const isView = (f) => /(^|\/)page\.tsx$/.test(f.path) || /\.view\.tsx$/.test(f.path) || /View\.tsx$/.test(f.path)
 
-// marketing surfaces + dev tooling are out of DS scope (DS 17 ruling,
-// approved by Kush 2026-09-03): marketing is declared out of scope on the
-// DS 17 Notion page, dev tooling is not product UI. the legacy-palette
-// metric already excluded this exact set; the four KR1 metrics (rawHex,
-// inlineStyle, stockTextSize, nonDsClassesInViews) now share it.
+// marketing surfaces + dev tooling outside /dev/ds are out of DS scope (DS 17
+// ruling, approved by Kush 2026-09-03). /dev/ds is the design-system reference,
+// so the lint must check it even though sibling /dev tools stay exempt.
 const LEGACY_ALLOW = [
     'components/LandingPage/',
     'components/Marketing/',
@@ -128,13 +128,14 @@ const LEGACY_ALLOW = [
     'app/jobs/',
     'app/m/',
     'app/[locale]/(marketing)/',
-    '/dev/', // all dev tooling, not just dev/ds
 ]
+const isDevOutsideDs = (path) => path.includes('/dev/') && !path.includes('/dev/ds/')
+const allowedLegacy = (path, extra = []) => isDevOutsideDs(path) || allowed(path, [...LEGACY_ALLOW, ...extra])
 
 const counts = {}
 let rawHexFiles = 0
 counts.rawHex = files
-    .filter((f) => isTsx(f) && !allowed(f.path, [...HEX_ALLOW, ...LEGACY_ALLOW]))
+    .filter((f) => isTsx(f) && !allowedLegacy(f.path, HEX_ALLOW))
     .reduce((sum, f) => {
         const n = countMatches(f.text, HEX_RE)
         if (n > 0) rawHexFiles++
@@ -142,14 +143,14 @@ counts.rawHex = files
     }, 0)
 counts.rawHexFiles = rawHexFiles
 counts.inlineStyle = files
-    .filter((f) => isTsx(f) && !allowed(f.path, [...INLINE_STYLE_ALLOW, ...LEGACY_ALLOW]))
+    .filter((f) => isTsx(f) && !allowedLegacy(f.path, INLINE_STYLE_ALLOW))
     .reduce((sum, f) => sum + countMatches(f.text, INLINE_STYLE_RE), 0)
 counts.stockTextSize = files
-    .filter((f) => isTsx(f) && !allowed(f.path, LEGACY_ALLOW))
+    .filter((f) => isTsx(f) && !allowedLegacy(f.path))
     .reduce((sum, f) => sum + countMatches(f.text, STOCK_TEXT_RE), 0)
 counts.dsTextScale = files.filter((f) => isTsx(f)).reduce((sum, f) => sum + countMatches(f.text, DS_TEXT_RE), 0)
 counts.nonDsClassesInViews = files
-    .filter((f) => isView(f) && !allowed(f.path, LEGACY_ALLOW))
+    .filter((f) => isView(f) && !allowedLegacy(f.path))
     .reduce((sum, f) => sum + countMatches(f.text, STOCK_PALETTE_RE) + countMatches(f.text, ARBITRARY_RE), 0)
 counts.useSearchParamsFiles = files.filter((f) => /\buseSearchParams\b/.test(f.text)).length
 counts.nuqsFiles = files.filter((f) => /from ['"]nuqs['"]/.test(f.text)).length
@@ -165,7 +166,7 @@ counts.nuqsFiles = files.filter((f) => /from ['"]nuqs['"]/.test(f.text)).length
 const LEGACY_PALETTE_RE =
     /\b(?:bg|text|border|ring|fill|stroke|divide|outline|decoration|from|to|via)-(?:n|grey|gray|primary|purple|yellow|green|secondary|teal|violet|cyan|orange|success|error|blue|pink|red)-(?:[1-9]|1[01])\b/g
 counts.legacyColorClasses = files
-    .filter((f) => isTsx(f) && !allowed(f.path, LEGACY_ALLOW))
+    .filter((f) => isTsx(f) && !allowedLegacy(f.path))
     .reduce((sum, f) => sum + countMatches(f.text, LEGACY_PALETTE_RE), 0)
 
 // ramp families with a non-figma index (gray-500, blue-400, pink-300, …).
@@ -184,7 +185,7 @@ const RAMP_INDICES = {
 const RAMP_FAMILY_RE =
     /\b(?:bg|text|border|ring|fill|stroke|divide|outline|decoration|from|to|via)-(gray|pink|yellow|purple|blue|green|red|orange)-([0-9]{2,3})\b/g
 counts.offRampPalette = files
-    .filter((f) => isTsx(f) && !allowed(f.path, LEGACY_ALLOW))
+    .filter((f) => isTsx(f) && !allowedLegacy(f.path))
     .reduce((sum, f) => {
         let n = 0
         for (const m of f.text.matchAll(RAMP_FAMILY_RE)) {

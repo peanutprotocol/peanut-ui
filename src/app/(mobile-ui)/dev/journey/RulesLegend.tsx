@@ -1,14 +1,16 @@
 'use client'
 
+import { Card } from '@/components/0_Bruddle/Card'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import StuckBadge from './StuckBadge'
 import type { SpecRules } from './journeyTypes'
 
 function Rule({ label, children }: { label: string; children: React.ReactNode }) {
     return (
-        <div className="flex items-center gap-1.5 rounded-sm border border-border-default bg-white px-2 py-1">
-            <span className="text-[10px] font-bold tracking-wide text-foreground-secondary uppercase">{label}</span>
+        <Card className="flex-row items-center gap-2 px-2 py-1">
+            <span className="text-label-m text-foreground-secondary">{label}</span>
             {children}
-        </div>
+        </Card>
     )
 }
 
@@ -16,9 +18,9 @@ function Rule({ label, children }: { label: string; children: React.ReactNode })
 export default function RulesLegend({ rules, specError }: { rules: SpecRules | null; specError: string | null }) {
     if (!rules) {
         return (
-            <div className="rounded-sm border border-border-default bg-action-secondary/40 p-3 text-body-s">
+            <Notification priority={specError ? 'error' : 'info'}>
                 {specError ?? 'Loading email-machine rules…'}
-            </div>
+            </Notification>
         )
     }
     return (

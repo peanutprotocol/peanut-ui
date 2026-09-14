@@ -687,9 +687,8 @@ async function main() {
     }
 }
 
-// Web-only dead weight in the bundled export (~8 MB): /dev test pages and the
-// iOS-PWA install videos are unreachable from native flows. KEEP_DEV_PAGES=true
-// retains /dev for profiling/test builds (e.g. the confetti repro page).
+// Web-only dead weight in the bundled export: /dev test pages are unreachable
+// from native flows. KEEP_DEV_PAGES=true retains them for profiling and tests.
 //
 // Exception: dev/deferred stays. It IS reachable from native flows — it's the
 // landing target for the deferred-deep-link e2e (dest=/dev/deferred) and the
@@ -707,9 +706,6 @@ function pruneExportedAssets() {
                 if (entry !== 'deferred') targets.push(path.join(devDir, entry))
             }
         }
-    }
-    for (const entry of fs.readdirSync(outDir)) {
-        if (entry.endsWith('.mov')) targets.push(path.join(outDir, entry))
     }
     // public/ is copied wholesale, so the press kit rides along (~14 MB of team
     // photos, brand PDF and EPS) even though /[locale]/press is disabled here.

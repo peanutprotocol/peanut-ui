@@ -31,7 +31,7 @@ export default function AppDivergencesPage() {
             categories={APP_DIVERGENCE_CATEGORIES}
             footnote={
                 <>
-                    <span className="font-bold text-foreground-primary">Method:</span> real usage ={' '}
+                    <span className="text-body-s-semibold text-foreground-primary">Method:</span> real usage ={' '}
                     <code>grep -rln … | grep -v /dev/ | grep -v .test.</code> across <code>src/</code>. Every
                     dead/showcase-only claim was independently re-grepped by a second agent (adversarial verify) before
                     being flagged — the verifier defaults to &ldquo;not dead&rdquo; unless it can prove zero product

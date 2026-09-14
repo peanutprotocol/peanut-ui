@@ -23,23 +23,3 @@ export async function purgeCaches(patterns: readonly string[]): Promise<void> {
         console.warn('failed to purge caches:', e)
     }
 }
-
-/**
- * True when running as an installed PWA rather than a browser tab.
- *
- * Load-bearing for reload decisions: `window.location.reload()` in an Android
- * standalone session can bounce the user out to Chrome (see the sw-registration
- * script in layout.tsx), so callers navigate differently here.
- */
-export function isStandalonePwa(): boolean {
-    if (typeof window === 'undefined') return false
-    try {
-        return (
-            window.matchMedia('(display-mode: standalone)').matches ||
-            (navigator as Navigator & { standalone?: boolean }).standalone === true
-        )
-    } catch {
-        // matchMedia unavailable -> assume not standalone
-        return false
-    }
-}

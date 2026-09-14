@@ -11,13 +11,18 @@
  */
 
 import { useState } from 'react'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
+import { Button } from '@/components/0_Bruddle/Button'
+import { Card } from '@/components/0_Bruddle/Card'
+import { Field } from '@/components/0_Bruddle/Field'
+import { Section } from '@/components/0_Bruddle/Section'
+import SegmentedControl from '@/components/0_Bruddle/SegmentedControl'
+import { Toggle } from '@/components/0_Bruddle/Toggle'
 import CardRejectionScreen from '@/components/Card/CardRejectionScreen'
 import { computeDoorTally } from '@/components/Card/doorTally.utils'
 import type { RejectionMascot } from '@/components/Card/share-asset/shareAsset.types'
-import DevField from '../_components/DevField'
+import { Slider } from '@/components/Global/Slider'
 import DevPageShell from '../_components/DevPageShell'
-import DevPanel from '../_components/DevPanel'
-import DevPresetButton from '../_components/DevPresetButton'
 
 const MASCOTS: ReadonlyArray<[RejectionMascot, string]> = [
     ['none', 'none'],
@@ -45,125 +50,138 @@ export default function RejectionBuilderPage() {
             <div className="flex flex-col gap-8 lg:flex-row">
                 {/* ─── LEFT: Controls ──────────────────────────────────── */}
                 <aside className="flex flex-col gap-6 lg:w-[360px] lg:flex-shrink-0">
-                    <DevPanel title="Identity">
-                        <DevField label={`Username (${username.length})`}>
-                            <input
-                                type="text"
-                                value={username}
-                                maxLength={20}
-                                onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
-                                className="custom-input"
-                                placeholder="kkonrad"
-                            />
-                        </DevField>
-                        <div className="flex flex-wrap gap-2">
-                            <DevPresetButton onClick={() => setUsername('me')}>2-char</DevPresetButton>
-                            <DevPresetButton onClick={() => setUsername('kkonrad')}>kkonrad</DevPresetButton>
-                            <DevPresetButton onClick={() => setUsername('thisistwentyplus_chars')}>
-                                20+ chars
-                            </DevPresetButton>
-                        </div>
-                    </DevPanel>
-
-                    <DevPanel title="Bouncer mascot (asset, left side)">
-                        <div className="flex flex-wrap gap-2">
-                            {MASCOTS.map(([key, label]) => (
-                                <button
-                                    key={key}
-                                    onClick={() => setMascot(key)}
-                                    className={`rounded-full border-2 border-border-default px-3 py-1 text-label-m transition-colors ${
-                                        mascot === key
-                                            ? 'bg-action-primary text-foreground-primary'
-                                            : 'bg-white text-foreground-secondary'
-                                    }`}
+                    <Card className="p-4" shadowSize="4">
+                        <Section title="Identity">
+                            <Field label={`Username (${username.length})`} htmlFor="rejection-username">
+                                <BaseInput
+                                    id="rejection-username"
+                                    variant="sm"
+                                    value={username}
+                                    maxLength={20}
+                                    onChange={(e) =>
+                                        setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))
+                                    }
+                                    placeholder="kkonrad"
+                                />
+                            </Field>
+                            <div className="flex flex-wrap gap-2">
+                                <Button variant="stroke" size="small" onClick={() => setUsername('me')}>
+                                    2-char
+                                </Button>
+                                <Button variant="stroke" size="small" onClick={() => setUsername('kkonrad')}>
+                                    kkonrad
+                                </Button>
+                                <Button
+                                    variant="stroke"
+                                    size="small"
+                                    onClick={() => setUsername('thisistwentyplus_chars')}
                                 >
-                                    {label}
-                                </button>
-                            ))}
-                        </div>
-                        <p className="text-[11px] leading-snug text-foreground-secondary">
-                            No dedicated “laughing” peanut exists yet — these are the closest mocking/cool poses. Say
-                            the word and I’ll generate a true laughing one via the badges pipeline.
-                        </p>
-                    </DevPanel>
+                                    20+ chars
+                                </Button>
+                            </div>
+                        </Section>
+                    </Card>
 
-                    <DevPanel title="Door tally — REAL backend counts">
-                        <DevField label={`Waitlist size · real cardWaitlistJoinedAt count (${waitlistTotal})`}>
-                            <input
-                                type="range"
-                                min={0}
-                                max={5000}
-                                step={1}
-                                value={waitlistTotal}
-                                onChange={(e) => setWaitlistTotal(Number(e.target.value))}
-                                className="w-full"
+                    <Card className="p-4" shadowSize="4">
+                        <Section title="Bouncer mascot (asset, left side)">
+                            <SegmentedControl
+                                value={mascot}
+                                onChange={(value) => setMascot(value as RejectionMascot)}
+                                options={MASCOTS.map(([value, label]) => ({ value, label }))}
+                                aria-label="Bouncer mascot"
+                                fullWidth
                             />
-                        </DevField>
-                        <DevField label={`Admitted · real cardAccessGrantedAt count (${admittedTotal})`}>
-                            <input
-                                type="range"
-                                min={0}
-                                max={500}
-                                step={1}
-                                value={admittedTotal}
-                                onChange={(e) => setAdmittedTotal(Number(e.target.value))}
-                                className="w-full"
-                            />
-                        </DevField>
-                        <p className="rounded-sm border border-border-default bg-background-page p-2 text-center text-label-m text-foreground-primary">
-                            renders as:{' '}
-                            <span className="text-action-primary">
-                                {tally.applicants.toLocaleString('en-US')} tried · {tally.admitted} got in
-                            </span>
-                            <br />
-                            <span className="font-normal text-foreground-secondary">
-                                “tried” = waitlist × FOMO multiplier (floored); “got in” = real admitted
-                            </span>
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                            <DevPresetButton
-                                onClick={() => {
-                                    setWaitlistTotal(0)
-                                    setAdmittedTotal(0)
-                                }}
-                            >
-                                empty (floor)
-                            </DevPresetButton>
-                            <DevPresetButton
-                                onClick={() => {
-                                    setWaitlistTotal(120)
-                                    setAdmittedTotal(7)
-                                }}
-                            >
-                                early beta
-                            </DevPresetButton>
-                            <DevPresetButton
-                                onClick={() => {
-                                    setWaitlistTotal(1842)
-                                    setAdmittedTotal(140)
-                                }}
-                            >
-                                busy door
-                            </DevPresetButton>
-                        </div>
-                    </DevPanel>
+                            <p className="text-body-xs text-foreground-secondary">
+                                No dedicated “laughing” peanut exists yet — these are the closest mocking/cool poses.
+                                Say the word and I’ll generate a true laughing one via the badges pipeline.
+                            </p>
+                        </Section>
+                    </Card>
 
-                    <DevPanel title="Waitlist state">
-                        <button
-                            onClick={() => setAlreadyJoined((v) => !v)}
-                            className={`rounded-full border-2 border-border-default px-3 py-1 text-label-m transition-colors ${
-                                alreadyJoined
-                                    ? 'bg-action-primary text-foreground-primary'
-                                    : 'bg-white text-foreground-secondary'
-                            }`}
-                        >
-                            {alreadyJoined ? 'already joined ✓' : 'not joined yet'}
-                        </button>
-                        <p className="text-[11px] leading-snug text-foreground-secondary">
-                            Toggles the post-join state: “Join anyway” becomes an “on the list” confirmation while the
-                            asset + “Tweet to appeal” stay.
-                        </p>
-                    </DevPanel>
+                    <Card className="p-4" shadowSize="4">
+                        <Section title="Door tally — REAL backend counts">
+                            <Field label={`Waitlist size · real cardWaitlistJoinedAt count (${waitlistTotal})`}>
+                                <Slider
+                                    className="mb-6"
+                                    min={0}
+                                    max={5000}
+                                    step={1}
+                                    value={[waitlistTotal]}
+                                    onValueChange={([value]) => setWaitlistTotal(value)}
+                                    aria-label="Waitlist size"
+                                />
+                            </Field>
+                            <Field label={`Admitted · real cardAccessGrantedAt count (${admittedTotal})`}>
+                                <Slider
+                                    className="mb-6"
+                                    min={0}
+                                    max={500}
+                                    step={1}
+                                    value={[admittedTotal]}
+                                    onValueChange={([value]) => setAdmittedTotal(value)}
+                                    aria-label="Admitted users"
+                                />
+                            </Field>
+                            <Card className="bg-background-page p-2 text-center text-label-m text-foreground-primary">
+                                renders as:{' '}
+                                <span className="text-action-primary">
+                                    {tally.applicants.toLocaleString('en-US')} tried · {tally.admitted} got in
+                                </span>
+                                <br />
+                                <span className="text-body-xs text-foreground-secondary">
+                                    “tried” = waitlist × FOMO multiplier (floored); “got in” = real admitted
+                                </span>
+                            </Card>
+                            <div className="flex flex-wrap gap-2">
+                                <Button
+                                    variant="stroke"
+                                    size="small"
+                                    onClick={() => {
+                                        setWaitlistTotal(0)
+                                        setAdmittedTotal(0)
+                                    }}
+                                >
+                                    empty (floor)
+                                </Button>
+                                <Button
+                                    variant="stroke"
+                                    size="small"
+                                    onClick={() => {
+                                        setWaitlistTotal(120)
+                                        setAdmittedTotal(7)
+                                    }}
+                                >
+                                    early beta
+                                </Button>
+                                <Button
+                                    variant="stroke"
+                                    size="small"
+                                    onClick={() => {
+                                        setWaitlistTotal(1842)
+                                        setAdmittedTotal(140)
+                                    }}
+                                >
+                                    busy door
+                                </Button>
+                            </div>
+                        </Section>
+                    </Card>
+
+                    <Card className="p-4" shadowSize="4">
+                        <Section title="Waitlist state">
+                            <Field label={alreadyJoined ? 'Already joined' : 'Not joined yet'}>
+                                <Toggle
+                                    checked={alreadyJoined}
+                                    onChange={setAlreadyJoined}
+                                    aria-label="Already joined the waitlist"
+                                />
+                            </Field>
+                            <p className="text-body-xs text-foreground-secondary">
+                                Toggles the post-join state: “Join anyway” becomes an “on the list” confirmation while
+                                the asset + “Tweet to appeal” stay.
+                            </p>
+                        </Section>
+                    </Card>
                 </aside>
 
                 {/* ─── RIGHT: Phone-frame preview of the whole screen ──── */}
@@ -172,10 +190,10 @@ export default function RejectionBuilderPage() {
                         mobile screen · CardRejectionScreen
                     </div>
                     <div
-                        className="w-full max-w-[392px] overflow-hidden rounded-[28px] border-2 border-border-default bg-white shadow-4"
+                        className="w-full max-w-[392px] overflow-hidden rounded-[28px] border-2 border-border-default bg-background-default shadow-4"
                         style={{ height: 800 }}
                     >
-                        <div className="flex h-full flex-col px-5 py-4" style={{ minHeight: 740 }}>
+                        <div className="flex h-full flex-col p-4" style={{ minHeight: 740 }}>
                             <CardRejectionScreen
                                 username={username || 'anon'}
                                 mascot={mascot}

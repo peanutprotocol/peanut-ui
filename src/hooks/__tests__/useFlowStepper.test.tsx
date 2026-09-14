@@ -140,7 +140,7 @@ describe('useFlowStepper', () => {
 
     /*
      * A step list can be a runtime decision that narrows after the first
-     * render (setup filters its screens by PWA and sunset state), and the URL
+     * render, and the URL
      * outlives it: nuqs keeps serving the cursor it parsed against the wider
      * list. Resolving that to the default is what keeps the flow from having
      * no step at all (PEANUT-UI-T3A).

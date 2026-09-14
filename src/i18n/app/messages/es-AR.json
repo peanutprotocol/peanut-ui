@@ -100,10 +100,6 @@
                 "description": "Activá las notificaciones y recibí alertas de toda la actividad de tu billetera.",
                 "blockedToast": "Tu navegador bloqueó las notificaciones. Activalas en la configuración del sitio y recargá."
             },
-            "iosPwa": {
-                "title": "Agregá Peanut a tu pantalla de inicio",
-                "description": "Seguí una guía rápida para agregar la app a tu pantalla de inicio, sin descargar nada."
-            },
             "qrPay": {
                 "title": "Pagá con <b>códigos QR</b>",
                 "description": "Obtené el mejor tipo de cambio, pagá como un <b>local</b> y ganá <b>recompensas</b>."
@@ -409,16 +405,6 @@
     },
     "setup": {
         "steps": {
-            "unsupported-browser": {
-                "description": "Abrí Peanut en el navegador principal de tu dispositivo (Safari, Chrome, Firefox) para continuar con la configuración. Si ya estás en tu navegador principal, puede que tu dispositivo no sea compatible con Peanut."
-            },
-            "android-initial-pwa-install": {
-                "title": "Viví la experiencia completa"
-            },
-            "pwa-install": {
-                "title": "Instalá Peanut en tu teléfono",
-                "description": "¡Instalá Peanut en tu teléfono para una mejor experiencia!"
-            },
             "landing": {
                 "description": "Creá tu cuenta en segundos para guardar, enviar o retirar dólares rápido, estés donde estés en el mundo."
             },
@@ -442,14 +428,6 @@
         "existingSession": {
             "title": "Ya tenés una sesión iniciada",
             "description": "Este dispositivo tiene una sesión iniciada como {username}. Continuá con esa cuenta o cerrá sesión para crear una nueva."
-        },
-        "braveInstall": {
-            "description": "Abrí la app de Peanut desde tu pantalla de inicio para continuar con la configuración."
-        },
-        "installPwa": {
-            "installCancelled": "Instalación cancelada. Podés intentar agregarlo a la pantalla de inicio de nuevo.",
-            "manualInstallHint": "Para instalar la app, agregala a tu pantalla de inicio desde el menú de tu navegador.",
-            "mobileFirstDescription": "Para una mejor experiencia, usá Peanut en tu teléfono."
         },
         "loginFailed": "No pudimos iniciar tu sesión. Intentalo de nuevo.",
         "landing": {
@@ -1483,11 +1461,6 @@
         "guestVerificationModal": {
             "title": "Desbloqueá este método de pago"
         },
-        "iosPwaInstallModal": {
-            "title": "Agregá Peanut a tu pantalla de inicio",
-            "description": "Seguí una guía rápida para agregar la app a tu pantalla de inicio, sin descargar nada.",
-            "firefoxDescription": "Firefox en iOS no permite instalar apps en la pantalla de inicio. Abrí esta página en Safari para continuar."
-        },
         "unsupportedBrowserModal": {
             "title": "Abrí este enlace en tu navegador",
             "description": "Todavía estamos trabajando para que Peanut funcione en tu navegador. Por ahora, usá Chrome o Safari.",
@@ -1540,12 +1513,6 @@
             "noResultsDescription": "Intentá buscar con otro término.",
             "cryptoDepositDescription": "Usá un exchange o tu billetera",
             "cryptoWithdrawDescription": "Retirá a una billetera o exchange"
-        },
-        "forceIosPwaInstall": {
-            "title": "Viví la experiencia completa",
-            "description": "Agregá Peanut a tu pantalla de inicio para desbloquear tu billetera y empezar a usarla.",
-            "tapShare": "Tocá el <share>ícono Compartir</share> en tu navegador",
-            "continueInBrowser": "Seguí en el navegador"
         },
         "userCard": {
             "payWhatYouWant": "Pagá lo que quieras",

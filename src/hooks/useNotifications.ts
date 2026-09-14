@@ -274,7 +274,7 @@ async function ensureInitialized() {
         // SDK worker (bypassing our sw.ts handler), so this is the only client-side
         // hook that sees the tap. Firing an explicit event (with the campaign carried
         // in additionalData) makes blast clicks attributable even when the tap merely
-        // focuses an already-open PWA tab and no `$pageview` — hence no utm capture —
+        // focuses an already-open browser tab and no `$pageview` — hence no utm capture —
         // fires. Marketing sends set `data.campaign`; transactional taps have none.
         adapter.onNotificationClick(({ deepLink, additionalData }) => {
             const campaign = typeof additionalData.campaign === 'string' ? additionalData.campaign : undefined
@@ -361,7 +361,7 @@ function closePermissionModal() {
 // update permission state after user interacts with permission prompt
 async function afterPermissionAttempt() {
     // mark modal as closed (permanent flag-off; 14-day snooze while the
-    // pwa-sunset flag is on — see evaluateVisibility)
+    // native-migration flag is on — see evaluateVisibility)
     updateUserPreferences(currentExternalId ?? undefined, {
         notifModalClosed: true,
         notifModalClosedAt: new Date().toISOString(),

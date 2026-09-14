@@ -1,9 +1,10 @@
 'use client'
 
-import Card from '@/components/Global/Card'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import Link from 'next/link'
-import { Icon, type IconName } from '@/components/Global/Icons/Icon'
-import DevNoteCard from './_components/DevNoteCard'
+import { type IconName } from '@/components/Global/Icons/Icon'
 import DevPageShell from './_components/DevPageShell'
 
 export default function DevToolsPage() {
@@ -139,34 +140,27 @@ export default function DevToolsPage() {
                         const LinkComponent = tool.static ? 'a' : Link
                         return (
                             <LinkComponent key={tool.path} href={tool.path}>
-                                <Card className="cursor-pointer p-4">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex size-10 items-center justify-center rounded-sm border border-border-default bg-purple-200">
-                                                <Icon name={tool.icon} size={20} />
-                                            </div>
-                                            <div>
-                                                <h3 className="text-label-l">{tool.name}</h3>
-                                                <p className="text-body-xs text-foreground-secondary">
-                                                    {tool.description}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <Icon name="arrow-up-right" size={16} className="text-foreground-secondary" />
-                                    </div>
-                                </Card>
+                                <ListItem
+                                    className="cursor-pointer"
+                                    leading={<IconBubble icon={tool.icon} size="s" color="brand" />}
+                                    title={tool.name}
+                                    body={tool.description}
+                                    chevron
+                                />
                             </LinkComponent>
                         )
                     })}
                 </div>
 
-                <DevNoteCard title="Info">
-                    <ul className="space-y-0.5">
-                        <li>These tools are only available in development mode</li>
-                        <li>Perfect for testing on multiple devices</li>
-                        <li>Share the URL with team members for testing</li>
-                    </ul>
-                </DevNoteCard>
+                <Notification
+                    priority="info"
+                    title="Info"
+                    items={[
+                        'These tools are only available in development mode.',
+                        'Use the device harness to check multiple widths.',
+                        'Share the preview URL with team members for testing.',
+                    ]}
+                />
             </div>
         </DevPageShell>
     )

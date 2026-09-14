@@ -1,7 +1,6 @@
 'use client'
 
-import { useState } from 'react'
-import { Icon } from '@/components/Global/Icons/Icon'
+import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { useHighlightedCode } from '../_hooks/useHighlightedCode'
 
 interface CodeBlockProps {
@@ -12,21 +11,12 @@ interface CodeBlockProps {
 
 export function CodeBlock({ code, label, language = 'tsx' }: CodeBlockProps) {
     const html = useHighlightedCode(code, language)
-    const [copied, setCopied] = useState(false)
-
-    const handleCopy = () => {
-        navigator.clipboard.writeText(code)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 1500)
-    }
 
     return (
         <div>
             <div className="flex items-center justify-between">
                 {label && <span className="text-label-m text-foreground-secondary uppercase">{label}</span>}
-                <button onClick={handleCopy} className="ml-auto text-foreground-secondary opacity-40 hover:opacity-100">
-                    {copied ? <Icon name="check" size={14} /> : <Icon name="copy" size={14} />}
-                </button>
+                <CopyToClipboard textToCopy={code} iconSize="4" className="ml-auto text-foreground-secondary" />
             </div>
             <div
                 className="shiki-code mt-2 overflow-x-auto rounded-sm text-body-s [&_code]:block [&_pre]:!bg-transparent [&_pre]:p-0"

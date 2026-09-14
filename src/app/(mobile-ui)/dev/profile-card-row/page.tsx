@@ -1,11 +1,11 @@
 'use client'
 
 import Image from 'next/image'
+import { Notification } from '@/components/0_Bruddle/Notification'
+import { Section } from '@/components/0_Bruddle/Section'
 import ProfileMenuItem from '@/components/Profile/components/ProfileMenuItem'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
-import DevNoteCard from '../_components/DevNoteCard'
 import DevPageShell from '../_components/DevPageShell'
-import DevSectionLabel from '../_components/DevSectionLabel'
 
 /**
  * /dev/profile-card-row — 1:1 preview of the profile "first group" (card row +
@@ -62,28 +62,26 @@ export default function ProfileCardRowPreviewPage() {
         >
             <div className="flex flex-col gap-8">
                 {/* Non-holder — the new default for most users */}
-                <section className="flex flex-col gap-3">
-                    <DevSectionLabel>Non-holder (no card yet) — also the loading state</DevSectionLabel>
-                    <p className="text-[11px] text-foreground-secondary">
-                        &ldquo;Peanut Card&rdquo; · <span className="font-semibold">New!</span> badge · → /shhhhh
+                <Section title="Non-holder (no card yet) — also the loading state" className="gap-3">
+                    <p className="text-body-xs text-foreground-secondary">
+                        &ldquo;Peanut Card&rdquo; · <span className="text-body-s-semibold">New!</span> badge · → /shhhhh
                     </p>
                     <ProfileFirstGroup hasCardAccess={false} />
-                </section>
+                </Section>
 
                 {/* Holder — unchanged from today */}
-                <section className="flex flex-col gap-3">
-                    <DevSectionLabel>Card holder (hasCardAccess) — unchanged</DevSectionLabel>
-                    <p className="text-[11px] text-foreground-secondary">
+                <Section title="Card holder (hasCardAccess) — unchanged" className="gap-3">
+                    <p className="text-body-xs text-foreground-secondary">
                         &ldquo;Your Card&rdquo; · no badge · → /card
                     </p>
                     <ProfileFirstGroup hasCardAccess={true} />
-                </section>
+                </Section>
 
-                <DevNoteCard>
-                    The <span className="font-semibold">New!</span> pill is the shared StatusBadge <code>custom</code>{' '}
-                    style (lavender <code>primary-3</code>) — the same tag ProfileEdit uses for{' '}
-                    <span className="font-semibold">Soon!</span>. No new design surface.
-                </DevNoteCard>
+                <Notification priority="info" title="Component source">
+                    The <span className="text-body-s-semibold">New!</span> pill is the shared StatusBadge{' '}
+                    <code>custom</code> style (lavender <code>primary-3</code>) — the same tag ProfileEdit uses for{' '}
+                    <span className="text-body-s-semibold">Soon!</span>. No new design surface.
+                </Notification>
             </div>
         </DevPageShell>
     )

@@ -100,8 +100,8 @@ export function useHostedVerification(
                     // nothing — the very failure this PR removes.
                     reservedTab.location.href = url
                 } else {
-                    // No usable tab: pop-ups blocked, a standalone PWA, or the
-                    // user closed the blank tab while we fetched. Same-tab
+                    // No usable tab: pop-ups were blocked, or the user closed
+                    // the blank tab while we fetched. Same-tab
                     // navigation is never gesture-gated, so it always lands.
                     reservedTab?.close()
                     window.location.href = url

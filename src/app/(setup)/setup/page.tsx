@@ -2,16 +2,14 @@
 
 import Loading from '@/components/Global/Loading'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
-import { type BeforeInstallPromptEvent, type ScreenId, type ISetupStep } from '@/components/Setup/Setup.types'
+import { type ScreenId } from '@/components/Setup/Setup.types'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useSetupBackHandler } from '@/hooks/useSetupBackHandler'
 import { dispatchBackPress } from '@/utils/back-handler'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
-import { useIosPwaInstallGate } from '@/hooks/useIosPwaInstallGate'
 import { readInviteCode, stashInvite } from '@/utils/invite-stash'
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { setupSteps as masterSetupSteps } from '../../../components/Setup/Setup.consts'
 import { hasKnownDeviceCredentials, resolveSetupEntryStep } from '@/components/Setup/setup-entry'
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
 import { isLikelyWebview, isDeviceOsSupported } from '@/components/Setup/Setup.utils'
@@ -19,7 +17,7 @@ import { isCapacitor } from '@/utils/capacitor'
 import { isPwaSunsetOn } from '@/utils/migration.utils'
 import { toInviteCode } from '@/utils/general.utils'
 import { useSearchParams } from 'next/navigation'
-import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
+import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { useAuth } from '@/context/authContext'
 import { useRouter } from 'next/navigation'
@@ -64,11 +62,7 @@ function SetupPageContent() {
     const { steps, resetSetupFlow, setNoBackLockScreenId } = useSetupFlowContext()
     const { step, currentIndex: currentStepIndex, direction, handleNext, handleBack, setScreenId } = useSetupFlow()
     const { logoutUser, isLoggingOut, user, isFetchingUser, fetchUser } = useAuth()
-    const { setShowIosPwaInstallScreen } = useIosPwaInstallGate()
     const router = useRouter()
-    const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
-    const [canInstall, setCanInstall] = useState(false)
-    const [deviceType, setDeviceType] = useState<DeviceType>(DeviceType.WEB)
     // The entry effect must run once per steps-identity, never per step change:
     // setScreenId's identity moves with the cursor, so it rides a ref.
     const setScreenIdRef = useRef(setScreenId)
@@ -315,11 +309,6 @@ function SetupPageContent() {
 
     const handleContinueSession = () => {
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED)
-        // Mounting the (setup) layout armed the post-setup iOS install wall
-        // (setShowIosPwaInstallScreen in (setup)/layout.tsx). This visit was not a
-        // setup session, so disarm it — otherwise /home renders the no-escape
-        // ForceIOSPWAInstall screen.
-        setShowIosPwaInstallScreen(false)
         router.push('/home')
     }
 
@@ -368,7 +357,7 @@ function SetupPageContent() {
                 stashInvite(toInviteCode(codeFromUrl), EInviteType.DIRECT)
             }
             const userInviteCode = readInviteCode()
-            // pwa-sunset notice window: web signups are closed (Landing hides
+            // During the native-app cutover, web signups are closed (Landing hides
             // Sign up), so the ?step=signup / invite-code jump must not skip
             // past the landing gate — otherwise claim/invite links deep-link
             // straight into the signup form. Native app keeps the fast path.
@@ -382,16 +371,9 @@ function SetupPageContent() {
 
             const localDeviceType = detectedDeviceType
 
-            // in capacitor, passkeys are handled natively — skip all browser/webview/os/pwa checks
-            // and go straight to the landing (signup) flow
+            // In Capacitor, passkeys are handled natively. Skip browser, webview, and OS checks.
             if (isCapacitor()) {
-                setDeviceType(localDeviceType)
-                const targetStep = resolveSetupEntryStep({
-                    ...entryInput,
-                    isCapacitor: true,
-                    deviceType: localDeviceType,
-                    isStandalonePWA: false,
-                })
+                const targetStep = resolveSetupEntryStep(entryInput)
                 // replace, not push: the entry step overwrites any stale
                 // ?screen= from a reload or shared link — the URL is only the
                 // source of truth for IN-FLOW navigation (TASK-21460)
@@ -429,19 +411,14 @@ function SetupPageContent() {
                 )
             }
 
-            const unsupportedBrowserStepExists = masterSetupSteps.find(
-                (s: ISetupStep) => s.screenId === 'unsupported-browser'
-            )
             let determinedSetupInitialStepId: ScreenId | undefined = undefined
 
             // main decision logic for showing modals or proceeding with setup
             if (effectiveCurrentlyInWebview) {
-                // if in a webview and passkeys aren't supported (and the unsupported browser step is defined),
-                // show the unsupported browser modal
-                if (!passkeySupport && unsupportedBrowserStepExists) {
+                // If a webview does not support passkeys, show the unsupported browser modal.
+                if (!passkeySupport) {
                     setShowBrowserNotSupportedModal(true)
                     setIsLoading(false)
-                    setDeviceType(localDeviceType)
                     return
                 }
             } else {
@@ -450,35 +427,18 @@ function SetupPageContent() {
                     // if os version is too old, show device not supported modal
                     setShowDeviceNotSupportedModal(true)
                     setIsLoading(false)
-                    setDeviceType(localDeviceType)
                     return
                 } else if (!passkeySupport) {
                     // if os is fine but passkeys are still not supported (e.g., old browser on supported os),
                     // show device not supported modal
                     setShowDeviceNotSupportedModal(true)
                     setIsLoading(false)
-                    setDeviceType(localDeviceType)
                     return
                 }
             }
 
             // if no modal was triggered, proceed to determine actual setup step
-            setDeviceType(localDeviceType)
-
-            const isStandalonePWA =
-                typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches
-
-            if (localDeviceType === 'android' && !isStandalonePWA) {
-                setCanInstall(true)
-                setDeferredPrompt({} as BeforeInstallPromptEvent)
-            }
-
-            determinedSetupInitialStepId = resolveSetupEntryStep({
-                ...entryInput,
-                isCapacitor: false,
-                deviceType: localDeviceType,
-                isStandalonePWA,
-            })
+            determinedSetupInitialStepId = resolveSetupEntryStep(entryInput)
 
             // Entry always REPLACES — a stale ?screen= must never survive a
             // fresh load into a step whose prerequisite state is gone.
@@ -496,16 +456,8 @@ function SetupPageContent() {
             setIsLoading(false)
         })
 
-        const handleBeforeInstallPrompt = (e: Event) => {
-            e.preventDefault()
-            setDeferredPrompt(e as BeforeInstallPromptEvent)
-            setCanInstall(true)
-        }
-        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-
         return () => {
             cancelled = true
-            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
         }
     }, [steps, inviteCodeParam, legacyStepParam])
 
@@ -583,9 +535,6 @@ function SetupPageContent() {
             isLoggingOut={isLoggingOut}
             step={currentStepIndex}
             direction={direction}
-            deferredPrompt={deferredPrompt}
-            canInstall={canInstall}
-            deviceType={deviceType}
             titleClassName={step.titleClassName}
             contentClassName={step.contentClassName}
         >

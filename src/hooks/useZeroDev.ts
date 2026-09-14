@@ -78,7 +78,7 @@ export const useZeroDev = () => {
     const { isKernelClientReady, isRegistering, isLoggingIn, isSendingUserOp, address } = useZeroDevFlow()
     const { setWebAuthnKey, getClientForChain, ensureClientForChain } = useKernelClient()
     const { setLoadingState } = useContext(loadingStateContext)
-    // invite hand-off lives in cookies (survives the PWA-install hop) — TASK-21460
+    // invite hand-off lives in cookies so it survives app navigation — TASK-21460
     const inviteCode = readInviteCode()
     const inviteType = readInviteType()
 

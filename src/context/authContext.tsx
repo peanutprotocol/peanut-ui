@@ -321,11 +321,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // clear service worker caches (non-fatal if it fails)
         await purgeCaches(USER_DATA_CACHE_PATTERNS)
 
-        // clear session flags
-        try {
-            sessionStorage.removeItem('hasSeenIOSPWAPromptThisSession')
-        } catch {}
-
         // This tab is a logged-out tab again, so a deep link opened in it later
         // is that person's own intent rather than a dead session's residue.
         clearSessionHeld()

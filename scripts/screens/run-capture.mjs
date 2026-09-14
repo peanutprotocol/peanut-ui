@@ -3,9 +3,8 @@ import { randomUUID } from 'node:crypto'
 import { createServer } from 'node:net'
 import { execFileSync, spawn } from 'node:child_process'
 import { resolve, join } from 'node:path'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, writeFileSync } from 'node:fs'
 import { prepare } from './prepare.mjs'
-import { hash } from './core.mjs'
 const [sourceArg, sha, outArg] = process.argv.slice(2)
 const requireFullCatalogue = process.argv.includes('--full-catalogue')
 const locale = process.argv.find((arg) => arg.startsWith('--locale='))?.slice('--locale='.length) ?? 'en'
@@ -41,36 +40,6 @@ const actual = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: source, encodin
 if (actual !== sha) throw new Error('Wrong target checkout')
 run('pnpm', ['install', '--frozen-lockfile'])
 prepare(source)
-// The legacy iOS PWA videos are HEVC in the base revision, which headless
-// Chromium cannot decode. Route only these known legacy hashes to the known
-// current H.264 assets during capture; never mutate the target checkout or
-// silently substitute a future product-media change.
-const mediaOverlays = []
-const knownMedia = {
-    'public/iosPwaChrome.mov': {
-        legacy: 'edb3f74ac4613241cac49d05f37f0cda96f8ab97c37948dfb5b884969a5c0d54',
-        capture: '00b291f342f0662dc7533ca8c3d9e323ab526db69df5d126f253eee079101a54',
-    },
-    'public/iosPwaSafari.mov': {
-        legacy: 'bb429422320dcedf68b918728d9ac5d50c6144b8d36cef24260e64ac9ab2e797',
-        capture: '59835c948cab1f67488bf4c7be6fd4d742184031037966918f3cb25cb593bc52',
-    },
-}
-for (const [relative, expected] of Object.entries(knownMedia)) {
-    const harnessAsset = join(process.cwd(), relative)
-    const targetAsset = join(source, relative)
-    if (harnessAsset === targetAsset || !existsSync(harnessAsset) || !existsSync(targetAsset)) continue
-    const before = hash(readFileSync(targetAsset))
-    const after = hash(readFileSync(harnessAsset))
-    if (before === expected.legacy && after === expected.capture)
-        mediaOverlays.push({
-            path: `/${relative.replace(/^public\//, '')}`,
-            file: relative,
-            source: harnessAsset,
-            before,
-            after,
-        })
-}
 const nonce = randomUUID()
 writeFileSync(
     join(source, 'public/screen-capture-build.json'),
@@ -117,7 +86,6 @@ try {
             `--url=${base}`,
             `--out=${out}`,
             `--historical=${historical}`,
-            `--asset-overlays=${JSON.stringify(mediaOverlays)}`,
         ],
         process.cwd()
     )

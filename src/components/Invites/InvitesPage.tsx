@@ -242,7 +242,7 @@ function InvitePageContent() {
 
         const hasBackendLegacyAcceptance = !!inviteCode && !!inviteCodeData?.success && !!legacyAcquisition
         if (hasValidInvite || hasBackendLegacyAcceptance) {
-            // Cookies so PWA-install + later signup + registration all see the invite.
+            // Cookies so the app handoff, signup, and registration all see the invite.
             stashInvite(inviteCode, EInviteType.PAYMENT_LINK)
         }
         // Explicit URL acquisition survives signup in the shared cookie.

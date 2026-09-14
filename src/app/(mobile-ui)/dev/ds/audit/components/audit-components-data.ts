@@ -113,13 +113,6 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 divergence: 'Mounted from HomeModals behind Suspense.',
             },
             {
-                name: 'IosPwaInstallDrawer',
-                realUsages: 1,
-                status: 'live',
-                source: 'components/Global/IosPwaInstallDrawer/index.tsx',
-                divergence: 'Mounted from HomeModals behind Suspense.',
-            },
-            {
                 name: 'EasterEggDrawer',
                 realUsages: 1,
                 devUsages: 2,
@@ -364,7 +357,7 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 status: 'live',
                 source: 'components/Migration/MigrationDownloadModal.tsx',
                 divergence:
-                    'New since the last sweep. PWA-to-native migration prompt on ActionModal, mounted from HomeModals. Dev count is its Jest suite.',
+                    'New since the last sweep. Web-to-native migration prompt on ActionModal, mounted from HomeModals. Dev count is its Jest suite.',
             },
             {
                 name: 'ScanToDownloadModal',

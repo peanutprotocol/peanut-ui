@@ -39,9 +39,6 @@ let mockSearchParams = new URLSearchParams()
 jest.mock('@/features/setup/SetupFlowContext', () => ({
     useSetupFlowContext: () => ({ ...mockStore, resetSetupFlow: jest.fn(), setNoBackLockScreenId: jest.fn() }),
 }))
-jest.mock('@/hooks/useIosPwaInstallGate', () => ({
-    useIosPwaInstallGate: () => ({ setShowIosPwaInstallScreen: jest.fn() }),
-}))
 jest.mock('@/utils/invite-stash', () => ({ readInviteCode: jest.fn(), stashInvite: jest.fn() }))
 jest.mock('@/components/Invites/badge-campaign-context', () => ({
     badgeCampaignsFromSearchParams: (params: URLSearchParams) => params.getAll('badge_campaign'),
@@ -74,7 +71,6 @@ jest.mock('@/components/Setup/setup-entry', () => ({
     hasKnownDeviceCredentials: () => false,
     resolveSetupEntryStep: (...args: unknown[]) => mockResolve(...args),
 }))
-jest.mock('@/components/Setup/Setup.consts', () => ({ setupSteps: [{ screenId: 'unsupported-browser' }] }))
 jest.mock('@/components/Setup/Setup.utils', () => ({ isLikelyWebview: () => false, isDeviceOsSupported: () => true }))
 jest.mock('@/components/Setup/components/SetupWrapper', () => ({
     SetupWrapper: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -147,7 +143,7 @@ it.each([true, false])('does not select the wrong step when the entry step is ab
         configurable: true,
         value: { isUserVerifyingPlatformAuthenticatorAvailable: async () => true },
     })
-    mockResolve.mockReturnValue('pwa-install')
+    mockResolve.mockReturnValue('signup')
     renderWithIntl(<SetupPage />)
     await advance(100)
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()

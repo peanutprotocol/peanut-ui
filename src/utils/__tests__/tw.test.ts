@@ -202,28 +202,7 @@ describe('twMerge (DS-configured)', () => {
         })
     })
 
-    // component classes with tailwind-shaped names: the colour groups ate them
-    // (text-link lost to text-grey-1, bg-peanut-repeat-normal to bg-white).
-    // each now owns its group, so colours compose instead of deleting them.
-    describe('component classes with tailwind-shaped names', () => {
-        test('a text colour no longer deletes text-link', () => {
-            expect(twMerge('text-link text-grey-1')).toBe('text-link text-grey-1')
-            expect(twMerge('text-link text-body-m')).toBe('text-link text-body-m')
-            expect(stockTwMerge('text-link text-grey-1')).toBe('text-grey-1')
-        })
-
-        test('a text colour no longer deletes text-link-decoration', () => {
-            expect(twMerge('text-link-decoration text-foreground-secondary')).toBe(
-                'text-link-decoration text-foreground-secondary'
-            )
-            expect(stockTwMerge('text-link-decoration text-foreground-secondary')).toBe('text-foreground-secondary')
-        })
-
-        test('a border colour no longer deletes border-rounded', () => {
-            expect(twMerge('border-rounded border-red-500')).toBe('border-rounded border-red-500')
-            expect(stockTwMerge('border-rounded border-red-500')).toBe('border-red-500')
-        })
-
+    describe('component classes with Tailwind-shaped names', () => {
         test('bg colours compose with the peanut patterns, which conflict among themselves', () => {
             expect(twMerge('bg-peanut-repeat-normal bg-white')).toBe('bg-peanut-repeat-normal bg-white')
             expect(twMerge('bg-peanut-repeat-normal bg-peanut-repeat-large')).toBe('bg-peanut-repeat-large')

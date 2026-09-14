@@ -14,7 +14,7 @@ export default function FoundationsPage() {
             <CatalogGrid>
                 <CatalogCard
                     title="Colors"
-                    description="Color tokens, palettes, and usage rules. Warning: purple-1 is pink!"
+                    description="Semantic tokens, legacy palettes, and color usage rules"
                     href="/dev/ds/foundations/colors"
                     icon="bulb"
                     status="production"
@@ -50,10 +50,17 @@ export default function FoundationsPage() {
                 />
                 <CatalogCard
                     title="Borders"
-                    description="Border radius, border styles, and the brutal-border pattern"
+                    description="Border radius and semantic border styles"
                     href="/dev/ds/foundations/borders"
                     icon="docs"
                     status="production"
+                />
+                <CatalogCard
+                    title="Motion & haptics"
+                    description="Duration and easing tokens, reduced motion, and native feedback primitives"
+                    href="/dev/ds/foundations/motion-haptics"
+                    icon="meter"
+                    status="limited"
                 />
             </CatalogGrid>
         </DocPage>

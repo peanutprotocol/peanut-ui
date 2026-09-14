@@ -20,7 +20,6 @@ import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
 import { useRouter } from 'next/navigation'
 import { NavHeaderPresenceProvider } from '@/components/Global/Banner/navHeaderPresence'
 import { ShellBannerFallback } from '@/components/Global/Banner/ShellBannerFallback'
-import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 import { isPublicRoute } from '@/constants/routes'
 import { saveRedirectUrl } from '@/utils/general.utils'
 import { consumeHeldSession, markSessionHeld } from '@/utils/session-presence'
@@ -41,7 +40,6 @@ import SunsetScreen from '@/components/Migration/SunsetScreen'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { shouldShowSunsetBlock } from '@/utils/migration.utils'
-import { useIosPwaInstallGate } from '@/hooks/useIosPwaInstallGate'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     useNativePlugins()
@@ -68,7 +66,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isDev = pathName?.startsWith('/dev') ?? false
     const alignStart = isHome || isHistory || isSupport
     const router = useRouter()
-    const { showIosPwaInstallScreen } = useIosPwaInstallGate()
     const migrationOn = useMigrationFlag()
     const hasKeepWebBypass = useKeepWebBypass()
 
@@ -179,17 +176,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         }
     }
 
-    // PWA sunset: past the cutover the web app is switched off — download the
-    // native app is the only way forward (keep-web cookie bypasses, public
-    // guest links keep working). Must precede the PWA-install and waitlist
-    // screens: the web is gone either way.
+    // Past the cutover, the web app is switched off and the native app is the
+    // only way forward. The keep-web cookie bypasses this for public guest links.
     if (shouldShowSunsetBlock({ migrationOn, hasKeepWebBypass, isPublic: isPublicPath })) {
         return <SunsetScreen />
-    }
-
-    // After setup flow is completed, show ios pwa install screen if not in pwa
-    if (!isPublicPath && showIosPwaInstallScreen) {
-        return <ForceIOSPWAInstall />
     }
 
     // Show waitlist page if user doesn't have app access

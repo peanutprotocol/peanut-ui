@@ -38,7 +38,6 @@ jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ fetchUser: mockFetchUser, user: { user: { username: 'test' } } }),
 }))
 jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ capabilities: undefined }) }))
-jest.mock('@/hooks/useSumsubReloadResume', () => ({ useSumsubReloadResume: jest.fn() }))
 jest.mock('@/hooks/useSubmissionWindow', () => ({ markSubmitted: jest.fn() }))
 jest.mock('@/utils/capability-gate', () => ({ deriveGate: () => ({ kind: 'none' }) }))
 jest.mock('@/app/actions/users', () => ({ getBridgeTosLink: jest.fn(), confirmBridgeTos: jest.fn() }))

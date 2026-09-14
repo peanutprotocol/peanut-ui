@@ -37,7 +37,7 @@ export function isNativeBridge(): boolean {
 /**
  * returns the platform the app is running on
  */
-export function getPlatform(): 'web' | 'ios-native' | 'android-native' | 'ios-pwa' | 'android-pwa' {
+export function getPlatform(): 'web' | 'ios-native' | 'android-native' {
     if (typeof window === 'undefined') return 'web'
 
     const capacitor = window.Capacitor
@@ -53,15 +53,6 @@ export function getPlatform(): 'web' | 'ios-native' | 'android-native' | 'ios-pw
         const ua = navigator.userAgent
         if (/Android/i.test(ua)) return 'android-native'
         if (/iPhone|iPad|iPod/i.test(ua)) return 'ios-native'
-    }
-
-    const ua = navigator.userAgent.toLowerCase()
-    const isStandalone =
-        window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone === true
-
-    if (isStandalone) {
-        if (/iphone|ipad|ipod/.test(ua)) return 'ios-pwa'
-        if (/android/.test(ua)) return 'android-pwa'
     }
 
     return 'web'

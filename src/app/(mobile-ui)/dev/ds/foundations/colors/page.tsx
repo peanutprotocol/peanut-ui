@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { Card } from '@/components/0_Bruddle/Card'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
@@ -10,8 +12,8 @@ import { DocPage } from '../../_components/DocPage'
 import { COLOR_TOKENS, type ThemeToken } from '../tokens.generated'
 
 // group tokens by their name prefix (action, background, avatar, ...) keeping
-// source order. swatches use the token VALUE inline — class names are display/
-// copy text only, so nothing here depends on tailwind emitting the utility.
+// source order. generated preview classes keep the swatches on the same token
+// source while giving Tailwind complete class names to discover at build time.
 function groupByPrefix(tokens: ThemeToken[]): Map<string, ThemeToken[]> {
     const groups = new Map<string, ThemeToken[]>()
     for (const t of tokens) {
@@ -56,31 +58,18 @@ export default function ColorsPage() {
                                     : 'bg'
                             const cls = `${utility}-${token.name}`
                             return (
-                                <button
+                                <ListItem
                                     key={token.name}
                                     onClick={() => copyClass(cls)}
-                                    className="flex items-center gap-2 rounded-sm border border-border-disabled p-2 text-left transition-colors hover:border-border-default/40"
-                                >
-                                    <div
-                                        className="size-8 shrink-0 rounded-sm border border-border-default"
-                                        style={{ backgroundColor: token.value }}
-                                    />
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-label-m break-all">{token.name}</p>
-                                        <p className="font-mono text-body-xs text-foreground-secondary">
-                                            {token.value}
-                                        </p>
-                                    </div>
-                                    {copiedColor === cls ? (
-                                        <Icon
-                                            name="check"
-                                            size={14}
-                                            className="shrink-0 text-background-icon-bubble-green"
+                                    leading={
+                                        <div
+                                            className={`size-8 shrink-0 rounded-sm border border-border-default ${token.previewClass}`}
                                         />
-                                    ) : (
-                                        <Icon name="copy" size={12} className="shrink-0 text-foreground-secondary" />
-                                    )}
-                                </button>
+                                    }
+                                    title={token.name}
+                                    body={<span className="font-mono">{token.value}</span>}
+                                    trailing={<Icon name={copiedColor === cls ? 'check' : 'copy'} size={16} />}
+                                />
                             )
                         })}
                     </div>
@@ -97,15 +86,15 @@ export default function ColorsPage() {
             />
 
             <DesignNote type="warning">
-                purple-1 / primary-1 = #ff90e8 — this is PINK, not purple. The naming is misleading but too widely used
-                to rename.
+                Legacy palette names remain for landing-page migration and these reference swatches. New UI must use
+                semantic tokens only.
             </DesignNote>
 
             <DocSection title="Semantic Tokens">
                 <p className="text-body-s text-foreground-secondary">
                     1:1 with the figma variables. New screens use ONLY these — e.g.{' '}
-                    <code className="font-mono font-bold text-foreground-primary">bg-action-primary</code>,{' '}
-                    <code className="font-mono font-bold text-foreground-primary">text-foreground-secondary</code>.
+                    <code className="font-mono text-label-m text-foreground-primary">bg-action-primary</code>,{' '}
+                    <code className="font-mono text-label-m text-foreground-primary">text-foreground-secondary</code>.
                 </p>
                 {renderGroups(SEMANTIC)}
             </DocSection>
@@ -120,35 +109,28 @@ export default function ColorsPage() {
 
             {/* Text / BG pairs */}
             <DocSection title="Text Colors">
-                <div className="space-y-2 rounded-sm border border-border-default p-3 text-body-xs">
+                <Card className="space-y-2 p-3 text-body-xs">
                     <div className="flex items-center gap-3">
-                        <span className="w-20 font-bold text-foreground-primary">text-foreground-primary</span>
+                        <span className="w-20 text-label-m text-foreground-primary">text-foreground-primary</span>
                         <span className="text-foreground-primary">Primary text — headings, labels, body</span>
                     </div>
                     <div className="flex items-center gap-3">
-                        <span className="w-20 font-bold text-foreground-secondary">text-foreground-secondary</span>
+                        <span className="w-20 text-label-m text-foreground-secondary">text-foreground-secondary</span>
                         <span className="text-foreground-secondary">
                             Secondary text — descriptions, hints, metadata
                         </span>
                     </div>
                     <div className="flex items-center gap-3">
-                        <span className="w-20 font-bold text-foreground-error">text-foreground-error</span>
-                        <span className="text-foreground-error">Error text — validation messages, alerts</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <span className="w-20 font-bold text-background-icon-bubble-green">
+                        <span className="w-20 text-label-m text-background-icon-bubble-green">
                             text-background-icon-bubble-green
                         </span>
                         <span className="text-background-icon-bubble-green">Success text — confirmations</span>
                     </div>
-                </div>
+                </Card>
 
                 <DesignNote type="info">
-                    Inline links: always use{' '}
-                    <code className="rounded-sm bg-background-default px-1 font-mono text-body-xs">
-                        text-black underline
-                    </code>{' '}
-                    — never text-purple-1.
+                    Use LinkButton for a standalone link. For an inline link inside a sentence, underline the
+                    surrounding text and keep semantic foreground colors.
                 </DesignNote>
             </DocSection>
 
@@ -168,13 +150,18 @@ export default function ColorsPage() {
                 </DesignNote>
                 <div className="space-y-2 opacity-60">
                     {BACKGROUNDS.map((bg) => (
-                        <button key={bg.name} onClick={() => copyClass(bg.name)} className="w-full text-left">
-                            <div
-                                className={`${bg.name} h-20 rounded-sm border border-dashed border-border-default bg-background-badge-accent p-2`}
-                            >
-                                <span className="font-mono text-body-xs">.{bg.name} · unused</span>
-                            </div>
-                        </button>
+                        <ListItem
+                            key={bg.name}
+                            onClick={() => copyClass(bg.name)}
+                            title={bg.name}
+                            body={bg.description}
+                            leading={
+                                <span
+                                    className={`${bg.name} size-8 rounded-sm border border-dashed border-border-default bg-background-badge-accent`}
+                                />
+                            }
+                            trailing={<Icon name={copiedColor === bg.name ? 'check' : 'copy'} size={16} />}
+                        />
                     ))}
                 </div>
             </DocSection>

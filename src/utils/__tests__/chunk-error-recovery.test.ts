@@ -12,10 +12,7 @@ type Listener = (event: { reason?: unknown; error?: unknown; message?: string })
  * exact code that ships in the HTML, without fighting jsdom's read-only
  * window.location.
  */
-function bootScript({
-    standalone = false,
-    brokenStorage = false,
-}: { standalone?: boolean; brokenStorage?: boolean } = {}) {
+function bootScript({ brokenStorage = false }: { brokenStorage?: boolean } = {}) {
     const listeners: Record<string, Listener[]> = {}
     const reload = jest.fn()
     const store = new Map<string, string>()
@@ -23,7 +20,6 @@ function bootScript({
         addEventListener: (type: string, fn: Listener) => {
             ;(listeners[type] = listeners[type] || []).push(fn)
         },
-        matchMedia: (_query: string) => ({ matches: standalone }),
         location: { reload },
     }
     const sessionStorage = brokenStorage
@@ -85,12 +81,6 @@ describe('CHUNK_ERROR_RECOVERY_SCRIPT', () => {
         emitRejection('some string rejection')
         emitRejection(undefined)
         emitError({ message: 'ResizeObserver loop limit exceeded' })
-        expect(reload).not.toHaveBeenCalled()
-    })
-
-    it('does not auto-reload in standalone PWA mode (Android redirect-loop hazard)', () => {
-        const { reload, emitRejection } = bootScript({ standalone: true })
-        emitRejection(chunkError())
         expect(reload).not.toHaveBeenCalled()
     })
 

@@ -26,9 +26,7 @@
  *
  * Both share the same sessionStorage guard (one auto-reload per 60s) so they
  * can't compound into a reload loop; when the guard blocks, behavior degrades
- * to exactly what it was before this existed. Standalone PWA mode is excluded
- * because window.location.reload() there can bounce the user out to the
- * browser (see the sw-registration script in layout.tsx).
+ * to exactly what it was before this existed.
  */
 
 const GUARD_KEY = 'peanut-chunk-reload-at'
@@ -49,15 +47,6 @@ export function isChunkLoadError(error: unknown): boolean {
  */
 export function recoverFromChunkError(error: unknown): boolean {
     if (typeof window === 'undefined' || !isChunkLoadError(error)) return false
-    let isStandalone = false
-    try {
-        isStandalone =
-            window.matchMedia('(display-mode: standalone)').matches ||
-            (navigator as Navigator & { standalone?: boolean }).standalone === true
-    } catch {
-        // matchMedia unavailable -> assume not standalone
-    }
-    if (isStandalone) return false
     try {
         const last = Number(sessionStorage.getItem(GUARD_KEY) || 0)
         if (Date.now() - last < GUARD_MS) return false
@@ -101,11 +90,6 @@ export const CHUNK_ERROR_RECOVERY_SCRIPT = `
     }
 
     function recover() {
-        var isStandalone = false;
-        try {
-            isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-        } catch (e) {}
-        if (isStandalone) return;
         try {
             var last = Number(sessionStorage.getItem(GUARD_KEY) || 0);
             if (Date.now() - last < GUARD_MS) return;

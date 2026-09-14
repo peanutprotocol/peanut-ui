@@ -36,7 +36,7 @@ export function useFlowStepper<Step extends string>(options: FlowStepperOptions<
 
     /*
      * A value that is not in the CURRENT list is not a step. `steps` is a
-     * runtime decision (setup filters screens by PWA and sunset state), and
+     * runtime decision, and
      * the URL outlives it: nuqs keeps serving a cursor it parsed against an
      * earlier, wider list, so a flow could be left with no step at all — an
      * undefined screen, and for /setup its recovery screen instead of the flow
