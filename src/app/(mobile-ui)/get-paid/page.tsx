@@ -32,7 +32,7 @@ export default function GetPaidPage() {
     // An unanswered flag reads as `false`, so redirecting on it would send an
     // enabled user to the legacy flow before PostHog answers.
     const flagsSettled = useFlagsSettled()
-    const { corridors, accounts, gates, isLoading, isError, claimingCorridor, claimError, claim, refetch } =
+    const { corridors, accounts, claimable, gates, isLoading, isError, claimingCorridor, claimError, claim, refetch } =
         useDepositAccounts()
     const { user } = useAuth()
     const { resolveGate, modals } = useDepositGateRemediation()
@@ -57,6 +57,7 @@ export default function GetPaidPage() {
             <DepositAccountsFlow
                 corridors={corridors}
                 accounts={accounts}
+                claimable={claimable}
                 gates={gates}
                 isLoading={isLoading}
                 isError={isError}

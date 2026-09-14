@@ -8,7 +8,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { trackClaimFailed, trackClaimStarted } from './analytics'
 import { corridorFromRailId, corridorsFromRails, DEPOSIT_RAIL_ORDER, railIdFor } from './rails'
-import type { DepositAccount, DepositAccountView, DepositCorridor } from './types'
+import type { ClaimableCorridor, DepositAccount, DepositAccountView, DepositCorridor } from './types'
 
 export const DEPOSIT_ACCOUNTS_QUERY_KEY = ['deposit-accounts'] as const
 
@@ -34,6 +34,13 @@ export interface UseDepositAccountsResult {
     /** the corridors this user has a rail for, in catalogue order */
     corridors: DepositCorridor[]
     accounts: Record<DepositCorridor, DepositAccountView | undefined>
+    /**
+     * The terms a corridor WOULD carry if the user opened it, by corridor.
+     * Only corridors the user can open are here — one they already hold is in
+     * `accounts`, with its confirmed terms — so a corridor with no entry is
+     * one the claim step can say nothing about.
+     */
+    claimable: Record<DepositCorridor, ClaimableCorridor | undefined>
     /** the capability gate for EACH corridor, asked one rail id at a time */
     gates: Record<DepositCorridor, GateState>
     /** true until both the corridors and the held accounts are known */
@@ -77,7 +84,7 @@ export function useDepositAccounts(): UseDepositAccountsResult {
         queryKey: DEPOSIT_ACCOUNTS_QUERY_KEY,
         queryFn: fetchDepositAccounts,
         refetchInterval: (q) =>
-            hasAccountStillWaiting(q.state.data, provisioningPolls) ? PROVISIONING_POLL_MS : false,
+            hasAccountStillWaiting(q.state.data?.accounts, provisioningPolls) ? PROVISIONING_POLL_MS : false,
     })
 
     const { dataUpdatedAt } = query
@@ -85,7 +92,7 @@ export function useDepositAccounts(): UseDepositAccountsResult {
         if (!dataUpdatedAt) return
         setProvisioningPolls((polls) => {
             const next: Record<string, number> = {}
-            for (const account of query.data ?? []) {
+            for (const account of query.data?.accounts ?? []) {
                 // an account that stopped provisioning keeps no count, so a
                 // later wait on it starts from its own zero
                 if (account.status === 'provisioning') next[account.id] = (polls[account.id] ?? 0) + 1
@@ -138,7 +145,7 @@ export function useDepositAccounts(): UseDepositAccountsResult {
             PIX_BR: undefined,
             BANK_TRANSFER_AR: undefined,
         }
-        for (const account of query.data ?? []) {
+        for (const account of query.data?.accounts ?? []) {
             const corridor = corridorFromRailId(account.railId)
             if (!corridor) continue
             // The wait is over and the provider never answered. The status
@@ -154,6 +161,22 @@ export function useDepositAccounts(): UseDepositAccountsResult {
         }
         return byCorridor
     }, [query.data, provisioningPolls])
+
+    const claimable = useMemo((): Record<DepositCorridor, ClaimableCorridor | undefined> => {
+        const byCorridor: Record<DepositCorridor, ClaimableCorridor | undefined> = {
+            ACH_US: undefined,
+            SEPA_EU: undefined,
+            FASTER_PAYMENTS_GB: undefined,
+            SPEI_MX: undefined,
+            PIX_BR: undefined,
+            BANK_TRANSFER_AR: undefined,
+        }
+        for (const corridorTerms of query.data?.claimable ?? []) {
+            const corridor = corridorFromRailId(corridorTerms.railId)
+            if (corridor) byCorridor[corridor] = corridorTerms
+        }
+        return byCorridor
+    }, [query.data])
 
     /**
      * The rows this user gets: their own rails, plus any corridor they already
@@ -189,6 +212,7 @@ export function useDepositAccounts(): UseDepositAccountsResult {
     return {
         corridors,
         accounts,
+        claimable,
         gates,
         isLoading: query.isLoading || capabilitiesLoading,
         isError: query.isError,

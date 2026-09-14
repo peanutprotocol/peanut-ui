@@ -10,9 +10,10 @@ import { Section } from '@/components/0_Bruddle/Section'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
-import type { DepositDetailRow, DepositRail } from '../types'
+import type { ClaimableCorridor, DepositDetailRow, DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { DepositDetailsCard } from './DepositDetailsCard'
+import { DepositRuleList } from './DepositRuleList'
 
 /**
  * The claim step — the one screen where the user decides to hold an account.
@@ -23,13 +24,21 @@ import { DepositDetailsCard } from './DepositDetailsCard'
  * — a bank's rules, not ours — held to one Notification above the CTA rather
  * than stacked into the page.
  *
- * Who may pay in is a condition here, not a benefit: the rules travel on the
- * account, and no account exists yet, so this step can only say that the terms
- * are coming. It says so with the other conditions rather than
- * spending a benefit row on a sentence that promises nothing.
+ * Who may pay in is stated here, in the same three lines the details screen
+ * states them in and through the same resolver: the backend runs it before an
+ * account exists and returns the terms as `claimable`. A user who reads
+ * "anyone can pay you" only AFTER opening the account was deciding blind, and
+ * on the corridors where a stranger's payment is sent back that is the one
+ * fact they needed first.
+ *
+ * Without a `claimable` entry — an API that predates the preview — the step
+ * keeps its old sentence and says the terms come with the account. It never
+ * invents them.
  */
 export function ClaimAccountScreen({
     rail,
+    terms,
+    userName,
     isClaiming,
     error,
     isUnavailable = false,
@@ -37,6 +46,10 @@ export function ClaimAccountScreen({
     onBack,
 }: {
     rail: DepositRail
+    /** the terms this corridor would carry, as the backend resolved them */
+    terms?: ClaimableCorridor
+    /** the name a payer reads where the account is NOT in the user's own name */
+    userName: string
     isClaiming: boolean
     error?: string
     /** the backend refused to open an account for this user at all */
@@ -44,7 +57,7 @@ export function ClaimAccountScreen({
     onClaim: () => void
     onBack: () => void
 }) {
-    const { t, rowLabels, arrivalDetail } = useDepositAccountCopy()
+    const { t, rowLabels, arrivalDetail, ruleLines } = useDepositAccountCopy()
     // "Good to know" already exists as a title for a bank's-rules-not-ours
     // aside (BalanceWarningDrawer) — reused rather than re-authored so the
     // catalog does not carry two English strings with two translations.
@@ -58,6 +71,14 @@ export function ClaimAccountScreen({
     const previewRows: DepositDetailRow[] = [
         { key: 'accountNumber', label: rowLabels.accountNumber, value: '•••• •••• 4821', copyable: false },
     ]
+
+    const rules = terms ? ruleLines(terms.matching, terms.rules, userName) : undefined
+    // The terms were resolved without one input, and only the dollar rail
+    // reads it: the state on the user's residence can forbid a third-party
+    // payment outright. The lines below are the rail's published terms without
+    // it, so the screen names the rule still to be confirmed rather than
+    // implying there is none.
+    const statePending = terms?.preview === true && rail.currency === 'USD'
 
     return (
         <PageStack>
@@ -93,6 +114,15 @@ export function ClaimAccountScreen({
                         title={<span>{t('claim.benefitStable')}</span>}
                     />
                 </ListGroup>
+
+                {rules && (
+                    <Section title={t('details.whoCanPay')}>
+                        <DepositRuleList lines={rules} />
+                        {statePending && (
+                            <p className="text-body-xs text-foreground-secondary">{t('claim.statePending')}</p>
+                        )}
+                    </Section>
+                )}
             </div>
             {/*
              * The CTA is the LAST child, and that is load-bearing rather than
@@ -126,7 +156,9 @@ export function ClaimAccountScreen({
                         priority="helper"
                         title={tGlobal('balanceWarningModal.goodToKnow')}
                         items={[
-                            t('claim.conditionTerms', { currency: rail.currency }),
+                            // The terms are on the screen now, so promising
+                            // them later would contradict the lines above.
+                            ...(rules ? [] : [t('claim.conditionTerms', { currency: rail.currency })]),
                             t('claim.conditionNoReference'),
                         ]}
                     />

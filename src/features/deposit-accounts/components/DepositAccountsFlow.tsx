@@ -7,7 +7,7 @@ import { trackDetailsViewed, trackGateBlocked } from '../analytics'
 import { DEPOSIT_ACCOUNT_PARAMS } from '../params'
 import { DEPOSIT_RAILS, isClaimable } from '../rails'
 import { canShare, resolveScreen } from '../resolveScreen'
-import type { DepositAccountView, DepositCorridor } from '../types'
+import type { ClaimableCorridor, DepositAccountView, DepositCorridor } from '../types'
 import type { DepositClaimError } from '../useDepositAccounts'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
@@ -24,6 +24,12 @@ export interface DepositAccountsFlowProps {
     /** the corridors this user has a rail for — a deep link to any other lands on the list */
     corridors: DepositCorridor[]
     accounts: Record<DepositCorridor, DepositAccountView | undefined>
+    /**
+     * The terms each corridor the user does NOT hold would carry, from the
+     * backend's own resolver. Optional: an API that predates the preview sends
+     * none, and the claim step then states no terms rather than inventing them.
+     */
+    claimable?: Record<DepositCorridor, ClaimableCorridor | undefined>
     /** `gateFor('deposit', { railId })` per corridor — the app primitive, one rail at a time */
     gates: Record<DepositCorridor, GateState>
     /** true until the corridors and the held accounts are known */
@@ -55,6 +61,7 @@ export interface DepositAccountsFlowProps {
 export function DepositAccountsFlow({
     corridors,
     accounts,
+    claimable,
     gates,
     isLoading = false,
     isError = false,
@@ -148,6 +155,8 @@ export function DepositAccountsFlow({
         return (
             <ClaimAccountScreen
                 rail={rail}
+                terms={claimable?.[corridor]}
+                userName={userName}
                 isClaiming={claimingCorridor === corridor}
                 // a failure on another corridor is not this screen's news
                 error={claimError?.corridor === corridor ? claimError.message : undefined}

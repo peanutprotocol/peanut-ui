@@ -1,4 +1,4 @@
-import type { DepositCorridor, DepositRules, SenderPolicy } from '../types'
+import type { ClaimableCorridor, DepositCorridor, DepositRules, SenderPolicy } from '../types'
 
 /**
  * FIXTURES ONLY. Who may pay into a corridor, and the terms behind it.
@@ -75,3 +75,35 @@ export const DEPOSIT_RAIL_POLICY: Record<DepositCorridor, DepositRailPolicy> = {
     PIX_BR: { sender: 'own-name-only' },
     BANK_TRANSFER_AR: { sender: 'own-name-only' },
 }
+
+/**
+ * The same two corridors as a PRE-CLAIM preview: the terms the backend
+ * resolves before an account exists, returned as `claimable`. Both the demo
+ * API and the fixture registry read these, so the claim step shows one set of
+ * terms wherever it is reviewed.
+ *
+ * `matching` carries no `nameOnAccount` — there is no account to have
+ * returned a holder name yet — and the dollar preview is marked `preview`
+ * with no `reason`, which is the real case: the residence subdivision was
+ * unreadable, so the per-state rule is not in these terms and the claim
+ * screen says so.
+ */
+export const CLAIMABLE_USD_PREVIEW = {
+    railId: 'bridge.ach_us',
+    method: 'ACH_US',
+    country: 'USA',
+    currency: 'USD',
+    matching: { sender: DEPOSIT_RAIL_POLICY.ACH_US.sender },
+    rules: DEPOSIT_RAIL_POLICY.ACH_US.rules,
+    preview: true,
+} satisfies ClaimableCorridor
+
+/** Euros, resolved in full: nothing about this corridor's terms reads residence. */
+export const CLAIMABLE_EUR = {
+    railId: 'bridge.sepa_eu',
+    method: 'SEPA_EU',
+    country: 'DEU',
+    currency: 'EUR',
+    matching: { sender: DEPOSIT_RAIL_POLICY.SEPA_EU.sender },
+    rules: DEPOSIT_RAIL_POLICY.SEPA_EU.rules,
+} satisfies ClaimableCorridor

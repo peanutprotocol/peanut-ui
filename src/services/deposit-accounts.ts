@@ -12,17 +12,31 @@
 
 import { apiErrorFromResponse } from '@/services/api-error'
 import { apiFetch } from '@/utils/api-fetch'
-import type { DepositAccount } from '@/features/deposit-accounts/types'
+import type { ClaimableCorridor, DepositAccount } from '@/features/deposit-accounts/types'
 import type { paths } from '@/types/api.generated'
 
 type DepositAccountsResponse = paths['/users/deposit-accounts']['get']['responses'][200]['content']['application/json']
 type ClaimResponse = paths['/users/deposit-accounts']['post']['responses'][200]['content']['application/json']
 
-export async function fetchDepositAccounts(): Promise<DepositAccount[]> {
+/**
+ * One read answers both questions the flow asks: what the user already holds,
+ * and what the corridors they do not hold would promise a payer. The second
+ * comes from the same resolver as the first, so the claim step states the
+ * terms rather than promising them later.
+ */
+export interface DepositAccountsSnapshot {
+    accounts: DepositAccount[]
+    claimable: ClaimableCorridor[]
+}
+
+export async function fetchDepositAccounts(): Promise<DepositAccountsSnapshot> {
     const response = await apiFetch('/users/deposit-accounts', { method: 'GET' })
     if (!response.ok) throw await apiErrorFromResponse(response, 'Could not load your deposit accounts')
     const body = (await response.json()) as DepositAccountsResponse
-    return body.depositAccounts
+    // An API that predates the preview sends no `claimable` at all. The claim
+    // step then states no terms, which is what it did before this field
+    // existed — never a row of defaults the screen would read as promises.
+    return { accounts: body.depositAccounts, claimable: body.claimable ?? [] }
 }
 
 /**

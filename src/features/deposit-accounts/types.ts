@@ -49,6 +49,32 @@ export type DepositAccountStatus = DepositAccount['status'] | ClientDepositStatu
 export type DepositMatching = DepositAccount['matching']
 
 /**
+ * A corridor the user may open, with the terms it WOULD carry. The backend
+ * runs the SAME resolver a held account reads, before an account exists, so
+ * the claim step and the account screen can never say different things about
+ * who may pay in.
+ *
+ * `preview: true` means one input was unavailable when the terms were
+ * resolved — today only the residence subdivision, which only USD reads. The
+ * terms are the rail's published ones and the state rule is not in them, so
+ * the screen says the terms are confirmed on opening rather than dropping
+ * them.
+ *
+ * `matching` carries no `nameOnAccount`: that field compares the holder name
+ * the provider returns against the user's, and no account has returned one
+ * yet.
+ */
+export type ClaimableCorridor = DepositAccountsResponse['claimable'][number]
+
+/**
+ * What the rule resolver needs to state a corridor's terms: the sender policy
+ * always, and the holder name only where an account exists to have one. One
+ * parameter type for both callers, so the claim step and the details screen
+ * run the same resolver rather than each getting its own.
+ */
+export type DepositSenderTerms = Pick<DepositMatching, 'sender'> & Partial<Pick<DepositMatching, 'nameOnAccount'>>
+
+/**
  * Who may pay into it.
  *
  * `unknown` is a real answer and the most common one. Bridge documents a

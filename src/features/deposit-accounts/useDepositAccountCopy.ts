@@ -5,7 +5,7 @@ import { useCallback, useMemo } from 'react'
 import { formatCurrencyAmount } from '@/utils/currency'
 import type { RailLabels } from './instructionRows'
 import { depositRuleLines, type DepositRuleKey } from './ruleLines'
-import type { DepositCorridor, DepositMatching, DepositRowLabels, DepositRules } from './types'
+import type { DepositCorridor, DepositRowLabels, DepositRules, DepositSenderTerms } from './types'
 
 /**
  * Catalog keys per corridor, written out rather than built by template so the
@@ -102,7 +102,7 @@ export function useDepositAccountCopy() {
      * the message a payer actually reads.
      */
     const ruleLines = useCallback(
-        (matching: DepositMatching, rules: DepositRules | undefined, user: string): ResolvedRuleLine[] =>
+        (matching: DepositSenderTerms, rules: DepositRules | undefined, user: string): ResolvedRuleLine[] =>
             depositRuleLines(matching, rules, formatCurrencyAmount).map(({ key, values }) => {
                 // `user` is only read by the provider-held line; passing it to
                 // every string is cheaper than a per-key values table.

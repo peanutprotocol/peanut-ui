@@ -1,4 +1,4 @@
-import type { DepositMatching, DepositRules } from './types'
+import type { DepositRules, DepositSenderTerms } from './types'
 
 /**
  * One sentence the screens are allowed to say about an account, derived from
@@ -48,7 +48,7 @@ export type FormatMoney = (amount: string, currency: string) => string
  * "not confirmed" is an answer, silence is not.
  */
 export function depositRuleLines(
-    matching: DepositMatching,
+    matching: DepositSenderTerms,
     rules: DepositRules | undefined,
     formatMoney: FormatMoney
 ): DepositRuleLine[] {
@@ -96,7 +96,7 @@ function ownAccountLine(rules: DepositRules | undefined, formatMoney: FormatMone
 }
 
 /** what a company transfer may do on this corridor */
-function businessKey(matching: DepositMatching, rules: DepositRules | undefined): DepositRuleKey {
+function businessKey(matching: DepositSenderTerms, rules: DepositRules | undefined): DepositRuleKey {
     switch (rules?.thirdPartyBusiness) {
         case 'unlimited':
             return 'businessAny'
@@ -120,7 +120,7 @@ function businessKey(matching: DepositMatching, rules: DepositRules | undefined)
  * support rather than implying the figure resets every month.
  */
 function individualLine(
-    matching: DepositMatching,
+    matching: DepositSenderTerms,
     rules: DepositRules | undefined,
     formatMoney: FormatMoney
 ): DepositRuleLine {

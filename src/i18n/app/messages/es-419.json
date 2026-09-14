@@ -3968,6 +3968,7 @@
             "previewTitle": "Cómo se van a ver tus datos",
             "previewCaption": "Solo un ejemplo — tus números reales aparecen cuando la cuenta esté abierta.",
             "conditionTerms": "Quién puede pagarte depende de los términos de {currency}. Los verás en cuanto la cuenta esté abierta.",
+            "statePending": "Las reglas de tu estado se confirman cuando abres la cuenta.",
             "benefitStable": "Comparte estos datos una sola vez — quedan igual para cada pago después.",
             "benefitBalance": "El dinero llega a tu saldo de Peanut en USD.",
             "conditionNoReference": "Sin referencia ni concepto que recordar.",

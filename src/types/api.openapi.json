@@ -17533,6 +17533,223 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "claimable": {
+                                            "items": {
+                                                "properties": {
+                                                    "country": {
+                                                        "type": "string"
+                                                    },
+                                                    "currency": {
+                                                        "type": "string"
+                                                    },
+                                                    "matching": {
+                                                        "properties": {
+                                                            "sender": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "enum": [
+                                                                            "anyone"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "business-only"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "own-name-only"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "unknown"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    }
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "sender"
+                                                        ],
+                                                        "type": "object"
+                                                    },
+                                                    "method": {
+                                                        "type": "string"
+                                                    },
+                                                    "preview": {
+                                                        "enum": [
+                                                            true
+                                                        ],
+                                                        "type": "boolean"
+                                                    },
+                                                    "railId": {
+                                                        "type": "string"
+                                                    },
+                                                    "rules": {
+                                                        "properties": {
+                                                            "min": {
+                                                                "properties": {
+                                                                    "amount": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "currency": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "amount",
+                                                                    "currency"
+                                                                ],
+                                                                "type": "object"
+                                                            },
+                                                            "ownAccount": {
+                                                                "properties": {
+                                                                    "allowed": {
+                                                                        "type": "boolean"
+                                                                    },
+                                                                    "max": {
+                                                                        "properties": {
+                                                                            "amount": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "currency": {
+                                                                                "type": "string"
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "amount",
+                                                                            "currency"
+                                                                        ],
+                                                                        "type": "object"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "allowed"
+                                                                ],
+                                                                "type": "object"
+                                                            },
+                                                            "reason": {
+                                                                "enum": [
+                                                                    "state-restricted"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            "thirdPartyBusiness": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "enum": [
+                                                                            "unlimited"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "unavailable"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "unknown"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "thirdPartyIndividual": {
+                                                                "properties": {
+                                                                    "capBelow": {
+                                                                        "properties": {
+                                                                            "amount": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "currency": {
+                                                                                "type": "string"
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "amount",
+                                                                            "currency"
+                                                                        ],
+                                                                        "type": "object"
+                                                                    },
+                                                                    "familySameSurnameExempt": {
+                                                                        "type": "boolean"
+                                                                    },
+                                                                    "policy": {
+                                                                        "anyOf": [
+                                                                            {
+                                                                                "enum": [
+                                                                                    "allowed"
+                                                                                ],
+                                                                                "type": "string"
+                                                                            },
+                                                                            {
+                                                                                "enum": [
+                                                                                    "capped"
+                                                                                ],
+                                                                                "type": "string"
+                                                                            },
+                                                                            {
+                                                                                "enum": [
+                                                                                    "unavailable"
+                                                                                ],
+                                                                                "type": "string"
+                                                                            },
+                                                                            {
+                                                                                "enum": [
+                                                                                    "unknown"
+                                                                                ],
+                                                                                "type": "string"
+                                                                            }
+                                                                        ]
+                                                                    },
+                                                                    "volumeLimit": {
+                                                                        "properties": {
+                                                                            "amount": {
+                                                                                "type": "string"
+                                                                            },
+                                                                            "currency": {
+                                                                                "type": "string"
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "amount",
+                                                                            "currency"
+                                                                        ],
+                                                                        "type": "object"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "policy"
+                                                                ],
+                                                                "type": "object"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "ownAccount",
+                                                            "thirdPartyBusiness",
+                                                            "thirdPartyIndividual"
+                                                        ],
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "railId",
+                                                    "method",
+                                                    "country",
+                                                    "currency",
+                                                    "matching"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        },
                                         "depositAccounts": {
                                             "items": {
                                                 "properties": {
@@ -17844,7 +18061,8 @@
                                         }
                                     },
                                     "required": [
-                                        "depositAccounts"
+                                        "depositAccounts",
+                                        "claimable"
                                     ],
                                     "type": "object"
                                 }

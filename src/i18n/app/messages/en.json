@@ -3968,6 +3968,7 @@
             "previewTitle": "What your details will look like",
             "previewCaption": "An example only — your real numbers appear once the account is open.",
             "conditionTerms": "Who can pay you depends on the rules for {currency}. You will see them as soon as the account is open.",
+            "statePending": "State rules are confirmed when you open the account.",
             "benefitStable": "Hand these details over once — they stay the same for every payment after.",
             "benefitBalance": "Money arrives in your Peanut balance as USD.",
             "conditionNoReference": "No reference or memo to remember.",

@@ -11,7 +11,7 @@ import {
 } from '@/constants/zerodev.consts'
 import { DEMO_ADDRESS, DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_LIMITS, DEMO_USER } from '@/constants/demo-data'
 import { PEANUT_API_URL } from '@/constants/general.consts'
-import { DEPOSIT_RAIL_POLICY } from '@/features/deposit-accounts/__fixtures__/railPolicy'
+import { CLAIMABLE_USD_PREVIEW, DEPOSIT_RAIL_POLICY } from '@/features/deposit-accounts/__fixtures__/railPolicy'
 import type { DepositAccount } from '@/features/deposit-accounts/types'
 
 const CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
@@ -440,7 +440,10 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     {
         method: 'GET',
         pattern: '/users/deposit-accounts',
-        handler: () => ({ depositAccounts: [DEMO_DEPOSIT_ACCOUNT_EUR] }),
+        // The dollar corridor is the one the demo user can still open, so it
+        // comes back with the terms it would carry. Held corridors are never
+        // in `claimable` — their terms are confirmed and travel on the account.
+        handler: () => ({ depositAccounts: [DEMO_DEPOSIT_ACCOUNT_EUR], claimable: [CLAIMABLE_USD_PREVIEW] }),
     },
     {
         method: 'POST',

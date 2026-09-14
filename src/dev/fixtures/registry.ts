@@ -10,7 +10,11 @@
 // this registry replaced it.
 
 import type { Fixture } from './types'
-import { DEPOSIT_RAIL_POLICY } from '@/features/deposit-accounts/__fixtures__/railPolicy'
+import {
+    CLAIMABLE_EUR,
+    CLAIMABLE_USD_PREVIEW,
+    DEPOSIT_RAIL_POLICY,
+} from '@/features/deposit-accounts/__fixtures__/railPolicy'
 import type { DepositAccount } from '@/features/deposit-accounts/types'
 import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
 
@@ -780,8 +784,23 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'get-paid-claim': {
         route: '/get-paid?step=claim&corridor=ACH_US',
-        about: 'What the user agrees to before an account is opened in their name.',
-        responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [] } },
+        // The payer terms sit under the benefit rows, below the fold at 375.
+        fullPage: true,
+        about: 'What the user agrees to before a dollar account is opened, with the state rule still to be confirmed.',
+        responses: {
+            ...VA_READY_RESPONSE,
+            'GET /users/deposit-accounts': { depositAccounts: [], claimable: [CLAIMABLE_USD_PREVIEW] },
+        },
+    },
+    'get-paid-claim-eur': {
+        route: '/get-paid?step=claim&corridor=SEPA_EU',
+        // The payer terms sit under the benefit rows, below the fold at 375.
+        fullPage: true,
+        about: 'The same step on a corridor whose terms are fully resolved — no state rule to wait for.',
+        responses: {
+            ...VA_READY_RESPONSE,
+            'GET /users/deposit-accounts': { depositAccounts: [], claimable: [CLAIMABLE_EUR] },
+        },
     },
     'get-paid-details-eur': {
         route: '/get-paid?step=details&corridor=SEPA_EU',

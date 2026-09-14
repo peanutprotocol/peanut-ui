@@ -10790,6 +10790,45 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            claimable: {
+                                country: string;
+                                currency: string;
+                                matching: {
+                                    sender: "anyone" | "business-only" | "own-name-only" | "unknown";
+                                };
+                                method: string;
+                                /** @enum {boolean} */
+                                preview?: true;
+                                railId: string;
+                                rules?: {
+                                    min?: {
+                                        amount: string;
+                                        currency: string;
+                                    };
+                                    ownAccount: {
+                                        allowed: boolean;
+                                        max?: {
+                                            amount: string;
+                                            currency: string;
+                                        };
+                                    };
+                                    /** @enum {string} */
+                                    reason?: "state-restricted";
+                                    thirdPartyBusiness: "unlimited" | "unavailable" | "unknown";
+                                    thirdPartyIndividual: {
+                                        capBelow?: {
+                                            amount: string;
+                                            currency: string;
+                                        };
+                                        familySameSurnameExempt?: boolean;
+                                        policy: "allowed" | "capped" | "unavailable" | "unknown";
+                                        volumeLimit?: {
+                                            amount: string;
+                                            currency: string;
+                                        };
+                                    };
+                                };
+                            }[];
                             depositAccounts: {
                                 country: string;
                                 currency: string;

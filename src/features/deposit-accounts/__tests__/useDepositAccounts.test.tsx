@@ -2,7 +2,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { MAX_PROVISIONING_POLLS, PROVISIONING_POLL_MS, useDepositAccounts } from '../useDepositAccounts'
-import type { DepositAccount } from '../types'
+import { CLAIMABLE_USD_PREVIEW } from '../__fixtures__/railPolicy'
+import type { ClaimableCorridor, DepositAccount } from '../types'
 import type { RailCapability } from '@/types/capabilities'
 import type { GateScope, GateState } from '@/utils/capability-gate'
 
@@ -44,6 +45,13 @@ const account = (over: Partial<DepositAccount> = {}): DepositAccount => ({
     ...over,
 })
 
+/**
+ * One read answers both halves: what the user holds, and the terms of the
+ * corridors they could still open. Most tests only care about the first.
+ */
+const resolveAccounts = (accounts: DepositAccount[], claimable: ClaimableCorridor[] = []) =>
+    fetchDepositAccounts.mockResolvedValue({ accounts, claimable })
+
 const wrapper = ({ children }: { children: ReactNode }) => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     return <QueryClientProvider client={client}>{children}</QueryClientProvider>
@@ -62,7 +70,7 @@ describe('useDepositAccounts', () => {
      */
     it('offers the corridors the user has a rail for, and no others', async () => {
         userRails = [bankRail('manteca.bank_transfer_ar', 'BANK_TRANSFER_AR'), bankRail('manteca.pix_br', 'PIX_BR')]
-        fetchDepositAccounts.mockResolvedValue([])
+        resolveAccounts([])
 
         const { result } = renderHook(() => useDepositAccounts(), { wrapper })
 
@@ -78,7 +86,7 @@ describe('useDepositAccounts', () => {
      */
     it('keeps a corridor the user holds an account on after its rail leaves the catalogue', async () => {
         userRails = [bankRail('bridge.ach_us', 'ACH_US')]
-        fetchDepositAccounts.mockResolvedValue([account({ railId: 'bridge.sepa_eu' })])
+        resolveAccounts([account({ railId: 'bridge.sepa_eu' })])
 
         const { result } = renderHook(() => useDepositAccounts(), { wrapper })
 
@@ -92,7 +100,7 @@ describe('useDepositAccounts', () => {
 
     it('offers no corridor to a user with no bank rail', async () => {
         userRails = []
-        fetchDepositAccounts.mockResolvedValue([])
+        resolveAccounts([])
 
         const { result } = renderHook(() => useDepositAccounts(), { wrapper })
 
@@ -101,13 +109,33 @@ describe('useDepositAccounts', () => {
     })
 
     it('maps each returned account onto its corridor', async () => {
-        fetchDepositAccounts.mockResolvedValue([account(), account({ id: 'b', railId: 'bridge.ach_us' })])
+        resolveAccounts([account(), account({ id: 'b', railId: 'bridge.ach_us' })])
 
         const { result } = renderHook(() => useDepositAccounts(), { wrapper })
 
         await waitFor(() => expect(result.current.isLoading).toBe(false))
         expect(result.current.accounts.SEPA_EU?.id).toBe('a')
         expect(result.current.accounts.ACH_US?.id).toBe('b')
+    })
+
+    it('maps each previewed corridor onto its corridor, and leaves the rest empty', async () => {
+        resolveAccounts([], [CLAIMABLE_USD_PREVIEW])
+
+        const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+        expect(result.current.claimable.ACH_US).toEqual(CLAIMABLE_USD_PREVIEW)
+        expect(result.current.claimable.SEPA_EU).toBeUndefined()
+    })
+
+    /** an API that predates the preview says nothing, and nothing is invented */
+    it('previews no terms when the read carries none', async () => {
+        resolveAccounts([])
+
+        const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+        expect(result.current.claimable.ACH_US).toBeUndefined()
     })
 
     /**
@@ -130,7 +158,7 @@ describe('useDepositAccounts', () => {
      * retired details in front of a payer.
      */
     it('shows the primary account, whatever order the retiring one arrives in', async () => {
-        fetchDepositAccounts.mockResolvedValue([
+        resolveAccounts([
             account({ id: 'new', isPrimary: true }),
             account({ id: 'old', isPrimary: false, status: 'retiring' }),
         ])
@@ -143,7 +171,7 @@ describe('useDepositAccounts', () => {
 
     it('asks the gate one rail at a time, so a working corridor cannot unlock a blocked one', async () => {
         gatesByRailId = { 'bridge.ach_us': { kind: 'ready' } }
-        fetchDepositAccounts.mockResolvedValue([])
+        resolveAccounts([])
 
         const { result } = renderHook(() => useDepositAccounts(), { wrapper })
 
@@ -157,7 +185,7 @@ describe('useDepositAccounts', () => {
      * greeted the user on the USD claim screen before USD had been tried.
      */
     it('keeps a claim failure on the corridor that produced it', async () => {
-        fetchDepositAccounts.mockResolvedValue([])
+        resolveAccounts([])
         claimDepositAccount.mockRejectedValue(new Error('Could not open the account'))
 
         const { result } = renderHook(() => useDepositAccounts(), { wrapper })
@@ -184,7 +212,7 @@ describe('useDepositAccounts caps the provisioning poll', () => {
     afterEach(() => jest.useRealTimers())
 
     it('marks the corridor timed out once the budget is spent, and stops asking', async () => {
-        fetchDepositAccounts.mockResolvedValue([account({ status: 'provisioning' })])
+        resolveAccounts([account({ status: 'provisioning' })])
 
         const { result } = renderHook(() => useDepositAccounts(), { wrapper })
         await waitFor(() => expect(result.current.accounts.SEPA_EU?.status).toBe('provisioning'))
@@ -214,7 +242,7 @@ describe('useDepositAccounts caps the provisioning poll', () => {
      * second claim handed the older one a fresh wait it had not earned.
      */
     it('gives each account its own budget', async () => {
-        fetchDepositAccounts.mockResolvedValue([account({ status: 'provisioning' })])
+        resolveAccounts([account({ status: 'provisioning' })])
 
         const { result } = renderHook(() => useDepositAccounts(), { wrapper })
         await waitFor(() => expect(result.current.accounts.SEPA_EU?.status).toBe('provisioning'))
@@ -226,7 +254,7 @@ describe('useDepositAccounts caps the provisioning poll', () => {
             })
         }
         // a second corridor starts provisioning now
-        fetchDepositAccounts.mockResolvedValue([
+        resolveAccounts([
             account({ status: 'provisioning' }),
             account({ id: 'b', railId: 'bridge.ach_us', status: 'provisioning' }),
         ])
@@ -241,7 +269,7 @@ describe('useDepositAccounts caps the provisioning poll', () => {
     })
 
     it('keeps polling while the account is still within its budget', async () => {
-        fetchDepositAccounts.mockResolvedValue([account({ status: 'provisioning' })])
+        resolveAccounts([account({ status: 'provisioning' })])
 
         const { result } = renderHook(() => useDepositAccounts(), { wrapper })
         await waitFor(() => expect(result.current.accounts.SEPA_EU?.status).toBe('provisioning'))
@@ -281,7 +309,7 @@ describe('useDepositAccounts on a refused claim', () => {
     ]
 
     it.each(refusals)('reads a %s as not available yet, never as a failure to retry', async (_name, error) => {
-        fetchDepositAccounts.mockResolvedValue([])
+        resolveAccounts([])
         claimDepositAccount.mockRejectedValue(error)
 
         const { result } = renderHook(() => useDepositAccounts(), { wrapper })
@@ -298,7 +326,7 @@ describe('useDepositAccounts on a refused claim', () => {
      * user to wait for a rollout instead of signing in again.
      */
     it('leaves a 403 from anything but the deposit gate retryable', async () => {
-        fetchDepositAccounts.mockResolvedValue([])
+        resolveAccounts([])
         claimDepositAccount.mockRejectedValue(new FakeApiError('Forbidden', 403))
 
         const { result } = renderHook(() => useDepositAccounts(), { wrapper })
@@ -310,7 +338,7 @@ describe('useDepositAccounts on a refused claim', () => {
     })
 
     it('keeps an ordinary failure retryable', async () => {
-        fetchDepositAccounts.mockResolvedValue([])
+        resolveAccounts([])
         claimDepositAccount.mockRejectedValue(new FakeApiError('Could not open the account', 500))
 
         const { result } = renderHook(() => useDepositAccounts(), { wrapper })
