@@ -25,6 +25,9 @@ export type ApiUser = {
     firstName: string
     lastName: string
     showFullName?: boolean
+    /** Picked profile avatar, `basic.<slug>` / `badge.<CODE>.<slug>` / `letter.<a-z>`;
+     *  null (or absent, on an older API) means the username-letter fallback. */
+    avatarKey?: string | null
     totalUsdSentToCurrentUser: string
     totalUsdReceivedFromCurrentUser: string
     /**

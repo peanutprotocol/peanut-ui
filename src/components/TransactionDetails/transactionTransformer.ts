@@ -327,6 +327,10 @@ export interface TransactionDetails {
     isPeerActuallyUser?: boolean
     fullName: string
     showFullName?: boolean
+    /** The counterparty's picked profile avatar (TASK-22625). Null whenever the
+     *  counterparty is not a Peanut user, so a render site can pass it straight
+     *  through without re-checking `isPeerActuallyUser`. */
+    avatarKey?: string | null
     amount: number | bigint
     /** Raw destination-token amount string from the BE (e.g. "0.000416666"
      *  for a $1 ETH withdraw). Preserves full decimals for receipt rendering;
@@ -595,6 +599,9 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         tokenAmount: entry.amount,
         fullName,
         showFullName,
+        // Read after the reaper / failed-QR overrides above, so a row whose
+        // counterparty was rewritten to system copy cannot keep their sticker.
+        avatarKey: isPeerActuallyUser ? (out.avatarKey ?? null) : null,
         currency: rewardData ? undefined : entry.currency,
         currencySymbol: `${displayUserRole === EHistoryUserRole.SENDER ? '-' : '+'}$`,
         tokenSymbol: rewardData?.getSymbol(amount) ?? entry.tokenSymbol,

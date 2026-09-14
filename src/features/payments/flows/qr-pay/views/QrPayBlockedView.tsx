@@ -55,7 +55,7 @@ export function QrPayBlockedView() {
 
     return (
         <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center">
-            <Card className="flex w-full flex-col items-center gap-2 p-4">
+            <Card className="flex w-full flex-col items-center gap-2 p-4 text-center">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-action-secondary p-3">
                     <Icon name={icon} size={24} />
                 </div>
@@ -63,8 +63,8 @@ export function QrPayBlockedView() {
                 <p
                     className={
                         isMaintenance
-                            ? 'text-center font-normal text-foreground-secondary'
-                            : 'max-w-52 text-center font-normal text-foreground-secondary'
+                            ? 'font-normal text-foreground-secondary'
+                            : 'max-w-52 font-normal text-foreground-secondary'
                     }
                 >
                     {description}
