@@ -10,15 +10,17 @@ import { useModalsContext } from '@/context/ModalsContext'
 
 function SurfaceHost({ id }: { id: string }) {
     const surface = SURFACES[id]
-    const { setIsSignInModalOpen, setIsSupportModalOpen, setIsIosPwaInstallDrawerOpen } = useModalsContext()
+    const { setIsSignInModalOpen, setIsSupportModalOpen, setIsIosPwaInstallDrawerOpen, setIsQRScannerOpen } =
+        useModalsContext()
 
     // The context-driven surfaces have no visible prop — the provider holds
     // their open flag, so the harness flips it on mount instead.
     useEffect(() => {
+        if (surface?.modalsContextFlag === 'qrScanner') setIsQRScannerOpen(true)
         if (surface?.modalsContextFlag === 'signIn') setIsSignInModalOpen(true)
         if (surface?.modalsContextFlag === 'support') setIsSupportModalOpen(true)
         if (surface?.modalsContextFlag === 'iosPwaInstall') setIsIosPwaInstallDrawerOpen(true)
-    }, [surface, setIsSignInModalOpen, setIsSupportModalOpen, setIsIosPwaInstallDrawerOpen])
+    }, [surface, setIsSignInModalOpen, setIsSupportModalOpen, setIsIosPwaInstallDrawerOpen, setIsQRScannerOpen])
 
     const option = OPTION_SURFACES[id]
     if (option) return <>{option.render()}</>

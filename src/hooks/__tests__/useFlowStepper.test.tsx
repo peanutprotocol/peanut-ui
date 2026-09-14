@@ -137,4 +137,28 @@ describe('useFlowStepper', () => {
         const { result } = render({ screen: 'amount' }, { urlKey: 'screen' })
         expect(result.current.step).toBe('amount')
     })
+
+    /*
+     * A step list can be a runtime decision that narrows after the first
+     * render (setup filters its screens by PWA and sunset state), and the URL
+     * outlives it: nuqs keeps serving the cursor it parsed against the wider
+     * list. Resolving that to the default is what keeps the flow from having
+     * no step at all (PEANUT-UI-T3A).
+     */
+    it('a cursor that left the step list resolves to the default step', async () => {
+        const { result, rerender } = renderHook(
+            ({ steps }: { steps: readonly Step[] }) => useFlowStepper<Step>({ steps }),
+            {
+                wrapper: wrapperFor({ step: 'review' }),
+                initialProps: { steps: STEPS as readonly Step[] },
+            }
+        )
+        expect(result.current.step).toBe('review')
+
+        // the URL still says review, but this flow no longer has that screen
+        await act(async () => {
+            rerender({ steps: ['method', 'amount'] as readonly Step[] })
+        })
+        expect(result.current.step).toBe('method')
+    })
 })

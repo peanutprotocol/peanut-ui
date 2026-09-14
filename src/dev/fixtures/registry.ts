@@ -134,12 +134,34 @@ const HUGE_HISTORY_ENTRY = {
 }
 
 export const FIXTURES: Record<string, Fixture> = {
+    'setup-pending': {
+        route: '/setup',
+        about: 'Resume an unfinished account setup',
+        responses: { 'GET /users/me': { user: { hasAppAccess: false }, accounts: [] } },
+    },
     // ---------------------------------------------------------------------
     // One per screen — the known-good default for each.
     // ---------------------------------------------------------------------
+    'guest-invite': {
+        route: '/invite?code=synthetic-invite',
+        about: 'Invite before creating an account',
+        responses: { 'GET /users/me': null },
+    },
     home: { route: '/home', about: 'Home: balance, activity and CTAs for a verified user.' },
     profile: { route: '/profile', about: 'Profile menu, verified user, card row present.' },
-    'profile-edit': { route: '/profile/edit', about: 'Personal details form, pre-filled.' },
+    'profile-edit': {
+        route: '/profile/edit',
+        about: 'Verified name locked, account email editable.',
+        responses: { 'GET /users/me': { profileNameLocked: true }, 'POST /users/email-change': { success: true } },
+    },
+    'profile-edit-unverified': {
+        route: '/profile/edit',
+        about: 'Name and email editable before identity verification.',
+        responses: {
+            'GET /users/me': { identityVerification: { status: 'not_started' }, profileNameLocked: false },
+            'POST /users/email-change': { success: true },
+        },
+    },
     'identity-verification': {
         route: '/profile/identity-verification',
         about: 'Unlocked regions for a user whose ID check passed.',

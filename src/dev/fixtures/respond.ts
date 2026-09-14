@@ -33,7 +33,7 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
             )
         }
         // Still serve the demo defaults — a wrong name must not hang the screen.
-        return demoRespond(path, options)
+        return demoRespond(path, options, { offline: true })
     }
 
     const method = (options?.method ?? 'GET').toUpperCase()
@@ -45,7 +45,7 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
 
     // demo-api already answers every route the app calls, with a shape-aware
     // fallback for the rest. A fixture only says what differs from that.
-    const base = await demoRespond(path, options)
+    const base = await demoRespond(path, options, { offline: true })
     const override = fixture.responses?.[key]
     if (override === undefined) return base
 

@@ -341,6 +341,8 @@ let nextConfig = {
     },
 
     webpack: (config, { isServer, dev, webpack }) => {
+        /* screen-capture-cache-v1 */
+        if (process.env.SCREEN_CAPTURE_BUILD === '1') config.cache = false
         // `pnpm build` is `next build --webpack`, and the native builder runs the
         // same webpack path — so a turbopack resolveAlias alone never reaches a
         // build the repo actually runs. A resolve.alias does not work either:

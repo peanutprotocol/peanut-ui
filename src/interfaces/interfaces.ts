@@ -299,14 +299,15 @@ export interface IUserProfile {
     // `capabilities` on /get-user. Read via useIdentityVerification(). The status
     // surfaces render this; no provider names. Optional during the migration.
     identityVerification?: IdentityVerification
+    profileNameLocked?: boolean
     // Residence-based availability derived server-side from the residence the
     // user declared at signup. Read via useResidenceRestrictions(). Advisory
     // offer-shaping only: hides bank/card surfaces the user could never use.
     residenceRestrictions?: { banking: boolean; card: boolean }
     // Residence, both flavors: declared at signup (advisory) and verified by
     // KYC (Sumsub address — the compliance source of truth). ISO-2 or null.
-    // nextChangeAllowedAt: when the escalating change cooldown lifts (ISO);
-    // null or absent = a change is allowed right now.
+    // nextChangeAllowedAt: legacy field, ignored for self-declaration.
+    // Cooldowns belong to provider verification, not this country selection.
     // declaredSecond: the optional second jurisdiction from the signup step,
     // served by /users/me since 2026-08-26. Optional here only for the window
     // before that BE lands in production; callers fall back to the device

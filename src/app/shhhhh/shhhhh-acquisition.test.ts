@@ -14,6 +14,7 @@ it('keeps a public card destination through campaign signup without waiting for 
 })
 
 it('continues an old in-flight signup marker to the public card', () => {
+    // legacy v1 marker written by pre-launch code — settle must still honor it
     saveToLocalStorage('redirect', '/home?badge_campaign_continuation=shhhhh')
     expect(settleShhhhhCampaignContinuation()).toBe('/card')
     expect(getRedirectUrl()).toBe('/card')

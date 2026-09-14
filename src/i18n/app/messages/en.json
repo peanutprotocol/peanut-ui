@@ -300,7 +300,7 @@
             "unlockBadge": "Unlock",
             "yourBadges": "Your Badges",
             "points": "Points",
-            "personalDetails": "Personal Details",
+            "personalDetails": "Edit profile",
             "unlockedRegions": "Payment Channels",
             "paymentLimits": "Payment limits",
             "showMyFullName": "Show my full name",
@@ -318,15 +318,23 @@
                 "name": "Name",
                 "surname": "Surname",
                 "bio": "Bio",
-                "email": "Email",
+                "email": "Email for notifications",
                 "phoneNumber": "Phone number",
                 "website": "Website"
             },
             "soonBadge": "Soon!",
             "saveChanges": "Save Changes",
             "errors": {
-                "nameRequired": "Please provide your name."
-            }
+                "nameRequired": "Please provide your name.",
+                "invalidEmail": "Please enter a valid email address.",
+                "emailInUse": "This email is already associated with another account.",
+                "invalidCode": "Enter the 6-digit code from your email."
+            },
+            "verifiedNameHelp": "Your name comes from your identity verification and cannot be edited here. Contact support if it needs correcting.",
+            "emailCode": "Verification code",
+            "emailCodeHelp": "We sent a code to {email}. Your current email will stay active until you verify the new one.",
+            "sendCode": "Send code",
+            "requestNewCode": "Request another code"
         },
         "regions": {
             "title": "Regions and verification",
@@ -406,8 +414,7 @@
                 "cardRestrictionNote": "Heads up: the card isn't available for residents of this country.",
                 "bankingRestrictionNote": "Heads up: bank transfers aren't available for residents of this country.",
                 "save": "Save",
-                "saveAndReverify": "Submit documents",
-                "cooldownNote": "You changed your residence recently. You can change it again after {until}."
+                "saveAndReverify": "Submit documents"
             },
             "degraded": {
                 "title": "Verification is temporarily down",
@@ -567,7 +574,7 @@
             "beta": {
                 "heading": "Beta updates",
                 "description": "Receive builds from the {channel} channel before they ship to everyone. Internal testing only.",
-                "channelLabel": "Update channel",
+                "channelLabel": "Current update channel",
                 "defaultChannel": "Default",
                 "bundleLabel": "Running bundle",
                 "deviceLabel": "Device ID",
@@ -581,7 +588,6 @@
                 "leftOverride": "This device was put on beta from the Capgo dashboard, so the app cannot take it off. Ask an admin to remove the device's channel override.",
                 "leftUnconfirmed": "Could not reach Capgo to confirm the switch, so this device is still on the beta build. Try again when you are back online.",
                 "closed": "The {channel} channel does not accept testers yet. Ask an admin to allow self-assignment in Capgo.",
-                "notEligible": "Beta updates are not enabled for this account yet. Tap the version number five times again to retry.",
                 "failed": "Could not change the update channel.",
                 "revealed": "Beta updates switch revealed below.",
                 "appOnly": "Beta updates are only available in the Peanut app."
@@ -2982,6 +2988,12 @@
                 "description": "This verification step is no longer needed. Your current status is on your profile.",
                 "cta": "See my status"
             }
+        },
+        "correction": {
+            "title": "Correct your bank verification details",
+            "taxId": "Your identity is verified, but we could not validate your tax ID for this country. Check and correct it to enable bank transfers.",
+            "details": "Some information needs correcting before bank transfers can be enabled. Your identity verification is saved.",
+            "correct": "Correct details"
         }
     },
     "identity": {
@@ -3678,6 +3690,88 @@
         "rollDie": "Roll the die",
         "initialName": "Just {letter}",
         "initialLine": "Your initial",
+        "badge": {
+            "ARBIVERSE_DEVCONNECT_BA_2025": {
+                "crystal": "Arbiverse Crystal",
+                "hex": "Arbiverse Hex",
+                "cheer": "Arbiverse Cheer"
+            },
+            "BETA_TESTER": {
+                "flask": "Beta Flask",
+                "bubble": "Beta Bubble",
+                "wink": "Beta Wink"
+            },
+            "BUG_WHISPERER": {
+                "beetle": "Bug Beetle",
+                "shell": "Bug Shell",
+                "peek": "Bug Peek"
+            },
+            "CARD_ALPHA": {
+                "card": "Alpha Card",
+                "swipe": "Alpha Swipe",
+                "tape": "Alpha Tape"
+            },
+            "CARD_FIRST_SWIPE": {
+                "card": "First Swipe Card",
+                "chip": "First Swipe Chip",
+                "wink": "First Swipe Wink"
+            },
+            "CARD_SPENT_1K": {
+                "stack": "Spender Stack",
+                "note": "Spender Note",
+                "cheer": "Spender Cheer"
+            },
+            "DEVCONNECT_BA_2025": {
+                "sun": "Devconnect Sun",
+                "rise": "Devconnect Sunrise",
+                "wink": "Devconnect Wink"
+            },
+            "ETHFLORIPA_HUB": {
+                "eth": "EthFloripa ETH",
+                "island": "EthFloripa Island",
+                "palm": "EthFloripa Palm"
+            },
+            "EVENT_ALUMNI": {
+                "cap": "Alumni Cap",
+                "board": "Alumni Board",
+                "wink": "Alumni Wink"
+            },
+            "IRL_NOMADS": {
+                "pack": "Nomad Pack",
+                "roll": "Nomad Roll",
+                "pocket": "Nomad Pocket"
+            },
+            "NAIJA": {
+                "flag": "Naija Flag",
+                "wave": "Naija Wave",
+                "wink": "Naija Wink"
+            },
+            "NITA": {
+                "letter": "NITA Letter",
+                "sparkle": "NITA Sparkle",
+                "wink": "NITA Wink"
+            },
+            "OFFRAMP_USER": {
+                "bolt": "Offramp Bolt",
+                "spark": "Offramp Spark",
+                "wink": "Offramp Wink"
+            },
+            "OG_2025_10_12": {
+                "coin": "OG Coin",
+                "link": "OG Link",
+                "shades": "OG Shades"
+            },
+            "SHHHHH": {
+                "lips": "Secret Lips",
+                "shush": "Secret Shush",
+                "wink": "Secret Wink"
+            },
+            "WAITLIST_SKIP": {
+                "key": "Waitlist Key",
+                "keyhole": "Waitlist Keyhole",
+                "wink": "Waitlist Wink"
+            }
+        },
         "cast": {
             "apple": {
                 "name": "Jackpot Cherry",

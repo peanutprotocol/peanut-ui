@@ -7,16 +7,38 @@
  */
 
 let deepLinkNavigated = false
+let deepLinkGeneration = 0
+let deepLinkTarget: string | null = null
+const deepLinkGenerationListeners = new Set<() => void>()
 
-export function markDeepLinkNavigated(): void {
+export function markDeepLinkNavigated(target?: string): number {
     deepLinkNavigated = true
+    deepLinkGeneration += 1
+    deepLinkTarget = target ?? null
+    deepLinkGenerationListeners.forEach((listener) => listener())
+    return deepLinkGeneration
 }
 
 export function hasDeepLinkNavigated(): boolean {
     return deepLinkNavigated
 }
 
+export function getDeepLinkGeneration(): number {
+    return deepLinkGeneration
+}
+
+export function getDeepLinkTarget(): string | null {
+    return deepLinkTarget
+}
+
+export function subscribeToDeepLinkGeneration(listener: () => void): () => void {
+    deepLinkGenerationListeners.add(listener)
+    return () => deepLinkGenerationListeners.delete(listener)
+}
+
 // Module state outlives a jest test; production code must never call this.
 export function resetDeepLinkStateForTests(): void {
     deepLinkNavigated = false
+    deepLinkGeneration = 0
+    deepLinkTarget = null
 }

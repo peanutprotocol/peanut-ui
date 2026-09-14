@@ -10,7 +10,7 @@ import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
 import { useIosPwaInstallGate } from '@/hooks/useIosPwaInstallGate'
 import { readInviteCode, stashInvite } from '@/utils/invite-stash'
-import { Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { setupSteps as masterSetupSteps } from '../../../components/Setup/Setup.consts'
 import { hasKnownDeviceCredentials, resolveSetupEntryStep } from '@/components/Setup/setup-entry'
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
@@ -31,6 +31,31 @@ import { useTranslations } from 'next-intl'
 import { useModalsContext } from '@/context/ModalsContext'
 import * as Sentry from '@sentry/nextjs'
 import { EInviteType } from '@/services/services.types'
+import {
+    badgeCampaignsFromSearchParams,
+    getPendingBadgeCampaigns,
+    queuePendingBadgeCampaigns,
+} from '@/components/Invites/badge-campaign-context'
+import { claimAndSettlePendingBadgeCampaigns } from '@/services/badge-campaigns'
+import { getDeepLinkGeneration, getDeepLinkTarget, subscribeToDeepLinkGeneration } from '@/utils/deep-link-state'
+
+function setupTargetMatchesSearchParams(target: string | null, searchParamsString: string): boolean {
+    if (!target) return false
+    try {
+        const targetUrl = new URL(target, 'https://peanut.me')
+        if (targetUrl.pathname !== '/setup') return false
+        const normalize = (params: URLSearchParams) =>
+            Array.from(params.entries()).sort(
+                ([keyA, valueA], [keyB, valueB]) => keyA.localeCompare(keyB) || valueA.localeCompare(valueB)
+            )
+        return (
+            JSON.stringify(normalize(targetUrl.searchParams)) ===
+            JSON.stringify(normalize(new URLSearchParams(searchParamsString)))
+        )
+    } catch {
+        return false
+    }
+}
 
 function SetupPageContent() {
     const t = useTranslations('setup')
@@ -38,7 +63,7 @@ function SetupPageContent() {
     const { setIsSupportModalOpen } = useModalsContext()
     const { steps, resetSetupFlow, setNoBackLockScreenId } = useSetupFlowContext()
     const { step, currentIndex: currentStepIndex, direction, handleNext, handleBack, setScreenId } = useSetupFlow()
-    const { logoutUser, isLoggingOut, user, isFetchingUser } = useAuth()
+    const { logoutUser, isLoggingOut, user, isFetchingUser, fetchUser } = useAuth()
     const { setShowIosPwaInstallScreen } = useIosPwaInstallGate()
     const router = useRouter()
     const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
@@ -67,37 +92,78 @@ function SetupPageContent() {
     // the user back to the entry step.
     const inviteCodeParam = searchParams.get('code')
     const legacyStepParam = searchParams.get('step')
+    const searchParamsString = searchParams.toString()
+    const urlBadgeCampaigns = useMemo(
+        () => badgeCampaignsFromSearchParams(new URLSearchParams(searchParamsString)),
+        [searchParamsString]
+    )
     const [sessionChecked, setSessionChecked] = useState(false)
     const [existingSessionUsername, setExistingSessionUsername] = useState<string | null>(null)
+    /*
+     * A completed session is on its way to /home (see the session effect
+     * below), but the soft nav takes a beat and this page keeps rendering and
+     * resolving its entry step meanwhile. Nothing here is a fault the user
+     * should see: an authenticated pop back into /setup — the signup flow
+     * leaves a history entry per step — showed the recovery screen instead of
+     * the bounce it was already performing.
+     */
+    const [isLeavingForHome, setIsLeavingForHome] = useState(false)
+    const [isSettlingNativeBadgeCampaigns, setIsSettlingNativeBadgeCampaigns] = useState(false)
+    const [deepLinkGeneration, setDeepLinkGeneration] = useState(() => getDeepLinkGeneration())
+    const isSetupMountedRef = useRef(false)
+    const currentBadgeCampaignsKeyRef = useRef(urlBadgeCampaigns.join('\u0000'))
+    const nativeClaimCampaignsKeyRef = useRef<string | null>(null)
+    const nativeClaimGenerationRef = useRef<number | null>(null)
+    const nativeClaimRunIdRef = useRef(0)
+    const lastHandledDeepLinkGenerationRef = useRef(deepLinkGeneration)
+    currentBadgeCampaignsKeyRef.current = urlBadgeCampaigns.join('\u0000')
 
-    const recoveryReason =
-        initializationError ??
-        (!isLoading &&
-        sessionChecked &&
-        !step &&
-        !existingSessionUsername &&
-        !showDeviceNotSupportedModal &&
-        !showBrowserNotSupportedModal
-            ? 'missing_step'
-            : null)
+    useEffect(() => subscribeToDeepLinkGeneration(() => setDeepLinkGeneration(getDeepLinkGeneration())), [])
 
     useEffect(() => {
-        if (recoveryReason) {
-            Sentry.captureMessage('Setup recovery required', {
-                level: 'warning',
-                tags: { reason: recoveryReason },
-            })
+        isSetupMountedRef.current = true
+        return () => {
+            isSetupMountedRef.current = false
         }
+    }, [])
+
+    const recoveryReason = isLeavingForHome
+        ? null
+        : (initializationError ??
+          (!isLoading &&
+          sessionChecked &&
+          !step &&
+          !existingSessionUsername &&
+          !showDeviceNotSupportedModal &&
+          !showBrowserNotSupportedModal
+              ? 'missing_step'
+              : null))
+
+    useEffect(() => {
+        if (!recoveryReason) return
+        if (recoveryReason === 'missing_step') {
+            Sentry.addBreadcrumb({
+                category: 'setup.recovery',
+                level: 'info',
+                message: 'Setup recovery required',
+                data: { reason: recoveryReason },
+            })
+            return
+        }
+        Sentry.captureMessage('Setup initialization failed', {
+            level: 'error',
+            tags: { reason: recoveryReason },
+        })
     }, [recoveryReason])
 
     useEffect(() => {
-        if ((!isLoading && sessionChecked) || initializationError) return
+        if ((!isLoading && sessionChecked) || initializationError || isLeavingForHome) return
         const timeout = setTimeout(() => {
             initializationExpired.current = true
             setInitializationError('initialization_timeout')
         }, 15000)
         return () => clearTimeout(timeout)
-    }, [isLoading, sessionChecked, initializationError])
+    }, [isLoading, sessionChecked, initializationError, isLeavingForHome])
 
     // only count steps that actually render: not while the entry step is
     // being determined, and not behind the existing-session interstitial
@@ -134,13 +200,30 @@ function SetupPageContent() {
      * earlier signup leaves durable credentials (jwt cookie in the native jar,
      * web-authn-key cookie), and running signup on top of them silently no-ops
      * — the passkey step would skip and the freshly chosen username would be
-     * discarded. Check once, at entry only: `sessionChecked` stays true for the
-     * rest of the flow, so the user becoming authenticated mid-signup (after
-     * registration) never re-triggers the prompt.
+     * discarded. Check once, at entry: `sessionChecked` stays true for the rest
+     * of the flow, while newer accepted native /setup generations are handled
+     * separately so repeated invites cannot strand the loader.
      */
     useEffect(() => {
-        if (sessionChecked || isFetchingUser) return
-        setSessionChecked(true)
+        if (isFetchingUser) return
+        const isInitialSessionCheck = !sessionChecked
+        const isNewSetupDeepLink =
+            !isInitialSessionCheck &&
+            deepLinkGeneration !== lastHandledDeepLinkGenerationRef.current &&
+            setupTargetMatchesSearchParams(getDeepLinkTarget(), searchParamsString)
+        if (!isInitialSessionCheck && !isNewSetupDeepLink) return
+        if (isInitialSessionCheck) setSessionChecked(true)
+        lastHandledDeepLinkGenerationRef.current = deepLinkGeneration
+
+        // Native /invite links are rewritten to /setup because the invite page is
+        // not part of the static export. Queue the campaign before the completed
+        // session redirect can discard the query string, and settle it below for
+        // users who are already authenticated.
+        const pendingBadgeCampaigns =
+            urlBadgeCampaigns.length > 0
+                ? queuePendingBadgeCampaigns(urlBadgeCampaigns, 30)
+                : getPendingBadgeCampaigns()
+
         if (user?.user?.username) {
             /*
              * A COMPLETED session (hasAppAccess) that lands back on /setup — e.g. a
@@ -149,7 +232,68 @@ function SetupPageContent() {
              * written for (durable credentials, setup never completed).
              */
             if (user.user.hasAppAccess) {
+                const nativeClaimDeepLinkGeneration = getDeepLinkGeneration()
+                const nativeClaimCampaignsKey = pendingBadgeCampaigns.join('\u0000')
+                const shouldSettleNativeBadgeCampaigns =
+                    isCapacitor() &&
+                    pendingBadgeCampaigns.length > 0 &&
+                    (nativeClaimCampaignsKeyRef.current !== nativeClaimCampaignsKey ||
+                        nativeClaimGenerationRef.current !== nativeClaimDeepLinkGeneration)
+                if (shouldSettleNativeBadgeCampaigns) {
+                    const nativeClaimRunId = nativeClaimRunIdRef.current + 1
+                    nativeClaimRunIdRef.current = nativeClaimRunId
+                    nativeClaimCampaignsKeyRef.current = nativeClaimCampaignsKey
+                    nativeClaimGenerationRef.current = nativeClaimDeepLinkGeneration
+                    const isCurrentNativeClaim = () =>
+                        isSetupMountedRef.current &&
+                        nativeClaimRunIdRef.current === nativeClaimRunId &&
+                        getDeepLinkGeneration() === nativeClaimDeepLinkGeneration &&
+                        currentBadgeCampaignsKeyRef.current === urlBadgeCampaigns.join('\u0000')
+                    setIsSettlingNativeBadgeCampaigns(true)
+                    void claimAndSettlePendingBadgeCampaigns(pendingBadgeCampaigns)
+                        .then(async (batch) => {
+                            if (!isCurrentNativeClaim()) return
+
+                            const hasConfirmedClaim = batch.claims.some(
+                                ({ outcome }) => outcome === 'awarded' || outcome === 'already_owned'
+                            )
+                            if (hasConfirmedClaim) {
+                                try {
+                                    await fetchUser()
+                                    if (!isCurrentNativeClaim()) return
+                                } catch (error) {
+                                    Sentry.captureException(error, {
+                                        tags: { error_type: 'native_campaign_profile_refresh_failed' },
+                                    })
+                                }
+                            }
+                        })
+                        .catch((error) => {
+                            if (!isCurrentNativeClaim()) return
+                            Sentry.captureException(error, { tags: { error_type: 'native_campaign_claim_failed' } })
+                        })
+                        .finally(() => {
+                            if (isCurrentNativeClaim()) {
+                                setIsSettlingNativeBadgeCampaigns(false)
+                                router.replace('/home')
+                            } else if (isSetupMountedRef.current && nativeClaimRunIdRef.current === nativeClaimRunId) {
+                                // A newer native link may keep this setup instance
+                                // mounted while Next transitions to its new URL.
+                                // Release the old loader until the latest URL's
+                                // effect starts its replacement settlement.
+                                setIsSettlingNativeBadgeCampaigns(false)
+                            }
+                        })
+                    return
+                }
+                if (isNewSetupDeepLink) {
+                    setIsSettlingNativeBadgeCampaigns(false)
+                    router.replace('/home')
+                    return
+                }
+                if (!isInitialSessionCheck) return
                 posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED, { auto: true })
+                setIsLeavingForHome(true)
                 router.replace('/home')
                 return
             }
@@ -158,7 +302,16 @@ function SetupPageContent() {
                 has_app_access: !!user.user.hasAppAccess,
             })
         }
-    }, [sessionChecked, isFetchingUser, user, router])
+    }, [
+        sessionChecked,
+        isFetchingUser,
+        user,
+        router,
+        fetchUser,
+        urlBadgeCampaigns,
+        deepLinkGeneration,
+        searchParamsString,
+    ])
 
     const handleContinueSession = () => {
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED)
@@ -371,7 +524,7 @@ function SetupPageContent() {
         )
     }
 
-    if (isLoading || !sessionChecked)
+    if (isLoading || !sessionChecked || isLeavingForHome || isSettlingNativeBadgeCampaigns)
         return (
             <div className="flex h-dvh w-full flex-col items-center justify-center">
                 <Loading variant="mascot" />

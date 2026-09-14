@@ -11,6 +11,13 @@ export interface CardInfoResponse {
     eligibilityReason?: string
 }
 
+export class CardAuthenticationRequiredError extends Error {
+    constructor() {
+        super('Authentication required')
+        this.name = 'CardAuthenticationRequiredError'
+    }
+}
+
 /**
  * Fail fast — loud and local — instead of an opaque 401 from an
  * unauthenticated request. apiFetch itself awaits authReady() and attaches
@@ -27,7 +34,7 @@ export interface CardInfoResponse {
 async function assertAuthenticated(): Promise<void> {
     if (isDemoMode() || isCapacitor()) return
     await authReady()
-    if (!getAuthToken()) throw new Error('Authentication required')
+    if (!getAuthToken()) throw new CardAuthenticationRequiredError()
 }
 
 export const cardApi = {

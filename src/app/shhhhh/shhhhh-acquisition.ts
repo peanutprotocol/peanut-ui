@@ -1,10 +1,10 @@
-import { getRedirectUrl, saveToLocalStorage } from '@/utils/general.utils'
+import { getRedirectUrl, setRedirectUrl } from '@/utils/general.utils'
 
 const PENDING_SHHHHH_REDIRECT = '/home?badge_campaign_continuation=shhhhh'
 
 /** Preserve campaign attribution through signup and return to the public card flow. */
 export function queueShhhhhCampaignContinuation(): void {
-    saveToLocalStorage('redirect', '/card')
+    setRedirectUrl('/card')
 }
 
 export function shhhhhCampaignSignupRoute(): string {
@@ -15,6 +15,6 @@ export function shhhhhCampaignSignupRoute(): string {
 export function settleShhhhhCampaignContinuation(): '/card' | undefined {
     if (getRedirectUrl() === '/card') return '/card'
     if (getRedirectUrl() !== PENDING_SHHHHH_REDIRECT) return undefined
-    saveToLocalStorage('redirect', '/card')
+    setRedirectUrl('/card')
     return '/card'
 }

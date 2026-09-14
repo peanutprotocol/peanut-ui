@@ -62,7 +62,7 @@
     "navigation": {
         "home": "Inicio",
         "send": "Enviar",
-        "request": "Recibir",
+        "request": "Solicitar",
         "add": "Agregar",
         "withdraw": "Retirar",
         "history": "Historial",
@@ -300,7 +300,7 @@
             "unlockBadge": "Desbloquear",
             "yourBadges": "Tus insignias",
             "points": "Puntos",
-            "personalDetails": "Datos personales",
+            "personalDetails": "Editar perfil",
             "unlockedRegions": "Canales de pago",
             "paymentLimits": "Límites de pago",
             "showMyFullName": "Mostrar mi nombre completo",
@@ -318,15 +318,23 @@
                 "name": "Nombre",
                 "surname": "Apellido",
                 "bio": "Bio",
-                "email": "Correo electrónico",
+                "email": "Correo para notificaciones",
                 "phoneNumber": "Número de teléfono",
                 "website": "Sitio web"
             },
             "soonBadge": "¡Pronto!",
             "saveChanges": "Guardar cambios",
             "errors": {
-                "nameRequired": "Por favor ingresa tu nombre."
-            }
+                "nameRequired": "Por favor ingresa tu nombre.",
+                "invalidEmail": "Ingresa una dirección de correo válida.",
+                "emailInUse": "Este correo ya está asociado a otra cuenta.",
+                "invalidCode": "Ingresa el código de 6 dígitos que recibiste por correo."
+            },
+            "verifiedNameHelp": "Tu nombre proviene de la verificación de identidad y no se puede editar aquí. Contacta a soporte si necesitas corregirlo.",
+            "emailCode": "Código de verificación",
+            "emailCodeHelp": "Enviamos un código a {email}. Tu correo actual seguirá activo hasta que verifiques el nuevo.",
+            "sendCode": "Enviar código",
+            "requestNewCode": "Solicitar otro código"
         },
         "regions": {
             "title": "Regiones y verificación",
@@ -406,8 +414,7 @@
                 "cardRestrictionNote": "Atención: la tarjeta no está disponible para residentes de este país.",
                 "bankingRestrictionNote": "Atención: las transferencias bancarias no están disponibles para residentes de este país.",
                 "save": "Guardar",
-                "saveAndReverify": "Enviar documentos",
-                "cooldownNote": "Cambiaste tu residencia hace poco. Puedes cambiarla de nuevo después del {until}."
+                "saveAndReverify": "Enviar documentos"
             },
             "degraded": {
                 "title": "La verificación está temporalmente caída",
@@ -567,7 +574,7 @@
             "beta": {
                 "heading": "Actualizaciones beta",
                 "description": "Recibí compilaciones del canal {channel} antes de que lleguen a todos. Solo para pruebas internas.",
-                "channelLabel": "Canal de actualizaciones",
+                "channelLabel": "Canal de actualizaciones actual",
                 "defaultChannel": "Predeterminado",
                 "bundleLabel": "Paquete en uso",
                 "deviceLabel": "ID del dispositivo",
@@ -581,7 +588,6 @@
                 "leftOverride": "Este dispositivo fue puesto en beta desde el panel de Capgo, así que la app no puede sacarlo. Pedile a un administrador que quite la asignación de canal del dispositivo.",
                 "leftUnconfirmed": "No se pudo contactar a Capgo para confirmar el cambio, así que este dispositivo sigue en la compilación beta. Probá de nuevo cuando tengas conexión.",
                 "closed": "El canal {channel} todavía no acepta testers. Pedile a un administrador que habilite la autoasignación en Capgo.",
-                "notEligible": "Las actualizaciones beta todavía no están habilitadas para esta cuenta. Toca cinco veces el número de versión para reintentar.",
                 "failed": "No se pudo cambiar el canal de actualizaciones.",
                 "revealed": "El interruptor de actualizaciones beta ya está visible abajo.",
                 "appOnly": "Las actualizaciones beta solo están disponibles en la app de Peanut."
@@ -2982,6 +2988,12 @@
                 "description": "Este paso de verificación ya no es necesario. Tu estado actual está en tu perfil.",
                 "cta": "Ver mi estado"
             }
+        },
+        "correction": {
+            "title": "Corrige los datos de verificación bancaria",
+            "taxId": "Tu identidad está verificada, pero no pudimos validar tu identificación fiscal para este país. Revísala y corrígela para habilitar las transferencias bancarias.",
+            "details": "Hay información que debes corregir para habilitar las transferencias bancarias. Tu verificación de identidad está guardada.",
+            "correct": "Corregir datos"
         }
     },
     "identity": {
@@ -3678,6 +3690,88 @@
         "rollDie": "Tirar el dado",
         "initialName": "Solo {letter}",
         "initialLine": "Tu inicial",
+        "badge": {
+            "ARBIVERSE_DEVCONNECT_BA_2025": {
+                "crystal": "Cristal de Arbiverse",
+                "hex": "Hexágono de Arbiverse",
+                "cheer": "Celebración de Arbiverse"
+            },
+            "BETA_TESTER": {
+                "flask": "Matraz de beta",
+                "bubble": "Burbuja de beta",
+                "wink": "Guiño beta"
+            },
+            "BUG_WHISPERER": {
+                "beetle": "Escarabajo de bugs",
+                "shell": "Concha de bugs",
+                "peek": "Mirada de bugs"
+            },
+            "CARD_ALPHA": {
+                "card": "Carta alfa",
+                "swipe": "Deslizada alfa",
+                "tape": "Cinta alfa"
+            },
+            "CARD_FIRST_SWIPE": {
+                "card": "Carta del primer swipe",
+                "chip": "Chip del primer swipe",
+                "wink": "Guiño del primer swipe"
+            },
+            "CARD_SPENT_1K": {
+                "stack": "Pila del gastador",
+                "note": "Nota del gastador",
+                "cheer": "Celebración del gastador"
+            },
+            "DEVCONNECT_BA_2025": {
+                "sun": "Sol de Devconnect",
+                "rise": "Amanecer de Devconnect",
+                "wink": "Guiño de Devconnect"
+            },
+            "ETHFLORIPA_HUB": {
+                "eth": "ETH de EthFloripa",
+                "island": "Isla de EthFloripa",
+                "palm": "Palmera de EthFloripa"
+            },
+            "EVENT_ALUMNI": {
+                "cap": "Gorra de alumni",
+                "board": "Pizarra de alumni",
+                "wink": "Guiño de alumni"
+            },
+            "IRL_NOMADS": {
+                "pack": "Mochila nómada",
+                "roll": "Rollo nómada",
+                "pocket": "Bolsillo nómada"
+            },
+            "NAIJA": {
+                "flag": "Bandera de Naija",
+                "wave": "Ola de Naija",
+                "wink": "Guiño de Naija"
+            },
+            "NITA": {
+                "letter": "Carta de NITA",
+                "sparkle": "Destello de NITA",
+                "wink": "Guiño de NITA"
+            },
+            "OFFRAMP_USER": {
+                "bolt": "Rayo de offramp",
+                "spark": "Destello de offramp",
+                "wink": "Guiño de offramp"
+            },
+            "OG_2025_10_12": {
+                "coin": "Moneda OG",
+                "link": "Enlace OG",
+                "shades": "Gafas OG"
+            },
+            "SHHHHH": {
+                "lips": "Labios secretos",
+                "shush": "Shhh secreto",
+                "wink": "Guiño secreto"
+            },
+            "WAITLIST_SKIP": {
+                "key": "Llave de la lista",
+                "keyhole": "Cerradura de la lista",
+                "wink": "Guiño de la lista"
+            }
+        },
         "cast": {
             "apple": {
                 "name": "Cereza ganadora",

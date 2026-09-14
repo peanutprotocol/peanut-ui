@@ -15196,6 +15196,14 @@
                         "schema": {
                             "type": "string"
                         }
+                    },
+                    {
+                        "in": "header",
+                        "name": "x-step-up-token",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 ],
                 "requestBody": {
@@ -15295,6 +15303,10 @@
                                     },
                                     "username": {
                                         "type": "string"
+                                    },
+                                    "emailVerificationCode": {
+                                        "type": "string",
+                                        "pattern": "^[0-9]{6}$"
                                     }
                                 },
                                 "required": [
@@ -15357,37 +15369,6 @@
                         },
                         "description": "Default Response"
                     },
-                    "429": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "description": "The declared residence changed too recently. Only the residence keys were refused \u2014 every other field in the request was applied. Retry the residence change at `retryAt`; `/users/me` reports the same instant as `residence.nextChangeAllowedAt`.",
-                                    "properties": {
-                                        "code": {
-                                            "enum": [
-                                                "RESIDENCE_CHANGE_COOLDOWN"
-                                            ],
-                                            "type": "string"
-                                        },
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "retryAt": {
-                                            "format": "date-time",
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error",
-                                        "code",
-                                        "retryAt"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "The declared residence changed too recently. Only the residence keys were refused \u2014 every other field in the request was applied. Retry the residence change at `retryAt`; `/users/me` reports the same instant as `residence.nextChangeAllowedAt`."
-                    },
                     "500": {
                         "content": {
                             "application/json": {
@@ -15403,6 +15384,31 @@
                                     "required": [
                                         "success",
                                         "message"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "enum": [
+                                                "STEP_UP_REQUIRED"
+                                            ],
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error",
+                                        "code"
                                     ],
                                     "type": "object"
                                 }
@@ -17464,11 +17470,15 @@
                                                 "card"
                                             ],
                                             "type": "object"
+                                        },
+                                        "profileNameLocked": {
+                                            "type": "boolean"
                                         }
                                     },
                                     "required": [
                                         "capabilities",
                                         "identityVerification",
+                                        "profileNameLocked",
                                         "residenceRestrictions",
                                         "residence"
                                     ],
@@ -18122,6 +18132,172 @@
                 ],
                 "responses": {
                     "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/users/email-change": {
+            "post": {
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "header",
+                        "name": "api-key",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "header",
+                        "name": "x-step-up-token",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "email": {
+                                        "maxLength": 320,
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "email"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "success"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "enum": [
+                                                "STEP_UP_REQUIRED"
+                                            ],
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error",
+                                        "code"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "429": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "503": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
                         "description": "Default Response"
                     }
                 }

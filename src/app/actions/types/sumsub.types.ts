@@ -11,6 +11,8 @@ export interface InitiateSumsubKycResponse {
     token: string | null // null when user is already APPROVED or bridge-direct
     applicantId: string | null
     status: SumsubKycStatus
+    session?: VerificationActionSession
+    workflow?: { regionIntent?: KYCRegionIntent; isMultiLevel: boolean }
     actionType?: KycActionType // present for cross-region responses
 }
 
@@ -36,3 +38,20 @@ export type SumsubKycStatus =
  * pattern keep sending it. Remove once every call site sends one of the four.
  */
 export type KYCRegionIntent = 'LATAM' | 'ROW' | 'EU' | 'NA' | 'STANDARD'
+
+export interface VerificationActionSession {
+    id: string
+    generation: number
+    state:
+        | 'COLLECTING'
+        | 'REVIEW_PENDING'
+        | 'SUBMISSION_PENDING'
+        | 'CORRECTION_REQUIRED'
+        | 'PROVIDER_PENDING'
+        | 'READY'
+        | 'BLOCKED'
+    reasonCode: string | null
+    targetCountry: string
+    externalActionId: string
+    isMultiLevel: boolean
+}

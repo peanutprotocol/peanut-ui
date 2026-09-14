@@ -24,8 +24,6 @@ interface ResidenceChangeDrawerProps {
     declaredSecond?: string | null
     /** KYC-verified residence, when one exists */
     verified: string | null
-    /** when the escalating change cooldown lifts (ISO); null = change allowed now */
-    nextChangeAllowedAt?: string | null
     /** refetch the user so the new declared residence lands everywhere */
     onSaved: () => Promise<unknown> | void
     /** start identity re-verification at the current level (existing restart primitive) */
@@ -49,7 +47,6 @@ const ResidenceChangeDrawer = ({
     declared,
     declaredSecond,
     verified,
-    nextChangeAllowedAt,
     onSaved,
     onReverify,
 }: ResidenceChangeDrawerProps) => {
@@ -74,21 +71,6 @@ const ResidenceChangeDrawer = ({
 
     const selectedRestrictions = deriveResidenceRestrictionsFrom(restrictionSets, selected || null)
     const differsFromVerified = !!verified && !!selected && selected !== verified
-
-    // Escalating change cooldown (server-enforced; this is the honest preface).
-    // Gate only ACTUAL changes: re-saving the current country stays allowed.
-    const cooldownUntilMs = nextChangeAllowedAt ? Date.parse(nextChangeAllowedAt) : NaN
-    const cooldownActive = Number.isFinite(cooldownUntilMs) && cooldownUntilMs > Date.now()
-    const isActualChange = !!selected && !!declared && selected !== declared
-    const changeBlocked = cooldownActive && isActualChange
-    const cooldownDate = cooldownActive
-        ? new Date(cooldownUntilMs).toLocaleString(locale, {
-              month: 'short',
-              day: 'numeric',
-              hour: 'numeric',
-              minute: '2-digit',
-          })
-        : null
 
     const save = async (reverifyAfter: boolean) => {
         if (!userId || !selected || isSaving) return false
@@ -163,11 +145,6 @@ const ResidenceChangeDrawer = ({
                             value={selected || undefined}
                             onValueChange={setSelected}
                         />
-                        {cooldownActive && cooldownDate && (
-                            <p className="text-body-xs text-foreground-secondary">
-                                {t('cooldownNote', { until: cooldownDate })}
-                            </p>
-                        )}
                         {differsFromVerified && (
                             <p className="text-body-xs text-foreground-secondary">{t('verifiedMismatchNote')}</p>
                         )}
@@ -185,7 +162,7 @@ const ResidenceChangeDrawer = ({
                             variant="purple"
                             shadowSize="4"
                             className="mt-1 w-full justify-center"
-                            disabled={isSaving || !selected || !userId || changeBlocked}
+                            disabled={isSaving || !selected || !userId}
                             onClick={() => void save(false)}
                         >
                             {isSaving ? tCommon('loading') : t('save')}
@@ -194,7 +171,7 @@ const ResidenceChangeDrawer = ({
                             <Button
                                 variant="stroke"
                                 className="w-full justify-center"
-                                disabled={isSaving || changeBlocked}
+                                disabled={isSaving}
                                 onClick={() => void save(true)}
                             >
                                 {t('saveAndReverify')}
