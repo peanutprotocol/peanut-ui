@@ -103,7 +103,7 @@ jest.mock('@/context/ModalsContext', () => ({
     }),
 }))
 jest.mock('@/hooks/useCardSurfaceAccess', () => ({
-    useCardSurfaceAccess: () => ({ showCardSurface: mockHasCardAccess }),
+    useCardSurfaceAccess: () => ({ showCardSurface: mockHasCardAccess, canSpendPathViaCard: mockHasCardAccess }),
 }))
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush }),

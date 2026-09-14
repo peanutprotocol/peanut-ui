@@ -4,8 +4,7 @@ import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
-import { useQuery } from '@tanstack/react-query'
-import { cardApi, type CardInfoResponse } from '@/services/card'
+import { useCardInfo } from '@/hooks/useCardInfo'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -55,14 +54,11 @@ export function useActivationStatus(): ActivationStatus {
     const { balance, isFetchingBalance } = useWallet()
     const { isKycApproved } = useCapabilities()
     const { overview } = useRainCardOverview()
-    const userId = user?.user?.userId
 
-    const { data: cardInfo } = useQuery<CardInfoResponse>({
-        queryKey: ['card-info', userId],
-        queryFn: () => cardApi.getInfo(),
-        enabled: !!userId,
-        staleTime: 30_000,
-    })
+    // Share the canonical user-scoped card-info query with home and card —
+    // a second query on the same key with different options makes refetch
+    // timing harder to reason about (this was consolidated once already).
+    const { cardInfo } = useCardInfo()
 
     // Read the dismissal flag after mount to avoid hydration mismatch.
     const [cardDismissed, setCardDismissed] = useState(false)

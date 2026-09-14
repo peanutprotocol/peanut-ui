@@ -47,11 +47,20 @@ describe('public card surfaces', () => {
         expect(setup({ cardStatuses: ['ACTIVE'], geoProhibited: true, restrictedCard: true })).toMatchObject({
             showCardSurface: true,
             hasIssuedCard: true,
+            // an issued card can spend regardless of residence
+            canSpendPathViaCard: true,
         })
         expect(setup({ hasApplication: true, geoProhibited: true, restrictedCard: true })).toMatchObject({
             showCardSurface: true,
             hasCardRelationship: true,
+            // the surface stays (watch the application), but no spend promise —
+            // a prohibited residence's pending application cannot issue
+            canSpendPathViaCard: false,
         })
+    })
+    it('offers the card spend path to anyone who can still obtain a card', () => {
+        expect(setup().canSpendPathViaCard).toBe(true)
+        expect(setup({ geoProhibited: true }).canSpendPathViaCard).toBe(false)
     })
     it('does not treat a canceled card as an active card', () => {
         expect(setup({ cardStatuses: ['CANCELED'], restrictedCard: true })).toMatchObject({

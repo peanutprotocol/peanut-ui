@@ -639,18 +639,30 @@ export const rainApi = {
         if (opts.termsAccepted === true && opts.acceptedDocuments?.length) {
             body.acceptedDocuments = opts.acceptedDocuments
         }
-        return rainRequest<ApplyForCardResponse>({
-            method: 'POST',
-            path: '/rain/cards',
-            body,
-            // The first-time-application path runs 7 sequential Sumsub calls, a
-            // deliberate 2.5s readiness sleep, the Rain createApplication call,
-            // and an optional inline issueCard — routinely 7-13s. The default
-            // 10s fetch timeout clips that tail, aborting client-side while the
-            // backend completes (user sees a false failure on a card that was
-            // actually submitted). Give this one call generous headroom.
-            timeoutMs: 60_000,
-        })
+        try {
+            return await rainRequest<ApplyForCardResponse>({
+                method: 'POST',
+                path: '/rain/cards',
+                body,
+                // The first-time-application path runs 7 sequential Sumsub calls, a
+                // deliberate 2.5s readiness sleep, the Rain createApplication call,
+                // and an optional inline issueCard — routinely 7-13s. The default
+                // 10s fetch timeout clips that tail, aborting client-side while the
+                // backend completes (user sees a false failure on a card that was
+                // actually submitted). Give this one call generous headroom.
+                timeoutMs: 60_000,
+            })
+        } catch (e) {
+            // The backend answers a prohibited residence with HTTP 403 +
+            // code 'geo-blocked'. Normalize it into the union here so every
+            // caller's existing `status === 'geo-blocked'` branch renders the
+            // terminal screen instead of a retryable applyError — mid-funnel
+            // unknown-residence users only learn their block from this call.
+            if (e instanceof ApiError && e.code === 'geo-blocked') {
+                return { status: 'geo-blocked', message: e.message }
+            }
+            throw e
+        }
     },
 
     /**

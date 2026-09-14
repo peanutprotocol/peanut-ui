@@ -541,8 +541,8 @@ export const FIXTURES: Record<string, Fixture> = {
 
     'card-access': {
         route: '/home',
-        about: 'Demo user with card access granted — the activation spend chooser can open.',
-        responses: { 'GET /card': { hasCardAccess: true } },
+        about: 'Card-eligible demo user — the activation spend chooser can open.',
+        responses: { 'GET /card': { isEligible: true, geoProhibited: false } },
     },
 
     'early-user': {

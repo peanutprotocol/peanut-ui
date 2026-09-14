@@ -65,11 +65,14 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // `undefined` while loading collapses to false → scanner behavior (never
     // tease the card to a user we can't confirm has access), which is also why
     // the scanner path must stand on its own QR-rail check below.
-    const { showCardSurface } = useCardSurfaceAccess()
+    // canSpendPathViaCard, not showCardSurface: a prohibited residence with
+    // only a pending application keeps the /card surface to watch its status,
+    // but a spend CTA would promise a card that cannot issue.
+    const { canSpendPathViaCard } = useCardSurfaceAccess()
     // The Home card-prompt kill switch mutes every card arm in this component
     // (outbound copy, chooser, spend-to-activate) while the QR path stands.
     // /card itself stays available — the switch is documented as prompt-only.
-    const canApplyForCard = underMaintenanceConfig.disableCardPromotion ? false : showCardSurface
+    const canApplyForCard = underMaintenanceConfig.disableCardPromotion ? false : canSpendPathViaCard
     // Suppress the "Unlock payments" verify CTA while identity is mid-flight
     // (Sumsub processing / action_required). The user already took the verify
     // action; the identity-verification page surfaces the in-progress modal,
