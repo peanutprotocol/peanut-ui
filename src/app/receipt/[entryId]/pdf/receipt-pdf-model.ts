@@ -1,10 +1,6 @@
 import { EHistoryUserRole } from '@/utils/history.utils'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
-import {
-    isFxBearingFlow,
-    isSendLinkEntry,
-    usesCompletedTimestampLabel,
-} from '@/components/TransactionDetails/transaction-predicates'
+import { isFxBearingFlow, isSendLinkEntry } from '@/components/TransactionDetails/transaction-predicates'
 import {
     bankAccountLabelKey,
     type BankAccountLabelKey,
@@ -30,10 +26,7 @@ export interface ReceiptPdfModel {
     site: string
     amountDisplay: string
     convertedAmountDisplay?: string
-    statusLabel?: string
     rows: ReceiptPdfRow[]
-    referenceLabel: string
-    reference: string
     fileName: string
 }
 
@@ -43,12 +36,12 @@ const BANK_ACCOUNT_SCHEME_LABELS: Partial<Record<BankAccountLabelKey, string>> =
     clabe: 'CLABE',
 }
 
-const EM_DASH = '—'
+const DATE_FALLBACK = '-'
 
 function formatDate(source: string | Date | undefined | null, locale: string): string {
-    if (!source) return EM_DASH
+    if (!source) return DATE_FALLBACK
     const date = new Date(source)
-    if (isNaN(date.getTime())) return EM_DASH
+    if (isNaN(date.getTime())) return DATE_FALLBACK
     // Same shape as useReceiptDateFormatter ("March 30, 2025 - 14:05").
     const day = new Intl.DateTimeFormat(locale, {
         year: 'numeric',
@@ -121,6 +114,18 @@ export function buildReceiptPdfModel(
     const allowCancelledSenderFields =
         !isCancelled || (isSendLinkEntry(transaction) && role === EHistoryUserRole.SENDER)
 
+    // One canonical receipt date is always the first field. Prefer the final
+    // lifecycle timestamp, then fall back to the creation/display date for
+    // transactions that are still pending or have older history shapes.
+    const receiptDate = isCancelled
+        ? transaction.cancelledDate || transaction.createdAt || transaction.date
+        : status === 'refunded'
+          ? transaction.date || transaction.completedAt || transaction.createdAt
+          : status === 'completed'
+            ? transaction.completedAt || transaction.claimedAt || transaction.date || transaction.createdAt
+            : transaction.createdAt || transaction.date
+    push(t('transaction.officialReceipt.pdf.date'), formatDate(receiptDate, locale))
+
     const cardType = drawer?.transactionCardType
     push(t('transaction.officialReceipt.pdf.type'), cardType ? t(`transaction.type.${cardType}`) : undefined)
 
@@ -138,32 +143,6 @@ export function buildReceiptPdfModel(
         role === EHistoryUserRole.RECIPIENT ? t('transaction.officialReceipt.pdf.from') : t('transaction.rows.to'),
         counterparty
     )
-
-    // Lifecycle timestamps — same visibility rules as the receipt's date rows.
-    const willShowCompleted = status === 'completed' && !!transaction.completedAt
-    if (transaction.createdAt && !willShowCompleted) {
-        push(t('transaction.rows.created'), formatDate(transaction.createdAt, locale))
-    }
-    if (isCancelled) {
-        push(
-            t('transaction.rows.cancelled'),
-            formatDate(transaction.cancelledDate || transaction.createdAt || transaction.date, locale)
-        )
-    }
-    if (status === 'completed' && transaction.claimedAt) {
-        push(t('transaction.rows.claimed'), formatDate(transaction.claimedAt, locale))
-    }
-    if (willShowCompleted) {
-        const completedLabel = usesCompletedTimestampLabel(transaction)
-            ? t('transaction.rows.completed')
-            : role === EHistoryUserRole.SENDER
-              ? t('transaction.rows.sent')
-              : t('transaction.rows.received')
-        push(completedLabel, formatDate(transaction.completedAt, locale))
-    }
-    if (status === 'refunded') {
-        push(t('transaction.rows.refunded'), formatDate(transaction.date, locale))
-    }
 
     if (
         isFxBearingFlow(transaction) &&
@@ -224,10 +203,7 @@ export function buildReceiptPdfModel(
         site: RECEIPT_COMPANY.site,
         amountDisplay: `$${formatCurrency(safeAmount.toString())}`,
         convertedAmountDisplay: convertedAmount(transaction),
-        statusLabel,
         rows,
-        referenceLabel: t('transaction.officialReceipt.reference'),
-        reference: transaction.id,
         fileName: `peanut-receipt-${safeFileNamePart(transaction.id)}.pdf`,
     }
 }

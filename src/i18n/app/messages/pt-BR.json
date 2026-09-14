@@ -2043,7 +2043,8 @@
             "reference": "Referência do recibo",
             "issuedOn": "Emitido em",
             "pdf": {
-                "title": "Comprovante oficial da transação",
+                "title": "Comprovante da transação",
+                "date": "Data",
                 "type": "Tipo",
                 "status": "Status",
                 "from": "De"

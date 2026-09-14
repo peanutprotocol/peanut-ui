@@ -2043,7 +2043,8 @@
             "reference": "Receipt reference",
             "issuedOn": "Issued on",
             "pdf": {
-                "title": "Official Transaction Receipt",
+                "title": "Transaction Receipt",
+                "date": "Date",
                 "type": "Type",
                 "status": "Status",
                 "from": "From"

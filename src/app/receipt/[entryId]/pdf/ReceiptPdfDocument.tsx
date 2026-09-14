@@ -14,16 +14,16 @@ Font.register({
         { src: path.join(fontDir, 'montserrat-semibold.ttf'), fontWeight: 600 },
     ],
 })
-// Prose must never hyphenate, and an identifier must never gain a hyphen: a
-// 66-char tx hash is wider than the value column, so with no break opportunity
-// it overflows the row — but breaking it via the hyphenation callback makes
-// react-pdf render a hyphen at the break, which corrupts a hash someone reads
-// off the page. So keep hyphenation off entirely and give identifier-like
-// values zero-width break opportunities instead (see `breakableIdentifier`).
+// Prose must never hyphenate, and an identifier must never gain a hyphen.
+// Keep standard EVM addresses and hashes intact in the widened value column;
+// only longer identifiers receive explicit, character-preserving line breaks
+// (see `breakableIdentifier`).
 Font.registerHyphenationCallback((word) => [word])
 
 const IDENTIFIER_MIN_LENGTH = 24
-const IDENTIFIER_LINE_LENGTH = 40
+// The value column is intentionally wide enough for a full EVM address and a
+// 32-byte transaction hash. Only identifiers longer than that need wrapping.
+const IDENTIFIER_LINE_LENGTH = 66
 
 const isIdentifierLike = (value: string) =>
     value.length >= IDENTIFIER_MIN_LENGTH && /^[0-9a-zA-Z:_-]+$/.test(value) && /[0-9]/.test(value)
@@ -62,12 +62,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: 56,
     },
     header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+        flexDirection: 'column',
         alignItems: 'flex-start',
         marginBottom: 28,
     },
-    issuer: { textAlign: 'right', fontSize: 8, color: grey },
+    issuer: { textAlign: 'left', fontSize: 8, color: grey, marginTop: 7 },
     issuerName: { fontWeight: 600 },
     title: { fontSize: 14, fontWeight: 600, marginBottom: 14 },
     amountCard: {
@@ -80,7 +79,6 @@ const styles = StyleSheet.create({
     },
     amount: { fontSize: 20, fontWeight: 600 },
     convertedAmount: { fontSize: 9, color: grey, marginTop: 4 },
-    status: { fontSize: 9, color: grey, marginTop: 5 },
     rowsCard: {
         borderWidth: 1.5,
         borderColor: border,
@@ -91,15 +89,15 @@ const styles = StyleSheet.create({
     row: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        gap: 24,
+        gap: 16,
         paddingVertical: 8,
         borderBottomWidth: 1,
         borderBottomColor: '#D5D5D5',
         borderBottomStyle: 'dashed',
     },
     lastRow: { borderBottomWidth: 0 },
-    rowLabel: { color: grey },
-    rowValue: { maxWidth: 330, textAlign: 'right', fontSize: 8.5, fontWeight: 600 },
+    rowLabel: { color: grey, maxWidth: 88 },
+    rowValue: { width: 370, textAlign: 'right', fontSize: 8.5, fontWeight: 600 },
     footer: {
         position: 'absolute',
         left: 56,
@@ -107,12 +105,8 @@ const styles = StyleSheet.create({
         bottom: 40,
     },
     footerRule: { borderTopWidth: 1, borderTopColor: border, marginBottom: 10 },
-    footerRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 24, marginBottom: 4 },
-    footerLabel: { fontSize: 8, color: grey },
-    footerValue: { fontSize: 8, textAlign: 'right', maxWidth: 340 },
-    legalName: { fontSize: 8, fontWeight: 600, marginTop: 7 },
+    legalName: { fontSize: 8, fontWeight: 600 },
     legalAddress: { fontSize: 7, color: grey, marginTop: 2 },
-    site: { fontSize: 7, color: grey, marginTop: 3 },
 })
 
 export function ReceiptPdfDocument({ model }: { model: ReceiptPdfModel }) {
@@ -134,7 +128,6 @@ export function ReceiptPdfDocument({ model }: { model: ReceiptPdfModel }) {
                     {model.convertedAmountDisplay && (
                         <Text style={styles.convertedAmount}>{model.convertedAmountDisplay}</Text>
                     )}
-                    {model.statusLabel && <Text style={styles.status}>{model.statusLabel}</Text>}
                 </View>
 
                 <View style={styles.rowsCard}>
@@ -151,13 +144,8 @@ export function ReceiptPdfDocument({ model }: { model: ReceiptPdfModel }) {
 
                 <View style={styles.footer} fixed>
                     <View style={styles.footerRule} />
-                    <View style={styles.footerRow}>
-                        <Text style={styles.footerLabel}>{model.referenceLabel}</Text>
-                        <Text style={styles.footerValue}>{breakableIdentifier(model.reference)}</Text>
-                    </View>
                     <Text style={styles.legalName}>{model.companyName}</Text>
                     <Text style={styles.legalAddress}>{model.companyAddressLines.join(' · ')}</Text>
-                    <Text style={styles.site}>{`https://${model.site}`}</Text>
                 </View>
             </Page>
         </Document>

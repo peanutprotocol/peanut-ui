@@ -197,12 +197,14 @@ describe('GET /receipt/[entryId]/pdf', () => {
         expect(captureException).toHaveBeenCalledTimes(1)
     })
 
-    test('honors a valid ?locale= param', async () => {
+    test.each(['en', 'es-419', 'es-AR', 'pt-BR'])('honors the supported ?locale=%s param', async (locale) => {
         mockGetHistoryEntry.mockResolvedValue({ status: 'COMPLETED' })
-        const response = await get('entry-6', 'kind=OFFRAMP&locale=es-419', { cookieLocale: 'pt-BR' })
+        const response = await get(`entry-locale-${locale}`, `kind=OFFRAMP&locale=${locale}`, {
+            cookieLocale: locale === 'pt-BR' ? 'es-419' : 'pt-BR',
+        })
         expect(response.status).toBe(200)
         // the URL param wins over the cookie
-        expect(mockLoadMessages).toHaveBeenCalledWith('es-419')
+        expect(mockLoadMessages).toHaveBeenCalledWith(locale)
     })
 
     test('unknown ?locale= falls back to the cookie, then the default', async () => {

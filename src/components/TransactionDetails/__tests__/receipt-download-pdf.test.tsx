@@ -9,6 +9,8 @@ import { useReceiptViewModel } from '../useReceiptViewModel'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import type { TransactionDetails } from '../transactionTransformer'
 import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
+import { NextIntlClientProvider } from 'next-intl'
+import en from '@/i18n/app/messages/en.json'
 
 jest.mock('@/assets', () => ({}))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
@@ -44,6 +46,19 @@ describe('DownloadReceiptPdfLink', () => {
         expect(link).toHaveClass('btn', 'btn-stroke')
         fireEvent.click(link)
         expect(mockOpenExternalUrl).not.toHaveBeenCalled()
+    })
+
+    test('uses the current user locale in the PDF URL', () => {
+        render(
+            <NextIntlClientProvider locale="pt-BR" messages={en} timeZone="UTC">
+                <DownloadReceiptPdfLink entryId="entry-localized" kind="OFFRAMP" />
+            </NextIntlClientProvider>
+        )
+
+        expect(screen.getByRole('link', { name: 'Download Receipt (PDF)' })).toHaveAttribute(
+            'href',
+            '/receipt/entry-localized/pdf?kind=OFFRAMP&locale=pt-BR'
+        )
     })
 
     test('capacitor: the click opens the absolute production URL externally', () => {
