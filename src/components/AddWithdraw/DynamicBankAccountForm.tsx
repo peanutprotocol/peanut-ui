@@ -100,6 +100,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const { user } = useAuth()
         const t = useTranslations('withdraw.bankForm')
         const tWithdraw = useTranslations('withdraw')
+        const tCommon = useTranslations('common')
         const [isSubmitting, setIsSubmitting] = useState(false)
         const [submissionError, setSubmissionError] = useState<string | null>(null)
         const { country: countryNameParams } = useParams()
@@ -664,7 +665,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             loading={isSubmitting || isCheckingBICValid || isValidating}
                             disabled={isSubmitting || !isValid || isCheckingBICValid || isValidating}
                         >
-                            {tWithdraw('review')}
+                            {flow === 'withdraw' ? tCommon('continue') : tWithdraw('review')}
                         </Button>
                         {submissionError ? (
                             <Notification priority="error">{submissionError}</Notification>
