@@ -47,7 +47,7 @@ for (const artifact of candidates) {
     const run = api(`actions/runs/${artifact.workflow_run.id}`)
     const sourceIsTrusted =
         run.path === baselineWorkflow &&
-        ['push', 'schedule', 'workflow_dispatch'].includes(run.event) &&
+        ['push', 'workflow_dispatch'].includes(run.event) &&
         run.head_repository?.full_name === repo &&
         run.head_branch === defaultBranch
     if (!sourceIsTrusted || run.status !== 'completed' || run.conclusion !== 'success') continue

@@ -1,14 +1,11 @@
 name: Screen library baseline
 
 on:
-    # Refresh after main updates and once per day. The capture itself is
+    # Refresh after main updates. The capture itself is
     # pinned to the current dev revision so PRs targeting dev compare against
-    # the same integration branch they will merge into, even during quiet
-    # periods.
+    # the same integration branch they will merge into.
     push:
         branches: [main]
-    schedule:
-        - cron: '17 0 * * *'
     # The manual trigger is useful after enabling the workflow or after an
     # artifact-retention gap.
     workflow_dispatch:
