@@ -1,3 +1,5 @@
+'use client'
+
 import { Card } from '@/components/0_Bruddle/Card'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
