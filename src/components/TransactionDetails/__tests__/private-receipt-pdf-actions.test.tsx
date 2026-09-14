@@ -91,4 +91,30 @@ describe('PrivateReceiptPdfActions', () => {
         expect(global.fetch).not.toHaveBeenCalled()
         expect(await screen.findByRole('button', { name: 'Download Receipt (PDF)' })).toBeEnabled()
     })
+
+    test('retries when the initial PDF prefetch fails', async () => {
+        const response = {
+            ok: true,
+            status: 200,
+            blob: jest.fn().mockResolvedValue(new Blob(['%PDF-retry'], { type: 'application/pdf' })),
+            headers: { get: () => 'inline; filename="retried-receipt.pdf"' },
+        }
+        ;(global.fetch as jest.Mock)
+            .mockRejectedValueOnce(new Error('temporary outage'))
+            .mockResolvedValueOnce(response)
+
+        render(
+            <IntlWrapper>
+                <PrivateReceiptPdfActions entryId="entry-retry" kind="DIRECT_TRANSFER" />
+            </IntlWrapper>
+        )
+
+        const download = screen.getByRole('button', { name: 'Download Receipt (PDF)' })
+        await waitFor(() => expect(download).toBeEnabled())
+        fireEvent.click(download)
+
+        await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2))
+        await waitFor(() => expect(mockDownloadBlob).toHaveBeenCalledWith(expect.any(Blob), 'retried-receipt.pdf'))
+        expect(mockToastError).not.toHaveBeenCalled()
+    })
 })

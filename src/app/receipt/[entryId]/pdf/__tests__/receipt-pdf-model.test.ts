@@ -179,6 +179,24 @@ describe('buildReceiptPdfModel — variants', () => {
         expect(row(withKey, 'common.comment')).toBe('transaction.memoTestDeposit')
     })
 
+    test('goal-less request pot renders the collected total, not its zero goal', () => {
+        const model = buildReceiptPdfModel(
+            withOverrides(
+                {
+                    amount: 0,
+                    isRequestPotLink: true,
+                    totalAmountCollected: 47.25,
+                    status: 'closed',
+                },
+                { kind: 'P2P_REQUEST_FULFILL' }
+            ),
+            t,
+            'en'
+        )
+
+        expect(model.amountDisplay).toBe('$47.25')
+    })
+
     test('unparsable dates fall back to an ASCII marker instead of throwing', () => {
         const model = buildReceiptPdfModel(
             withOverrides({ status: 'pending', createdAt: 'not-a-date', completedAt: undefined }),

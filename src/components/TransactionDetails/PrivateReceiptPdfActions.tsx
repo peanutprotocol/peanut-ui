@@ -92,14 +92,26 @@ export function PrivateReceiptPdfActions({
     }, [entryId, pdfPath])
 
     const share = async () => {
-        if (!pdf) return
         setBusy('share')
         try {
-            const file = new File([pdf.blob], pdf.filename, { type: 'application/pdf' })
+            let receipt = pdf
+            if (!receipt) {
+                setError(false)
+                try {
+                    receipt = await fetchReceiptPdf(pdfPath, entryId)
+                    setPdf(receipt)
+                } catch (cause) {
+                    setError(true)
+                    Sentry.captureException(cause, { tags: { feature: 'receipt-pdf', action: 'share-retry' } })
+                    toast.error(t('actions.receiptPdfUnavailable'))
+                    return
+                }
+            }
+            const file = new File([receipt.blob], receipt.filename, { type: 'application/pdf' })
             if (navigator.share && navigator.canShare?.({ files: [file] })) {
                 await navigator.share({ files: [file], title: t('officialReceipt.pdf.title') })
             } else {
-                downloadBlob(pdf.blob, pdf.filename)
+                downloadBlob(receipt.blob, receipt.filename)
                 toast.info(t('actions.pdfDownloadedInstead'))
             }
         } catch (cause) {
@@ -112,14 +124,26 @@ export function PrivateReceiptPdfActions({
     }
 
     const download = async () => {
-        if (!pdf) return
         setBusy('download')
         try {
-            const file = new File([pdf.blob], pdf.filename, { type: 'application/pdf' })
+            let receipt = pdf
+            if (!receipt) {
+                setError(false)
+                try {
+                    receipt = await fetchReceiptPdf(pdfPath, entryId)
+                    setPdf(receipt)
+                } catch (cause) {
+                    setError(true)
+                    Sentry.captureException(cause, { tags: { feature: 'receipt-pdf', action: 'download-retry' } })
+                    toast.error(t('actions.receiptPdfUnavailable'))
+                    return
+                }
+            }
+            const file = new File([receipt.blob], receipt.filename, { type: 'application/pdf' })
             if (isCapacitor() && navigator.share && navigator.canShare?.({ files: [file] })) {
                 await navigator.share({ files: [file], title: t('officialReceipt.pdf.title') })
             } else {
-                downloadBlob(pdf.blob, pdf.filename)
+                downloadBlob(receipt.blob, receipt.filename)
             }
         } catch (cause) {
             if (cause instanceof Error && cause.name === 'AbortError') return
@@ -130,7 +154,9 @@ export function PrivateReceiptPdfActions({
         }
     }
 
-    const unavailable = !pdf
+    // Keep actions disabled while the initial prefetch is unresolved, then
+    // make them clickable after a failure so either action can retry.
+    const unavailable = !pdf && !error
     const title = error ? t('actions.receiptPdfUnavailable') : undefined
 
     return (

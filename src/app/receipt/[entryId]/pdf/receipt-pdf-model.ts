@@ -193,7 +193,14 @@ export function buildReceiptPdfModel(
     }
 
     const numericAmount = Number(transaction.amount)
-    const safeAmount = isNaN(numericAmount) ? 0 : Math.abs(numericAmount)
+    // A goal-less request pot carries `amount = 0`; the money actually
+    // received lives in its rollup total. Match the drawer headline so the
+    // downloadable receipt never reports $0 for a funded pot.
+    const receiptAmount =
+        transaction.isRequestPotLink && (!Number.isFinite(numericAmount) || numericAmount <= 0)
+            ? Number(transaction.totalAmountCollected)
+            : numericAmount
+    const safeAmount = Number.isFinite(receiptAmount) ? Math.abs(receiptAmount) : 0
 
     return {
         title: t('transaction.officialReceipt.pdf.title'),
