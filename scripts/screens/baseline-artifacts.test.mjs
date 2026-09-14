@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { selectBaselineArtifacts } from './baseline-artifacts.mjs'
+import { filterRetainedBaselineArtifacts, selectBaselineArtifacts } from './baseline-artifacts.mjs'
 
 const sha = 'a'.repeat(40)
 
@@ -56,4 +56,15 @@ test('duplicate explicit artifacts are rejected', () => {
         () => selectBaselineArtifacts(['screen-library-after-en-3', 'screen-library-after-en-3'], 'integration', sha),
         /Ambiguous external baseline artifacts for locale en/
     )
+})
+
+test('publisher accepts an exact-base artifact until GitHub expires it', () => {
+    const oldCreatedAt = '2026-01-01T00:00:00Z'
+    const retained = {
+        name: `screen-library-baseline-${sha}-en-1`,
+        expired: false,
+        created_at: oldCreatedAt,
+    }
+    const expired = { ...retained, expired: true }
+    assert.deepEqual(filterRetainedBaselineArtifacts([retained, expired], sha), [retained])
 })

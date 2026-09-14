@@ -14,6 +14,16 @@ function parseArtifact(name, kind, expectedCommit) {
         : null
 }
 
+/** Keep exact-base baseline and integration artifacts for as long as GitHub retains them. */
+export function filterRetainedBaselineArtifacts(artifacts, expectedCommit) {
+    return artifacts.filter(
+        (artifact) =>
+            !artifact.expired &&
+            (parseArtifact(artifact.name, 'baseline', expectedCommit) ||
+                parseArtifact(artifact.name, 'integration', expectedCommit))
+    )
+}
+
 /**
  * Select one baseline artifact per locale from one trusted Actions run.
  * Baseline runs contain baseline artifacts; integration runs contain after artifacts.

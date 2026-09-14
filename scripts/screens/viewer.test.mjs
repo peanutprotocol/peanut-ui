@@ -10,6 +10,7 @@ const elementIds = [
     'status',
     'view-mode',
     'view-mode-control',
+    'view-mode-row',
     'locale',
     'title',
     'description',
@@ -32,10 +33,13 @@ const elementIds = [
     'empty-retry',
     'screen-filters',
     'dashboard-filters',
+    'filters-row',
     'versions',
     'screens',
     'screen-load-more',
     'footer',
+    'auth-preview',
+    'auth-gate',
 ]
 
 class Element {
@@ -95,14 +99,68 @@ async function loadLanding(pathname, { ok = true, index = [], report } = {}) {
             url.endsWith('/index.json')
                 ? Promise.resolve({ ok: true, status: 200, json: async () => index })
                 : response,
-        location: { pathname, protocol: 'https:', search: '', hash: '', href: '', reload() {} },
+        location: {
+            pathname,
+            protocol: 'https:',
+            search: '',
+            hash: '',
+            href: '',
+            reload() {},
+        },
         window: {},
     })
-    vm.runInContext(viewer, context, { filename: 'public/screen-library/viewer.js' })
-    resolveResponse({ ok, status: ok ? 200 : 404, json: async () => report ?? index })
+    vm.runInContext(viewer, context, {
+        filename: 'public/screen-library/viewer.js',
+    })
+    resolveResponse({
+        ok,
+        status: ok ? 200 : 404,
+        json: async () => report ?? index,
+    })
     await new Promise((resolve) => setImmediate(resolve))
     return elements
 }
+
+test('root shows the branded sign-in gate when Access redirects the catalogue request', async () => {
+    const elements = new Map(elementIds.map((id) => [id, new Element(id)]))
+    const brand = new Element('brand')
+    const body = {
+        classList: {
+            add(value) {
+                this.value = value
+            },
+        },
+    }
+    const document = {
+        body,
+        createElement: () => new Element(),
+        getElementById: (id) => elements.get(id),
+        querySelector: (selector) => (selector === '.brand' ? brand : null),
+    }
+    const context = vm.createContext({
+        console,
+        document,
+        URLSearchParams,
+        fetch: async () => ({ type: 'opaqueredirect', status: 0 }),
+        location: {
+            pathname: '/',
+            protocol: 'https:',
+            search: '',
+            hash: '',
+            href: '',
+            reload() {},
+        },
+        window: {},
+    })
+    vm.runInContext(viewer, context, {
+        filename: 'public/screen-library/viewer.js',
+    })
+    await new Promise((resolve) => setImmediate(resolve))
+    assert.equal(elements.get('auth-gate').hidden, false)
+    assert.equal(elements.get('auth-preview').hidden, false)
+    assert.equal(elements.get('coverage').textContent, 'Private product library')
+    assert.equal(body.classList.value, 'auth-required')
+})
 
 test('landing catalogue hides screen controls on the root URL and deployed alias', async () => {
     for (const pathname of ['/', '/screen-library/index.html']) {
@@ -141,6 +199,8 @@ test('landing locale selector filters published versions', async () => {
     })
     assert.equal(elements.get('locale').children.length, 2)
     assert.equal(elements.get('locale').value, 'en')
+    assert.equal(elements.get('locale').children[0].textContent, 'EN')
+    assert.equal(elements.get('locale').children[1].textContent, 'ES-419')
     assert.equal(elements.get('versions').children.length, 1)
     elements.get('locale').value = 'es-419'
     elements.get('locale').dispatch('change')
@@ -148,7 +208,7 @@ test('landing locale selector filters published versions', async () => {
     assert.match(elements.get('versions').children[0].textContent, /Español/)
 })
 
-test('comparison reports can switch from changed screens to the full catalogue', async () => {
+test('comparison reports ignore legacy public image URLs and can switch to the full catalogue', async () => {
     const image = 'a'.repeat(64) + '.png'
     const report = {
         schema: 1,
@@ -204,10 +264,7 @@ test('comparison reports can switch from changed screens to the full catalogue',
     assert.equal(elements.get('view-mode').checked, false)
     assert.equal(elements.get('screens').children.length, 1)
     elements.get('screens').children[0].children[1].children[0].children[1].onclick()
-    assert.equal(
-        elements.get('zoom-images').children[0].src,
-        `https://imagedelivery.net/3RfIxQn88kFXdTrxhfIMXw/ps-${'a'.repeat(29)}/public`
-    )
+    assert.equal(elements.get('zoom-images').children[0].src, `/screen-data/assets/${image}`)
     elements.get('view-mode').checked = true
     elements.get('view-mode').dispatch('change')
     assert.equal(elements.get('screens').children.length, 2)
@@ -239,6 +296,33 @@ test('screen lists load the first page and leave the next page for scroll loadin
     assert.equal(elements.get('screen-load-more').hidden, false)
 })
 
+test('new reports use Access-protected same-origin screenshot URLs', async () => {
+    const image = 'a'.repeat(64) + '.png'
+    const report = {
+        schema: 1,
+        type: 'capture',
+        locale: 'en',
+        complete: true,
+        capturedAt: '2026-09-09T18:00:00Z',
+        screens: [
+            {
+                id: 'home',
+                name: 'Home',
+                flow: 'Home',
+                kind: 'route',
+                status: 'captured',
+                image,
+                thumbnail: image,
+            },
+        ],
+    }
+    const elements = await loadLanding('/screens/2026-09-11/dev/en/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/', {
+        report,
+    })
+    const screenshot = elements.get('screens').children[0].children[1].children[0].children[1].children[0]
+    assert.equal(screenshot.src, `/screen-data/assets/${image}`)
+})
+
 test('report pages expose the locale selector and use a long-form capture date', async () => {
     const report = {
         schema: 1,
@@ -262,6 +346,7 @@ test('report pages expose the locale selector and use a long-form capture date',
         report,
     })
     assert.equal(elements.get('dashboard-filters').hidden, false)
+    assert.equal(elements.get('view-mode-row').hidden, true)
     assert.equal(elements.get('locale').children.length, 2)
     assert.equal(elements.get('locale').value, 'en')
     assert.equal(elements.get('description').children[0].textContent, 'September 9, 2026')
@@ -277,6 +362,7 @@ test('landing page shows a friendly empty state when captures are not published'
         assert.match(elements.get('empty-title').textContent, /almost here/i)
         assert.equal(elements.get('coverage').hidden, true)
         assert.equal(elements.get('screen-filters').hidden, true)
+        assert.equal(elements.get('filters-row').hidden, true)
     }
 })
 

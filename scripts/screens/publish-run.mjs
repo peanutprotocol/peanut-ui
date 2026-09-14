@@ -6,7 +6,7 @@ import { integrationBase } from './integration.mjs'
 import { reviewProvenance } from './review-provenance.mjs'
 import { verifyRunIdentity } from './run-identity.mjs'
 import { selectCaptureArtifact, selectCapturePairs } from './capture-artifacts.mjs'
-import { selectBaselineArtifacts } from './baseline-artifacts.mjs'
+import { filterRetainedBaselineArtifacts, selectBaselineArtifacts } from './baseline-artifacts.mjs'
 import { normalizePublicOrigin } from './public-origin.mjs'
 const LOCALES = {
     en: 'English',
@@ -72,7 +72,7 @@ function verifyExternalBaseline(expected) {
     const localeSuffix = '(?:en|es-419|es-AR|pt-BR)'
     const baselineRun =
         source.path === '.github/workflows/screen-library-baseline.yml' &&
-        ['push', 'schedule', 'workflow_dispatch'].includes(source.event) &&
+        ['push', 'workflow_dispatch'].includes(source.event) &&
         source.head_branch === defaultBranch &&
         artifacts.some((artifact) =>
             new RegExp(`^screen-library-baseline-${expected}-(?:${localeSuffix}-)?[1-9]\\d*$`).test(artifact.name)
@@ -91,19 +91,7 @@ function verifyExternalBaseline(expected) {
         (integrationBaseline && (source.head_branch !== 'dev' || source.head_sha !== expected))
     )
         throw new Error('External baseline run provenance mismatch')
-    const validArtifacts = artifacts.filter((artifact) => {
-        const baselineName = new RegExp(`^screen-library-baseline-${expected}-(?:${localeSuffix}-)?[1-9]\\d*$`).test(
-            artifact.name
-        )
-        const integrationName = new RegExp(`^screen-library-after-(?:${localeSuffix}-)?[1-9]\\d*$`).test(artifact.name)
-        const created = Date.parse(artifact.created_at ?? '')
-        return (
-            (baselineName || integrationName) &&
-            !artifact.expired &&
-            Number.isFinite(created) &&
-            Date.now() - created <= 30 * 60 * 60 * 1000
-        )
-    })
+    const validArtifacts = filterRetainedBaselineArtifacts(artifacts, expected)
     if (!validArtifacts.length) throw new Error('External baseline artifact is missing or expired')
     if (baselineArtifact && !validArtifacts.some((artifact) => artifact.name === baselineArtifact))
         throw new Error('External baseline artifact identity mismatch')

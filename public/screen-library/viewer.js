@@ -9,15 +9,20 @@ const el = (tag, value, className) => {
 }
 const offline = location.protocol === 'file:'
 const assetBase = offline ? './assets/' : '/screen-data/assets/'
-const previewUrlPattern =
-    /^https:\/\/imagedelivery\.net\/[\w-]+\/(?:peanut-screen-[a-f0-9]{64}|ps-[a-f0-9]{29})\/[\w-]+$/
 const LOCALE_LABELS = {
     en: 'English',
     'es-419': 'Español',
     'es-AR': 'Español (Argentina)',
     'pt-BR': 'Português (Brasil)',
 }
+const LOCALE_CODES = {
+    en: 'EN',
+    'es-419': 'ES-419',
+    'es-AR': 'ES-AR',
+    'pt-BR': 'PT-BR',
+}
 const localeLabel = (locale) => LOCALE_LABELS[locale] ?? locale ?? 'English'
+const localeCode = (locale) => LOCALE_CODES[locale] ?? locale ?? 'EN'
 const localeSlugs = new Set(['en', 'es-419', 'es-ar', 'pt-br'])
 const withoutLocale = (path) =>
     path
@@ -41,12 +46,8 @@ const formatCaptureDate = (value) => {
               timeZone: 'UTC',
           }).format(date)
 }
-const asset = (name, { preview = true } = {}) => {
+const asset = (name) => {
     if (!/^[a-f0-9]{64}\.(png|webp)$/.test(name || '')) return null
-    const configuredUrl = !offline && (preview ? report?.previewUrls?.[name] : report?.originalUrls?.[name])
-    const legacyUrl = !offline && !preview && !configuredUrl ? report?.previewUrls?.[name] : configuredUrl
-    if (typeof legacyUrl === 'string' && previewUrlPattern.test(legacyUrl)) return legacyUrl
-    if (!offline) return null
     return assetBase + name
 }
 const image = (name, alt, options) => {
@@ -166,6 +167,7 @@ function render() {
     if (report?.type === 'comparison') $('title').textContent = changedMode ? 'See what changed.' : 'Every screen.'
     filteredRows = filteredScreenRows()
     renderedCount = 0
+    $('screens').className = changedMode ? 'changed-screens' : 'all-screens'
     $('screens').replaceChildren()
     if (!filteredRows.length) {
         $('screens').append(el('p', 'No screens match these filters.'))
@@ -175,13 +177,29 @@ function render() {
     appendNextPage()
 }
 async function loadJSON(url) {
-    const r = await fetch(url)
+    const r = await fetch(url, offline ? undefined : { redirect: 'manual', cache: 'no-store' })
+    if (r.type === 'opaqueredirect' || r.status === 0) {
+        const error = new Error('Authentication required')
+        error.authRequired = true
+        throw error
+    }
     if (!r.ok) {
         const error = new Error(`Report unavailable (${r.status})`)
         error.status = r.status
         throw error
     }
     return r.json()
+}
+function showAuthGate() {
+    document.body?.classList?.add('auth-required')
+    $('auth-preview').hidden = false
+    $('auth-gate').hidden = false
+    $('coverage').textContent = 'Private product library'
+    $('filters-row').hidden = true
+    $('view-mode-row').hidden = true
+    $('versions').hidden = true
+    $('screens').hidden = true
+    $('screen-load-more').hidden = true
 }
 function showEmptyState(kind = 'unpublished') {
     const unpublished = kind === 'unpublished'
@@ -207,6 +225,8 @@ function showEmptyState(kind = 'unpublished') {
           ? 'Published report not found'
           : 'Temporary loading issue'
     $('coverage').hidden = true
+    $('filters-row').hidden = true
+    $('view-mode-row').hidden = true
     $('dashboard-filters').hidden = true
     $('screen-filters').hidden = true
     $('versions').hidden = true
@@ -223,7 +243,7 @@ function populateLocale(entries, selected) {
     const locales = sortLocales(entries.map((entry) => entry.locale))
     $('locale').replaceChildren(
         ...locales.map((value) => {
-            const option = el('option', localeLabel(value))
+            const option = el('option', localeCode(value))
             option.value = value
             return option
         })
@@ -290,6 +310,8 @@ async function start() {
         }
         $('dashboard-filters').hidden = false
         $('screen-filters').hidden = true
+        $('filters-row').hidden = false
+        $('view-mode-row').hidden = true
         renderLanding()
         return
     }
@@ -299,6 +321,8 @@ async function start() {
     report = offline ? window.SCREEN_REPORT : await loadJSON(`/screen-data/reports/${reportPath}/manifest.json`)
     if (!report || report.schema !== 1) throw new Error('Unsupported report')
     $('dashboard-filters').hidden = true
+    $('filters-row').hidden = false
+    $('view-mode-row').hidden = report.type === 'capture'
     rows =
         report.type === 'capture'
             ? report.screens.map((s) => ({
@@ -311,7 +335,6 @@ async function start() {
         after = report.type === 'capture' ? report : report.after
     viewMode = report.type === 'capture' ? 'all' : 'changed'
     $('view-mode').checked = viewMode === 'all'
-    $('view-mode-control').hidden = report.type === 'capture'
     $('title').textContent = report.type === 'capture' ? 'The screen library.' : 'See what changed.'
     const captureDate = formatCaptureDate(after?.capturedAt ?? report.capturedAt)
     $('description').replaceChildren(captureDate ? el('strong', captureDate) : el('span', ''))
@@ -392,6 +415,10 @@ if (typeof window.IntersectionObserver === 'function') {
     ).observe($('screen-load-more'))
 }
 start().catch((e) => {
+    if (e.authRequired) {
+        showAuthGate()
+        return
+    }
     const pathname = location.pathname
     const isHostedIndex =
         pathname === '/' ||

@@ -32,9 +32,6 @@ function memoryStorage() {
         async read(pathname) {
             return objects.get(pathname)
         },
-        async preview(name) {
-            return `https://imagedelivery.net/hash/peanut-screen-${name.split('.')[0]}/screenpreview`
-        },
     }
 }
 
@@ -89,7 +86,10 @@ test('publication writes the entry commit marker before shared pointers', async 
         const manifest = JSON.parse(
             storage.objects.get(`reports/2026-09-11/dev-${commit}/run-123-1/manifest.json`).toString()
         )
-        assert.equal(manifest.originalUrls[name], manifest.previewUrls[name])
+        assert.equal(manifest.previewUrls, undefined)
+        assert.equal(manifest.originalUrls, undefined)
+        assert.ok(storage.objects.has(`assets/${name}`))
+        assert.ok(storage.calls.indexOf(`assets/${name}`) < entryIndex)
         assert.equal(hash(PNG.sync.write(image)), name.split('.')[0])
     } finally {
         rmSync(dir, { recursive: true, force: true })
