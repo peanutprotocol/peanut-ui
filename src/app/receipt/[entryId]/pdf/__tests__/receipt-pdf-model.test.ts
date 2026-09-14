@@ -149,7 +149,13 @@ describe('buildReceiptPdfModel — variants', () => {
 
     test('bank account identifiers are always masked — the PDF is shareable', () => {
         const model = buildReceiptPdfModel(
-            withOverrides({ bankAccountDetails: { identifier: 'ES9121000418450200051332', type: 'BANK_IBAN' } }),
+            withOverrides(
+                {
+                    bankAccountDetails: { identifier: 'ES9121000418450200051332', type: 'BANK_IBAN' },
+                    currency: { amount: '113250.75', code: 'ARS' },
+                },
+                { receipt: { exchange_rate: '902.4' } }
+            ),
             t,
             'en'
         )
@@ -157,8 +163,9 @@ describe('buildReceiptPdfModel — variants', () => {
         expect(value).toBeDefined()
         expect(value).not.toBe('ES9121000418450200051332')
         expect(value).toContain('1332')
-        expect(labels(model).slice(-4)).toEqual([
+        expect(labels(model).slice(-5)).toEqual([
             'IBAN',
+            'common.exchangeRate',
             'transaction.rows.txId',
             'transaction.rows.transferId',
             'transaction.officialReceipt.reference',

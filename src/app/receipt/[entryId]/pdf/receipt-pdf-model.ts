@@ -146,19 +146,15 @@ export function buildReceiptPdfModel(
         counterparty
     )
 
-    if (
+    const exchangeRateDisplay =
         isFxBearingFlow(transaction) &&
         drawer?.receipt?.exchange_rate &&
         transaction.currency?.code &&
         transaction.currency.code.toUpperCase() !== 'USD' &&
         !isStableCoin(transaction.currency.code) &&
         !isCancelled
-    ) {
-        push(
-            t('common.exchangeRate'),
-            `1 USD = ${transaction.currency.code.toUpperCase()} ${formatCurrency(drawer.receipt.exchange_rate, 4)}`
-        )
-    }
+            ? `1 USD = ${transaction.currency.code.toUpperCase()} ${formatCurrency(drawer.receipt.exchange_rate, 4)}`
+            : undefined
 
     if (transaction.fee !== undefined && !isCancelled) {
         push(t('transaction.rows.fee'), formatAmount(transaction.fee as number))
@@ -183,6 +179,8 @@ export function buildReceiptPdfModel(
             maskAccountIdentifier(transaction.bankAccountDetails.identifier, transaction.bankAccountDetails.type)
         )
     }
+
+    push(t('common.exchangeRate'), exchangeRateDisplay)
 
     if (transaction.txHash) {
         push(t('transaction.rows.txId'), transaction.txHash)
