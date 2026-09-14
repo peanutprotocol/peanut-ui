@@ -382,6 +382,26 @@ function SetupPageContent() {
 
             const localDeviceType = detectedDeviceType
 
+            // The web-signup sunset is a product-access decision, not a
+            // capability check. Resolve it before legacy passkey, OS, and
+            // webview gates so every browser can reach Landing's Log In and
+            // native-store actions, including devices that cannot onboard.
+            if (webSignupClosed) {
+                setDeviceType(localDeviceType)
+                const targetStep = resolveSetupEntryStep({
+                    ...entryInput,
+                    isCapacitor: false,
+                    deviceType: localDeviceType,
+                    // Sunset routing is invariant to install state; avoid
+                    // probing browser-only display mode before the early exit.
+                    isStandalonePWA: false,
+                })
+                if (!steps.some((s) => s.screenId === targetStep)) throw new Error('Setup entry step is missing')
+                setScreenIdRef.current(targetStep, { history: 'replace' })
+                setIsLoading(false)
+                return
+            }
+
             // in capacitor, passkeys are handled natively — skip all browser/webview/os/pwa checks
             // and go straight to the landing (signup) flow
             if (isCapacitor()) {

@@ -34,6 +34,7 @@ const mockAuth = {
     fetchUser: jest.fn().mockResolvedValue(undefined),
 }
 let mockNative = true
+let mockPwaSunsetOn = false
 let mockSearchParams = new URLSearchParams()
 
 jest.mock('@/features/setup/SetupFlowContext', () => ({
@@ -64,7 +65,7 @@ jest.mock('@/context/authContext', () => ({ useAuth: () => mockAuth }))
 jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSupportModalOpen: mockSupport }) }))
 jest.mock('next/navigation', () => ({ useSearchParams: () => mockSearchParams, useRouter: () => mockRouter }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => mockNative }))
-jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => false }))
+jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => mockPwaSunsetOn }))
 jest.mock('@/utils/general.utils', () => ({
     getFromCookie: jest.fn(),
     saveToCookie: jest.fn(),
@@ -121,6 +122,7 @@ beforeEach(() => {
     })
     resetDeepLinkStateForTests()
     mockNative = true
+    mockPwaSunsetOn = false
     mockSearchParams = new URLSearchParams()
 })
 afterEach(() => {
@@ -222,6 +224,31 @@ it('preserves the unsupported-device recovery on web', async () => {
     await advance(100)
     expect(screen.getByText('Unsupported device')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+})
+
+it('routes sunset web guests to landing before unsupported-browser capability gates', async () => {
+    mockNative = false
+    mockPwaSunsetOn = true
+    Object.defineProperty(window, 'PublicKeyCredential', {
+        configurable: true,
+        value: { isUserVerifyingPlatformAuthenticatorAvailable: jest.fn().mockResolvedValue(false) },
+    })
+
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+
+    expect(screen.getByText('Landing step')).toBeInTheDocument()
+    expect(screen.queryByText('Unsupported device')).not.toBeInTheDocument()
+    expect(PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable).not.toHaveBeenCalled()
+    expect(mockResolve).toHaveBeenCalledWith(
+        expect.objectContaining({
+            deviceType: 'android',
+            isCapacitor: false,
+            isStandalonePWA: false,
+            webSignupClosed: true,
+        })
+    )
+    expect(mockFlow.setScreenId).toHaveBeenCalledWith('landing', { history: 'replace' })
 })
 
 it('bounds waiting for session hydration', async () => {
