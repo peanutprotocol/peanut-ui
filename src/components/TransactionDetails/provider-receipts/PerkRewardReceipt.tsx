@@ -69,7 +69,7 @@ export function PerkRewardReceipt({
                 add requestPaymentUuid column so reason can be clean. */}
             <Card
                 position="single"
-                className="divide-y divide-dashed divide-border-default px-4 py-0 [&_.ds-data-row]:py-2.5 [&_.ds-data-row-label]:text-body-xs [&_.ds-data-row-value]:text-label-m"
+                className="divide-y divide-dashed divide-border-default px-4 py-0 [&_.ds-data-row]:py-2 [&_.ds-data-row-label]:text-body-xs [&_.ds-data-row-value]:text-label-m"
             >
                 <DataRow label={t('perk.received')} value={formatDate(new Date(transaction.date))} />
                 <DataRow
