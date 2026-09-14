@@ -2,7 +2,12 @@ import { act } from '@testing-library/react'
 import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import posthog from 'posthog-js'
 import { deriveCapabilityPhaseSignals, useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
-import { getVerificationSession, refreshVerificationSession, initiateSumsubKyc } from '@/app/actions/sumsub'
+import {
+    getVerificationSession,
+    refreshVerificationSession,
+    initiateSumsubKyc,
+    startResidenceChangeVerification,
+} from '@/app/actions/sumsub'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
@@ -24,6 +29,7 @@ jest.mock('@/app/actions/sumsub', () => ({
     refreshVerificationSession: jest.fn(),
     initiateSelfHealResubmission: jest.fn(),
     restartIdentityVerification: jest.fn(),
+    startResidenceChangeVerification: jest.fn(),
     startKycAction: jest.fn(),
 }))
 jest.mock('@/hooks/useWebSocket', () => ({
@@ -44,9 +50,82 @@ jest.mock('@/utils/capability-gate', () => ({ deriveGate: () => ({ kind: 'none' 
 jest.mock('@/app/actions/users', () => ({ getBridgeTosLink: jest.fn(), confirmBridgeTos: jest.fn() }))
 
 const mockInitiate = initiateSumsubKyc as jest.MockedFunction<typeof initiateSumsubKyc>
+const mockResidenceChange = startResidenceChangeVerification as jest.MockedFunction<
+    typeof startResidenceChangeVerification
+>
 const mockCapture = posthog.capture as jest.MockedFunction<typeof posthog.capture>
 
 const rejectedCaptures = () => mockCapture.mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.KYC_REJECTED)
+
+describe('useMultiPhaseKycFlow — residence action composition', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockFetchUser.mockResolvedValue(null)
+        mockResidenceChange.mockResolvedValue({
+            data: {
+                token: 'residence-token',
+                applicantId: 'applicant-1',
+                levelName: 'peanut-residence-change',
+                targetCountry: 'PT',
+            },
+        })
+    })
+
+    it('submission closes the action without starting identity or rail approval orchestration', async () => {
+        const onKycApproved = jest.fn()
+        const { result } = renderHook(() => useMultiPhaseKycFlow({ onKycApproved }))
+
+        await act(async () => {
+            await result.current.handleResidenceChange('PT')
+        })
+        expect(result.current.showWrapper).toBe(true)
+        expect(mockResidenceChange).toHaveBeenCalledWith('PT')
+
+        mockFetchUser.mockClear()
+        ;(markSubmitted as jest.Mock).mockClear()
+        mockCapture.mockClear()
+        act(() => result.current.handleSdkComplete())
+
+        expect(markSubmitted).not.toHaveBeenCalled()
+        expect(mockFetchUser).not.toHaveBeenCalled()
+        expect(onKycApproved).not.toHaveBeenCalled()
+        expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.KYC_SUBMITTED, expect.anything())
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.isModalOpen).toBe(false)
+        expect(result.current.modalPhase).toBe('verifying')
+    })
+
+    it('ignores base-identity APPROVED events during and after the residence action', async () => {
+        const onKycApproved = jest.fn()
+        const { result } = renderHook(() => useMultiPhaseKycFlow({ onKycApproved }))
+
+        await act(async () => {
+            await result.current.handleResidenceChange('PT')
+        })
+
+        await act(async () => {
+            mockWs.handler?.('APPROVED')
+        })
+        expect(result.current.showWrapper).toBe(true)
+        expect(markSubmitted).not.toHaveBeenCalled()
+        expect(mockFetchUser).not.toHaveBeenCalled()
+        expect(onKycApproved).not.toHaveBeenCalled()
+
+        act(() => result.current.handleSdkComplete())
+        await act(async () => {
+            mockWs.handler?.('PENDING')
+        })
+        await act(async () => {
+            mockWs.handler?.('APPROVED')
+        })
+
+        expect(markSubmitted).not.toHaveBeenCalled()
+        expect(mockFetchUser).not.toHaveBeenCalled()
+        expect(onKycApproved).not.toHaveBeenCalled()
+        expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.KYC_APPROVED, expect.anything())
+        expect(result.current.isModalOpen).toBe(false)
+    })
+})
 
 describe('useMultiPhaseKycFlow — KYC_REJECTED capture effect', () => {
     beforeEach(() => {

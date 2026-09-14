@@ -530,6 +530,8 @@ jobs:
             # source hash, restore-keys falls back to the newest cache for the
             # same lockfile and build configuration. Do not restore Webpack caches
             # across configuration changes; stale module hashes can crash the build.
+            # v3 invalidates a dev-scoped v2 entry that reproducibly crashed
+            # Webpack's WasmHash on PR builds before screenshot capture.
             # Restore-only on purpose: a save on every PR push would upload a
             # fresh 100-400 MB entry that is branch-scoped (no other PR can
             # read it), churning the shared 10 GB cache quota and spending

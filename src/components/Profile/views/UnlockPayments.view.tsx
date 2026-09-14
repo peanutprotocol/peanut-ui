@@ -21,7 +21,7 @@ import { KycFailedModal } from '@/components/Kyc/modals/KycFailedModal'
 import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 import ActionModal from '@/components/Global/ActionModal'
 import { useModalsContext } from '@/context/ModalsContext'
-import { getRegionIntent, providerForRegionIntent, regionIntentForResidence, type Region } from '@/utils/regions.utils'
+import { getRegionIntent, providerForRegionIntent, type Region } from '@/utils/regions.utils'
 import { deriveRegionAccess, isBridgeSupportedCountry, pendingBankRailRegionPaths } from '@/utils/regions.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useQueryClient } from '@tanstack/react-query'
@@ -247,7 +247,7 @@ const UnlockPayments = () => {
     const [isChangeModalOpen, setIsChangeModalOpen] = useState(false)
     const [activeRegionIntent, setActiveRegionIntent] = useState<KYCRegionIntent | undefined>(undefined)
     const [errorAcknowledged, setErrorAcknowledged] = useState(false)
-    const [reverifyRequested, setReverifyRequested] = useState(false)
+    const [reverifyTarget, setReverifyTarget] = useState<string | null>(null)
 
     const clickedRegionIntent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
     const clickedRegionProvider = providerForRegionIntent(clickedRegionIntent)
@@ -298,7 +298,7 @@ const UnlockPayments = () => {
     const handleStartKyc = useCallback(async () => {
         const intent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
         if (intent) setActiveRegionIntent(intent)
-        setReverifyRequested(false)
+        setReverifyTarget(null)
         setErrorAcknowledged(false)
         setSelectedRegion(null)
         // Always cross-region: a locked method has no functional rail behind it,
@@ -327,7 +327,7 @@ const UnlockPayments = () => {
 
     // A residence re-verification never sets a region intent, so without the
     // flag its failure would read as "Not available yet" instead of retriable.
-    const failedRegionRetriable = reverifyRequested || providerForRegionIntent(activeRegionIntent) !== null
+    const failedRegionRetriable = reverifyTarget !== null || providerForRegionIntent(activeRegionIntent) !== null
 
     const countryDisplayName = (iso2: string | null): string | null =>
         iso2
@@ -337,7 +337,7 @@ const UnlockPayments = () => {
               })
             : null
     const residenceCountryName = countryDisplayName(residenceIso2)
-    const declaredCountryName = countryDisplayName(residence?.declared ?? null)
+    const pendingCountryName = countryDisplayName(residence?.pending ?? null)
 
     // In-review line: submittedAt drives both the date and the 7-day
     // escalation. reviewedAt/updatedAt deliberately not used — the user cares
@@ -383,9 +383,9 @@ const UnlockPayments = () => {
                     onClick={() => setIsChangeModalOpen(true)}
                     aria-label={residenceIso2 ? t('residence.change') : t('residence.set')}
                 />
-                {residence?.verified && residence?.declared && residence.declared !== residence.verified && (
+                {residence?.verified && residence?.pending && (
                     <p className="text-center text-body-xs text-foreground-secondary">
-                        {t('residence.pendingReverify', { country: declaredCountryName ?? residence.declared })}
+                        {t('residence.pendingReverify', { country: pendingCountryName ?? residence.pending })}
                     </p>
                 )}
             </div>
@@ -475,6 +475,7 @@ const UnlockPayments = () => {
                 declared={residence?.declared ?? null}
                 declaredSecond={declaredSecondIso2}
                 verified={residence?.verified ?? null}
+                pending={residence?.pending ?? null}
                 onSaved={async () => {
                     // A residence change shifts everything derived from it:
                     // card eligibility (server recomputes from the declared
@@ -485,14 +486,10 @@ const UnlockPayments = () => {
                         queryClient.invalidateQueries({ queryKey: [LIMITS] }),
                     ])
                 }}
-                onReverify={(iso2) => {
-                    // The new residence decides which provider level the fresh
-                    // Sumsub token targets, and whether the SDK runs a second level.
-                    const intent = regionIntentForResidence(iso2)
-                    setActiveRegionIntent(intent)
-                    setReverifyRequested(true)
+                onReverify={(targetCountry) => {
+                    setReverifyTarget(targetCountry)
                     setErrorAcknowledged(false)
-                    void flow.handleRestartIdentity(intent)
+                    void flow.handleResidenceChange(targetCountry)
                 }}
             />
 
@@ -586,7 +583,7 @@ const UnlockPayments = () => {
                                   shadowSize: '4',
                                   disabled: flow.isLoading,
                                   onClick: () => {
-                                      if (reverifyRequested) void flow.handleRestartIdentity(activeRegionIntent)
+                                      if (reverifyTarget) void flow.handleResidenceChange(reverifyTarget)
                                       else void flow.handleInitiateKyc(activeRegionIntent, undefined, true)
                                   },
                               },
