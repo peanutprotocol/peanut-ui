@@ -64,9 +64,10 @@ new screens. Build each revision with its own lockfile and content commit.
 
 ## Private deployment
 
-The gallery deploys independently to Cloudflare Workers using
-`screen-library-deploy.yml` on pushes to dev affecting the viewer, Worker or
-workflow. No Next.js build or Vercel deployment is involved. Worker Static Assets
+The gallery deploys independently to Cloudflare Workers from the trusted
+publisher workflow after a successful dev publication. This ordering completes
+any historical private-asset migration before new viewer or Worker code can go
+live. No Next.js build or Vercel deployment is involved. Worker Static Assets
 serves the viewer; only `/screen-data/*` invokes the read-only R2 handler.
 The R2 bucket remains private. Cloudflare Access protects `/screens/*` and
 `/screen-data/*`; the public root is a sign-in shell that shows a blurred gallery
@@ -85,7 +86,9 @@ DevOps setup:
    indefinitely; respect object Cache-Control (index/latest use 60 seconds).
 2. Create two Cloudflare API tokens with separate values:
    - a publisher token with Workers R2 Storage Edit scoped to this gallery's
-     R2 bucket. Save it as the repository
+     R2 bucket. Until the first private publication has migrated every retained
+     report, also keep Images Edit on this token so it can remove the old public
+     Hosted Images objects. Save it as the repository
      `CLOUDFLARE_API_TOKEN` secret. The reusable workflow keeps its historical
      `CLOUDFLARE_PUBLISH_TOKEN` input for compatibility while exposing the
      value to the publisher process as `CLOUDFLARE_API_TOKEN`; this token never
@@ -110,7 +113,9 @@ DevOps setup:
    DNS Edit scoped to the domain's zone, which must exist in this account. For
    workers.dev no zone permissions are needed. Initialize the account's
    workers.dev subdomain in the dashboard and set `SCREEN_LIBRARY_PUBLIC_URL`
-   to the Worker origin.
+   to the Worker origin. Generated deployments disable Preview URLs. A custom
+   domain also disables the Worker's alternate workers.dev route; a workers.dev
+   deployment retains only its configured production hostname.
 6. Merge #3107, verify the Deploy screen gallery job succeeds and the private
    gallery loads, then merge #3108 to activate captures. An empty R2 bucket shows
    a friendly empty state until the first publication. Verify that the root shows
@@ -120,6 +125,15 @@ DevOps setup:
 
 The existing Vercel app preview workflow remains independent. Neither the Blob
 secret nor `SCREEN_LIBRARY_STORE_URL` is used by the gallery anymore.
+
+Before publishing a new report, the trusted publisher scans retained manifests
+for legacy Cloudflare Images URL maps. It verifies each report against its
+trusted offline archive, restores every content-addressed image to private R2,
+deletes the corresponding public Hosted Images objects, and only then rewrites
+the manifest without those URLs. A failed deletion leaves the old manifest in
+place so the next run can retry; publication fails instead of declaring the
+migration complete. After one successful run reports that all retained reports
+were migrated, Images Edit can be removed from the publisher token.
 
 Only the separate trusted publisher receives the write credentials. The
 publisher accepts hashes and validated JSON/PNG/WebP; no downloaded code or

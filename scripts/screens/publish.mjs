@@ -7,6 +7,7 @@ import { execFileSync } from 'node:child_process'
 import { compare, validateCapture, verifyAsset } from './core.mjs'
 import { createStorage } from './cloudflare-storage.mjs'
 import { updateIndexes } from './publication-index.mjs'
+import { migrateLegacyReports } from './private-assets.mjs'
 
 const immutableReportPath =
     /^\d{4}-\d{2}-\d{2}\/((?:dev|main)-[a-f0-9]{40}|(?:dev|main)\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|compare-dev\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|pr-[1-9][0-9]*\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|compare-main-\d{4}-\d{2}-\d{2}\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40})(?:\/run-[0-9]+-[0-9]+)?$/
@@ -20,7 +21,13 @@ const localeInfo = {
 
 export async function publishReport({ inputDir, reportPath, env = process.env, storage } = {}) {
     if (!immutableReportPath.test(reportPath ?? '')) throw new Error('Invalid immutable report path')
-    const { put, list, read } = storage ?? (await createStorage(env))
+    const activeStorage = storage ?? (await createStorage(env))
+    const { put, list, read } = activeStorage
+    const migration = await migrateLegacyReports(activeStorage)
+    if (migration.migratedReports)
+        console.log(
+            `Migrated ${migration.migratedReports} historical reports, ${migration.migratedAssets} assets and ${migration.removedImages} public Images objects.`
+        )
     const { default: sharp } = await import('sharp')
     const dir = resolve(inputDir),
         assets = join(dir, 'assets')
@@ -61,7 +68,9 @@ export async function publishReport({ inputDir, reportPath, env = process.env, s
         for (const name of refs) {
             const bytes = verifyAsset(assets, name)
             if (name.endsWith('.webp')) {
-                const meta = await sharp(bytes, { limitInputPixels: 393 * 852 }).metadata()
+                const meta = await sharp(bytes, {
+                    limitInputPixels: 393 * 852,
+                }).metadata()
                 if (meta.width !== 197 || meta.height !== 427) throw new Error('Invalid thumbnail dimensions')
             }
             await immutable(`assets/${name}`, bytes, name.endsWith('.png') ? 'image/png' : 'image/webp')
@@ -124,4 +133,8 @@ export async function publishReport({ inputDir, reportPath, env = process.env, s
 }
 
 const isMain = process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url
-if (isMain) await publishReport({ inputDir: process.argv[2], reportPath: process.argv[3] })
+if (isMain)
+    await publishReport({
+        inputDir: process.argv[2],
+        reportPath: process.argv[3],
+    })

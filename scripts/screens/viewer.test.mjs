@@ -99,11 +99,24 @@ async function loadLanding(pathname, { ok = true, index = [], report } = {}) {
             url.endsWith('/index.json')
                 ? Promise.resolve({ ok: true, status: 200, json: async () => index })
                 : response,
-        location: { pathname, protocol: 'https:', search: '', hash: '', href: '', reload() {} },
+        location: {
+            pathname,
+            protocol: 'https:',
+            search: '',
+            hash: '',
+            href: '',
+            reload() {},
+        },
         window: {},
     })
-    vm.runInContext(viewer, context, { filename: 'public/screen-library/viewer.js' })
-    resolveResponse({ ok, status: ok ? 200 : 404, json: async () => report ?? index })
+    vm.runInContext(viewer, context, {
+        filename: 'public/screen-library/viewer.js',
+    })
+    resolveResponse({
+        ok,
+        status: ok ? 200 : 404,
+        json: async () => report ?? index,
+    })
     await new Promise((resolve) => setImmediate(resolve))
     return elements
 }
@@ -129,10 +142,19 @@ test('root shows the branded sign-in gate when Access redirects the catalogue re
         document,
         URLSearchParams,
         fetch: async () => ({ type: 'opaqueredirect', status: 0 }),
-        location: { pathname: '/', protocol: 'https:', search: '', hash: '', href: '', reload() {} },
+        location: {
+            pathname: '/',
+            protocol: 'https:',
+            search: '',
+            hash: '',
+            href: '',
+            reload() {},
+        },
         window: {},
     })
-    vm.runInContext(viewer, context, { filename: 'public/screen-library/viewer.js' })
+    vm.runInContext(viewer, context, {
+        filename: 'public/screen-library/viewer.js',
+    })
     await new Promise((resolve) => setImmediate(resolve))
     assert.equal(elements.get('auth-gate').hidden, false)
     assert.equal(elements.get('auth-preview').hidden, false)
@@ -186,7 +208,7 @@ test('landing locale selector filters published versions', async () => {
     assert.match(elements.get('versions').children[0].textContent, /Español/)
 })
 
-test('comparison reports can switch from changed screens to the full catalogue', async () => {
+test('comparison reports ignore legacy public image URLs and can switch to the full catalogue', async () => {
     const image = 'a'.repeat(64) + '.png'
     const report = {
         schema: 1,
@@ -242,10 +264,7 @@ test('comparison reports can switch from changed screens to the full catalogue',
     assert.equal(elements.get('view-mode').checked, false)
     assert.equal(elements.get('screens').children.length, 1)
     elements.get('screens').children[0].children[1].children[0].children[1].onclick()
-    assert.equal(
-        elements.get('zoom-images').children[0].src,
-        `https://imagedelivery.net/3RfIxQn88kFXdTrxhfIMXw/ps-${'a'.repeat(29)}/public`
-    )
+    assert.equal(elements.get('zoom-images').children[0].src, `/screen-data/assets/${image}`)
     elements.get('view-mode').checked = true
     elements.get('view-mode').dispatch('change')
     assert.equal(elements.get('screens').children.length, 2)

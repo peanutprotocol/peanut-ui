@@ -26,7 +26,9 @@ test('worker exposes only protected gallery objects and supports read methods', 
     const index = await worker.fetch(request('/screen-data/index.json'), env)
     assert.equal(index.headers.get('cache-control'), 'private, max-age=60')
     const report = await worker.fetch(request('/screen-data/reports/2026-09-11/dev-abc/manifest.json'), env)
-    assert.match(report.headers.get('cache-control'), /immutable/)
+    assert.equal(report.headers.get('cache-control'), 'private, max-age=60')
+    const archive = await worker.fetch(request('/screen-data/reports/2026-09-11/dev-abc/offline.tar.gz'), env)
+    assert.match(archive.headers.get('cache-control'), /immutable/)
     const asset = await worker.fetch(request(`/screen-data/assets/${'a'.repeat(64)}.png`), env)
     assert.equal(asset.headers.get('content-type'), 'image/png')
     assert.equal(asset.headers.get('cache-control'), 'private, max-age=31536000, immutable')
@@ -35,7 +37,11 @@ test('worker exposes only protected gallery objects and supports read methods', 
 })
 test('missing or failed storage never returns the gallery HTML', async () => {
     assert.equal(
-        (await worker.fetch(request('/screen-data/latest.json'), { REPORTS: { get: async () => null } })).status,
+        (
+            await worker.fetch(request('/screen-data/latest.json'), {
+                REPORTS: { get: async () => null },
+            })
+        ).status,
         404
     )
     const failed = await worker.fetch(request('/screen-data/latest.json'), {

@@ -9,8 +9,6 @@ const el = (tag, value, className) => {
 }
 const offline = location.protocol === 'file:'
 const assetBase = offline ? './assets/' : '/screen-data/assets/'
-const previewUrlPattern =
-    /^https:\/\/imagedelivery\.net\/[\w-]+\/(?:peanut-screen-[a-f0-9]{64}|ps-[a-f0-9]{29})\/[\w-]+$/
 const LOCALE_LABELS = {
     en: 'English',
     'es-419': 'Español',
@@ -48,11 +46,8 @@ const formatCaptureDate = (value) => {
               timeZone: 'UTC',
           }).format(date)
 }
-const asset = (name, { preview = true } = {}) => {
+const asset = (name) => {
     if (!/^[a-f0-9]{64}\.(png|webp)$/.test(name || '')) return null
-    const configuredUrl = !offline && (preview ? report?.previewUrls?.[name] : report?.originalUrls?.[name])
-    const legacyUrl = !offline && !preview && !configuredUrl ? report?.previewUrls?.[name] : configuredUrl
-    if (typeof legacyUrl === 'string' && previewUrlPattern.test(legacyUrl)) return legacyUrl
     return assetBase + name
 }
 const image = (name, alt, options) => {
@@ -182,7 +177,7 @@ function render() {
     appendNextPage()
 }
 async function loadJSON(url) {
-    const r = await fetch(url, offline ? undefined : { redirect: 'manual' })
+    const r = await fetch(url, offline ? undefined : { redirect: 'manual', cache: 'no-store' })
     if (r.type === 'opaqueredirect' || r.status === 0) {
         const error = new Error('Authentication required')
         error.authRequired = true

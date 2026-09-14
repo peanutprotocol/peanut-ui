@@ -3,12 +3,16 @@ export default {
     async fetch(request, env) {
         const path = new URL(request.url).pathname
         if (!['GET', 'HEAD'].includes(request.method))
-            return new Response('Method not allowed', { status: 405, headers: { Allow: 'GET, HEAD' } })
+            return new Response('Method not allowed', {
+                status: 405,
+                headers: { Allow: 'GET, HEAD' },
+            })
         if (!path.startsWith('/screen-data/')) return new Response('Not found', { status: 404 })
         const key = path.slice('/screen-data/'.length)
-        const report = /^reports\/[a-z0-9/-]+\/(manifest\.json|offline\.tar\.gz)$/.test(key)
+        const reportManifest = /^reports\/[a-z0-9/-]+\/manifest\.json$/.test(key)
+        const archive = /^reports\/[a-z0-9/-]+\/offline\.tar\.gz$/.test(key)
         const asset = /^assets\/[a-f0-9]{64}\.(png|webp)$/.test(key)
-        if (!['index.json', 'latest.json'].includes(key) && !report && !asset)
+        if (!['index.json', 'latest.json'].includes(key) && !reportManifest && !archive && !asset)
             return new Response('Not found', { status: 404 })
         try {
             const object = request.method === 'HEAD' ? await env.REPORTS.head(key) : await env.REPORTS.get(key)
@@ -21,15 +25,20 @@ export default {
                       : key.endsWith('.webp')
                         ? 'image/webp'
                         : 'application/gzip',
-                'Cache-Control': report || asset ? 'private, max-age=31536000, immutable' : 'private, max-age=60',
+                'Cache-Control': archive || asset ? 'private, max-age=31536000, immutable' : 'private, max-age=60',
                 'X-Content-Type-Options': 'nosniff',
                 ETag: object.httpEtag,
             })
             if (key.endsWith('.tar.gz'))
                 headers.set('Content-Disposition', 'attachment; filename="screen-library.tar.gz"')
-            return new Response(request.method === 'HEAD' ? null : object.body, { headers })
+            return new Response(request.method === 'HEAD' ? null : object.body, {
+                headers,
+            })
         } catch {
-            return new Response('Report storage unavailable', { status: 503, headers: { 'Cache-Control': 'no-store' } })
+            return new Response('Report storage unavailable', {
+                status: 503,
+                headers: { 'Cache-Control': 'no-store' },
+            })
         }
     },
 }
