@@ -297,6 +297,7 @@ export const useMultiPhaseKycFlow = ({
         liveKycStatus,
         handleInitiateKyc: originalHandleInitiateKyc,
         handleRestartIdentity,
+        handleResidenceChange,
         handleSelfHealResubmit,
         handleStartAction,
         handleFixableRejection,
@@ -307,6 +308,7 @@ export const useMultiPhaseKycFlow = ({
         isVerificationProgressModalOpen,
         closeVerificationProgressModal,
         isActionFlow,
+        isResidenceChangeFlow,
         isMultiLevel,
         verificationSession,
         showCorrection,
@@ -364,8 +366,12 @@ export const useMultiPhaseKycFlow = ({
     // wrap handleSdkComplete to track real-time flow
     const handleSdkComplete = useCallback(() => {
         reportedRejectionRef.current = null
-        posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, { region_intent: lastIntentRef.current ?? regionIntent })
-        isRealtimeFlowRef.current = true
+        if (!isResidenceChangeFlow) {
+            posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, {
+                region_intent: lastIntentRef.current ?? regionIntent,
+            })
+            isRealtimeFlowRef.current = true
+        }
         // Deliberately does NOT consume a deferred ACTION_REQUIRED for the capture
         // effect. On native this callback is ambiguous in a multi-level session:
         // SumsubNativeSdk marks Pending as submitted, so a Level-1 submit followed
@@ -375,12 +381,24 @@ export const useMultiPhaseKycFlow = ({
         // still consumes for the sibling transition effect — pre-existing, and the
         // same ambiguity applies to it.)
         originalHandleSdkComplete()
+        // Residence submission only puts the dedicated action into provider
+        // review. The approved identity and its rails remain authoritative
+        // until a matching GREEN webhook promotes the new residence, so there
+        // is no post-approval rail orchestration to start here.
+        if (isResidenceChangeFlow) return
         // for action flows (manteca, self-heal), the base status is already APPROVED
         // and won't transition — directly start the preparing/tracking phase
         if (isActionFlow && !verificationSession) {
             handleSumsubApproved()
         }
-    }, [originalHandleSdkComplete, handleSumsubApproved, isActionFlow, regionIntent, verificationSession])
+    }, [
+        originalHandleSdkComplete,
+        handleSumsubApproved,
+        isActionFlow,
+        isResidenceChangeFlow,
+        regionIntent,
+        verificationSession,
+    ])
 
     // true only while a PWA-reload resume drives handleInitiateKyc, so the
     // analytics event can distinguish a resume from a genuine new initiation
@@ -665,6 +683,7 @@ export const useMultiPhaseKycFlow = ({
         // initiation
         handleInitiateKyc,
         handleRestartIdentity,
+        handleResidenceChange,
         handleSelfHealResubmit,
         handleStartAction,
         handleFixableRejection,

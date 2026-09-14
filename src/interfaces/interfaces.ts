@@ -316,6 +316,11 @@ export interface IUserProfile {
         declared: string | null
         declaredSecond?: string | null
         verified: string | null
+        kycReported?: string | null
+        pending?: string | null
+        pendingSecond?: string | null
+        pendingStatus?: 'REQUESTED' | 'COLLECTING' | 'REVIEW_PENDING' | string | null
+        pendingRequestedAt?: string | null
         nextChangeAllowedAt?: string | null
     }
 }

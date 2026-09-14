@@ -369,7 +369,7 @@
                 "unverified": "Não confirmada",
                 "change": "Alterar",
                 "set": "Definir",
-                "pendingReverify": "Mudança para {country} pendente de nova verificação"
+                "pendingReverify": "Mudança para {country} pendente de verificação"
             },
             "yourRegion": "Sua região",
             "groups": {
@@ -409,7 +409,7 @@
                 "title": "Alterar sua residência",
                 "description": "Escolha o país onde você mora legalmente: o que aparece nos seus documentos.",
                 "countryPlaceholder": "Selecione seu país",
-                "verifiedMismatchNote": "Seus métodos de pagamento atuais continuam funcionando. Para que este seja seu país de residência verificado, você precisará verificar novamente com documentos desse país.",
+                "verifiedMismatchNote": "Sua residência verificada não muda até que uma nova verificação seja aprovada. Enquanto estiver pendente, a disponibilidade seguirá as regras mais restritivas dos dois países.",
                 "fullRestrictionNote": "Atenção: transferências bancárias e emissão de cartão não estão disponíveis para residentes deste país.",
                 "cardRestrictionNote": "Atenção: o cartão não está disponível para residentes deste país.",
                 "bankingRestrictionNote": "Atenção: transferências bancárias não estão disponíveis para residentes deste país.",
@@ -2571,6 +2571,7 @@
         "errorVerificationFailed": "A verificação falhou. Tente novamente.",
         "errorInitiateFailed": "Não conseguimos iniciar a verificação. Tente novamente.",
         "errorRestartFailed": "Não conseguimos reiniciar a verificação de identidade. Tente novamente.",
+        "errorResidenceChangeFailed": "Não conseguimos iniciar a verificação de residência. Tente novamente.",
         "errorResubmitFailed": "Não conseguimos iniciar o reenvio de documentos. Tente novamente.",
         "errorNoResponse": "Sem resposta do servidor. Tente novamente.",
         "errorStartDocVerification": "Não conseguimos iniciar a verificação de documentos. Tente novamente.",

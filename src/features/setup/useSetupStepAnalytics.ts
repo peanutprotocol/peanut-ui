@@ -1,11 +1,12 @@
 'use client'
 
 import { type ISetupStep, type ScreenId } from '@/components/Setup/Setup.types'
-import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import posthog from 'posthog-js'
+import {
+    captureSignupStepViewed,
+    type SignupEntryFlow,
+    type SignupNavigationType,
+} from '@/features/setup/signup-analytics'
 import { useEffect, useRef } from 'react'
-
-type NavType = 'initial' | 'forward' | 'back' | 'jump'
 
 /**
  * Emits SIGNUP_STEP_VIEWED on every step render — the whole flow is a single
@@ -18,11 +19,13 @@ export const useSetupStepAnalytics = ({
     enabled,
     step,
     steps,
+    signupEntryFlow,
 }: {
     /** keep false until the entry step is determined and actually rendered */
     enabled: boolean
     step: ISetupStep | undefined
     steps: ISetupStep[]
+    signupEntryFlow: SignupEntryFlow
 }) => {
     const lastScreenRef = useRef<ScreenId | null>(null)
 
@@ -36,18 +39,21 @@ export const useSetupStepAnalytics = ({
         const stepIndex = steps.findIndex((s) => s.screenId === screenId)
         lastScreenRef.current = screenId
 
-        let navType: NavType = 'initial'
+        let navType: SignupNavigationType = 'initial'
         if (previous) {
             if (stepIndex === previousIndex + 1) navType = 'forward'
             else if (stepIndex < previousIndex) navType = 'back'
             else navType = 'jump'
         }
 
-        posthog.capture(ANALYTICS_EVENTS.SIGNUP_STEP_VIEWED, {
-            screen_id: screenId,
-            step_index: stepIndex + 1,
-            total_steps: steps.length,
-            nav_type: navType,
+        captureSignupStepViewed({
+            screenId,
+            stepIndex: stepIndex + 1,
+            // Account ready is a semantic screen rendered inside the terminal
+            // step rather than a URL step, so include it in the funnel total.
+            totalSteps: steps.length + 1,
+            navType,
+            signupEntryFlow,
         })
-    }, [enabled, step, steps])
+    }, [enabled, signupEntryFlow, step, steps])
 }

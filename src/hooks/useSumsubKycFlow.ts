@@ -9,6 +9,7 @@ import {
     refreshVerificationSession,
     initiateSelfHealResubmission,
     restartIdentityVerification,
+    startResidenceChangeVerification,
     startKycAction,
     isTerminalActionCode,
     type SumsubActionErrorCode,
@@ -59,6 +60,7 @@ const KYC_POLL_MAX_DELAY_MS = 60_000
 const ACTION_ERROR_KEYS = {
     initiate_failed: 'errorInitiateFailed',
     restart_failed: 'errorRestartFailed',
+    residence_change_failed: 'errorResidenceChangeFailed',
     resubmit_failed: 'errorResubmitFailed',
     start_action_failed: 'errorStartActionFailed',
     invalid_response: 'errorInvalidResponse',
@@ -172,6 +174,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const levelNameRef = useRef<string | undefined>(undefined)
     // tracks the selected target country across initiate + refresh for country-scoped Manteca actions
     const targetCountryRef = useRef<string | undefined>(undefined)
+    const residenceChangeCountryRef = useRef<string | null>(null)
     // guards fetchCurrentStatus from running while handleInitiateKyc is in progress
     const initiatingRef = useRef(false)
     // guard: only fire onKycSuccess when the user initiated a kyc flow in this session.
@@ -184,6 +187,10 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // POST /users/identity ignores levelName and no-ops for an already-approved
     // user, so an RFI token can only be re-minted through start-action.
     const actionKeyRef = useRef<string | null>(null)
+    // Dedicated Applicant Action for a pending residence. Kept separate from
+    // actionKeyRef because it has its own idempotent token endpoint and must
+    // never refresh through ordinary /users/identity.
+    const residenceChangeRef = useRef(false)
 
     useEffect(() => {
         regionIntentRef.current = regionIntent
@@ -219,6 +226,16 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         // Both flags are committed state rather than refs, so an interrupted render
         // can never leak a value this guard acts on.
         if (liveKycStatus === 'ACTION_REQUIRED' && showWrapper && isMultiLevel) return
+
+        // A residence Applicant Action leaves the base identity APPROVED. Ignore
+        // every identity-status transition for the action's full lifetime so a
+        // connect-time or delayed APPROVED event cannot close the action or start
+        // rail orchestration. Advancing the previous status consumes that stale
+        // base event instead of replaying it after the action closes.
+        if (residenceChangeRef.current) {
+            prevStatusRef.current = liveKycStatus
+            return
+        }
 
         // A provider action retains base identity approval. Only its own session
         // can finish this flow, never a stale identity APPROVED websocket event.
@@ -359,6 +376,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             initiatingRef.current = true
             selfHealProviderRef.current = null
             actionKeyRef.current = null
+            residenceChangeRef.current = false
             setIsLoading(true)
             setError(null)
             setIsTerminalError(false)
@@ -576,16 +594,27 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
     // called when sdk signals applicant submitted
     const handleSdkComplete = useCallback(() => {
-        userInitiatedRef.current = true
         selfHealProviderRef.current = null
         actionKeyRef.current = null
+        if (residenceChangeRef.current) {
+            userInitiatedRef.current = false
+            residenceChangeRef.current = false
+            residenceChangeCountryRef.current = null
+            setShowWrapper(false)
+            setIsActionFlow(false)
+            setIsMultiLevel(false)
+            setIsVerificationProgressModalOpen(false)
+            onManualClose?.()
+            return
+        }
+        userInitiatedRef.current = true
         // Only a single-level submission proves the deferred action was completed.
         if (!isMultiLevel && liveKycStatus === 'ACTION_REQUIRED') prevStatusRef.current = 'ACTION_REQUIRED'
         setShowWrapper(false)
         setIsActionFlow(false)
         setIsMultiLevel(false)
         setIsVerificationProgressModalOpen(true)
-    }, [isMultiLevel, liveKycStatus])
+    }, [isMultiLevel, liveKycStatus, onManualClose])
 
     // Called when the user manually closes the SDK modal. Every manual close
     // replays a deferred ACTION_REQUIRED: the wrapper cannot tell "submitted the
@@ -593,6 +622,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // any close as a submission would swallow a real action-required state.
     // Only single-level completion consumes the deferred action.
     const handleClose = useCallback(() => {
+        if (residenceChangeRef.current) userInitiatedRef.current = false
+        residenceChangeRef.current = false
+        residenceChangeCountryRef.current = null
         setShowWrapper(false)
         setIsActionFlow(false)
         setIsMultiLevel(false)
@@ -604,6 +636,17 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // the regular KYC endpoint.
     const refreshToken = useCallback(async (): Promise<string> => {
         if (verificationSessionRef.current) return refreshVerificationSession(verificationSessionRef.current)
+
+        if (residenceChangeRef.current) {
+            const targetCountry = residenceChangeCountryRef.current
+            if (!targetCountry) throw new Error('Residence verification target is missing')
+            const response = await startResidenceChangeVerification(targetCountry)
+            if (response.error || !response.data?.token) {
+                throw new Error(response.error || 'Failed to refresh residence verification token')
+            }
+            setAccessToken(response.data.token)
+            return response.data.token
+        }
 
         if (actionKeyRef.current) {
             const response = await startKycAction(actionKeyRef.current)
@@ -674,6 +717,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             // refresh through initiateSelfHealResubmission instead of the regular path).
             selfHealProviderRef.current = null
             actionKeyRef.current = null
+            residenceChangeRef.current = false
 
             try {
                 // Only an EXPLICIT override is forwarded, never the local ref.
@@ -726,6 +770,52 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         [t, actionErrorMessage, setError]
     )
 
+    // Open the applicant action associated with the current pending residence.
+    // This is intentionally not handleRestartIdentity: the base applicant stays
+    // APPROVED and its ID documents stay active throughout this flow.
+    const handleResidenceChange = useCallback(
+        async (targetCountry: string) => {
+            verificationSessionRef.current = null
+            setVerificationSession(null)
+            setShowCorrection(false)
+            setIsLoading(true)
+            setError(null)
+            setIsTerminalError(false)
+            // The base applicant is already APPROVED, so identity status must
+            // never be allowed to complete this action or drive rail orchestration.
+            userInitiatedRef.current = false
+            selfHealProviderRef.current = null
+            actionKeyRef.current = null
+            residenceChangeRef.current = true
+            residenceChangeCountryRef.current = targetCountry.trim().toUpperCase()
+
+            try {
+                const response = await startResidenceChangeVerification(residenceChangeCountryRef.current)
+                if (response.error || !response.data?.token) {
+                    userInitiatedRef.current = false
+                    residenceChangeRef.current = false
+                    residenceChangeCountryRef.current = null
+                    setError(response.error ? actionErrorMessage(response) : t('errorResidenceChangeFailed'))
+                    setErrorCooldown(response.cooldown ?? null)
+                    return
+                }
+                levelNameRef.current = response.data.levelName
+                setAccessToken(response.data.token)
+                setIsActionFlow(true)
+                setIsMultiLevel(false)
+                setShowWrapper(true)
+            } catch (e: unknown) {
+                userInitiatedRef.current = false
+                residenceChangeRef.current = false
+                residenceChangeCountryRef.current = null
+                setError(e instanceof Error ? e.message : t('unexpectedError'))
+            } finally {
+                setIsLoading(false)
+            }
+        },
+        [t, actionErrorMessage, setError]
+    )
+
     // initiate self-heal document resubmission: calls the resubmit API
     // and opens the sumsub SDK with the action token. `requirementKey` targets a
     // specific (e.g. future-dated advisory) Bridge requirement; omitted for the
@@ -740,6 +830,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             userInitiatedRef.current = true
             selfHealProviderRef.current = provider
             actionKeyRef.current = null
+            residenceChangeRef.current = false
 
             try {
                 const response = await initiateSelfHealResubmission(provider, requirementKey)
@@ -789,6 +880,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             userInitiatedRef.current = true
             selfHealProviderRef.current = null
             actionKeyRef.current = null
+            residenceChangeRef.current = false
 
             try {
                 const response = await startKycAction(key)
@@ -865,6 +957,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         rejectLabels,
         handleInitiateKyc,
         handleRestartIdentity,
+        handleResidenceChange,
         handleSelfHealResubmit,
         handleStartAction,
         handleFixableRejection,
@@ -877,6 +970,10 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         closeVerificationModalAndGoHome,
         resetError,
         isActionFlow,
+        // The outer multi-phase orchestrator must not treat this Applicant
+        // Action as an identity/provider approval. The ref is current before
+        // the SDK opens; showWrapper's state update publishes it on render.
+        isResidenceChangeFlow: residenceChangeRef.current,
         isMultiLevel,
         verificationSession,
         showCorrection,

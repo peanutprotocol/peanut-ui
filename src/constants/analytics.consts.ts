@@ -15,6 +15,7 @@ export const ANALYTICS_EVENTS = {
     SIGNUP_RESIDENCE_RESTRICTED_CONTINUED: 'signup_residence_restricted_continued',
     SIGNUP_RESIDENCE_NOTIFY_SUBMITTED: 'signup_residence_notify_submitted',
     RESIDENCE_CHANGED: 'residence_changed',
+    HOME_VIEWED: 'home_viewed',
     HOME_CHECKLIST_VIEWED: 'home_checklist_viewed',
     HOME_CHECKLIST_ITEM_CLICKED: 'home_checklist_item_clicked',
     KYC_DEGRADED_NOTIFY_REQUESTED: 'kyc_degraded_notify_requested',
@@ -32,6 +33,7 @@ export const ANALYTICS_EVENTS = {
     SIGNUP_TEST_TX_STARTED: 'signup_test_tx_started',
     SIGNUP_TEST_TX_SIGNED: 'signup_test_tx_signed',
     SIGNUP_TEST_TX_FAILED: 'signup_test_tx_failed',
+    SIGNUP_ACCOUNT_READY_CTA_CLICKED: 'signup_account_ready_cta_clicked',
     SIGNUP_COMPLETED: 'signup_completed',
 
     // ── PWA install ──

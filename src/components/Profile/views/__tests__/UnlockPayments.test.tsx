@@ -64,8 +64,10 @@ let mockKycDegraded = false
 jest.mock('@/hooks/useKycDegraded', () => ({ useKycDegraded: () => mockKycDegraded }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn(), setPersonProperties: jest.fn() } }))
 
-let mockUser: { residence?: { declared: string | null; verified: string | null }; user?: { userId: string } } | null =
-    null
+let mockUser: {
+    residence?: { declared: string | null; verified: string | null; pending?: string | null }
+    user?: { userId: string }
+} | null = null
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser }) }))
 
 jest.mock('@/hooks/useCardInfo', () => ({
@@ -81,6 +83,7 @@ jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSu
 
 const mockInitiateKyc = jest.fn()
 const mockRestartIdentity = jest.fn()
+const mockResidenceChange = jest.fn()
 const mockDismissCooldown = jest.fn()
 let mockFlowCooldown: { retryAt?: string } | null = null
 let mockFlowError: string | null = null
@@ -92,6 +95,7 @@ jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
         handleSelfHealResubmit: mockSelfHealResubmit,
         handleFixableRejection: mockFixableRejection,
         handleRestartIdentity: mockRestartIdentity,
+        handleResidenceChange: mockResidenceChange,
         isLoading: false,
         error: mockFlowError,
         errorCooldown: mockFlowCooldown,
@@ -114,11 +118,11 @@ jest.mock('@/components/IdentityVerification/UnlockMethodModal', () => ({
 }))
 jest.mock('@/components/Profile/views/ResidenceChangeDrawer', () => ({
     __esModule: true,
-    default: ({ visible, onReverify }: { visible: boolean; onReverify: (iso2: string) => void }) =>
+    default: ({ visible, onReverify }: { visible: boolean; onReverify: (targetCountry: string) => void }) =>
         visible ? (
             <div>
                 change-modal-open
-                <button onClick={() => onReverify('BR')}>reverify</button>
+                <button onClick={() => onReverify('PT')}>reverify</button>
             </div>
         ) : null,
 }))
@@ -218,22 +222,20 @@ describe('UnlockPayments', () => {
     })
 
     it('a failed residence re-verification reads as retriable, not "Not available yet"', () => {
-        mockUser = { residence: { declared: 'ES', verified: 'BR' }, user: { userId: 'u1' } }
+        mockUser = { residence: { declared: 'BR', verified: 'BR', pending: 'ES' }, user: { userId: 'u1' } }
         mockFlowError = 'Not Found'
         render()
         expect(screen.getByText('Not available yet')).toBeInTheDocument()
 
         fireEvent.click(screen.getByLabelText('Change'))
         fireEvent.click(screen.getByText('reverify'))
-        // the new residence's intent rides along so the token targets the right level
-        expect(mockRestartIdentity).toHaveBeenCalledTimes(1)
-        expect(mockRestartIdentity).toHaveBeenCalledWith('LATAM')
+        expect(mockResidenceChange).toHaveBeenNthCalledWith(1, 'PT')
+        expect(mockRestartIdentity).not.toHaveBeenCalled()
 
         expect(screen.getByText("Verification couldn't start")).toBeInTheDocument()
         expect(screen.queryByText('Not available yet')).not.toBeInTheDocument()
         fireEvent.click(screen.getByText('Try again'))
-        expect(mockRestartIdentity).toHaveBeenCalledTimes(2)
-        expect(mockRestartIdentity).toHaveBeenLastCalledWith('LATAM')
+        expect(mockResidenceChange).toHaveBeenNthCalledWith(2, 'PT')
         expect(mockInitiateKyc).not.toHaveBeenCalled()
     })
 
@@ -347,9 +349,9 @@ describe('UnlockPayments', () => {
         expect(mockFixableRejection).not.toHaveBeenCalled()
     })
 
-    it('a declared change pending re-verification is surfaced on the row', () => {
-        mockUser = { residence: { declared: 'ES', verified: 'BR' }, user: { userId: 'u1' } }
+    it('a pending residence verification is surfaced without replacing the active country', () => {
+        mockUser = { residence: { declared: 'BR', verified: 'BR', pending: 'ES' }, user: { userId: 'u1' } }
         render()
-        expect(screen.getByText('Update to Spain pending re-verification')).toBeInTheDocument()
+        expect(screen.getByText('Change to Spain pending verification')).toBeInTheDocument()
     })
 })
