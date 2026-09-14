@@ -10408,10 +10408,12 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        avatarKey?: string | null;
                         bridgeKycStatus?: "not_started" | "incomplete" | "under_review" | "approved" | "rejected";
                         bridge_customer_id?: string;
                         dismissActivationCelebration?: boolean;
                         email?: string;
+                        emailVerificationCode?: string;
                         fullName?: string;
                         hasSeenEarlyUserModal?: boolean;
                         locale?: string;
@@ -10423,7 +10425,6 @@ export interface paths {
                         telegramUsername?: string;
                         userId: string;
                         username?: string;
-                        emailVerificationCode?: string;
                     };
                 };
             };
@@ -10451,6 +10452,19 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "STEP_UP_REQUIRED";
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -10459,6 +10473,14 @@ export interface paths {
                         "application/json": {
                             message: string;
                             success: boolean;
+                        } | {
+                            /** @enum {string} */
+                            code: "EMAIL_IN_USE";
+                            error: string;
+                        } | {
+                            /** @enum {string} */
+                            code: "RESIDENCE_CHANGE_UNAVAILABLE";
+                            error: string;
                         };
                     };
                 };
@@ -10475,14 +10497,12 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
-                401: {
+                503: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
-                            /** @enum {string} */
-                            code: "STEP_UP_REQUIRED";
                             error: string;
                         };
                     };
@@ -11355,18 +11375,22 @@ export interface paths {
                                 status: "not_started" | "processing" | "verified" | "action_required" | "failed";
                                 submittedAt?: string;
                             };
+                            profileNameLocked: boolean;
                             residence: {
                                 declared: string | null;
                                 declaredSecond: string | null;
                                 kycReported: string | null;
                                 nextChangeAllowedAt: string | null;
+                                pending: string | null;
+                                pendingRequestedAt: string | null;
+                                pendingSecond: string | null;
+                                pendingStatus: string | null;
                                 verified: string | null;
                             };
                             residenceRestrictions: {
                                 banking: boolean;
                                 card: boolean;
                             };
-                            profileNameLocked: boolean;
                         } & {
                             [key: string]: unknown;
                         };
@@ -12146,6 +12170,191 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/identity/restart": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Reset the Sumsub IDENTITY step for an authorised document-replacement flow and mint a fresh SDK token. Residence changes use a non-destructive Applicant Action. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        /** @description Level the token must target. The declared residence decides (AR/BR → LATAM, US/MX → NA, SEPA zone → EU, else ROW); a request for another provider's level is rejected with 400, an EU/ROW request is corrected. Defaults to the level the declared residence needs. */
+                        regionIntent?: "LATAM" | "ROW" | "EU" | "NA";
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            applicantId: string;
+                            levelName: string;
+                            /** @description The intent the server resolved for this restart. The caller must drive its SDK session from THIS value, not from what it asked for: the declared residence can overrule the request, and `levelName` alone cannot tell EU from NA or LATAM from ROW (each pair shares a level). */
+                            regionIntent: string;
+                            token: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** Format: date-time */
+                            retryAt?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/residence-change/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                    "api-key"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            applicantId: string;
+                            levelName: string;
+                            targetCountry: string;
+                            token: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
                             error: string;
                         };
                     };

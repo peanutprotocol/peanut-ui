@@ -2734,7 +2734,7 @@
                         "description": "Default Response"
                     }
                 },
-                "summary": "Get the user\u2019s current waitlist state",
+                "summary": "Get the user’s current waitlist state",
                 "tags": [
                     "card"
                 ]
@@ -7286,7 +7286,7 @@
         },
         "/dev/poll": {
             "post": {
-                "description": "Triggers runPollingCycle() on demand \u2014 used by the QA harness to observe provider state transitions without waiting for the 5-minute interval.",
+                "description": "Triggers runPollingCycle() on demand — used by the QA harness to observe provider state transitions without waiting for the 5-minute interval.",
                 "responses": {
                     "200": {
                         "content": {
@@ -7951,7 +7951,7 @@
         },
         "/dev/submit-to-providers": {
             "post": {
-                "description": "Drives Peanut's submitToProviders(userId, applicantId) synchronously, the same function the Sumsub status-processor calls after GREEN. Used by QA harness to test routing (AR user \u2192 Manteca, US user \u2192 Bridge) end-to-end.",
+                "description": "Drives Peanut's submitToProviders(userId, applicantId) synchronously, the same function the Sumsub status-processor calls after GREEN. Used by QA harness to test routing (AR user → Manteca, US user → Bridge) end-to-end.",
                 "requestBody": {
                     "content": {
                         "application/json": {
@@ -8189,7 +8189,7 @@
         },
         "/dev/trigger-sumsub-webhook": {
             "post": {
-                "description": "Invokes processSumsubKycUpdate({ applicantId, externalUserId, reviewAnswer, reviewStatus, source: 'webhook' }) \u2014 same entry point as the real /sumsub/webhooks route, minus HMAC. Used by the QA harness to exercise the full Sumsub \u2192 routing chain without real webhook delivery.",
+                "description": "Invokes processSumsubKycUpdate({ applicantId, externalUserId, reviewAnswer, reviewStatus, source: 'webhook' }) — same entry point as the real /sumsub/webhooks route, minus HMAC. Used by the QA harness to exercise the full Sumsub → routing chain without real webhook delivery.",
                 "requestBody": {
                     "content": {
                         "application/json": {
@@ -10197,7 +10197,7 @@
         },
         "/manteca/deposit/{depositId}/status": {
             "get": {
-                "description": "Poll the status of a deposit order by its Manteca synthetic id. Used by the BRL PIX QR flow to detect completion (intent.status === COMPLETED) without leaving the user on a static QR. Read-only \u2014 the webhook/poller remain the authoritative completion trigger.",
+                "description": "Poll the status of a deposit order by its Manteca synthetic id. Used by the BRL PIX QR flow to detect completion (intent.status === COMPLETED) without leaving the user on a static QR. Read-only — the webhook/poller remain the authoritative completion trigger.",
                 "parameters": [
                     {
                         "in": "path",
@@ -16653,6 +16653,18 @@
                         "application/json": {
                             "schema": {
                                 "properties": {
+                                    "avatarKey": {
+                                        "anyOf": [
+                                            {
+                                                "maxLength": 64,
+                                                "pattern": "^(basic\\.[a-z][a-z0-9-]*|badge\\.[A-Z0-9_]+\\.[a-z][a-z0-9-]*|letter\\.[a-z])$",
+                                                "type": "string"
+                                            },
+                                            {
+                                                "type": "null"
+                                            }
+                                        ]
+                                    },
                                     "bridgeKycStatus": {
                                         "anyOf": [
                                             {
@@ -16696,6 +16708,10 @@
                                     "email": {
                                         "type": "string"
                                     },
+                                    "emailVerificationCode": {
+                                        "pattern": "^[0-9]{6}$",
+                                        "type": "string"
+                                    },
                                     "fullName": {
                                         "type": "string"
                                     },
@@ -16733,10 +16749,6 @@
                                     },
                                     "username": {
                                         "type": "string"
-                                    },
-                                    "emailVerificationCode": {
-                                        "type": "string",
-                                        "pattern": "^[0-9]{6}$"
                                     }
                                 },
                                 "required": [
@@ -16765,7 +16777,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "description": "Invalid input \u2014 malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code.",
+                                    "description": "Invalid input — malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code.",
                                     "properties": {
                                         "error": {
                                             "type": "string"
@@ -16775,25 +16787,90 @@
                                 }
                             }
                         },
-                        "description": "Invalid input \u2014 malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code."
+                        "description": "Invalid input — malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code."
+                    },
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "enum": [
+                                                "STEP_UP_REQUIRED"
+                                            ],
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error",
+                                        "code"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
                     },
                     "409": {
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string"
+                                    "anyOf": [
+                                        {
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "success": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "success",
+                                                "message"
+                                            ],
+                                            "type": "object"
                                         },
-                                        "success": {
-                                            "type": "boolean"
+                                        {
+                                            "properties": {
+                                                "code": {
+                                                    "enum": [
+                                                        "EMAIL_IN_USE"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                "error": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "error",
+                                                "code"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "properties": {
+                                                "code": {
+                                                    "enum": [
+                                                        "RESIDENCE_CHANGE_UNAVAILABLE"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                "error": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "error",
+                                                "code"
+                                            ],
+                                            "type": "object"
                                         }
-                                    },
-                                    "required": [
-                                        "success",
-                                        "message"
-                                    ],
-                                    "type": "object"
+                                    ]
                                 }
                             }
                         },
@@ -16821,24 +16898,17 @@
                         },
                         "description": "Default Response"
                     },
-                    "401": {
+                    "503": {
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "properties": {
-                                        "code": {
-                                            "enum": [
-                                                "STEP_UP_REQUIRED"
-                                            ],
-                                            "type": "string"
-                                        },
                                         "error": {
                                             "type": "string"
                                         }
                                     },
                                     "required": [
-                                        "error",
-                                        "code"
+                                        "error"
                                     ],
                                     "type": "object"
                                 }
@@ -18649,6 +18719,9 @@
                                             ],
                                             "type": "object"
                                         },
+                                        "profileNameLocked": {
+                                            "type": "boolean"
+                                        },
                                         "residence": {
                                             "properties": {
                                                 "declared": {
@@ -18691,6 +18764,47 @@
                                                         }
                                                     ]
                                                 },
+                                                "pending": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "pendingRequestedAt": {
+                                                    "anyOf": [
+                                                        {
+                                                            "format": "date-time",
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "pendingSecond": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "pendingStatus": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
                                                 "verified": {
                                                     "anyOf": [
                                                         {
@@ -18707,6 +18821,10 @@
                                                 "declaredSecond",
                                                 "verified",
                                                 "kycReported",
+                                                "pending",
+                                                "pendingSecond",
+                                                "pendingStatus",
+                                                "pendingRequestedAt",
                                                 "nextChangeAllowedAt"
                                             ],
                                             "type": "object"
@@ -18725,9 +18843,6 @@
                                                 "card"
                                             ],
                                             "type": "object"
-                                        },
-                                        "profileNameLocked": {
-                                            "type": "boolean"
                                         }
                                     },
                                     "required": [
@@ -19542,6 +19657,298 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/users/identity/restart": {
+            "post": {
+                "description": "Reset the Sumsub IDENTITY step for an authorised document-replacement flow and mint a fresh SDK token. Residence changes use a non-destructive Applicant Action.",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "regionIntent": {
+                                        "anyOf": [
+                                            {
+                                                "enum": [
+                                                    "LATAM"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "ROW"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "EU"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "NA"
+                                                ],
+                                                "type": "string"
+                                            }
+                                        ],
+                                        "description": "Level the token must target. The declared residence decides (AR/BR → LATAM, US/MX → NA, SEPA zone → EU, else ROW); a request for another provider's level is rejected with 400, an EU/ROW request is corrected. Defaults to the level the declared residence needs."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "applicantId": {
+                                            "type": "string"
+                                        },
+                                        "levelName": {
+                                            "type": "string"
+                                        },
+                                        "regionIntent": {
+                                            "description": "The intent the server resolved for this restart. The caller must drive its SDK session from THIS value, not from what it asked for: the declared residence can overrule the request, and `levelName` alone cannot tell EU from NA or LATAM from ROW (each pair shares a level).",
+                                            "type": "string"
+                                        },
+                                        "token": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "token",
+                                        "levelName",
+                                        "applicantId",
+                                        "regionIntent"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "403": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "429": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "retryAt": {
+                                            "format": "date-time",
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "503": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                },
+                "tags": [
+                    "users"
+                ]
+            }
+        },
+        "/users/residence-change/start": {
+            "post": {
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "header",
+                        "name": "api-key",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "applicantId": {
+                                            "type": "string"
+                                        },
+                                        "levelName": {
+                                            "type": "string"
+                                        },
+                                        "targetCountry": {
+                                            "type": "string"
+                                        },
+                                        "token": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "token",
+                                        "levelName",
+                                        "applicantId",
+                                        "targetCountry"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "502": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
                                         "error": {
                                             "type": "string"
                                         }
