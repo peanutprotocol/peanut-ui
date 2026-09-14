@@ -2628,6 +2628,7 @@
         "errorVerificationFailed": "A verificação falhou. Tente novamente.",
         "errorInitiateFailed": "Não conseguimos iniciar a verificação. Tente novamente.",
         "errorRestartFailed": "Não conseguimos reiniciar a verificação de identidade. Tente novamente.",
+        "errorResidenceChangeFailed": "Não conseguimos iniciar a verificação de residência. Tente novamente.",
         "errorResubmitFailed": "Não conseguimos iniciar o reenvio de documentos. Tente novamente.",
         "errorNoResponse": "Sem resposta do servidor. Tente novamente.",
         "errorStartDocVerification": "Não conseguimos iniciar a verificação de documentos. Tente novamente.",

@@ -1097,6 +1097,7 @@
         "errorVerificationFailed": "La verificación falló. Intentalo de nuevo.",
         "errorInitiateFailed": "No pudimos iniciar la verificación. Intentalo de nuevo.",
         "errorRestartFailed": "No pudimos reiniciar la verificación de identidad. Intentalo de nuevo.",
+        "errorResidenceChangeFailed": "No pudimos iniciar la verificación de residencia. Intentalo de nuevo.",
         "errorResubmitFailed": "No pudimos iniciar el reenvío de documentos. Intentalo de nuevo.",
         "errorNoResponse": "No hubo respuesta del servidor. Intentalo de nuevo.",
         "errorStartDocVerification": "No pudimos iniciar la verificación de documentos. Intentalo de nuevo.",

@@ -2628,6 +2628,7 @@
         "errorVerificationFailed": "Verification failed. Please try again.",
         "errorInitiateFailed": "Could not initiate verification. Please try again.",
         "errorRestartFailed": "Could not restart identity verification. Please try again.",
+        "errorResidenceChangeFailed": "Could not start residence verification. Please try again.",
         "errorResubmitFailed": "Could not initiate document resubmission. Please try again.",
         "errorNoResponse": "No response from server. Please try again.",
         "errorStartDocVerification": "Could not start document verification. Please try again.",

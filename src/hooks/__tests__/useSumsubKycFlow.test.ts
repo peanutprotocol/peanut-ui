@@ -432,6 +432,21 @@ describe('useSumsubKycFlow — multi-level workflows', () => {
         expect(onManualClose).toHaveBeenCalledTimes(1)
     })
 
+    it('uses residence-specific fallback copy when its action cannot start', async () => {
+        mockResidenceChange.mockResolvedValue({
+            error: 'Failed to start residence change verification',
+            code: 'residence_change_failed',
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleResidenceChange()
+        })
+
+        expect(result.current.error).toBe('Could not start residence verification. Please try again.')
+        expect(result.current.error).not.toMatch(/identity/i)
+    })
+
     // The backend derives the intent from the declared residence when the caller
     // names none (the Manteca CTAs), and can overrule one that contradicts it.
     // `levelName` cannot stand in: EU and NA share `bridge-requirements`, LATAM

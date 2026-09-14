@@ -60,7 +60,7 @@ const KYC_POLL_MAX_DELAY_MS = 60_000
 const ACTION_ERROR_KEYS = {
     initiate_failed: 'errorInitiateFailed',
     restart_failed: 'errorRestartFailed',
-    residence_change_failed: 'errorRestartFailed',
+    residence_change_failed: 'errorResidenceChangeFailed',
     resubmit_failed: 'errorResubmitFailed',
     start_action_failed: 'errorStartActionFailed',
     invalid_response: 'errorInvalidResponse',
@@ -609,6 +609,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // any close as a submission would swallow a real action-required state.
     // Only single-level completion consumes the deferred action.
     const handleClose = useCallback(() => {
+        residenceChangeRef.current = false
         setShowWrapper(false)
         setIsActionFlow(false)
         setIsMultiLevel(false)
@@ -772,7 +773,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             if (response.error || !response.data?.token) {
                 userInitiatedRef.current = false
                 residenceChangeRef.current = false
-                setError(response.error ? actionErrorMessage(response) : t('errorRestartFailed'))
+                setError(response.error ? actionErrorMessage(response) : t('errorResidenceChangeFailed'))
                 return
             }
             levelNameRef.current = response.data.levelName
@@ -918,6 +919,10 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         closeVerificationModalAndGoHome,
         resetError,
         isActionFlow,
+        // The outer multi-phase orchestrator must not treat this Applicant
+        // Action as an identity/provider approval. The ref is current before
+        // the SDK opens; showWrapper's state update publishes it on render.
+        isResidenceChangeFlow: residenceChangeRef.current,
         isMultiLevel,
         verificationSession,
         showCorrection,
