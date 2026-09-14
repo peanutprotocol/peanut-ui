@@ -204,5 +204,7 @@ jobs:
         # Resolve the secret-bearing publisher only from trusted dev code.
         uses: peanutprotocol/peanut-ui/.github/workflows/screen-library-publish.yml@dev
         secrets:
-            # The repository secret itself is named CLOUDFLARE_API_TOKEN.
+            # One repository secret supplies both trusted jobs. Keep the legacy
+            # publisher input name only at the reusable-workflow boundary.
             CLOUDFLARE_PUBLISH_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+            CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
