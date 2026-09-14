@@ -14,7 +14,10 @@ shares the exact visible view.
 
 Only Nutcracker PNGs and a small allowlisted manifest are published. Replay
 credentials, database snapshots, API traces, console output and provider details
-stay in the private GitHub Actions artifact and never enter R2.
+stay in the private GitHub Actions artifact and never enter R2. Published routes
+contain pathname only, thumbnails must be bounded WebP assets, and run-wide
+attempted/failed counts prevent failures without screenshots from being labelled
+complete.
 
 ## Capture and compare
 

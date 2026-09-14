@@ -25,19 +25,6 @@ const localeLabel = (locale) => LOCALE_LABELS[locale] ?? locale ?? 'English'
 const localeCode = (locale) => LOCALE_CODES[locale] ?? locale ?? 'EN'
 const SOURCE_LABELS = { synthetic: 'App states', nutcracker: 'Real journeys' }
 const entrySource = (entry) => entry?.source ?? 'synthetic'
-const FILTER_STATUSES = new Set([
-    'differences',
-    'changed',
-    'added',
-    'removed',
-    'unchanged',
-    'unavailable',
-    'captured',
-    'passed',
-    'failed',
-    'excluded',
-    'absent',
-])
 const localeSlugs = new Set(['en', 'es-419', 'es-ar', 'pt-br'])
 const withoutLocale = (path) =>
     path
@@ -476,7 +463,10 @@ async function start() {
     const requestedFlow = requestedFilter('flow')
     $('flow').value = rows.some((row) => row.flow === requestedFlow) ? requestedFlow : ''
     const requestedStatus = requestedFilter('status')
-    $('status').value = FILTER_STATUSES.has(requestedStatus)
+    const reportHasStatus =
+        rows.some((row) => row.status === requestedStatus) ||
+        (report.type === 'comparison' && requestedStatus === 'differences')
+    $('status').value = reportHasStatus
         ? requestedStatus
         : report.type === 'comparison' && viewMode === 'changed'
           ? 'differences'
@@ -517,6 +507,7 @@ $('source').addEventListener('change', () => {
                 {
                     source: entrySource(entry),
                     locale: entry.locale,
+                    status: '',
                 },
                 ''
             )

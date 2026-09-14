@@ -364,6 +364,82 @@ test('report filters restore from and continuously update the shareable URL', as
     )
 })
 
+test('report navigation drops status filters that belong to a different source', async () => {
+    const image = 'a'.repeat(64) + '.png'
+    const thumbnail = 'b'.repeat(64) + '.webp'
+    const journeyPath = '2026-09-14/nutcracker/en/' + 'c'.repeat(40)
+    const syntheticPath = '2026-09-14/dev/en/' + 'd'.repeat(40)
+    const report = {
+        schema: 1,
+        type: 'journeys',
+        source: 'nutcracker',
+        commit: 'c'.repeat(40),
+        uiCommit: 'd'.repeat(40),
+        apiCommit: 'e'.repeat(40),
+        locale: 'en',
+        environment: 'sandbox',
+        capturedAt: '2026-09-14T08:00:00Z',
+        profile: 'en-iphone-14',
+        width: 390,
+        height: 664,
+        complete: true,
+        screens: [
+            {
+                id: 'send-success',
+                name: 'Send success',
+                flow: 'e2e-send',
+                kind: 'route',
+                route: '/send/success',
+                trustTier: 'full-e2e',
+                status: 'passed',
+                image,
+                thumbnail,
+            },
+        ],
+    }
+    const elements = await loadLanding(`/screens/${journeyPath}/`, {
+        index: [
+            { path: journeyPath, locale: 'en', source: 'nutcracker' },
+            { path: syntheticPath, locale: 'en', source: 'synthetic' },
+        ],
+        report,
+        search: '?source=nutcracker&locale=en&status=passed',
+    })
+    assert.equal(elements.get('status').value, 'passed')
+    elements.get('source').value = 'synthetic'
+    elements.get('source').dispatch('change')
+    assert.equal(elements.location.href, `/screens/${syntheticPath}/?source=synthetic&locale=en`)
+})
+
+test('reports discard status filters that do not exist in their rows', async () => {
+    const image = 'a'.repeat(64) + '.png'
+    const report = {
+        schema: 1,
+        type: 'capture',
+        locale: 'en',
+        complete: true,
+        capturedAt: '2026-09-14T08:00:00Z',
+        screens: [
+            {
+                id: 'home',
+                name: 'Home',
+                flow: 'Home',
+                kind: 'route',
+                status: 'captured',
+                image,
+                thumbnail: image,
+            },
+        ],
+    }
+    const elements = await loadLanding('/screens/2026-09-14/dev/en/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/', {
+        report,
+        search: '?source=synthetic&locale=en&status=passed',
+    })
+    assert.equal(elements.get('status').value, '')
+    assert.equal(elements.get('screens').children.length, 1)
+    assert.equal(elements.location.search, '?source=synthetic&locale=en')
+})
+
 test('screen lists load the first page and leave the next page for scroll loading', async () => {
     const image = 'a'.repeat(64) + '.png'
     const report = {

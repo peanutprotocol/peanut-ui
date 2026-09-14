@@ -129,6 +129,9 @@ test('Nutcracker journeys retain only allowlisted public metadata', () => {
         profile: 'en-iphone-14',
         width: 390,
         height: 664,
+        attemptedSteps: 1,
+        failedSteps: 0,
+        omittedFailedSteps: 0,
         complete: true,
         replaySecret: 'do-not-publish',
         screens: [
@@ -152,10 +155,45 @@ test('Nutcracker journeys retain only allowlisted public metadata', () => {
     assert.equal(output.screens[0].trace, undefined)
     assert.equal(output.screens[0].route, '/send/success')
     assert.equal(output.screens[0].trustTier, 'full-e2e')
+    assert.equal(output.attemptedSteps, 1)
+    assert.equal(output.failedSteps, 0)
+    assert.equal(output.omittedFailedSteps, 0)
     assert.equal(
-        validateJourneys({ ...input, complete: true, screens: [{ ...input.screens[0], status: 'failed' }] }).complete,
+        validateJourneys({
+            ...input,
+            complete: true,
+            failedSteps: 1,
+            screens: [{ ...input.screens[0], status: 'failed' }],
+        }).complete,
         false
     )
+    assert.equal(
+        validateJourneys({
+            ...input,
+            complete: true,
+            attemptedSteps: 2,
+            failedSteps: 1,
+            omittedFailedSteps: 1,
+        }).complete,
+        false
+    )
+    assert.throws(
+        () =>
+            validateJourneys({
+                ...input,
+                screens: [{ ...input.screens[0], route: '/claim#p=do-not-publish' }],
+            }),
+        /Invalid journey route/
+    )
+    assert.throws(
+        () =>
+            validateJourneys({
+                ...input,
+                screens: [{ ...input.screens[0], thumbnail: a }],
+            }),
+        /Invalid journey image/
+    )
+    assert.throws(() => validateJourneys({ ...input, attemptedSteps: undefined }), /Invalid journey run counts/)
     assert.throws(
         () =>
             validateJourneys({

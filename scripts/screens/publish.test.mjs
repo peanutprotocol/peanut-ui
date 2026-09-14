@@ -148,6 +148,9 @@ test('publication accepts sanitized Nutcracker journeys without changing the syn
             profile: 'en-iphone-14',
             width: 390,
             height: 664,
+            attemptedSteps: 1,
+            failedSteps: 0,
+            omittedFailedSteps: 0,
             complete: true,
             screens: [
                 {

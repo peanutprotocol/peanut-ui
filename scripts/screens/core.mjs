@@ -10,6 +10,7 @@ const digest = /^[a-f0-9]{64}$/
 const asset = /^[a-f0-9]{64}\.(png|webp)$/
 const id = /^[a-z0-9][a-z0-9-]{0,119}$/
 const supportedLocales = new Set(['en', 'es-419', 'es-AR', 'pt-BR'])
+const routeOrigin = 'https://screen-library.invalid'
 const assert = (ok, message) => {
     if (!ok) throw new Error(message)
 }
@@ -127,9 +128,19 @@ export function validateJourneys(input) {
         assert(id.test(s.id) && !seen.has(s.id), 'Invalid/duplicate journey ID')
         seen.add(s.id)
         assert(['passed', 'failed'].includes(s.status), 'Invalid journey status')
-        assert(asset.test(s.image) && s.image.endsWith('.png') && asset.test(s.thumbnail), 'Invalid journey image')
         assert(
-            typeof s.route === 'string' && s.route.startsWith('/') && s.route.length <= 1000,
+            asset.test(s.image) && s.image.endsWith('.png') && asset.test(s.thumbnail) && s.thumbnail.endsWith('.webp'),
+            'Invalid journey image'
+        )
+        let route
+        try {
+            route = new URL(s.route, routeOrigin)
+        } catch {}
+        assert(
+            typeof s.route === 'string' &&
+                s.route.length <= 1000 &&
+                route?.origin === routeOrigin &&
+                route.pathname === s.route,
             'Invalid journey route'
         )
         assert(['full-e2e', 'partial-e2e'].includes(s.trustTier), 'Invalid journey trust tier')
@@ -146,6 +157,18 @@ export function validateJourneys(input) {
             ...(s.status === 'failed' ? { reason: text(s.reason || 'Journey assertion failed') } : {}),
         }
     })
+    const failedScreens = screens.filter((screen) => screen.status === 'failed').length
+    assert(
+        Number.isInteger(input.attemptedSteps) &&
+            input.attemptedSteps >= screens.length &&
+            input.attemptedSteps <= 10000 &&
+            Number.isInteger(input.failedSteps) &&
+            input.failedSteps >= failedScreens &&
+            input.failedSteps <= input.attemptedSteps &&
+            Number.isInteger(input.omittedFailedSteps) &&
+            input.omittedFailedSteps === input.failedSteps - failedScreens,
+        'Invalid journey run counts'
+    )
     return {
         schema: 1,
         type: 'journeys',
@@ -159,8 +182,15 @@ export function validateJourneys(input) {
         profile: input.profile,
         width: input.width,
         height: input.height,
+        attemptedSteps: input.attemptedSteps,
+        failedSteps: input.failedSteps,
+        omittedFailedSteps: input.omittedFailedSteps,
         screens,
-        complete: input.complete === true && screens.every((screen) => screen.status === 'passed'),
+        complete:
+            input.complete === true &&
+            input.failedSteps === 0 &&
+            input.omittedFailedSteps === 0 &&
+            screens.every((screen) => screen.status === 'passed'),
     }
 }
 export function sameEnvironment(a, b) {
