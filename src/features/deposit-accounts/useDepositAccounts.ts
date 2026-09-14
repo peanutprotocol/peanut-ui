@@ -1,5 +1,6 @@
 'use client'
 
+import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { API_ERROR_CODES, apiErrorStatus, wireErrorCode } from '@/services/api-error'
 import { claimDepositAccount, fetchDepositAccounts } from '@/services/deposit-accounts'
@@ -74,6 +75,7 @@ export interface UseDepositAccountsResult {
  * with a retry on it.
  */
 export function useDepositAccounts(): UseDepositAccountsResult {
+    const { userId } = useAuth()
     const queryClient = useQueryClient()
     const { gateFor, rails, isLoading: capabilitiesLoading } = useCapabilities()
     const [claimingCorridor, setClaimingCorridor] = useState<DepositCorridor | undefined>()
@@ -88,7 +90,8 @@ export function useDepositAccounts(): UseDepositAccountsResult {
     const [provisioningPolls, setProvisioningPolls] = useState<Record<string, number>>({})
 
     const query = useQuery({
-        queryKey: DEPOSIT_ACCOUNTS_QUERY_KEY,
+        queryKey: [...DEPOSIT_ACCOUNTS_QUERY_KEY, userId],
+        enabled: !!userId,
         queryFn: fetchDepositAccounts,
         refetchInterval: (q) =>
             hasAccountStillWaiting(q.state.data?.accounts, provisioningPolls) ? PROVISIONING_POLL_MS : false,
@@ -234,7 +237,7 @@ export function useDepositAccounts(): UseDepositAccountsResult {
         accounts,
         claimable,
         gates,
-        isLoading: query.isLoading || capabilitiesLoading,
+        isLoading: !userId || query.isLoading || capabilitiesLoading,
         isError: query.isError,
         claimingCorridor,
         claimError,

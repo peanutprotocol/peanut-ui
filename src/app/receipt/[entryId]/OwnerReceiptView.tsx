@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useAuth } from '@/context/authContext'
 import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
 import {
     mapTransactionDataForDrawer,
@@ -10,7 +10,6 @@ import {
 import type { IntentKind } from '@/components/TransactionDetails/strategies/registry'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { apiFetch } from '@/utils/api-fetch'
-import { getAuthToken } from '@/utils/auth-token'
 import { completeHistoryEntry } from '@/utils/history.utils'
 
 /**
@@ -35,7 +34,7 @@ import { completeHistoryEntry } from '@/utils/history.utils'
  * Bounded on purpose — one request, no polling, no retry, and only where the
  * answer can differ:
  *   - `CRYPTO_DEPOSIT` only. That is the one kind the owner alias applies to.
- *   - Only with a token in the browser. Anonymous viewers and non-owner
+ *   - Only after the authenticated user is known. Anonymous viewers and non-owner
  *     holders of an old link keep the public view, which is the whole point of
  *     a shared receipt.
  *   - A failure changes nothing: the server's projection stays on screen.
@@ -50,14 +49,11 @@ export function OwnerReceiptView({
     /** what the anonymous server render produced; shown until an owner read lands */
     serverDetails: TransactionDetails
 }) {
-    // read after mount: js-cookie is empty during the server render, and
-    // branching on it in the first client render is a hydration mismatch
-    const [hasSession, setHasSession] = useState(false)
-    useEffect(() => setHasSession(Boolean(getAuthToken())), [])
+    const { userId } = useAuth()
 
     const { data } = useQuery({
-        queryKey: [TRANSACTIONS, 'entry', entryId, kind, 'owner'],
-        enabled: hasSession && kind === 'CRYPTO_DEPOSIT',
+        queryKey: [TRANSACTIONS, 'entry', entryId, kind, 'owner', userId],
+        enabled: !!userId && kind === 'CRYPTO_DEPOSIT',
         retry: false,
         staleTime: Infinity,
         refetchOnWindowFocus: false,

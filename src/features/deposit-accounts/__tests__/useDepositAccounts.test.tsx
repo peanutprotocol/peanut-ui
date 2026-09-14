@@ -7,6 +7,9 @@ import type { ClaimableCorridor, DepositAccount } from '../types'
 import type { RailCapability } from '@/types/capabilities'
 import type { GateScope, GateState } from '@/utils/capability-gate'
 
+let mockUserId: string | undefined = 'user-a'
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ userId: mockUserId }) }))
+
 const fetchDepositAccounts = jest.fn()
 const claimDepositAccount = jest.fn()
 jest.mock('@/services/deposit-accounts', () => ({
@@ -59,6 +62,7 @@ const wrapper = ({ children }: { children: ReactNode }) => {
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockUserId = 'user-a'
     gatesByRailId = {}
     userRails = [bankRail('bridge.sepa_eu', 'SEPA_EU'), bankRail('bridge.ach_us', 'ACH_US')]
 })
@@ -382,5 +386,58 @@ describe('useDepositAccounts on a refused claim', () => {
         act(() => result.current.claim('SEPA_EU'))
         await waitFor(() => expect(result.current.claimError?.corridor).toBe('SEPA_EU'))
         expect(result.current.claimError?.unavailable).toBe(false)
+    })
+})
+
+describe('deposit-account cache isolation', () => {
+    const sharedWrapper = () => {
+        const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 30_000 } } })
+        return function SharedQueryClient({ children }: { children: ReactNode }) {
+            return <QueryClientProvider client={client}>{children}</QueryClientProvider>
+        }
+    }
+
+    it('keeps bank instructions separate across two logins sharing one QueryClient', async () => {
+        resolveAccounts([account({ id: 'account-a' })])
+        const { result, rerender } = renderHook(() => useDepositAccounts(), { wrapper: sharedWrapper() })
+        await waitFor(() => expect(result.current.accounts.SEPA_EU?.id).toBe('account-a'))
+
+        mockUserId = undefined
+        rerender()
+        expect(result.current.accounts.SEPA_EU).toBeUndefined()
+        expect(fetchDepositAccounts).toHaveBeenCalledTimes(1)
+
+        resolveAccounts([account({ id: 'account-b' })])
+        mockUserId = 'user-b'
+        rerender()
+        expect(result.current.accounts.SEPA_EU).toBeUndefined()
+        await waitFor(() => expect(result.current.accounts.SEPA_EU?.id).toBe('account-b'))
+        expect(fetchDepositAccounts).toHaveBeenCalledTimes(2)
+
+        mockUserId = 'user-a'
+        rerender()
+        expect(result.current.accounts.SEPA_EU?.id).toBe('account-a')
+        expect(fetchDepositAccounts).toHaveBeenCalledTimes(2)
+    })
+
+    it('does not expose a late account response to the next login', async () => {
+        let finishFirst!: (value: { accounts: DepositAccount[]; claimable: ClaimableCorridor[] }) => void
+        fetchDepositAccounts.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    finishFirst = resolve
+                })
+        )
+        resolveAccounts([account({ id: 'account-b' })])
+        const { result, rerender } = renderHook(() => useDepositAccounts(), { wrapper: sharedWrapper() })
+        await waitFor(() => expect(fetchDepositAccounts).toHaveBeenCalledTimes(1))
+
+        mockUserId = 'user-b'
+        rerender()
+        await waitFor(() => expect(result.current.accounts.SEPA_EU?.id).toBe('account-b'))
+        await act(async () => {
+            finishFirst({ accounts: [account({ id: 'account-a' })], claimable: [] })
+        })
+        expect(result.current.accounts.SEPA_EU?.id).toBe('account-b')
     })
 })

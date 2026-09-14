@@ -11,13 +11,15 @@
  * time with the owner's token.
  */
 import React from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 
+let mockUserId: string | undefined
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ userId: mockUserId }) }))
+
 jest.mock('@/app/actions/history', () => ({ getHistoryEntry: jest.fn() }))
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: jest.fn(), serverFetch: jest.fn() }))
-jest.mock('@/utils/auth-token', () => ({ getAuthToken: jest.fn() }))
 jest.mock('@/utils/history.utils', () => ({
     ...jest.requireActual('@/utils/history.utils'),
     completeHistoryEntry: jest.fn(async (entry: unknown) => entry),
@@ -41,14 +43,12 @@ jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 
 import { getHistoryEntry } from '@/app/actions/history'
 import { apiFetch } from '@/utils/api-fetch'
-import { getAuthToken } from '@/utils/auth-token'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import { OwnerReceiptView } from '../OwnerReceiptView'
 import ReceiptPage from '../page'
 
 const mockGetHistoryEntry = getHistoryEntry as jest.MockedFunction<typeof getHistoryEntry>
 const mockApiFetch = apiFetch as jest.MockedFunction<typeof apiFetch>
-const mockGetAuthToken = getAuthToken as jest.MockedFunction<typeof getAuthToken>
 const mockMap = mapTransactionDataForDrawer as jest.MockedFunction<typeof mapTransactionDataForDrawer>
 
 const ENTRY_ID = 'b27d2f1a-0000-4000-8000-000000000001'
@@ -68,6 +68,7 @@ const renderClient = (ui: React.ReactElement) =>
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockUserId = undefined
     mockMap.mockImplementation(
         (entry: unknown) =>
             ({
@@ -84,7 +85,6 @@ describe('the shared receipt page', () => {
             params: Promise.resolve({ entryId: ENTRY_ID }),
             searchParams: Promise.resolve({ kind: 'CRYPTO_DEPOSIT' }),
         })
-        mockGetAuthToken.mockReturnValue(null)
         renderClient(ui as React.ReactElement)
 
         // the shared read takes the id and the kind and nothing else — no
@@ -99,7 +99,7 @@ describe('the owner read from the browser', () => {
         ({ ok: true, status: 200, json: jest.fn().mockResolvedValue(OWNER_ENTRY) }) as unknown as Response
 
     it('an owner sees the virtual-account receipt the API aliases to', async () => {
-        mockGetAuthToken.mockReturnValue('a-session')
+        mockUserId = 'owner-a'
         mockApiFetch.mockResolvedValue(ownerResponse())
 
         renderClient(<OwnerReceiptView entryId={ENTRY_ID} kind="CRYPTO_DEPOSIT" serverDetails={details(ENTRY_ID)} />)
@@ -112,8 +112,6 @@ describe('the owner read from the browser', () => {
     })
 
     it('an anonymous holder of the old link keeps the public view', async () => {
-        mockGetAuthToken.mockReturnValue(null)
-
         renderClient(<OwnerReceiptView entryId={ENTRY_ID} kind="CRYPTO_DEPOSIT" serverDetails={details(ENTRY_ID)} />)
 
         await waitFor(() => expect(screen.getByTestId('receipt')).toHaveTextContent(ENTRY_ID))
@@ -121,7 +119,7 @@ describe('the owner read from the browser', () => {
     })
 
     it('spends no request on a kind the owner alias cannot apply to', async () => {
-        mockGetAuthToken.mockReturnValue('a-session')
+        mockUserId = 'owner-a'
 
         renderClient(<OwnerReceiptView entryId={ENTRY_ID} kind="OFFRAMP" serverDetails={details(ENTRY_ID)} />)
 
@@ -130,12 +128,65 @@ describe('the owner read from the browser', () => {
     })
 
     it('leaves the server projection on screen when the owner read fails', async () => {
-        mockGetAuthToken.mockReturnValue('a-session')
+        mockUserId = 'owner-a'
         mockApiFetch.mockResolvedValue({ ok: false, status: 503 } as unknown as Response)
 
         renderClient(<OwnerReceiptView entryId={ENTRY_ID} kind="CRYPTO_DEPOSIT" serverDetails={details(ENTRY_ID)} />)
 
         await waitFor(() => expect(mockApiFetch).toHaveBeenCalled())
         expect(screen.getByTestId('receipt')).toHaveTextContent(ENTRY_ID)
+    })
+})
+
+describe('owner-receipt cache isolation', () => {
+    const publicResponse = () => ({ ok: true, json: async () => PUBLIC_ENTRY }) as Response
+    const ownerResponse = () => ({ ok: true, json: async () => OWNER_ENTRY }) as Response
+    const receiptTree = (client: QueryClient) => (
+        <QueryClientProvider client={client}>
+            <OwnerReceiptView entryId={ENTRY_ID} kind="CRYPTO_DEPOSIT" serverDetails={details(ENTRY_ID)} />
+        </QueryClientProvider>
+    )
+
+    it('keeps the private projection separate across logins sharing one QueryClient', async () => {
+        const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+        mockUserId = 'owner-a'
+        mockApiFetch.mockResolvedValueOnce(ownerResponse()).mockResolvedValue(publicResponse())
+        const { rerender } = render(receiptTree(client))
+        await waitFor(() => expect(screen.getByTestId('receipt')).toHaveTextContent('va-onramp-1'))
+
+        mockUserId = undefined
+        rerender(receiptTree(client))
+        expect(screen.getByTestId('receipt')).toHaveTextContent(ENTRY_ID)
+        expect(mockApiFetch).toHaveBeenCalledTimes(1)
+
+        mockUserId = 'viewer-b'
+        rerender(receiptTree(client))
+        expect(screen.getByTestId('receipt')).toHaveTextContent(ENTRY_ID)
+        await waitFor(() => expect(mockApiFetch).toHaveBeenCalledTimes(2))
+        expect(screen.getByTestId('receipt')).not.toHaveTextContent('va-onramp-1')
+    })
+
+    it('does not expose a late owner response to the next login', async () => {
+        const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+        let finishOwner!: (response: Response) => void
+        mockUserId = 'owner-a'
+        mockApiFetch.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    finishOwner = resolve
+                })
+        )
+        mockApiFetch.mockResolvedValue(publicResponse())
+        const { rerender } = render(receiptTree(client))
+        await waitFor(() => expect(mockApiFetch).toHaveBeenCalledTimes(1))
+
+        mockUserId = 'viewer-b'
+        rerender(receiptTree(client))
+        await waitFor(() => expect(mockApiFetch).toHaveBeenCalledTimes(2))
+        await act(async () => {
+            finishOwner(ownerResponse())
+        })
+        expect(screen.getByTestId('receipt')).toHaveTextContent(ENTRY_ID)
+        expect(screen.getByTestId('receipt')).not.toHaveTextContent('va-onramp-1')
     })
 })
