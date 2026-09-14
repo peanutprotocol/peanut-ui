@@ -19,18 +19,42 @@ export function canUseNativeHttp(url: string, options: RequestInit = {}): boolea
     return true
 }
 
+/*
+ * `timeoutMs` is a WALL-CLOCK bound on how long the caller waits, which is not
+ * what CapacitorHttp's own options give us. `connectTimeout` and `readTimeout`
+ * are separate phase limits, and on Android the read limit resets every time
+ * more data arrives — so handing the same value to both bounds a slow request
+ * at 2x, and a slow drip not at all. Every budget in this app is a promise
+ * about the user's wait, so the await is raced against the clock.
+ *
+ * The underlying request is not cancelled: CapacitorHttp exposes no abort. It
+ * is left to finish and its result discarded, exactly as an aborted `fetch`
+ * leaves the server's work running — the caller has already stopped waiting,
+ * which is the whole of what the budget promises.
+ */
 export async function nativeHttpRequest(url: string, options: RequestInit = {}, timeoutMs: number): Promise<Response> {
     const { CapacitorHttp } = await import('@capacitor/core')
 
-    const response = await CapacitorHttp.request({
-        url,
-        method: (options.method || 'GET').toUpperCase(),
-        headers: Object.fromEntries(new Headers(options.headers as HeadersInit | undefined).entries()),
-        data: typeof options.body === 'string' ? options.body : undefined,
-        connectTimeout: timeoutMs,
-        readTimeout: timeoutMs,
-        responseType: 'text',
-    })
+    let expire: ReturnType<typeof setTimeout> | undefined
+    const response = await Promise.race([
+        CapacitorHttp.request({
+            url,
+            method: (options.method || 'GET').toUpperCase(),
+            headers: Object.fromEntries(new Headers(options.headers as HeadersInit | undefined).entries()),
+            data: typeof options.body === 'string' ? options.body : undefined,
+            connectTimeout: timeoutMs,
+            readTimeout: timeoutMs,
+            responseType: 'text',
+        }),
+        new Promise<never>((_, reject) => {
+            expire = setTimeout(
+                // AbortError so fetchWithSentry classifies this as the timeout
+                // it is, rather than as an opaque transport rejection.
+                () => reject(Object.assign(new Error('native http timed out'), { name: 'AbortError' })),
+                timeoutMs
+            )
+        }),
+    ]).finally(() => clearTimeout(expire))
 
     if (!response.status) {
         throw new TypeError('native http transport returned no status')

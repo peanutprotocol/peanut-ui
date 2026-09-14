@@ -14,8 +14,6 @@
  */
 
 import { renderHook, waitFor } from '@testing-library/react'
-import { Provider } from 'react-redux'
-import type { ReactNode } from 'react'
 
 jest.mock('@/constants/zerodev.consts', () => ({
     PEANUT_WALLET_TOKEN: '0x1234567890123456789012345678901234567890',
@@ -71,10 +69,7 @@ jest.mock('@/utils/demo-balance', () => ({ useDemoBalanceUnits: () => mockDemoBa
 
 // imports must come after the jest.mock calls above
 import { useWallet } from '../useWallet'
-import store from '@/redux/store'
 import { LAST_KNOWN_MAX_AGE_MS, readLastKnownSpendable, writeLastKnownSpendable } from '../lastKnownSpendable'
-
-const wrapper = ({ children }: { children: ReactNode }) => <Provider store={store}>{children}</Provider>
 
 const usd = (amount: number) => BigInt(Math.round(amount * 1e6))
 
@@ -95,7 +90,7 @@ describe('useWallet spendable balance', () => {
         mockSmartBalance = 0n
         mockRainOverview = undefined
 
-        const { result } = renderHook(() => useWallet(), { wrapper })
+        const { result } = renderHook(() => useWallet())
 
         await waitFor(() => expect(result.current.isFetchingSpendableBalance).toBe(true))
         expect(result.current.spendableBalance).toBeUndefined()
@@ -106,7 +101,7 @@ describe('useWallet spendable balance', () => {
         mockSmartBalance = 0n
         mockRainOverview = undefined
 
-        const { result } = renderHook(() => useWallet(), { wrapper })
+        const { result } = renderHook(() => useWallet())
 
         await waitFor(() => expect(result.current.spendableBalance).toBe(usd(120.5)))
         expect(result.current.isSpendableBalanceStale).toBe(true)
@@ -119,7 +114,7 @@ describe('useWallet spendable balance', () => {
         mockSmartBalance = usd(10)
         mockRainOverview = { balance: { spendingPower: 9000, inTransitToCollateralCents: 500 } } // $90 + $5
 
-        const { result } = renderHook(() => useWallet(), { wrapper })
+        const { result } = renderHook(() => useWallet())
 
         await waitFor(() => expect(result.current.spendableBalance).toBe(usd(105)))
         expect(result.current.isSpendableBalanceStale).toBe(false)
@@ -130,7 +125,7 @@ describe('useWallet spendable balance', () => {
         mockSmartBalance = usd(7)
         mockRainOverview = undefined
 
-        renderHook(() => useWallet(), { wrapper })
+        renderHook(() => useWallet())
 
         await waitFor(() => expect(readLastKnownSpendable(USER_ID)).toBeUndefined())
     })
@@ -142,7 +137,7 @@ describe('useWallet spendable balance', () => {
         mockSmartBalance = 0n
         mockRainOverview = { balance: null, balanceUnavailable: true }
 
-        const { result } = renderHook(() => useWallet(), { wrapper })
+        const { result } = renderHook(() => useWallet())
 
         await waitFor(() => expect(result.current.spendableBalance).toBe(usd(80)))
         expect(result.current.isSpendableBalanceStale).toBe(true)
@@ -155,7 +150,7 @@ describe('useWallet spendable balance', () => {
         mockSmartBalance = usd(5)
         mockRainOverview = { balance: { spendingPower: 3_000 }, balanceUnavailable: true }
 
-        const { result } = renderHook(() => useWallet(), { wrapper })
+        const { result } = renderHook(() => useWallet())
 
         await waitFor(() => expect(result.current.spendableBalance).toBe(usd(35)))
         expect(result.current.isSpendableBalanceStale).toBe(false)
@@ -168,7 +163,7 @@ describe('useWallet spendable balance', () => {
         mockSmartBalance = usd(100)
         mockRainOverview = { balance: { spendingPower: 0 } }
 
-        const { result, rerender } = renderHook(() => useWallet(), { wrapper })
+        const { result, rerender } = renderHook(() => useWallet())
         await waitFor(() => expect(result.current.spendableBalance).toBe(usd(100)))
 
         // Switch account: Rain hasn't answered for user B and B has no cache —
@@ -184,7 +179,7 @@ describe('useWallet spendable balance', () => {
         mockSmartBalance = usd(100)
         mockRainOverview = { balance: { spendingPower: 0 } }
 
-        const { rerender } = renderHook(() => useWallet(), { wrapper })
+        const { rerender } = renderHook(() => useWallet())
         await waitFor(() => expect(readLastKnownSpendable(USER_ID)).toBe(usd(100)))
 
         mockUserId = 'user-b'
@@ -199,7 +194,7 @@ describe('useWallet spendable balance', () => {
         mockSmartBalance = usd(12)
         mockRainOverview = { balance: null, balanceUnavailable: false }
 
-        const { result } = renderHook(() => useWallet(), { wrapper })
+        const { result } = renderHook(() => useWallet())
 
         await waitFor(() => expect(result.current.spendableBalance).toBe(usd(12)))
         expect(result.current.isSpendableBalanceStale).toBe(false)
@@ -212,7 +207,7 @@ describe('useWallet spendable balance', () => {
         mockDemoBalanceUnits = usd(42)
         mockRainOverview = undefined
 
-        const { result } = renderHook(() => useWallet(), { wrapper })
+        const { result } = renderHook(() => useWallet())
 
         await waitFor(() => expect(result.current.spendableBalance).toBe(usd(42)))
         expect(result.current.isFetchingSpendableBalance).toBe(false)
@@ -226,7 +221,7 @@ describe('useWallet spendable balance', () => {
         mockSmartBalance = 0n
         mockRainOverview = undefined
 
-        const { result } = renderHook(() => useWallet(), { wrapper })
+        const { result } = renderHook(() => useWallet())
 
         // The cached $500 is on screen, but nothing is actually spendable yet.
         await waitFor(() => expect(result.current.spendableBalance).toBe(usd(500)))

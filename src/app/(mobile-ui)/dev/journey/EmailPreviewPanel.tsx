@@ -58,16 +58,18 @@ export default function EmailPreviewPanel({
                 type="button"
                 aria-label="Close preview"
                 onClick={onClose}
-                className="absolute inset-0 cursor-default bg-n-1/40"
+                className="absolute inset-0 cursor-default bg-black/40"
             />
 
-            <aside className="relative flex h-full w-full max-w-full flex-col border-l-2 border-n-1 bg-white md:w-[640px]">
-                <header className="flex flex-col gap-2 border-b border-n-1 p-3">
+            <aside className="relative flex h-full w-full max-w-full flex-col border-l-2 border-border-default bg-white md:w-[640px]">
+                <header className="flex flex-col gap-2 border-b border-border-default p-3">
                     <div className="flex items-start justify-between gap-3">
                         <div className="flex min-w-0 flex-col gap-1">
-                            <div className="text-sm font-bold leading-tight">{active.step.subject}</div>
+                            <div className="text-label-l leading-tight">{active.step.subject}</div>
                             <div className="flex flex-wrap items-center gap-1.5">
-                                <span className="font-mono text-[10px] text-grey-1">{active.eventType}</span>
+                                <span className="font-mono text-[10px] text-foreground-secondary">
+                                    {active.eventType}
+                                </span>
                                 {typeof active.step.afterDaysStuck === 'number' && (
                                     <StuckBadge days={active.step.afterDaysStuck} />
                                 )}
@@ -77,14 +79,14 @@ export default function EmailPreviewPanel({
                             type="button"
                             onClick={onClose}
                             aria-label="Close preview"
-                            className="shrink-0 rounded-sm border border-n-1 px-2 py-1 text-xs font-bold hover:bg-primary-3/40"
+                            className="shrink-0 rounded-sm border border-border-default px-2 py-1 text-label-m hover:bg-purple-200/40"
                         >
                             esc ✕
                         </button>
                     </div>
 
                     {decision && (
-                        <div className="flex flex-col gap-1 rounded-sm border border-n-1 bg-yellow-1/40 p-2">
+                        <div className="flex flex-col gap-1 rounded-sm border border-border-default bg-action-secondary/40 p-2">
                             <DevChip tone="pink" className="self-start">
                                 {decision.label}
                             </DevChip>
@@ -107,23 +109,23 @@ export default function EmailPreviewPanel({
                                 }
                             />
                         ) : (
-                            <span className="text-[11px] text-grey-1">Single copy variant.</span>
+                            <span className="text-[11px] text-foreground-secondary">Single copy variant.</span>
                         )}
                         <a
                             href={emailPreviewUrl(active.eventType, active.example, false)}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-xs font-bold text-black underline"
+                            className="text-label-m text-black underline"
                         >
                             open raw ↗
                         </a>
                     </div>
-                    <p className="text-[10px] leading-snug text-grey-1">
+                    <p className="text-[10px] leading-snug text-foreground-secondary">
                         Frame blank? The API only allows the embed from localhost:3050 — use open raw ↗ instead.
                     </p>
                 </header>
 
-                <div className="min-h-0 flex-1 bg-primary-3/20">
+                <div className="min-h-0 flex-1 bg-purple-200/20">
                     <iframe
                         key={active.id}
                         title={`Email preview — ${active.eventType} example ${active.example}`}
@@ -133,21 +135,21 @@ export default function EmailPreviewPanel({
                 </div>
 
                 {/* pl-14 on mobile: the panel is full-screen there and the dev overlay badge sits bottom-left */}
-                <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-n-1 p-3 pl-14 md:pl-3">
+                <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border-default p-3 pl-14 md:pl-3">
                     <Checkbox
                         label={reviewed ? 'Reviewed — copy approved' : 'Mark reviewed'}
                         value={reviewed}
                         onChange={() => onToggleReviewed(active.id)}
                     />
                     <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-grey-1">
+                        <span className="text-[11px] text-foreground-secondary">
                             {position}/{renders.length}
                         </span>
                         <button
                             type="button"
                             disabled={activeIndex === 0}
                             onClick={() => onSelect(activeIndex - 1)}
-                            className="rounded-sm border border-n-1 px-2.5 py-1 text-xs font-bold hover:bg-primary-3/40 disabled:opacity-30"
+                            className="rounded-sm border border-border-default px-2.5 py-1 text-label-m hover:bg-purple-200/40 disabled:opacity-30"
                         >
                             ← prev
                         </button>
@@ -155,7 +157,7 @@ export default function EmailPreviewPanel({
                             type="button"
                             disabled={activeIndex >= renders.length - 1}
                             onClick={() => onSelect(activeIndex + 1)}
-                            className="rounded-sm border border-n-1 px-2.5 py-1 text-xs font-bold hover:bg-primary-3/40 disabled:opacity-30"
+                            className="rounded-sm border border-border-default px-2.5 py-1 text-label-m hover:bg-purple-200/40 disabled:opacity-30"
                         >
                             next →
                         </button>

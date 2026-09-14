@@ -16,4 +16,4 @@ export function getOneSignalAdapter(): Promise<OneSignalAdapter> {
     return adapterPromise
 }
 
-export type { NotificationPermissionState, OneSignalAdapter } from './types'
+export type { NotificationPermissionState, OneSignalAdapter, PushSubscriptionChange } from './types'

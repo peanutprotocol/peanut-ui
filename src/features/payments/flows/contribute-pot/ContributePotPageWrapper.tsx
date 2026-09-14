@@ -10,9 +10,9 @@
  */
 
 import { ContributePotPage } from './ContributePotPage'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { requestsApi } from '@/services/requests'
-import PeanutLoading from '@/components/Global/PeanutLoading'
-import ErrorAlert from '@/components/Global/ErrorAlert'
+import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useEffect, useState } from 'react'
@@ -58,21 +58,27 @@ export function ContributePotPageWrapper({ requestId }: ContributePotPageWrapper
     // loading state
     if (isLoading) {
         return (
-            <div className="flex min-h-[inherit] w-full flex-col gap-4">
+            <div className="flex min-h-inherit w-full flex-col gap-4">
                 <NavHeader title={t('headers.pay')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col items-center justify-center gap-4 py-8">
-                    <PeanutLoading />
+                    <Loading variant="mascot" />
                 </div>
             </div>
         )
     }
 
-    // error state
+    // error state — centered card (ruled 2026-09-03: no more lone top banner)
     if (error || !request) {
         return (
-            <div className="flex w-full flex-col gap-4">
+            <div className="flex min-h-inherit w-full flex-col gap-4">
                 <NavHeader title={t('headers.pay')} onPrev={onBack} />
-                <ErrorAlert description={error || t('errors.requestNotFound')} />
+                <div className="flex flex-grow flex-col justify-center py-8">
+                    <EmptyState
+                        icon="search"
+                        title={t('errors.requestNotFoundTitle')}
+                        description={error || t('errors.requestNotFoundDescription')}
+                    />
+                </div>
             </div>
         )
     }

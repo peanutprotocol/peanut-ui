@@ -19,6 +19,11 @@ concurrency:
     group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
     cancel-in-progress: true
 
+# Explicit floor — without this the job runs PR lifecycle scripts (pnpm
+# install) with whatever the repo default grants.
+permissions:
+    contents: read
+
 jobs:
     check-min-release-age:
         runs-on: ubuntu-latest
@@ -37,9 +42,11 @@ jobs:
               run: pnpm install --frozen-lockfile
 
             - name: Resolve base package.json
+              env:
+                  BASE_REF: ${{ github.base_ref }}
               run: |
-                  git fetch origin "${{ github.base_ref }}"
-                  git show "origin/${{ github.base_ref }}:package.json" > /tmp/base-package.json
+                  git fetch origin "$BASE_REF"
+                  git show "origin/$BASE_REF:package.json" > /tmp/base-package.json
 
             - name: Check min release age
               run: node scripts/check-min-release-age.mjs --base /tmp/base-package.json

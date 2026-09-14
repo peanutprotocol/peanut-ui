@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- payment-pass-provisioning is added here (and to the App ID) once Apple
+	     grants the entitlement via Rain's request — same timing as the main
+	     app's entitlement. -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.me.peanut.wallet</string>
+	</array>
+</dict>
+</plist>

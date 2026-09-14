@@ -1,5 +1,5 @@
 import { Icon, type IconName } from '../Icons/Icon'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { type StatusType } from '../Badges/StatusBadge'
 
 export type StatusPillType = Exclude<StatusType, 'custom'>
@@ -8,48 +8,46 @@ interface StatusPillProps {
     status: StatusPillType
 }
 
+/**
+ * icon-only status chip per the states board (17966:12128): 3px padding,
+ * 14px icon, round, on the badge background tokens — same status → color
+ * mapping as StatusBadge.
+ */
 const StatusPill = ({ status }: StatusPillProps) => {
-    const colorClasses: Record<StatusPillType, string> = {
-        completed: 'border-success-5 bg-success-2 text-success-4',
-        pending: 'border-yellow-8 bg-secondary-4 text-yellow-6',
-        cancelled: 'border-error-2 bg-error-1 text-error',
-        refunded: 'border-success-5 bg-success-2 text-success-4',
-        failed: 'border-error-2 bg-error-1 text-error',
-        processing: 'border-yellow-8 bg-secondary-4 text-yellow-6',
-        soon: 'border-yellow-8 bg-secondary-4 text-yellow-6',
-        closed: 'border-success-5 bg-success-2 text-success-4',
+    const bgClasses: Record<StatusPillType, string> = {
+        completed: 'bg-background-badge-success',
+        closed: 'bg-background-badge-success',
+        refunded: 'bg-background-badge-success',
+        pending: 'bg-background-badge-attention',
+        processing: 'bg-background-badge-info',
+        soon: 'bg-background-badge-accent',
+        cancelled: 'bg-background-badge-error',
+        failed: 'bg-background-badge-error',
     }
 
+    // badge board type=icon glyphs (17312:137472-480, 18072:25494/25504/25520):
+    // processing = refresh arrow, soon = triangle, cancelled = ban — distinct
+    // from failed's x (the old map rendered cancelled and failed identically)
     const iconClasses: Record<StatusPillType, IconName> = {
         completed: 'success',
         failed: 'cancel',
-        processing: 'pending',
-        soon: 'pending',
+        processing: 'retry',
+        soon: 'alert',
         pending: 'pending',
-        cancelled: 'cancel',
+        cancelled: 'ban',
         refunded: 'undo',
         closed: 'success',
-    }
-
-    const iconSize: Record<StatusPillType, number> = {
-        completed: 7,
-        failed: 6,
-        processing: 10,
-        soon: 7,
-        pending: 8,
-        cancelled: 6,
-        refunded: 8,
-        closed: 7,
     }
 
     return (
         <div
             className={twMerge(
-                'flex size-[14px] items-center justify-center rounded-full border',
-                colorClasses[status]
+                // badge board 17479:137743: icon renders in foreground/over-color-secondary
+                'flex items-center justify-center rounded-round p-[3px] text-foreground-over-color-secondary',
+                bgClasses[status]
             )}
         >
-            <Icon name={iconClasses[status]} size={iconSize[status]} />
+            <Icon name={iconClasses[status]} size={14} />
         </div>
     )
 }

@@ -100,7 +100,7 @@ export interface GrantSessionKeyResult {
 
 export const useGrantSessionKey = (): GrantSessionKeyResult => {
     const { overview, refetch } = useRainCardOverview()
-    const { getClientForChain, getPatchedSudoValidator, rebuildClientForChain } = useKernelClient()
+    const { ensureClientForChain, getPatchedSudoValidator, rebuildClientForChain } = useKernelClient()
     const { handleSendUserOpEncoded } = useZeroDev()
     const queryClient = useQueryClient()
     const [isGranting, setIsGranting] = useState(false)
@@ -170,7 +170,7 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
         })
 
         const chainId = PEANUT_WALLET_CHAIN.id.toString()
-        const kernelClient = getClientForChain(chainId)
+        const kernelClient = await ensureClientForChain(chainId)
         // Fired here (not at wrap-entry) so the denominator excludes the
         // 'no-contracts' / 'session-key-unavailable' early returns that never
         // produce a passkey prompt.
@@ -315,7 +315,7 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
 
         const serialized = await serializePermissionAccount(sessionKernelAccount, undefined, enableSignature)
         return { ok: true, serialized }
-    }, [overview, getClientForChain, getPatchedSudoValidator, handleSendUserOpEncoded, rebuildClientForChain])
+    }, [overview, ensureClientForChain, getPatchedSudoValidator, handleSendUserOpEncoded, rebuildClientForChain])
 
     const wrap = useCallback(
         async <T>(

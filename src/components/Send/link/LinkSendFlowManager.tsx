@@ -33,7 +33,7 @@ const LinkSendFlowContent = ({ onPrev }: LinkSendFlowManagerProps) => {
     return (
         <>
             {view === 'INITIAL' && (
-                <div className="flex w-full flex-col justify-start space-y-8">
+                <div className="space-y-8 flex w-full flex-col justify-start">
                     <NavHeader onPrev={onPrev} title={tNav('send')} />
                     <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                         <LinkSendInitialView />

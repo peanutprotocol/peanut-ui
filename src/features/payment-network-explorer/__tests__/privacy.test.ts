@@ -114,3 +114,19 @@ describe('payment explorer privacy boundary', () => {
         window.history.replaceState({}, '', '/')
     })
 })
+
+it('disables GA for QR direct loads and before history observers see a sensitive URL', () => {
+    const flag = 'ga-disable-G-QATEST'
+    const browser = window as unknown as Record<string, unknown>
+    process.env.NEXT_PUBLIC_GA_KEY = 'G-QATEST'
+    delete browser[flag]
+    disablePaymentNetworkGoogleAnalytics('/qr-pay?qrCode=private-data', 'G-QATEST')
+    expect(browser[flag]).toBe(true)
+    delete browser[flag]
+    installPaymentNetworkGoogleAnalyticsGuard()
+    window.history.pushState({}, '', '/qr?code=private-code')
+    expect(browser[flag]).toBe(true)
+    expect(window.location.search).toBe('?code=private-code')
+    window.history.replaceState({}, '', '/home')
+    expect(browser[flag]).toBe(true)
+})

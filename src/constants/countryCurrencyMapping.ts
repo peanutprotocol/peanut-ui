@@ -20,7 +20,7 @@ const countryCurrencyMappings: CountryCurrencyMapping[] = [
         currencyName: 'Czech Koruna',
         country: 'Czech Republic',
         flagCode: 'cz',
-        path: 'czech-republic',
+        path: 'czechia',
     },
     { currencyCode: 'DKK', currencyName: 'Danish Krone', country: 'Denmark', flagCode: 'dk', path: 'denmark' },
     { currencyCode: 'HUF', currencyName: 'Hungarian Forint', country: 'Hungary', flagCode: 'hu', path: 'hungary' },

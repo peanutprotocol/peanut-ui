@@ -69,6 +69,15 @@ async function hideSplash() {
     }
 }
 
+/**
+ * Whether the native splash still covers the WebView. The OTA launch apply uses
+ * it as its window: a reload behind the splash is invisible, the same reload a
+ * second later yanks the app out from under someone already using it.
+ */
+export function isSplashVisible(): boolean {
+    return !splashHidden
+}
+
 export function resetSplashGateForTests(): void {
     splashHidden = false
     hardTimeoutArmed = false

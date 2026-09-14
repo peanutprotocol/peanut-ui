@@ -6,7 +6,6 @@
  * the destination is under test here — everything else is stubbed to the thinnest
  * thing that lets the showQR step render.
  */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -46,7 +45,7 @@ jest.mock('@/components/AddMoney/components/MantecaDepositShareDetails', () => (
     __esModule: true,
     default: () => null,
 }))
-jest.mock('@/components/Global/PeanutLoading/CyclingLoading', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/components/Global/Loading/CyclingLoading', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
 jest.mock('@/components/Kyc/InitiateKycModal', () => ({ InitiateKycModal: () => null }))
 

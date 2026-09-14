@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
 		4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 4D22ABE82AF431CB00220026 /* CapApp-SPM */; };
+		5E53A1B2C3D4E5F600000001 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 5E53A1B2C3D4E5F600000002 /* Sentry */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
 		504EC3081FED79650016851F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504EC3071FED79650016851F /* AppDelegate.swift */; };
 		7A1C0DE7C11B0A4D2E5F3901 /* AppViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1C0DE7C11B0A4D2E5F3902 /* AppViewController.swift */; };
@@ -17,6 +18,8 @@
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
+		7A1C0DE7C11B0A4D2E5F3905 /* PushProvisioningPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1C0DE7C11B0A4D2E5F3906 /* PushProvisioningPlugin.swift */; };
+		7A1C0DE7C11B0A4D2E5F3907 /* WalletExtensionCardStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A1C0DE7C11B0A4D2E5F3908 /* WalletExtensionCardStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,6 +35,8 @@
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
+		7A1C0DE7C11B0A4D2E5F3906 /* PushProvisioningPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushProvisioningPlugin.swift; sourceTree = "<group>"; };
+		7A1C0DE7C11B0A4D2E5F3908 /* WalletExtensionCardStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletExtensionCardStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -40,6 +45,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */,
+				5E53A1B2C3D4E5F600000001 /* Sentry in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -69,6 +75,8 @@
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				7A1C0DE7C11B0A4D2E5F3902 /* AppViewController.swift */,
+				7A1C0DE7C11B0A4D2E5F3906 /* PushProvisioningPlugin.swift */,
+				7A1C0DE7C11B0A4D2E5F3908 /* WalletExtensionCardStore.swift */,
 				7A1C0DE7C11B0A4D2E5F3904 /* ClipboardDetectPlugin.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
@@ -90,6 +98,7 @@
 				504EC3001FED79650016851F /* Sources */,
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
+				7A1C0DE7C11B0A4D2E5F3909 /* Bundle MeaWallet config */,
 			);
 			buildRules = (
 			);
@@ -98,6 +107,7 @@
 			name = App;
 			packageProductDependencies = (
 				4D22ABE82AF431CB00220026 /* CapApp-SPM */,
+				5E53A1B2C3D4E5F600000002 /* Sentry */,
 			);
 			productName = App;
 			productReference = 504EC3041FED79650016851F /* App.app */;
@@ -130,6 +140,7 @@
 			mainGroup = 504EC2FB1FED79650016851F;
 			packageReferences = (
 				D4C12C0A2AAA248700AAC8A2 /* XCLocalSwiftPackageReference "CapApp-SPM" */,
+				5E53A1B2C3D4E5F600000003 /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
 			);
 			productRefGroup = 504EC3051FED79650016851F /* Products */;
 			projectDirPath = "";
@@ -156,6 +167,21 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		7A1C0DE7C11B0A4D2E5F3909 /* Bundle MeaWallet config */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			alwaysOutOfDate = 1;
+			files = ();
+			inputPaths = ();
+			outputPaths = ();
+			name = "Bundle MeaWallet config";
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "sh \"$SRCROOT/../../scripts/copy-ios-mea-config.sh\"";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		504EC3001FED79650016851F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -163,6 +189,8 @@
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				7A1C0DE7C11B0A4D2E5F3901 /* AppViewController.swift in Sources */,
+				7A1C0DE7C11B0A4D2E5F3905 /* PushProvisioningPlugin.swift in Sources */,
+				7A1C0DE7C11B0A4D2E5F3907 /* WalletExtensionCardStore.swift in Sources */,
 				7A1C0DE7C11B0A4D2E5F3903 /* ClipboardDetectPlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -238,7 +266,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -289,7 +317,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -307,7 +335,7 @@
 				CURRENT_PROJECT_VERSION = 1;				CODE_SIGN_ENTITLEMENTS = App/App.entitlements;
 
 				INFOPLIST_FILE = App/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -333,7 +361,7 @@
 				CURRENT_PROJECT_VERSION = 1;				CODE_SIGN_ENTITLEMENTS = App/AppRelease.entitlements;
 
 				INFOPLIST_FILE = App/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -377,11 +405,27 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		5E53A1B2C3D4E5F600000003 /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/getsentry/sentry-cocoa.git";
+			requirement = {
+				kind = exactVersion;
+				version = 9.26.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		4D22ABE82AF431CB00220026 /* CapApp-SPM */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = D4C12C0A2AAA248700AAC8A2 /* XCLocalSwiftPackageReference "CapApp-SPM" */;
 			productName = "CapApp-SPM";
+		};
+		5E53A1B2C3D4E5F600000002 /* Sentry */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5E53A1B2C3D4E5F600000003 /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
+			productName = Sentry;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

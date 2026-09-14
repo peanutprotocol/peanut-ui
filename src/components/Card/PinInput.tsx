@@ -1,7 +1,7 @@
 'use client'
 import { type FC, useRef } from 'react'
 import { useTranslations } from 'next-intl'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 interface Props {
     value: string
@@ -43,8 +43,8 @@ const PinInput: FC<Props> = ({ value, onChange, length = 4, autoFocus = true, di
                         key={i}
                         aria-hidden="true"
                         className={twMerge(
-                            'h-5 w-5 rounded-full border border-n-1 transition-colors',
-                            filled ? 'bg-n-1' : ''
+                            'h-5 w-5 rounded-full border border-foreground-primary transition-colors',
+                            filled ? 'bg-foreground-primary' : ''
                         )}
                     />
                 )

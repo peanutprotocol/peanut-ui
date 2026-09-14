@@ -1,29 +1,29 @@
 'use client'
 
 import NavHeader from '@/components/Global/NavHeader'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import ScrollableList from '@/components/Global/TokenSelector/Components/ScrollableList'
 import TokenListItem from '@/components/Global/TokenSelector/Components/TokenListItem'
 import { type IUserBalance } from '@/interfaces/interfaces'
-import { useState, useEffect, useCallback, useContext } from 'react'
+import { useState, useCallback, useContext } from 'react'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { fetchWalletBalances } from '@/services/tokens-price'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
+import { useRecoverableBalances } from '@/hooks/useRecoverableBalances'
 import { nativeCurrencyAddresses } from '@/constants/general.consts'
-import { areEvmAddressesEqual, isTxReverted, getExplorerUrl, getChainName, getTokenLogo } from '@/utils/general.utils'
-import { type RecipientState } from '@/context/WithdrawFlowContext'
+import { areEvmAddressesEqual, isTxReverted, getExplorerUrl, getChainName } from '@/utils/general.utils'
+import { type RecipientState } from '@/components/Global/GeneralRecipientInput/types'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import Card from '@/components/Global/Card'
 import Image from 'next/image'
 import AddressLink from '@/components/Global/AddressLink'
-import PeanutLoading from '@/components/Global/PeanutLoading'
-import { erc20Abi, parseUnits, encodeFunctionData, formatUnits } from 'viem'
+import Loading from '@/components/Global/Loading'
+import { erc20Abi, parseUnits, encodeFunctionData } from 'viem'
 import type { Address, Hash, TransactionReceipt } from 'viem'
 import { useRouter } from 'next/navigation'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { captureException } from '@sentry/nextjs'
-import { mainnet, base, linea } from 'viem/chains'
 import { getPublicClient, type ChainId } from '@/app/actions/clients'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { useFormatter, useTranslations } from 'next-intl'
@@ -41,18 +41,11 @@ const fetchExactNativeBalance = async (chainId: string, address: Address): Promi
     return await client.getBalance({ address })
 }
 
-// Mobula does not returns Linea balance, we have one user balance with USDC in Linea so we will manually fetch it
-const USDC_IN_LINEA = '0x176211869cA2b568f2A7D4EE941E073a821EE1ff'
-
-const RECOVERABLE_CHAINS = [PEANUT_WALLET_CHAIN, mainnet, base, linea]
-
 export default function RecoverFundsPage() {
-    const [tokenBalances, setTokenBalances] = useState<IUserBalance[]>([])
     const [selectedBalance, setSelectedBalance] = useState<IUserBalance | undefined>()
     const [recipient, setRecipient] = useState<RecipientState>({ address: '', name: '' })
     const [errorMessage, setErrorMessage] = useState('')
     const [inputChanging, setInputChanging] = useState(false)
-    const [fetchingBalances, setFetchingBalances] = useState(true)
     const [isSigning, setIsSigning] = useState(false)
     const [txHash, setTxHash] = useState<string>('')
     const [status, setStatus] = useState<'init' | 'review' | 'final'>('init')
@@ -63,46 +56,12 @@ export default function RecoverFundsPage() {
     const tCommon = useTranslations('common')
     const tLoading = useTranslations('loadingStates')
     const format = useFormatter()
+    // Balance discovery + failure semantics live in the hook so they are
+    // testable (TASK-21829): fetch failure → retryable error state, never a
+    // false "no tokens to recover".
+    const { tokenBalances, setTokenBalances, fetchingBalances, balancesError, retry } =
+        useRecoverableBalances(peanutAddress)
 
-    useEffect(() => {
-        if (!peanutAddress) return
-        const fetchBalances = async () => {
-            setFetchingBalances(true)
-            const [balances, lineaBalance] = await Promise.all([
-                fetchWalletBalances(peanutAddress),
-                //Manually fetching Linea balance for USDC because Mobula does
-                //not return it
-                getPublicClient(linea.id).readContract({
-                    address: USDC_IN_LINEA,
-                    abi: erc20Abi,
-                    functionName: 'balanceOf',
-                    args: [peanutAddress as Address],
-                }),
-            ])
-            const recoverableBalances = balances.balances.filter(
-                (b) =>
-                    RECOVERABLE_CHAINS.some((chain) => b.chainId === chain.id.toString()) &&
-                    !areEvmAddressesEqual(PEANUT_WALLET_TOKEN, b.address)
-            )
-            if (!!lineaBalance) {
-                recoverableBalances.push({
-                    chainId: linea.id.toString(),
-                    address: USDC_IN_LINEA,
-                    name: 'USDC',
-                    symbol: 'USDC',
-                    decimals: 6,
-                    price: 1,
-                    amount: Number(formatUnits(lineaBalance, 6)),
-                    currency: 'usd',
-                    logoURI: getTokenLogo('USDC'),
-                    value: formatUnits(lineaBalance, 6),
-                })
-            }
-            setTokenBalances(recoverableBalances)
-            setFetchingBalances(false)
-        }
-        fetchBalances()
-    }, [peanutAddress])
     const reset = useCallback(() => {
         setErrorMessage('')
         setInputChanging(false)
@@ -181,10 +140,10 @@ export default function RecoverFundsPage() {
         setIsSigning(false)
     }, [selectedBalance, recipient.address, sendTransactions, peanutAddress, t])
 
-    if (!peanutAddress) return null
-
-    if (fetchingBalances) {
-        return <PeanutLoading />
+    // wallet address not resolved yet (kernel still initializing) — show the
+    // loader instead of a blank page; balances start fetching once it lands
+    if (!peanutAddress || fetchingBalances) {
+        return <Loading variant="mascot" />
     }
 
     if (status === 'review' && (!selectedBalance || !recipient.address)) {
@@ -193,14 +152,14 @@ export default function RecoverFundsPage() {
         return null
     } else if (status === 'review') {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
+            <PageStack>
                 <NavHeader title={t('title')} onPrev={reset} />
-                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+                <PageStack.Center className="gap-4">
                     <Card className="flex items-center gap-3 p-4">
                         <div className="flex items-center gap-3">
                             <div
                                 className={
-                                    'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-success-3 font-bold'
+                                    'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-green-500 font-bold'
                                 }
                             >
                                 <Image
@@ -214,10 +173,14 @@ export default function RecoverFundsPage() {
                         </div>
 
                         <div className="space-y-1">
-                            <h1 className="text-sm font-normal text-grey-1">
-                                {t('youWillReceiveTo')} <AddressLink address={recipient.address} />
+                            <h1 className="text-body-s font-normal text-foreground-secondary">
+                                {t('youWillReceiveTo')}{' '}
+                                <AddressLink
+                                    address={recipient.address}
+                                    className="text-body-s font-normal text-foreground-secondary"
+                                />
                             </h1>
-                            <h2 className="text-2xl font-extrabold">
+                            <h2 className="text-heading-s">
                                 {t('amountInChain', {
                                     amount: format.number(selectedBalance!.amount, { maximumFractionDigits: 8 }),
                                     symbol: selectedBalance!.symbol,
@@ -238,20 +201,20 @@ export default function RecoverFundsPage() {
                     >
                         {isLoading ? tLoading(loadingStateKey(loadingState)) : tCommon('confirm')}
                     </Button>
-                </div>
-            </div>
+                </PageStack.Center>
+            </PageStack>
         )
     }
 
     if (status === 'final') {
         return (
-            <div className="flex min-h-[inherit] flex-col gap-8">
-                <div className="my-auto flex h-full flex-col justify-center space-y-4">
+            <PageStack>
+                <PageStack.Center className="gap-4">
                     <Card className="flex items-center gap-3 p-4">
                         <div className="flex items-center gap-3">
                             <div
                                 className={
-                                    'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-success-3 font-bold'
+                                    'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-green-500 font-bold'
                                 }
                             >
                                 <Image
@@ -265,10 +228,14 @@ export default function RecoverFundsPage() {
                         </div>
 
                         <div className="space-y-1">
-                            <h1 className="text-sm font-normal text-grey-1">
-                                {t('sentTo')} <AddressLink address={recipient.address} />
+                            <h1 className="text-body-s font-normal text-foreground-secondary">
+                                {t('sentTo')}{' '}
+                                <AddressLink
+                                    address={recipient.address}
+                                    className="text-body-s font-normal text-foreground-secondary"
+                                />
                             </h1>
-                            <h2 className="text-2xl font-extrabold">
+                            <h2 className="text-heading-s">
                                 {t('amountInChain', {
                                     amount: format.number(selectedBalance!.amount, { maximumFractionDigits: 8 }),
                                     symbol: selectedBalance!.symbol,
@@ -317,19 +284,43 @@ export default function RecoverFundsPage() {
                     >
                         {t('recoverOtherToken')}
                     </Button>
-                </div>
-            </div>
+                </PageStack.Center>
+            </PageStack>
         )
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col gap-8">
+        <PageStack>
             <NavHeader title={t('title')} />
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
-                <h1>{t('selectToken')}</h1>
-                <ScrollableList>
-                    {tokenBalances.length > 0 ? (
-                        tokenBalances.map((balance) => (
+            {/* balancesError: the fetch failed — show the alert empty state
+                with a retry instead of hanging on the loader (TASK-21829).
+                Otherwise, nothing recoverable — the token picker, address
+                input and review button are all pointless, show the ds empty
+                state with a way back home instead */}
+            {balancesError || tokenBalances.length === 0 ? (
+                <div className="my-auto">
+                    <EmptyState
+                        icon={balancesError ? 'alert' : 'wallet'}
+                        title={balancesError ? tCommon('somethingWentWrong') : t('noTokens')}
+                        description={balancesError ? tCommon('genericError') : t('noTokensDescription')}
+                        cta={
+                            <Button
+                                variant="purple"
+                                shadowSize="4"
+                                size="small"
+                                className="mt-2"
+                                onClick={() => (balancesError ? retry() : router.push('/home'))}
+                            >
+                                {balancesError ? tCommon('tryAgain') : t('goToHome')}
+                            </Button>
+                        }
+                    />
+                </div>
+            ) : (
+                <PageStack.Center className="gap-4">
+                    <h1>{t('selectToken')}</h1>
+                    <ScrollableList>
+                        {tokenBalances.map((balance) => (
                             <TokenListItem
                                 key={balance.address}
                                 balance={balance}
@@ -342,42 +333,38 @@ export default function RecoverFundsPage() {
                                     setSelectedBalance(balance)
                                 }}
                             />
-                        ))
-                    ) : (
-                        <div className="flex h-full w-full items-center justify-center">
-                            <div className="text-center text-xl font-bold text-grey-1">{t('noTokens')}</div>
-                        </div>
-                    )}
-                </ScrollableList>
-                <GeneralRecipientInput
-                    placeholder={t('recipientPlaceholder')}
-                    recipient={recipient}
-                    onUpdate={(update: GeneralRecipientUpdate) => {
-                        setRecipient(update.recipient)
-                        setErrorMessage(update.errorMessage)
-                        setInputChanging(update.isChanging)
-                    }}
-                />
-                <Button
-                    variant="purple"
-                    shadowSize="4"
-                    onClick={() => {
-                        setStatus('review')
-                    }}
-                    disabled={
-                        !!errorMessage ||
-                        inputChanging ||
-                        !recipient.address ||
-                        !selectedBalance ||
-                        selectedBalance.amount <= 0
-                    }
-                    loading={false}
-                    className="w-full"
-                >
-                    {t('review')}
-                </Button>
-                {!!errorMessage && <ErrorAlert description={errorMessage} />}
-            </div>
-        </div>
+                        ))}
+                    </ScrollableList>
+                    <GeneralRecipientInput
+                        placeholder={t('recipientPlaceholder')}
+                        recipient={recipient}
+                        onUpdate={(update: GeneralRecipientUpdate) => {
+                            setRecipient(update.recipient)
+                            setErrorMessage(update.errorMessage)
+                            setInputChanging(update.isChanging)
+                        }}
+                    />
+                    <Button
+                        variant="purple"
+                        shadowSize="4"
+                        onClick={() => {
+                            setStatus('review')
+                        }}
+                        disabled={
+                            !!errorMessage ||
+                            inputChanging ||
+                            !recipient.address ||
+                            !selectedBalance ||
+                            selectedBalance.amount <= 0
+                        }
+                        loading={false}
+                        className="w-full"
+                    >
+                        {t('review')}
+                    </Button>
+                    {!!errorMessage && <Notification priority="error">{errorMessage}</Notification>}
+                </PageStack.Center>
+            )}
+        </PageStack>
     )
 }

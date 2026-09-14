@@ -122,13 +122,13 @@ export default function DebugPage() {
     if (isFetchingUser)
         return (
             <DevPageShell title="Debug" description={DEBUG_DESCRIPTION} width="prose">
-                <p className="font-mono text-sm">loading user…</p>
+                <p className="font-mono text-body-s">loading user…</p>
             </DevPageShell>
         )
     if (!userId) {
         return (
             <DevPageShell title="Debug" description={DEBUG_DESCRIPTION} width="prose">
-                <p className="font-mono text-sm">
+                <p className="font-mono text-body-s">
                     Not signed in. Sign up via{' '}
                     <Link className="text-black underline" href="/setup">
                         /setup
@@ -457,7 +457,7 @@ export default function DebugPage() {
     return (
         <DevPageShell title="Debug" description={DEBUG_DESCRIPTION} width="prose">
             <div className="space-y-4">
-                <section className="border border-n-1 bg-primary-3 p-3 font-mono text-xs">
+                <section className="border border-border-default bg-purple-200 p-3 font-mono text-body-xs">
                     <div className="mb-2 font-bold">User</div>
                     <div>
                         <b>user_id:</b> <code>{userId}</code>
@@ -506,11 +506,13 @@ export default function DebugPage() {
                                 const r = results[a.key]
                                 const isBusy = busy === a.key
                                 return (
-                                    <div key={a.key} className="border border-n-1 bg-white p-3">
+                                    <div key={a.key} className="border border-border-default bg-white p-3">
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="flex-1">
-                                                <div className="font-mono text-sm font-bold">{a.label}</div>
-                                                <div className="text-xs text-grey-1">{a.description}</div>
+                                                <div className="font-mono text-label-l">{a.label}</div>
+                                                <div className="text-body-xs text-foreground-secondary">
+                                                    {a.description}
+                                                </div>
                                             </div>
                                             <Button
                                                 variant="purple"
@@ -524,8 +526,8 @@ export default function DebugPage() {
                                         </div>
                                         {r && (
                                             <pre
-                                                className={`mt-2 max-h-48 overflow-auto border border-n-1 p-2 text-[10px] leading-tight ${
-                                                    r.ok ? 'bg-green-1/30' : 'bg-error-1/20'
+                                                className={`mt-2 max-h-48 overflow-auto border border-border-default p-2 text-[10px] leading-tight ${
+                                                    r.ok ? 'bg-green-400/30' : 'bg-error-1/20'
                                                 }`}
                                             >
                                                 {`(${r.ms}ms) `}
@@ -541,7 +543,7 @@ export default function DebugPage() {
 
                 <section className="pt-4">
                     <DevSectionLabel className="mb-2">Shortcuts</DevSectionLabel>
-                    <div className="space-y-1 font-mono text-xs">
+                    <div className="space-y-1 font-mono text-body-xs">
                         <div>
                             <Link className="underline" href="/home">
                                 /home
@@ -570,7 +572,7 @@ export default function DebugPage() {
                                 ledger history (raw JSON)
                             </a>
                         </div>
-                        <div className="pt-2 text-grey-1">
+                        <div className="pt-2 text-foreground-secondary">
                             All actions also fire <code>console.log</code> in pink. Pop open DevTools to follow along.
                         </div>
                     </div>

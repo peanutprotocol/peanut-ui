@@ -8,10 +8,21 @@ import type { GateState } from '@/utils/capability-gate'
 // user-poller never lapses while the user waits on the modal.
 const REARM_INTERVAL_MS = 20_000
 
+/** The gates with no user action behind them. Keep in step with the verifiable
+ *  set in capability-gate: every kind belongs to exactly one of the two. */
+const WAIT_ONLY_GATE_KINDS = new Set<GateState['kind']>(['waiting-on-provider', 'pending'])
+
 /**
- * Drives the "Bridge is re-reviewing, please wait" modal for the
- * `waiting-on-provider` gate (e.g. right after an EEA uplift, when the user
- * tries to on/offramp while Bridge re-verifies).
+ * Drives the "please wait" modal for every gate the user cannot act on:
+ * `waiting-on-provider` (Bridge re-reviewing submitted info, e.g. right after
+ * an EEA uplift) and `pending` (a rail still provisioning).
+ *
+ * Both kinds share one property that decides the UI — there is nothing to do
+ * but wait — so both must reach this modal. Routing `pending` anywhere else
+ * lands it on the identity screen, which offers a fresh verification run for a
+ * gate only time can clear. Widening the caller alone is not enough: `isOpen`
+ * is gated on the live kind here, so a caller that opens for a kind this hook
+ * does not know about gets a dead button.
  *
  * `waiting-on-provider` rails sit at `requires-info` — NOT `pending` — so the
  * auto-refresh poller ({@link useUserAutoRefresh}) isn't self-sustaining here:
@@ -25,11 +36,13 @@ const REARM_INTERVAL_MS = 20_000
 export function useWaitingOnProviderModal(gate: GateState) {
     const tIdentity = useTranslations('identity')
     const [requested, setRequested] = useState(false)
-    const isWaiting = gate.kind === 'waiting-on-provider'
+    const isWaiting = WAIT_ONLY_GATE_KINDS.has(gate.kind)
     const isOpen = requested && isWaiting
-    // narrow on the discriminated union rather than casting, so a rename of
-    // `userMessage` fails the build instead of silently returning undefined.
-    // Known reason codes render localized copy; unknown keep the BE prose.
+    // Only `waiting-on-provider` carries backend copy (see getGateUserMessage);
+    // `pending` has none and falls back to the modal's generic text. Narrowed on
+    // the discriminated union rather than cast, so a rename of `userMessage`
+    // fails the build instead of silently returning undefined. Known reason
+    // codes render localized copy; unknown keep the BE prose.
     const reasonKey = isOpen && gate.kind === 'waiting-on-provider' ? reasonCodeKey(gate.reason?.code) : undefined
     const message =
         isOpen && gate.kind === 'waiting-on-provider'

@@ -128,10 +128,10 @@ export default function ShareBuilderPage() {
                                     <button
                                         key={v}
                                         onClick={() => setHeroVariant(v)}
-                                        className={`rounded-full border-2 border-n-1 px-3 py-1 text-xs font-bold transition-colors ${
+                                        className={`rounded-full border-2 border-border-default px-3 py-1 text-label-m transition-colors ${
                                             heroVariant === v
-                                                ? 'bg-primary-1 text-n-1'
-                                                : 'bg-white text-grey-1 hover:bg-grey-2'
+                                                ? 'bg-action-primary text-foreground-primary'
+                                                : 'bg-white text-foreground-secondary'
                                         }`}
                                     >
                                         {v}
@@ -197,7 +197,7 @@ export default function ShareBuilderPage() {
                             />
                         </DevField>
                         {username.length > 12 && (
-                            <p className="text-[10px] font-bold leading-snug text-red">
+                            <p className="text-[10px] leading-snug font-bold text-red">
                                 ⚠️ Username &gt; 12 chars · production caps at 12. The @username pill shrinks
                                 defensively, but check the input gate in your caller.
                             </p>
@@ -211,10 +211,10 @@ export default function ShareBuilderPage() {
                                     <button
                                         key={c}
                                         onClick={() => setUnameBg(c)}
-                                        className={`rounded-full border-2 border-n-1 px-3 py-1 text-xs font-bold transition-colors ${
+                                        className={`rounded-full border-2 border-border-default px-3 py-1 text-label-m transition-colors ${
                                             unameBg === c
-                                                ? 'bg-primary-1 text-n-1'
-                                                : 'bg-white text-grey-1 hover:bg-grey-2'
+                                                ? 'bg-action-primary text-foreground-primary'
+                                                : 'bg-white text-foreground-secondary'
                                         }`}
                                     >
                                         {c}
@@ -263,10 +263,10 @@ export default function ShareBuilderPage() {
                                 <button
                                     key={code}
                                     onClick={() => toggleBadge(code)}
-                                    className={`rounded-full border-2 border-n-1 px-3 py-1 text-xs font-bold transition-colors ${
+                                    className={`rounded-full border-2 border-border-default px-3 py-1 text-label-m transition-colors ${
                                         selectedBadges.has(code)
-                                            ? 'bg-primary-1 text-n-1'
-                                            : 'bg-white text-grey-1 hover:bg-grey-2'
+                                            ? 'bg-action-primary text-foreground-primary'
+                                            : 'bg-white text-foreground-secondary'
                                     }`}
                                     title={code}
                                 >
@@ -354,7 +354,7 @@ export default function ShareBuilderPage() {
                     </DevPanel>
 
                     <DevPanel title="Username length shortcuts">
-                        <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="grid grid-cols-2 gap-2 text-body-xs">
                             <DevPresetButton onClick={() => setUsername('me')}>2-char user</DevPresetButton>
                             <DevPresetButton onClick={() => setUsername('twelvechars1')}>
                                 12 chars (max)
@@ -369,14 +369,16 @@ export default function ShareBuilderPage() {
 
                 {/* ─── RIGHT: Preview ──────────────────────────────────── */}
                 <main className="flex flex-1 flex-col gap-4">
-                    <div className="flex items-center justify-between rounded-sm border border-n-1 bg-grey-3 p-2 text-xs">
+                    <div className="flex items-center justify-between rounded-sm border border-border-default bg-background-page p-2 text-body-xs">
                         <span className="font-mono">
                             {CANVAS_W} × {CANVAS_H} · scaled {(previewScale * 100).toFixed(0)}%
                         </span>
-                        <span className="font-mono text-grey-1">seed: {seedOverride ?? username ?? 'anon'}</span>
+                        <span className="font-mono text-foreground-secondary">
+                            seed: {seedOverride ?? username ?? 'anon'}
+                        </span>
                     </div>
                     <div
-                        className="overflow-auto rounded-sm border-2 border-n-1 bg-background"
+                        className="overflow-auto rounded-sm border-2 border-border-default bg-background"
                         style={{ minHeight: 200 }}
                     >
                         <div
@@ -416,8 +418,8 @@ export default function ShareBuilderPage() {
                     {/* Faithful "in the share flow" strip — mirrors how the asset,
                         the anti-dox toggle, and the share buttons stack in
                         BadgeSkipCelebration / CardUnlockDrawer. */}
-                    <div className="mx-auto flex w-full max-w-md flex-col gap-3 rounded-sm border-2 border-dashed border-grey-1 bg-white p-4">
-                        <div className="text-center text-[10px] font-bold uppercase tracking-wider text-grey-1">
+                    <div className="mx-auto flex w-full max-w-md flex-col gap-3 rounded-sm border-2 border-dashed border-gray-600 bg-white p-4">
+                        <div className="text-center text-[10px] font-bold tracking-wider text-foreground-secondary uppercase">
                             ↑ asset · how it stacks in the real flow ↓
                         </div>
                         <Checkbox
@@ -441,9 +443,11 @@ export default function ShareBuilderPage() {
                         </Button>
                     </div>
 
-                    <div className="space-y-2 rounded-sm border border-n-1 bg-white p-4 text-xs">
-                        <div className="font-bold uppercase tracking-wider text-grey-1">Resulting props</div>
-                        <pre className="overflow-auto whitespace-pre-wrap font-mono text-[11px]">
+                    <div className="space-y-2 rounded-sm border border-border-default bg-white p-4 text-body-xs">
+                        <div className="font-bold tracking-wider text-foreground-secondary uppercase">
+                            Resulting props
+                        </div>
+                        <pre className="overflow-auto font-mono text-[11px] whitespace-pre-wrap">
                             {JSON.stringify(
                                 {
                                     username,

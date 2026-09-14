@@ -1,865 +1,78 @@
 'use client'
 
-import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
+import GeneralRecipientInput from '@/components/Global/GeneralRecipientInput'
+import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
-import {
-    MAX_CASHOUT_LIMIT,
-    MIN_CASHOUT_LIMIT,
-    optimismChainId,
-    usdcAddressOptimism,
-} from '@/components/Offramp/Offramp.consts'
-import { TRANSACTIONS } from '@/constants/query.consts'
-import { loadingStateContext } from '@/context/loadingStates.context'
-import { tokenSelectorContext } from '@/context/tokenSelector.context'
-import { useAuth } from '@/context/authContext'
-import { useWallet } from '@/hooks/wallet/useWallet'
-import { sendLinksApi } from '@/services/sendLinks'
-import { areEvmAddressesEqual, formatTokenAmount, toInviteCode } from '@/utils/general.utils'
-import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
-import { useFriendlyError } from '@/hooks/useFriendlyError'
-import { apiFetch } from '@/utils/api-fetch'
-import { getBridgeChainName, getBridgeTokenName } from '@/utils/bridge-accounts.utils'
-import { NATIVE_TOKEN_ADDRESS, checkTokenSupportsXChain } from '@/utils/token.utils'
-import * as Sentry from '@sentry/nextjs'
-import { useQueryClient } from '@tanstack/react-query'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useCallback, useContext, useEffect, useMemo, useState, useRef } from 'react'
-import { formatUnits, isAddress, zeroAddress } from 'viem'
-import type { Address } from 'viem'
+import { formatTokenAmount } from '@/utils/general.utils'
+import { formatUnits } from 'viem'
 import { type IClaimScreenProps } from '../Claim.consts'
 import SendLinkActionList from '@/components/Claim/Link/SendLinkActionList'
-import { ClaimBankFlowStep, useClaimBankFlow } from '@/context/ClaimBankFlowContext'
-import useClaimLink from '../useClaimLink'
-import underMaintenanceConfig, { CROSS_CHAIN_DISABLED_MESSAGE } from '@/config/underMaintenance.config'
-import ActionModal from '@/components/Global/ActionModal'
-import { Slider } from '@/components/Slider'
+import { ClaimBankFlowStep } from '@/context/ClaimBankFlowContext'
 import { BankFlowManager } from './views/BankFlowManager.view'
-import { type ClaimXChainPreview } from '../Claim.consts'
-import { previewSdaTransfer } from '@/services/rhino-sda'
-import { evmChainIdToRhinoName } from '@/constants/rhino.consts'
-import { getTokenSymbol } from '@/utils/general.utils'
+import { ClaimAddressConfirmationModal } from './views/ClaimAddressConfirmationModal.view'
 import { Button } from '@/components/0_Bruddle/Button'
 import Image from 'next/image'
 import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
 import { PEANUTMAN } from '@/assets/mascot'
 import { GuestVerificationModal } from '@/components/Global/GuestVerificationModal'
-import { useCapabilities } from '@/hooks/useCapabilities'
 import MantecaFlowManager from './MantecaFlowManager'
-import ErrorAlert from '@/components/Global/ErrorAlert'
-import { invitesApi } from '@/services/invites'
-import { EInviteType } from '@/services/services.types'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
-import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
-import posthog from 'posthog-js'
-import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { useFormatter, useTranslations } from 'next-intl'
+import { useInitialClaimFlow } from './useInitialClaimFlow'
 import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
+import { useSearchParams } from 'next/navigation'
 
 export const InitialClaimLinkView = (props: IClaimScreenProps) => {
-    const t = useTranslations('claim')
-    const toFriendlyError = useFriendlyError()
-    const format = useFormatter()
-    const tCommon = useTranslations('common')
-    const tNav = useTranslations('navigation')
+    // `/claim` remains a published singular campaignTag wire. resolved here from
+    // the live search params (this file predates the nuqs ratchet) so url order
+    // and duplicate keys keep their original precedence, then handed to the hook.
     const searchParams = useSearchParams()
-    // `/claim` remains a published singular campaignTag wire. Resolve its URL
-    // through the canonical badge namespace before forwarding that legacy field.
     const campaignTag = badgeCampaignForLegacyWire(searchParams)
-
-    const senderDisplay = useRecipientDisplay({
-        user: props.claimLinkData.sender,
-        address: props.claimLinkData.senderAddress,
-    })
-
     const {
         onNext,
         claimLinkData,
         setRecipient,
         recipient,
         tokenPrice,
-        setClaimType,
         attachment,
-        setTransactionHash,
-        onCustom,
         selectedRoute,
-        setSelectedRoute,
         hasFetchedRoute,
-        setHasFetchedRoute,
         recipientType,
-        setRecipientType,
-        setOfframpForm,
-        setUserType,
-        setInitialKYCStep,
     } = props
-    const [isValidRecipient, setIsValidRecipient] = useState(false)
-    const [errorState, setErrorState] = useState<{
-        showError: boolean
-        errorMessage: string
-    }>({ showError: false, errorMessage: '' })
-    const [isXchainLoading, setIsXchainLoading] = useState<boolean>(false)
-    const [routes, setRoutes] = useState<ClaimXChainPreview[]>([])
-    const [inputChanging, setInputChanging] = useState<boolean>(false)
-    const [showConfirmationModal, setShowConfirmationModal] = useState<boolean>(false)
-
     const {
+        t,
+        tCommon,
+        tNav,
+        senderDisplay,
+        errorState,
+        fieldError,
+        isValidRecipient,
+        isXchainLoading,
+        inputChanging,
+        showConfirmationModal,
+        setShowConfirmationModal,
+        claimBankFlowStep,
         claimToExternalWallet,
-        flowStep: claimBankFlowStep,
+        setClaimToExternalWallet,
+        claimToMercadoPago,
+        hideTokenSelector,
         showVerificationModal,
         setShowVerificationModal,
         verificationPromptReason,
-        setVerificationPromptReason,
-        setClaimToExternalWallet,
-        resetFlow: resetClaimBankFlow,
-        claimToMercadoPago,
-        setClaimToMercadoPago,
-        setRegionalMethodType,
-        hideTokenSelector,
-        setHideTokenSelector,
-    } = useClaimBankFlow()
-    const { setLoadingState, isLoading } = useContext(loadingStateContext)
-    const {
-        selectedChainID,
-        selectedTokenAddress,
-        setSelectedChainID,
-        setSelectedTokenAddress,
-        selectedTokenData,
-        refetchXchainRoute,
-        setRefetchXchainRoute,
+        removeParamStep,
+        isLoading,
         isXChain,
-        setIsXChain,
-        supportedChainsAndTokens,
-        setDevconnectChainId,
-        setDevconnectRecipientAddress,
-        setDevconnectTokenAddress,
-    } = useContext(tokenSelectorContext)
-    const { claimLink, claimLinkXchain, removeParamStep } = useClaimLink()
-    const { isConnected: isPeanutWallet, address, fetchBalance } = useWallet()
-    const router = useRouter()
-    const { user, fetchUser } = useAuth()
-    const queryClient = useQueryClient()
-    const prevRecipientType = useRef<string | null>(null)
-    const prevUser = useRef(user)
-    // Bank-claim routing checks "is there an enabled bank rail the claim could
-    // settle through?". Provider-blind — Manteca PIX_BR counts as a bank rail
-    // too, but a card-only user (Rain) is correctly excluded.
-    const hasEnabledBankRail = useCapabilities()
-        .bankRails()
-        .some((rail) => rail.status === 'enabled')
-
-    const [isDevconnectClaimFlow, setisDevconnectClaimFlow] = useState(false)
-
-    const paramsDevconnectTokenAddress = searchParams.get('tokenAddress')
-    const paramsDevconnectChainId = searchParams.get('chainId')
-    const paramsDevconnectRecipientAddress = searchParams.get('address')
-
-    useEffect(() => {
-        // Validate devconnect token and chain are supported
-        if (
-            campaignTag?.toLowerCase() === 'devconnect_ba_2025' &&
-            paramsDevconnectTokenAddress &&
-            paramsDevconnectRecipientAddress &&
-            paramsDevconnectChainId &&
-            Object.keys(supportedChainsAndTokens).length > 0
-        ) {
-            let isSupported = false
-
-            // Allow for USDC Arbitrum claims to be made without checking xchain support
-            if (
-                paramsDevconnectTokenAddress === PEANUT_WALLET_TOKEN &&
-                paramsDevconnectChainId === PEANUT_WALLET_CHAIN.id.toString()
-            ) {
-                isSupported = true
-            }
-            // Check if the token and chain are supported xchain
-            else {
-                isSupported = checkTokenSupportsXChain(
-                    paramsDevconnectTokenAddress,
-                    paramsDevconnectChainId,
-                    supportedChainsAndTokens
-                )
-            }
-
-            const isValidDevconnectRecipient = isAddress(paramsDevconnectRecipientAddress)
-
-            if (isSupported && isValidDevconnectRecipient) {
-                setDevconnectChainId(paramsDevconnectChainId)
-                setDevconnectRecipientAddress(paramsDevconnectRecipientAddress)
-                setDevconnectTokenAddress(paramsDevconnectTokenAddress)
-                setisDevconnectClaimFlow(true)
-            }
-        }
-    }, [
-        paramsDevconnectTokenAddress,
-        paramsDevconnectChainId,
-        paramsDevconnectRecipientAddress,
-        supportedChainsAndTokens,
-        campaignTag,
-        setDevconnectChainId,
-        setDevconnectRecipientAddress,
-        setDevconnectTokenAddress,
-    ])
-
-    useEffect(() => {
-        if (!prevUser.current && user) {
-            resetClaimBankFlow()
-        }
-        prevUser.current = user
-    }, [user, resetClaimBankFlow])
-
-    const hasTrackedClaimView = useRef(false)
-    useEffect(() => {
-        if (claimLinkData && !hasTrackedClaimView.current) {
-            hasTrackedClaimView.current = true
-            posthog.capture(ANALYTICS_EVENTS.CLAIM_LINK_VIEWED, {
-                amount: formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals),
-                token_symbol: claimLinkData.tokenSymbol,
-                chain_id: claimLinkData.chainId,
-            })
-        }
-    }, [claimLinkData])
-
-    const resetSelectedToken = useCallback(() => {
-        if (isPeanutWallet) {
-            setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
-            setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
-        }
-        // claimLinkData is unused in the body but load-bearing: it is what gives this
-        // callback a new identity per link, and the effects below depend on that
-        // identity to reset the token selection when new link data arrives. Dropping
-        // it would silently stop those resets.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [claimLinkData, isPeanutWallet, setSelectedChainID, setSelectedTokenAddress])
-
-    const isPeanutChain = useMemo(() => {
-        return claimLinkData.chainId === PEANUT_WALLET_CHAIN.id.toString()
-    }, [claimLinkData])
-
-    // set token selector chain/token to peanut wallet chain/token if recipient type is username
-    useEffect(() => {
-        if (recipientType === 'username') {
-            setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
-            setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
-            if (!isPeanutChain) {
-                setRefetchXchainRoute(true)
-                setIsXChain(true)
-            }
-        } else {
-            if (prevRecipientType.current === 'username') {
-                setSelectedChainID(claimLinkData.chainId)
-                setSelectedTokenAddress(claimLinkData.tokenAddress)
-            }
-        }
-        prevRecipientType.current = recipientType
-    }, [
-        recipientType,
-        claimLinkData.chainId,
-        isPeanutChain,
-        claimLinkData.tokenAddress,
-        setIsXChain,
-        setRefetchXchainRoute,
-        setSelectedChainID,
-        setSelectedTokenAddress,
-    ])
-
-    const handleClaimLink = useCallback(
-        async (bypassModal = false, _autoClaim = false) => {
-            if (!selectedTokenData) return
-
-            if (!isPeanutWallet && !bypassModal) {
-                setShowConfirmationModal(true)
-                return
-            }
-            setShowConfirmationModal(false)
-
-            setLoadingState('Loading')
-            setErrorState({
-                showError: false,
-                errorMessage: '',
-            })
-
-            if (!isPeanutWallet && recipient.address === '') return
-
-            // If the user doesn't have app access, accept the invite before claiming the link
-            if (!user?.user.hasAppAccess) {
-                try {
-                    const inviterUsername = claimLinkData.sender?.username
-                    if (!inviterUsername) {
-                        setErrorState({
-                            showError: true,
-                            errorMessage: t('errors.missingInviter'),
-                        })
-                        setLoadingState('Idle')
-                        return
-                    }
-                    const inviteCode = toInviteCode(inviterUsername)
-                    const result = await invitesApi.acceptInvite(
-                        inviteCode,
-                        EInviteType.PAYMENT_LINK,
-                        campaignTag ?? undefined
-                    )
-                    if (!result.success || !result.onboardingResolved) {
-                        console.error('Failed to accept invite')
-                        setErrorState({
-                            showError: true,
-                            errorMessage: tCommon('genericError'),
-                        })
-                        setLoadingState('Idle')
-                        return
-                    }
-
-                    // fetch user so that we have the latest state and user can access the app.
-                    // We dont need to wait for this, can happen in background.
-                    fetchUser()
-                } catch (error) {
-                    Sentry.captureException(error)
-                    console.error('Failed to accept invite', error)
-                    setErrorState({
-                        showError: true,
-                        errorMessage: tCommon('genericError'),
-                    })
-                    setLoadingState('Idle')
-                    return
-                }
-            }
-
-            try {
-                setLoadingState('Executing transaction')
-
-                let recipientAddress: string | undefined
-                if (isPeanutWallet) {
-                    // use wallet address from useWallet hook
-                    recipientAddress = address
-                } else {
-                    // use external wallet address
-                    recipientAddress = recipient?.address
-                }
-
-                if (!recipientAddress) {
-                    throw new Error('No recipient address available')
-                }
-
-                // use secure SDK claim (password stays client-side, only signature sent to backend)
-                let claimTxHash: string | undefined
-                // performance optimization: pass deposit details to skip RPC call on backend
-                // determine contractType: 0 for native ETH, 1 for ERC20 tokens
-                // @dev todo: this should be fetched in backend ideally. might break ETH sendlinks.
-                const isNativeToken =
-                    claimLinkData.tokenAddress === NATIVE_TOKEN_ADDRESS || claimLinkData.tokenAddress === zeroAddress
-                const contractType = isNativeToken ? 0 : 1
-
-                const depositDetails = {
-                    pubKey20: claimLinkData.pubKey,
-                    amount: claimLinkData.amount.toString(),
-                    tokenAddress: claimLinkData.tokenAddress,
-                    contractType,
-                    claimed: claimLinkData.status === 'CLAIMED' || claimLinkData.status === 'CANCELLED',
-                    requiresMFA: false, // MFA not supported in current flow
-                    timestamp: Math.floor(new Date(claimLinkData.createdAt).getTime() / 1000),
-                    tokenId: '0',
-                    senderAddress: claimLinkData.senderAddress,
-                }
-
-                // check if cross-chain claiming is needed
-                if (isXChain) {
-                    if (underMaintenanceConfig.disableXchainSend) {
-                        // skip throwing through the friendly-error mapper — surface the friendly maintenance message directly
-                        setErrorState({ showError: true, errorMessage: CROSS_CHAIN_DISABLED_MESSAGE })
-                        setLoadingState('Idle')
-                        return
-                    }
-                    if (!selectedTokenData?.chainId || !selectedTokenData?.address) {
-                        throw new Error('Selected token data is required for cross-chain claims')
-                    }
-                    claimTxHash = await claimLinkXchain({
-                        address: recipientAddress,
-                        link: claimLinkData.link,
-                        destinationChainId: selectedTokenData.chainId,
-                        destinationToken: selectedTokenData.address,
-                        campaignTag: campaignTag ?? undefined,
-                    })
-                    setClaimType('claimxchain')
-                } else {
-                    // regular P2P claim with optimistic return for faster UX
-                    claimTxHash = await claimLink({
-                        address: recipientAddress,
-                        link: claimLinkData.link,
-                        depositDetails, // performance: skip RPC call
-                        optimisticReturn: true, // UX: return immediately, poll for txHash
-                        campaignTag: campaignTag ?? undefined,
-                    })
-                    setClaimType('claim')
-                }
-
-                // associate the claim with the user so it shows up in their activity
-                if (user && claimTxHash) {
-                    try {
-                        await sendLinksApi.associateClaim(claimTxHash)
-                    } catch (e) {
-                        Sentry.captureException(e)
-                        console.error('Failed to associate claim', e)
-                    }
-                }
-
-                setTransactionHash(claimTxHash)
-                onCustom('SUCCESS')
-
-                // note: with optimisticReturn, balance/transactions refresh happens in SUCCESS view
-                // after polling confirms the transaction. only refresh immediately if we have txHash.
-                if (claimTxHash) {
-                    // synchronous claim - transaction is confirmed
-                    // force immediate refetch to bypass staleTime
-                    if (isPeanutWallet) {
-                        queryClient.refetchQueries({
-                            queryKey: ['balance'],
-                            type: 'active',
-                        })
-                    }
-                    queryClient.refetchQueries({
-                        queryKey: [TRANSACTIONS],
-                        type: 'active',
-                    })
-                } else {
-                    // optimistic return - transaction still processing
-                    // SUCCESS view will refresh after polling detects txHash
-                    // Queue multiple balance refreshes to catch the update
-                    const refreshIntervals = [5000, 15000, 30000] // 5s, 15s, 30s
-
-                    refreshIntervals.forEach((delay) => {
-                        setTimeout(() => {
-                            if (isPeanutWallet) {
-                                queryClient.refetchQueries({
-                                    queryKey: ['balance'],
-                                    type: 'active',
-                                })
-                            }
-                            queryClient.refetchQueries({
-                                queryKey: [TRANSACTIONS],
-                                type: 'active',
-                            })
-                        }, delay)
-                    })
-                }
-            } catch (error) {
-                const errorString = toFriendlyError(error)
-                setErrorState({
-                    showError: true,
-                    errorMessage: errorString,
-                })
-                Sentry.captureException(error)
-            } finally {
-                setLoadingState('Idle')
-            }
-        },
-        [
-            claimLinkData.link,
-            claimLinkData.chainId,
-            claimLinkData.tokenAddress,
-            claimLinkData.pubKey,
-            claimLinkData.amount,
-            claimLinkData.status,
-            claimLinkData.createdAt,
-            claimLinkData.senderAddress,
-            isPeanutWallet,
-            fetchBalance,
-            recipient.address,
-            user,
-            claimLink,
-            claimLinkXchain,
-            selectedTokenData,
-            onCustom,
-            setLoadingState,
-            setClaimType,
-            setTransactionHash,
-            queryClient,
-            isXChain,
-            address,
-            campaignTag,
-            fetchUser,
-            t,
-            tCommon,
-            toFriendlyError,
-        ]
-    )
-
-    useEffect(() => {
-        if (isPeanutWallet && !claimToExternalWallet) resetSelectedToken()
-    }, [resetSelectedToken, isPeanutWallet, claimToExternalWallet])
-
-    const handleIbanRecipient = async () => {
-        try {
-            setErrorState({
-                showError: false,
-                errorMessage: '',
-            })
-            setLoadingState('Fetching route')
-
-            if (tokenPrice) {
-                const cashoutUSDAmount =
-                    Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)) * tokenPrice
-                const usd = (amount: number) => format.number(amount, { style: 'currency', currency: 'USD' })
-                if (cashoutUSDAmount < MIN_CASHOUT_LIMIT) {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: t('errors.belowMinimum', { amount: usd(MIN_CASHOUT_LIMIT) }),
-                    })
-                    return
-                } else if (cashoutUSDAmount > MAX_CASHOUT_LIMIT) {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: t('errors.aboveMaximum', { amount: usd(MAX_CASHOUT_LIMIT) }),
-                    })
-                    return
-                }
-            }
-
-            let tokenName = getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
-            let chainName = getBridgeChainName(claimLinkData.chainId)
-
-            if (!tokenName || !chainName) {
-                console.log('Debug - Routing through USDC Optimism')
-                const route = await fetchRoute(usdcAddressOptimism, optimismChainId)
-                if (!route) {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: t('errors.offrampUnavailable'),
-                    })
-                    return
-                }
-
-                tokenName = getBridgeTokenName(optimismChainId, usdcAddressOptimism)
-                chainName = getBridgeChainName(optimismChainId)
-            }
-
-            setLoadingState('Getting KYC status')
-
-            if (!user) {
-                console.log(`user not logged in, getting account status for ${recipient.address}`)
-                const userIdResponse = await apiFetch('/get-user-id', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        accountIdentifier: recipient.address,
-                    }),
-                })
-                const response = await userIdResponse.json()
-                if (response.isNewUser) {
-                    setUserType('NEW')
-                } else {
-                    setUserType('EXISTING')
-                }
-                setOfframpForm({
-                    name: '',
-                    email: '',
-                    password: '',
-                    recipient: recipient.name ?? recipient.address,
-                })
-                setInitialKYCStep(0)
-            } else {
-                setOfframpForm({
-                    email: user?.user?.email ?? '',
-                    name: user?.user?.fullName ?? '',
-                    recipient: recipient.name ?? recipient.address,
-                    password: '',
-                })
-                if (hasEnabledBankRail) {
-                    const account = user.accounts.find(
-                        (account) =>
-                            account.identifier.replaceAll(/\s/g, '').toLowerCase() ===
-                            recipient.address.replaceAll(/\s/g, '').toLowerCase()
-                    )
-
-                    if (account) {
-                        setInitialKYCStep(4)
-                    } else {
-                        setInitialKYCStep(3)
-                    }
-                } else {
-                    if (!user?.user.email || !user?.user.fullName) {
-                        setInitialKYCStep(0)
-                    } else {
-                        setInitialKYCStep(1)
-                    }
-                }
-            }
-
-            onNext()
-        } catch (error) {
-            setErrorState({
-                showError: true,
-                errorMessage: t('errors.bankClaimUnavailable'),
-            })
-            Sentry.captureException(error)
-        } finally {
-            setLoadingState('Idle')
-        }
-    }
-
-    // Note: Claimers don't earn points for claiming - only senders earn points for sending.
-    // Points will be visible in the sender's transaction history after the claim is processed.
-    // The calculatePoints endpoint is meant for senders to preview points before sending.
-    // useEffect(() => {
-    //     // No points calculation needed on claim screen
-    // }, [recipient.address, isValidRecipient, claimLinkData.amount, claimLinkData.chainId, tokenPrice, user])
-
-    useEffect(() => {
-        setIsValidRecipient(!!recipient.address)
-    }, [recipient.address])
-
-    useEffect(() => {
-        if (!selectedTokenData) return
-        if (
-            selectedTokenData.chainId === claimLinkData.chainId &&
-            areEvmAddressesEqual(selectedTokenData.address, claimLinkData.tokenAddress)
-        ) {
-            setIsXChain(false)
-            setSelectedRoute(undefined)
-            setHasFetchedRoute(false)
-        } else {
-            setIsXChain(true)
-        }
-    }, [
-        selectedTokenData,
-        claimLinkData.chainId,
-        claimLinkData.tokenAddress,
-        setHasFetchedRoute,
-        setIsXChain,
-        setSelectedRoute,
-    ])
-
-    // We may need this when we re add rewards via specific tokens
-    // If not, feel free to remove
-    const isReward = useMemo(() => {
-        return false
-    }, [])
-
-    const fetchRoute = useCallback(
-        async (toToken?: string, toChain?: string) => {
-            if ((!toChain || !toToken) && !selectedTokenData) {
-                setIsXchainLoading(false)
-                setLoadingState('Idle')
-                return
-            }
-            const chainId = toChain ?? selectedTokenData!.chainId
-            const tokenAddress = toToken ?? selectedTokenData!.address
-
-            try {
-                const existingRoute = routes.find(
-                    (route) => route.chainId === chainId && areEvmAddressesEqual(route.tokenAddress, tokenAddress)
-                )
-
-                if (existingRoute) {
-                    setSelectedRoute(existingRoute)
-                    return existingRoute
-                } else if (!isXChain && !toToken && !toChain) {
-                    setHasFetchedRoute(false)
-                    return undefined
-                }
-
-                // Map source/destination to Rhino's chain + token vocabulary.
-                // Rhino SDA only supports USDC/USDT cross-chain — anything else
-                // is unroutable from this hook (the UI gates token selection
-                // against `supportedChainsAndTokens` upstream, but bail
-                // explicitly here for safety).
-                const sourceRhinoChain = evmChainIdToRhinoName(claimLinkData.chainId)
-                const destRhinoChain = evmChainIdToRhinoName(chainId)
-                const tokenSymbol = getTokenSymbol(tokenAddress, chainId)?.toUpperCase()
-                if (!sourceRhinoChain || !destRhinoChain || (tokenSymbol !== 'USDC' && tokenSymbol !== 'USDT')) {
-                    throw new Error(
-                        `Cross-chain route not supported (src=${claimLinkData.chainId} dest=${chainId} token=${tokenSymbol})`
-                    )
-                }
-
-                // claimLinkData.amount is base units (bigint, 6-dec for USDC).
-                // Rhino preview expects a decimal string, so format down.
-                const decimals = selectedTokenData?.decimals ?? 6
-                const previewAmount = formatUnits(claimLinkData.amount, decimals)
-                const preview = await previewSdaTransfer({
-                    chainIn: sourceRhinoChain,
-                    chainOut: destRhinoChain,
-                    token: tokenSymbol,
-                    amount: previewAmount,
-                    mode: 'pay',
-                })
-
-                const route: ClaimXChainPreview = {
-                    chainId,
-                    tokenAddress: tokenAddress as Address,
-                    receiveAmount: preview.receiveAmount,
-                    feeUsd: preview.feeUsd,
-                }
-
-                setRoutes([...routes, route])
-                if (!toToken && !toChain) {
-                    setSelectedRoute(route)
-                    setHasFetchedRoute(true)
-                }
-                return route
-            } catch (error) {
-                console.error('Error fetching route:', error)
-                if (!toToken && !toChain) {
-                    setSelectedRoute(undefined)
-                    setHasFetchedRoute(true)
-                }
-                setErrorState({
-                    showError: true,
-                    errorMessage: ROUTE_NOT_FOUND_ERROR,
-                })
-                Sentry.captureException(error)
-                return undefined
-            } finally {
-                setIsXchainLoading(false)
-                setLoadingState('Idle')
-            }
-        },
-        [claimLinkData, isXChain, selectedTokenData, setLoadingState, routes, setHasFetchedRoute, setSelectedRoute]
-    )
-
-    useEffect(() => {
-        if (claimBankFlowStep) {
-            resetSelectedToken()
-        }
-    }, [claimBankFlowStep, resetSelectedToken])
-
-    // Clear route immediately when user changes chain/token selection
-    // This runs BEFORE selectedTokenData is ready, preventing stale routes
-    useEffect(() => {
-        if (!selectedChainID || !selectedTokenAddress) return
-
-        // Clear the old route when selection changes
-        setSelectedRoute(undefined)
-        setHasFetchedRoute(false)
-
-        // If this is a cross-chain transfer, trigger refetch
-        const isXChainTransfer =
-            selectedChainID !== claimLinkData.chainId ||
-            !areEvmAddressesEqual(selectedTokenAddress, claimLinkData.tokenAddress)
-
-        if (isXChainTransfer) {
-            setRefetchXchainRoute(true)
-            // Only set loading state if we have a recipient AND input is not changing (ENS resolved)
-            if (recipient.address && !inputChanging) {
-                setIsXchainLoading(true)
-                setLoadingState('Fetching route')
-            }
-        }
-    }, [selectedChainID, selectedTokenAddress, claimLinkData.chainId, claimLinkData.tokenAddress])
-
-    useEffect(() => {
-        let isMounted = true
-        if (isReward || !claimLinkData.tokenAddress) {
-            return () => {
-                isMounted = false
-            }
-        }
-
-        // Only fetch if selectedTokenData is ready and recipient address is resolved (not ENS)
-        const isAddressResolved = recipient.address && recipient.address.startsWith('0x')
-
-        if (refetchXchainRoute && isAddressResolved && selectedTokenData && !inputChanging) {
-            setIsXchainLoading(true)
-            setLoadingState('Fetching route')
-            setErrorState({
-                showError: false,
-                errorMessage: '',
-            })
-
-            fetchRoute().finally(() => {
-                if (isMounted) {
-                    setRefetchXchainRoute(false)
-                } else {
-                    setErrorState({
-                        showError: false,
-                        errorMessage: '',
-                    })
-                }
-            })
-        }
-        return () => {
-            isMounted = false
-        }
-    }, [claimLinkData.tokenAddress, refetchXchainRoute, isReward, fetchRoute, selectedTokenData, inputChanging])
-
-    useEffect(() => {
-        if ((recipientType === 'iban' || recipientType === 'us') && selectedRoute) {
-            return
-        }
-        setSelectedRoute(undefined)
-        setHasFetchedRoute(false)
-    }, [recipientType])
-
-    // Set token selection for Peanut Wallet (only when NOT claiming to external wallet)
-    useEffect(() => {
-        if (isPeanutWallet && !claimToExternalWallet) {
-            setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
-            setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
-            if (!isPeanutChain) {
-                setRefetchXchainRoute(true)
-                setIsXChain(true)
-            }
-        }
-    }, [
         isPeanutWallet,
-        isPeanutChain,
-        claimToExternalWallet,
-        setIsXChain,
-        setRefetchXchainRoute,
-        setSelectedChainID,
-        setSelectedTokenAddress,
-    ])
-
-    // Clear recipient when switching to external wallet
-    useEffect(() => {
-        if (claimToExternalWallet && recipient.address === address) {
-            setRecipient({ name: undefined, address: '' })
-        } else if (!claimToExternalWallet && address) {
-            setRecipient({ name: undefined, address })
-        }
-        // Clear recipient, enable token selector and set token selection to USDC Arbitrum when user clicks back from devconnect claim flow
-        else if (!claimToExternalWallet && !address && isDevconnectClaimFlow) {
-            setHideTokenSelector(false)
-            setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
-            setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
-            setRecipient({ name: undefined, address: '' })
-        }
-    }, [claimToExternalWallet, address, isDevconnectClaimFlow])
-
-    // Set isXChain flag and validate existing route against selected token
-    useEffect(() => {
-        if (selectedTokenData) {
-            const isXChainTransfer =
-                selectedTokenData.chainId !== claimLinkData.chainId ||
-                !areEvmAddressesEqual(selectedTokenData.address, claimLinkData.tokenAddress)
-
-            setIsXChain(isXChainTransfer)
-
-            if (isXChainTransfer) {
-                // If there's an existing route, validate it matches the current selection
-                if (selectedRoute) {
-                    if (
-                        selectedRoute.chainId !== selectedTokenData.chainId ||
-                        !areEvmAddressesEqual(selectedRoute.tokenAddress, selectedTokenData.address)
-                    ) {
-                        setRefetchXchainRoute(true)
-                    } else {
-                        setRefetchXchainRoute(false)
-                        setHasFetchedRoute(true)
-                    }
-                } else if (!hasFetchedRoute && !refetchXchainRoute) {
-                    // No route yet and haven't tried fetching - trigger fetch for pre-filled data
-                    // Only if not already fetching (refetchXchainRoute = false)
-                    setRefetchXchainRoute(true)
-                }
-            }
-        }
-    }, [
-        selectedTokenData,
-        claimLinkData.chainId,
-        claimLinkData.tokenAddress,
-        selectedRoute,
-        hasFetchedRoute,
-        refetchXchainRoute,
-    ])
+        user,
+        router,
+        isReward,
+        isDevconnectClaimFlow,
+        handleClaimLink,
+        handleClaimAction,
+        handleRecipientUpdate,
+    } = useInitialClaimFlow(props, campaignTag)
 
     const getButtonText = () => {
         if (isPeanutWallet && !claimToExternalWallet) {
@@ -889,59 +102,6 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
         return t('receiveNow')
     }
 
-    const handleClaimAction = () => {
-        if (claimToExternalWallet) {
-            if (isXChain) {
-                setRefetchXchainRoute(true)
-            }
-            onNext()
-        } else if (isPeanutWallet && !isPeanutChain) {
-            setRefetchXchainRoute(true)
-            onNext()
-        } else if (recipientType === 'iban' || recipientType === 'us') {
-            handleIbanRecipient()
-        } else if (!isPeanutChain) {
-            if (selectedRoute) {
-                // Only proceed if we have a valid route
-                onNext()
-            } else if (isXChain) {
-                // No route yet or route fetch failed - trigger refetch
-                setRefetchXchainRoute(true)
-            }
-        } else {
-            handleClaimLink()
-        }
-    }
-
-    useEffect(() => {
-        const stepFromURL = searchParams.get('step')
-        if (user && address && claimLinkData.status !== 'CLAIMED' && selectedTokenData) {
-            removeParamStep()
-            if (stepFromURL === 'claim' && isPeanutWallet) {
-                handleClaimLink(false, true)
-            } else if (stepFromURL === 'regional-claim') {
-                // restore the method the user tapped BEFORE the auth redirect —
-                // context state didn't survive the remount, only the URL did.
-                // without a valid param the method stays null (unknown), never
-                // a default that could masquerade as a real choice.
-                const methodFromURL = searchParams.get('method')
-                if (methodFromURL === 'pix' || methodFromURL === 'mercadopago') {
-                    setRegionalMethodType(methodFromURL)
-                }
-                setClaimToMercadoPago(true)
-            }
-        }
-    }, [user, searchParams, isPeanutWallet, selectedTokenData, address])
-
-    useEffect(() => {
-        if (claimToMercadoPago && !user) {
-            // regional claim without an account: the sender's verification is
-            // irrelevant here, so don't render copy that blames them
-            setVerificationPromptReason('account-required')
-            setShowVerificationModal(true)
-        }
-    }, [claimToMercadoPago, user, setShowVerificationModal, setVerificationPromptReason])
-
     if (claimBankFlowStep) {
         return <BankFlowManager {...props} />
     }
@@ -963,7 +123,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">
+        <div className="flex min-h-inherit flex-col justify-between gap-8 md:min-h-fit">
             {!!user?.user.userId || claimBankFlowStep || claimToExternalWallet ? (
                 <div>
                     <NavHeader
@@ -979,10 +139,10 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 </div>
             ) : (
                 <div className="-mt-1 md:hidden">
-                    <div className="pb-1 text-center text-2xl font-extrabold">{t('receive')}</div>
+                    <div className="pb-1 text-center text-heading-s">{t('receive')}</div>
                 </div>
             )}
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
+            <PageStack.Center className="gap-4">
                 <PeanutActionDetailsCard
                     avatarSize="small"
                     transactionType="CLAIM_LINK"
@@ -999,7 +159,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     message={attachment.message}
                     fileUrl={attachment.attachmentUrl}
                 />
-                {errorState.showError && <ErrorAlert description={errorState.errorMessage} />}
+                {errorState.showError && <Notification priority="error">{errorState.errorMessage}</Notification>}
 
                 {/* Token Selector
                  * We don't want to show this if we're claiming to peanut wallet. Else its okay
@@ -1016,39 +176,17 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     {/* Alternative options section with divider */}
                     {/* Manual Input Section - Always visible in non-peanut-only mode */}
                     {!!claimToExternalWallet && (
-                        <GeneralRecipientInput
-                            placeholder={t('initial.recipientPlaceholder')}
-                            recipient={recipient}
-                            onUpdate={(update: GeneralRecipientUpdate) => {
-                                setRecipient(update.recipient)
-                                if (!update.recipient.address) {
-                                    setRecipientType('address')
-                                    // Reset loading state when input is cleared
-                                    setLoadingState('Idle')
-                                    setErrorState({
-                                        showError: false,
-                                        errorMessage: '',
-                                    })
-                                } else {
-                                    setRecipientType(update.type)
-                                    if (update.isValid && !update.isChanging) {
-                                        posthog.capture(ANALYTICS_EVENTS.CLAIM_RECIPIENT_SELECTED, {
-                                            recipient_type: update.type,
-                                        })
-                                    }
-                                }
-                                setIsValidRecipient(update.isValid)
-                                setErrorState({
-                                    showError: !update.isChanging && !update.isValid,
-                                    errorMessage: update.errorMessage,
-                                })
-                                setInputChanging(update.isChanging)
-                            }}
-                            showInfoText={false}
-                        />
+                        <FieldColumn error={fieldError}>
+                            <GeneralRecipientInput
+                                placeholder={t('initial.recipientPlaceholder')}
+                                recipient={recipient}
+                                onUpdate={handleRecipientUpdate}
+                                showInfoText={false}
+                            />
+                        </FieldColumn>
                     )}
                     {recipientType === 'username' && !!claimToExternalWallet && (
-                        <div className="text-xs text-grey-1">{t('initial.usdcArbitrumOnly')}</div>
+                        <div className="text-body-xs text-foreground-secondary">{t('initial.usdcArbitrumOnly')}</div>
                     )}
                 </div>
 
@@ -1066,7 +204,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                                 !isValidRecipient ||
                                 (isXChain && !selectedRoute && (!hasFetchedRoute || isXchainLoading))
                             }
-                            className="text-sm md:text-base"
+                            className="text-body-s md:text-body-m"
                         >
                             {getButtonText()}
                         </Button>
@@ -1081,48 +219,14 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                         />
                     )}
                 </div>
-            </div>
-            <ActionModal
-                visible={showConfirmationModal}
-                onClose={() => setShowConfirmationModal(false)}
-                title={t('addressCompatible.title')}
-                description={
-                    <div className="space-y-2">
-                        <p>{t('addressCompatible.line1')}</p>
-                        <p className="font-bold">{t('addressCompatible.line2')}</p>
-                    </div>
-                }
-                icon="alert"
-                iconContainerClassName="bg-yellow-400"
-                footer={
-                    <div className="w-full space-y-3">
-                        <Slider
-                            onValueChange={(v) => {
-                                if (!v) return
-                                // for cross-chain claims, advance to the confirm screen first
-                                if (isXChain) {
-                                    setShowConfirmationModal(false)
-                                    onNext()
-                                } else {
-                                    // direct on-chain claim – initiate immediately
-                                    handleClaimLink(true)
-                                }
-                            }}
-                        />
-                        <Button
-                            variant="transparent"
-                            className="h-fit p-0 text-sm underline"
-                            onClick={() => {
-                                setShowConfirmationModal(false)
-                                setClaimToExternalWallet(false)
-                            }}
-                        >
-                            {t('addressCompatible.claimToPeanut')}
-                        </Button>
-                    </div>
-                }
-                preventClose={false}
-                modalPanelClassName="max-w-md mx-8"
+            </PageStack.Center>
+            <ClaimAddressConfirmationModal
+                showConfirmationModal={showConfirmationModal}
+                setShowConfirmationModal={setShowConfirmationModal}
+                isXChain={isXChain}
+                onNext={onNext}
+                handleClaimLink={handleClaimLink}
+                setClaimToExternalWallet={setClaimToExternalWallet}
             />
             <GuestVerificationModal
                 redirectToVerification

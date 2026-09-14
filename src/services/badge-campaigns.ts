@@ -5,7 +5,6 @@ import {
     savePendingBadgeCampaigns,
 } from '@/components/Invites/badge-campaign-context'
 import { serverFetch } from '@/utils/api-fetch'
-import { acquisitionDestinationRoute, parseAcquisitionNavigation } from './acquisition-navigation'
 import type { paths } from '@/types/api.generated'
 
 type GeneratedBadgeCampaignClaimRequest = paths['/badge/claims']['post']['requestBody']['content']['application/json']
@@ -140,7 +139,6 @@ function parseBackendBadgeCampaignClaim(value: unknown): BackendBadgeCampaignCla
         badgeCode?: unknown
         badge?: unknown
         outcome?: unknown
-        acquisition?: unknown
     }
     // During rolling deploys, accept the published legacy echo only when the
     // canonical field is absent. Presence of a malformed canonical value is a
@@ -148,7 +146,6 @@ function parseBackendBadgeCampaignClaim(value: unknown): BackendBadgeCampaignCla
     const hasCanonicalBadgeCampaign = Object.prototype.hasOwnProperty.call(claim, 'badgeCampaign')
     const badgeCampaign = hasCanonicalBadgeCampaign ? claim.badgeCampaign : claim.campaignTag
     const badge = claim.badge === undefined ? undefined : parseBadgePresentation(claim.badge)
-    const acquisition = claim.acquisition === undefined ? undefined : parseAcquisitionNavigation(claim.acquisition)
     if (
         typeof badgeCampaign !== 'string' ||
         badgeCampaign.length === 0 ||
@@ -165,7 +162,6 @@ function parseBackendBadgeCampaignClaim(value: unknown): BackendBadgeCampaignCla
         outcome: claim.outcome as BackendBadgeCampaignClaim['outcome'],
         ...(typeof claim.badgeCode === 'string' ? { badgeCode: claim.badgeCode } : {}),
         ...(badge ? { badge } : {}),
-        ...(acquisition ? { acquisition } : {}),
     }
 }
 
@@ -345,24 +341,6 @@ export async function claimAndSettlePendingBadgeCampaigns(
 
 export function isConfirmedBadgeCampaignClaim(claim: BadgeCampaignClaim): boolean {
     return claim.outcome === 'awarded' || claim.outcome === 'already_owned'
-}
-
-/**
- * Badge campaign navigation comes only from a confirmed canonical claim. Missing,
- * malformed, unavailable, and retryable claims use the declared normal-app
- * fallback. Multiple different bespoke destinations fail closed as well.
- */
-export function destinationForConfirmedBadgeCampaignAcquisition(claims: readonly BadgeCampaignClaim[]): string {
-    const nonDefaultDestinations = new Set(
-        claims.flatMap((claim) => {
-            if (!isConfirmedBadgeCampaignClaim(claim) || !claim.acquisition) return []
-            const { destination, fallback } = claim.acquisition
-            return destination === fallback ? [] : [destination]
-        })
-    )
-
-    if (nonDefaultDestinations.size !== 1) return acquisitionDestinationRoute('normal_app')
-    return acquisitionDestinationRoute([...nonDefaultDestinations][0])
 }
 
 export function isUnavailableBadgeCampaignClaim(claim: BadgeCampaignClaim): boolean {

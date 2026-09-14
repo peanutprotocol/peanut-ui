@@ -1,7 +1,8 @@
 /**
  * Log-level contract for OTA update-check failures: transient failures stay at
  * info (invisible to Sentry's captureConsoleIntegration), known-fatal patterns
- * and persistent streaks escalate to error.
+ * and persistent streaks escalate to error. Plus the beta-channel opt-in, which
+ * must never strand a tester on a bundle production can no longer replace.
  */
 const mockUpdater = {
     notifyAppReady: jest.fn().mockResolvedValue(undefined),
@@ -9,12 +10,32 @@ const mockUpdater = {
     getLatest: jest.fn(),
     download: jest.fn(),
     next: jest.fn().mockResolvedValue(undefined),
+    setChannel: jest.fn(),
+    unsetChannel: jest.fn().mockResolvedValue(undefined),
+    getChannel: jest.fn(),
+    current: jest.fn(),
+    reset: jest.fn().mockResolvedValue(undefined),
+    getPluginVersion: jest.fn(),
+    getFailedUpdate: jest.fn().mockResolvedValue(null),
+    getNextBundle: jest.fn(),
+    delete: jest.fn().mockResolvedValue(undefined),
 }
+const mockPlatform = { android: true, binaryVersion: '1.5.0' as string | null }
 
 jest.mock('@capgo/capacitor-updater', () => ({ CapacitorUpdater: mockUpdater }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
+jest.mock('@/utils/capacitor', () => ({
+    ...jest.requireActual('@/utils/capacitor'),
+    isAndroidNativeBridge: () => mockPlatform.android,
+}))
+// The gate asks the binary for its version; jsdom is not Capacitor, so the real
+// getBinaryInfo would answer null and fail the gate open in every case below.
+jest.mock('@/utils/app-version', () => ({
+    getBinaryInfo: async () =>
+        mockPlatform.binaryVersion ? { appVersion: mockPlatform.binaryVersion, appBuild: '1' } : null,
+}))
 
-import { initCapgoUpdater } from '../capgo-updater'
+import { canRestartInPlace, initCapgoUpdater, readStagedBundle } from '../capgo-updater'
 
 let info: jest.SpyInstance
 let error: jest.SpyInstance
@@ -22,6 +43,15 @@ let error: jest.SpyInstance
 beforeEach(() => {
     jest.useFakeTimers()
     window.localStorage.clear()
+    mockPlatform.android = true
+    mockPlatform.binaryVersion = '1.5.0'
+    mockUpdater.download.mockReset().mockResolvedValue({ id: 'b-1', version: '1.5.4' })
+    mockUpdater.current.mockReset().mockResolvedValue({ bundle: { id: 'builtin', version: '1.5.0' } })
+    mockUpdater.getNextBundle.mockReset().mockResolvedValue(null)
+    mockUpdater.delete.mockReset().mockResolvedValue(undefined)
+    mockUpdater.next.mockReset().mockResolvedValue(undefined)
+    mockUpdater.getPluginVersion.mockReset()
+    mockUpdater.getFailedUpdate.mockReset().mockResolvedValue(null)
     info = jest.spyOn(console, 'info').mockImplementation(() => {})
     error = jest.spyOn(console, 'error').mockImplementation(() => {})
 })
@@ -61,11 +91,25 @@ it('escalates the same failure to error on the third consecutive launch', async 
     expect(info).toHaveBeenCalledTimes(2)
 })
 
+// Plugin 8.45+ rejects getLatest() with the server's error code, not the
+// sentence the docs list; both must read as up to date, or every device that is
+// current on its bundle logs a failure on every launch.
+it.each(['no_new_version_available', 'No new version available'])(
+    'treats a %s rejection as up to date, not a failure',
+    async (message) => {
+        mockUpdater.getLatest.mockRejectedValue(new Error(message))
+        await launch()
+        expect(info).not.toHaveBeenCalled()
+        expect(error).not.toHaveBeenCalled()
+        expect(window.localStorage.getItem('capgoUpdateFailureStreak')).toBeNull()
+    }
+)
+
 it('resets the streak after a successful check', async () => {
     mockUpdater.getLatest.mockRejectedValue(new Error('Failed to fetch'))
     await launch()
     await launch()
-    mockUpdater.getLatest.mockRejectedValue(new Error('No new version available'))
+    mockUpdater.getLatest.mockRejectedValue(new Error('no_new_version_available'))
     await launch()
     mockUpdater.getLatest.mockRejectedValue(new Error('Failed to fetch'))
     await launch()
@@ -80,4 +124,452 @@ it('restarts the streak when the failure message changes', async () => {
     mockUpdater.getLatest.mockRejectedValue(new Error('Request timed out'))
     await launch()
     expect(error).not.toHaveBeenCalled()
+})
+
+describe('beta channel opt-in', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        // clearAllMocks wipes calls, not implementations: a rejection set by one
+        // test leaks into the next one that expects the happy path.
+        mockUpdater.reset.mockResolvedValue(undefined)
+        mockUpdater.unsetChannel.mockResolvedValue(undefined)
+        mockUpdater.setChannel.mockResolvedValue({ status: 'ok' })
+        mockUpdater.getChannel.mockResolvedValue({ channel: null, status: 'default' })
+        mockUpdater.current.mockResolvedValue({ bundle: { id: 'beta-bundle', version: '1.1.10846' } })
+        mockUpdater.getLatest.mockRejectedValue(new Error('no_new_version_available'))
+    })
+
+    // The launch check can still be downloading when the tester joins. Two
+    // overlapping checks both call next(), and the bundle that boots is whichever
+    // write lands last — possibly the one resolved against the old channel.
+    it('waits for an in-flight launch check instead of racing it', async () => {
+        const { joinBetaOtaChannel } = await import('../capgo-updater')
+        let releaseLaunchCheck: (value: { url?: string; version?: string }) => void = () => {}
+        mockUpdater.getLatest.mockReturnValueOnce(new Promise((resolve) => (releaseLaunchCheck = resolve)))
+
+        await initCapgoUpdater()
+        await jest.advanceTimersByTimeAsync(5_000)
+        expect(mockUpdater.getLatest).toHaveBeenCalledTimes(1)
+
+        mockUpdater.getLatest.mockResolvedValue({ url: 'https://bundles/beta', version: '1.1.10846' })
+        mockUpdater.download.mockResolvedValue({ id: 'beta-bundle' })
+        const joined = joinBetaOtaChannel()
+        await jest.advanceTimersByTimeAsync(0)
+        expect(mockUpdater.getLatest).toHaveBeenCalledTimes(1)
+
+        releaseLaunchCheck({})
+        await expect(joined).resolves.toBe('staged')
+        expect(mockUpdater.getLatest).toHaveBeenCalledTimes(2)
+        expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'beta-bundle' })
+    })
+
+    it('joins the staging channel and stages its bundle straight away', async () => {
+        const { joinBetaOtaChannel, BETA_OTA_CHANNEL } = await import('../capgo-updater')
+        mockUpdater.getLatest.mockResolvedValue({ url: 'https://bundles/1.1.10846', version: '1.1.10846' })
+        mockUpdater.download.mockResolvedValue({ id: 'beta-bundle' })
+        await expect(joinBetaOtaChannel()).resolves.toBe('staged')
+        expect(mockUpdater.setChannel).toHaveBeenCalledWith({ channel: BETA_OTA_CHANNEL })
+        expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'beta-bundle' })
+    })
+
+    // The tester is on the channel, but nothing is pending — telling them to
+    // restart would send them looking for a build that was never downloaded.
+    it('separates "joined, nothing new" from "joined, bundle waiting"', async () => {
+        const { joinBetaOtaChannel } = await import('../capgo-updater')
+        await expect(joinBetaOtaChannel()).resolves.toBe('up-to-date')
+    })
+
+    it('reports a failed download rather than a staged bundle', async () => {
+        const { joinBetaOtaChannel } = await import('../capgo-updater')
+        mockUpdater.getLatest.mockRejectedValue(new Error('disable_auto_update_under_native'))
+        await expect(joinBetaOtaChannel()).resolves.toBe('failed')
+    })
+
+    it('reports a channel that does not accept self-assignment', async () => {
+        const { joinBetaOtaChannel, OtaChannelClosedError } = await import('../capgo-updater')
+        mockUpdater.setChannel.mockRejectedValue(new Error('channel_not_found'))
+        await expect(joinBetaOtaChannel()).rejects.toBeInstanceOf(OtaChannelClosedError)
+        expect(mockUpdater.getLatest).not.toHaveBeenCalled()
+    })
+
+    // iOS normalises the private-channel case to `channel_private`; Android
+    // rejects with the backend's own codes, which read nothing like it.
+    it.each(['channel_private', 'cannot_update_via_private_channel', 'channel_self_set_not_allowed'])(
+        'reads %s off a CapacitorException data code',
+        async (code) => {
+            const { joinBetaOtaChannel, OtaChannelClosedError } = await import('../capgo-updater')
+            mockUpdater.setChannel.mockRejectedValue(
+                Object.assign(new Error('setChannel failed'), { data: { error: code } })
+            )
+            await expect(joinBetaOtaChannel()).rejects.toBeInstanceOf(OtaChannelClosedError)
+        }
+    )
+
+    // A timeout must not send the tester chasing a dashboard toggle that is
+    // already correct.
+    it('leaves a network failure as an ordinary error', async () => {
+        const { joinBetaOtaChannel, OtaChannelClosedError } = await import('../capgo-updater')
+        mockUpdater.setChannel.mockRejectedValue(new Error('Failed to fetch'))
+        await expect(joinBetaOtaChannel()).rejects.not.toBeInstanceOf(OtaChannelClosedError)
+    })
+
+    it('treats a closed-channel code in the response as a rejection', async () => {
+        const { joinBetaOtaChannel, OtaChannelClosedError } = await import('../capgo-updater')
+        mockUpdater.setChannel.mockResolvedValue({ status: 'error', error: 'disabled_by_config' })
+        await expect(joinBetaOtaChannel()).rejects.toBeInstanceOf(OtaChannelClosedError)
+    })
+
+    // A staging bundle outranks every production one, so unsetting the channel
+    // alone would leave the tester stuck on beta code forever.
+    // Same hazard as the join, worse outcome: a check resolved against staging
+    // that lands after the reset stages beta code on a device with no channel.
+    it('waits for an in-flight check before unsetting and resetting', async () => {
+        const { leaveBetaOtaChannel } = await import('../capgo-updater')
+        let releaseLaunchCheck: (value: { url?: string; version?: string }) => void = () => {}
+        mockUpdater.getLatest.mockReturnValueOnce(new Promise((resolve) => (releaseLaunchCheck = resolve)))
+
+        await initCapgoUpdater()
+        await jest.advanceTimersByTimeAsync(5_000)
+
+        const left = leaveBetaOtaChannel()
+        await jest.advanceTimersByTimeAsync(0)
+        expect(mockUpdater.unsetChannel).not.toHaveBeenCalled()
+
+        releaseLaunchCheck({})
+        await left
+        expect(mockUpdater.unsetChannel).toHaveBeenCalled()
+        expect(mockUpdater.reset).toHaveBeenCalled()
+    })
+
+    it('drops back to the store bundle when leaving', async () => {
+        const { leaveBetaOtaChannel } = await import('../capgo-updater')
+        await leaveBetaOtaChannel()
+        expect(mockUpdater.unsetChannel).toHaveBeenCalled()
+        expect(mockUpdater.reset).toHaveBeenCalled()
+    })
+
+    // unsetChannel() is local-only on both platforms (it drops a stored key);
+    // the device→channel assignment lives on the server and only setChannel()
+    // rewrites it. Without this the device stayed on beta server-side and the
+    // next check pulled the beta bundle straight back.
+    it('assigns the device to production on the server when leaving', async () => {
+        const { leaveBetaOtaChannel, PRODUCTION_OTA_CHANNEL } = await import('../capgo-updater')
+        await leaveBetaOtaChannel()
+        expect(mockUpdater.setChannel).toHaveBeenCalledWith({
+            channel: PRODUCTION_OTA_CHANNEL,
+            triggerAutoUpdate: false,
+        })
+        const [unsetOrder] = mockUpdater.unsetChannel.mock.invocationCallOrder
+        const [setOrder] = mockUpdater.setChannel.mock.invocationCallOrder
+        expect(unsetOrder).toBeLessThan(setOrder)
+    })
+
+    // A production channel that refuses self-assign is a valid dashboard
+    // configuration. The local unset already happened, so the exit must go on
+    // and let getChannel() decide — otherwise every retry would fail the same
+    // way and the device could never leave the beta bundle.
+    it.each([
+        ['rejects', () => mockUpdater.setChannel.mockRejectedValue(new Error('channel_self_set_not_allowed'))],
+        [
+            'answers with an error',
+            () => mockUpdater.setChannel.mockResolvedValue({ status: 'error', error: 'channel_self_set_not_allowed' }),
+        ],
+    ])('still resets when the production self-assign %s but beta no longer sticks', async (_case, arrange) => {
+        const { leaveBetaOtaChannel } = await import('../capgo-updater')
+        arrange()
+        await leaveBetaOtaChannel()
+        expect(mockUpdater.getChannel).toHaveBeenCalled()
+        expect(mockUpdater.reset).toHaveBeenCalled()
+    })
+
+    it('reports an override when the self-assign is refused and beta still sticks', async () => {
+        const { leaveBetaOtaChannel, OtaChannelOverrideError, hasPendingBetaExit, BETA_OTA_CHANNEL } =
+            await import('../capgo-updater')
+        mockUpdater.setChannel.mockRejectedValue(new Error('channel_self_set_not_allowed'))
+        mockUpdater.getChannel.mockResolvedValue({ channel: BETA_OTA_CHANNEL, status: 'ok' })
+        await expect(leaveBetaOtaChannel()).rejects.toBeInstanceOf(OtaChannelOverrideError)
+        expect(mockUpdater.reset).not.toHaveBeenCalled()
+        expect(hasPendingBetaExit()).toBe(true)
+    })
+
+    // Channel unset + beta bundle still running is the one state no OTA can
+    // repair, so a failed reset must not be reported as a clean exit.
+    // unsetChannel() is local-only on both platforms (it drops a stored key), so a
+    // device forced onto the channel from the dashboard stays there — resetting
+    // would undo itself on the next launch and reload away the explanation.
+    it('refuses to claim an exit while Capgo still routes the device to beta', async () => {
+        const { leaveBetaOtaChannel, OtaChannelOverrideError } = await import('../capgo-updater')
+        mockUpdater.getChannel.mockResolvedValue({ channel: 'staging', status: 'override' })
+        await expect(leaveBetaOtaChannel()).rejects.toBeInstanceOf(OtaChannelOverrideError)
+        expect(mockUpdater.reset).not.toHaveBeenCalled()
+    })
+
+    // Resetting on an unreadable answer is the forced tester's worst case: the app
+    // reloads onto the store bundle, the reload eats the explanation, and the
+    // surviving override routes the device back to beta on the next check.
+    it.each([
+        ['the request fails', () => mockUpdater.getChannel.mockRejectedValue(new Error('Failed to fetch'))],
+        [
+            'the plugin is rate limited',
+            () => mockUpdater.getChannel.mockResolvedValue({ error: 'rate_limit_exceeded' }),
+        ],
+    ])('treats an unreadable effective channel as indeterminate when %s', async (_case, arrange) => {
+        const { leaveBetaOtaChannel, OtaChannelUnknownError } = await import('../capgo-updater')
+        arrange()
+        await expect(leaveBetaOtaChannel()).rejects.toBeInstanceOf(OtaChannelUnknownError)
+        expect(mockUpdater.reset).not.toHaveBeenCalled()
+    })
+
+    // The state this marker exists for: channel cleared, beta bundle still running,
+    // and — for a tester outside the cohort — no card left to retry from.
+    it('records the owed exit before it clears anything', async () => {
+        const { leaveBetaOtaChannel, hasPendingBetaExit } = await import('../capgo-updater')
+        mockUpdater.getChannel.mockRejectedValue(new Error('Failed to fetch'))
+        await expect(leaveBetaOtaChannel()).rejects.toBeTruthy()
+        expect(hasPendingBetaExit()).toBe(true)
+    })
+
+    // The marker names the beta bundle that was running, so a later launch on
+    // any other bundle — builtin or a production OTA — can settle the exit. A
+    // bare flag could only recognise the builtin bundle, and after the reset the
+    // JS reading it is the store shell, which may never clear it.
+    it('records the running beta bundle in the marker', async () => {
+        const { leaveBetaOtaChannel, pendingBetaExitBundle } = await import('../capgo-updater')
+        mockUpdater.getChannel.mockRejectedValue(new Error('Failed to fetch'))
+        await expect(leaveBetaOtaChannel()).rejects.toBeTruthy()
+        expect(pendingBetaExitBundle()).toBe('1.1.10846')
+    })
+
+    it('falls back to the legacy marker when the running bundle is unreadable', async () => {
+        const { leaveBetaOtaChannel, pendingBetaExitBundle, UNKNOWN_BETA_EXIT_BUNDLE } =
+            await import('../capgo-updater')
+        mockUpdater.current.mockRejectedValue(new Error('plugin gone'))
+        mockUpdater.getChannel.mockRejectedValue(new Error('Failed to fetch'))
+        await expect(leaveBetaOtaChannel()).rejects.toBeTruthy()
+        expect(pendingBetaExitBundle()).toBe(UNKNOWN_BETA_EXIT_BUNDLE)
+    })
+
+    // Nothing changed, so nothing is owed — a marker left here would keep the
+    // switch on and make the next "off" discard a bundle that was never beta.
+    it('drops the marker when unsetChannel itself rejects', async () => {
+        const { leaveBetaOtaChannel, hasPendingBetaExit } = await import('../capgo-updater')
+        mockUpdater.unsetChannel.mockRejectedValue(new Error('Failed to fetch'))
+        await expect(leaveBetaOtaChannel()).rejects.toThrow('Failed to fetch')
+        expect(hasPendingBetaExit()).toBe(false)
+        expect(mockUpdater.setChannel).not.toHaveBeenCalled()
+    })
+
+    it('keeps the marker when the reset itself fails', async () => {
+        const { leaveBetaOtaChannel, hasPendingBetaExit } = await import('../capgo-updater')
+        mockUpdater.getChannel.mockResolvedValue({ channel: '', status: 'default' })
+        mockUpdater.reset.mockRejectedValue(new Error('reset failed'))
+        await expect(leaveBetaOtaChannel()).rejects.toBeTruthy()
+        expect(hasPendingBetaExit()).toBe(true)
+    })
+
+    it('clears the marker on a reset that resolves without reloading', async () => {
+        const { leaveBetaOtaChannel, hasPendingBetaExit } = await import('../capgo-updater')
+        mockUpdater.getChannel.mockResolvedValue({ channel: '', status: 'default' })
+        await leaveBetaOtaChannel()
+        expect(hasPendingBetaExit()).toBe(false)
+    })
+
+    it('resets once Capgo confirms no channel is assigned', async () => {
+        const { leaveBetaOtaChannel } = await import('../capgo-updater')
+        mockUpdater.getChannel.mockResolvedValue({ channel: '', status: 'default' })
+        await expect(leaveBetaOtaChannel()).resolves.toBeUndefined()
+        expect(mockUpdater.reset).toHaveBeenCalled()
+    })
+
+    it('retries a failed reset and reports the device is still on beta code', async () => {
+        const { leaveBetaOtaChannel, OtaResetFailedError } = await import('../capgo-updater')
+        mockUpdater.reset.mockRejectedValue(new Error('reset failed'))
+        await expect(leaveBetaOtaChannel()).rejects.toBeInstanceOf(OtaResetFailedError)
+        expect(mockUpdater.reset).toHaveBeenCalledTimes(2)
+    })
+
+    it('accepts a reset that only succeeds on the retry', async () => {
+        const { leaveBetaOtaChannel } = await import('../capgo-updater')
+        mockUpdater.reset.mockRejectedValueOnce(new Error('reset failed')).mockResolvedValueOnce(undefined)
+        await expect(leaveBetaOtaChannel()).resolves.toBeUndefined()
+    })
+})
+
+describe('canRestartInPlace', () => {
+    /*
+     * Capgo < 8.46.0 runs set() inline on Capacitor Android's single plugin
+     * thread and blocks it there waiting for notifyAppReady(), which is queued
+     * behind it — the restart deadlocks on a blank page until Capgo rolls the
+     * bundle back. The check reads the NATIVE plugin version because this JS is
+     * shipped over the air onto binaries built months apart.
+     */
+    it('refuses an in-place restart on the deadlocking Android plugin', async () => {
+        mockUpdater.getPluginVersion.mockResolvedValue({ version: '8.45.9' })
+        await expect(canRestartInPlace()).resolves.toBe(false)
+    })
+
+    it('allows it from the version that moved set() off the plugin thread', async () => {
+        mockUpdater.getPluginVersion.mockResolvedValue({ version: '8.46.0' })
+        await expect(canRestartInPlace()).resolves.toBe(true)
+    })
+
+    it('compares versions numerically, not lexically', async () => {
+        mockUpdater.getPluginVersion.mockResolvedValue({ version: '8.5.0' })
+        await expect(canRestartInPlace()).resolves.toBe(false)
+        mockUpdater.getPluginVersion.mockResolvedValue({ version: '8.51.15' })
+        await expect(canRestartInPlace()).resolves.toBe(true)
+        mockUpdater.getPluginVersion.mockResolvedValue({ version: '9.0.0' })
+        await expect(canRestartInPlace()).resolves.toBe(true)
+    })
+
+    it('fails closed on a version it cannot read', async () => {
+        mockUpdater.getPluginVersion.mockRejectedValue(new Error('not implemented'))
+        await expect(canRestartInPlace()).resolves.toBe(false)
+        mockUpdater.getPluginVersion.mockResolvedValue({ version: 'unknown' })
+        await expect(canRestartInPlace()).resolves.toBe(false)
+    })
+
+    it('never asks on iOS, where the plugin does not block the caller', async () => {
+        mockPlatform.android = false
+        await expect(canRestartInPlace()).resolves.toBe(true)
+        expect(mockUpdater.getPluginVersion).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * A native release auto-publishes a bundle carrying its own `<major>.<build>.0`
+ * version, built from the same commit as the binary. Nothing on the device
+ * stopped that bundle from landing on an older shell: Capgo's `min_update_version`
+ * is enforced only under one channel strategy, configured in a dashboard the app
+ * cannot read. So the client refuses it too.
+ */
+describe('store-update gate', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockUpdater.notifyAppReady.mockResolvedValue(undefined)
+        mockUpdater.addListener.mockResolvedValue({ remove: jest.fn() })
+        mockUpdater.getFailedUpdate.mockResolvedValue(null)
+        mockUpdater.current.mockResolvedValue({ bundle: { id: 'builtin', version: '1.5.0' } })
+        mockUpdater.getNextBundle.mockResolvedValue(null)
+    })
+
+    it('never downloads a bundle built for a newer binary', async () => {
+        mockUpdater.getLatest.mockResolvedValue({ url: 'https://cdn.test/1.6.0.zip', version: '1.6.0' })
+        const onStoreUpdateRequired = jest.fn()
+        await initCapgoUpdater({ onStoreUpdateRequired })
+        await jest.advanceTimersByTimeAsync(5_000)
+
+        expect(mockUpdater.download).not.toHaveBeenCalled()
+        expect(mockUpdater.next).not.toHaveBeenCalled()
+        expect(onStoreUpdateRequired).toHaveBeenCalled()
+        expect(error).not.toHaveBeenCalled()
+    })
+
+    it('still stages an OTA inside the running binary build', async () => {
+        mockUpdater.getLatest.mockResolvedValue({ url: 'https://cdn.test/1.5.4.zip', version: '1.5.4' })
+        mockUpdater.download.mockResolvedValue({ id: 'b-4', version: '1.5.4' })
+        const onUpdateAvailable = jest.fn()
+        await initCapgoUpdater({ onUpdateAvailable })
+        await jest.advanceTimersByTimeAsync(5_000)
+
+        expect(mockUpdater.download).toHaveBeenCalled()
+        expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'b-4' })
+        expect(onUpdateAvailable).toHaveBeenCalledWith({ id: 'b-4', version: '1.5.4' })
+    })
+
+    // The plugin's queue outlives the JS that filled it, and installNext() runs
+    // from appMovedToBackground() with no JS involved — hiding the entry would
+    // not stop it being installed. installNext() skips an entry whose id equals
+    // the running bundle's, which is what pointing `next` there achieves.
+    it('disarms a queued bundle that needs a newer binary', async () => {
+        mockUpdater.current.mockResolvedValue({ bundle: { id: 'b-3', version: '1.5.2' } })
+        mockUpdater.getNextBundle.mockResolvedValueOnce({ id: 'b-6', version: '1.6.0' }).mockResolvedValue(null)
+
+        await expect(readStagedBundle()).resolves.toBeNull()
+        expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'b-3' })
+        expect(mockUpdater.delete).toHaveBeenCalledWith({ id: 'b-6' })
+        expect(error).not.toHaveBeenCalled()
+    })
+
+    it('reports a queued bundle this binary can run', async () => {
+        mockUpdater.getNextBundle.mockResolvedValue({ id: 'b-4', version: '1.5.4' })
+
+        await expect(readStagedBundle()).resolves.toEqual({ id: 'b-4', version: '1.5.4' })
+        expect(mockUpdater.next).not.toHaveBeenCalled()
+        expect(mockUpdater.delete).not.toHaveBeenCalled()
+    })
+
+    // The sentinel the disarm leaves behind outlives it: installNext() clears
+    // NEXT_VERSION only when it installs a DIFFERENT bundle. Reported, it would
+    // put "Update available" in the profile for good, behind a restart onto the
+    // version already running.
+    it('does not report the running bundle as an update', async () => {
+        mockUpdater.current.mockResolvedValue({ bundle: { id: 'b-3', version: '1.5.2' } })
+        mockUpdater.getNextBundle.mockResolvedValue({ id: 'b-3', version: '1.5.2' })
+
+        await expect(readStagedBundle()).resolves.toBeNull()
+        expect(mockUpdater.next).not.toHaveBeenCalled()
+    })
+
+    // next() resolving says nothing about the queue: setNextBundle returns false
+    // for a bundle it will not arm, and the wrapper still resolves. Only a re-read
+    // proves the entry is gone.
+    it('falls back to builtin when the running bundle does not take the queue', async () => {
+        mockUpdater.current.mockResolvedValue({ bundle: { id: 'b-3', version: '1.5.2' } })
+        mockUpdater.getNextBundle
+            .mockResolvedValueOnce({ id: 'b-6', version: '1.6.0' })
+            .mockResolvedValueOnce({ id: 'b-6', version: '1.6.0' })
+            .mockResolvedValue(null)
+
+        await expect(readStagedBundle()).resolves.toBeNull()
+        expect(mockUpdater.next).toHaveBeenNthCalledWith(1, { id: 'b-3' })
+        expect(mockUpdater.next).toHaveBeenNthCalledWith(2, { id: 'builtin' })
+        expect(mockUpdater.delete).toHaveBeenCalledWith({ id: 'b-6' })
+        expect(error).not.toHaveBeenCalled()
+    })
+
+    // The binary's own JS always fits the binary; the queued bundle does not.
+    it('arms builtin when the running bundle id cannot be read', async () => {
+        mockUpdater.current.mockRejectedValue(new Error('no current bundle'))
+        mockUpdater.getNextBundle.mockResolvedValueOnce({ id: 'b-6', version: '1.6.0' }).mockResolvedValue(null)
+
+        await expect(readStagedBundle()).resolves.toBeNull()
+        expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'builtin' })
+        expect(mockUpdater.next).toHaveBeenCalledTimes(1)
+    })
+
+    // An unconfirmed disarm leaves the unsafe bundle installing on the next
+    // background — the one thing this exists to prevent, so Sentry hears about
+    // it under a prefix it keeps.
+    it('reports at error level when the queue cannot be rewritten', async () => {
+        mockUpdater.current.mockResolvedValue({ bundle: { id: 'b-3', version: '1.5.2' } })
+        mockUpdater.getNextBundle.mockResolvedValue({ id: 'b-6', version: '1.6.0' })
+        mockUpdater.next.mockRejectedValue(new Error('bundle does not exist'))
+
+        await expect(readStagedBundle()).resolves.toBeNull()
+        expect(mockUpdater.delete).not.toHaveBeenCalled()
+        expect(error).toHaveBeenCalledWith(
+            '[capgo-apply] could not disarm staged bundle 1.6.0 (b-6); the plugin may still install it'
+        )
+    })
+
+    // A queue that refuses to be rewritten still must not be offered as a
+    // restart — the restart would reload JS this binary cannot run.
+    it('withholds an incompatible bundle even when the disarm fails', async () => {
+        mockUpdater.getNextBundle.mockResolvedValue({ id: 'b-6', version: '1.6.0' })
+        mockUpdater.next.mockRejectedValue(new Error('bundle not found'))
+
+        await expect(readStagedBundle()).resolves.toBeNull()
+        expect(mockUpdater.delete).not.toHaveBeenCalled()
+    })
+
+    it('lets the update through when the binary version cannot be read', async () => {
+        mockPlatform.binaryVersion = null
+        mockUpdater.getLatest.mockResolvedValue({ url: 'https://cdn.test/1.6.0.zip', version: '1.6.0' })
+        mockUpdater.download.mockResolvedValue({ id: 'b-6', version: '1.6.0' })
+        await initCapgoUpdater()
+        await jest.advanceTimersByTimeAsync(5_000)
+
+        expect(mockUpdater.download).toHaveBeenCalled()
+    })
 })

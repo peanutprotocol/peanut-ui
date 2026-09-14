@@ -1,8 +1,8 @@
 'use client'
 
 import { useCreateLink } from '@/components/Create/useCreateLink'
-import ErrorAlert from '@/components/Global/ErrorAlert'
-import InfoCard from '@/components/Global/InfoCard'
+import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import { CLAIM_RAIL_MINIMUMS } from '@/constants/payment.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
@@ -255,16 +255,27 @@ const LinkSendInitialView = () => {
         [tokenValue, errorState?.showError, setErrorState, setTokenValue]
     )
 
+    // Client-side validation errors carry an errorCode ('invalidAmount' /
+    // 'notEnoughBalanceAddFunds') — they render as the amount field's own
+    // error. Submit-time failures (createLink, cooldown, settling copy) have
+    // no code and stay in the flow-level Notification with the retry CTA.
+    const isFieldError =
+        !!errorState?.showError &&
+        (errorState.errorCode === 'invalidAmount' || errorState.errorCode === 'notEnoughBalanceAddFunds')
+    const isFlowError = !!errorState?.showError && !isFieldError
+
     return (
-        <div className="w-full space-y-4">
+        <div className="space-y-4 w-full">
             <PeanutActionCard type="send" />
 
-            <AmountInput
-                initialAmount={tokenValue}
-                setPrimaryAmount={handleAmountChange}
-                onSubmit={handleOnNext}
-                walletBalance={peanutWalletBalance}
-            />
+            <FieldColumn error={isFieldError ? errorState?.errorMessage : undefined} errorTestId="error-alert">
+                <AmountInput
+                    initialAmount={tokenValue}
+                    setPrimaryAmount={handleAmountChange}
+                    onSubmit={handleOnNext}
+                    walletBalance={peanutWalletBalance}
+                />
+            </FieldColumn>
 
             <FileUploadInput
                 className="h-11"
@@ -274,15 +285,15 @@ const LinkSendInitialView = () => {
             />
 
             {isBelowFiatClaimMinimum && (
-                <InfoCard
-                    variant="warning"
-                    icon="info"
-                    description={t('link.minFiatClaimWarning', { amount: MIN_FIAT_CLAIM_AMOUNT })}
-                />
+                <Notification priority="attention" data-testid="info-card">
+                    {t('link.minFiatClaimWarning', { amount: MIN_FIAT_CLAIM_AMOUNT })}
+                </Notification>
             )}
 
             <div className="flex flex-col gap-4">
-                {errorState?.showError ? (
+                {/* only a flow (submit-time) error flips the CTA to retry — a
+                    validation error keeps the primary Create link button */}
+                {isFlowError ? (
                     <Button shadowSize="4" icon="retry" onClick={handleOnNext} loading={isLoading} disabled={isLoading}>
                         {tCommon('retry')}
                     </Button>
@@ -296,7 +307,11 @@ const LinkSendInitialView = () => {
                         {isLoading ? tLoading('creatingLink') : t('link.createLink')}
                     </Button>
                 )}
-                {errorState?.showError && <ErrorAlert description={errorState.errorMessage} />}
+                {isFlowError && (
+                    <Notification priority="error" data-testid="error-alert">
+                        {errorState.errorMessage}
+                    </Notification>
+                )}
             </div>
         </div>
     )

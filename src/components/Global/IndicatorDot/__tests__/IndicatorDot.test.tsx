@@ -18,13 +18,15 @@ const classesOf = (ui: React.ReactElement) => {
 describe('IndicatorDot', () => {
     it('renders the shared 10px pink dot by default (perk carousel call site)', () => {
         const classes = classesOf(<IndicatorDot />)
-        expect(classes).toEqual(expect.arrayContaining(['block', 'h-2.5', 'w-2.5', 'rounded-full', 'bg-primary-1']))
+        expect(classes).toEqual(
+            expect.arrayContaining(['block', 'h-2.5', 'w-2.5', 'rounded-full', 'bg-action-primary'])
+        )
     })
 
     it('lets a call site shrink the dot without leaving the old size behind', () => {
         // TransactionCard's pending dot: h-2 w-2 animate-pulsate.
         const classes = classesOf(<IndicatorDot className="h-2 w-2 animate-pulsate" />)
-        expect(classes).toEqual(expect.arrayContaining(['h-2', 'w-2', 'animate-pulsate', 'bg-primary-1']))
+        expect(classes).toEqual(expect.arrayContaining(['h-2', 'w-2', 'animate-pulsate', 'bg-action-primary']))
         expect(classes).not.toContain('h-2.5')
         expect(classes).not.toContain('w-2.5')
     })
@@ -37,9 +39,9 @@ describe('IndicatorDot', () => {
     })
 
     it('positions the support nav badge without dropping the dot styling', () => {
-        const classes = classesOf(<IndicatorDot className="absolute -right-1 -top-1" />)
+        const classes = classesOf(<IndicatorDot className="absolute -top-1 -right-1" />)
         expect(classes).toEqual(
-            expect.arrayContaining(['absolute', '-right-1', '-top-1', 'h-2.5', 'w-2.5', 'bg-primary-1'])
+            expect.arrayContaining(['absolute', '-right-1', '-top-1', 'h-2.5', 'w-2.5', 'bg-action-primary'])
         )
     })
 

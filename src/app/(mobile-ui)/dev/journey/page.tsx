@@ -85,7 +85,7 @@ export default function JourneyExplorerPage() {
             <section className="flex flex-col gap-2">
                 <DevSectionLabel>Journey board</DevSectionLabel>
                 <ReviewProgressStrip checked={checkedCount} total={renders.length} onReset={reset} />
-                <p className="text-[11px] leading-snug text-grey-1">
+                <p className="text-[11px] leading-snug text-foreground-secondary">
                     Every email card with an amber dashed border still needs a product verdict. Click one to read the
                     real render, then tick <span className="font-bold">Mark reviewed</span>. Two of them also carry a{' '}
                     <span className="font-bold">decide:</span> chip — those need a keep-or-kill call, not only a copy

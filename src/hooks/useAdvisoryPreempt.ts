@@ -10,18 +10,21 @@ interface UseAdvisoryPreemptArgs {
 }
 
 /**
- * Drives the MANDATORY verification pre-empt at the add/withdraw entry points.
- * If a pending Bridge requirement (`advisory`) exists, the user CANNOT proceed
- * with the transfer until they complete it: `intercept` opens a non-closable,
- * non-skippable modal and never runs the deferred action. "Complete now"
- * launches the verification; once it clears, the gate drops the advisory and the
- * next add/withdraw click passes straight through.
+ * Drives the verification pre-empt at the add/withdraw entry points. A pending
+ * Bridge requirement (`advisory`) rides on a rail that is still ENABLED until
+ * its effective date, so `intercept` opens an informed-choice modal instead of
+ * a hard gate: "Complete now" launches the verification, "Do this later"
+ * continues the deferred transfer, and a plain dismiss just closes. Once the
+ * requirement clears, the gate drops the advisory and the next add/withdraw
+ * click passes straight through.
  *
  * Returns `intercept(proceed)` to call in the gate's `ready` branch, and
  * `modalProps` to spread onto {@link AdvisoryPreemptModal}.
  */
 export function useAdvisoryPreempt({ advisory, onCompleteNow, isLoading = false }: UseAdvisoryPreemptArgs) {
     const [visible, setVisible] = useState(false)
+    // The transfer action deferred by `intercept`, so "Do this later" can run it.
+    const proceedRef = useRef<(() => void) | null>(null)
     // Guards against double-submit: onCompleteNow fires a real network call
     // (self-heal resubmit), so rapid clicks before isLoading disables the CTA
     // would otherwise launch duplicate requests.
@@ -36,10 +39,11 @@ export function useAdvisoryPreempt({ advisory, onCompleteNow, isLoading = false 
 
     const intercept = useCallback(
         (proceed: () => void) => {
-            // Hard gate: a pending requirement blocks the transfer outright. The
-            // deferred action only runs when there is no advisory — i.e. the user
-            // has completed verification and the backend cleared the requirement.
+            // A pending requirement pauses the transfer for an informed choice;
+            // the deferred action runs on "Do this later" or straight through
+            // when there is no advisory.
             if (advisory) {
+                proceedRef.current = proceed
                 setVisible(true)
                 return
             }
@@ -64,6 +68,18 @@ export function useAdvisoryPreempt({ advisory, onCompleteNow, isLoading = false 
         }
     }, [onCompleteNow])
 
+    const doLater = useCallback(() => {
+        setVisible(false)
+        const proceed = proceedRef.current
+        proceedRef.current = null
+        proceed?.()
+    }, [])
+
+    const close = useCallback(() => {
+        setVisible(false)
+        proceedRef.current = null
+    }, [])
+
     return {
         intercept,
         modalProps: {
@@ -71,6 +87,8 @@ export function useAdvisoryPreempt({ advisory, onCompleteNow, isLoading = false 
             effectiveDate: advisory?.effectiveDate,
             isLoading,
             onCompleteNow: completeNow,
+            onDoLater: doLater,
+            onClose: close,
         },
     }
 }

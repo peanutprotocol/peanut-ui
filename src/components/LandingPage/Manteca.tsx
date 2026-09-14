@@ -19,7 +19,7 @@ const starConfigs = [
     { className: 'absolute bottom-20 right-44', delay: '0.6s', rotate: '22deg' },
 ]
 
-// Cream, as on /quests. The homepage passes blue instead — there it follows
+// Cream default; the homepage passes blue instead — there it follows
 // RegulatedRails, which is already cream.
 const DEFAULT_BG_COLOR = '#F9F4F0'
 

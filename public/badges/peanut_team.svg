@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="Peanut Team">
+    <circle cx="128" cy="128" r="120" fill="#FFC900" stroke="#000000" stroke-width="10" />
+    <path
+        d="M128 44c-19 0-34 14-34 32 0 11 5 18 5 30s-9 17-9 32c0 24 17 42 38 42s38-18 38-42c0-15-9-20-9-32s5-19 5-30c0-18-15-32-34-32z"
+        fill="#FFFFFF"
+        stroke="#000000"
+        stroke-width="9"
+        stroke-linejoin="round"
+    />
+    <path d="M104 118c16 6 32 6 48 0" fill="none" stroke="#000000" stroke-width="9" stroke-linecap="round" />
+    <circle cx="113" cy="92" r="7" fill="#000000" />
+    <circle cx="143" cy="92" r="7" fill="#000000" />
+    <circle cx="113" cy="150" r="7" fill="#000000" />
+    <circle cx="143" cy="150" r="7" fill="#000000" />
+    <circle cx="128" cy="176" r="7" fill="#000000" />
+</svg>

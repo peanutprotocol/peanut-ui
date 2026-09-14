@@ -5,8 +5,8 @@ import type { SpecRules } from './journeyTypes'
 
 function Rule({ label, children }: { label: string; children: React.ReactNode }) {
     return (
-        <div className="flex items-center gap-1.5 rounded-sm border border-n-1 bg-white px-2 py-1">
-            <span className="text-[10px] font-bold uppercase tracking-wide text-grey-1">{label}</span>
+        <div className="flex items-center gap-1.5 rounded-sm border border-border-default bg-white px-2 py-1">
+            <span className="text-[10px] font-bold tracking-wide text-foreground-secondary uppercase">{label}</span>
             {children}
         </div>
     )
@@ -16,7 +16,7 @@ function Rule({ label, children }: { label: string; children: React.ReactNode })
 export default function RulesLegend({ rules, specError }: { rules: SpecRules | null; specError: string | null }) {
     if (!rules) {
         return (
-            <div className="rounded-sm border border-n-1 bg-yellow-1/40 p-3 text-sm">
+            <div className="rounded-sm border border-border-default bg-action-secondary/40 p-3 text-body-s">
                 {specError ?? 'Loading email-machine rules…'}
             </div>
         )
@@ -30,29 +30,29 @@ export default function RulesLegend({ rules, specError }: { rules: SpecRules | n
                 </Rule>
             ))}
             <Rule label="governor">
-                <span className="text-xs font-bold">≥{rules.governorDays}d between emails</span>
+                <span className="text-label-m">≥{rules.governorDays}d between emails</span>
             </Rule>
             <Rule label="freshness">
-                <span className="text-xs font-bold">{rules.freshnessDays}d window</span>
+                <span className="text-label-m">{rules.freshnessDays}d window</span>
             </Rule>
             <Rule label="dormancy">
-                <span className="text-xs font-bold">{rules.dormancyDays}d silent → win_back</span>
+                <span className="text-label-m">{rules.dormancyDays}d silent → win_back</span>
             </Rule>
             <Rule label="holdout">
-                <span className="text-xs font-bold">{Math.round(rules.holdoutFraction * 100)}% control</span>
+                <span className="text-label-m">{Math.round(rules.holdoutFraction * 100)}% control</span>
             </Rule>
             <Rule label="balance gate">
-                <span className="text-xs font-bold">
+                <span className="text-label-m">
                     fund ≤ $0.10 · spend ≥ $1 (live chain read; ≥ $1 re-routes fund → first_spend)
                 </span>
             </Rule>
             <Rule label="send window">
-                <span className="text-xs font-bold">
+                <span className="text-label-m">
                     {rules.sendWindowUtc.startHour}–{rules.sendWindowUtc.endHour}h UTC
                 </span>
             </Rule>
             <Rule label="cap">
-                <span className="text-xs font-bold">
+                <span className="text-label-m">
                     {rules.maxSendsPerCycle}/cycle · {rules.maxSendsPerDay}/day
                 </span>
             </Rule>

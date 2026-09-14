@@ -22,6 +22,7 @@ const mockAdapter = {
     onPermissionChange: jest.fn(() => () => {}),
     onSubscriptionChange: jest.fn(() => () => {}),
     onNotificationClick: jest.fn(() => () => {}),
+    onNotificationReceived: jest.fn(() => () => {}),
 }
 jest.mock('@/services/onesignal', () => ({
     getOneSignalAdapter: () => Promise.resolve(mockAdapter),
@@ -42,7 +43,7 @@ jest.mock('@/utils/general.utils', () => ({
 const mockIsPwaSunsetOn = jest.fn(() => false)
 jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => mockIsPwaSunsetOn() }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
-jest.mock('@/redux/hooks', () => ({ useUserStore: () => ({ user: { user: { userId: 'user-1' } } }) }))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'user-1' } } }) }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), captureMessage: jest.fn() }))
 

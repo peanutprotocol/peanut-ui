@@ -63,6 +63,9 @@ const renderView = (amount?: number) => {
     )
 }
 
+// CopyToClipboard toasts on a failed copy; the view renders it, so it needs the hook.
+jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
+
 describe('RhinoDepositView sub-minimum gate', () => {
     it('blocks a fixed amount below the chain floor — no deposit address, minimum message shown', () => {
         renderView(3)
@@ -77,6 +80,16 @@ describe('RhinoDepositView sub-minimum gate', () => {
 
         expect(screen.getByTestId('deposit-qr')).toHaveTextContent(DEPOSIT_ADDRESS)
         expect(screen.queryByText(en.payment.minAmount.title)).not.toBeInTheDocument()
+    })
+
+    it('never nests the copy glyph as a button inside the address button', () => {
+        renderView(5)
+
+        // the address row Button drives copy(); the inner glyph must be
+        // presentational — <button><button> is invalid DOM and browsers
+        // repair it into two overlapping controls
+        const nested = document.querySelectorAll('button button')
+        expect(nested).toHaveLength(0)
     })
 
     it('leaves open-amount deposit flows (no amount prop) ungated', () => {

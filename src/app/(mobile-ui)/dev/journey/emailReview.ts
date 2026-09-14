@@ -14,7 +14,7 @@ import { FUNNEL_STATES, JOURNEY_API_BASE } from './journeyData'
 import type { EmailDecisionFlag, EmailExample, EmailRenderRef, JourneySpec, SpecEmailStep } from './journeyTypes'
 
 /** Tailwind treatment for anything still awaiting a product verdict. */
-export const REVIEW_PENDING_CLASS = 'review-pending border-2 border-dashed border-yellow-1'
+export const REVIEW_PENDING_CLASS = 'review-pending border-2 border-dashed border-action-secondary'
 
 export function renderId(eventType: string, example: number): string {
     return `${eventType}#${example}`

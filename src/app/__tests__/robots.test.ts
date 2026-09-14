@@ -2,6 +2,7 @@ jest.mock('@/constants/general.consts', () => ({ BASE_URL: 'https://peanut.me' }
 jest.mock('@/i18n/types', () => ({ SUPPORTED_LOCALES: ['en', 'es-419'] }))
 
 import { GOOGLE_DEINDEX_CRAWL_ALLOW_PATHS, ROBOTS_DISALLOWED_PATHS } from '@/constants/seo-route-policy'
+import robots from '../robots'
 
 type RobotsRule = {
     userAgent: string | string[]
@@ -10,12 +11,9 @@ type RobotsRule = {
     crawlDelay?: number
 }
 
-// The production gate reads the raw env (a preview built without it must not
-// serve the production policy), so the production case has to set it — and
-// after the imports, hence the lazy require.
+// robots() derives production-ness from the RAW env at call time (fail-closed,
+// shared with layout.tsx via isProductionDomain) — pin it for the policy suite.
 process.env.NEXT_PUBLIC_BASE_URL = 'https://peanut.me'
-const robots = require('../robots').default as () => { rules: RobotsRule[] }
-
 const rules = robots().rules as RobotsRule[]
 
 function ruleFor(userAgent: string): RobotsRule {
@@ -51,16 +49,29 @@ describe('production robots policy', () => {
     })
 })
 
-describe('preview robots policy', () => {
-    it('fails closed when NEXT_PUBLIC_BASE_URL is unset', () => {
-        // BASE_URL's production fallback used to satisfy the gate here, so a
-        // preview built without the variable served the production policy.
-        jest.resetModules()
-        delete process.env.NEXT_PUBLIC_BASE_URL
-        const previewRobots = require('../robots').default as () => { rules: RobotsRule[] }
+// The old derivation compared BASE_URL, whose production fallback made an
+// UNSET environment indexable. The check must fail closed on the raw env.
+describe('non-production robots policy fails closed', () => {
+    const ORIGINAL_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL
 
-        expect(previewRobots().rules).toEqual([{ userAgent: '*', disallow: ['/'] }])
+    afterEach(() => {
+        if (ORIGINAL_BASE_URL === undefined) delete process.env.NEXT_PUBLIC_BASE_URL
+        else process.env.NEXT_PUBLIC_BASE_URL = ORIGINAL_BASE_URL
+    })
 
-        process.env.NEXT_PUBLIC_BASE_URL = 'https://peanut.me'
+    it.each([undefined, '', 'https://staging.peanut.me', 'https://peanut.me.evil.example'])(
+        'blocks all crawling when the production origin is not explicit (%s)',
+        (baseUrl) => {
+            if (baseUrl === undefined) delete process.env.NEXT_PUBLIC_BASE_URL
+            else process.env.NEXT_PUBLIC_BASE_URL = baseUrl
+
+            expect(robots().rules).toEqual([{ userAgent: '*', disallow: ['/'] }])
+        }
+    )
+
+    it('tolerates a trailing slash on the configured production origin', () => {
+        process.env.NEXT_PUBLIC_BASE_URL = 'https://peanut.me/'
+
+        expect(robots().rules).not.toEqual([{ userAgent: '*', disallow: ['/'] }])
     })
 })

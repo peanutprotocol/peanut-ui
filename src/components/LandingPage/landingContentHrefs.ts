@@ -1,8 +1,7 @@
 /**
  * Canonical English homepage content links. Server components resolve these to
  * their locale owner via contentHrefsFor (landingContentHrefs.server.ts);
- * client-reachable consumers receive the resolved map as a prop, or this map
- * verbatim on English-only pages (currently /quests).
+ * client-reachable consumers receive the resolved map as a prop.
  */
 export const EN_LANDING_CONTENT_HREFS = {
     pricing: '/en/pricing',

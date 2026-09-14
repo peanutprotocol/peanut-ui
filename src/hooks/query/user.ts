@@ -1,6 +1,4 @@
 import { type IUserProfile } from '@/interfaces/interfaces'
-import { useAppDispatch, useUserStore } from '@/redux/hooks'
-import { userActions } from '@/redux/slices/user-slice'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useQuery } from '@tanstack/react-query'
@@ -10,8 +8,8 @@ import { USER } from '@/constants/query.consts'
 import { apiFetch } from '@/utils/api-fetch'
 import { clearAuthToken, getAuthToken, getClearEpoch, setAuthToken } from '@/utils/auth-token'
 import { isDemoMode } from '@/utils/demo'
-import { isNativeBridge } from '@/utils/capacitor'
 import { DEMO_USER } from '@/constants/demo-data'
+import { isNativeBridge } from '@/utils/capacitor'
 
 // custom error class for backend errors (5xx) that should trigger retry
 export class BackendError extends Error {
@@ -25,21 +23,32 @@ export class BackendError extends Error {
 
 export const useUserQuery = (dependsOn: boolean = true) => {
     const { deviceType } = useDeviceType()
-    const dispatch = useAppDispatch()
-    const { user: authUser } = useUserStore()
 
-    const fetchUser = async (): Promise<IUserProfile | null> => {
-        // Demo mode: no backend/JWT/passkey — return the synthetic user.
+    const fetchUser = async ({ signal }: { signal: AbortSignal }): Promise<IUserProfile | null> => {
+        // Demo mode: no backend/JWT/passkey — the synthetic user, read through
+        // the demo /users/me handler so state the demo routes mutate (the
+        // picked avatar, the celebration stamp) survives a refetch. Lazy
+        // import keeps the demo module out of the main bundle (api-fetch
+        // does the same).
         if (isDemoMode()) {
-            dispatch(userActions.setUser(DEMO_USER))
-            return DEMO_USER
+            const { demoRespond } = await import('@/utils/demo-api')
+            const payload: IUserProfile = await (await demoRespond('/users/me')).json()
+            return payload
         }
 
         const epochAtRequest = getClearEpoch()
         const tokenAtRequest = getAuthToken()
-        const userResponse = await apiFetch('/users/me', { method: 'GET' })
+        const userResponse = await apiFetch('/users/me', { method: 'GET', signal })
+        const assertCurrentSession = () => {
+            if (signal.aborted || getClearEpoch() !== epochAtRequest || getAuthToken() !== tokenAtRequest) {
+                throw new Error('Session changed while fetching user')
+            }
+        }
+        assertCurrentSession()
         if (userResponse.ok) {
             const payload: (IUserProfile & { token?: string }) | null = await userResponse.json()
+
+            assertCurrentSession()
 
             // Sliding refresh: backend re-mints when the JWT crosses half its
             // lifetime and ships the new one alongside the user payload. Swap
@@ -65,13 +74,12 @@ export const useUserQuery = (dependsOn: boolean = true) => {
                     isPwa: isNativeBridge() ? false : isStandaloneDisplayMode(),
                     deviceType,
                 })
-                dispatch(userActions.setUser(payload))
             }
             return payload
         }
 
-        // 5xx = backend error, throw so tanstack retries
-        if (userResponse.status >= 500) {
+        // Temporary failures must preserve the cached session.
+        if (userResponse.status >= 500 || userResponse.status === 429 || userResponse.status === 408) {
             console.error('Backend error fetching user:', userResponse.status)
             throw new BackendError('Backend error fetching user', userResponse.status)
         }
@@ -94,16 +102,17 @@ export const useUserQuery = (dependsOn: boolean = true) => {
             await clearAuthToken()
         }
 
-        // 4xx = auth failure, clear stale redux so layout redirects to /setup
+        // 4xx = auth failure — resolve null so the layout redirects to /setup
         console.warn('Failed to fetch user, status:', userResponse.status)
-        dispatch(userActions.setUser(null))
         return null
     }
 
     return useQuery({
         queryKey: [USER],
         queryFn: fetchUser,
-        retry: (failureCount, _error) => {
+        retry: (failureCount, error) => {
+            // Retrying immediately would extend the rate-limit incident.
+            if (error instanceof BackendError && error.status === 429) return false
             // retry all errors (5xx, network timeouts, connection failures) up to 2 times
             // previously only BackendError (5xx) was retried, meaning a single network
             // blip would instantly show the BackendErrorScreen with zero retries
@@ -115,6 +124,10 @@ export const useUserQuery = (dependsOn: boolean = true) => {
         gcTime: 10 * 60 * 1000,
         refetchOnMount: true,
         refetchOnWindowFocus: true,
-        placeholderData: authUser || undefined,
+        // Demo mode: seed the synthetic user synchronously so `user` is never
+        // null on first render — prevents the protected-route layout racing a
+        // /setup redirect before the query settles. (Was the redux user
+        // slice's initialState seed — TASK-21462.)
+        placeholderData: isDemoMode() ? DEMO_USER : undefined,
     })
 }

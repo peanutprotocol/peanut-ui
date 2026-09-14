@@ -7,7 +7,7 @@
  * covers the paste link again.
  *
  * vaul resolves a snap point as `window.innerHeight - snapPoint`, so the drawer
- * has to be exactly `innerHeight` tall (`h-[100dvh]`) for a px snap point to
+ * has to be exactly `innerHeight` tall (`h-dvh`) for a px snap point to
  * equal the visible height. Fractional snap points were the original bug: on a
  * content-height drawer they made the peek depend on both the locale's text
  * length and the screen height.

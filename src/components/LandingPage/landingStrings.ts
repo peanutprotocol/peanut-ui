@@ -1,4 +1,3 @@
-import en from '@/i18n/en.json'
 import { type Translations } from '@/i18n/types'
 import type { LandingProblemStrings, LandingSupportedRailsStrings } from './landing.types'
 
@@ -7,12 +6,15 @@ import type { LandingProblemStrings, LandingSupportedRailsStrings } from './land
 // catalogs (same reason ContentLanding/HelpLanding take `strings`).
 export interface LandingStrings {
     signUp: string
+    logIn: string
     signUpNow: string
     sendNow: string
     sendMoney: string
     heroTapScan: string
     heroNoLocalId: string
     zeroFees: string
+    reallyZero: string
+    noHiddenFees: string
     seeMarkupOn: string
     learnMore: string
     dropLinkHeading: string
@@ -47,12 +49,15 @@ export interface LandingStrings {
 export function landingStrings(i18n: Translations): LandingStrings {
     return {
         signUp: i18n.landingSignUp,
+        logIn: i18n.landingLogIn,
         signUpNow: i18n.landingSignUpNow,
         sendNow: i18n.landingSendNow,
         sendMoney: i18n.sendMoney,
         heroTapScan: i18n.landingHeroTapScan,
         heroNoLocalId: i18n.landingHeroNoLocalId,
         zeroFees: i18n.landingZeroFees,
+        reallyZero: i18n.landingReallyZero,
+        noHiddenFees: i18n.landingNoHiddenFees,
         seeMarkupOn: i18n.landingSeeMarkupOn,
         learnMore: i18n.landingLearnMore,
         dropLinkHeading: i18n.landingDropLinkHeading,
@@ -97,7 +102,3 @@ export function landingStrings(i18n: Translations): LandingStrings {
         },
     }
 }
-
-// For the English-only pages that reuse landing sections (/quests).
-// Imports just en.json so those client bundles don't pull every locale catalog.
-export const EN_LANDING_STRINGS = landingStrings(en as Translations)

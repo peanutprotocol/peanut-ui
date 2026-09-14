@@ -1,6 +1,8 @@
 'use client'
 
 import NavHeader from '@/components/Global/NavHeader'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { Section } from '@/components/0_Bruddle/Section'
 import Card from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { useLimits } from '@/hooks/useLimits'
@@ -8,10 +10,10 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 import { MAX_QR_PAYMENT_AMOUNT_FOREIGN } from '@/constants/payment.consts'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
-import * as Accordion from '@radix-ui/react-accordion'
+import { Accordion } from '@/components/0_Bruddle/Accordion'
 import { useQueryState, parseAsStringEnum } from 'nuqs'
 import { useState, useMemo } from 'react'
-import PeanutLoading from '@/components/Global/PeanutLoading'
+import Loading from '@/components/Global/Loading'
 import { getQrCountriesWithFlags, type QrCountryId } from '../consts'
 import { BANK_TRANSFER_REGIONS, type BridgeRegion, formatAmountWithCurrency } from '../utils'
 import LimitsError from '../components/LimitsError'
@@ -26,7 +28,7 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 const BridgeLimitsView = () => {
     const t = useTranslations('limits.provider')
     const onBack = useSafeBack('/limits')
-    const { bridgeLimits, isLoading, error, hasMantecaLimits } = useLimits()
+    const { bridgeLimits, isLoading, error, hasMantecaLimits, refetch, isRefetching } = useLimits()
 
     // url state for source region (where user came from)
     const [region] = useQueryState(
@@ -47,24 +49,23 @@ const BridgeLimitsView = () => {
     const showBankTransferLimits = (BANK_TRANSFER_REGIONS as readonly string[]).includes(region)
 
     return (
-        <div className="flex min-h-[inherit] flex-col space-y-6">
-            <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-xl md:text-2xl" />
+        <PageStack gap="6">
+            <NavHeader title={t('title')} onPrev={onBack} />
 
-            {isLoading && <PeanutLoading coverFullScreen />}
+            {isLoading && <Loading variant="mascot" coverFullScreen />}
 
-            {error && <LimitsError />}
+            {error && <LimitsError onRetry={() => refetch()} isRetrying={isRefetching} />}
 
             {!isLoading && !error && bridgeLimits && (
                 <>
                     {/* main limits card - only for bank transfer regions */}
                     {showBankTransferLimits && (
-                        <div className="space-y-2">
-                            <h3 className="font-bold">{t('fiatLimits')}</h3>
+                        <Section title={t('fiatLimits')}>
                             <Card position="single" className="space-y-2 p-4">
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2">
-                                        <Icon name="check" className="text-success-1" size={16} />
-                                        <span className="text-sm">
+                                        <Icon name="check" className="text-green-500" size={16} />
+                                        <span className="text-body-s">
                                             {t.rich('addMoneyLimit', {
                                                 medium: (chunks) => <span className="font-medium">{chunks}</span>,
                                                 amount: formatAmountWithCurrency(
@@ -75,8 +76,8 @@ const BridgeLimitsView = () => {
                                         </span>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <Icon name="check" className="text-success-1" size={16} />
-                                        <span className="text-sm">
+                                        <Icon name="check" className="text-green-500" size={16} />
+                                        <span className="text-body-s">
                                             {t.rich('withdrawLimit', {
                                                 medium: (chunks) => <span className="font-medium">{chunks}</span>,
                                                 amount: formatAmountWithCurrency(
@@ -88,60 +89,46 @@ const BridgeLimitsView = () => {
                                     </div>
                                 </div>
                             </Card>
-                        </div>
+                        </Section>
                     )}
 
                     {/* qr payment limits accordion - for bridge users without manteca kyc */}
                     {!hasMantecaLimits && (
-                        <div className="space-y-2">
-                            <h3 className="font-bold">{t('qrPaymentLimits')}</h3>
-                            <Card position="single" className="p-0">
-                                <Accordion.Root
-                                    type="single"
-                                    collapsible
-                                    value={expandedCountry}
-                                    onValueChange={(value) => setExpandedCountry(value as QrCountryId | undefined)}
-                                >
-                                    {qrCountries.map((country, index) => (
-                                        <Accordion.Item
-                                            key={country.id}
-                                            value={country.id}
-                                            className={index < qrCountries.length - 1 ? 'border-b border-gray-2' : ''}
-                                        >
-                                            <Accordion.Header>
-                                                <Accordion.Trigger className="group flex w-full items-center justify-between px-4 py-3">
-                                                    <div className="flex items-center gap-2">
-                                                        <Image
-                                                            src={country.flag}
-                                                            alt={country.name}
-                                                            width={24}
-                                                            height={24}
-                                                            className="size-5 rounded-full object-cover"
-                                                        />
-                                                        <span className="text-sm font-medium">{country.name}</span>
-                                                    </div>
-                                                    <Icon
-                                                        name="chevron-down"
-                                                        size={16}
-                                                        className="transition-transform duration-300 group-data-[state=open]:rotate-180"
-                                                    />
-                                                </Accordion.Trigger>
-                                            </Accordion.Header>
-                                            <Accordion.Content className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
-                                                <div className="flex items-center gap-2 px-4 pb-3">
-                                                    <Icon name="check" className="text-success-1" size={16} />
-                                                    <span className="text-sm">
-                                                        {t('qrPayLimit', {
-                                                            amount: `$${MAX_QR_PAYMENT_AMOUNT_FOREIGN.toLocaleString()}`,
-                                                        })}
-                                                    </span>
-                                                </div>
-                                            </Accordion.Content>
-                                        </Accordion.Item>
-                                    ))}
-                                </Accordion.Root>
-                            </Card>
-                        </div>
+                        <Section title={t('qrPaymentLimits')}>
+                            <Accordion
+                                type="single"
+                                collapsible
+                                value={expandedCountry}
+                                onValueChange={(value) => setExpandedCountry(value as QrCountryId | undefined)}
+                            >
+                                {qrCountries.map((country) => (
+                                    <Accordion.Item key={country.id} value={country.id}>
+                                        <Accordion.Trigger>
+                                            <div className="flex items-center gap-2">
+                                                <Image
+                                                    src={country.flag}
+                                                    alt=""
+                                                    width={24}
+                                                    height={24}
+                                                    className="size-5 rounded-full object-cover"
+                                                />
+                                                <span>{country.name}</span>
+                                            </div>
+                                        </Accordion.Trigger>
+                                        <Accordion.Content>
+                                            <div className="flex items-center gap-2">
+                                                <Icon name="check" className="text-green-500" size={16} />
+                                                <span>
+                                                    {t('qrPayLimit', {
+                                                        amount: `$${MAX_QR_PAYMENT_AMOUNT_FOREIGN.toLocaleString()}`,
+                                                    })}
+                                                </span>
+                                            </div>
+                                        </Accordion.Content>
+                                    </Accordion.Item>
+                                ))}
+                            </Accordion>
+                        </Section>
                     )}
 
                     <LimitsDocsLink />
@@ -149,7 +136,7 @@ const BridgeLimitsView = () => {
             )}
 
             {!isLoading && !error && !bridgeLimits && <EmptyState title={t('noData')} icon="meter" />}
-        </div>
+        </PageStack>
     )
 }
 

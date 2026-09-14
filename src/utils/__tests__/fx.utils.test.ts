@@ -262,6 +262,9 @@ describe('fetchCardMarkup — card comparison contract', () => {
             method: 'GET',
             includeAuth: false,
             credentials: 'omit',
+            // The hook falls back to the static table on timeout, so the timeout
+            // is not an incident worth an error-level Sentry issue.
+            silentTimeout: true,
             redirect: 'error',
             timeoutMs: 10_000,
         })

@@ -9,7 +9,7 @@ import { createEphemeralSpendSession, type EphemeralCall } from '@/utils/ephemer
 import { rescueUserOpReceipt } from '@/utils/userop-rescue.utils'
 
 /*
- * One-tap variant of the mixed spend (SESSION_KEY_SPEND flag): the single
+ * One-tap mixed spend: the single
  * passkey tap signs the permission-enable for a per-transaction ephemeral key
  * (see ephemeralSpendKey.ts), which then silently signs BOTH the Rain admin
  * EIP-712 (consumed via the kernel's ERC-1271 during withdrawAsset) and the
@@ -35,13 +35,16 @@ export interface MixedEphemeralSpendArgs {
     recipient?: Hex
     requiredUsdcAmount: bigint
     subsequentCalls: { to: Hex; value: bigint; data: Hex }[]
+    /** Fired immediately before the UserOp broadcast — the caller's
+     *  "failures after this are execution-ambiguous" boundary (TASK-21815). */
+    onBroadcastAttempt?: () => void
 }
 
 export type MixedEphemeralSpendResult =
     | { ok: true; userOpHash: Hash; receipt: TransactionReceipt | null }
     | { ok: false; reason: string }
 
-function buildWithdrawCall(prep: PrepareRainWithdrawalResponse, adminSignature: Hex): EphemeralCall {
+export function buildWithdrawCall(prep: PrepareRainWithdrawalResponse, adminSignature: Hex): EphemeralCall {
     return {
         to: prep.coordinatorAddress as Hex,
         value: 0n,
@@ -118,10 +121,26 @@ export async function tryMixedEphemeralSpend(args: MixedEphemeralSpendArgs): Pro
             session.uninstallCall,
         ]
 
-        const userOpHash = await session.client.sendUserOperation({
+        // Decomposed prepare → sign → transport (same rule as useZeroDev's
+        // helper): estimation, paymaster work, and the ephemeral-key signature
+        // all complete BEFORE onBroadcastAttempt, so any failure in them is
+        // provably pre-broadcast; the final call is pure transport.
+        const callData = await session.account.encodeCalls(calls)
+        const preparedOp = await session.client.prepareUserOperation({
             account: session.account,
-            callData: await session.account.encodeCalls(calls),
+            callData,
         })
+        // Same cast viem's sendUserOperation applies internally.
+        const signature = await session.account.signUserOperation(
+            preparedOp as Parameters<typeof session.account.signUserOperation>[0]
+        )
+        args.onBroadcastAttempt?.()
+        const userOpHash = await session.client.sendUserOperation({
+            ...preparedOp,
+            account: session.account,
+            signature,
+            parameters: [],
+        } as never)
 
         let receipt: TransactionReceipt | null = null
         try {

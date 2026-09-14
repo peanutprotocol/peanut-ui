@@ -30,7 +30,7 @@ export default function FilterPanel({ filters, relationships, onChange, onReset 
             </div>
 
             <fieldset className="pb-3">
-                <legend className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-grey-1">
+                <legend className="mb-2 flex items-center gap-1.5 text-xs font-bold tracking-wide text-grey-1 uppercase">
                     Window
                     <InfoTooltip label="time window">
                         The backend aggregates payments over a fixed window. There is no time filter.
@@ -40,7 +40,7 @@ export default function FilterPanel({ filters, relationships, onChange, onReset 
             </fieldset>
 
             <fieldset className="border-t border-n-1/15 py-3">
-                <legend className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-grey-1">
+                <legend className="mb-2 flex items-center gap-1.5 text-xs font-bold tracking-wide text-grey-1 uppercase">
                     Top users
                     <InfoTooltip label="top users">
                         Server-side cap: top N users by points, plus recent signups. Changing it reloads the graph.
@@ -69,7 +69,7 @@ export default function FilterPanel({ filters, relationships, onChange, onReset 
             />
 
             <fieldset className="border-t border-n-1/15 py-3">
-                <legend className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-grey-1">
+                <legend className="mb-2 flex items-center gap-1.5 text-xs font-bold tracking-wide text-grey-1 uppercase">
                     Direction
                     <InfoTooltip label="direction">
                         One row per payer, recipient and type. Both ways keeps every pair with any reverse payment; the
@@ -94,7 +94,7 @@ export default function FilterPanel({ filters, relationships, onChange, onReset 
             </fieldset>
 
             <fieldset className="border-t border-n-1/15 py-3">
-                <legend className="mb-2 text-xs font-bold uppercase tracking-wide text-grey-1">Minimums</legend>
+                <legend className="mb-2 text-xs font-bold tracking-wide text-grey-1 uppercase">Minimums</legend>
                 <label className="block text-[11px] font-semibold text-grey-1">
                     Min transactions
                     <input

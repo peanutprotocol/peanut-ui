@@ -59,7 +59,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 /** Lightweight skeleton shown while HelpLanding JS hydrates */
 function HelpLandingSkeleton() {
     return (
-        <div className="mx-auto mb-8 mt-10 max-w-[640px] px-6 md:mt-12 md:px-4">
+        <div className="mx-auto mt-10 mb-8 max-w-[640px] px-6 md:mt-12 md:px-4">
             {/* Search bar placeholder */}
             <div className="h-12 w-full animate-pulse rounded-sm border border-n-1 bg-gray-200" />
 

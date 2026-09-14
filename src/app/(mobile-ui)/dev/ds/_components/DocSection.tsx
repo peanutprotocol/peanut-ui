@@ -39,25 +39,27 @@ function DocSectionRoot({ title, description, children }: DocSectionProps) {
             {/* Left: title + description + content */}
             <div>
                 <div className="flex items-center gap-2">
-                    <h2 className="text-h5">{title}</h2>
+                    <h2 className="text-heading-xs">{title}</h2>
                     {hasCode && (
                         <button
                             onClick={() => setCodeVisible(!codeVisible)}
-                            className="flex items-center gap-1 rounded-sm border border-gray-3 px-1.5 py-0.5 text-[10px] font-bold text-grey-1 lg:hidden"
+                            className="flex items-center gap-1 rounded-sm border border-border-disabled px-2 py-0.5 text-label-m text-foreground-secondary lg:hidden"
                             aria-label={codeVisible ? 'Hide code' : 'Show code'}
                         >
                             &lt;/&gt;
                         </button>
                     )}
                 </div>
-                {description && <p className="mt-2 text-sm text-grey-1">{description}</p>}
-                <div className="mt-6">{contentNode}</div>
+                {description && <p className="mt-2 text-body-s text-foreground-secondary">{description}</p>}
+                {/* space-y-4 = L/16 within-group gap (design.md spacing anatomy) — the
+                    content column owns the stack rhythm so pages don't sprinkle margins */}
+                <div className="space-y-4 mt-6">{contentNode}</div>
             </div>
 
             {/* Right: code */}
             {hasCode && (
                 <div className={`mt-6 lg:mt-0 ${codeVisible ? 'block' : 'hidden'} lg:block`}>
-                    <div className="space-y-6 rounded-sm bg-primary-3/10 p-4">{codeNode}</div>
+                    <div className="space-y-6 rounded-sm bg-background-badge-accent/20 p-4">{codeNode}</div>
                 </div>
             )}
         </section>

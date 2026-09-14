@@ -160,4 +160,85 @@ describe('usePullToRefresh', () => {
         expect(invalidateQueries).not.toHaveBeenCalled()
         expect(impactHaptic).not.toHaveBeenCalled()
     })
+
+    it('ignores touches that start on an open vaul drawer', () => {
+        const invalidateQueries = jest.spyOn(queryClient, 'invalidateQueries')
+        renderHook(() => usePullToRefresh(), { wrapper })
+
+        const sheet = document.createElement('div')
+        sheet.setAttribute('data-vaul-drawer', '')
+        const inner = document.createElement('button')
+        sheet.appendChild(inner)
+        document.body.appendChild(sheet)
+
+        const start = new Event('touchstart', { bubbles: true })
+        Object.defineProperty(start, 'touches', { value: [{ clientX: 0, clientY: 0 }] })
+        act(() => {
+            inner.dispatchEvent(start)
+        })
+
+        // a full downward drag on the sheet must not move the indicator
+        touch('touchmove', 200)
+        touch('touchend', 200)
+
+        expect(indicator()?.style.opacity).toBe('0')
+        expect(invalidateQueries).not.toHaveBeenCalled()
+        expect(impactHaptic).not.toHaveBeenCalled()
+        sheet.remove()
+    })
+})
+
+describe('overlay gesture isolation', () => {
+    const openDialog = () => {
+        const dialog = document.createElement('div')
+        dialog.setAttribute('role', 'dialog')
+        dialog.setAttribute('data-state', 'open')
+        document.body.appendChild(dialog)
+        return dialog
+    }
+
+    it('ignores pulls while a drawer is open and resumes after it closes', () => {
+        const invalidate = jest.spyOn(queryClient, 'invalidateQueries').mockResolvedValue(undefined)
+        renderHook(() => usePullToRefresh(), { wrapper })
+        const dialog = openDialog()
+        pullPastThreshold()
+        touch('touchend', 200)
+        expect(indicator()?.style.opacity).toBe('0')
+        expect(impactHaptic).not.toHaveBeenCalled()
+        expect(invalidate).not.toHaveBeenCalled()
+        dialog.remove()
+        pullPastThreshold()
+        touch('touchend', 200)
+        expect(invalidate).toHaveBeenCalledTimes(1)
+    })
+
+    it('cancels a pending refresh when a drawer opens before release', () => {
+        const invalidate = jest.spyOn(queryClient, 'invalidateQueries')
+        renderHook(() => usePullToRefresh(), { wrapper })
+        pullPastThreshold()
+        openDialog()
+        touch('touchend', 200)
+        expect(invalidate).not.toHaveBeenCalled()
+        expect(indicator()?.style.opacity).toBe('0')
+    })
+
+    it('never refreshes a gesture cancelled by the browser', () => {
+        const invalidate = jest.spyOn(queryClient, 'invalidateQueries')
+        renderHook(() => usePullToRefresh(), { wrapper })
+        pullPastThreshold()
+        touch('touchcancel', 200)
+        expect(invalidate).not.toHaveBeenCalled()
+    })
+})
+
+it('allows refresh with the closed always-mounted support dialog', () => {
+    const invalidate = jest.spyOn(queryClient, 'invalidateQueries').mockResolvedValue(undefined)
+    renderHook(() => usePullToRefresh(), { wrapper })
+    const support = document.createElement('div')
+    support.setAttribute('role', 'dialog')
+    support.setAttribute('aria-modal', 'false')
+    document.body.appendChild(support)
+    pullPastThreshold()
+    touch('touchend', 200)
+    expect(invalidate).toHaveBeenCalledTimes(1)
 })

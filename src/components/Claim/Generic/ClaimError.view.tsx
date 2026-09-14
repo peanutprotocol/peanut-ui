@@ -3,7 +3,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { useModalsContext } from '@/context/ModalsContext'
 import Image from 'next/image'
-import Link from 'next/link'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { useTranslations } from 'next-intl'
 import { PeanutCrying } from '@/assets/mascot'
 
@@ -19,11 +19,11 @@ export const ClaimErrorView = ({ title, message, primaryButtonText, onPrimaryCli
     const t = useTranslations('claim')
 
     return (
-        <div className="flex flex-col items-center justify-center space-y-4 rounded-lg text-center">
+        <div className="space-y-4 flex flex-col items-center justify-center text-center">
             <Image src={PeanutCrying.src} unoptimized alt={t('errors.sadPeanutAlt')} width={96} height={96} />
             <div className="space-y-2">
-                <h1 className="text-lg font-semibold">{title}</h1>
-                <p className="text-sm font-normal md:max-w-xs">{message}</p>
+                <h1 className="text-heading-card text-foreground-primary">{title}</h1>
+                <p className="text-body-s font-normal md:max-w-xs">{message}</p>
             </div>
             <div className="flex w-full flex-col gap-2">
                 <Button onClick={onPrimaryClick} size="medium" shadowSize="4" variant="purple" className="w-full">
@@ -40,9 +40,9 @@ export const ClaimErrorView = ({ title, message, primaryButtonText, onPrimaryCli
                 >
                     {t('errors.talkToSupport')}
                 </Button>
-                <Link href="/home" className="mt-2 cursor-pointer text-sm text-grey-1 underline underline-offset-2">
+                <LinkButton href="/home" className="mt-2 self-center">
                     {t('errors.goBackToHome')}
-                </Link>
+                </LinkButton>
             </div>
         </div>
     )

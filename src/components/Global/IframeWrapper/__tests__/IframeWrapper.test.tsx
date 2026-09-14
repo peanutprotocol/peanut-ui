@@ -20,7 +20,10 @@ jest.mock('@/context/ModalsContext', () => ({
 }))
 
 let mockIsAndroidNativeBridge = false
+// keep the real module (the DS mascot picker calls isAndroidNative at import
+// time) and only override the bridge probe under test
 jest.mock('@/utils/capacitor', () => ({
+    ...jest.requireActual('@/utils/capacitor'),
     isAndroidNativeBridge: () => mockIsAndroidNativeBridge,
 }))
 

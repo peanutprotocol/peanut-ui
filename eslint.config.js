@@ -18,6 +18,179 @@ const copyPropsFromCatalog = require('./eslint-rules/copy-props-from-catalog')
 // — the guard is preventative; cleanup belongs in a separate sweep.
 const BANNED_BARREL_PATHS = ['@/constants', '@/components', '@/assets', '@/context', '@/interfaces', '@/config']
 
+const RESTRICTED_IMPORT_PATHS = BANNED_BARREL_PATHS.map((path) => ({
+    name: path,
+    message: `Import from a specific file instead of the '${path}' barrel — barrels force the bundler to load every re-export and hurt build perf. See CLAUDE.md.`,
+}))
+
+// DS 10 (TASK-21450): URL state belongs to nuqs. CLAUDE.md "URL as State": use
+// useQueryStates, never manually parse/set query params with router.push or
+// URLSearchParams. Existing offenders are allowlisted below (ratchet — remove
+// entries as files migrate); only NEW files are blocked from the pattern.
+// tw.ts wraps tailwind-merge with the DS token groups registered; a raw import
+// (e.g. a copy-pasted shadcn cn() helper) reintroduces the silent class-deletion
+// bug tw.ts exists to fix — unrecognised DS tokens get treated as conflicting
+// colors and dropped. Only src/utils/tw.ts itself may import the package.
+const TAILWIND_MERGE_IMPORT_RESTRICTION = {
+    name: 'tailwind-merge',
+    message:
+        "Import { twMerge } from '@/utils/tw' — raw tailwind-merge doesn't know the DS token groups and silently deletes DS classes.",
+}
+
+const USE_SEARCH_PARAMS_IMPORT_RESTRICTION = {
+    name: 'next/navigation',
+    importNames: ['useSearchParams'],
+    message:
+        "Don't read query params with useSearchParams — use useQueryStates from 'nuqs' (typed parsers, URL as state). See CLAUDE.md 'URL as State'. DS 10 ratchet: existing files are allowlisted; new files must use nuqs.",
+}
+
+const REGISTER_PLUGIN_IMPORT_RESTRICTION = {
+    name: '@capacitor/core',
+    importNames: ['registerPlugin'],
+    message:
+        "Don't call registerPlugin directly — declare the plugin with nativeCapability() from '@/utils/native-capability' and reach it through .call(method, options, onUnavailable). This JS ships over the air onto binaries built months earlier, where the plugin simply does not exist and Capacitor answers a missing native method with a rejected promise, not a compile error: a forgotten try/catch is a crash on a user's device that no type and no test sees. The wrapper also gates on platform and keeps the proxy inside the closure, so it can never be returned across an await (the .then trap that shipped in 1.0.44 and 1.0.45–1.0.47).",
+}
+
+// Every import restriction in one list, plus a way to drop exactly one.
+//
+// Overrides used to write `'no-restricted-imports': 'off'`, which disables the
+// WHOLE rule — so the tailwind-merge exemption for tw.ts also switched off the
+// barrel-import and registerPlugin bans there, and any future exemption would
+// silently do the same to whatever was added since. Naming the one restriction
+// being lifted keeps an exemption about the thing it is for.
+const BASE_IMPORT_RESTRICTIONS = [
+    ...RESTRICTED_IMPORT_PATHS,
+    USE_SEARCH_PARAMS_IMPORT_RESTRICTION,
+    TAILWIND_MERGE_IMPORT_RESTRICTION,
+    REGISTER_PLUGIN_IMPORT_RESTRICTION,
+]
+
+const restrictedImportsExcept = (...lifted) => [
+    'error',
+    { paths: BASE_IMPORT_RESTRICTIONS.filter((restriction) => !lifted.includes(restriction)) },
+]
+
+const QUERY_STRING_PUSH_MESSAGE =
+    "Don't build a query string by hand for router.push/replace — write URL state with useQueryStates from 'nuqs' (its setter updates the params in place; pathname-only navigation is fine). See CLAUDE.md 'URL as State'. DS 10 ratchet: existing files are allowlisted; new files must use nuqs."
+
+// Best-effort: catches router.push('/x?y=1') and router.push(`/x?y=${z}`) — a '?'
+// in a string/template argument means a hand-built query string. Concatenations
+// ('/x' + qs) and variables slip through; keeping the selector simple keeps it
+// false-positive-free for pathname-only pushes.
+const QUERY_STRING_PUSH_RESTRICTIONS = [
+    {
+        selector:
+            "CallExpression[callee.object.name='router'][callee.property.name=/^(push|replace)$/] > Literal[value=/\\?/]",
+        message: QUERY_STRING_PUSH_MESSAGE,
+    },
+    {
+        selector:
+            "CallExpression[callee.object.name='router'][callee.property.name=/^(push|replace)$/] > TemplateLiteral > TemplateElement[value.raw=/\\?/]",
+        message: QUERY_STRING_PUSH_MESSAGE,
+    },
+]
+
+// Pre-DS-10 syntax restrictions — shared so the DS 10 allowlist block below can
+// re-apply them while dropping only the query-string-push restriction.
+const RESTRICTED_SYNTAX_BASE = [
+    {
+        selector: "CallExpression[callee.object.name='router'][callee.property.name='back']",
+        message:
+            "Don't call router.back() directly — it no-ops on deep-link entries (cold tab, QR scan, push notification). Use useSafeBack(fallbackUrl) from '@/hooks/useSafeBack' instead. See PR #1965.",
+    },
+    {
+        // Only matches the simple () => router.push|replace(x) arrow-body shape —
+        // multi-statement handlers (state resets, conditional branches) keep their
+        // freedom since they often combine navigation with intentional side effects.
+        selector:
+            "JSXAttribute[name.name=/^(onPrev|onBack)$/] > JSXExpressionContainer > ArrowFunctionExpression[body.type='CallExpression'][body.callee.object.name='router'][body.callee.property.name=/^(push|replace)$/]",
+        message:
+            'Bare router.push/replace as onPrev/onBack creates a parent↔child cycle once the parent uses useSafeBack (the push grows in-app history, useSafeBack pops back to this screen, repeat). Use useSafeBack(parentUrl) — pass { replace: true } to preserve replace semantics. See PR #1997.',
+    },
+    {
+        selector:
+            "MemberExpression[object.object.name='window'][object.property.name='history'][property.name='length']",
+        message:
+            "window.history.length is the pre-useSafeBack idiom (history.length > 1 ? back : push). It misfires on cold-load from external referrers — useSafeBack's pushState counter is more accurate. See PR #1965.",
+    },
+    {
+        // nuqs `history: 'push'` stacks a browser-history entry on every URL write.
+        // For per-keystroke params (e.g. `amount`) that poisons the back stack:
+        // useSafeBack → router.back() then steps through stale same-screen states
+        // and the back button looks dead (add-money MP/bank reports, June 2026).
+        selector: "CallExpression[callee.name=/^useQueryStates?$/] Property[key.name='history'][value.value='push']",
+        message:
+            "Don't pass { history: 'push' } to nuqs useQueryState(s) — a history entry per URL write breaks the back button (useSafeBack steps through same-screen states instead of leaving). Use the default 'replace'; the URL stays shareable. If a flow genuinely needs push-per-step, add a scoped file exemption with a comment (see useNativePlugins).",
+    },
+    {
+        // Toast copy must come from next-intl. `react/jsx-no-literals` below
+        // only inspects JSX children, so toasts fired from hooks and contexts
+        // (authContext, useLogin, useSendMoney, QRScanner) shipped English to
+        // every locale unnoticed.
+        //
+        // Deliberately NOT extended to `throw new Error('…')`: those messages
+        // are developer/Sentry breadcrumbs that the friendly-error mapper
+        // collapses to `errors.genericSupport` before any user sees them, so
+        // translating them would only fragment Sentry issue grouping.
+        selector:
+            "CallExpression[callee.object.name='toast'][callee.property.name=/^(error|success|info|warning|loading)$/] > :matches(Literal, TemplateLiteral):first-child",
+        message:
+            "Don't pass a string literal to toast.* — copy must come from next-intl. Import the right namespace with useTranslations and pass t('…'). If the value genuinely isn't copy (an id, a URL), assign it to a named const first.",
+    },
+    {
+        // iOS has never implemented the Vibration API — not in any version,
+        // Safari or WKWebView — so navigator.vibrate() is a permanent no-op
+        // there, and the `'vibrate' in navigator` guard that usually wraps it
+        // makes the failure completely silent. On Android it works but only
+        // above a duration threshold no call site was passing. Every native
+        // haptic in the app was dead this way until 1.0.48.
+        selector: "CallExpression[callee.object.name='navigator'][callee.property.name='vibrate']",
+        message:
+            "Don't call navigator.vibrate() directly — it is a permanent no-op on iOS (no Vibration API in any version) and silently does nothing. Use notifyHaptic / impactHaptic / vibrateHaptic / cancelHaptic from '@/utils/haptics', which drive @capacitor/haptics on native, or useAppHaptic() from '@/hooks/useAppHaptic' for a light tap in a component.",
+    },
+    {
+        // Settling a promise WITH a Capacitor plugin object probes its .then,
+        // and the registerPlugin proxy answers any property with a
+        // native-method wrapper that never invokes the callbacks it is handed
+        // — so the promise stays pending forever and even the .catch is dead.
+        // Shipped twice: getPreferences() (1.0.44) and the Crisp helper
+        // (1.0.45–1.0.47). Return { Plugin } instead.
+        selector: 'ReturnStatement > Identifier[name=/^(Capacitor[A-Z]|Preferences$)/]',
+        message:
+            'Never return a Capacitor plugin object across an await/then boundary — resolving a promise with it probes .then, which the plugin proxy turns into a native call that never settles the promise. Wrap it: `return { Plugin }` and destructure at the call site. See src/utils/crisp.ts and src/utils/auth-token.ts.',
+    },
+    {
+        // The import ban only stops the NAMED import. Capacitor 8 also exposes
+        // the same registrar as Capacitor.registerPlugin, and no-restricted-imports
+        // cannot see a dynamic import at all — either route reaches a raw plugin
+        // proxy with none of the platform/bridge/fallback handling the wrapper
+        // exists to make mandatory. Ban the CALL, however the function was
+        // obtained.
+        selector: "CallExpression[callee.name='registerPlugin'], CallExpression[callee.property.name='registerPlugin']",
+        message:
+            "Don't call registerPlugin — declare the plugin with nativeCapability() from '@/utils/native-capability' and reach it through .call(method, options, onUnavailable). This JS ships over the air onto binaries built months earlier, where the plugin does not exist and Capacitor answers a missing native method with a rejected promise, not a compile error. The wrapper also requires a live bridge and keeps the proxy inside the closure, so it can never be returned across an await.",
+    },
+    {
+        // The --safe-* tokens (globals.css) are the only place the Android < 15
+        // zeroing and Capacitor's native inset injection land; a raw env() read
+        // paints the phantom status-bar band those exist to remove.
+        selector:
+            ':matches(Literal[value=/env\\(safe-area-inset-/], TemplateElement[value.raw=/env\\(safe-area-inset-/])',
+        message:
+            "Don't read env(safe-area-inset-*) directly — use var(--safe-top|--safe-right|--safe-bottom|--safe-left) (or the pt-safe-top / pb-safe-bottom utilities) from globals.css. The tokens carry the Android < 15 zeroing and the native inset injection; env() bypasses both. The only legal raw read is the diagnostic at src/app/(mobile-ui)/dev/safe-area/page.tsx.",
+    },
+]
+
+// Same shape as restrictedImportsExcept: an override names the selector it
+// lifts instead of switching the whole rule off, so an exemption for one bug
+// class cannot silently drop the registerPlugin ban (or anything added later).
+const restrictedSyntaxExcept = (...lifted) => [
+    'error',
+    ...RESTRICTED_SYNTAX_BASE.filter((rule) => !lifted.some((needle) => rule.selector.includes(needle))),
+]
+
+const SAFE_AREA_ENV_SELECTOR = 'safe-area-inset'
+
 module.exports = [
     {
         ignores: [
@@ -89,16 +262,8 @@ module.exports = [
             // `jsx`/`global` are styled-jsx's <style> attributes (built into Next), not DOM props.
             'react/no-unknown-property': ['error', { ignore: ['jsx', 'global'] }],
 
-            // Ban barrel imports — see BANNED_BARREL_PATHS above.
-            'no-restricted-imports': [
-                'error',
-                {
-                    paths: BANNED_BARREL_PATHS.map((path) => ({
-                        name: path,
-                        message: `Import from a specific file instead of the '${path}' barrel — barrels force the bundler to load every re-export and hurt build perf. See CLAUDE.md.`,
-                    })),
-                },
-            ],
+            // Ban barrel imports (see BANNED_BARREL_PATHS) + useSearchParams (DS 10).
+            'no-restricted-imports': restrictedImportsExcept(),
 
             // Ban self-imports — CLAUDE.md import rules. Confirmed firing on synthetic test.
             'import-x/no-self-import': 'error',
@@ -108,102 +273,173 @@ module.exports = [
             // Self-imports are still caught above. Revisit when the plugin matures or someone
             // figures out the resolver gotcha.
 
-            // Project-specific: catch the back-button bug class.
-            // See src/hooks/useSafeBack.ts, PR #1965 (router.back), PR #1997 (sibling patterns).
-            'no-restricted-syntax': [
-                'error',
-                {
-                    selector: "CallExpression[callee.object.name='router'][callee.property.name='back']",
-                    message:
-                        "Don't call router.back() directly — it no-ops on deep-link entries (cold tab, QR scan, push notification). Use useSafeBack(fallbackUrl) from '@/hooks/useSafeBack' instead. See PR #1965.",
-                },
-                {
-                    // Only matches the simple () => router.push|replace(x) arrow-body shape —
-                    // multi-statement handlers (state resets, conditional branches) keep their
-                    // freedom since they often combine navigation with intentional side effects.
-                    selector:
-                        "JSXAttribute[name.name=/^(onPrev|onBack)$/] > JSXExpressionContainer > ArrowFunctionExpression[body.type='CallExpression'][body.callee.object.name='router'][body.callee.property.name=/^(push|replace)$/]",
-                    message:
-                        'Bare router.push/replace as onPrev/onBack creates a parent↔child cycle once the parent uses useSafeBack (the push grows in-app history, useSafeBack pops back to this screen, repeat). Use useSafeBack(parentUrl) — pass { replace: true } to preserve replace semantics. See PR #1997.',
-                },
-                {
-                    selector:
-                        "MemberExpression[object.object.name='window'][object.property.name='history'][property.name='length']",
-                    message:
-                        "window.history.length is the pre-useSafeBack idiom (history.length > 1 ? back : push). It misfires on cold-load from external referrers — useSafeBack's pushState counter is more accurate. See PR #1965.",
-                },
-                {
-                    // nuqs `history: 'push'` stacks a browser-history entry on every URL write.
-                    // For per-keystroke params (e.g. `amount`) that poisons the back stack:
-                    // useSafeBack → router.back() then steps through stale same-screen states
-                    // and the back button looks dead (add-money MP/bank reports, June 2026).
-                    selector:
-                        "CallExpression[callee.name=/^useQueryStates?$/] Property[key.name='history'][value.value='push']",
-                    message:
-                        "Don't pass { history: 'push' } to nuqs useQueryState(s) — a history entry per URL write breaks the back button (useSafeBack steps through same-screen states instead of leaving). Use the default 'replace'; the URL stays shareable. If a flow genuinely needs push-per-step, add a scoped file exemption with a comment (see useNativePlugins).",
-                },
-                {
-                    // Toast copy must come from next-intl. `react/jsx-no-literals` below
-                    // only inspects JSX children, so toasts fired from hooks and contexts
-                    // (authContext, useLogin, useSendMoney, QRScanner) shipped English to
-                    // every locale unnoticed.
-                    //
-                    // Deliberately NOT extended to `throw new Error('…')`: those messages
-                    // are developer/Sentry breadcrumbs that the friendly-error mapper
-                    // collapses to `errors.genericSupport` before any user sees them, so
-                    // translating them would only fragment Sentry issue grouping.
-                    selector:
-                        "CallExpression[callee.object.name='toast'][callee.property.name=/^(error|success|info|warning|loading)$/] > :matches(Literal, TemplateLiteral):first-child",
-                    message:
-                        "Don't pass a string literal to toast.* — copy must come from next-intl. Import the right namespace with useTranslations and pass t('…'). If the value genuinely isn't copy (an id, a URL), assign it to a named const first.",
-                },
-                {
-                    // iOS has never implemented the Vibration API — not in any version,
-                    // Safari or WKWebView — so navigator.vibrate() is a permanent no-op
-                    // there, and the `'vibrate' in navigator` guard that usually wraps it
-                    // makes the failure completely silent. On Android it works but only
-                    // above a duration threshold no call site was passing. Every native
-                    // haptic in the app was dead this way until 1.0.48.
-                    selector: "CallExpression[callee.object.name='navigator'][callee.property.name='vibrate']",
-                    message:
-                        "Don't call navigator.vibrate() directly — it is a permanent no-op on iOS (no Vibration API in any version) and silently does nothing. Use notifyHaptic / impactHaptic / vibrateHaptic / cancelHaptic from '@/utils/haptics', which drive @capacitor/haptics on native, or useAppHaptic() from '@/hooks/useAppHaptic' for a light tap in a component.",
-                },
-                {
-                    // Settling a promise WITH a Capacitor plugin object probes its .then,
-                    // and the registerPlugin proxy answers any property with a
-                    // native-method wrapper that never invokes the callbacks it is handed
-                    // — so the promise stays pending forever and even the .catch is dead.
-                    // Shipped twice: getPreferences() (1.0.44) and the Crisp helper
-                    // (1.0.45–1.0.47). Return { Plugin } instead.
-                    selector: 'ReturnStatement > Identifier[name=/^(Capacitor[A-Z]|Preferences$)/]',
-                    message:
-                        'Never return a Capacitor plugin object across an await/then boundary — resolving a promise with it probes .then, which the plugin proxy turns into a native call that never settles the promise. Wrap it: `return { Plugin }` and destructure at the call site. See src/utils/crisp.ts and src/utils/auth-token.ts.',
-                },
-            ],
+            // Project-specific: catch the back-button bug class (RESTRICTED_SYNTAX_BASE —
+            // PR #1965 router.back, PR #1997 sibling patterns, nuqs history:'push',
+            // toast literals) + hand-built query-string pushes (DS 10, TASK-21450).
+            'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAX_BASE, ...QUERY_STRING_PUSH_RESTRICTIONS],
         },
     },
     {
-        // The hook itself wraps router.back() — exempt.
+        // The hook itself wraps router.back() — exempt from THAT selector only.
         files: ['src/hooks/useSafeBack.ts', 'src/hooks/__tests__/useSafeBack.test.ts'],
-        rules: { 'no-restricted-syntax': 'off' },
+        rules: { 'no-restricted-syntax': restrictedSyntaxExcept("callee.property.name='back'") },
     },
     {
         // The one module allowed to touch the Vibration API: it is the web
         // fallback behind the haptics helpers everything else must use.
         files: ['src/utils/haptics.ts'],
-        rules: { 'no-restricted-syntax': 'off' },
+        rules: { 'no-restricted-syntax': restrictedSyntaxExcept("callee.property.name='vibrate'") },
+    },
+    {
+        // The wrapper itself (and its census test) are the only legal raw
+        // tailwind-merge importers. Only THAT restriction is lifted: a blanket
+        // off also switched the registerPlugin ban off here.
+        files: ['src/utils/tw.ts', 'src/utils/__tests__/tw.test.ts'],
+        rules: { 'no-restricted-imports': restrictedImportsExcept(TAILWIND_MERGE_IMPORT_RESTRICTION) },
+    },
+    {
+        // The wrapper itself is the one legal registerPlugin caller — it is
+        // what every other call site is required to go through.
+        files: ['src/utils/native-capability.ts'],
+        rules: {
+            'no-restricted-imports': restrictedImportsExcept(REGISTER_PLUGIN_IMPORT_RESTRICTION),
+            'no-restricted-syntax': restrictedSyntaxExcept("callee.name='registerPlugin'"),
+        },
     },
     {
         // Capacitor hardware back: different bug class (canGoBack + minimizeApp).
         files: ['src/hooks/useNativePlugins.ts'],
-        rules: { 'no-restricted-syntax': 'off' },
+        rules: { 'no-restricted-syntax': restrictedSyntaxExcept("callee.property.name='back'") },
     },
     {
         // PublicProfile is the one place we intentionally keep an isInternalReferrer +
         // window.history.length check. The referrer signal is orthogonal to useSafeBack's
         // counter; migrating loses information for external-referrer cold-loads.
+        // Scoped, not blanket off: only the two selectors that idiom needs are dropped
+        // (history.length + the router.back it gates), so the other restrictions still
+        // apply here. The file also has one pre-ban query push (`/invite?code=…`) —
+        // treat it as a DS 10 ratchet allowlist member (TASK-21450): the query-push
+        // restrictions are not re-applied; migrate it to nuqs, then re-add.
         files: ['src/components/Profile/components/PublicProfile.tsx'],
-        rules: { 'no-restricted-syntax': 'off' },
+        rules: {
+            'no-restricted-syntax': [
+                'error',
+                ...RESTRICTED_SYNTAX_BASE.filter(
+                    (r) =>
+                        !r.selector.includes("[property.name='length']") &&
+                        !r.selector.includes("[callee.property.name='back']")
+                ),
+            ],
+        },
+    },
+    {
+        // The safe-area diagnostic renders raw env() next to the tokens on
+        // purpose; the DS token dump is generated from globals.css.
+        files: [
+            'src/app/(mobile-ui)/dev/safe-area/page.tsx',
+            'src/app/(mobile-ui)/dev/ds/foundations/tokens.generated.ts',
+        ],
+        rules: {
+            'no-restricted-syntax': [
+                'error',
+                ...RESTRICTED_SYNTAX_BASE.filter((r) => !r.selector.includes(SAFE_AREA_ENV_SELECTOR)),
+                ...QUERY_STRING_PUSH_RESTRICTIONS,
+            ],
+        },
+    },
+    {
+        // DS 10 ratchet allowlist — do not add files; migrate to nuqs instead
+        // (remove entries as files migrate). These files imported useSearchParams
+        // before the ban (TASK-21450); the barrel-import ban still applies.
+        files: [
+            // NOTE: [ and ] are minimatch character classes — dynamic-segment dirs
+            // like [country] must be escaped as \\[country\\] to match literally.
+            'src/app/(mobile-ui)/add-money/\\[country\\]/\\[regional-method\\]/page.tsx',
+            'src/app/(mobile-ui)/add-money/\\[country\\]/bank/page.tsx',
+            'src/app/(mobile-ui)/add-money/page.tsx',
+            'src/app/(mobile-ui)/card-payment/page.tsx',
+            'src/app/(mobile-ui)/dev/payment-graph/page.tsx',
+            'src/app/(mobile-ui)/pay-request/page.tsx',
+            'src/app/(mobile-ui)/qr-pay/page.tsx',
+            'src/app/(mobile-ui)/qr/\\[code\\]/page.tsx',
+            'src/app/(mobile-ui)/qr/\\[code\\]/success/page.tsx',
+            'src/app/(mobile-ui)/qr/page.tsx',
+            'src/app/(mobile-ui)/receipt/page.tsx',
+            'src/app/(mobile-ui)/request/page.tsx',
+            'src/app/(mobile-ui)/withdraw/\\[country\\]/bank/page.tsx',
+            'src/app/(mobile-ui)/withdraw/manteca/page.tsx',
+            'src/app/(mobile-ui)/withdraw/page.tsx',
+            'src/app/(setup)/setup/page.tsx',
+            'src/app/\\[...recipient\\]/client.tsx',
+            'src/app/crisp-proxy/page.tsx',
+            'src/app/recover-wallet/page.tsx',
+            'src/components/AddMoney/components/MantecaAddMoney.tsx',
+            'src/components/AddWithdraw/AddWithdrawCountriesList.tsx',
+            'src/components/AddWithdraw/AddWithdrawRouterView.tsx',
+            'src/components/AddWithdraw/DynamicBankAccountForm.tsx',
+            'src/components/Claim/Claim.tsx',
+            'src/components/Claim/Link/Initial.view.tsx',
+            'src/components/Claim/Link/Onchain/Confirm.view.tsx',
+            'src/components/Claim/Link/Onchain/Success.view.tsx',
+            'src/components/Claim/Link/views/BankFlowManager.view.tsx',
+            'src/components/Claim/useClaimLink.tsx',
+            'src/components/Common/CountryList.tsx',
+            'src/components/Global/QRScannerOverlay/index.tsx',
+            'src/components/Global/UnsupportedBrowserModal/index.tsx',
+            'src/components/Invites/InvitesPage.tsx',
+            'src/components/Marketing/HelpLanding.tsx',
+            'src/components/Request/Pay/Pay.tsx',
+            'src/components/Request/link/views/Create.request.link.view.tsx',
+            'src/components/Send/views/Contacts.view.tsx',
+            'src/components/Send/views/SendRouter.view.tsx',
+            'src/context/ReproduceBootstrap.tsx',
+            'src/features/payments/flows/semantic-request/SemanticRequestPageWrapper.tsx',
+            'src/features/payments/flows/semantic-request/views/SemanticRequestConfirmView.tsx',
+            'src/features/payments/flows/semantic-request/views/SemanticRequestSuccessView.tsx',
+            'src/hooks/useAccountSetup.ts',
+            'src/hooks/useLogin.tsx',
+            'src/hooks/useSendFlowOrigin.ts',
+        ],
+        rules: {
+            // Only the DS 10 restrictions are lifted. This block REPLACES the
+            // base rule rather than extending it, so a bare RESTRICTED_IMPORT_PATHS
+            // let every allowlisted file import registerPlugin directly and walk
+            // around the single-door invariant.
+            // useSearchParams ONLY. The pre-existing list here was a bare
+            // RESTRICTED_IMPORT_PATHS, which also dropped the tailwind-merge
+            // ban by omission — invisible until the lifts became explicit.
+            // Stock tailwind-merge does not know the DS token groups and
+            // silently deletes DS classes, so that exemption was never
+            // intended.
+            'no-restricted-imports': restrictedImportsExcept(USE_SEARCH_PARAMS_IMPORT_RESTRICTION),
+        },
+    },
+    {
+        // DS 10 ratchet allowlist — do not add files; migrate to nuqs instead
+        // (remove entries as files migrate). These files pushed hand-built query
+        // strings before the ban (TASK-21450); every other syntax restriction
+        // (RESTRICTED_SYNTAX_BASE) still applies.
+        files: [
+            'src/app/(mobile-ui)/add-money/page.tsx',
+            'src/app/(mobile-ui)/qr-pay/page.tsx',
+            'src/app/(mobile-ui)/withdraw/page.tsx',
+            'src/app/lp/card/CardLandingPage.tsx',
+            'src/app/shhhhh/ShhhhhLandingPage.tsx',
+            'src/components/AddWithdraw/AddWithdrawCountriesList.tsx',
+            'src/components/AddWithdraw/AddWithdrawRouterView.tsx',
+            'src/components/Claim/Link/SendLinkActionList.tsx',
+            'src/components/Global/GuestVerificationModal/index.tsx',
+            'src/components/Marketing/mdx/ExchangeWidget.tsx',
+            'src/components/Send/views/Contacts.view.tsx',
+            'src/components/Send/views/SendRouter.view.tsx',
+            'src/features/payments/flows/contribute-pot/components/RequestPotActionList.tsx',
+            'src/features/payments/flows/semantic-request/views/SemanticRequestConfirmView.tsx',
+            'src/features/payments/flows/semantic-request/views/SemanticRequestSuccessView.tsx',
+            'src/features/payments/shared/components/PaymentMethodActionList.tsx',
+        ],
+        rules: {
+            'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAX_BASE],
+        },
     },
     {
         // require() inside test bodies is the Jest idiom for reading mocks after

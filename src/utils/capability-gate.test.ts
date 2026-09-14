@@ -1,6 +1,7 @@
 import {
     deriveGate,
     getGateAdvisory,
+    selectMantecaCapNudge,
     getGateUserMessage,
     getKycModalVariant,
     type CapabilityState,
@@ -899,5 +900,142 @@ describe('deriveGate — legacy fallback fidelity (code-review regression pins)'
             'deposit'
         )
         expect(gate.kind).toBe('fixable-rejection')
+    })
+})
+
+describe('selectMantecaCapNudge', () => {
+    const raiseAction: NextAction = {
+        key: 'sumsub:source_of_funds',
+        kind: 'sumsub',
+        purpose: 'raise-manteca-limit',
+        levelKey: 'source_of_funds',
+    }
+    const reviewAction: NextAction = {
+        key: 'manteca:limit-review',
+        kind: 'wait',
+        purpose: 'manteca-limit-under-review',
+    }
+
+    function mantecaRail(overrides: Partial<RailCapability> = {}): RailCapability {
+        return bankRail({
+            id: 'manteca.pix_br',
+            provider: 'manteca',
+            method: 'PIX_BR',
+            country: 'BR',
+            currency: 'BRL',
+            status: 'enabled',
+            ...overrides,
+        })
+    }
+
+    test('a fresh cap block surfaces the actionable CTA — no effectiveDate needed', () => {
+        // The gap this closes: the hint carries no effectiveDate, so firstAdvisory
+        // drops it and nothing downstream ever saw it.
+        const rail = mantecaRail({ hintActions: ['sumsub:source_of_funds'] })
+        expect(selectMantecaCapNudge([rail], [raiseAction])).toEqual({
+            state: 'raise',
+            actionKey: 'sumsub:source_of_funds',
+        })
+    })
+
+    test('a completed RFI surfaces the non-actionable review state', () => {
+        const rail = mantecaRail({ hintActions: ['manteca:limit-review'] })
+        expect(selectMantecaCapNudge([rail], [reviewAction])).toEqual({ state: 'under-review' })
+    })
+
+    test('a NEW cap block outranks an in-review sibling — the CTA comes back', () => {
+        const reviewing = mantecaRail({ hintActions: ['manteca:limit-review'] })
+        const reBlocked = mantecaRail({
+            id: 'manteca.bank_transfer_ar',
+            method: 'BANK_TRANSFER_AR',
+            country: 'AR',
+            currency: 'ARS',
+            hintActions: ['sumsub:source_of_funds'],
+        })
+        expect(selectMantecaCapNudge([reviewing, reBlocked], [reviewAction, raiseAction])).toEqual({
+            state: 'raise',
+            actionKey: 'sumsub:source_of_funds',
+        })
+    })
+
+    test('reads the BE verdict too, not only the legacy hintActions list', () => {
+        const rail = mantecaRail({ resolved: { status: 'enabled', nextAction: raiseAction } })
+        expect(selectMantecaCapNudge([rail], [])).toEqual({
+            state: 'raise',
+            actionKey: 'sumsub:source_of_funds',
+        })
+    })
+
+    test('no nudge → undefined', () => {
+        expect(selectMantecaCapNudge([mantecaRail()], [])).toBeUndefined()
+    })
+
+    test('survives the Bridge action-key collision', () => {
+        // The BE key is not provider-namespaced: Bridge emits the same
+        // `sumsub:source_of_funds` for its own requirement, and `upsertAction`
+        // keeps whichever rail emits FIRST. A user carrying both ends up with the
+        // Manteca rail pointing at a descriptor whose purpose reads `unlock-bridge`
+        // — and a purpose-only check dropped the real nudge, leaving exactly that
+        // cohort with no limit-raise route at all.
+        const bridgeWon: NextAction = {
+            key: 'sumsub:source_of_funds',
+            kind: 'sumsub',
+            purpose: 'unlock-bridge',
+            levelKey: 'source_of_funds',
+        }
+        const bridgeRail = bankRail({
+            id: 'bridge.sepa_eu',
+            method: 'SEPA_EU',
+            country: 'EU',
+            status: 'requires-info',
+            blockingActions: ['sumsub:source_of_funds'],
+        })
+        const rail = mantecaRail({ hintActions: ['sumsub:source_of_funds'] })
+
+        expect(selectMantecaCapNudge([bridgeRail, rail], [bridgeWon])).toEqual({
+            state: 'raise',
+            actionKey: 'sumsub:source_of_funds',
+        })
+    })
+
+    test('a Bridge requirement on a BRIDGE rail is still not a cap-nudge', () => {
+        // The rail-local read must not become a global one: the same descriptor
+        // reached from a Bridge rail is a Bridge requirement.
+        const bridgeSof: NextAction = {
+            key: 'sumsub:source_of_funds',
+            kind: 'sumsub',
+            purpose: 'unlock-bridge',
+            levelKey: 'source_of_funds',
+        }
+        const bridgeRail = bankRail({
+            id: 'bridge.sepa_eu',
+            status: 'requires-info',
+            blockingActions: ['sumsub:source_of_funds'],
+        })
+        expect(selectMantecaCapNudge([bridgeRail], [bridgeSof])).toBeUndefined()
+    })
+
+    test('a Bridge advisory hint is not a cap-nudge', () => {
+        const advisory: NextAction = {
+            key: 'sumsub:eea_uplift',
+            kind: 'sumsub',
+            purpose: 'unlock-bridge',
+            effectiveDate: '2099-06-29',
+        }
+        const rail = bankRail({ status: 'enabled', hintActions: ['sumsub:eea_uplift'] })
+        expect(selectMantecaCapNudge([rail], [advisory])).toBeUndefined()
+    })
+
+    test('the review state can never be made tappable by a re-purposed kind', () => {
+        // Both branches are pinned to the kind the FE can honour: a `wait` action
+        // under the raise purpose must not yield an actionKey.
+        const miskinded: NextAction = { key: 'manteca:limit-review', kind: 'wait', purpose: 'raise-manteca-limit' }
+        const rail = mantecaRail({ hintActions: ['manteca:limit-review'] })
+        expect(selectMantecaCapNudge([rail], [miskinded])).toBeUndefined()
+    })
+
+    test('a hint key with no matching descriptor is ignored', () => {
+        const rail = mantecaRail({ hintActions: ['sumsub:source_of_funds'] })
+        expect(selectMantecaCapNudge([rail], [])).toBeUndefined()
     })
 })

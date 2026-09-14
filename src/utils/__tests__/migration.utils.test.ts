@@ -19,10 +19,19 @@ jest.mock('@/utils/capacitor', () => ({
     openExternalUrl: jest.fn(),
 }))
 
-// the localStorage overrides are dev-only; force the dev branch in tests
+// the cutover override is dev-only and the flag override is off only on the
+// production domain; force the dev branch for the suite's default. Getters, so
+// the two cases that re-require the module under test can move them.
+let mockIsDev = true
+let mockBaseUrl = 'http://localhost:3000'
 jest.mock('@/constants/general.consts', () => ({
     ...jest.requireActual('@/constants/general.consts'),
-    IS_DEV: true,
+    get IS_DEV() {
+        return mockIsDev
+    },
+    get BASE_URL() {
+        return mockBaseUrl
+    },
 }))
 
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
@@ -75,6 +84,32 @@ describe('isPwaSunsetOn', () => {
     it('dev localStorage override turns it on without posthog', () => {
         localStorage.setItem('pwa-sunset', 'true')
         expect(isPwaSunsetOn()).toBe(true)
+    })
+
+    /*
+     * The e2e layout gate runs against `next start`, where NODE_ENV is
+     * 'production' and no posthog key is configured — so a dev-only override
+     * left every "flag on" case measuring the flag-off page. The override is
+     * scoped to the domain instead, and peanut.me still answers to posthog.
+     */
+    it.each([
+        ['a preview or CI build honours the override', 'http://127.0.0.1:3080', true],
+        ['the production domain ignores it', 'https://peanut.me', false],
+    ])('production build: %s', (_label, baseUrl, expected) => {
+        mockIsDev = false
+        mockBaseUrl = baseUrl
+        localStorage.setItem('pwa-sunset', 'true')
+        try {
+            jest.isolateModules(() => {
+                // IS_PROD_DOMAIN is computed at module load, so re-require it
+                // eslint-disable-next-line @typescript-eslint/no-require-imports
+                const fresh = require('@/utils/migration.utils') as typeof import('@/utils/migration.utils')
+                expect(fresh.isPwaSunsetOn()).toBe(expected)
+            })
+        } finally {
+            mockIsDev = true
+            mockBaseUrl = 'http://localhost:3000'
+        }
     })
 
     it('ignores non-"true" override values', () => {

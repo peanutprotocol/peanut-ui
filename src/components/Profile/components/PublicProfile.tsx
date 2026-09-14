@@ -19,14 +19,17 @@ import { useRouter } from 'next/navigation'
 import { isCapacitor } from '@/utils/capacitor'
 import { requestUrl } from '@/utils/native-routes'
 import Card from '@/components/Global/Card'
-import { saveToCookie, toInviteCode } from '@/utils/general.utils'
+import { toInviteCode } from '@/utils/general.utils'
 import { useAuth } from '@/context/authContext'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import ShareButton from '@/components/Global/ShareButton'
-import ActionModal from '@/components/Global/ActionModal'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import BadgesRow from '@/components/Badges/BadgesRow'
+import { stashInvite } from '@/utils/invite-stash'
+import { EInviteType } from '@/services/services.types'
 
 interface PublicProfileProps {
     username: string
@@ -108,7 +111,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
             // Session scope, no expiryDays — a poisoned cookie outlives this page
             // and locks setup past the only screen with Log In (PR #2346).
             const resolvedToOwner = !!onboardingResolved && inviterUsername === code
-            if (resolvedToOwner) saveToCookie('inviteCode', code)
+            if (resolvedToOwner) stashInvite(code, EInviteType.DIRECT)
             posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
                 source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
                 link_type: resolvedToOwner ? 'invite_code' : 'none',
@@ -116,9 +119,8 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
             if (intercepted) return
             // Unresolvable and mismatched codes still navigate — /invite owns the
             // messaging. Native strips /invite; /setup?step=signup is its stand-in
-            // (the cookie above already carries the code, and ONLY when it resolved
-            // to the owner — don't route through inviteFlowUrl, which writes it
-            // unconditionally and would revert the resolvedToOwner guard).
+            // (the stash above already carries the code, and ONLY when it
+            // resolved to the owner).
             router.push(isCapacitor() ? '/setup?step=signup' : `/invite?code=${code}`)
         } finally {
             setIsJoining(false)
@@ -153,7 +155,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     const displayName = showFullName && fullName ? fullName : username
 
     return (
-        <div className="flex h-full w-full flex-col space-y-4 bg-background">
+        <div className="space-y-4 flex h-full w-full flex-col bg-background">
             {/* Logo - Only shown in guest view */}
             <div>
                 {!isLoggedIn ? (
@@ -186,7 +188,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                             shadowSize="4"
                             className="flex w-1/2 items-center justify-center gap-2 rounded-full py-3"
                         >
-                            <Icon name="arrow-up-right" size={18} fill="black" />
+                            <Icon name="arrow-up-right" size={20} fill="black" />
                             <span className="font-bold">{tNav('send')}</span>
                         </Button>
 
@@ -202,8 +204,12 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                             shadowSize="4"
                             className="flex w-1/2 items-center justify-center gap-2 rounded-full py-3"
                         >
-                            <Icon name="arrow-down-left" size={18} fill="black" />
-                            <span className="font-bold">{tNav('request')}</span>
+                            <Icon name="arrow-down-left" size={20} fill="black" />
+                            {/* Not navigation.request: that labels the user's OWN
+                                Request flow, and es-419 renders it "Recibir" —
+                                receiving, which is not what this button does to
+                                someone else's profile. */}
+                            <span className="font-bold">{t('requestAction')}</span>
                         </Button>
                     </div>
                 )}
@@ -217,8 +223,8 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                         <Card position="single" className="space-y-2 p-4 text-center">
                             {isLoggedIn ? (
                                 <>
-                                    <h2 className="text-lg font-extrabold">{t('allSetTitle')}</h2>
-                                    <p className="mx-auto max-w-[55%] text-sm">{t('allSetDescription')}</p>
+                                    <h2 className="text-heading-card text-foreground-primary">{t('allSetTitle')}</h2>
+                                    <p className="mx-auto max-w-[55%] text-body-s">{t('allSetDescription')}</p>
                                 </>
                             ) : (
                                 <div className="space-y-4">
@@ -230,7 +236,9 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                                                 width={20}
                                                 height={20}
                                             />
-                                            <h2 className="text-lg font-extrabold">{t('joinPeanut')}</h2>
+                                            <h2 className="text-heading-card text-foreground-primary">
+                                                {t('joinPeanut')}
+                                            </h2>
                                             <Image
                                                 src={HandThumbsUpV2.src}
                                                 className="scale-x-[-1] transform"
@@ -246,8 +254,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                             )}
                         </Card>
                         {/* <div
-                            className="absolute left-0 top-0 flex w-full justify-center"
-                            style={{ transform: 'translateY(-15%)' }}
+                            className="absolute top-0 left-0 flex w-full -translate-y-[15%] justify-center"
                         >
                             <div className="relative h-42 w-[65%] md:h-44 md:w-[45%]">
                                 <Image
@@ -267,9 +274,10 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                     <div>
                         <HomeHistory username={username} />
                         {isSelfProfile && (
-                            <div className="mb-1 mt-3 flex w-full items-center justify-center gap-2 rounded-md bg-grey-4/25 px-3 py-2">
-                                <Icon name="info" size={16} className="text-grey-1" />
-                                <p className="text-center text-sm text-grey-1">{t('activityPrivateNote')}</p>
+                            <div className="mt-3 mb-1 flex w-full items-center justify-center gap-2 rounded-sm bg-background-disabled/25 px-3 py-2">
+                                <p className="text-center text-body-s text-foreground-secondary">
+                                    {t('activityPrivateNote')}
+                                </p>
                             </div>
                         )}
                     </div>
@@ -280,29 +288,36 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                 {/* A logged-out guest gets the crediting door; the beg flow stays for
                     the logged-in-without-access case, where the owner's code can no
                     longer credit them through signup. */}
-                <ActionModal
-                    icon="user"
-                    title={t('noInviteTitle')}
-                    description={
-                        isLoggedIn ? `${t('inviteOnlyLine1')}\n${t('inviteOnlyLine2')}` : t('invitedLine', { username })
-                    }
-                    visible={showInviteModal}
-                    onClose={() => {
-                        setShowInviteModal(false)
+                <Drawer
+                    open={showInviteModal}
+                    onOpenChange={(isOpen) => {
+                        if (!isOpen) setShowInviteModal(false)
                     }}
-                    content={
-                        isLoggedIn ? (
-                            <ShareButton
-                                generateText={() => Promise.resolve(t('begShareText'))}
-                                title={t('begForInvite')}
-                            >
-                                {t('begForInvite')}
-                            </ShareButton>
-                        ) : (
-                            joinCtaButton
-                        )
-                    }
-                />
+                >
+                    <DrawerContent>
+                        <div className="flex flex-col items-center gap-4 pt-1 pb-6 text-center">
+                            <IconBubble icon="user" className="bg-action-primary" />
+                            <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                                <DrawerTitle>{t('noInviteTitle')}</DrawerTitle>
+                                <DrawerDescription>
+                                    {isLoggedIn
+                                        ? `${t('inviteOnlyLine1')}\n${t('inviteOnlyLine2')}`
+                                        : t('invitedLine', { username })}
+                                </DrawerDescription>
+                            </DrawerHeader>
+                            {isLoggedIn ? (
+                                <ShareButton
+                                    generateText={() => Promise.resolve(t('begShareText'))}
+                                    title={t('begForInvite')}
+                                >
+                                    {t('begForInvite')}
+                                </ShareButton>
+                            ) : (
+                                joinCtaButton
+                            )}
+                        </div>
+                    </DrawerContent>
+                </Drawer>
             </div>
         </div>
     )

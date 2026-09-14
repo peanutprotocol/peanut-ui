@@ -2,6 +2,9 @@
  * Countries where Peanut has a first-party local payment rail that's cheaper
  * than spending on the Rain card. Add a country here to light up the
  * LocalRailNudge for it — mirrors MANTECA_GEO_RAIL_MAP in peanut-api-ts.
+ * When you add one, also extend the `{iso2, select, …}` preposition in the
+ * pt-BR `transaction.nudge.localRailDescription` message — Portuguese
+ * contracts "em" with the country's article ("no Brasil", "na Argentina").
  *
  * `rail` is the printable, user-facing rail name (reads as "pay with {rail}").
  * `currency` drives the shared `useCardMarkupRate` lookup so the nudge stays

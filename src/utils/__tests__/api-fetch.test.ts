@@ -102,6 +102,13 @@ describe('apiFetch', () => {
             const callArgs = mockFetchWithSentry.mock.calls[0][1]
             expect((callArgs?.headers as Record<string, string>)['Content-Type']).toBeUndefined()
         })
+
+        it('does not add Content-Type for a FormData body (multipart boundary is fetch-owned)', async () => {
+            await apiFetch('/send-links', { method: 'POST', body: new FormData() })
+
+            const callArgs = mockFetchWithSentry.mock.calls[0][1]
+            expect((callArgs?.headers as Record<string, string>)['Content-Type']).toBeUndefined()
+        })
     })
 
     describe('native transport preference', () => {

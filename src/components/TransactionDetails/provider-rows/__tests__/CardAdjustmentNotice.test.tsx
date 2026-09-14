@@ -7,12 +7,6 @@ import React from 'react'
 import { screen } from '@testing-library/react'
 import { renderWithIntl as render } from '@/test-utils/intl'
 
-jest.mock('@/components/Global/InfoCard', () => ({
-    __esModule: true,
-    default: ({ description }: { description?: React.ReactNode }) => <div data-testid="info-card">{description}</div>,
-}))
-
-// import must come after jest.mock
 import { CardAdjustmentNotice } from '../CardAdjustmentNotice'
 import type { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 

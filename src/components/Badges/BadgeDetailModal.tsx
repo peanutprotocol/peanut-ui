@@ -7,7 +7,7 @@ import { BadgeImage } from './BadgeImage'
 import ShareButton from '../Global/ShareButton'
 import { captureBadgeShare, getBadgeShareLink, getBadgeShareText } from './badge.utils'
 import { useBadgeShareImpression } from './useBadgeShareImpression'
-import { useUserStore } from '@/redux/hooks'
+import { useAuth } from '@/context/authContext'
 import { REFERRAL_SOURCES } from '@/constants/analytics.consts'
 
 type BadgeDetailModalProps = {
@@ -24,7 +24,7 @@ type BadgeDetailModalProps = {
 export const BadgeDetailModal = ({ isOpen, onClose, code, title, description, logo }: BadgeDetailModalProps) => {
     const t = useTranslations('badges')
     const locale = useLocale()
-    const { user: authUser } = useUserStore()
+    const { user: authUser } = useAuth()
     const username = authUser?.user?.username
     // the sharer's own invite link, so a guest signup credits them
     const shareLink = getBadgeShareLink(username)

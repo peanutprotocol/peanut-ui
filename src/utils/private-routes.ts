@@ -1,3 +1,4 @@
+import { redactQrTelemetryString } from './qr-telemetry-privacy'
 /**
  * Routes whose contents must never reach analytics, error reporting or a cache.
  *
@@ -17,10 +18,15 @@ type GuardedWindow = Window &
     }
 
 export function disablePaymentNetworkGoogleAnalytics(
-    pathname = typeof window === 'undefined' ? '' : window.location.pathname,
+    pathname = typeof window === 'undefined' ? '' : window.location.href,
     measurementId = process.env.NEXT_PUBLIC_GA_KEY
 ): void {
-    if (typeof window === 'undefined' || !measurementId || !isPaymentNetworkExplorerPath(pathname)) return
+    if (typeof window === 'undefined' || !measurementId) return
+    let path = pathname
+    try {
+        path = new URL(pathname, window.location.href).pathname
+    } catch {}
+    if (!isPaymentNetworkExplorerPath(path) && redactQrTelemetryString(pathname) === pathname) return
     ;(window as unknown as GuardedWindow)[`ga-disable-${measurementId}`] = true
 }
 
@@ -37,7 +43,7 @@ export function installPaymentNetworkGoogleAnalyticsGuard(): void {
         window.history[method] = (data: unknown, unused: string, url?: string | URL | null) => {
             if (url !== undefined && url !== null) {
                 try {
-                    disablePaymentNetworkGoogleAnalytics(new URL(String(url), window.location.href).pathname)
+                    disablePaymentNetworkGoogleAnalytics(new URL(String(url), window.location.href).href)
                 } catch {}
             }
             original(data, unused, url)

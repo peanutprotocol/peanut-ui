@@ -59,7 +59,7 @@ export const CountryListRouter = ({ claimLinkData, inputTitle }: ICountryListRou
     }, [savedAccounts, setClaimBankFlowStep])
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-normal gap-8">
+        <div className="flex min-h-inherit flex-col justify-normal gap-8">
             <NavHeader title={t('countryList.receiveTitle')} onPrev={onPrev} />
             <div className="flex h-full w-full flex-1 flex-col justify-start gap-4">
                 <PeanutActionDetailsCard

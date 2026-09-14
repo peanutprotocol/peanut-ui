@@ -14,9 +14,20 @@ let memoryCache: { countryCode: string | null; timestamp: number } | null = null
  * caches result in sessionStorage and memory to avoid refetching on every mount
  * @returns {object} an object containing the country code, whether the request is loading, and any error that occurred
  */
+/**
+ * The in-memory hit, read during render so a warm cache paints the country on
+ * the FIRST frame instead of flipping a select from its placeholder one frame
+ * later. Deliberately NOT sessionStorage: this is also read during prerender,
+ * where storage does not exist and a client-only value would desync hydration.
+ * memoryCache is null on the server and on the first client render, so both
+ * sides agree.
+ */
+const freshMemoryCountry = (): string | null =>
+    memoryCache && Date.now() - memoryCache.timestamp < CACHE_DURATION ? memoryCache.countryCode : null
+
 export const useGeoLocation = () => {
-    const [countryCode, setCountryCode] = useState<string | null>(null)
-    const [isLoading, setIsLoading] = useState(true)
+    const [countryCode, setCountryCode] = useState<string | null>(freshMemoryCountry)
+    const [isLoading, setIsLoading] = useState(() => freshMemoryCountry() === null)
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {

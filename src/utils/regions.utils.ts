@@ -4,6 +4,7 @@ import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import { type RailCapability } from '@/types/capabilities'
 import { BRIDGE_ALPHA3_TO_ALPHA2, type CountryData } from '@/components/AddMoney/consts'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
+import { BANKING_RESTRICTED_RESIDENCE_ISO2, RESTRICTED_RESIDENCE_ISO2 } from '@/constants/residence.consts'
 import type { StaticImageData } from 'next/image'
 
 /**
@@ -113,6 +114,26 @@ export const getRegionIntent = (regionPath: string): KYCRegionIntent => {
 }
 
 /**
+ * The verification intent a residence country maps to — used when a residence
+ * change re-opens identity verification, so the fresh Sumsub token targets the
+ * level that serves the new country (Manteca for LATAM, Bridge for EU/NA).
+ */
+export const regionIntentForResidence = (iso2: string): KYCRegionIntent => {
+    const code = iso2.toUpperCase()
+    // A residence no bank provider onboards — sanctioned, the UK block, or a
+    // Bridge banking exclusion like Japan — gets the provider-less level,
+    // whatever Bridge's document map says about it. Targeting a Bridge or
+    // Manteca level for these residences opens a verification that can only
+    // end on a terminal rejection.
+    if (RESTRICTED_RESIDENCE_ISO2.has(code) || BANKING_RESTRICTED_RESIDENCE_ISO2.has(code)) return 'ROW'
+    // Colombia is not in the live Manteca set (its bank rail is deactivated)
+    if (code === 'BR' || code === 'AR') return 'LATAM'
+    if (code === 'US' || code === 'MX') return 'NA'
+    if (isBridgeSupportedCountry(code)) return 'EU'
+    return 'ROW'
+}
+
+/**
  * Which provider serves a region intent — an exact FE mirror of the BE registry
  * (`crossRegionProvider` in peanut-api-ts `src/kyc/level-registry.ts`). Used for
  * DISPLAY only (which provider rail backs a clicked region); the BE stays the
@@ -215,16 +236,22 @@ const RAIL_COUNTRY_TO_REGION_PATH: Record<string, string> = {
 }
 
 /**
- * Region intent for a BANK flow (Bridge bank deposit / withdraw, bank claim).
- * The picker region is not the rail jurisdiction: Mexico is `region: 'latam'`
- * for the picker, but its bank rail (SPEI) is Bridge, and the jurisdiction
- * table above says `north-america`. Sending LATAM + MX asked the Manteca path
- * for a country it does not serve; the BE rejects it and the UI collapsed that
- * into "contact support" (TASK-22333). Countries with no rail entry keep the
- * picker region.
+ * Resolve the KYC intent for a bank destination from its rail jurisdiction.
+ * Mexico remains in the LATAM picker, but SPEI is a Bridge rail and therefore
+ * belongs to the North America intent. Countries without a bank-rail entry
+ * retain their picker-region intent.
  */
-export const getBankRegionIntent = (country: Pick<CountryData, 'id' | 'region'> | null | undefined): KYCRegionIntent =>
-    getRegionIntent(RAIL_COUNTRY_TO_REGION_PATH[country?.id ?? ''] ?? country?.region ?? 'rest-of-the-world')
+export const getBankRegionIntent = (
+    country: Pick<CountryData, 'id' | 'iso2' | 'region'> | string | null | undefined
+): KYCRegionIntent => {
+    if (typeof country === 'string') {
+        const code = country.toUpperCase()
+        return getRegionIntent(RAIL_COUNTRY_TO_REGION_PATH[code] ?? country)
+    }
+
+    const countryCode = country?.iso2 ?? country?.id
+    return getRegionIntent(RAIL_COUNTRY_TO_REGION_PATH[countryCode ?? ''] ?? country?.region ?? 'rest-of-the-world')
+}
 
 /**
  * Region picker paths with a mid-flight bank rail (`pending` = BE provisioning,

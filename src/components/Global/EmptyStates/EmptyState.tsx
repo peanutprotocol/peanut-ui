@@ -1,30 +1,38 @@
 import React from 'react'
-import Card from '../Card'
-import { Icon, type IconName } from '../Icons/Icon'
-import { twMerge } from 'tailwind-merge'
+import { Card } from '@/components/0_Bruddle/Card'
+import { IconBubble, type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
+import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
+import { type IconName } from '../Icons/Icon'
+import { twMerge } from '@/utils/tw'
 
 interface EmptyStateProps {
     icon: IconName
+    iconColor?: IconBubbleColor
     title: string | React.ReactNode
     description?: string
     cta?: React.ReactNode
     containerClassName?: HTMLDivElement['className']
 }
 
-// EmptyState component - Used for dispalying when there's no data in a certain scneario and we want to inform users with a cta (optional)
-export default function EmptyState({ title, description, icon, cta, containerClassName }: EmptyStateProps) {
+/**
+ * Informational empty-state card. Thin wrapper over the 0_Bruddle Card per
+ * the card board (17788:17569, card.cta.none): centered icon bubble, title,
+ * secondary body, optional cta. Zero custom styling of its own.
+ */
+export default function EmptyState({
+    title,
+    description,
+    icon,
+    iconColor = 'gray',
+    cta,
+    containerClassName,
+}: EmptyStateProps) {
     return (
-        <Card position="single" className={twMerge('p-0', containerClassName)}>
-            <div className={'flex flex-col items-center justify-center gap-2 px-4 py-6'}>
-                <div className="flex size-8 items-center justify-center rounded-full bg-primary-1">
-                    <Icon name={icon} size={16} />
-                </div>
-                <div className="text-center">
-                    <div className="font-medium">{title}</div>
-                    {description && <div className="text-sm text-grey-1">{description}</div>}
-                    {cta && cta}
-                </div>
-            </div>
+        <Card className={twMerge('items-center gap-2 px-4 py-6 text-center', containerClassName)}>
+            <IconBubble icon={icon} size="s" color={iconColor} />
+            <TitleBlock title={title} description={description}>
+                {cta}
+            </TitleBlock>
         </Card>
     )
 }

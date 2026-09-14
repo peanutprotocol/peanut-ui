@@ -31,8 +31,8 @@ jest.mock('@/utils/capacitor', () => ({
     openExternalUrl: jest.fn(),
 }))
 
-jest.mock('@/redux/hooks', () => ({
-    useUserStore: () => ({ user: { user: { userId: 'user-1' } } }),
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: { user: { userId: 'user-1' } } }),
 }))
 
 const mockGetPrefs = jest.fn()

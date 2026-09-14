@@ -183,7 +183,17 @@
     },
     {
         "source": "/devconnect",
-        "destination": "/quests",
+        "destination": "/",
+        "permanent": false
+    },
+    {
+        "source": "/quests",
+        "destination": "/",
+        "permanent": false
+    },
+    {
+        "source": "/quests/:path*",
+        "destination": "/",
         "permanent": false
     },
     {

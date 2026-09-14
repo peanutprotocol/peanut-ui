@@ -31,17 +31,15 @@ describe('validateInviteCode mixed-version resolution', () => {
             })
         )
 
+        // the wire still echoes the retired destination fields; the action's
+        // parser reduces the descriptor to the campaign identity (TASK-21226)
         await expect(validateInviteCode('offramp')).resolves.toEqual({
             data: {
                 success: true,
                 attributionResolved: false,
                 onboardingResolved: false,
                 username: '',
-                legacyAcquisition: {
-                    campaignTag: 'offramp',
-                    fallback: 'normal_app',
-                    destination: 'offramp_migration',
-                },
+                legacyAcquisition: { campaignTag: 'offramp' },
             },
         })
     })

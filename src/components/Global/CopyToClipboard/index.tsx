@@ -1,8 +1,10 @@
 import React, { useState, forwardRef, useImperativeHandle, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Icon } from '../Icons/Icon'
 import { Button, type ButtonSize } from '@/components/0_Bruddle/Button'
+import { useToast } from '@/components/0_Bruddle/Toast'
+import { copyTextToClipboard } from '@/utils/clipboard.utils'
 
 export interface CopyToClipboardRef {
     copy: () => void
@@ -16,20 +18,40 @@ interface Props {
     type?: 'button' | 'icon'
     buttonSize?: ButtonSize
     onCopy?: () => void
+    /** icon mode only: render a plain glyph with no button semantics — for
+     *  hosts that are themselves the copy button (nesting <button> is invalid
+     *  DOM). The host drives copy() through the imperative ref. */
+    interactive?: boolean
 }
 
 const CopyToClipboard = forwardRef<CopyToClipboardRef, Props>(
-    ({ textToCopy, fill = 'black', className, iconSize = '6', type = 'icon', buttonSize, onCopy }, ref) => {
+    (
+        {
+            textToCopy,
+            fill = 'black',
+            className,
+            iconSize = '6',
+            type = 'icon',
+            buttonSize,
+            onCopy,
+            interactive = true,
+        },
+        ref
+    ) => {
         const t = useTranslations('global')
+        const toast = useToast()
         const [copied, setCopied] = useState(false)
 
-        const copy = useCallback(() => {
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                setCopied(true)
-                setTimeout(() => setCopied(false), 2000)
-                onCopy?.()
-            })
-        }, [textToCopy, onCopy])
+        const copy = useCallback(async () => {
+            const didCopy = await copyTextToClipboard(textToCopy)
+            if (!didCopy) {
+                toast.error(t('copyToClipboard.copyFailed'))
+                return
+            }
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2000)
+            onCopy?.()
+        }, [textToCopy, onCopy, toast, t])
 
         useImperativeHandle(ref, () => ({ copy }), [copy])
 
@@ -60,19 +82,34 @@ const CopyToClipboard = forwardRef<CopyToClipboardRef, Props>(
                     shadowSize="4"
                     variant="primary-soft"
                 >
-                    <p className="text-sm">{t('copyToClipboard.copyCode')}</p>
+                    <p className="text-body-s">{t('copyToClipboard.copyCode')}</p>
                 </Button>
             )
         }
 
+        if (!interactive) {
+            return (
+                <span className={twMerge('inline-flex items-center justify-center', className)} aria-hidden>
+                    <Icon name={copied ? 'check' : 'copy'} size={iconSizePx} fill={fill ? fill : 'white'} />
+                </span>
+            )
+        }
+
         return (
-            <Icon
-                name={copied ? 'check' : 'copy'}
-                size={iconSizePx}
-                className={twMerge('cursor-pointer hover:opacity-80', className)}
-                fill={fill ? fill : 'white'}
+            // real button semantics for the inline glyph: keyboard focusable,
+            // pressed feedback, and a pseudo-element hit area >=44px (touch law)
+            // while the visual footprint stays the glyph size.
+            <button
+                type="button"
+                aria-label={t('copyField.copy')}
                 onClick={handleCopy}
-            />
+                className={twMerge(
+                    'relative inline-flex cursor-pointer items-center justify-center transition-opacity duration-instant after:absolute after:-inset-4 hover:opacity-80 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60',
+                    className
+                )}
+            >
+                <Icon name={copied ? 'check' : 'copy'} size={iconSizePx} fill={fill ? fill : 'white'} />
+            </button>
         )
     }
 )

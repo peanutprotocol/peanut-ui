@@ -1,6 +1,7 @@
 'use client'
 
 import MERCADO_PAGO from '@/assets/payment-apps/mercado-pago.svg'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import PIX from '@/assets/payment-apps/pix.svg'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
@@ -11,7 +12,6 @@ import MantecaDetailsStep from './views/MantecaDetailsStep.view'
 import { MercadoPagoStep } from '@/types/manteca.types'
 import MantecaReviewStep from './views/MantecaReviewStep'
 import { Button } from '@/components/0_Bruddle/Button'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import { useRouter } from 'next/navigation'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
@@ -126,7 +126,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
     }
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8 md:min-h-fit">
+        <div className="flex min-h-inherit flex-col justify-between gap-8 md:min-h-fit">
             <NavHeader icon={isSuccess ? 'cancel' : 'chevron-up'} title={t('receive')} onPrev={onPrev} />
 
             <div className="my-auto space-y-4">
@@ -147,9 +147,11 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 />
 
                 {renderStepDetails()}
-                {sumsubFlow.error && <ErrorAlert description={sumsubFlow.error} />}
+                {sumsubFlow.error && <Notification priority="error">{sumsubFlow.error}</Notification>}
             </div>
             <InitiateKycModal
+                cooldownActive={!!sumsubFlow.errorCooldown}
+                prepPath="extended"
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
                 onVerify={async () => {
@@ -190,7 +192,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 reasonCode={mantecaRejection.reasonCode ?? undefined}
                 regionName={selectedCountry ? localizedCountryTitle(locale, selectedCountry) : undefined}
             />
-            <SumsubKycModals flow={sumsubFlow} />
+            <SumsubKycModals flow={sumsubFlow} onCooldownClose={() => setShowKycModal(false)} />
         </div>
     )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
+import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import {
     MANTECA_COUNTRIES_CONFIG,
@@ -34,7 +34,7 @@ export function MantecaDepositInfo({
     return (
         <>
             {depositDetails.depositAddress && (
-                <PaymentInfoRow
+                <DataRow
                     label={
                         (country ? MANTECA_COUNTRIES_CONFIG[country.id]?.depositAddressLabel : undefined) ??
                         t('manteca.depositAddress')
@@ -43,16 +43,14 @@ export function MantecaDepositInfo({
                     allowCopy
                 />
             )}
-            {depositDetails.depositAlias && (
-                <PaymentInfoRow label="Alias" value={depositDetails.depositAlias} allowCopy />
-            )}
+            {depositDetails.depositAlias && <DataRow label="Alias" value={depositDetails.depositAlias} allowCopy />}
             {country?.id === 'AR' && (
                 <>
                     {/* Not copy: the field name the user's Argentine banking app shows.
                         Translating it would break the match they are transcribing. */}
                     {/* eslint-disable-next-line local/copy-props-from-catalog */}
-                    <PaymentInfoRow label="Razón Social" value={MANTECA_ARG_DEPOSIT_NAME} />
-                    <PaymentInfoRow label="CUIT" value={MANTECA_ARG_DEPOSIT_CUIT} />
+                    <DataRow label="Razón Social" value={MANTECA_ARG_DEPOSIT_NAME} />
+                    <DataRow label="CUIT" value={MANTECA_ARG_DEPOSIT_CUIT} />
                 </>
             )}
         </>

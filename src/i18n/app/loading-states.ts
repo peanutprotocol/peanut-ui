@@ -18,6 +18,7 @@ const KEY_BY_STATE: Record<LoadingStates, LoadingStateKey> = {
     'Switching network': 'switchingNetwork',
     'Fetching route': 'fetchingRoute',
     'Fetching details': 'fetchingDetails',
+    'Still fetching details': 'stillFetchingDetails',
     'Awaiting route fulfillment': 'awaitingRouteFulfillment',
     'Asserting values': 'assertingValues',
     'Generating details': 'generatingDetails',

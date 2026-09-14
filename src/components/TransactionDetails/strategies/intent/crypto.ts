@@ -1,6 +1,7 @@
 import { EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
 import { TRANSACTION_NAME_KEYS } from '@/components/TransactionDetails/transaction-name-keys'
+import { savedAddressLabel } from '@/utils/saved-address.utils'
 
 export const cryptoDeposit: TransactionStrategy = (entry: HistoryEntry): TransactionStrategyOutput => ({
     direction: 'add',
@@ -33,7 +34,12 @@ export const cryptoWithdraw: TransactionStrategy = (entry: HistoryEntry): Transa
     return {
         direction: 'withdraw',
         transactionCardType: 'withdraw',
-        nameForDetails: entry.recipientAccount?.identifier || 'External Account',
+        // Address-book nickname rides on extraData.savedAddressNickname → "Binance · …aec9"
+        nameForDetails: entry.recipientAccount?.identifier
+            ? entry.extraData?.savedAddressNickname
+                ? savedAddressLabel(entry.extraData.savedAddressNickname, entry.recipientAccount.identifier)
+                : entry.recipientAccount.identifier
+            : 'External Account',
         nameKey: entry.recipientAccount?.identifier ? undefined : TRANSACTION_NAME_KEYS.externalAccount,
         isPeerActuallyUser: false,
         isLinkTx: false,

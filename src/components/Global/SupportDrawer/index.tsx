@@ -6,7 +6,8 @@ import { useModalsContext } from '@/context/ModalsContext'
 import { useCrispUserData } from '@/hooks/useCrispUserData'
 import { useCrispTokenId } from '@/hooks/useCrispTokenId'
 import { useVisualViewport } from '@/hooks/useVisualViewport'
-import PeanutLoading from '../PeanutLoading'
+import { useBackHandler } from '@/hooks/useBackHandler'
+import Loading from '../Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import {
     SUPPORT_EMAIL,
@@ -17,8 +18,8 @@ import {
 } from '@/constants/crisp'
 import type { AppLocale } from '@/i18n/app/config'
 import { notificationsApi } from '@/services/notifications'
+import { notifyNotificationsUpdated } from '@/utils/notifications-events'
 import { isCapacitor } from '@/utils/capacitor'
-import { ensureNativeCameraPermission } from '@/utils/camera-permission'
 import { ensureNativeCrispConfigured, nativeCrispFields } from '@/utils/crisp'
 
 const DISMISS_THRESHOLD = 100
@@ -51,7 +52,7 @@ const SupportDrawer = () => {
      *
      * The native open chain reads it AFTER its awaits, because the snapshot is
      * live: a balance can land, or verification can resolve, while Crisp
-     * configuration and the camera permission are still pending. The effect
+     * configuration is still pending. The effect
      * closure holds the payload from when the effect ran, so publishing that
      * would push a balance the user no longer has — and a `balance-unavailable`
      * segment that would route them wrongly — to the agent.
@@ -137,7 +138,7 @@ const SupportDrawer = () => {
         if (!isLoggedIn) return
         notificationsApi
             .markAllRead('support')
-            .then(() => window.dispatchEvent(new CustomEvent('notifications:updated')))
+            .then(notifyNotificationsUpdated)
             // A failed mark-read only means the badge stays on a bit longer.
             .catch(() => {})
     }, [isLoggedIn])
@@ -212,15 +213,20 @@ const SupportDrawer = () => {
         ensureNativeCrispConfigured()
             .then(async ({ CapacitorCrisp }) => {
                 /*
-                 * Settle the CAMERA runtime permission before the native Crisp UI
-                 * opens: the app manifest declares CAMERA (QR scanner), which makes
-                 * Crisp's "Take a photo" throw a SecurityException when it is
-                 * declared-but-ungranted — the SDK never requests it itself.
-                 * Result deliberately ignored: a denied camera must not block chat.
+                 * Do not probe or request CAMERA here. Support chat does not need
+                 * camera access to open, and an optional attachment capability must
+                 * never gate the user's route to support. The minified Android 1.5.0
+                 * shell also crashes natively inside CameraPlugin.getPermissionStates
+                 * when Camera.checkPermissions runs (PEANUT-UI-T30), before this
+                 * promise can reject back to JavaScript. Camera surfaces own their
+                 * permission flow at the point where the user actually invokes them.
                  */
-                await ensureNativeCameraPermission()
+                // Keep an async cancellation/snapshot boundary after native
+                // configuration. A close or account-state commit queued in the
+                // same turn must win before we publish data and present Crisp.
+                await new Promise<void>((resolve) => setTimeout(resolve, 0))
 
-                // The user dismissed support while we awaited. Publishing now
+                // The user dismissed support while Crisp configured. Publishing now
                 // would push the prefill into a conversation they walked away from.
                 if (cancelled) return
 
@@ -389,6 +395,14 @@ const SupportDrawer = () => {
         return () => window.removeEventListener('message', handleMessage)
     }, [])
 
+    // Android hardware back closes the sheet instead of navigating the page
+    // underneath. Hand-rolled overlay, so it registers itself (the DS Drawer
+    // and Modal do this internally).
+    useBackHandler(() => {
+        setIsSupportModalOpen(false)
+        return true
+    }, isSupportModalOpen)
+
     // close on escape
     useEffect(() => {
         if (!isSupportModalOpen) return
@@ -409,7 +423,7 @@ const SupportDrawer = () => {
                 the receipt underneath (a fall-through tap on "Cancel deposit"
                 cancelled a user's funded bank deposit). */}
             <div
-                className={`fixed inset-0 z-[999998] bg-black/80 transition-opacity duration-300 ${
+                className={`fixed inset-0 z-[999998] bg-black/80 transition-opacity duration-moderate ${
                     isSupportModalOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
                 }`}
                 onClick={() => setIsSupportModalOpen(false)}
@@ -436,11 +450,11 @@ const SupportDrawer = () => {
                     // leaves a backdrop target to tap-to-close; with no keyboard up it is
                     // slack and 85dvh wins, so the resting look is unchanged.
                     height: visibleHeight
-                        ? `min(85dvh, calc(${visibleHeight}px - env(safe-area-inset-top) - ${TOP_RESERVE}px))`
+                        ? `min(85dvh, calc(${visibleHeight}px - var(--safe-top) - ${TOP_RESERVE}px))`
                         : '85dvh',
                     // The keyboard already covers the home indicator; padding for it too
                     // would just wedge a dead strip between the composer and the keys.
-                    paddingBottom: keyboardInset ? 0 : 'env(safe-area-inset-bottom)',
+                    paddingBottom: keyboardInset ? 0 : 'var(--safe-bottom)',
                     transform: isSupportModalOpen ? `translateY(${dragOffset}px)` : 'translateY(100%)',
                     transition: isDragging ? 'none' : 'transform 300ms ease-out',
                 }}
@@ -460,14 +474,21 @@ const SupportDrawer = () => {
                     <div className="relative h-full w-full overflow-hidden md:max-w-xl">
                         {(!isCrispReady || isAwaitingToken) && !isCrispFailed && (
                             <div className="absolute inset-0 z-10 flex items-center justify-center bg-background">
-                                <PeanutLoading />
+                                <Loading variant="mascot" />
                             </div>
                         )}
                         {isCrispFailed && (
                             <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-background px-8 text-center">
-                                <p className="text-base font-bold text-n-1">{t('supportDrawer.chatLoadFailed')}</p>
-                                <p className="text-sm text-grey-1">{t('supportDrawer.chatLoadFailedDescription')}</p>
-                                <a href={`mailto:${SUPPORT_EMAIL}`} className="text-black underline">
+                                <p className="text-body-m-semibold text-foreground-primary">
+                                    {t('supportDrawer.chatLoadFailed')}
+                                </p>
+                                <p className="text-body-s text-foreground-secondary">
+                                    {t('supportDrawer.chatLoadFailedDescription')}
+                                </p>
+                                <a
+                                    href={`mailto:${SUPPORT_EMAIL}`}
+                                    className="text-body-m text-foreground-primary underline"
+                                >
                                     {SUPPORT_EMAIL}
                                 </a>
                                 <Button variant="stroke" className="w-full" onClick={handleRetry}>

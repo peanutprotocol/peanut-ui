@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
+import { HeroBackNav } from '@/components/Marketing/HeroBackNav'
 import { Marquee } from '@/components/LandingPage'
 import { ScarcityCounter } from '@/components/LandingPage/ScarcityCounter'
 import { useAuth } from '@/context/authContext'
@@ -15,6 +16,8 @@ import { inflateWaitlistPosition } from '@/components/Card/doorTally.utils'
 import { Sparkle, Star } from '@/assets/illustrations'
 import { cardApi } from '@/services/card'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { MIGRATION_SURFACES } from '@/constants/migration.consts'
+import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { badgeCampaignsFromSearchParams, queuePendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
 import { getBadgeIcon } from '@/components/Badges/badge.utils'
@@ -121,7 +124,7 @@ function StickyShhhhhCTA({ onClick }: { onClick: () => void }) {
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: 80, opacity: 0 }}
                     transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                    className="pointer-events-none fixed bottom-0 left-0 right-0 z-50 border-t-2 border-n-1 bg-white px-4 py-3 md:hidden"
+                    className="pointer-events-none fixed right-0 bottom-0 left-0 z-50 border-t-2 border-n-1 bg-white px-4 py-3 md:hidden"
                 >
                     <Button
                         variant="purple"
@@ -139,7 +142,7 @@ function StickyShhhhhCTA({ onClick }: { onClick: () => void }) {
 
 export default function ShhhhhLandingPage() {
     const t = useTranslations('shhhhh')
-    const { user, fetchUser } = useAuth()
+    const { user, isFetchingUser, fetchUser } = useAuth()
     const router = useRouter()
 
     // undefined = not joined; number|null = joined (null = joined but BE
@@ -149,6 +152,12 @@ export default function ShhhhhLandingPage() {
     const [joinError, setJoinError] = useState(false)
     const [showAllBadges, setShowAllBadges] = useState(false)
     const isJoined = joinedPosition !== undefined
+
+    // Count guest impressions only after auth settles and while the door CTA is visible.
+    const { interceptGuestCta, storeHandoffModal } = useGuestStoreHandoff({
+        surface: MIGRATION_SURFACES.LANDING_DOOR,
+        trackImpressionWhenGuest: !isFetchingUser && !user && !isJoined,
+    })
 
     const joinWaitlist = useCallback(async () => {
         setCtaBusy(true)
@@ -195,6 +204,9 @@ export default function ShhhhhLandingPage() {
     }, [user])
 
     const handleCTA = async () => {
+        // Wait for auth so returning users are not sent to signup or the store.
+        if (isFetchingUser) return
+
         // Read opaque campaign identities at click time (client-only) to avoid
         // bailing static prerendering. The backend resolves award semantics;
         // provenance is audit-only and does not weaken an earned skip badge.
@@ -205,8 +217,13 @@ export default function ShhhhhLandingPage() {
             campaign_tags: badgeCampaigns,
         })
 
+        // Save campaigns before the handoff: buildDeferredPayload reads this cookie queue.
+        const queuedBadgeCampaigns = badgeCampaigns.length > 0 ? queuePendingBadgeCampaigns(badgeCampaigns, 30) : []
+
+        // During migration, web guests install the app and continue to /card after signup.
+        if (!user && interceptGuestCta({ dest: '/card' })) return
+
         if (badgeCampaigns.length > 0) {
-            const queuedBadgeCampaigns = queuePendingBadgeCampaigns(badgeCampaigns, 30)
             if (!user) {
                 queueShhhhhCampaignContinuation()
                 router.push(shhhhhCampaignSignupRoute())
@@ -267,6 +284,9 @@ export default function ShhhhhLandingPage() {
         <>
             {/* §1 — Hero (pink) */}
             <section className="relative overflow-hidden bg-primary-1 px-4 py-20 text-n-1 md:py-24">
+                {/* reachable from /profile ("Peanut card" for non-holders) —
+                    without this the only way back was the browser button. */}
+                <HeroBackNav />
                 <motion.img
                     src={Star.src}
                     alt=""
@@ -274,7 +294,7 @@ export default function ShhhhhLandingPage() {
                     initial={{ opacity: 0, translateY: 20, translateX: 5 }}
                     whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
                     transition={{ type: 'spring', damping: 5 }}
-                    className="pointer-events-none absolute left-[3%] top-[8%] z-10 w-10 md:left-[6%] md:top-[12%] md:w-14"
+                    className="pointer-events-none absolute top-[8%] left-[3%] z-10 w-10 md:top-[12%] md:left-[6%] md:w-14"
                 />
                 <motion.img
                     src={Star.src}
@@ -283,7 +303,7 @@ export default function ShhhhhLandingPage() {
                     initial={{ opacity: 0, translateY: 28, translateX: -5 }}
                     whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
                     transition={{ type: 'spring', damping: 5, delay: 0.15 }}
-                    className="pointer-events-none absolute bottom-[5%] right-[4%] z-10 w-8 md:bottom-[8%] md:right-[8%] md:w-12"
+                    className="pointer-events-none absolute right-[4%] bottom-[5%] z-10 w-8 md:right-[8%] md:bottom-[8%] md:w-12"
                 />
                 <motion.img
                     src={Sparkle.src}
@@ -292,7 +312,7 @@ export default function ShhhhhLandingPage() {
                     initial={{ opacity: 0, scale: 0.4 }}
                     whileInView={{ opacity: 1, scale: 1 }}
                     transition={{ type: 'spring', damping: 8, delay: 0.3 }}
-                    className="pointer-events-none absolute right-[12%] top-[10%] z-10 hidden w-8 md:block md:w-10"
+                    className="pointer-events-none absolute top-[10%] right-[12%] z-10 hidden w-8 md:block md:w-10"
                 />
                 <div className="relative z-20 mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 md:grid-cols-[1.1fr_0.9fr]">
                     <div className="min-w-0 text-center md:text-left">
@@ -333,7 +353,7 @@ export default function ShhhhhLandingPage() {
                                         initial={{ opacity: 0, scale: 0.4, rotate: -30 }}
                                         animate={{ opacity: 1, scale: 1, rotate: 0 }}
                                         transition={{ type: 'spring', damping: 10, delay: 0.6 }}
-                                        className="pointer-events-none absolute -right-4 -top-4 w-8 md:-right-5 md:-top-5 md:w-10"
+                                        className="pointer-events-none absolute -top-4 -right-4 w-8 md:-top-5 md:-right-5 md:w-10"
                                     />
                                 </div>
                                 <button
@@ -347,7 +367,7 @@ export default function ShhhhhLandingPage() {
                             </div>
                         )}
                         {joinError && (
-                            <p className="font-roboto-flex mt-3 text-center text-sm font-bold text-error md:text-left">
+                            <p className="font-roboto-flex mt-3 text-center text-sm font-bold text-foreground-error md:text-left">
                                 {t('hero.joinError')}
                             </p>
                         )}
@@ -398,7 +418,7 @@ export default function ShhhhhLandingPage() {
                                 <div className="font-roboto-flex-extrabold text-5xl font-extraBlack md:text-6xl">
                                     {statValues[i]}
                                 </div>
-                                <div className="font-roboto-flex mt-3 text-xs font-bold uppercase tracking-wider md:text-sm">
+                                <div className="font-roboto-flex mt-3 text-xs font-bold tracking-wider uppercase md:text-sm">
                                     {t(`whatItDoes.${labelKey}`)}
                                 </div>
                             </div>
@@ -462,7 +482,7 @@ export default function ShhhhhLandingPage() {
                                                 sizes="(max-width: 768px) 80px, 120px"
                                             />
                                         </div>
-                                        <span className="font-roboto-flex text-center text-[0.7rem] font-bold uppercase leading-tight tracking-tight">
+                                        <span className="font-roboto-flex text-center text-[0.7rem] leading-tight font-bold tracking-tight uppercase">
                                             {b.name}
                                         </span>
                                     </div>
@@ -541,7 +561,7 @@ export default function ShhhhhLandingPage() {
                                         +
                                     </span>
                                 </summary>
-                                <p className="mt-4 text-lg font-semibold leading-6 text-n-1 md:text-xl">
+                                <p className="mt-4 text-lg leading-6 font-semibold text-n-1 md:text-xl">
                                     {t(`faq.${key}.answer`)}
                                 </p>
                             </details>
@@ -561,7 +581,7 @@ export default function ShhhhhLandingPage() {
                     initial={{ opacity: 0, scale: 0.4, rotate: -30 }}
                     whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
                     transition={{ type: 'spring', damping: 8 }}
-                    className="pointer-events-none absolute left-[8%] top-[18%] w-10 md:left-[15%] md:top-[20%] md:w-14"
+                    className="pointer-events-none absolute top-[18%] left-[8%] w-10 md:top-[20%] md:left-[15%] md:w-14"
                 />
                 <motion.img
                     src={Sparkle.src}
@@ -570,7 +590,7 @@ export default function ShhhhhLandingPage() {
                     initial={{ opacity: 0, scale: 0.4, rotate: 30 }}
                     whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
                     transition={{ type: 'spring', damping: 8, delay: 0.2 }}
-                    className="pointer-events-none absolute bottom-[20%] right-[10%] w-8 md:bottom-[24%] md:right-[18%] md:w-12"
+                    className="pointer-events-none absolute right-[10%] bottom-[20%] w-8 md:right-[18%] md:bottom-[24%] md:w-12"
                 />
                 <div className="relative z-10 mx-auto max-w-3xl">
                     <h2 className="font-roboto-flex-extrabold text-heading font-extraBlack md:text-headingMedium lg:text-headingLarge">
@@ -599,12 +619,16 @@ export default function ShhhhhLandingPage() {
                         )}
                     </div>
                     {joinError && (
-                        <p className="font-roboto-flex mt-3 text-sm font-bold text-error">{t('hero.joinError')}</p>
+                        <p className="font-roboto-flex mt-3 text-sm font-bold text-foreground-error">
+                            {t('hero.joinError')}
+                        </p>
                     )}
                 </div>
             </section>
 
-            {!isJoined && <StickyShhhhhCTA onClick={handleCTA} />}
+            {/* Hide the sticky bar while the modal is open so it cannot cover the modal controls. */}
+            {!isJoined && !storeHandoffModal && <StickyShhhhhCTA onClick={handleCTA} />}
+            {storeHandoffModal}
         </>
     )
 }

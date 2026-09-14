@@ -1,0 +1,294 @@
+'use client'
+
+import { useMemo, useState } from 'react'
+import Link from 'next/link'
+import { DocPage } from '../_components/DocPage'
+import type { AuditCluster, AuditItem, AuditStatus, LayerStat } from './audit-data'
+
+// build-time gate — mirrors DEV_TOOLS_ENABLED (src/constants/dev-tools.consts.ts).
+// next inlines process.env.NODE_ENV / NEXT_PUBLIC_* at compile time, so in a prod
+// build webpack folds this condition to `false` and drops the require()'d branch —
+// ~360KB of audit data never enters the prod bundle. two things keep the fold
+// working: (1) the condition must stay inline — importing DEV_TOOLS_ENABLED hides
+// the literals from webpack's parser and the data would ship; (2) both next
+// configs define NEXT_PUBLIC_VERCEL_ENV unconditionally (see next.config.js `env`)
+// so the second leg is always a foldable literal, even off-Vercel. runtime access
+// is still blocked by the notFound() in dev/layout.tsx; a prod build just renders
+// this page empty.
+const auditData =
+    process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview'
+        ? // eslint-disable-next-line @typescript-eslint/no-require-imports -- conditional require IS the tree-shaking mechanism; import() would code-split the data into a chunk that still ships
+          (require('./audit-data') as typeof import('./audit-data'))
+        : null
+
+const AUDIT_ITEMS: AuditItem[] = auditData?.AUDIT_ITEMS ?? []
+const AUDIT_CLUSTERS: AuditCluster[] = auditData?.AUDIT_CLUSTERS ?? []
+const LAYER_STATS: LayerStat[] = auditData?.LAYER_STATS ?? []
+
+const STATUS_META: Record<AuditStatus, { label: string; cls: string }> = {
+    canonical: { label: 'canonical', cls: 'bg-background-badge-success text-foreground-primary border-border-default' },
+    variant: { label: 'variant', cls: 'bg-background-badge-info text-foreground-primary border-border-default' },
+    duplicate: { label: 'duplicate', cls: 'bg-background-badge-error text-foreground-primary border-border-default' },
+    adhoc: {
+        label: 'ad-hoc inline',
+        cls: 'bg-background-badge-attention text-foreground-primary border-border-default',
+    },
+    dead: { label: 'DEAD · never used', cls: 'bg-background-disabled text-foreground-secondary border-border-subtle' },
+}
+const STATUS_ORDER: AuditStatus[] = ['canonical', 'variant', 'duplicate', 'adhoc', 'dead']
+const LAYERS = ['tokens', 'styles', 'primitives', 'components', 'patterns', 'templates']
+
+function StatusChip({ status }: { status: AuditStatus }) {
+    const m = STATUS_META[status]
+    return (
+        <span className={`inline-block rounded-round border px-2 py-0.5 text-label-m whitespace-nowrap ${m.cls}`}>
+            {m.label}
+        </span>
+    )
+}
+
+export default function DesignSystemAuditPage() {
+    const [tab, setTab] = useState<'inventory' | 'clusters'>('inventory')
+    const [layer, setLayer] = useState<string>('all')
+    const [status, setStatus] = useState<string>('all')
+    const [q, setQ] = useState('')
+
+    const totals = useMemo(() => {
+        const dead = AUDIT_ITEMS.filter((i) => i.status === 'dead').length
+        return { items: AUDIT_ITEMS.length, dead, clusters: AUDIT_CLUSTERS.length }
+    }, [])
+
+    const items = useMemo(() => {
+        const ql = q.trim().toLowerCase()
+        return AUDIT_ITEMS.filter(
+            (i) =>
+                (layer === 'all' || i.layer === layer) &&
+                (status === 'all' || i.status === status) &&
+                (!ql ||
+                    i.name.toLowerCase().includes(ql) ||
+                    i.catLabel.toLowerCase().includes(ql) ||
+                    i.notes.toLowerCase().includes(ql))
+        ).sort((a, b) => b.usages - a.usages)
+    }, [layer, status, q])
+
+    const grouped = useMemo(() => {
+        const g: Record<string, typeof items> = {}
+        for (const i of items) (g[i.catLabel] ||= []).push(i)
+        return Object.entries(g).sort((a, b) => b[1].length - a[1].length)
+    }, [items])
+
+    const clusters = useMemo(() => {
+        const ql = q.trim().toLowerCase()
+        return AUDIT_CLUSTERS.filter(
+            (c) =>
+                (layer === 'all' || c.layer === layer) &&
+                (!ql ||
+                    c.name.toLowerCase().includes(ql) ||
+                    c.rec.toLowerCase().includes(ql) ||
+                    c.collapses.join(' ').toLowerCase().includes(ql))
+        ).sort((a, b) => b.from - a.from)
+    }, [layer, q])
+
+    return (
+        <DocPage>
+            {/* Hero */}
+            <div className="rounded-sm border border-border-default bg-background-brand p-4">
+                <p className="text-label-m text-foreground-primary/70 uppercase">Design System · Code Audit</p>
+                <h1 className="mt-1 text-heading-s">Code-level consolidation</h1>
+                <p className="mt-2 text-label-l text-foreground-primary">
+                    ~916 distinct <em>code</em> implementations → ~138 canonical (−85%). This is a DRY audit of the
+                    codebase: every row is a distinct implementation with its grep call-site count. Merge the
+                    duplicates.
+                </p>
+                <p className="mt-2 text-body-xs text-foreground-primary/70">
+                    Generated by the consolidation giga-sweep · full report in{' '}
+                    <code className="rounded-sm bg-foreground-primary/10 px-1">inbox/ds-consolidation-audit/</code>
+                </p>
+            </div>
+
+            {/* Scope caveat + cross-link to the app-usage audit */}
+            <div className="rounded-sm border border-dashed border-border-default bg-background-badge-attention/60 p-3 text-body-xs text-foreground-primary">
+                <span className="font-bold">This is a CODE audit, not a design-system / app audit.</span> Counts here
+                are raw call-sites across <code>src/</code> — they include the <code>/dev</code> showcase and tests, so
+                a high count does <span className="font-bold">not</span> mean the live product renders it. For
+                &ldquo;what the real app actually shows&rdquo; (and what&rsquo;s dead-in-product despite existing in
+                code), see{' '}
+                <Link href="/dev/ds/audit/app" className="font-bold underline">
+                    App Divergences →
+                </Link>
+            </div>
+
+            {/* Quick stats */}
+            <div className="grid grid-cols-3 gap-2">
+                {[
+                    { label: 'inventoried', value: String(totals.items) },
+                    { label: 'flagged dead', value: String(totals.dead) },
+                    { label: 'merge clusters', value: String(totals.clusters) },
+                ].map((s) => (
+                    <div key={s.label} className="rounded-sm border border-border-default p-3 text-center">
+                        <p className="text-heading-s">{s.value}</p>
+                        <p className="text-body-xs text-foreground-secondary">{s.label}</p>
+                    </div>
+                ))}
+            </div>
+
+            {/* Layer reduction table */}
+            <div className="overflow-hidden rounded-sm border border-border-default">
+                <table className="w-full text-left text-body-xs">
+                    <thead className="bg-background-page">
+                        <tr>
+                            <th className="px-3 py-2 font-bold">Layer</th>
+                            <th className="px-3 py-2 text-right font-bold">Today</th>
+                            <th className="px-3 py-2 text-right font-bold">Target</th>
+                            <th className="px-3 py-2 text-right font-bold">Cut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {LAYER_STATS.map((l) => (
+                            <tr key={l.layer} className="border-t border-border-disabled">
+                                <td className="px-3 py-2 font-bold capitalize">{l.layer}</td>
+                                <td className="px-3 py-2 text-right">{l.distinct}</td>
+                                <td className="px-3 py-2 text-right">{l.target}</td>
+                                <td className="px-3 py-2 text-right text-foreground-secondary">
+                                    −{Math.round((1 - l.target / l.distinct) * 100)}%
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex gap-2">
+                {(['inventory', 'clusters'] as const).map((t) => (
+                    <button
+                        key={t}
+                        onClick={() => setTab(t)}
+                        className={`flex-1 rounded-sm border border-border-default px-3 py-2 text-button-s capitalize ${
+                            tab === t
+                                ? 'bg-foreground-primary text-foreground-inverse'
+                                : 'bg-background-default text-foreground-primary'
+                        }`}
+                    >
+                        {t === 'inventory' ? `Inventory (${items.length})` : `Clusters (${clusters.length})`}
+                    </button>
+                ))}
+            </div>
+
+            {/* Filters */}
+            <div className="space-y-2">
+                <input
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder="Search name / notes…"
+                    className="w-full rounded-sm border border-border-default bg-background-default px-3 py-2 text-body-s outline-none focus:border-action-focus"
+                />
+                <div className="flex flex-wrap gap-1">
+                    {['all', ...LAYERS].map((l) => (
+                        <button
+                            key={l}
+                            onClick={() => setLayer(l)}
+                            className={`rounded-round border border-border-default px-2 py-1 text-label-m capitalize ${
+                                layer === l
+                                    ? 'bg-action-primary text-foreground-primary'
+                                    : 'bg-background-default text-foreground-secondary'
+                            }`}
+                        >
+                            {l}
+                        </button>
+                    ))}
+                </div>
+                {tab === 'inventory' && (
+                    <div className="flex flex-wrap gap-1">
+                        {['all', ...STATUS_ORDER].map((s) => (
+                            <button
+                                key={s}
+                                onClick={() => setStatus(s)}
+                                className={`rounded-round border px-2 py-1 text-label-m ${
+                                    status === s
+                                        ? 'border-border-default bg-foreground-primary text-foreground-inverse'
+                                        : 'border-border-disabled bg-background-default text-foreground-secondary'
+                                }`}
+                            >
+                                {s === 'all' ? 'all status' : STATUS_META[s as AuditStatus].label}
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Inventory */}
+            {tab === 'inventory' &&
+                grouped.map(([cat, list]) => (
+                    <div key={cat}>
+                        <div className="mb-2 flex items-center justify-between border-b border-border-default pb-1">
+                            <h2 className="text-label-l">{cat}</h2>
+                            <span className="text-body-xs text-foreground-secondary">{list.length} impls</span>
+                        </div>
+                        <div className="space-y-2">
+                            {list.map((i, idx) => (
+                                <div
+                                    key={cat + idx}
+                                    className={`rounded-sm border p-3 ${
+                                        i.status === 'dead'
+                                            ? 'border-dashed border-border-subtle bg-background-page'
+                                            : 'border-border-disabled bg-background-default'
+                                    }`}
+                                >
+                                    <div className="flex items-start justify-between gap-2">
+                                        <p className="text-label-l">{i.name}</p>
+                                        <span className="shrink-0 rounded-sm bg-foreground-primary px-2 py-0.5 text-label-m text-foreground-inverse">
+                                            {i.usages}×
+                                        </span>
+                                    </div>
+                                    <div className="mt-1 flex flex-wrap items-center gap-1">
+                                        <StatusChip status={i.status} />
+                                        {i.role && (
+                                            <span className="text-body-xs text-foreground-secondary">{i.role}</span>
+                                        )}
+                                    </div>
+                                    {i.notes && (
+                                        <p className="mt-2 text-body-xs text-foreground-secondary">{i.notes}</p>
+                                    )}
+                                    {i.source && (
+                                        <p className="mt-1 truncate font-mono text-body-xs text-foreground-secondary/80">
+                                            {i.source}
+                                        </p>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+
+            {/* Clusters */}
+            {tab === 'clusters' &&
+                clusters.map((c, idx) => (
+                    <div key={idx} className="rounded-sm border border-border-default p-3">
+                        <div className="flex items-start justify-between gap-2">
+                            <p className="text-label-l">→ {c.name}</p>
+                            {c.from > 0 && (
+                                <span className="shrink-0 rounded-sm border border-border-default bg-background-badge-attention px-2 py-0.5 text-label-m">
+                                    {c.from} → 1
+                                </span>
+                            )}
+                        </div>
+                        <p className="mt-0.5 text-label-m text-foreground-secondary uppercase">{c.catLabel}</p>
+                        {c.collapses.length > 0 && (
+                            <p className="mt-2 text-body-xs text-foreground-secondary">
+                                <span className="font-bold text-foreground-primary">collapses:</span>{' '}
+                                {c.collapses.join(' · ')}
+                            </p>
+                        )}
+                        {c.rec && <p className="mt-2 text-body-xs text-foreground-primary">{c.rec}</p>}
+                    </div>
+                ))}
+
+            <div className="rounded-sm border border-dashed border-border-subtle p-3 text-body-xs text-foreground-secondary">
+                Counts are call-site greps over <code>src/</code> (all usages, incl. some dev/test). “DEAD” = a delete-
+                <em>candidate</em> to confirm, not an auto-delete — two items were re-classified live after manual
+                re-grep. Full methodology + per-layer detail: <code>inbox/ds-consolidation-audit/</code>.
+            </div>
+        </DocPage>
+    )
+}

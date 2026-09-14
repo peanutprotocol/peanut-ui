@@ -135,6 +135,30 @@ describe('SumsubNativeSdk', () => {
         await waitFor(() => expect(props.onComplete).toHaveBeenCalled())
     })
 
+    // Multi-level: the Level-1 Pending is NOT a finished workflow. Backing out of
+    // Level 2 resolves launch() on a non-submitted status, and reporting that as a
+    // completion let both flow hooks consume the deferred ACTION_REQUIRED, leaving
+    // the applicant on a stale "verifying" modal.
+    it('multi-level reports a Level-1-then-backed-out exit as a close, not a completion', async () => {
+        let resolveLaunch: (value: unknown) => void = () => {}
+        launch.mockReturnValue(new Promise((resolve) => (resolveLaunch = resolve)))
+        const props = { ...baseProps(), isMultiLevel: true, onSubmitted: jest.fn() }
+        const { rerender } = render(<SumsubNativeSdk visible={false} {...props} />)
+        await act(async () => {
+            rerender(<SumsubNativeSdk visible {...props} />)
+        })
+
+        await act(async () => {
+            statusHandler?.({ newStatus: 'Pending' })
+            resolveLaunch({ success: true, status: 'Initial' })
+        })
+
+        await waitFor(() => expect(props.onClose).toHaveBeenCalled())
+        expect(props.onComplete).not.toHaveBeenCalled()
+        // the level they did finish still reaches the funnel
+        expect(props.onSubmitted).toHaveBeenCalledTimes(1)
+    })
+
     it('closes without completing when the user backs out', async () => {
         launch.mockResolvedValue({ success: true, status: 'Initial' })
         const props = baseProps()
@@ -147,6 +171,19 @@ describe('SumsubNativeSdk', () => {
         await waitFor(() => expect(props.onClose).toHaveBeenCalled())
         expect(props.onComplete).not.toHaveBeenCalled()
     })
+
+    it.each(['Pending', 'Approved', 'ActionCompleted'])(
+        'multi-level close with %s does not prove workflow completion',
+        async (status) => {
+            launch.mockResolvedValue({ success: true, status })
+            const props = { ...baseProps(), isMultiLevel: true, onSubmitted: jest.fn() }
+            await act(async () => {
+                render(<SumsubNativeSdk visible {...props} />)
+            })
+            await waitFor(() => expect(props.onClose).toHaveBeenCalled())
+            expect(props.onComplete).not.toHaveBeenCalled()
+        }
+    )
 
     // The whole point of moving off the WebSDK: a Sumsub-side failure used to
     // paint their "Initialization error" screen inside a cross-origin iframe and

@@ -1,4 +1,4 @@
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 type DividerProps = {
     text?: string
@@ -9,9 +9,9 @@ type DividerProps = {
 const Divider = ({ text, className, dividerClassname, textClassname, ...props }: DividerProps) => {
     return (
         <div className={twMerge('flex w-full items-center justify-center py-2', className)} {...props}>
-            <span className={twMerge('h-0.25 w-full bg-n-1 dark:bg-white', dividerClassname)}></span>
-            {text && <span className={twMerge('mx-4 text-sm font-medium', textClassname)}>{text}</span>}
-            <span className={twMerge('h-0.25 w-full bg-n-1 dark:bg-white', dividerClassname)}></span>
+            <span className={twMerge('h-0.25 w-full bg-border-default', dividerClassname)}></span>
+            {text && <span className={twMerge('mx-4 text-body-s', textClassname)}>{text}</span>}
+            <span className={twMerge('h-0.25 w-full bg-border-default', dividerClassname)}></span>
         </div>
     )
 }

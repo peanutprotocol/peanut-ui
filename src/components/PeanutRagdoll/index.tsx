@@ -57,7 +57,7 @@ export default function PeanutRagdoll() {
     }, [])
 
     return (
-        <div ref={hostRef} className="relative h-full w-full overflow-hidden bg-purple-1">
+        <div ref={hostRef} className="relative h-full w-full overflow-hidden bg-action-primary">
             <canvas
                 ref={canvasRef}
                 className="block h-full w-full cursor-grab touch-none [&.dragging]:cursor-grabbing"

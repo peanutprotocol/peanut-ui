@@ -2,7 +2,7 @@
 import { type FC, useState } from 'react'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { PEANUT_CARD_HAND, VISA_BRAND_MARK } from '@/assets/cards'
 import { PEANUTMAN } from '@/assets/mascot'
@@ -33,14 +33,17 @@ interface Props {
      *  the retry affordance — no separate dismiss needed. */
     error?: string | null
     onToggleReveal?: () => void
-    onCopy?: (value: string, field: 'pan' | 'cvv') => void
+    onCopy?: (value: string, field: CopyableCardField) => void
     /** Pre-activation preview: PAN/cardholder/expiry rendered as `?`s.
      *  Used on AddCardEntryScreen before KYC + first spend. */
     locked?: boolean
     className?: string
 }
 
+export type CopyableCardField = 'pan' | 'expiry' | 'cvv'
+
 const formatPan = (pan: string) => pan.replace(/(.{4})/g, '$1 ').trim()
+const formatExpiry = (month: number, year: number) => `${String(month).padStart(2, '0')}/${String(year).slice(-2)}`
 
 const CardFace: FC<Props> = ({
     last4,
@@ -60,9 +63,9 @@ const CardFace: FC<Props> = ({
     // so it never covers the PAN / expiry / CVV (or the loading skeletons).
     // It slides back when the card is re-masked.
     const detailsShown = showingDetails || loading
-    const [copiedField, setCopiedField] = useState<'pan' | 'cvv' | null>(null)
+    const [copiedField, setCopiedField] = useState<CopyableCardField | null>(null)
 
-    const handleCopy = (value: string, field: 'pan' | 'cvv') => {
+    const handleCopy = (value: string, field: CopyableCardField) => {
         setCopiedField(field)
         // Clear only if still showing the same field — guards against an
         // earlier setTimeout overwriting a fresher copy on the other field.
@@ -73,7 +76,7 @@ const CardFace: FC<Props> = ({
     return (
         <div
             className={twMerge(
-                'relative aspect-[1.586/1] w-full overflow-hidden rounded-xl bg-primary-1 text-n-1',
+                'relative aspect-[1.586/1] w-full overflow-hidden rounded-xl bg-action-primary text-foreground-primary',
                 isLocked && 'grayscale',
                 className
             )}
@@ -88,7 +91,7 @@ const CardFace: FC<Props> = ({
                 alt=""
                 aria-hidden
                 className={twMerge(
-                    'pointer-events-none absolute bottom-0 right-0 h-[90%] w-auto select-none transition-transform duration-500',
+                    'pointer-events-none absolute right-0 bottom-0 h-[90%] w-auto transition-transform duration-slow select-none',
                     detailsShown && 'translate-x-full translate-y-full'
                 )}
                 priority
@@ -119,8 +122,8 @@ const CardFace: FC<Props> = ({
                 <div className="mt-auto flex flex-col">
                     {locked ? (
                         <>
-                            <span className="text-xl font-extrabold tracking-wider">???? ???? ???? ????</span>
-                            <div className="mt-1 flex items-end justify-between gap-6 text-xs">
+                            <span className="text-heading-xs tracking-wider">???? ???? ???? ????</span>
+                            <div className="mt-1 flex items-end justify-between gap-6 text-body-xs">
                                 <div>
                                     <div className="opacity-70">{t('peanutPioneer')}</div>
                                     <div className="font-bold">????</div>
@@ -137,7 +140,7 @@ const CardFace: FC<Props> = ({
                                 {/* ph-no-capture: PAN out of session recordings. Wraps only
                                  * the digits, not the copy button — we still want to see in
                                  * replays whether the user tapped copy. */}
-                                <span className="ph-no-capture text-xl font-extrabold tracking-wider">
+                                <span className="ph-no-capture text-heading-xs tracking-wider">
                                     {formatPan(revealed.pan)}
                                 </span>
                                 {onCopy && (
@@ -145,7 +148,7 @@ const CardFace: FC<Props> = ({
                                         type="button"
                                         aria-label={t('copyCardNumber')}
                                         onClick={() => handleCopy(revealed.pan, 'pan')}
-                                        className="p-1"
+                                        className="relative p-1 transition-opacity duration-instant after:absolute after:-inset-2 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                                     >
                                         <Icon name={copiedField === 'pan' ? 'check' : 'copy'} size={16} />
                                     </button>
@@ -154,19 +157,35 @@ const CardFace: FC<Props> = ({
                             {/* Registered cardholder name — PII, kept out of session
                              * recordings like the other revealed fields. */}
                             {revealed.cardholderName && (
-                                <span className="ph-no-capture mt-1 text-sm font-bold uppercase tracking-wide">
+                                <span className="ph-no-capture mt-1 text-body-s font-bold tracking-wide uppercase">
                                     {revealed.cardholderName}
                                 </span>
                             )}
                             <div className="flex items-end justify-between">
                                 <div className="text-s flex gap-6">
-                                    <div>
-                                        {/* "Expiry" label dropped — value row stays one line so PAN/name clear the artwork */}
-                                        {/* ph-no-capture: expiry digits out of recordings. */}
-                                        <div className="ph-no-capture font-bold">
-                                            {String(revealed.expiryMonth).padStart(2, '0')}/
-                                            {String(revealed.expiryYear).slice(-2)}
+                                    <div className="flex items-end gap-1">
+                                        <div>
+                                            {/* "Expiry" label dropped — value row stays one line so PAN/name clear the artwork */}
+                                            {/* ph-no-capture: expiry digits out of recordings. */}
+                                            <div className="ph-no-capture font-bold">
+                                                {formatExpiry(revealed.expiryMonth, revealed.expiryYear)}
+                                            </div>
                                         </div>
+                                        {onCopy && (
+                                            <button
+                                                type="button"
+                                                aria-label={t('copyExpiry')}
+                                                onClick={() =>
+                                                    handleCopy(
+                                                        formatExpiry(revealed.expiryMonth, revealed.expiryYear),
+                                                        'expiry'
+                                                    )
+                                                }
+                                                className="relative p-1 transition-opacity duration-instant after:absolute after:-inset-3 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
+                                            >
+                                                <Icon name={copiedField === 'expiry' ? 'check' : 'copy'} size={16} />
+                                            </button>
+                                        )}
                                     </div>
                                     <div className="flex items-end gap-1">
                                         <div>
@@ -179,9 +198,9 @@ const CardFace: FC<Props> = ({
                                                 type="button"
                                                 aria-label={t('copyCvv')}
                                                 onClick={() => handleCopy(revealed.cvv, 'cvv')}
-                                                className="p-1"
+                                                className="relative p-1 transition-opacity duration-instant after:absolute after:-inset-3 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                                             >
-                                                <Icon name={copiedField === 'cvv' ? 'check' : 'copy'} size={14} />
+                                                <Icon name={copiedField === 'cvv' ? 'check' : 'copy'} size={16} />
                                             </button>
                                         )}
                                     </div>
@@ -191,7 +210,7 @@ const CardFace: FC<Props> = ({
                                         type="button"
                                         aria-label={t('hideDetails')}
                                         onClick={onToggleReveal}
-                                        className="p-1"
+                                        className="relative p-1 transition-opacity duration-instant after:absolute after:-inset-2 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                                     >
                                         <Icon name="eye-slash" size={22} />
                                     </button>
@@ -200,15 +219,15 @@ const CardFace: FC<Props> = ({
                         </>
                     ) : loading ? (
                         <>
-                            <div className="h-7 w-56 animate-pulse rounded bg-white/40" />
-                            <div className="mt-2 flex items-end gap-6 text-xs">
+                            <div className="h-7 w-56 animate-pulse rounded bg-background-default/40" />
+                            <div className="mt-2 flex items-end gap-6 text-body-xs">
                                 <div>
                                     {/* label dropped to match the revealed layout — no height jump on reveal */}
-                                    <div className="mt-1 h-4 w-12 animate-pulse rounded bg-white/40" />
+                                    <div className="mt-1 h-4 w-12 animate-pulse rounded bg-background-default/40" />
                                 </div>
                                 <div>
                                     {/* label dropped to match the revealed layout */}
-                                    <div className="mt-1 h-4 w-10 animate-pulse rounded bg-white/40" />
+                                    <div className="mt-1 h-4 w-10 animate-pulse rounded bg-background-default/40" />
                                 </div>
                             </div>
                         </>
@@ -217,7 +236,7 @@ const CardFace: FC<Props> = ({
                             {/* Retry eye inline with the message — hand is still present
                              * in the error state, so keep the control in the left zone. */}
                             <div className="flex items-start gap-3">
-                                <span className="text-sm font-bold leading-snug">{error}</span>
+                                <span className="text-body-s leading-snug font-bold">{error}</span>
                                 {onToggleReveal && (
                                     <button
                                         type="button"
@@ -231,7 +250,7 @@ const CardFace: FC<Props> = ({
                             </div>
                             {isVirtual && (
                                 <div className="mt-1">
-                                    <span className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold">
+                                    <span className="rounded-full bg-background-default px-4 py-1.5 text-body-s font-semibold">
                                         {t('virtual')}
                                     </span>
                                 </div>
@@ -243,7 +262,7 @@ const CardFace: FC<Props> = ({
                              * is where the hand's arm rests when masked, so the reveal
                              * toggle lives in the hand-free left zone instead. */}
                             <div className="flex items-center gap-3">
-                                <span className="text-2xl font-extrabold tracking-wider">•••• {last4}</span>
+                                <span className="text-heading-s tracking-wider">•••• {last4}</span>
                                 {onToggleReveal && (
                                     <button
                                         type="button"
@@ -257,7 +276,7 @@ const CardFace: FC<Props> = ({
                             </div>
                             {isVirtual && (
                                 <div className="mt-1">
-                                    <span className="rounded-full bg-white px-4 py-1.5 text-sm font-semibold">
+                                    <span className="rounded-full bg-background-default px-4 py-1.5 text-body-s font-semibold">
                                         {t('virtual')}
                                     </span>
                                 </div>

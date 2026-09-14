@@ -96,16 +96,8 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
     ),
 }))
 
-jest.mock('@/components/Global/ErrorAlert', () => ({
-    __esModule: true,
-    default: ({ description }: { description: string }) => <div data-testid="error-alert">{description}</div>,
-}))
-
-jest.mock('@/components/Global/InfoCard', () => ({
-    __esModule: true,
-    default: ({ description }: { description: React.ReactNode }) => <div data-testid="info-card">{description}</div>,
-}))
-
+// ds: no ErrorAlert/InfoCard mocks — the view renders the real 0_Bruddle
+// Notification with data-testid="error-alert" / "info-card"
 import LinkSendInitialView from '../Initial.link.send.view'
 
 // ---------- helpers ----------
@@ -256,6 +248,33 @@ describe('LinkSendInitialView sub-minimum fiat-claim warning', () => {
         // diverged: revisit the warning copy (and its Math.min gate) before
         // shipping the constant change.
         expect(new Set(Object.values(CLAIM_RAIL_MINIMUMS)).size).toBe(1)
+    })
+})
+
+// TASK-22121 #26: validation errors are field-level — they must render under
+// the amount input and leave the primary CTA intact. Only submit-time (flow)
+// failures may flip the CTA to Retry.
+describe('LinkSendInitialView validation errors keep the primary CTA', () => {
+    test('balance shortfall shows the field error without flipping Create link to Retry', async () => {
+        mockUseWallet.mockReturnValue(walletState(10))
+
+        renderView('20')
+        await waitFor(() =>
+            expect(screen.getByTestId('error-alert')).toHaveTextContent(en.errors.notEnoughBalanceAddFunds)
+        )
+        expect(screen.getByText('Create link')).toBeInTheDocument()
+        expect(screen.queryByText('Retry')).not.toBeInTheDocument()
+    })
+
+    test('a submit-time failure still flips the CTA to Retry', async () => {
+        mockUseWallet.mockReturnValue(walletState(100))
+        mockCreateLink.mockRejectedValue(new Error(COOLDOWN_MESSAGE))
+
+        renderView('20')
+        fireEvent.click(screen.getByText('Create link'))
+        await waitFor(() => expect(screen.getByTestId('error-alert')).toHaveTextContent(COOLDOWN_MESSAGE))
+        expect(screen.getByText('Retry')).toBeInTheDocument()
+        expect(screen.queryByText('Create link')).not.toBeInTheDocument()
     })
 })
 

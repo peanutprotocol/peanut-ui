@@ -31,4 +31,12 @@ interface Navigator {
     }
     // Non-standard, iOS Safari only: true when running as an installed PWA.
     standalone?: boolean
+    // User-Agent Client Hints. Chromium only, and the only way to read a device
+    // model or OS version through Chrome's UA reduction, which otherwise
+    // collapses every Android to "Android 10; K".
+    userAgentData?: {
+        getHighEntropyValues?: (hints: string[]) => Promise<{ model?: string; platformVersion?: string }>
+    }
+    // Chromium only, and bucketed to 0.25/0.5/1/2/4/8 to limit fingerprinting.
+    deviceMemory?: number
 }

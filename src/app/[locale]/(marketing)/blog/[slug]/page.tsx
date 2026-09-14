@@ -5,7 +5,7 @@ import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { getAllPosts, getPostBySlug } from '@/lib/blog'
 import { MarketingShell } from '@/components/Marketing/MarketingShell'
 import { JsonLd } from '@/components/Marketing/JsonLd'
-import { ArticleBackNav } from '@/components/Marketing/ArticleBackNav'
+import { ArticleLocaleNav } from '@/components/Marketing/ArticleLocaleNav'
 import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import { availableContentLocales, contentLocaleFor } from '@/lib/content'
 import type { Locale } from '@/i18n/types'
@@ -119,13 +119,7 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
             <JsonLd data={breadcrumbSchema} />
             {faqSchema && <JsonLd data={faqSchema} />}
             <MarketingShell className="max-w-2xl">
-                <ArticleBackNav
-                    parentLabel={i18n.filterBlog}
-                    parentHref={hubHref}
-                    backToTemplate={i18n.backTo}
-                    currentLocale={locale as Locale}
-                    localizedHrefs={localizedHrefs}
-                />
+                <ArticleLocaleNav currentLocale={locale as Locale} localizedHrefs={localizedHrefs} />
                 <nav aria-label="Breadcrumb" className="-mt-2 mb-4">
                     <ol className="flex flex-wrap items-center gap-1 text-xs text-grey-1">
                         {breadcrumbs.map((crumb, i) => (

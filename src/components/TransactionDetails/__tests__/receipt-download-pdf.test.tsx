@@ -15,6 +15,8 @@ jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: jest.fn().mockReturnValue(false),
     isIOSNative: jest.fn().mockReturnValue(false),
+    isAndroidNative: jest.fn().mockReturnValue(false),
+    isLegacyWebKit: jest.fn().mockReturnValue(false),
     openExternalUrl: jest.fn().mockResolvedValue(undefined),
 }))
 

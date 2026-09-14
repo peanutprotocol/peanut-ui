@@ -13,7 +13,7 @@ export default function DesignSystemLayout({ children }: { children: React.React
             </div>
 
             {/* Tier tabs */}
-            <div className="sticky top-0 z-10 border-b border-gray-3 bg-white px-6 py-3">
+            <div className="sticky top-0 z-10 border-b border-border-disabled bg-background-default px-6 py-3">
                 <div className="flex items-center gap-2">
                     <TierNav />
                     <div className="ml-auto md:hidden">

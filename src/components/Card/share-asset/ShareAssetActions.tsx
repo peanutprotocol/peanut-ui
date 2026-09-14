@@ -14,10 +14,25 @@
  *
  * Save button: captures the asset to PNG and triggers a download. Works
  * on every browser; useful even on mobile if the user wants the image
- * before composing the post.
+ * before composing the post. In the native app WKWebView silently cancels
+ * `<a download>`, so Save goes through the OS share sheet (which carries
+ * "Save Image") and is hidden when files can't be shared.
+ *
+ * Gesture-window constraint (TASK-22407, Sentry PEANUT-UI-SSW): on iOS,
+ * `navigator.share()` must run inside the user gesture. Capturing on tap
+ * (html-to-image, 1–3s) expired WebKit's gesture window → NotAllowedError.
+ * So on devices that can share files we PRE-capture the PNG once the asset
+ * is ready and the tap handler shares the cached blob synchronously. On
+ * the file-sharing path the gesture-bound buttons enable ONLY once a blob
+ * is cached — there is no "give up and enable" branch, because any tap
+ * that has to await capture reproduces the NotAllowedError. A failed
+ * pre-capture retries in the background for as long as the component is
+ * mounted (and reports to Sentry once if the first 3 attempts fail);
+ * permanently broken capture means honestly disabled buttons — a share
+ * without the file cannot succeed on those platforms anyway.
  */
 
-import { type FC, type RefObject, useState } from 'react'
+import { type FC, type RefObject, useEffect, useRef, useState } from 'react'
 import * as Sentry from '@sentry/nextjs'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -27,6 +42,14 @@ import { shareCardOnTwitter } from './share.utils'
 import { pickWinCaption } from './winCaptions'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { isNativeBridge } from '@/utils/capacitor'
+
+type SaveMode = 'download' | 'native-share' | 'hidden'
+
+function resolveSaveMode(): SaveMode {
+    if (!isNativeBridge()) return 'download'
+    return canShareImageFiles() ? 'native-share' : 'hidden'
+}
 
 /**
  * Serialise whatever the share/save path threw into something Sentry +
@@ -78,6 +101,10 @@ interface Props {
     /** The sharer's own profile URL, appended to the share caption. Omit to ship
      *  the caption link-free — see profileShareUrl. */
     shareUrl?: string
+    /** The hide-username toggle. Flipping it re-renders the asset (username
+     *  shown / hidden), so it keys the pre-capture cache — shareUrl can't,
+     *  because it is undefined in both states for users without a handle. */
+    hideUsername?: boolean
 }
 
 export const ShareAssetActions: FC<Props> = ({
@@ -86,11 +113,13 @@ export const ShareAssetActions: FC<Props> = ({
     filename = 'peanut-card.png',
     ready = true,
     shareUrl,
+    hideUsername = false,
 }) => {
     const t = useTranslations('card.share')
     const [isSharing, setIsSharing] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [saveMode] = useState(resolveSaveMode)
 
     // One random win caption per mount (rotation lives in winCaptions.ts), so
     // shared timelines don't fill with one identical line. Stable for this
@@ -99,6 +128,76 @@ export const ShareAssetActions: FC<Props> = ({
     // DERIVED, not state: the hide-username toggle flips `shareUrl` after mount,
     // and a state snapshot would post the handle the user just opted out of.
     const text = shareUrl ? `${caption}\n\n${shareUrl}` : caption
+
+    // stable per mount, like saveMode — used for gating and the pre-capture.
+    const [canShareFiles] = useState(canShareImageFiles)
+
+    // pre-captured png so the tap handler can call navigator.share() without
+    // awaiting the 1-3s capture (which expires ios's gesture window — see the
+    // file header). only on devices that can share files: desktop share falls
+    // back to the twitter intent and web save downloads, neither needs a
+    // gesture, so capturing there would be wasted work. keyed on hideUsername
+    // because the toggle re-renders the asset (username shown / hidden), which
+    // makes a cached capture stale — shareUrl can't key it, it is undefined in
+    // both toggle states for users without a handle.
+    const cachedBlobRef = useRef<Blob | null>(null)
+    // the gesture-gated buttons enable only while this is true: a tap without
+    // a cached blob would await capture and reproduce the NotAllowedError.
+    const [hasCachedBlob, setHasCachedBlob] = useState(false)
+    useEffect(() => {
+        cachedBlobRef.current = null
+        setHasCachedBlob(false)
+        if (!ready || !canShareFiles) return
+        const node = captureRef.current
+        if (!node) return
+        let stale = false
+        let retryTimer: ReturnType<typeof setTimeout> | undefined
+        const attempt = (attemptNo: number): void => {
+            captureShareAsset(node)
+                .then((blob) => {
+                    if (stale) return
+                    cachedBlobRef.current = blob
+                    setHasCachedBlob(true)
+                })
+                .catch((err) => {
+                    if (stale) return
+                    // never surrender to capture-on-tap: a tap that awaits
+                    // capture loses ios activation even when the capture
+                    // succeeds. retry quickly at first (an image mid-decode or
+                    // a font race clears fast), then keep trying every 5s for
+                    // as long as we're mounted. if capture is permanently
+                    // broken the buttons honestly stay disabled — a share
+                    // without the file can't succeed on this platform anyway.
+                    if (attemptNo === 3) {
+                        // one report per effect run, so persistent failure is
+                        // visible in prod instead of silent dead buttons.
+                        Sentry.captureException(err, {
+                            tags: { feature: 'share-asset', action: 'pre-capture', source },
+                            extra: {
+                                ...describeShareError(err),
+                                note: 'share-asset pre-capture failing persistently — share stays disabled until a capture succeeds',
+                            },
+                        })
+                    }
+                    retryTimer = setTimeout(() => attempt(attemptNo + 1), attemptNo < 3 ? 500 : 5000)
+                })
+        }
+        attempt(1)
+        return () => {
+            stale = true
+            if (retryTimer) clearTimeout(retryTimer)
+        }
+    }, [ready, canShareFiles, hideUsername, captureRef, source])
+
+    // the gated buttons can only fire with a cached blob, so the tap-time
+    // capture branch below is reachable only from web save (download — no
+    // gesture needed); it also stands as belt-and-braces for the gated paths.
+    const captureOrCached = async (): Promise<Blob> => {
+        if (cachedBlobRef.current) return cachedBlobRef.current
+        const node = captureRef.current
+        if (!node) throw new Error('share asset not yet rendered — try again in a moment')
+        return captureShareAsset(node)
+    }
 
     const handleShare = async (): Promise<void> => {
         setError(null)
@@ -119,9 +218,9 @@ export const ShareAssetActions: FC<Props> = ({
                 shareCardOnTwitter(text)
                 return
             }
-            const node = captureRef.current
-            if (!node) throw new Error('share asset not yet rendered — try again in a moment')
-            const blob = await captureShareAsset(node)
+            // cached blob = zero await before navigator.share(), keeping the
+            // call inside the tap gesture on ios.
+            const blob = await captureOrCached()
             const file = new File([blob], filename, { type: 'image/png' })
             // The link rides inside `text` — several native targets drop a
             // separate `url` member when `files` is present.
@@ -155,12 +254,18 @@ export const ShareAssetActions: FC<Props> = ({
         setError(null)
         setIsSaving(true)
         try {
-            const node = captureRef.current
-            if (!node) throw new Error('share asset not yet rendered — try again in a moment')
-            const blob = await captureShareAsset(node)
-            downloadBlob(blob, filename)
-            posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_SAVED, { source })
+            // native save shares through the os sheet, so it has the same ios
+            // gesture-window constraint as share — use the cached blob too.
+            const blob = await captureOrCached()
+            if (saveMode === 'native-share') {
+                await navigator.share({ files: [new File([blob], filename, { type: 'image/png' })] })
+            } else {
+                downloadBlob(blob, filename)
+            }
+            posthog.capture(ANALYTICS_EVENTS.CARD_SHARE_ASSET_SAVED, { source, method: saveMode })
         } catch (err) {
+            // AbortError = user dismissed the share sheet: neither saved nor failed.
+            if (err instanceof Error && err.name === 'AbortError') return
             const detail = describeShareError(err)
             console.error('[share-asset] save failed', detail)
             Sentry.captureException(err, {
@@ -186,23 +291,26 @@ export const ShareAssetActions: FC<Props> = ({
                 shadowSize="4"
                 className="w-full"
                 loading={isSharing}
-                disabled={isSharing || isSaving || !ready}
-                icon={<Icon name="share" size={18} />}
+                disabled={isSharing || isSaving || !ready || (canShareFiles && !hasCachedBlob)}
+                icon={<Icon name="share" size={20} />}
             >
                 {t('share')}
             </Button>
-            <Button
-                onClick={handleSave}
-                variant="stroke"
-                className="w-full"
-                loading={isSaving}
-                disabled={isSharing || isSaving || !ready}
-                icon={<Icon name="download" size={18} />}
-            >
-                {t('saveImage')}
-            </Button>
+            {saveMode !== 'hidden' && (
+                <Button
+                    onClick={handleSave}
+                    variant="stroke"
+                    className="w-full"
+                    loading={isSaving}
+                    // web save is a download — no gesture, no pre-capture gate.
+                    disabled={isSharing || isSaving || !ready || (saveMode === 'native-share' && !hasCachedBlob)}
+                    icon={<Icon name="download" size={20} />}
+                >
+                    {t('saveImage')}
+                </Button>
+            )}
             {error && (
-                <p className="text-center text-xs text-red" role="alert">
+                <p className="text-center text-body-xs text-red" role="alert">
                     {error}
                 </p>
             )}

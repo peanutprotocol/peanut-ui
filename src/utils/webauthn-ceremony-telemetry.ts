@@ -30,6 +30,7 @@ export type CeremonyPurpose =
     | 'user_op'
     | 'admin_eip712'
     | 'session_key_grant'
+    | 'step_up'
     | 'kernel_migration'
     | 'login'
     | 'registration'

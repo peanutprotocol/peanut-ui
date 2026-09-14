@@ -1,4 +1,4 @@
-import { pixKeyToBRCode, pixKeyToQrPayUrl } from '@/utils/pix.utils'
+import { pixKeyToBRCode, pixKeyToQrPayUrl, verifiedPixKeyLabel } from '@/utils/pix.utils'
 
 jest.mock('@/assets', () => ({}))
 
@@ -137,4 +137,11 @@ describe('uppercase copia-e-cola payloads', () => {
         expect(url).not.toBeNull()
         expect(decodeURIComponent(new URL(url!, 'https://peanut.me').searchParams.get('qrCode')!)).toBe(UPPER)
     })
+})
+
+test('full PIX key survives the redirect and cannot mislabel a different payment', () => {
+    const key = 'verylongemailaddress@verylongdomain.com.br'
+    const params = new URLSearchParams(pixKeyToQrPayUrl(key)!.split('?')[1])
+    expect(verifiedPixKeyLabel(params.get('qrCode')!, params.get('pixKey'))).toBe(key)
+    expect(verifiedPixKeyLabel(pixKeyToBRCode('other@example.com')!, key)).toBeNull()
 })

@@ -9,7 +9,7 @@ import { SURFACE_KIND_META, SURFACE_KIND_ORDER } from './surfaceKindMeta'
  */
 export default function KindLegend() {
     return (
-        <div className="grid gap-2 rounded-sm border border-n-1 bg-white p-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-2 rounded-sm border border-border-default bg-white p-3 sm:grid-cols-2 xl:grid-cols-4">
             {SURFACE_KIND_ORDER.map((kind) => {
                 const meta = SURFACE_KIND_META[kind]
                 return (
@@ -17,7 +17,7 @@ export default function KindLegend() {
                         <DevChip tone={meta.tone} className="self-start">
                             {meta.label}
                         </DevChip>
-                        <p className="text-[11px] leading-snug text-grey-1">{meta.description}</p>
+                        <p className="text-[11px] leading-snug text-foreground-secondary">{meta.description}</p>
                     </div>
                 )
             })}

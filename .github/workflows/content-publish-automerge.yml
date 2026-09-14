@@ -131,7 +131,7 @@ jobs:
 
                   # Key off the `ci-success` check run, NOT `workflow_run.conclusion`.
                   # `ci-success` is the single check the "Protect Prod" ruleset gates
-                  # on; the run conclusion also folds in advisory jobs (e2e). Gate on
+                  # on; the run conclusion also folds in advisory jobs (ds-shots). Gate on
                   # exactly what the ruleset gates on.
                   #
                   # `Tests` runs on `pull_request` (and `push` for dev/main), so a

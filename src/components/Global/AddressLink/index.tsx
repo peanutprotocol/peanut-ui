@@ -5,7 +5,7 @@ import { isCapacitor } from '@/utils/capacitor'
 import { recipientPayUrl } from '@/utils/native-routes'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { isAddress } from 'viem'
 
 interface AddressLinkProps {
@@ -44,7 +44,7 @@ const AddressLink = ({ address, className = '', isLink = true }: AddressLinkProp
 
     return isLink ? (
         <Link
-            className={twMerge('cursor-pointer text-xs text-grey-1 underline', className)}
+            className={twMerge('cursor-pointer text-body-xs text-foreground-secondary underline', className)}
             href={url}
             target={isCapacitor() ? undefined : '_blank'}
         >

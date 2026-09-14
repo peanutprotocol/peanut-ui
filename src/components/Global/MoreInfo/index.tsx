@@ -68,18 +68,18 @@ const MoreInfo = ({ text }: MoreInfoProps) => {
         return createPortal(
             <Transition
                 show={show}
-                enter="transition-opacity duration-150 ease-out"
+                enter="transition-opacity duration-fast ease-out"
                 enterFrom="opacity-0"
                 enterTo="opacity-100"
-                leave="transition-opacity duration-100 ease-out"
+                leave="transition-opacity duration-instant ease-out"
                 leaveFrom="opacity-100"
                 leaveTo="opacity-0"
             >
                 <div
                     style={tooltipStyle}
-                    className="whitespace-pre-line rounded border border-n-1 bg-white px-3 py-2 shadow-lg"
+                    className="rounded border border-border-default bg-white px-3 py-2 whitespace-pre-line shadow-lg"
                 >
-                    <div className="block text-h8 font-normal text-black">
+                    <div className="block text-body-s font-normal text-black">
                         <div>{text}</div>
                     </div>
                 </div>

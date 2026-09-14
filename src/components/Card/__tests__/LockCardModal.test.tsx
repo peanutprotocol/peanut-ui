@@ -50,10 +50,10 @@ jest.mock('@/components/Global/Modal', () => ({
     default: ({ visible, children }: { visible: boolean; children: React.ReactNode }) =>
         visible ? <div>{children}</div> : null,
 }))
-jest.mock('@/components/Card/SlideToAction', () => ({
+jest.mock('@/components/0_Bruddle/SlideToConfirm', () => ({
     __esModule: true,
-    default: ({ label, onComplete, disabled }: { label: string; onComplete: () => void; disabled?: boolean }) => (
-        <button onClick={onComplete} disabled={disabled}>
+    default: ({ label, onConfirm, disabled }: { label: string; onConfirm: () => void; disabled?: boolean }) => (
+        <button onClick={onConfirm} disabled={disabled}>
             {label}
         </button>
     ),

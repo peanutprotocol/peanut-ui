@@ -31,8 +31,8 @@ export default function CardsGlobalPage() {
                 <DocSection.Content>
                     <Card position="single">
                         <div className="flex items-center justify-between py-1">
-                            <span className="text-sm font-bold">Single Card</span>
-                            <span className="text-xs text-grey-1">position=&quot;single&quot;</span>
+                            <span className="text-label-l">Single Card</span>
+                            <span className="text-body-xs text-foreground-secondary">position=&quot;single&quot;</span>
                         </div>
                     </Card>
                 </DocSection.Content>
@@ -51,7 +51,7 @@ export default function CardsGlobalPage() {
             {/* Stacked List */}
             <DocSection title="Stacked List">
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         Cards stack seamlessly by using position props: first, middle, last. Only the first card has top
                         border-radius, only the last has bottom, and middle cards have no border-radius. Border-top is
                         removed on middle and last to avoid double borders.
@@ -61,8 +61,10 @@ export default function CardsGlobalPage() {
                         {(['first', 'middle', 'middle', 'middle', 'last'] as const).map((pos, i) => (
                             <Card key={i} position={pos}>
                                 <div className="flex items-center justify-between py-1">
-                                    <span className="text-sm">Item {i + 1}</span>
-                                    <span className="text-xs text-grey-1">position=&quot;{pos}&quot;</span>
+                                    <span className="text-body-s">Item {i + 1}</span>
+                                    <span className="text-body-xs text-foreground-secondary">
+                                        position=&quot;{pos}&quot;
+                                    </span>
                                 </div>
                             </Card>
                         ))}
@@ -94,14 +96,14 @@ export default function CardsGlobalPage() {
                     <div>
                         <Card position="first" onClick={() => {}}>
                             <div className="flex items-center justify-between py-1">
-                                <span className="text-sm">Clickable item 1</span>
-                                <span className="text-xs text-grey-1">&rarr;</span>
+                                <span className="text-body-s">Clickable item 1</span>
+                                <span className="text-body-xs text-foreground-secondary">&rarr;</span>
                             </div>
                         </Card>
                         <Card position="last" onClick={() => {}}>
                             <div className="flex items-center justify-between py-1">
-                                <span className="text-sm">Clickable item 2</span>
-                                <span className="text-xs text-grey-1">&rarr;</span>
+                                <span className="text-body-s">Clickable item 2</span>
+                                <span className="text-body-xs text-foreground-secondary">&rarr;</span>
                             </div>
                         </Card>
                     </div>
@@ -121,7 +123,7 @@ export default function CardsGlobalPage() {
                 <DocSection.Content>
                     <Card position="single" border={false}>
                         <div className="py-1">
-                            <span className="text-sm">No border card</span>
+                            <span className="text-body-s">No border card</span>
                         </div>
                     </Card>
                 </DocSection.Content>
@@ -158,10 +160,10 @@ export default function CardsGlobalPage() {
 
             {/* Position behavior table */}
             <DocSection title="Position Behavior">
-                <div className="overflow-x-auto rounded-sm border border-n-1 text-xs">
+                <div className="overflow-x-auto rounded-sm border border-border-default text-body-xs">
                     <table className="w-full">
                         <thead>
-                            <tr className="border-b border-n-1 bg-primary-3/20">
+                            <tr className="border-b border-border-default bg-background-badge-accent/20">
                                 <th className="px-3 py-1.5 text-left font-bold">Position</th>
                                 <th className="px-3 py-1.5 text-left font-bold">Border Radius</th>
                                 <th className="px-3 py-1.5 text-left font-bold">Border</th>
@@ -174,7 +176,7 @@ export default function CardsGlobalPage() {
                                 ['middle', 'none', 'border border-black border-t-0'],
                                 ['last', 'rounded-b-sm (bottom only)', 'border border-black border-t-0'],
                             ].map(([pos, radius, border]) => (
-                                <tr key={pos} className="border-b border-n-1 last:border-0">
+                                <tr key={pos} className="border-b border-border-default last:border-0">
                                     <td className="px-3 py-1.5 font-mono font-bold">{pos}</td>
                                     <td className="px-3 py-1.5 font-mono">{radius}</td>
                                     <td className="px-3 py-1.5 font-mono">{border}</td>
@@ -192,8 +194,8 @@ export default function CardsGlobalPage() {
                     standalone content cards with shadows and variants.
                 </DesignNote>
                 <DesignNote type="info">
-                    The base styles are: w-full bg-white px-4 py-2. Override with className for custom padding or
-                    background.
+                    The base styles are: w-full bg-background-default px-4 py-2. Override with className for custom
+                    padding or background.
                 </DesignNote>
             </DocSection>
         </DocPage>

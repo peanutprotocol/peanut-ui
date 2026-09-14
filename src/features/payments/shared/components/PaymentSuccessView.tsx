@@ -14,10 +14,10 @@
  */
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
 import CreateAccountButton from '@/components/Global/CreateAccountButton'
-import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { type StatusPillType } from '@/components/Global/StatusPill'
@@ -27,7 +27,7 @@ import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { type RecipientType } from '@/lib/url-parser/types/payment'
-import { useUserStore } from '@/redux/hooks'
+import { useAuth } from '@/context/authContext'
 import type { TRequestChargeResponse, PaymentCreationResponse, ChargeEntry } from '@/services/services.types'
 import { formatAmount, getInitialsFromName } from '@/utils/general.utils'
 import { resolveRecipientDisplay } from '@/utils/recipient-display'
@@ -39,14 +39,15 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { type ReactNode, useEffect, useMemo, useRef } from 'react'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
+import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 import { PeanutCheering } from '@/assets/mascot'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import PointsCard from '@/components/Common/PointsCard'
-import { BASE_URL } from '@/constants/general.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import type { ParsedURL } from '@/lib/url-parser/types/payment'
+import { payLinkUrl } from '@/utils/url.utils'
 
 // minimal user info needed for display
 type UserDisplayInfo = {
@@ -110,9 +111,8 @@ const PaymentSuccessView = ({
 }: DirectSuccessViewProps) => {
     const router = useRouter()
     const t = useTranslations('payment')
-    const { isDrawerOpen, selectedTransaction, openTransactionDetails, closeTransactionDetails } =
-        useTransactionDetailsDrawer()
-    const { user: authUser } = useUserStore()
+    const { isTransactionSelected, openTransactionDetails, closeTransactionDetails } = useTransactionDetailsDrawer()
+    const { user: authUser } = useAuth()
     const queryClient = useQueryClient()
     const { triggerHaptic } = useAppHaptic()
 
@@ -160,11 +160,13 @@ const PaymentSuccessView = ({
 
         const recipientIdentifier = user?.username || parsedPaymentData?.recipient?.identifier
         const receiptLink = recipientIdentifier
-            ? `${BASE_URL}/${recipientIdentifier}?chargeId=${chargeDetails.uuid}`
+            ? payLinkUrl(`/${recipientIdentifier}?chargeId=${chargeDetails.uuid}`)
             : undefined
 
         let details: Partial<TransactionDetails> = {
-            id: paymentDetails?.payerTransactionHash,
+            // the drawer selection is `?tx=<id>` in the url — fall back to the
+            // charge uuid so the receipt stays openable when the hash is absent
+            id: paymentDetails?.payerTransactionHash ?? chargeDetails.uuid,
             txHash: paymentDetails?.payerTransactionHash,
             status: 'completed' as StatusPillType,
             amount: parseFloat(amountValue),
@@ -221,6 +223,10 @@ const PaymentSuccessView = ({
         usdAmount,
         t,
     ])
+
+    // the one transaction this view's receipt drawer shows — the drawer opens
+    // when the url's `?tx=` matches its id (see useTransactionDetailsDrawer)
+    const receiptTransaction = transactionDetailsProp ?? transactionForDrawer
 
     const pointsDivRef = useRef<HTMLDivElement>(null)
     usePointsConfetti(points, pointsDivRef)
@@ -282,15 +288,18 @@ const PaymentSuccessView = ({
         triggerHaptic()
     }, [triggerHaptic])
 
+    // type REQUEST is the "request created" screen — a link made, not money moved
+    useAppReviewNudge(authUser?.user.userId, 'payment_completed', type !== 'REQUEST')
+
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+        <div className="flex min-h-inherit flex-col justify-between gap-8">
             <SoundPlayer sound="success" />
             {(type === 'SEND' || type === 'DEPOSIT') && (
                 <div className="md:hidden">
                     <NavHeader icon="cancel" title={headerTitle} onPrev={handleDone} />
                 </div>
             )}
-            <div className="relative z-10 my-auto flex h-full flex-col justify-center space-y-4">
+            <div className="relative z-10 my-auto space-y-4 flex h-full flex-col justify-center">
                 <Image
                     src={PeanutCheering.src}
                     unoptimized
@@ -301,33 +310,27 @@ const PaymentSuccessView = ({
                 />
                 <Card className="flex items-center gap-3 p-4">
                     <div className="flex items-center gap-3">
-                        <div
-                            className={
-                                'flex h-12 w-12 min-w-12 items-center justify-center rounded-full bg-success-3 font-bold'
-                            }
-                        >
-                            <Icon name="check" size={24} />
-                        </div>
+                        <IconBubble icon="check" color="green" />
                     </div>
 
                     <div className="space-y-1">
-                        <h1 className="text-sm font-normal text-grey-1">
+                        <h1 className="text-body-s font-normal text-foreground-secondary">
                             {getTitle()}
                             {!isExternalWalletFlow &&
                                 !isWithdrawFlow &&
                                 type !== 'DEPOSIT' &&
                                 (recipientType !== 'USERNAME' ? (
                                     <AddressLink
-                                        className="text-sm font-normal text-grey-1 no-underline"
+                                        className="text-body-s font-normal text-foreground-secondary no-underline"
                                         address={recipientName}
                                     />
                                 ) : (
                                     recipientName
                                 ))}
                         </h1>
-                        <h2 className="text-2xl font-extrabold">{displayAmount}</h2>
+                        <h2 className="text-heading-s">{displayAmount}</h2>
                         {message && (
-                            <p className="text-sm font-medium text-grey-1">
+                            <p className="text-body-s text-foreground-secondary">
                                 {isWithdrawFlow ? t('success.toPrefix') : t('success.forPrefix')} {message}
                             </p>
                         )}
@@ -336,7 +339,7 @@ const PaymentSuccessView = ({
 
                 {points && <PointsCard points={points} pointsDivRef={pointsDivRef} />}
 
-                <div className="w-full space-y-5">
+                <div className="space-y-4 w-full">
                     {!!authUser?.user.userId ? (
                         <Button onClick={handleDone} shadowSize="4">
                             {t('success.backToHome')}
@@ -344,14 +347,13 @@ const PaymentSuccessView = ({
                     ) : (
                         <CreateAccountButton onClick={() => router.push('/setup')} />
                     )}
-                    {!isExternalWalletFlow && (transactionDetailsProp || transactionForDrawer) && (
+                    {!isExternalWalletFlow && receiptTransaction && (
                         <Button
                             variant="primary-soft"
                             shadowSize="4"
                             onClick={() => {
-                                const txDetails = transactionDetailsProp ?? transactionForDrawer
-                                if (txDetails) {
-                                    openTransactionDetails(txDetails)
+                                if (receiptTransaction) {
+                                    openTransactionDetails(receiptTransaction)
                                 }
                             }}
                         >
@@ -363,9 +365,9 @@ const PaymentSuccessView = ({
 
             {/* Transaction Details Drawer */}
             <TransactionDetailsDrawer
-                isOpen={isDrawerOpen}
+                isOpen={isTransactionSelected(receiptTransaction?.id)}
                 onClose={closeTransactionDetails}
-                transaction={selectedTransaction}
+                transaction={receiptTransaction}
             />
         </div>
     )

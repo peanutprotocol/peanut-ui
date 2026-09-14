@@ -14,6 +14,8 @@
 import React from 'react'
 import { render as rtlRender, screen } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
+import { NextIntlClientProvider } from 'next-intl'
+import ptBR from '@/i18n/app/messages/pt-BR.json'
 import { LocalRailNudge } from '../provider-rows/LocalRailNudge'
 import { type TransactionDetails } from '../transactionTransformer'
 
@@ -54,6 +56,16 @@ describe('LocalRailNudge', () => {
     it('recovers the country code from a city-joined value', () => {
         render(<LocalRailNudge transaction={tx('card_pay', 'São Paulo, BR')} />)
         expect(screen.getByText(/In Brazil, paying with Pix/)).toBeInTheDocument()
+    })
+
+    it('localizes the country name and its Portuguese preposition', () => {
+        const wrapper = ({ children }: { children: React.ReactNode }) => (
+            <NextIntlClientProvider locale="pt-BR" messages={ptBR} timeZone="UTC">
+                {children}
+            </NextIntlClientProvider>
+        )
+        rtlRender(<LocalRailNudge transaction={tx('card_pay', 'BR')} />, { wrapper })
+        expect(screen.getByText(/No Brasil, pagar com Pix/)).toBeInTheDocument()
     })
 
     it('renders nothing for a country with no local rail', () => {

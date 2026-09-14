@@ -35,10 +35,17 @@ export function IntlCore({
     children,
     base,
     load,
+    gatesSplash = false,
 }: {
     children: React.ReactNode
     base: AppMessages
     load: (locale: AppLocale) => Promise<AppMessages>
+    /**
+     * Only the app catalog instance resolves `localeApplied()`. The marketing
+     * instance mounts first on native (`/` is a marketing route) and would
+     * otherwise release the splash before the app copy is on screen.
+     */
+    gatesSplash?: boolean
 }) {
     /* SSR and the first client render must both use English so the hydration
        passes match; the real locale is resolved and swapped in an effect. */
@@ -53,26 +60,32 @@ export function IntlCore({
         // device_language + platform super properties for the localization OKR;
         // independent of which locale resolves, fire-and-forget
         void emitDeviceContextToAnalytics()
-        localeReady().then(async (resolved) => {
-            startupLocale.current = resolved
-            if (resolved === DEFAULT_APP_LOCALE) {
-                // already rendered in English — nothing to swap. Skip the emit
-                // if a manual setLocale won the race: this path never calls
-                // setIntlState, so the UI keeps the manual locale and emitting
-                // the startup value would record a language nobody sees.
-                if (!currentAppLocale()) emitLocaleToAnalytics(resolved)
-                markLocaleApplied()
-                return
-            }
-            if (cancelled) return
-            const loaded = await load(resolved)
-            if (!cancelled) {
-                setIntlState({ locale: resolved, messages: loaded })
-                // emit only after the catalog loaded — analytics report the
-                // language the user actually sees, not a failed swap
-                emitLocaleToAnalytics(resolved)
-            }
-        })
+        localeReady()
+            .then(async (resolved) => {
+                startupLocale.current = resolved
+                if (resolved === DEFAULT_APP_LOCALE) {
+                    // already rendered in English — nothing to swap. Skip the emit
+                    // if a manual setLocale won the race: this path never calls
+                    // setIntlState, so the UI keeps the manual locale and emitting
+                    // the startup value would record a language nobody sees.
+                    if (!currentAppLocale()) emitLocaleToAnalytics(resolved)
+                    if (gatesSplash) markLocaleApplied()
+                    return
+                }
+                if (cancelled) return
+                const loaded = await load(resolved)
+                if (!cancelled) {
+                    setIntlState({ locale: resolved, messages: loaded })
+                    // emit only after the catalog loaded — analytics report the
+                    // language the user actually sees, not a failed swap
+                    emitLocaleToAnalytics(resolved)
+                }
+            })
+            .catch((error) => {
+                // the splash must never wait on a failed catalog: English stays up
+                console.error('Startup catalog failed to load', error)
+                if (gatesSplash) markLocaleApplied()
+            })
         return () => {
             cancelled = true
         }
@@ -92,7 +105,7 @@ export function IntlCore({
         // or the app would keep running under the landing's language.
         setHtmlLangReleaseListener(applyAppLocale)
         // signal "startup locale is painted" — the native splash gates on this
-        if (locale === startupLocale.current) markLocaleApplied()
+        if (gatesSplash && locale === startupLocale.current) markLocaleApplied()
         return () => setHtmlLangReleaseListener(null)
     }, [locale])
 

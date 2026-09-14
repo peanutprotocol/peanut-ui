@@ -6,12 +6,12 @@ import { OnrampFlowContextProvider } from './OnrampFlowContext'
 import { KernelClientProvider } from './kernelClient.context'
 import { LoadingStateContextProvider } from './loadingStates.context'
 import { TokenContextProvider } from './tokenSelector.context'
-import { WithdrawFlowContextProvider } from './WithdrawFlowContext'
 import { ClaimBankFlowContextProvider } from './ClaimBankFlowContext'
 import { RequestFulfilmentFlowContextProvider } from './RequestFulfillmentFlowContext'
 import { PasskeySupportProvider } from './passkeySupportContext'
 import { ModalsProvider } from './ModalsContext'
 import { RainCooldownProvider } from './RainCooldownContext'
+import { ConnectivityToast } from '@/components/Global/Banner/ConnectivityToast'
 
 // TODO(provider-cake): every new context provider adds another layer of JSX
 // nesting here, which is non-DRY and noisy in diffs. Proposed cleanup in its
@@ -41,15 +41,17 @@ export const AppFlowProviders = ({ children }: { children: React.ReactNode }) =>
                         <LoadingStateContextProvider>
                             <ClaimBankFlowContextProvider>
                                 <RequestFulfilmentFlowContextProvider>
-                                    <WithdrawFlowContextProvider>
-                                        <OnrampFlowContextProvider>
-                                            <PasskeySupportProvider>
-                                                <ModalsProvider>
-                                                    <RainCooldownProvider>{children}</RainCooldownProvider>
-                                                </ModalsProvider>
-                                            </PasskeySupportProvider>
-                                        </OnrampFlowContextProvider>
-                                    </WithdrawFlowContextProvider>
+                                    <OnrampFlowContextProvider>
+                                        <PasskeySupportProvider>
+                                            <ModalsProvider>
+                                                <RainCooldownProvider>
+                                                    {/* connectivity state rides the toast surface (ruled 2026-09-03) */}
+                                                    <ConnectivityToast />
+                                                    {children}
+                                                </RainCooldownProvider>
+                                            </ModalsProvider>
+                                        </PasskeySupportProvider>
+                                    </OnrampFlowContextProvider>
                                 </RequestFulfilmentFlowContextProvider>
                             </ClaimBankFlowContextProvider>
                         </LoadingStateContextProvider>

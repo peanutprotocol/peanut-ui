@@ -7,6 +7,7 @@ import { useAuth } from '@/context/authContext'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
+import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import underMaintenanceConfig from '@/config/underMaintenance.config'
@@ -34,6 +35,10 @@ export default function CardLaunchCTA() {
     const router = useRouter()
     const { user } = useAuth()
     const { isPublicLaunched, isEligible, cardInfo, isLoading } = useCardInfo()
+    // isEligible already reflects declared residence server-side (card info →
+    // resolveCardCountry); this local check just avoids a flash before the
+    // next /card-info response after the residence lands.
+    const { card: isCardResidenceRestricted } = useResidenceRestrictions()
     const { overview, isLoading: isOverviewLoading } = useRainCardOverview()
     const { isActivated } = useActivationStatus()
 
@@ -59,6 +64,7 @@ export default function CardLaunchCTA() {
         isPublicLaunched === true &&
         isActivated &&
         isEligible === true &&
+        !isCardResidenceRestricted &&
         !hasActiveCard &&
         !isOnWaitlist &&
         !underMaintenanceConfig.disableCardPioneers &&

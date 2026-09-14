@@ -22,13 +22,11 @@ const model: ReceiptPdfModel = {
         { label: 'Completed', value: 'August 20, 2026 - 15:22 UTC' },
         { label: 'Exchange rate', value: '1 USD = ARS 902.4' },
         { label: 'Fee', value: '0.5' },
-        { label: 'TX ID', value: '0x74a9c1e9c1f5f3ab8a7e2ac5c250aabbccddeeff00112233445566778899aabb' },
+        { label: 'Transaction ID', value: '0x74a9c1e9c1f5f3ab8a7e2ac5c250aabbccddeeff00112233445566778899aabb' },
         { label: 'IBAN', value: 'ES91 **** **** **** **** 1332' },
     ],
     referenceLabel: 'Receipt reference',
     reference: 'A3F5C250-1234-4ABC-8DEF-9012AA34BB56',
-    issuedOnLabel: 'Issued on',
-    issuedOn: 'August 20, 2026 - 15:22 UTC',
     fileName: 'peanut-receipt-a3f5c250.pdf',
 }
 

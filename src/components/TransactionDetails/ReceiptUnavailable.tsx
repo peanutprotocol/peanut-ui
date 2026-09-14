@@ -28,18 +28,17 @@ export function ReceiptUnavailable({
     return (
         <div className="flex w-full max-w-md flex-col items-center gap-6 text-center">
             <Image src={PEANUT_LOGO} alt={tNav('peanutLogoAlt')} className="w-28" />
-            <Card position="single" className="w-full space-y-2 px-6 py-8">
-                <h1 className="text-lg font-bold text-black">
+            <Card position="single" className="space-y-2 w-full px-6 py-8">
+                <h1 className="text-heading-card text-foreground-primary">
                     {variant === 'gone' ? t('title') : t('loadFailedTitle')}
                 </h1>
-                <p className="text-sm text-grey-1">
+                <p className="text-body-s text-foreground-secondary">
                     {variant === 'gone' ? t('description') : t('loadFailedDescription')}
                 </p>
             </Card>
             {variant === 'loadFailed' && (
                 <Button
                     variant="purple"
-                    shadowSize="4"
                     className="w-full print:hidden"
                     onClick={() => (onRetry ? onRetry() : window.location.reload())}
                 >
@@ -47,11 +46,7 @@ export function ReceiptUnavailable({
                 </Button>
             )}
             <Link href="/home" className="w-full print:hidden">
-                <Button
-                    variant={variant === 'loadFailed' ? 'primary-soft' : 'purple'}
-                    shadowSize="4"
-                    className="w-full"
-                >
+                <Button variant={variant === 'loadFailed' ? 'primary-soft' : 'purple'} className="w-full">
                     {tCommon('goToHome')}
                 </Button>
             </Link>

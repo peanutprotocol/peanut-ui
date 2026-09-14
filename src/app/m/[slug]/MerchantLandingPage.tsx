@@ -71,7 +71,7 @@ function Hero({ merchant }: { merchant: Merchant }) {
                 initial={{ opacity: 0, translateY: 20, translateX: 5 }}
                 whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
                 transition={{ type: 'spring', damping: 5 }}
-                className="pointer-events-none absolute left-[3%] top-[8%] z-10 w-10 md:left-[6%] md:top-[12%] md:w-14"
+                className="pointer-events-none absolute top-[8%] left-[3%] z-10 w-10 md:top-[12%] md:left-[6%] md:w-14"
             />
             <motion.img
                 src={Star.src}
@@ -80,7 +80,7 @@ function Hero({ merchant }: { merchant: Merchant }) {
                 initial={{ opacity: 0, translateY: 28, translateX: -5 }}
                 whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
                 transition={{ type: 'spring', damping: 5, delay: 0.15 }}
-                className="pointer-events-none absolute bottom-[5%] right-[4%] z-10 w-8 md:bottom-[8%] md:right-[8%] md:w-12"
+                className="pointer-events-none absolute right-[4%] bottom-[5%] z-10 w-8 md:right-[8%] md:bottom-[8%] md:w-12"
             />
             <motion.img
                 src={Sparkle.src}
@@ -89,7 +89,7 @@ function Hero({ merchant }: { merchant: Merchant }) {
                 initial={{ opacity: 0, scale: 0.4 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 transition={{ type: 'spring', damping: 8, delay: 0.3 }}
-                className="pointer-events-none absolute right-[12%] top-[10%] z-10 hidden w-8 md:block md:w-10"
+                className="pointer-events-none absolute top-[10%] right-[12%] z-10 hidden w-8 md:block md:w-10"
             />
 
             <div className="relative z-20 mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 md:grid-cols-[1.1fr_0.9fr]">
@@ -109,7 +109,7 @@ function Hero({ merchant }: { merchant: Merchant }) {
                             {merchant.chips.map((c) => (
                                 <span
                                     key={c}
-                                    className="rounded-sm border border-n-1 bg-black/10 px-3 py-1.5 text-[0.7rem] font-extraBlack uppercase tracking-wider"
+                                    className="rounded-sm border border-n-1 bg-black/10 px-3 py-1.5 text-[0.7rem] font-extraBlack tracking-wider uppercase"
                                 >
                                     {c}
                                 </span>
@@ -131,7 +131,7 @@ function Hero({ merchant }: { merchant: Merchant }) {
                                 initial={{ opacity: 0, scale: 0.4, rotate: -30 }}
                                 animate={{ opacity: 1, scale: 1, rotate: 0 }}
                                 transition={{ type: 'spring', damping: 10, delay: 0.6 }}
-                                className="pointer-events-none absolute -right-4 -top-4 w-8 md:-right-5 md:-top-5 md:w-10"
+                                className="pointer-events-none absolute -top-4 -right-4 w-8 md:-top-5 md:-right-5 md:w-10"
                             />
                         </div>
                         <Link
@@ -161,7 +161,7 @@ function HighlightedSub({ text }: { text: string }) {
                 /^\$\d+$/.test(p) ? (
                     <span
                         key={i}
-                        className="mx-1 inline-block whitespace-nowrap bg-n-1 px-2 py-0.5 text-[0.92em] font-extraBlack uppercase tracking-wider text-primary-1"
+                        className="mx-1 inline-block bg-n-1 px-2 py-0.5 text-[0.92em] font-extraBlack tracking-wider whitespace-nowrap text-primary-1 uppercase"
                     >
                         {p}
                     </span>
@@ -185,7 +185,7 @@ function DealCard({ merchant }: { merchant: Merchant }) {
             <div className="w-[260px] overflow-hidden rounded-sm border-2 border-n-1 bg-secondary-1 shadow-[8px_8px_0_#000] md:w-[300px]">
                 {/* cobrand lockup */}
                 <div
-                    className="flex items-center gap-1.5 px-6 pb-2 pt-5 uppercase tracking-wider"
+                    className="flex items-center gap-1.5 px-6 pt-5 pb-2 tracking-wider uppercase"
                     style={{ fontFamily: 'monospace', fontSize: 11 }}
                 >
                     <span>peanut ×</span>
@@ -203,12 +203,12 @@ function DealCard({ merchant }: { merchant: Merchant }) {
 
                 {/* amount — one kerned unit on one baseline; leading-none so the
                     line box equals the font size and nothing rides into the lockup */}
-                <div className="font-roboto-flex-extrabold px-6 text-center text-[84px] font-extraBlack leading-none md:text-[100px]">
+                <div className="font-roboto-flex-extrabold px-6 text-center text-[84px] leading-none font-extraBlack md:text-[100px]">
                     $10
                 </div>
 
                 {/* label */}
-                <div className="px-6 pb-6 pt-3 text-center text-base font-extraBlack uppercase tracking-wide md:text-lg">
+                <div className="px-6 pt-3 pb-6 text-center text-base font-extraBlack tracking-wide uppercase md:text-lg">
                     {merchant.dealLabel}
                 </div>
             </div>
@@ -315,7 +315,7 @@ function MenuFold({ fold }: { fold: Extract<Merchant['fold2'], { type: 'menu' }>
                             type="button"
                             onClick={() => setCurrency(c)}
                             aria-pressed={currency === c}
-                            className={`min-w-[80px] border-r-2 border-n-1 px-6 py-3.5 text-sm font-extraBlack uppercase tracking-wider last:border-r-0 ${
+                            className={`min-w-[80px] border-r-2 border-n-1 px-6 py-3.5 text-sm font-extraBlack tracking-wider uppercase last:border-r-0 ${
                                 currency === c ? 'bg-primary-1' : 'bg-white'
                             }`}
                         >
@@ -367,15 +367,15 @@ function MenuItemCard({
             <div className="min-w-0 flex-1">
                 <div className="text-lg font-extraBlack md:text-xl">{item.name}</div>
             </div>
-            <div className="flex flex-col items-end whitespace-nowrap pt-1">
+            <div className="flex flex-col items-end pt-1 whitespace-nowrap">
                 {cardFmt !== null && (
-                    <div className="font-roboto-flex-extrabold text-base font-extraBlack leading-none line-through opacity-45">
+                    <div className="font-roboto-flex-extrabold text-base leading-none font-extraBlack line-through opacity-45">
                         {symbol}
                         {cardFmt}
                     </div>
                 )}
                 <div
-                    className={`font-roboto-flex-extrabold text-3xl font-extraBlack leading-none ${cardFmt !== null ? 'mt-1' : ''}`}
+                    className={`font-roboto-flex-extrabold text-3xl leading-none font-extraBlack ${cardFmt !== null ? 'mt-1' : ''}`}
                 >
                     {peanutFmt === null ? (
                         <span className="opacity-30">{symbol}··</span>
@@ -412,13 +412,13 @@ function LiveRateBanner({
         : 'Loading live cripto-dólar rate…'
 
     return (
-        <div className="mx-auto mt-6 flex max-w-3xl flex-wrap items-center justify-center gap-4 rounded-sm border-2 border-n-1 bg-white px-5 py-3 text-sm font-extraBlack uppercase tracking-wider shadow-[4px_4px_0_#000]">
+        <div className="mx-auto mt-6 flex max-w-3xl flex-wrap items-center justify-center gap-4 rounded-sm border-2 border-n-1 bg-white px-5 py-3 text-sm font-extraBlack tracking-wider uppercase shadow-[4px_4px_0_#000]">
             <span
                 className={`inline-block h-2 w-2 rounded-full ${isLive ? 'bg-green-1' : 'bg-n-1'}`}
                 style={isLive ? {} : { animation: 'pulse 1.6s ease-in-out infinite' }}
             />
             <span>{copy}</span>
-            <span className="text-[9px] uppercase tracking-wider opacity-65" style={{ fontFamily: 'monospace' }}>
+            <span className="text-[9px] tracking-wider uppercase opacity-65" style={{ fontFamily: 'monospace' }}>
                 cripto-dólar · live
             </span>
         </div>
@@ -465,7 +465,7 @@ function EndFold({ merchant }: { merchant: Merchant }) {
                 initial={{ opacity: 0, scale: 0.4, rotate: -30 }}
                 whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
                 transition={{ type: 'spring', damping: 8 }}
-                className="pointer-events-none absolute left-[8%] top-[18%] w-10 md:left-[15%] md:top-[20%] md:w-14"
+                className="pointer-events-none absolute top-[18%] left-[8%] w-10 md:top-[20%] md:left-[15%] md:w-14"
             />
             <motion.img
                 src={Sparkle.src}
@@ -474,7 +474,7 @@ function EndFold({ merchant }: { merchant: Merchant }) {
                 initial={{ opacity: 0, scale: 0.4, rotate: 30 }}
                 whileInView={{ opacity: 1, scale: 1, rotate: 0 }}
                 transition={{ type: 'spring', damping: 8, delay: 0.2 }}
-                className="pointer-events-none absolute bottom-[20%] right-[10%] w-8 md:bottom-[24%] md:right-[18%] md:w-12"
+                className="pointer-events-none absolute right-[10%] bottom-[20%] w-8 md:right-[18%] md:bottom-[24%] md:w-12"
             />
             <div className="relative z-10 mx-auto max-w-3xl">
                 <h2 className="font-roboto-flex-extrabold text-headingMedium font-extraBlack lowercase md:text-headingLarge">
@@ -507,20 +507,20 @@ function Ambassador({ box }: { box: NonNullable<Merchant['ambassador']> }) {
     return (
         <div className="mx-auto mt-20 max-w-xl rounded-sm border-2 border-primary-1 p-8 text-left">
             <div
-                className="text-[10px] font-extraBlack uppercase tracking-wider text-secondary-1"
+                className="text-[10px] font-extraBlack tracking-wider text-secondary-1 uppercase"
                 style={{ fontFamily: 'monospace' }}
             >
                 {box.kicker}
             </div>
-            <h3 className="mt-3 text-2xl font-extraBlack leading-tight text-white md:text-3xl">{box.heading}</h3>
+            <h3 className="mt-3 text-2xl leading-tight font-extraBlack text-white md:text-3xl">{box.heading}</h3>
             <p className="font-roboto-flex mt-4 text-sm leading-relaxed opacity-85">{box.body}</p>
             <Link
                 href={box.applyHref}
-                className="font-roboto-flex mt-5 inline-block text-sm font-extraBlack uppercase tracking-wider text-primary-1 underline underline-offset-4"
+                className="font-roboto-flex mt-5 inline-block text-sm font-extraBlack tracking-wider text-primary-1 uppercase underline underline-offset-4"
             >
                 {box.applyLabel}
             </Link>
-            <span className="font-roboto-flex mt-4 block text-[11px] font-bold leading-snug opacity-50">
+            <span className="font-roboto-flex mt-4 block text-[11px] leading-snug font-bold opacity-50">
                 {box.fine}
             </span>
         </div>

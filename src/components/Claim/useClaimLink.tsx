@@ -1,5 +1,6 @@
 'use client'
 
+import { getAuthToken } from '@/utils/auth-token'
 import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
 import { getContractAddress, signWithdrawalMessage } from '@/utils/peanut-claim.utils'
 import { evmChainIdToRhinoName } from '@/constants/rhino.consts'
@@ -14,6 +15,7 @@ import { loadingStateContext } from '@/context/loadingStates.context'
 import { getTokenSymbol, isTestnetChain } from '@/utils/general.utils'
 import { sendLinksApi, ESendLinkStatus } from '@/services/sendLinks'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 
 // ============================================================================
 // Constants
@@ -29,9 +31,16 @@ const JSON_HEADERS = { 'Content-Type': 'application/json' } as const
  * Helper to make POST requests with consistent error handling
  */
 async function postJson<T>(url: string, body: Record<string, unknown>): Promise<T> {
+    // /claim takes OPTIONAL auth: with a session token the backend can own
+    // the SEND_LINK_CLAIM intent even when the recipient address is not the
+    // caller's own (the claim-link → Manteca flow pays a corporate entity
+    // address — without the token that claim is unattributable and the
+    // withdraw route cannot verify ownership of the transfer). Anonymous
+    // claimers simply send no header, exactly as before.
+    const token = getAuthToken()
     const response = await fetch(url, {
         method: 'POST',
-        headers: JSON_HEADERS,
+        headers: { ...JSON_HEADERS, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify(body),
     })
 
@@ -176,6 +185,7 @@ export async function executeClaimXChain({
     destinationChainId,
     destinationToken,
     campaignTag,
+    amountUsd,
     baseUrl = `${PEANUT_API_URL}/claim`,
 }: {
     link: string
@@ -183,6 +193,8 @@ export async function executeClaimXChain({
     destinationChainId: string
     destinationToken: string
     campaignTag?: string
+    /** USD value of the funds being claimed, used to block sub-minimum bridges. */
+    amountUsd?: number
     baseUrl?: string
     isMainnet?: boolean
     slippage?: number
@@ -209,6 +221,10 @@ export async function executeClaimXChain({
     // token, recipient — so that re-claims to the same destination reuse
     // the SDA (idempotent, doesn't hit Rhino's rate limit) but a re-claim
     // to a different chain/token/address gets a fresh SDA.
+    // The backend reads the claim amount from chain (via this deposit identity)
+    // and rejects a sub-minimum bridge before returning the SDA — Rhino parks
+    // such a deposit with no auto-refund. Passing the identity, not an amount,
+    // keeps the guard server-authoritative.
     const sda = await provisionSdaTransfer({
         context: 'claim-xchain',
         contextId: `${params.chainId}:${params.depositIdx}:${destinationChainId}:${tokenSymbol}:${recipientAddress.toLowerCase()}`,
@@ -216,7 +232,27 @@ export async function executeClaimXChain({
         destinationChain: destRhinoChain,
         destinationAddress: recipientAddress as `0x${string}`,
         tokenOut: tokenSymbol,
+        depositChainId: params.chainId,
+        depositIdx: Number(params.depositIdx),
+        depositContractVersion: params.contractVersion,
     })
+
+    // Client-side backstop before signing — no funds have moved yet (provisioning
+    // is a lookup, not a transfer). The pre-flight static floor is the first line;
+    // the backend's server-authoritative guard is the authority. Treat a missing
+    // or non-positive live minimum as UNVERIFIABLE (Rhino stores 0 when it omits
+    // supportedTokens) and refuse rather than trust it as "no minimum".
+    if (typeof amountUsd === 'number' && Number.isFinite(amountUsd)) {
+        const min = sda.minDepositLimitUsd
+        if (min == null || min <= 0) {
+            throw new Error('Could not verify the claim amount against the bridge minimum. Please try again.')
+        }
+        if (amountUsd < min) {
+            throw new Error(
+                `Cross-chain claim to ${destRhinoChain} requires at least $${min} — the $${amountUsd.toFixed(2)} claim would be stranded by the bridge.`
+            )
+        }
+    }
 
     // Sign the withdrawal message targeting the SDA as the on-chain recipient.
     // Whoever knows the password (= anyone with the link) authorizes the claim;
@@ -275,47 +311,6 @@ const useClaimLink = () => {
                         queryKey: ['balance'],
                         type: 'active',
                     })
-
-                    // Aggressive polling: Backend might take 2-4 seconds to process
-                    // Poll every 1 second, stop early if data updates or after 10 attempts
-                    let pollCount = 0
-                    let lastTransactionCount = 0
-
-                    // Get initial transaction count
-                    const initialData = queryClient.getQueryData<unknown[]>([TRANSACTIONS])
-                    lastTransactionCount = initialData?.length || 0
-
-                    const pollInterval = setInterval(() => {
-                        pollCount++
-
-                        // Check if backend has finished processing (new transaction appeared)
-                        const currentData = queryClient.getQueryData<unknown[]>([TRANSACTIONS])
-                        const currentCount = currentData?.length || 0
-
-                        if (currentCount > lastTransactionCount) {
-                            console.log(
-                                `✅ Backend processing complete (new transaction detected), stopping poll at ${pollCount}/10`
-                            )
-                            clearInterval(pollInterval)
-                            return
-                        }
-
-                        console.log(`🔄 Polling for backend updates ${pollCount}/10`)
-
-                        queryClient.refetchQueries({
-                            queryKey: [TRANSACTIONS],
-                            type: 'active',
-                        })
-                        queryClient.refetchQueries({
-                            queryKey: ['balance'],
-                            type: 'active',
-                        })
-
-                        if (pollCount >= 10) {
-                            console.log('⏱️ Polling timeout reached (WebSocket should handle future updates)')
-                            clearInterval(pollInterval)
-                        }
-                    }, 1000)
                 }
             },
             onSettled: () => {
@@ -368,6 +363,9 @@ const useClaimLink = () => {
         ...sharedMutationConfig,
         onError: (error) => {
             console.error('Error claiming link:', error)
+            // an already-claimed link is the expected race the callers now
+            // handle, not a defect — it was the whole of PEANUT-UI-SWF
+            if (wireErrorCode(error) === API_ERROR_CODES.LINK_ALREADY_CLAIMED) return
             captureException(error, {
                 tags: { feature: 'claim-link' },
             })
@@ -389,12 +387,14 @@ const useClaimLink = () => {
             destinationChainId,
             destinationToken,
             campaignTag,
+            amountUsd,
         }: {
             address: string
             link: string
             destinationChainId: string
             destinationToken: string
             campaignTag?: string
+            amountUsd?: number
         }) => {
             const isTestnet = isTestnetChain(destinationChainId)
             return await executeClaimXChain({
@@ -403,12 +403,15 @@ const useClaimLink = () => {
                 destinationChainId,
                 destinationToken,
                 campaignTag,
+                amountUsd,
                 isMainnet: !isTestnet,
             })
         },
         ...sharedMutationConfig,
         onError: (error) => {
             console.error('Error claiming link x-chain:', error)
+            // same /claim endpoint, same expected race — see claimLinkMutation
+            if (wireErrorCode(error) === API_ERROR_CODES.LINK_ALREADY_CLAIMED) return
             captureException(error, {
                 tags: { feature: 'claim-link-xchain' },
             })
@@ -458,12 +461,14 @@ const useClaimLink = () => {
         destinationChainId,
         destinationToken,
         campaignTag,
+        amountUsd,
     }: {
         address: string
         link: string
         destinationChainId: string
         destinationToken: string
         campaignTag?: string
+        amountUsd?: number
     }) => {
         return await claimLinkXChainMutation.mutateAsync({
             address,
@@ -471,6 +476,7 @@ const useClaimLink = () => {
             destinationChainId,
             destinationToken,
             campaignTag,
+            amountUsd,
         })
     }
 

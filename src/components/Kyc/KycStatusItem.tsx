@@ -1,9 +1,8 @@
 import { useState, useMemo, useCallback } from 'react'
-import Card from '@/components/Global/Card'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
 import { KycStatusDrawer } from './KycStatusDrawer'
 import { type HTMLAttributes } from 'react'
-import { twMerge } from 'tailwind-merge'
 import StatusPill from '../Global/StatusPill'
 import { KYCStatusIcon } from './KYCStatusIcon'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
@@ -67,26 +66,21 @@ export const KycStatusItem = ({
 
     return (
         <>
-            <Card
+            <ListItem
                 position={position}
                 onClick={() => {
                     setIsDrawerOpen(true)
                 }}
-                className={twMerge('cursor-pointer', className)}
-            >
-                <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                        <KYCStatusIcon />
-                        <div className="flex-1">
-                            <p className="font-semibold">{t('identityVerification')}</p>
-                            <div className="flex items-center gap-2">
-                                <p className="text-sm text-grey-1">{subtitle}</p>
-                                <StatusPill status={pill} />
-                            </div>
-                        </div>
+                className={className}
+                leading={<KYCStatusIcon />}
+                title={t('identityVerification')}
+                body={
+                    <div className="flex items-center gap-2">
+                        <span>{subtitle}</span>
+                        <StatusPill status={pill} />
                     </div>
-                </div>
-            </Card>
+                }
+            />
 
             {(isDrawerOpen || keepDrawerMounted) && (
                 <KycStatusDrawer

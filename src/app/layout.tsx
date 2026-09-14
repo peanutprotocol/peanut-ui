@@ -6,13 +6,15 @@ import Script from 'next/script'
 import '../styles/globals.css'
 import { PEANUT_API_URL, BASE_URL } from '@/constants/general.consts'
 import { CHUNK_ERROR_RECOVERY_SCRIPT } from '@/utils/chunk-error-recovery'
+import { NATIVE_APP_READY_SCRIPT } from '@/utils/native-app-ready'
+import { isProductionDomain } from '@/constants/seo-route-policy'
 import { type Metadata } from 'next'
 
 const baseUrl = BASE_URL || 'https://peanut.me'
-// Fail closed: BASE_URL deliberately falls back to production for links, but
-// that fallback must not make an unset preview environment indexable.
-const configuredBaseUrl = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, '')
-const IS_PRODUCTION_DOMAIN = configuredBaseUrl === 'https://peanut.me'
+// Fail closed on the raw env (see isProductionDomain): BASE_URL deliberately
+// falls back to production for links, but that fallback must not make an
+// unset preview environment indexable.
+const IS_PRODUCTION_DOMAIN = isProductionDomain(process.env.NEXT_PUBLIC_BASE_URL)
 
 export const metadata: Metadata = {
     title: 'Peanut - Send, Spend & Cash Out Digital Dollars',
@@ -143,6 +145,11 @@ export const viewport: Viewport = {
     userScalable: false,
     colorScheme: 'light',
     viewportFit: 'cover',
+    // Renders <meta name="theme-color">, which Android Chrome applies
+    // immediately (browser tab AND installed PWA) and which overrides a
+    // cached manifest theme_color — the manifest alone left the status
+    // strip black until Chrome's day-scale manifest refresh.
+    themeColor: '#FAF4F0',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -150,7 +157,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     const apiHostname = new URL(PEANUT_API_URL).origin
 
     return (
-        <html lang="en" style={{ colorScheme: 'light' }} data-theme="light">
+        <html
+            lang="en"
+            style={{ colorScheme: 'light' }}
+            data-theme="light"
+            className={`${roboto.variable} ${knerdOutline.variable} ${knerdFilled.variable} ${sniglet.variable} ${robotoFlexBold.variable}`}
+        >
             <head>
                 <meta name="color-scheme" content="light" />
 
@@ -163,6 +175,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 {/* DNS prefetch for API */}
                 <link rel="dns-prefetch" href={apiHostname} />
                 <link rel="preconnect" href={apiHostname} crossOrigin="anonymous" />
+
+                {/* OTA app-ready: MUST be a raw inline script and MUST come first — a bundle
+                    applied while the app is backgrounded reloads into a process the OS then
+                    freezes, and on resume every overdue chunk-load timer rejects at once, so
+                    anything behind an import() never runs (see src/utils/native-app-ready.ts).
+                    No-op off native: the bridge stub it calls only exists in the WebView. */}
+                <script id="native-app-ready" dangerouslySetInnerHTML={{ __html: NATIVE_APP_READY_SCRIPT }} />
 
                 {/* Chunk-load failure recovery: MUST be a raw inline script — error boundaries
                     are lazy chunks themselves and fail to load in the exact conditions that need
@@ -265,9 +284,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         </>
                     )}
             </head>
-            <body
-                className={`${roboto.variable} ${knerdOutline.variable} ${knerdFilled.variable} ${sniglet.variable} ${robotoFlexBold.variable} chakra-ui-light font-sans`}
-            >
+            {/* font variable classes live on <html>: @theme vars like --font-sans
+                substitute var(--font-roboto) at :root, so the next/font vars must
+                be defined there — on <body> the :root substitution fails and every
+                font-sans consumer falls back to the system font */}
+            <body className="chakra-ui-light font-sans">
                 <ClientProviders>{children}</ClientProviders>
             </body>
         </html>

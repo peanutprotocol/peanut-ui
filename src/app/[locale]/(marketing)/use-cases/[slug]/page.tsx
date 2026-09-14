@@ -4,7 +4,7 @@ import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
-import { ArticleBackNav } from '@/components/Marketing/ArticleBackNav'
+import { ArticleLocaleNav } from '@/components/Marketing/ArticleLocaleNav'
 import {
     readPageContentLocalized,
     listPublishedSlugs,
@@ -88,13 +88,7 @@ export default async function UseCasePage({ params }: PageProps) {
             }
         >
             <div className="mx-auto max-w-[640px] px-6 pt-4 md:px-4">
-                <ArticleBackNav
-                    parentLabel={i18n.filterUseCases}
-                    parentHref={hubHref}
-                    backToTemplate={i18n.backTo}
-                    currentLocale={locale as Locale}
-                    localizedHrefs={localizedHrefs}
-                />
+                <ArticleLocaleNav currentLocale={locale as Locale} localizedHrefs={localizedHrefs} />
             </div>
             {content}
         </ContentPage>

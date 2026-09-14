@@ -13,15 +13,19 @@ export const MAX_CLAIM_POLL_ATTEMPTS = 60
 export type ClaimPollFailure = { code: string | null; reason?: string }
 
 /*
- * Terminal means "polling again can't change the answer". A projected claim
- * counts only WITH its txHash: the claim write flips SendLink.status to
- * CLAIMED before the claim intent is projected, so {status: CLAIMED, claim:
- * undefined} is a transient state we must keep polling through — treating it
- * as terminal would stop before the hash ever arrives.
+ * Terminal means "polling again can't change the answer". A CLAIMED status is
+ * the same signal that fires the claim notification — peanut-api-ts marks the
+ * SendLink CLAIMED and runs processPostClaim (which sends the push) once the
+ * claim tx is handled — so the money has moved and we settle on it, whether or
+ * not the claim intent's txHash has projected yet. The hash still counts on its
+ * own for any path that carries it before the status flips.
  */
 const isTerminal = (link: SendLink | undefined): boolean =>
     !!link &&
-    (!!link.claim?.txHash || link.status === ESendLinkStatus.FAILED || link.status === ESendLinkStatus.CANCELLED)
+    (!!link.claim?.txHash ||
+        link.status === ESendLinkStatus.CLAIMED ||
+        link.status === ESendLinkStatus.FAILED ||
+        link.status === ESendLinkStatus.CANCELLED)
 
 const toFailure = (link: SendLink): ClaimPollFailure => ({
     code: link.claimFailureCode ?? null,
@@ -43,7 +47,7 @@ const toFailure = (link: SendLink): ClaimPollFailure => ({
 export function useClaimSuccessPolling(
     link: string,
     enabled: boolean,
-    onClaimed: (txHash: string) => void,
+    onClaimed: (txHash: string | null) => void,
     onFailed: (failure: ClaimPollFailure) => void,
     onGaveUp: () => void
 ): void {
@@ -82,9 +86,12 @@ export function useClaimSuccessPolling(
 
     useEffect(() => {
         if (!data || hasReportedResult.current) return
-        if (data.claim?.txHash) {
+        if (data.claim?.txHash || data.status === ESendLinkStatus.CLAIMED) {
+            // CLAIMED without a projected txHash still settles as success: it is
+            // the point the backend marks the claim done and notifies. Pass the
+            // hash when it is already there, null when it has yet to project.
             hasReportedResult.current = true
-            onClaimedRef.current(data.claim.txHash)
+            onClaimedRef.current(data.claim?.txHash ?? null)
         } else if (data.status === ESendLinkStatus.FAILED || data.status === ESendLinkStatus.CANCELLED) {
             // CANCELLED (sender withdrew mid-claim) has no distinct treatment
             // in the failure UI — it flows through onFailed like FAILED so the

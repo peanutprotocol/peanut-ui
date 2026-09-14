@@ -43,14 +43,14 @@ function ValidationErrorView({
     }
 
     return (
-        <div className="flex flex-col items-center justify-center space-y-4 rounded-lg text-center">
+        <div className="space-y-4 flex flex-col items-center justify-center text-center">
             <Image src={PeanutSad.src} unoptimized alt={t('validation.sadPeanutAlt')} width={96} height={96} />
             <div className="space-y-2">
-                <h1 className="text-lg font-semibold">{title}</h1>
-                <p className="text-sm font-normal md:max-w-xs">{message}</p>
+                <h1 className="text-heading-card">{title}</h1>
+                <p className="text-body-s font-normal md:max-w-xs">{message}</p>
             </div>
             {showLearnMore && (
-                <DocsLink href="/en/help/request-money" className="text-sm underline">
+                <DocsLink href="/en/help/request-money" className="text-body-s underline">
                     {t('validation.learnHow')}
                 </DocsLink>
             )}

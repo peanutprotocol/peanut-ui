@@ -32,15 +32,6 @@ jest.mock('use-haptic', () => ({
     useHaptic: () => ({ triggerHaptic }),
 }))
 
-jest.mock('@/hooks/useTransactionDetailsDrawer', () => ({
-    useTransactionDetailsDrawer: () => ({
-        isDrawerOpen: false,
-        selectedTransaction: null,
-        openTransactionDetails,
-        closeTransactionDetails: jest.fn(),
-    }),
-}))
-
 jest.mock('@/hooks/usePrimaryNameServer', () => ({
     usePrimaryNameServer: () => ({ primaryName: undefined }),
 }))
@@ -85,7 +76,16 @@ function eligibleTx(transactionCardType: 'send' | 'bank_request_fulfillment' = '
 
 function renderCard(transaction: TransactionDetails, type: 'send' | 'bank_request_fulfillment' = 'send') {
     return render(
-        <TransactionCard type={type} name="natalia" amount={10} status="completed" transaction={transaction} />
+        <TransactionCard
+            type={type}
+            name="natalia"
+            amount={10}
+            status="completed"
+            transaction={transaction}
+            isSelected={false}
+            onOpen={openTransactionDetails}
+            onClose={jest.fn()}
+        />
     )
 }
 
@@ -143,8 +143,8 @@ describe('TransactionCard — clickable counterparty name', () => {
 })
 
 // TASK-21887: a received request is inbound money (the viewer created the
-// request), so the row must carry the inbound arrow and the + sign — it used
-// to render the outbound arrow with a negative amount.
+// request), so the row must carry the inbound arrow and the "+" — it used to
+// render the outbound arrow with a negative amount.
 describe('TransactionCard — received request renders as inbound', () => {
     function requestTx(): TransactionDetails {
         const tx = eligibleTx()
@@ -156,7 +156,16 @@ describe('TransactionCard — received request renders as inbound', () => {
 
     it('draws the inbound arrow and a positive amount', () => {
         const { container } = render(
-            <TransactionCard type="request" name="natalia" amount={10} status="pending" transaction={requestTx()} />
+            <TransactionCard
+                type="request"
+                name="natalia"
+                amount={10}
+                status="pending"
+                transaction={requestTx()}
+                isSelected={false}
+                onOpen={() => {}}
+                onClose={() => {}}
+            />
         )
 
         expect(container.querySelector('svg.lucide-arrow-down-left')).not.toBeNull()
@@ -165,9 +174,9 @@ describe('TransactionCard — received request renders as inbound', () => {
     })
 })
 
-// TASK-20700: `truncate`/`line-clamp` only engage when every flex ancestor can
-// shrink (min-w-0) and the amount block refuses to (shrink-0). Locks the class
-// chain so a long name can never push the amount off the card.
+// TASK-20700: `truncate` only engages when every flex ancestor can shrink
+// (min-w-0) and the trailing block refuses to (shrink-0). The DS ListItem owns
+// that chain now, so this locks the invariant where it actually lives.
 describe('TransactionCard — long-name overflow containment', () => {
     it('keeps a min-w-0 chain around the name and shrink-0 on the amount block', () => {
         renderCard(eligibleTx())
@@ -175,25 +184,21 @@ describe('TransactionCard — long-name overflow containment', () => {
         const nameEl = screen.getByText('natalia')
         const card = nameEl.closest('[data-testid="transaction-card"]') as HTMLElement
 
-        const row = card.querySelector(':scope > div') as HTMLElement
-        expect(row.className).toContain('min-w-0')
-
-        const leftCluster = row.querySelector(':scope > div') as HTMLElement
-        expect(leftCluster.className).toContain('min-w-0')
-        expect(leftCluster.className).toContain('flex-1')
-
-        // every flex ancestor between the left cluster and the name can shrink
-        let node = nameEl.parentElement
+        // every flex ancestor between the row and the name can shrink
+        let node: HTMLElement | null = nameEl.parentElement
         const flexAncestors: HTMLElement[] = []
-        while (node && node !== leftCluster) {
+        while (node && node !== card) {
             if (node.className.includes('flex')) flexAncestors.push(node)
             node = node.parentElement
         }
         expect(flexAncestors.length).toBeGreaterThan(0)
         flexAncestors.forEach((el) => expect(el.className).toContain('min-w-0'))
 
-        const amountBlock = screen.getByText('-$10').closest('.shrink-0')
-        expect(amountBlock).not.toBeNull()
+        // the trailing (amount) cluster refuses to shrink
+        const trailing = Array.from(card.querySelectorAll('div')).find((el) =>
+            el.className.includes('shrink-0')
+        ) as HTMLElement
+        expect(trailing).toBeDefined()
     })
 })
 
@@ -226,5 +231,122 @@ describe('TransactionCard — settlement-adjusted flag', () => {
     it('hides it for an adjusted card REFUND', () => {
         renderCard(cardSpendTx({ settlementAdjusted: true, isRefund: true }))
         expect(screen.queryByText('· Adjusted')).not.toBeInTheDocument()
+    })
+})
+
+// States board 17966:12128: failed amounts strike through — EXCEPT a failed
+// card REFUND (credit still owed to the user; striking it reads as "this
+// credit never counted"). Locks the carve-out kept from isDeclinedCardSpend.
+describe('TransactionCard — failed strike-through and the refund carve-out', () => {
+    function renderFailed(tx: TransactionDetails) {
+        const failedTx = { ...tx, status: 'failed' } as TransactionDetails
+        return render(
+            <TransactionCard
+                type="card_pay"
+                name="natalia"
+                amount={10}
+                status="failed"
+                transaction={failedTx}
+                isSelected={false}
+                onOpen={openTransactionDetails}
+                onClose={jest.fn()}
+            />
+        )
+    }
+
+    it('strikes the amount of a failed card spend', () => {
+        renderFailed(cardSpendTx({}))
+        expect(screen.getByText('$10')).toHaveClass('line-through')
+    })
+
+    it('does NOT strike the amount of a failed card refund', () => {
+        renderFailed(cardSpendTx({ isRefund: true }))
+        expect(screen.getByText('$10')).not.toHaveClass('line-through')
+    })
+})
+
+// PR #2813 review: open requests (unfulfilled request links + pots) never get
+// the pending treatment in the feed row — no pending chip, no greyed amount.
+// A settling request FULFILMENT (direction receive/send) keeps both.
+describe('TransactionCard — open-request pending exemption', () => {
+    // the icon-only StatusPill has no text; its pending background class is
+    // the stable hook to assert presence/absence
+    const pendingPill = (container: HTMLElement) => container.querySelector('.bg-background-badge-attention')
+
+    function pendingTx(overrides: Partial<TransactionDetails>): TransactionDetails {
+        return { ...eligibleTx(), status: 'pending', ...overrides } as TransactionDetails
+    }
+
+    function renderPending(tx: TransactionDetails, type: 'request' | 'send' | 'receive' = 'request') {
+        return render(
+            <TransactionCard
+                type={type}
+                name="natalia"
+                amount={10}
+                status="pending"
+                transaction={tx}
+                isSelected={false}
+                onOpen={openTransactionDetails}
+                onClose={jest.fn()}
+            />
+        )
+    }
+
+    it('shows no pending chip and no greyed amount for an open request', () => {
+        const { container } = renderPending(pendingTx({ direction: 'request_received' }))
+        expect(pendingPill(container)).toBeNull()
+        expect(screen.getByText('+$10')).not.toHaveClass('opacity-40')
+    })
+
+    it('exempts request-pot rollups too', () => {
+        const { container } = renderPending(pendingTx({ direction: 'receive', isRequestPotLink: true }), 'receive')
+        expect(pendingPill(container)).toBeNull()
+    })
+
+    it('keeps the pending chip + greyed amount for a real pending payment', () => {
+        const { container } = renderPending(pendingTx({ direction: 'send' }), 'send')
+        expect(pendingPill(container)).not.toBeNull()
+        expect(screen.getByText('-$10')).toHaveClass('opacity-40')
+    })
+
+    // ruled 2026-09-03 (Kush): a pending card payment keeps its full-strength
+    // amount — the spend is already committed — while the pending chip stays
+    it('keeps the amount full-strength for a pending card payment', () => {
+        const tx = { ...cardSpendTx({}), status: 'pending' } as TransactionDetails
+        const { container } = renderPending(tx, 'send')
+        expect(pendingPill(container)).not.toBeNull()
+        expect(screen.getByText('-$10')).not.toHaveClass('opacity-40')
+    })
+
+    // a pending refund CREDIT has not settled — full-strength would overpromise
+    it('keeps a pending card refund greyed', () => {
+        const tx = { ...cardSpendTx({ isRefund: true }), status: 'pending', direction: 'receive' } as TransactionDetails
+        renderPending(tx, 'receive')
+        expect(screen.getByText('+$10')).toHaveClass('opacity-40')
+    })
+})
+
+// completeHistoryEntry blanks `currency.amount` to '' for a still-pending
+// Bridge OFFRAMP row (history.utils.ts) rather than leaving the mirrored
+// crypto-leg figure in place. The card must not render that blank/invalid
+// amount as if it were a real converted "≈ CODE x" figure.
+describe('TransactionCard — secondary currency line requires a valid amount', () => {
+    function currencyTx(currency: TransactionDetails['currency']): TransactionDetails {
+        return { ...eligibleTx(), currency } as TransactionDetails
+    }
+
+    it('renders the "≈ CODE x" line for a real converted amount', () => {
+        renderCard(currencyTx({ amount: '105.9', code: 'EUR' }))
+        expect(screen.getByText('≈ EUR 105.9')).toBeInTheDocument()
+    })
+
+    it('hides the line for a blanked (pending, unconverted) amount', () => {
+        renderCard(currencyTx({ amount: '', code: 'ARS' }))
+        expect(screen.queryByText(/≈ ARS/)).toBeNull()
+    })
+
+    it('hides the line when currency.amount is missing entirely', () => {
+        renderCard(currencyTx({ code: 'ARS' } as any)) // deliberately missing `amount`
+        expect(screen.queryByText(/≈ ARS/)).toBeNull()
     })
 })

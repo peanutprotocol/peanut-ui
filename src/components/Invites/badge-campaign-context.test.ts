@@ -1,7 +1,6 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import {
-    MAX_BADGE_CAMPAIGN_IDENTITY_LENGTH,
     MAX_RAW_BADGE_CAMPAIGN_LENGTH,
     MAX_BADGE_CAMPAIGNS,
     LEGACY_PENDING_BADGE_CAMPAIGN_COOKIE,
@@ -87,28 +86,22 @@ describe('badge campaign identity transport', () => {
         expect(badgeCampaignsFromSearchParams(new URLSearchParams(query))).toEqual([])
     })
 
-    it('source-qualifies arbitrary UTM values without deciding whether they award', () => {
-        expect(badgeCampaignsFromSearchParams(new URLSearchParams('utm_campaign=Summer-Analytics'))).toEqual([
-            'utm:Summer-Analytics',
-        ])
+    it('never turns a UTM value into a badge identity (TASK-21226)', () => {
+        expect(badgeCampaignsFromSearchParams(new URLSearchParams('utm_campaign=Summer-Analytics'))).toEqual([])
         expect(badgeCampaignsFromSearchParams(new URLSearchParams('badge_campaign=arbitrum'))).toEqual(['arbitrum'])
-        expect(badgeCampaignsFromSearchParams(new URLSearchParams('utm_campaign=arbitrum'))).toEqual(['utm:arbitrum'])
+        expect(badgeCampaignsFromSearchParams(new URLSearchParams('utm_campaign=arbitrum'))).toEqual([])
         expect(badgeCampaignsFromSearchParams(new URLSearchParams('badge_campaign=offramp'))).toEqual(['offramp'])
-        expect(badgeCampaignsFromSearchParams(new URLSearchParams('utm_campaign=offramp'))).toEqual(['utm:offramp'])
+        expect(badgeCampaignsFromSearchParams(new URLSearchParams('utm_campaign=offramp'))).toEqual([])
+        // an explicitly published utm: identity stays a valid canonical value
         expect(badgeCampaignsFromSearchParams(new URLSearchParams('badge_campaign=utm:offramp'))).toEqual([
             'utm:offramp',
         ])
-        expect(badgeCampaignsFromSearchParams(new URLSearchParams('utm_campaign=utm:offramp'))).toEqual([
-            'utm:utm:offramp',
-        ])
         expect(badgeCampaignsFromSearchParams(new URLSearchParams('badge_campaign=IRL_NOMADS'))).toEqual(['IRL_NOMADS'])
         expect(badgeCampaignsFromSearchParams(new URLSearchParams('badge_campaign=irl_nomads'))).toEqual(['irl_nomads'])
-        expect(badgeCampaignsFromSearchParams(new URLSearchParams('utm_campaign=irl-nomads'))).toEqual([
-            'utm:irl-nomads',
-        ])
+        expect(badgeCampaignsFromSearchParams(new URLSearchParams('utm_campaign=irl-nomads'))).toEqual([])
     })
 
-    it('source-qualifies every published content UTM without a frontend allowlist', () => {
+    it('ignores every published content UTM as a badge identity', () => {
         const publishedValues = new Set<string>()
         for (const file of filesUnder(join(process.cwd(), 'src/content'))) {
             const source = readFileSync(file, 'utf8')
@@ -118,29 +111,13 @@ describe('badge campaign identity transport', () => {
         }
 
         // Guard the corpus scan itself with the known collision that motivated
-        // source qualification, then apply the generic transport invariant to
-        // every current and future literal value discovered above.
+        // source qualification, then confirm no published UTM value can mint a
+        // badge identity now that the last alias retired (TASK-21226).
         expect(publishedValues.has('arbitrum')).toBe(true)
         expect(publishedValues.size).toBeGreaterThan(0)
         for (const rawValue of publishedValues) {
-            expect(badgeCampaignsFromSearchParams(new URLSearchParams({ utm_campaign: rawValue }))).toEqual([
-                `utm:${rawValue}`,
-            ])
+            expect(badgeCampaignsFromSearchParams(new URLSearchParams({ utm_campaign: rawValue }))).toEqual([])
         }
-    })
-
-    it('accepts a 64-character raw UTM value within the 68-character qualified transport bound', () => {
-        const maximumRaw = 'x'.repeat(MAX_RAW_BADGE_CAMPAIGN_LENGTH)
-
-        const badgeCampaigns = badgeCampaignsFromSearchParams(new URLSearchParams(`utm_campaign=${maximumRaw}`))
-
-        expect(badgeCampaigns).toEqual([`utm:${maximumRaw}`])
-        expect(badgeCampaigns[0]).toHaveLength(MAX_BADGE_CAMPAIGN_IDENTITY_LENGTH)
-        expect(
-            badgeCampaignsFromSearchParams(
-                new URLSearchParams(`utm_campaign=${'x'.repeat(MAX_RAW_BADGE_CAMPAIGN_LENGTH + 1)}`)
-            )
-        ).toEqual([])
     })
 
     it('never infers a campaign from code-only creator attribution', () => {
@@ -164,9 +141,8 @@ describe('badge campaign identity transport', () => {
             )
         ).toBe('canonical-first')
         expect(badgeCampaignForLegacyWire(new URLSearchParams('campaignTag=published-legacy'))).toBe('published-legacy')
-        expect(badgeCampaignForLegacyWire(new URLSearchParams('utm_campaign=historic-alias'))).toBe(
-            'utm:historic-alias'
-        )
+        // utm values stopped being badge identities (TASK-21226)
+        expect(badgeCampaignForLegacyWire(new URLSearchParams('utm_campaign=historic-alias'))).toBeUndefined()
         expect(badgeCampaignForLegacyWire(new URLSearchParams('code=creator'))).toBeUndefined()
     })
 

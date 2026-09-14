@@ -22,7 +22,7 @@ const LogoutButton = () => {
             size="medium"
             variant="transparent"
             onClick={logout}
-            className="flex w-fit items-center gap-3 px-0 hover:text-gray-1 md:px-3"
+            className="flex w-fit items-center gap-3 px-0 hover:text-foreground-secondary md:px-3"
         >
             {isLoggingOut ? <Loading /> : <Image src={LOGOUT_ICON} alt={t('logout')} width={24} height={24} />}
             <span className="hidden md:block">{isLoggingOut ? t('loggingOut') : t('logout')}</span>

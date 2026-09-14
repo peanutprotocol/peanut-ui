@@ -1,14 +1,25 @@
 /**
- * Cross-chain withdrawal fee heads-up.
+ * Cross-chain withdrawal fee display and heads-up.
  *
- * Rhino's bridge fee is `flat destination gas + 0.07%`, and gas is flat per
- * chain (~$0.01 on L2s, ~$1.50+ on Ethereum mainnet). Because gas is a fixed
- * per-chain cost, a small mainnet withdrawal loses a large share to it (a $10 →
- * mainnet withdraw is ~15%). We don't block it — the fee is shown honestly and
- * the user decides — but we surface a non-blocking heads-up so a tiny mainnet
- * withdrawal isn't a silent footgun. L2s and larger amounts stay below the
- * threshold and show nothing.
+ * The app quotes with Rhino's authenticated (account-bound) quote, and
+ * Peanut's account is configured 1:1 with no on-chain fee on stablecoin
+ * routes — so `feeUsd` is normally 0 and the row shows the sponsored label.
+ * Rhino can still deduct a small network cost on delivery (1–3 bps seen on
+ * Solana) and the account config can change, so everything here reads the
+ * quote verbatim and never assumes zero: a non-zero quote is shown as-is, and
+ * when it is a large share of a small withdrawal we surface a non-blocking
+ * heads-up rather than block.
  */
+
+/**
+ * The network-fee row value for a quoted transfer. `null` when the user pays
+ * nothing on top (same-chain, no quote yet, or a zero quote) — the caller
+ * shows the sponsored label; '< $0.01' below a cent; otherwise '$X.XX'.
+ */
+export function formatNetworkFee(feeUsd: number | undefined, isCrossChain: boolean): string | null {
+    if (!isCrossChain || feeUsd === undefined || !Number.isFinite(feeUsd) || feeUsd <= 0) return null
+    return feeUsd < 0.01 ? '< $0.01' : `$${feeUsd.toFixed(2)}`
+}
 
 /** Surface the heads-up when the bridge fee exceeds this share of the amount. */
 export const HIGH_WITHDRAW_FEE_RATIO = 0.05 // 5%

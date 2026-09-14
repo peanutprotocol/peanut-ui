@@ -6,7 +6,7 @@ export default function PatternsPage() {
         <DocPage>
             <div>
                 <h1 className="text-h3">Patterns</h1>
-                <p className="mt-1 text-sm text-grey-1">
+                <p className="mt-1 text-body-s text-foreground-secondary">
                     Composed components and layout patterns built from primitives and Global shared components.
                 </p>
             </div>
@@ -30,7 +30,7 @@ export default function PatternsPage() {
                 />
                 <CatalogCard
                     title="Navigation"
-                    description="NavHeader and FlowHeader for screen navigation"
+                    description="NavHeader for screen navigation"
                     href="/dev/ds/patterns/navigation"
                     icon="link"
                     status="production"
@@ -38,7 +38,7 @@ export default function PatternsPage() {
                 />
                 <CatalogCard
                     title="Loading"
-                    description="CSS spinner (Loading) and branded animation (PeanutLoading)"
+                    description="One Loading component — spinner and mascot variants"
                     href="/dev/ds/patterns/loading"
                     icon="processing"
                     status="production"
@@ -46,7 +46,7 @@ export default function PatternsPage() {
                 />
                 <CatalogCard
                     title="Feedback"
-                    description="StatusBadge, StatusPill, ErrorAlert, EmptyState, NoDataEmptyState"
+                    description="StatusBadge, StatusPill, inline errors, EmptyState, NoDataEmptyState"
                     href="/dev/ds/patterns/feedback"
                     icon="meter"
                     status="production"
@@ -83,6 +83,14 @@ export default function PatternsPage() {
                     icon="dollar"
                     status="needs-refactor"
                     quality={3}
+                />
+                <CatalogCard
+                    title="Slider"
+                    description="Percentage slider with magnetic snap points. Used by AmountInput in contribute-pot"
+                    href="/dev/ds/patterns/slider"
+                    icon="meter"
+                    status="production"
+                    usages={1}
                 />
             </CatalogGrid>
         </DocPage>

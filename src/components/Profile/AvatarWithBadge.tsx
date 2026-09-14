@@ -1,11 +1,12 @@
 import { getInitialsFromName } from '@/utils/general.utils'
 import { getColorForUsername } from '@/utils/color.utils'
 import React, { useMemo, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 import Image, { type StaticImageData } from 'next/image'
+import { AVATAR_SIZE_CLASSES, type AvatarSize } from './avatar-size.consts'
 
-export type AvatarSize = 'tiny' | 'extra-small' | 'small' | 'medium' | 'large'
+export type { AvatarSize }
 
 /**
  * props for the avatarwithbadge component.
@@ -19,6 +20,11 @@ interface AvatarWithBadgeProps {
     textColor?: string
     iconFillColor?: string
     logo?: string | StaticImageData
+    /**
+     * The user's own avatar (home chip, self profile header) shows the first
+     * letter of the username only; contacts keep two-letter initials.
+     */
+    firstLetterOnly?: boolean
     /**
      * Rendered when `logo` fails to load (next/image onError). Lets a parent
      * provide a semantic fallback (e.g. bank tx → bank icon on dark bg)
@@ -42,16 +48,9 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
     iconFillColor,
     logo,
     fallback,
+    firstLetterOnly,
 }) => {
     const [logoFailed, setLogoFailed] = useState(false)
-    const sizeClasses: Record<AvatarSize, string> = {
-        tiny: 'h-6 w-6 text-[10px]',
-        'extra-small': 'h-8 w-8 text-xs',
-        small: 'h-12 w-12 text-sm',
-        medium: 'h-16 w-16 text-2xl',
-        large: 'h-24 w-24 text-3xl',
-    }
-
     const iconSizeMap: Record<AvatarSize, number> = {
         tiny: 12,
         'extra-small': 16,
@@ -61,19 +60,17 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
     }
 
     const initials = useMemo(() => {
-        if (name) {
-            return getInitialsFromName(name)
-        }
-        return ''
-    }, [name])
+        if (!name) return ''
+        return firstLetterOnly ? name.trim().charAt(0).toUpperCase() : getInitialsFromName(name)
+    }, [name, firstLetterOnly])
 
     if (logo && !logoFailed) {
         return (
             <div className={'relative'}>
                 <div
                     className={twMerge(
-                        `flex items-center justify-center rounded-full font-bold`,
-                        sizeClasses[size],
+                        `flex items-center justify-center rounded-full`,
+                        AVATAR_SIZE_CLASSES[size],
                         className
                     )}
                 >
@@ -93,6 +90,7 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
     // When the logo fails AND the caller supplied a `fallback`, prefer that
     // semantic visual (icon + colors) over whatever icon/colors were originally
     // passed for the no-logo case.
+    const nameColors = name ? getColorForUsername(name) : undefined
     const useFallback = logoFailed && fallback
     const effectiveIcon = useFallback ? fallback.icon : icon
     const effectiveIconFill = useFallback && fallback.iconFillColor ? fallback.iconFillColor : iconFillColor
@@ -104,16 +102,19 @@ const AvatarWithBadge: React.FC<AvatarWithBadgeProps> = ({
             {/* the main avatar circle */}
             <div
                 className={twMerge(
-                    `flex items-center justify-center rounded-full font-bold`,
-                    sizeClasses[size],
+                    // no font-weight here: the size classes carry the board
+                    // weights (Label/M is 800, Body/M-SemiBold 600, Heading/S
+                    // 800) and a blanket bold rendered all three at 700.
+                    `flex items-center justify-center rounded-full`,
+                    AVATAR_SIZE_CLASSES[size],
                     className
                 )}
                 // apply dynamic styles (e.g., background color)
 
                 style={{
-                    background: name ? getColorForUsername(name).lightShade : undefined,
-                    border: name && !effectiveIcon ? `1px solid ${getColorForUsername(name).darkShade}` : undefined,
-                    color: name ? getColorForUsername(name).darkShade : !effectiveIcon ? effectiveTextColor : undefined,
+                    background: nameColors?.lightShade,
+                    border: nameColors && !effectiveIcon ? `1px solid ${nameColors.borderShade}` : undefined,
+                    color: nameColors ? nameColors.darkShade : !effectiveIcon ? effectiveTextColor : undefined,
                     ...effectiveInlineStyle,
                 }}
             >

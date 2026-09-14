@@ -23,6 +23,10 @@ export const rhinoApi = {
             method: 'GET',
         })
 
+        if (response.status === 404) {
+            const data = await response.json().catch(() => null)
+            if (data?.error === 'No update found for given deposit address') return { status: 'not_started' }
+        }
         if (!response.ok) {
             throw new Error(`Failed to fetch deposit address status: ${response.statusText}`)
         }

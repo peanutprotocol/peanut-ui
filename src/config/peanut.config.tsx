@@ -9,7 +9,7 @@ import { useEffect } from 'react'
 import 'react-tooltip/dist/react-tooltip.css'
 import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
 import { authReady } from '@/utils/auth-token'
-import { installNativeAuthCapture } from '@/utils/native-auth-capture'
+import { installPasskeyVerifyCapture } from '@/utils/passkey-auth-capture'
 import { scheduleTransportCanary } from '@/utils/native-canary'
 import { installCeremonyTelemetry } from '@/utils/webauthn-ceremony-telemetry'
 import { markPasskeyShimFailed } from '@/utils/passkeyCeremony.utils'
@@ -34,9 +34,11 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
         // in the response body, the fetch wrapper below captures it into native
         // Preferences, and every api request sends it as Authorization
         // (see src/utils/auth-token.ts).
+        // Every platform: the verify body carries the login-minted step-up proof
+        // and, on failure, the server's reason (ZeroDev discards both).
+        installPasskeyVerifyCapture()
         if (isCapacitor()) {
             void authReady() // start Preferences hydration before any API call needs it
-            installNativeAuthCapture()
             scheduleTransportCanary()
             const installPasskeyShim = async () => {
                 const { CapacitorPasskey } = await import('@capgo/capacitor-passkey')
@@ -125,7 +127,7 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
 
     /*
      * The query client is needed everywhere — the landing page's exchange-rate
-     * widget is a react-query hook — but the redux store and wagmi are not:
+     * widget is a react-query hook — but wagmi is not:
      * nothing the marketing site renders reads either, and AuthProvider, which
      * did, now lives in AppFlowProviders.
      */

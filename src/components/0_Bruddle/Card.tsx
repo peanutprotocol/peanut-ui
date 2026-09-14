@@ -1,4 +1,4 @@
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 type ShadowSize = '4' | '6' | '8'
 type ShadowColor = 'primary' | 'secondary'
@@ -7,6 +7,9 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
     shadowSize?: ShadowSize
     color?: ShadowColor
 }
+
+/** Shared surface for Card and native button tiles (board 17802:61536). */
+export const CARD_SURFACE = 'rounded-sm border border-border-default bg-background-default'
 
 const shadowClasses: Record<ShadowColor, Record<ShadowSize, string>> = {
     primary: {
@@ -27,11 +30,7 @@ const Card = ({ children, className, shadowSize, color = 'primary', ...props }: 
     return (
         <div
             // Tailwind merge makes sure classes added through className by component caller are merged and overrides the default classes
-            className={twMerge(
-                `flex flex-col rounded-sm border border-n-1 bg-white dark:border-white dark:bg-n-1`,
-                shadowClass,
-                className
-            )}
+            className={twMerge(`flex flex-col ${CARD_SURFACE}`, shadowClass, className)}
             {...props}
         >
             {children}
@@ -46,13 +45,13 @@ const Header = ({ children, className, ...props }: React.HTMLAttributes<HTMLDivE
 )
 
 const Title = ({ children, className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-    <h3 className={twMerge('pb-1 text-start text-h4 font-semibold sm:text-h3', className)} {...props}>
+    <h3 className={twMerge('pb-1 text-start text-heading-card', className)} {...props}>
         {children}
     </h3>
 )
 
 const Description = ({ children, className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
-    <p className={twMerge('text-start text-sm text-gray-600 dark:text-gray-400', className)} {...props}>
+    <p className={twMerge('text-start text-body-m text-foreground-secondary', className)} {...props}>
         {children}
     </p>
 )

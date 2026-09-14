@@ -5,7 +5,7 @@ export default function DevPresetButton({ onClick, children }: { onClick: () => 
     return (
         <button
             onClick={onClick}
-            className="rounded-full border border-n-1 bg-white px-2 py-1 text-xs font-bold transition-colors hover:bg-grey-2"
+            className="rounded-full border border-border-default bg-white px-2 py-1 text-label-m transition-colors"
         >
             {children}
         </button>

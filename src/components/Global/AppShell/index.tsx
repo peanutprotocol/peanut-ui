@@ -1,0 +1,119 @@
+'use client'
+
+import { twMerge } from '@/utils/tw'
+import { useBottomNavHidden } from '@/utils/bottom-nav-visibility'
+import { TabSlide } from './TabSlide'
+
+interface AppShellProps {
+    /** app = authed chrome (scroll container + bottom nav); onboarding = setup chrome. */
+    variant: 'app' | 'onboarding'
+    /** Bottom nav slot (app variant). Hidden when omitted. */
+    nav?: React.ReactNode
+    /** Top banner slot (maintenance / feedback / onboarding ribbon). */
+    banner?: React.ReactNode
+    /** Overlay slot — modals, drawers, scanners. Rendered after the content. */
+    modals?: React.ReactNode
+    /** Route-conditional overrides for the scroll container (app variant). */
+    contentClassName?: string
+    /** Route-conditional overrides for the centering wrapper (app variant). */
+    innerClassName?: string
+    /** Bottom safe-area fill color (onboarding variant, device-dependent). */
+    bottomInsetClassName?: string
+    children: React.ReactNode
+}
+
+/**
+ * The one layout shell (DS 13). Desktop shows the same centered mobile
+ * column at max width — no sidebar, no desktop-specific chrome. Safe-area
+ * insets are applied here once; pages never add their own.
+ */
+export const AppShell = ({
+    variant,
+    nav,
+    banner,
+    modals,
+    contentClassName,
+    innerClassName,
+    bottomInsetClassName,
+    children,
+}: AppShellProps) => {
+    const navHidden = useBottomNavHidden()
+
+    if (variant === 'onboarding') {
+        return (
+            <>
+                {/* Status-bar safe zone + banner ribbon. Android 15 (targetSdk 36)
+                    forces edge-to-edge, so the webview draws UNDER the status bar —
+                    fill the inset with the brand periwinkle (matches the onboarding
+                    illustration). --safe-top resolves to env(), which is 0 on web and
+                    on non-edge-to-edge Android — no-op there. On Android 15+ Capacitor
+                    overwrites it with the natively measured inset. */}
+                <div className="bg-blue-300 pt-safe-top">{banner}</div>
+                {/* The strip above only RESERVES the inset — it scrolls away with the
+                    document on steps taller than the viewport (the dual-residence
+                    compare cards), and the illustration then rides up under the status
+                    bar. This cover paints the inset wherever the page is scrolled to,
+                    the same way the app variant does. Height is exactly the inset, so
+                    it stops short of the back button at top-8. */}
+                <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-40 h-safe-top bg-blue-300" />
+                {children}
+                {/* Bottom safe-area fill. Mirrors the strip above so the bottom
+                    matches on edge-to-edge Android; iOS fills white (the panel
+                    above the home indicator is white there). */}
+                <div
+                    aria-hidden
+                    className={twMerge(
+                        'pointer-events-none fixed inset-x-0 bottom-0 -z-10 h-safe-bottom',
+                        bottomInsetClassName
+                    )}
+                />
+                {modals}
+            </>
+        )
+    }
+
+    return (
+        <div className="flex min-h-dvh w-full flex-col bg-background-page pt-safe-top">
+            {/* Status-bar safe zone. Paints the inset strip in the app background so
+                the top matches the page even where fixed children would otherwise draw
+                under the status bar. Height is the natively measured inset on Android
+                15+ and env() elsewhere, so still a no-op on web (inset = 0). */}
+            <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-40 h-safe-top bg-background-page" />
+            {banner}
+            {/* Scrollable content — one centered mobile column on every viewport */}
+            <div
+                id="scrollable-content"
+                // Top navigation controls share the home screen's L/16 origin:
+                // the shell already starts below --safe-top, so pt-4 means 16px
+                // below the safe-area boundary. Keep the XL/24 bottom rhythm.
+                className={twMerge(
+                    'relative w-full flex-1 overflow-y-auto bg-background-page px-4 pt-4 pb-6',
+                    contentClassName
+                )}
+            >
+                {/* TabSlide IS the centering wrapper: it stays inside #scrollable-content
+                    (pull-to-refresh reads that element) and adds no extra layout node. */}
+                <TabSlide
+                    className={twMerge('mx-auto flex w-full max-w-md items-center justify-center', innerClassName)}
+                >
+                    {children}
+                </TabSlide>
+            </div>
+            {/* transparent on purpose: the pill and qr button float over the
+                page content, no strip behind them (they carry their own fills) */}
+            {nav && (
+                <div
+                    data-testid="app-shell-nav"
+                    className={twMerge(
+                        'fixed inset-x-0 bottom-0 z-10 pb-safe-bottom transition-transform duration-200',
+                        navHidden && 'translate-y-full'
+                    )}
+                    {...(navHidden ? { inert: true } : {})}
+                >
+                    <div className="mx-auto w-full max-w-md">{nav}</div>
+                </div>
+            )}
+            {modals}
+        </div>
+    )
+}

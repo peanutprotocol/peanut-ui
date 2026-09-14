@@ -1,6 +1,5 @@
 import {
     captureNetworkTriagedFailure,
-    isNativeFetchRejection,
     isNetworkLayerFailure,
     networkTriageTags,
     triageNetworkFailure,
@@ -39,21 +38,6 @@ function mockProbes({
 
 afterEach(() => {
     jest.clearAllMocks()
-})
-
-describe('isNativeFetchRejection', () => {
-    test.each(['Failed to fetch', 'Load failed', 'NetworkError when attempting to fetch resource.'])(
-        'matches TypeError with engine message %p',
-        (message) => {
-            expect(isNativeFetchRejection('TypeError', message)).toBe(true)
-        }
-    )
-
-    test('rejects our own wrapped copy that merely contains the engine string', () => {
-        expect(isNativeFetchRejection('Error', 'Failed to fetch charges: 500')).toBe(false)
-        expect(isNativeFetchRejection('TypeError', 'Failed to fetch charges: 500')).toBe(false)
-        expect(isNativeFetchRejection(undefined, undefined)).toBe(false)
-    })
 })
 
 // The predicate the qr-pay / withdraw catches use to report selectively: their

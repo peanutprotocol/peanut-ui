@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import Modal from '@/components/Global/Modal'
-import ActionModal from '@/components/Global/ActionModal'
+import ActionModal, { type ActionModalTone } from '@/components/Global/ActionModal'
 import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
@@ -13,11 +13,14 @@ import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
 import EasterEggModal from '@/components/Global/EasterEggModal'
 
+const TONES: ActionModalTone[] = ['error', 'warning', 'success', 'info']
+
 export default function ModalPage() {
     const [showModal, setShowModal] = useState(false)
     const [showEasterEgg, setShowEasterEgg] = useState(false)
     const [showActionModal, setShowActionModal] = useState(false)
     const [actionCheckbox, setActionCheckbox] = useState(false)
+    const [toneModal, setToneModal] = useState<ActionModalTone | null>(null)
 
     return (
         <DocPage>
@@ -30,7 +33,7 @@ export default function ModalPage() {
             {/* Base Modal */}
             <DocSection title="Base Modal">
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         HeadlessUI Dialog wrapper with animated overlay and panel. Use for custom modal content.
                     </p>
 
@@ -40,7 +43,7 @@ export default function ModalPage() {
                         </Button>
                         <Modal visible={showModal} onClose={() => setShowModal(false)} title="Example Modal">
                             <div className="p-5">
-                                <p className="text-sm text-grey-1">
+                                <p className="text-body-s text-foreground-secondary">
                                     This is the base Modal. It provides the overlay, panel animation, close button, and
                                     optional title bar. You supply the children.
                                 </p>
@@ -138,7 +141,7 @@ export default function ModalPage() {
             {/* ActionModal */}
             <DocSection title="ActionModal">
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         Pre-composed modal with icon, title, description, CTA buttons, and optional checkbox. Built on
                         top of Base Modal.
                     </p>
@@ -183,11 +186,40 @@ export default function ModalPage() {
                         />
                     </div>
 
+                    <div className="flex flex-col gap-2">
+                        <p className="text-body-s text-foreground-secondary">
+                            <code>tone</code> picks the bubble color and a default icon: error (red, ban), warning
+                            (yellow, alert), success (green, check), info (blue, info). An explicit <code>icon</code> or{' '}
+                            <code>iconContainerClassName</code> still wins.
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {TONES.map((tone) => (
+                                <Button key={tone} variant="stroke" size="small" onClick={() => setToneModal(tone)}>
+                                    tone=&quot;{tone}&quot;
+                                </Button>
+                            ))}
+                        </div>
+                        <ActionModal
+                            visible={toneModal !== null}
+                            onClose={() => setToneModal(null)}
+                            tone={toneModal ?? 'info'}
+                            title={`tone="${toneModal ?? 'info'}"`}
+                            description="Icon and bubble color come from the tone, not from a class name."
+                            ctas={[{ text: 'Close', variant: 'stroke', onClick: () => setToneModal(null) }]}
+                        />
+                    </div>
+
                     <PropsTable
                         rows={[
                             { name: 'visible', type: 'boolean', default: '-', required: true },
                             { name: 'onClose', type: '() => void', default: '-', required: true },
                             { name: 'title', type: 'string | ReactNode', default: '-', required: true },
+                            {
+                                name: 'tone',
+                                type: "'error' | 'warning' | 'success' | 'info'",
+                                default: '(none)',
+                                description: 'Semantic bubble color + default icon',
+                            },
                             {
                                 name: 'description',
                                 type: 'string | ReactNode',
@@ -197,8 +229,8 @@ export default function ModalPage() {
                             {
                                 name: 'icon',
                                 type: 'IconName | ReactNode',
-                                default: '(none)',
-                                description: 'Displayed in pink circle above title',
+                                default: '(tone icon)',
+                                description: 'Displayed in the bubble above the title',
                             },
                             {
                                 name: 'iconProps',
@@ -256,7 +288,7 @@ export default function ModalPage() {
   onClose={() => setVisible(false)}
   title="Confirm Action"
   description="Are you sure?"
-  icon="alert"
+  tone="warning"
   checkbox={{
     text: 'I understand',
     checked: checked,
@@ -280,20 +312,20 @@ export default function ModalPage() {
                     you need fully custom content.
                 </DesignNote>
                 <DesignNote type="warning">
-                    ActionModal icon renders in a pink (primary-1) circle by default. Override with
-                    iconContainerClassName if needed.
+                    Prefer <code>tone</code> over iconContainerClassName: yellow is for warnings only, red for errors,
+                    green for success, blue for plain information. Without a tone the bubble is pink (primary-1).
                 </DesignNote>
             </DocSection>
 
             {/* Specialized Modals Reference */}
             <DocSection title="Specialized Modals (14)">
-                <p className="text-sm text-grey-1">
+                <p className="text-body-s text-foreground-secondary">
                     These are pre-built modals for specific flows. They compose ActionModal or Modal internally.
                 </p>
-                <div className="overflow-x-auto rounded-sm border border-n-1 text-xs">
+                <div className="overflow-x-auto rounded-sm border border-border-default text-body-xs">
                     <table className="w-full">
                         <thead>
-                            <tr className="border-b border-n-1 bg-primary-3/20">
+                            <tr className="border-b border-border-default bg-background-badge-accent/20">
                                 <th className="px-3 py-1.5 text-left font-bold">Component</th>
                                 <th className="px-3 py-1.5 text-left font-bold">Purpose</th>
                             </tr>
@@ -314,7 +346,7 @@ export default function ModalPage() {
                                 ['ExportPrivateKeyModal', 'Reveal and copy private key'],
                                 ['ConfirmTransactionModal', 'Final review before transaction submit'],
                             ].map(([name, purpose]) => (
-                                <tr key={name} className="border-b border-n-1 last:border-0">
+                                <tr key={name} className="border-b border-border-default last:border-0">
                                     <td className="px-3 py-1.5 font-mono font-bold">{name}</td>
                                     <td className="px-3 py-1.5">{purpose}</td>
                                 </tr>
@@ -329,7 +361,7 @@ export default function ModalPage() {
             {/* Easter Egg Modal */}
             <DocSection title="Easter Egg Modal">
                 <DocSection.Content>
-                    <p className="text-sm text-grey-1">
+                    <p className="text-body-s text-foreground-secondary">
                         Fun modal shown when users tap uninhabited/weird countries (Antarctica, Bouvet Island, etc.) in
                         the country selector. Uses base Modal with an image and humorous caption.
                     </p>

@@ -18,7 +18,7 @@ export function DropLink({ strings }: { strings: LandingStrings }) {
             style={{ backgroundColor: businessBgColor }}
         >
             <div className="flex w-[80rem] flex-col items-center justify-center p-6 md:flex-row">
-                <div className="w-full space-y-8 md:w-2/3">
+                <div className="space-y-8 w-full md:w-2/3">
                     <h1 className="font-roboto-flex-extrabold text-center text-[4rem] font-extraBlack md:text-left lg:text-headingMedium">
                         {strings.dropLinkHeading}
                     </h1>
@@ -26,7 +26,7 @@ export function DropLink({ strings }: { strings: LandingStrings }) {
                     <div className="relative mx-auto mt-8 block md:mt-0 md:hidden">
                         {/* Mobile Floating Icons */}
                         <motion.div
-                            className="absolute -left-6 top-20 z-10"
+                            className="absolute top-20 -left-6 z-10"
                             animate={{
                                 y: [0, -15, 0],
                                 rotate: [0, 8, -8, 0],
@@ -42,7 +42,7 @@ export function DropLink({ strings }: { strings: LandingStrings }) {
                         </motion.div>
 
                         <motion.div
-                            className="absolute -right-4 top-20 z-10"
+                            className="absolute top-20 -right-4 z-10"
                             animate={{
                                 y: [0, -18, 0],
                                 x: [0, 6, 0],
@@ -59,7 +59,7 @@ export function DropLink({ strings }: { strings: LandingStrings }) {
                         </motion.div>
 
                         <motion.div
-                            className="absolute -left-4 bottom-16 z-10"
+                            className="absolute bottom-16 -left-4 z-10"
                             animate={{
                                 y: [0, -12, 0],
                                 rotate: [0, -10, 10, 0],
@@ -112,7 +112,7 @@ export function DropLink({ strings }: { strings: LandingStrings }) {
                     <a href="/setup" target="_blank" rel="noopener noreferrer">
                         <Button
                             shadowSize="4"
-                            className="mt-8 hidden w-58 bg-white px-7 pb-11 pt-4 text-base font-extrabold hover:bg-white/90 md:inline-block md:w-72 md:px-10 md:text-lg"
+                            className="mt-8 hidden w-58 bg-white px-7 pt-4 pb-11 text-base font-extrabold hover:bg-white/90 md:inline-block md:w-72 md:px-10 md:text-lg"
                         >
                             {strings.signUp}
                         </Button>
@@ -122,7 +122,7 @@ export function DropLink({ strings }: { strings: LandingStrings }) {
                 <div className="relative w-full md:w-1/3">
                     {/* Desktop Floating Icons */}
                     <motion.div
-                        className="absolute -left-8 -top-4 z-10 hidden md:block"
+                        className="absolute -top-4 -left-8 z-10 hidden md:block"
                         animate={{
                             y: [0, -20, 0],
                             rotate: [0, 10, -10, 0],
@@ -138,7 +138,7 @@ export function DropLink({ strings }: { strings: LandingStrings }) {
                     </motion.div>
 
                     <motion.div
-                        className="absolute -right-6 -top-8 z-10 hidden md:block"
+                        className="absolute -top-8 -right-6 z-10 hidden md:block"
                         animate={{
                             y: [0, -25, 0],
                             x: [0, 10, 0],
@@ -178,7 +178,7 @@ export function DropLink({ strings }: { strings: LandingStrings }) {
                     </motion.div>
 
                     <motion.div
-                        className="absolute -bottom-8 -right-4 z-10 hidden md:block"
+                        className="absolute -right-4 -bottom-8 z-10 hidden md:block"
                         animate={{
                             y: [0, -22, 0],
                             x: [0, -8, 8, 0],

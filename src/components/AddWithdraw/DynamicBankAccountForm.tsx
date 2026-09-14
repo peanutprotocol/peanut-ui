@@ -1,5 +1,7 @@
 'use client'
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react'
+import { Field } from '@/components/0_Bruddle/Field'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { useForm, Controller, type ControllerRenderProps, type FieldPath, type RegisterOptions } from 'react-hook-form'
 import { useAuth } from '@/context/authContext'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -7,7 +9,7 @@ import { type AddBankAccountPayload, BridgeAccountOwnerType, BridgeAccountType }
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import BaseSelect, { type BaseSelectOption } from '@/components/0_Bruddle/BaseSelect'
 import { BRIDGE_ALPHA3_TO_ALPHA2, ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
-import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import {
     validateIban,
@@ -17,10 +19,9 @@ import {
     isValidSortCode,
     isValidUKAccountNumber,
 } from '@/utils/bridge-accounts.utils'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import { getBicFromIban } from '@/app/actions/ibanToBic'
 import PeanutActionDetailsCard, { type PeanutActionDetailsCardProps } from '../Global/PeanutActionDetailsCard'
-import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
+import { type Account } from '@/interfaces/interfaces'
 import {
     getCountryFromIban,
     getCountryCodeForWithdraw,
@@ -29,12 +30,8 @@ import {
 } from '@/utils/withdraw.utils'
 import { createSmartPasteHandler, type PasteFieldKind } from '@/utils/clipboard-extract.utils'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
-import { useAppDispatch, useAppSelector } from '@/redux/hooks'
-import { bankFormActions } from '@/redux/slices/bank-form-slice'
 import { useDebounce } from '@/hooks/useDebounce'
-import { twMerge } from 'tailwind-merge'
 import { MX_STATES, US_STATES } from '@/constants/stateCodes.consts'
-import { withdrawBankUrl } from '@/utils/native-routes'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 import { useTranslations } from 'next-intl'
 
@@ -73,6 +70,11 @@ interface DynamicBankAccountFormProps {
     actionDetailsProps?: Partial<PeanutActionDetailsCardProps>
     error: string | null
     hideEmailInput?: boolean
+    /** Amount shown on the details card (withdraw flow passes the URL amount). */
+    amountDisplay?: string
+    /** Withdraw flow: the typed account already exists — select it and skip the add.
+     *  When omitted (claim flow) submission proceeds normally. */
+    onExistingAccount?: (account: Account) => void
 }
 
 export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, DynamicBankAccountFormProps>(
@@ -86,6 +88,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             countryName: countryNameFromProps,
             error,
             hideEmailInput = false,
+            amountDisplay,
+            onExistingAccount,
         },
         ref
     ) => {
@@ -96,7 +100,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const { user } = useAuth()
         const t = useTranslations('withdraw.bankForm')
         const tWithdraw = useTranslations('withdraw')
-        const dispatch = useAppDispatch()
         const [isSubmitting, setIsSubmitting] = useState(false)
         const [submissionError, setSubmissionError] = useState<string | null>(null)
         const { country: countryNameParams } = useParams()
@@ -107,8 +110,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         // This form also serves the claim flow, where the send marker is meaningless.
         const { isFromSendFlow } = useSendFlowOrigin()
         const framedAsSend = isFromSendFlow && flow === 'withdraw'
-        const { amountToWithdraw, setSelectedBankAccount } = useWithdrawFlow()
-        const router = useRouter()
         const savedAccounts = useSavedAccounts()
         const [isCheckingBICValid, setisCheckingBICValid] = useState(false)
         const STREET_ADDRESS_MAX_LENGTH = 35 // From bridge docs: street address can be max 35 characters
@@ -120,9 +121,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             country ??
             ''
         ).toLowerCase()
-
-        // Get persisted form data from Redux
-        const persistedFormData = useAppSelector((state) => state.bankForm.formData)
 
         // for claim flow: pre-fill accountOwnerName from user if logged in, for withdraw flow: keep empty
         const defaultAccountOwnerName = flow === 'claim' && user?.user.fullName ? user.user.fullName : ''
@@ -150,7 +148,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 state: '',
                 postalCode: '',
                 ...initialData,
-                ...persistedFormData, // Redux persisted data takes precedence
             },
             mode: 'onBlur',
             reValidateMode: 'onSubmit',
@@ -190,11 +187,13 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     (account) => account.identifier === (data.accountNumber.toLowerCase() || data.clabe.toLowerCase())
                 )
 
-                // Skip adding account if the account already exists for the logged in user
-                if (existingAccount) {
-                    setSelectedBankAccount(existingAccount)
-                    // keep the send marker, or the review screen it lands on reverts to withdraw copy
-                    router.push(withdrawBankUrl(country, framedAsSend ? '?method=bank' : ''))
+                // The account already exists for the logged-in user: the withdraw
+                // flow selects it and routes to review (handler owns navigation).
+                // Without a handler (claim flow) submission proceeds normally —
+                // the old behavior pushed a claim user into the withdraw flow,
+                // which dead-ended on its no-amount guard.
+                if (existingAccount && onExistingAccount) {
+                    onExistingAccount(existingAccount)
                     return
                 }
 
@@ -299,14 +298,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     if (!result.silent) setSubmissionError(result.error)
                     setIsSubmitting(false)
                 } else {
-                    // Save form data to Redux after successful submission
-                    const formDataToSave = {
-                        ...data,
-                        country,
-                        firstName: firstName.trim(),
-                        lastName: lastName.trim(),
-                    }
-                    dispatch(bankFormActions.setFormData(formDataToSave))
                     setIsSubmitting(false)
                 }
             } catch (error) {
@@ -333,9 +324,13 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             }
         }
 
+        // `label`, not `placeholder`: these strings were always field names
+        // ("Account Owner Name", "BIC", "Sort Code"), so as placeholders they
+        // vanished the moment the user typed and left six identical grey boxes
+        // with no way to tell IBAN from BIC on review.
         const renderInput = <TName extends FieldPath<IBankAccountDetails>>(
             name: TName,
-            placeholder: string,
+            label: string,
             rules: RegisterOptions<IBankAccountDetails, TName>,
             type: string = 'text',
             rightAdornment?: React.ReactNode,
@@ -345,7 +340,11 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         ) => {
             const smartPasteKind = smartPasteKindFor(name)
             return (
-                <div className="w-full">
+                <Field
+                    label={label}
+                    htmlFor={`bank-${name}`}
+                    error={errors[name] && touchedFields[name] ? (errors[name]?.message ?? '') : undefined}
+                >
                     <div className="relative">
                         <Controller
                             name={name}
@@ -354,17 +353,14 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             render={({ field }) => (
                                 <BaseInput
                                     {...field}
+                                    id={`bank-${name}`}
                                     type={type}
-                                    placeholder={placeholder}
                                     onPaste={
                                         smartPasteKind
                                             ? createSmartPasteHandler(smartPasteKind, field.onChange)
                                             : undefined
                                     }
-                                    className={twMerge(
-                                        'h-12 w-full rounded-sm border border-n-1 bg-white px-4 text-sm',
-                                        errors[name] && touchedFields[name] && 'border-error'
-                                    )}
+                                    className="text-body-s"
                                     onBlur={async (_e) => {
                                         // remove any whitespace from the input field
                                         // note: @dev not a great fix, this should also be fixed in the backend
@@ -378,7 +374,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                     }}
                                     rightContent={
                                         showCharCount && maxLength ? (
-                                            <span className="text-xs">
+                                            <span className="text-body-xs">
                                                 {field.value?.length ?? 0}/{maxLength}
                                             </span>
                                         ) : undefined
@@ -387,22 +383,22 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             )}
                         />
                     </div>
-                    <div className="mt-2 w-fit text-start">
-                        {errors[name] && touchedFields[name] && (
-                            <ErrorAlert description={errors[name]?.message ?? ''} />
-                        )}
-                    </div>
-                </div>
+                </Field>
             )
         }
 
         const renderSelect = (
             name: keyof IBankAccountDetails,
+            label: string,
             placeholder: string,
             options: BaseSelectOption[],
             rules: RegisterOptions<IBankAccountDetails>
         ) => (
-            <div className="w-full">
+            // the trigger is a button, so htmlFor cannot name it — aria-label does
+            <Field
+                label={label}
+                error={errors[name] && touchedFields[name] ? (errors[name]?.message ?? '') : undefined}
+            >
                 <Controller
                     name={name}
                     control={control}
@@ -410,22 +406,16 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     render={({ field }) => (
                         <BaseSelect
                             options={options}
+                            aria-label={label}
                             placeholder={placeholder}
                             value={field.value}
                             onValueChange={field.onChange}
                             onBlur={field.onBlur}
-                            error={!!(errors[name] && touchedFields[name])}
-                            className={twMerge(
-                                'h-12 w-full rounded-sm border border-n-1 bg-white px-4 text-sm',
-                                errors[name] && touchedFields[name] && 'border-error'
-                            )}
+                            className="h-12 w-full rounded-sm text-body-s"
                         />
                     )}
                 />
-                <div className="mt-2 w-fit text-start">
-                    {errors[name] && touchedFields[name] && <ErrorAlert description={errors[name]?.message ?? ''} />}
-                </div>
-            </div>
+            </Field>
         )
 
         const countryCodeForFlag = useMemo(() => {
@@ -433,14 +423,14 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         }, [country])
 
         return (
-            <div className="my-auto flex h-full w-full flex-col justify-center space-y-4 pb-5">
+            <div className="my-auto flex h-full w-full flex-col justify-center gap-4 pb-4">
                 <PeanutActionDetailsCard
                     countryCodeForFlag={countryCodeForFlag.toLowerCase()}
                     avatarSize="small"
                     transactionType={'WITHDRAW_BANK_ACCOUNT'}
                     recipientType={'BANK_ACCOUNT'}
                     recipientName={country}
-                    amount={amountToWithdraw}
+                    amount={amountDisplay ?? ''}
                     tokenSymbol={PEANUT_WALLET_TOKEN_SYMBOL}
                     {...actionDetailsProps}
                     // after the spread: the flow-guarded value stays authoritative even
@@ -448,18 +438,18 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     isFromSendFlow={framedAsSend}
                 />
 
-                <div className="space-y-4">
-                    <h3 className="text-base font-bold">{t('heading')}</h3>
+                <div className="flex flex-col gap-4">
+                    <h3 className="text-heading-card text-foreground-primary">{t('heading')}</h3>
                     <form
                         onSubmit={(e) => {
                             e.preventDefault()
                             handleSubmit(onSubmit)()
                         }}
-                        className="space-y-4"
+                        className="flex flex-col gap-4"
                     >
                         {/* CLAIM FLOW: show name field for guest users or logged-in users without fullName */}
                         {flow === 'claim' && !user?.user.userId && (
-                            <div className="w-full space-y-4">
+                            <div className="w-full">
                                 {renderInput('accountOwnerName', t('accountOwnerName'), {
                                     required: t('accountOwnerNameRequired'),
                                     validate: (value: string | undefined) => {
@@ -474,7 +464,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             </div>
                         )}
                         {flow === 'claim' && user?.user.userId && !user.user.fullName && (
-                            <div className="w-full space-y-4">
+                            <div className="w-full">
                                 {renderInput('accountOwnerName', t('accountOwnerName'), {
                                     required: t('accountOwnerNameRequired'),
                                     validate: (value: string | undefined) => {
@@ -498,7 +488,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
                         {/* WITHDRAW FLOW: always show account owner's name field (empty by default) */}
                         {flow !== 'claim' && (
-                            <div className="w-full space-y-4">
+                            <div className="w-full">
                                 {renderInput('accountOwnerName', t('accountOwnerName'), {
                                     required: t('accountOwnerNameRequired'),
                                     validate: (value: string | undefined) => {
@@ -623,10 +613,12 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             })}
 
                         {!isIban && !isUk && (
-                            <>
+                            /* address group: pt-2 on top of the 16px gap makes
+                               the 24px section step without a new heading */
+                            <div className="flex flex-col gap-4 pt-2">
                                 {renderInput(
                                     'street',
-                                    t('street'),
+                                    t('streetLabel'),
                                     {
                                         required: t('streetRequired'),
                                         maxLength: {
@@ -642,10 +634,11 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                     STREET_ADDRESS_MAX_LENGTH
                                 )}
 
-                                {renderInput('city', t('city'), { required: t('cityRequired') })}
+                                {renderInput('city', t('cityLabel'), { required: t('cityRequired') })}
 
                                 {renderSelect(
                                     'state',
+                                    t('stateLabel'),
                                     t('state'),
                                     (isMx ? MX_STATES : US_STATES).map((state) => ({
                                         label: state.name,
@@ -656,25 +649,25 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                     }
                                 )}
 
-                                {renderInput('postalCode', t('postalCode'), {
+                                {renderInput('postalCode', t('postalCodeLabel'), {
                                     required: t('postalCodeRequired'),
                                 })}
-                            </>
+                            </div>
                         )}
                         <Button
                             type="submit"
                             variant="purple"
                             shadowSize="4"
-                            className="!mt-4 w-full"
+                            className="w-full"
                             loading={isSubmitting || isCheckingBICValid || isValidating}
                             disabled={isSubmitting || !isValid || isCheckingBICValid || isValidating}
                         >
                             {tWithdraw('review')}
                         </Button>
                         {submissionError ? (
-                            <ErrorAlert description={submissionError} />
+                            <Notification priority="error">{submissionError}</Notification>
                         ) : (
-                            error && <ErrorAlert description={error} />
+                            error && <Notification priority="error">{error}</Notification>
                         )}
                     </form>
                 </div>

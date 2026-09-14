@@ -137,7 +137,12 @@ export interface ResolvedRail {
  *   - `bridge-hosted`     — open Bridge's hosted verification flow (the
  *                           catch-all for requirements with no native Sumsub
  *                           mapping); exchange the key for a URL via
- *                           startBridgeHostedVerification().
+ *                           startHostedVerification().
+ *   - `rain-hosted`       — open Rain's card-member portal to re-upload an
+ *                           identity document a card application was rejected
+ *                           on; exchange the key for a URL via
+ *                           startHostedVerification(), same handoff as
+ *                           bridge-hosted.
  */
 export type NextActionKind =
     | 'sumsub'
@@ -147,6 +152,7 @@ export type NextActionKind =
     | 'restart-identity'
     | 'provide-email'
     | 'bridge-hosted'
+    | 'rain-hosted'
 
 export interface NextAction {
     key: string // stable id, referenced by RailCapability.blockingActions
@@ -192,15 +198,25 @@ export interface IdentityVerification {
     status: IdentityVerificationStatus
     /** present for action_required / failed — friendly, display-ready, provider-neutral. */
     actionMessage?: string
+    /**
+     * Stable machine code + copy for WHY a `failed` identity failed, when the BE
+     * can tell. Mirrors `reason` on the rail side: branch on `code` to pick a
+     * screen, render localized copy from the catalog, fall back to `userMessage`
+     * for codes this build doesn't know. Absent ⇒ terminal, cause unknown ⇒
+     * today's generic contact-support ending.
+     */
+    reason?: CapabilityReason
+    /**
+     * For `failed` only: whether a fresh attempt could plausibly succeed.
+     *
+     * false ⇒ a decision was made (fraud, sanctions, age, jurisdiction); do NOT
+     * offer a retry. true ⇒ the check itself errored, so retrying is meaningful.
+     * Absent ⇒ an older backend that can't tell; treat as terminal, since
+     * offering a retry that cannot pass is the worse of the two mistakes.
+     */
+    canRetry?: boolean
     /** normalized rejection labels for specific guidance (action_required / failed). */
     rejectLabels?: string[]
-    /** structured reason, when the backend can name one (e.g. region_restricted). */
-    reason?: { code: string; userMessage?: string }
-    /** `failed` only — whether re-submitting can change the outcome. The backend
-     *  owns this decision (a region restriction forces false whatever the stored
-     *  status says); never re-derive it from `status`, which is too coarse to
-     *  tell a retryable rejection from a terminal one. */
-    canRetry?: boolean
     /** ISO timestamp the user submitted their verification. */
     submittedAt?: string
     /** ISO timestamp the decision landed. */

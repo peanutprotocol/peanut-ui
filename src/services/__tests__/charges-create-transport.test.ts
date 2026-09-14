@@ -58,15 +58,20 @@ describe('chargesApi.create transport', () => {
         })
     })
 
-    it('sends multipart via fetchWithSentry when a file attachment is present', async () => {
-        mockFetchWithSentry.mockResolvedValue(okResponse({ data: { id: 'c2' } }))
+    it('sends multipart via apiFetch when a file attachment is present', async () => {
+        mockApiFetch.mockResolvedValue(okResponse({ data: { id: 'c2' } }))
 
         const withFile = { ...chargeData, attachment: new File(['x'], 'receipt.png', { type: 'image/png' }) }
         await chargesApi.create(withFile)
 
-        expect(mockApiFetch).not.toHaveBeenCalled()
-        expect(mockFetchWithSentry).toHaveBeenCalledTimes(1)
-        const [, init] = mockFetchWithSentry.mock.calls[0]
+        // apiFetch keeps the FormData multipart boundary (no JSON content-type);
+        // native-http keeps FormData on the webview fetch. Known limit carried
+        // over from the pre-refactor code: a tokenless native session gets no
+        // credential on this multipart path (FormData can't ride the native
+        // transport).
+        expect(mockFetchWithSentry).not.toHaveBeenCalled()
+        expect(mockApiFetch).toHaveBeenCalledTimes(1)
+        const [, init] = mockApiFetch.mock.calls[0]
         expect(init?.body).toBeInstanceOf(FormData)
     })
 

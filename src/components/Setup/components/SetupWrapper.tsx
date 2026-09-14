@@ -13,8 +13,34 @@ import classNames from 'classnames'
 import { motion, useReducedMotion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
-import { Children, type ReactNode, cloneElement, memo, type ReactElement, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
+import {
+    Children,
+    type ReactNode,
+    cloneElement,
+    createContext,
+    memo,
+    type ReactElement,
+    useContext,
+    useEffect,
+    useState,
+} from 'react'
+import { twMerge } from '@/utils/tw'
+
+const SetupImageContext = createContext<(src: string | null) => void>(() => {})
+
+/**
+ * Lets a step's sub-view swap the wrapper's illustration for as long as it is
+ * mounted — the residence step's "Good news" outcome celebrates, while the
+ * selector it shares a step with keeps the neutral greeting. Sub-views are not
+ * steps, so they have no step config of their own to carry an image.
+ */
+export const useSetupImageOverride = (src: string | null) => {
+    const setImage = useContext(SetupImageContext)
+    useEffect(() => {
+        setImage(src)
+        return () => setImage(null)
+    }, [src, setImage])
+}
 
 /**
  * props interface for the SetupWrapper component
@@ -63,7 +89,7 @@ const STAR_POSITIONS = [
 ] as const
 
 /**
- * navigation component for back, skip, and logout buttons
+ * navigation component for back, skip and logout buttons
  * rendered at the top of the layout when any button is enabled
  */
 const Navigation = memo(function Navigation({
@@ -82,19 +108,29 @@ const Navigation = memo(function Navigation({
 
     if (!showBackButton && !showSkipButton && !showLogoutButton) return null
 
+    // Icons inherit currentColor: the stroke button inverts on hover/active, and
+    // a hard-coded fill vanished into the black background.
+    // The row's containing block is the initial one (no positioned ancestor).
+    // Match app navigation at 16px from either horizontal edge and 16px below
+    // the safe-area boundary; on web --safe-top is zero.
     return (
-        <div className="absolute top-8 z-20 flex w-full items-center justify-between px-6">
+        <div className="absolute top-[calc(var(--safe-top)_+_1rem)] z-20 flex w-full items-center justify-between px-4">
             <div>
                 {showBackButton && (
-                    <Button variant="stroke" onClick={onBack} className="h-8 w-8 p-0" aria-label={t('goBack')}>
-                        <Icon name="chevron-up" fill="black" size={20} className="-rotate-90" />
+                    <Button
+                        variant="stroke"
+                        onClick={onBack}
+                        className="relative size-10 p-0 shadow-none after:absolute after:-inset-0.5"
+                        aria-label={t('goBack')}
+                    >
+                        <Icon name="chevron-up" size={20} className="-rotate-90" />
                     </Button>
                 )}
             </div>
             <div className="flex items-center gap-3">
                 {showSkipButton && (
                     <Button onClick={onSkip} variant="transparent-dark" className="h-auto w-fit p-0">
-                        <span className="text-grey-1">{t('skip')}</span>
+                        <span className="text-foreground-over-color-secondary">{t('skip')}</span>
                     </Button>
                 )}
                 {showLogoutButton && (
@@ -102,11 +138,11 @@ const Navigation = memo(function Navigation({
                         onClick={onLogout}
                         loading={isLoggingOut}
                         variant="stroke"
-                        className={twMerge('h-7 w-7 p-0', isLoggingOut && 'pl-3')}
+                        className="relative size-10 p-0 shadow-none after:absolute after:-inset-0.5"
                         aria-label={t('logout')}
                         disabled={isLoggingOut}
                     >
-                        <Icon name="logout" fill="black" size={24} />
+                        {!isLoggingOut && <Icon name="logout" size={20} />}
                     </Button>
                 )}
             </div>
@@ -140,7 +176,7 @@ const ImageSection = ({
             <div
                 className={twMerge(
                     containerClass,
-                    'relative flex w-full flex-row items-center justify-center overflow-hidden bg-secondary-3/100 px-4 md:h-[100dvh] md:w-7/12 md:px-6'
+                    'relative flex w-full flex-row items-center justify-center overflow-hidden bg-blue-300/100 px-4 md:h-dvh md:w-7/12 md:px-6'
                 )}
             >
                 {/* render animated star decorations */}
@@ -175,8 +211,8 @@ const ImageSection = ({
         <div
             className={classNames(
                 containerClass,
-                'flex w-full flex-row items-center justify-center bg-secondary-3/100 md:h-[100dvh] md:w-7/12',
-                screenId === 'success' && 'bg-secondary-1/15'
+                'flex w-full flex-row items-center justify-center bg-blue-300/100 md:h-dvh md:w-7/12',
+                screenId === 'success' && 'bg-action-secondary/15'
             )}
         >
             <Image
@@ -218,6 +254,7 @@ export const SetupWrapper = memo(function SetupWrapper({
     titleClassName,
 }: SetupWrapperProps) {
     const t = useTranslations('setup.braveInstall')
+    const [imageOverride, setImageOverride] = useState<string | null>(null)
     const { isBrave } = useBravePWAInstallState()
     const [showBraveSuccessMessage, setShowBraveSuccessMessage] = useState(false)
     const prefersReducedMotion = useReducedMotion()
@@ -263,7 +300,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                     imageClassName={imageClassName}
                     screenId={screenId}
                     layoutType={layoutType}
-                    image={image}
+                    image={imageOverride ?? image}
                 />
 
                 {/* content section */}
@@ -272,57 +309,65 @@ export const SetupWrapper = memo(function SetupWrapper({
                     animate={animatePanelIn ? { y: 0 } : undefined}
                     transition={{ type: 'spring', stiffness: 260, damping: 30 }}
                     className={twMerge(
-                        'flex flex-col justify-between overflow-hidden bg-white px-6 pb-8 pt-6 md:h-[100dvh] md:justify-center md:space-y-4',
+                        'flex flex-col justify-between overflow-hidden bg-white px-6 pt-6 pb-8 md:space-y-4 md:h-dvh md:justify-center',
                         // signup: panel hugs its content so the hero absorbs the slack
                         // (paired with the grow classes in IMAGE_CONTAINER_CLASSES)
                         layoutType === 'signup' ? 'grow-0 md:grow' : 'flex-grow',
                         contentClassName
                     )}
                 >
-                    {/* title and description container */}
-                    <div
-                        className={twMerge(
-                            'mx-auto h-full w-full space-y-4 md:max-h-48 md:max-w-xs',
-                            (screenId === 'signup' || screenId == 'join-beta') && 'md:max-h-12',
-                            sunsetLanding && 'md:h-auto md:max-h-none'
-                        )}
-                    >
-                        {headingTitle && (
-                            <h1
-                                className={twMerge(
-                                    'w-full text-left text-xl font-extrabold leading-tight',
-                                    sunsetLanding && 'md:text-center',
-                                    titleClassName
-                                )}
-                            >
-                                {headingTitle}
-                            </h1>
-                        )}
-                        {headingDescription && (
-                            <p
-                                className={twMerge(
-                                    'text-base font-medium text-black',
-                                    sunsetLanding && 'md:text-center'
-                                )}
-                            >
-                                {headingDescription}
-                            </p>
-                        )}
-                    </div>
+                    {/* title and description container. Skipped entirely when
+                        the step renders its own heading (titleInView +
+                        descriptionInView): the wrapper is height-capped on
+                        desktop, so an empty slot would push the content down
+                        by up to 12rem. */}
+                    {(headingTitle || headingDescription) && (
+                        <div
+                            className={twMerge(
+                                'mx-auto space-y-4 h-full w-full md:max-h-48 md:max-w-xs',
+                                (screenId === 'signup' || screenId == 'join-beta') && 'md:max-h-12',
+                                sunsetLanding && 'md:h-auto md:max-h-none'
+                            )}
+                        >
+                            {headingTitle && (
+                                <h1
+                                    className={twMerge(
+                                        'w-full text-left text-heading-xs leading-tight',
+                                        sunsetLanding && 'md:text-center',
+                                        titleClassName
+                                    )}
+                                >
+                                    {headingTitle}
+                                </h1>
+                            )}
+                            {headingDescription && (
+                                <p
+                                    className={twMerge(
+                                        'text-body-m text-foreground-primary',
+                                        sunsetLanding && 'md:text-center'
+                                    )}
+                                >
+                                    {headingDescription}
+                                </p>
+                            )}
+                        </div>
+                    )}
                     {/* main content area */}
                     <div className="mx-auto w-full md:max-w-xs">
-                        {Children.map(children, (child) => {
-                            if ((child as ReactElement).type === InstallPWA) {
-                                return cloneElement(child as ReactElement, {
-                                    deferredPrompt,
-                                    canInstall,
-                                    deviceType,
-                                    screenId,
-                                    setShowBraveSuccessMessage,
-                                })
-                            }
-                            return child
-                        })}
+                        <SetupImageContext.Provider value={setImageOverride}>
+                            {Children.map(children, (child) => {
+                                if ((child as ReactElement).type === InstallPWA) {
+                                    return cloneElement(child as ReactElement, {
+                                        deferredPrompt,
+                                        canInstall,
+                                        deviceType,
+                                        screenId,
+                                        setShowBraveSuccessMessage,
+                                    })
+                                }
+                                return child
+                            })}
+                        </SetupImageContext.Provider>
                     </div>
                 </motion.div>
             </div>

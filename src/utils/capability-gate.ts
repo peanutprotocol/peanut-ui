@@ -237,6 +237,88 @@ function firstAdvisory(candidates: RailWithVerdict[]): GateAdvisory | undefined 
 }
 
 /**
+ * Purposes the Manteca cap-nudge is emitted under (peanut-api-ts
+ * `kyc/capabilities/resolver.ts`). A full-tier Manteca rail that recently hit
+ * its monthly cap carries the marker as a `hintAction`; once the user submits
+ * the source-of-funds document the marker gains `submittedAt` and the hint
+ * becomes a `wait`.
+ */
+const CAP_NUDGE_RAISE_PURPOSE = 'raise-manteca-limit'
+const CAP_NUDGE_REVIEW_PURPOSE = 'manteca-limit-under-review'
+
+/**
+ * The source-of-funds RFI the cap-nudge starts. Identified by key/level as well
+ * as purpose because the BE's action key is NOT provider-namespaced: Bridge
+ * emits the same `sumsub:source_of_funds` for its own source-of-funds
+ * requirement, and the resolver's `upsertAction` keeps whichever rail emits
+ * FIRST. A user carrying both a Bridge SoF requirement and a Manteca cap-nudge
+ * can therefore end up with the Manteca rail pointing at a descriptor whose
+ * purpose reads `unlock-bridge` — and a purpose-only check would drop the real
+ * nudge and leave exactly that cohort with no limit-raise route, which is the
+ * hole this whole selector exists to close.
+ */
+const CAP_NUDGE_RAISE_KEY = 'sumsub:source_of_funds'
+const CAP_NUDGE_RAISE_LEVEL = 'source_of_funds'
+
+/**
+ * The Manteca cap-nudge, if the user is carrying one.
+ *
+ *   - `raise`        — a fresh cap block. `actionKey` starts the source-of-funds
+ *                      Sumsub flow (POST /users/kyc/start-action).
+ *   - `under-review` — the document is in, but Sumsub accepting it does NOT mean
+ *                      Manteca raised the cap (that is still a manual support
+ *                      step). Non-actionable by construction: no key to start.
+ */
+export type MantecaCapNudge = { state: 'raise'; actionKey: string } | { state: 'under-review' }
+
+/**
+ * Select the Manteca cap-nudge from the capability block.
+ *
+ * Deliberately NOT routed through {@link firstAdvisory}: that selector ranks
+ * Bridge's future-dated requirements by `effectiveDate`, and the cap-nudge has
+ * no date to rank by — it is already due. Loosening the date requirement there
+ * would push the nudge into the add-money/withdraw pre-empt modal, interrupting
+ * a payment to advertise a limit raise. This is its own read, consumed by the
+ * limits page.
+ *
+ * A fresh block outranks an in-review sibling: re-seeding the marker (a NEW cap
+ * block after a completed RFI) must restore the actionable CTA rather than leave
+ * the user staring at a stale "under review".
+ *
+ * Both branches are pinned to the action `kind` the FE can actually honour, so a
+ * future BE that re-purposes either key cannot make the review state tappable.
+ */
+export function selectMantecaCapNudge(rails: RailCapability[], nextActions: NextAction[]): MantecaCapNudge | undefined {
+    const byKey = new Map(nextActions.map((action) => [action.key, action]))
+    let underReview = false
+
+    for (const rail of rails) {
+        if (rail.provider !== 'manteca') continue
+        // The verdict's nextAction is the BE-derived carrier on an enabled rail;
+        // `hintActions` is the legacy one. Read both — same dual-source rule as
+        // railVerdict — so neither an older nor a newer BE drops the nudge.
+        const candidates = [...railHintActions(rail, byKey), rail.resolved?.nextAction]
+        for (const action of candidates) {
+            if (!action) continue
+            // Rail-LOCAL identification. These come from a Manteca rail's own
+            // hint list, and Bridge requirements ride Bridge rails' blocking
+            // actions — so a source-of-funds RFI reached from here is the cap
+            // nudge whatever purpose the deduped descriptor ended up carrying.
+            const isSourceOfFunds =
+                action.purpose === CAP_NUDGE_RAISE_PURPOSE ||
+                action.key === CAP_NUDGE_RAISE_KEY ||
+                action.levelKey === CAP_NUDGE_RAISE_LEVEL
+            if (action.kind === 'sumsub' && isSourceOfFunds) {
+                return { state: 'raise', actionKey: action.key }
+            }
+            if (action.kind === 'wait' && action.purpose === CAP_NUDGE_REVIEW_PURPOSE) underReview = true
+        }
+    }
+
+    return underReview ? { state: 'under-review' } : undefined
+}
+
+/**
  * Input state for the pure derive. Held separately from the React hook so the
  * gate is independently testable (and re-usable from non-React callers).
  */
@@ -422,4 +504,75 @@ export function getGateAdvisory(gate: GateState): GateAdvisory | undefined {
  */
 export function getGateReasonCode(gate: GateState): string | undefined {
     return 'reason' in gate ? gate.reason?.code : undefined
+}
+
+/**
+ * Gates the verify step can actually DO something about. Deliberately an
+ * allow-list: `pending` and `waiting-on-provider` resolve to the default
+ * "Unlock now" screen, so treating them as verification would offer a fresh
+ * Sumsub run to someone whose only correct move is to wait — and a gate kind
+ * added later falls through to the amount step, which is where it behaved
+ * before, rather than onto a screen that cannot render it.
+ */
+const VERIFIABLE_GATE_KINDS = new Set<GateState['kind']>([
+    'needs-identity',
+    'needs-enrollment',
+    'fixable-rejection',
+    'restart-identity',
+    'blocked-rejection',
+    'provide-email',
+])
+
+/** Whether the user can act on this gate themselves, rather than only wait. */
+export function isVerifiableGate(kind: GateState['kind']): boolean {
+    return VERIFIABLE_GATE_KINDS.has(kind)
+}
+
+export type DepositStep = 'verify' | 'inputAmount' | 'showDetails'
+
+/**
+ * The step a deposit flow belongs on, or `null` to leave it where it is.
+ *
+ * Verification comes before the amount: asking for a number and only then
+ * revealing an ID check wastes the entry, and a user who cannot pass the check
+ * should never have typed one. This runs on every gate change, not only at
+ * entry, so a bookmarked `?step=inputAmount` cannot walk around the ordering
+ * and a cleared gate does not strand anyone on a requirement they have met.
+ *
+ * Two states it must not touch: a gate that has not resolved (entering on the
+ * amount and then jumping would flash the wrong screen), and `showDetails`,
+ * which is a live onramp with a transfer id behind it.
+ *
+ * `accept-tos` is not an identity check. It is a one-tap consent the amount
+ * step already guards inline, so it does not earn a screen of its own.
+ */
+/**
+ * Whether a deposit step may render yet.
+ *
+ * A persisted `?step=verify` is not evidence the user needs verifying — a
+ * `pending` user can reload one. Nothing renders until the gate has answered
+ * AND the step matches that answer, because either gap puts the default
+ * "Unlock now" screen on the page with a live CTA that would start a Sumsub
+ * run for someone whose gate only time can clear.
+ *
+ * `showDetails` is exempt: it is a live onramp holding its own transfer id, and
+ * does not read the gate at all.
+ */
+export function isDepositStepReady(current: DepositStep | null | undefined, gateKind: GateState['kind']): boolean {
+    if (current === 'showDetails') return true
+    // Answered is not enough — the step must be the one the answer calls for.
+    // Effects run after paint, so a step the effect is about to rewrite still
+    // gets a frame on screen: long enough on a slow device to tap an "Unlock
+    // now" that the real gate never offered.
+    return gateKind !== 'loading' && nextDepositStep(current, gateKind) === null
+}
+
+export function nextDepositStep(
+    current: DepositStep | null | undefined,
+    gateKind: GateState['kind']
+): 'verify' | 'inputAmount' | null {
+    if (gateKind === 'loading') return null
+    if (current === 'showDetails') return null
+    const target = isVerifiableGate(gateKind) ? 'verify' : 'inputAmount'
+    return current === target ? null : target
 }

@@ -49,6 +49,118 @@ const PASSKEY_LOGIN_MESSAGES = {
 
 export type PasskeyErrorCode = keyof typeof PASSKEY_LOGIN_MESSAGES
 
+/**
+ * PasskeyErrorCode → `setup.*` catalog key, for codes whose copy already
+ * exists translated. Render sites resolve these with useTranslations('setup');
+ * codes not listed fall back to the English message the error carries.
+ */
+const PASSKEY_ERROR_SETUP_KEYS = {
+    LOGIN_CANCELED: 'waitlist.loginCanceled',
+    CEREMONY_TIMEOUT: 'passkey.tookTooLong',
+    PASSKEY_NOT_READY: 'passkey.notReady',
+    PASSKEY_STATE: 'passkey.deviceState',
+    PASSKEY_INTERRUPTED: 'passkey.interrupted',
+    NETWORK: 'passkey.serverUnreachable',
+    PASSKEY_UNSUPPORTED: 'passkey.unsupported',
+    PASSKEY_ORIGIN: 'passkey.origin',
+    LOGIN_ERROR: 'passkey.loginError',
+} as const satisfies Record<PasskeyErrorCode, string>
+
+/** Reads the classification code off a thrown PasskeyError, if it carries one. */
+export function getPasskeyErrorCode(error: unknown): PasskeyErrorCode | undefined {
+    if (!(error instanceof Error) || error.name !== 'PasskeyError') return undefined
+    const code = (error as Error & { code?: unknown }).code
+    return typeof code === 'string' && code in PASSKEY_LOGIN_MESSAGES ? (code as PasskeyErrorCode) : undefined
+}
+
+/**
+ * Maps a login failure to the `setup.*` i18n key for its curated copy, or
+ * undefined when no translated equivalent exists (the caller then renders the
+ * error's own English message as the fallback).
+ */
+export function getPasskeyErrorSetupKey(
+    error: unknown
+): (typeof PASSKEY_ERROR_SETUP_KEYS)[keyof typeof PASSKEY_ERROR_SETUP_KEYS] | undefined {
+    const code = getPasskeyErrorCode(error)
+    return code && code in PASSKEY_ERROR_SETUP_KEYS
+        ? PASSKEY_ERROR_SETUP_KEYS[code as keyof typeof PASSKEY_ERROR_SETUP_KEYS]
+        : undefined
+}
+
+/**
+ * zerodev's toWebAuthnKey reads passkey-server responses with no HTTP-status
+ * check, so a non-2xx surfaces as a raw TypeError thrown from deep inside the
+ * SDK. Two shapes, two meanings:
+ * - `.replace is not a function` / `evaluating 'e.replace'`: /login/options
+ *   returned an error body and @simplewebauthn's base64url decoder got no
+ *   challenge. Nothing was authenticated and nothing is known about this
+ *   device's passkey, so it must not classify as LOGIN_ERROR (whose handler
+ *   wipes the session).
+ * - `…verification.verified`: /login/verify rejected this device's assertion
+ *   (PEANUT-UI-R0V). That is a real login failure; it keeps the LOGIN_ERROR
+ *   path, just with a readable message.
+ */
+const PASSKEY_SERVER_TYPE_ERROR = /\.replace is not a function|evaluating '[^']*\.replace'/i
+const LOGIN_NOT_VERIFIED_TYPE_ERROR = /verif(ication|ied)/i
+
+export class PasskeyServerError extends Error {
+    constructor(cause: Error) {
+        super('Passkey server request failed')
+        this.name = 'PasskeyServerError'
+        this.cause = cause
+    }
+}
+
+export function normalizePasskeyServerError(error: unknown): unknown {
+    if (!(error instanceof TypeError)) return error
+    const message = error.message ?? ''
+    if (PASSKEY_SERVER_TYPE_ERROR.test(message)) return new PasskeyServerError(error)
+    if (LOGIN_NOT_VERIFIED_TYPE_ERROR.test(message)) return new Error('Login not verified')
+    return error
+}
+
+/**
+ * @capgo/capacitor-passkey (8.2.2, still true on 8.5.1) drops the DOM error
+ * name on the native path twice over: the Android plugin maps every
+ * non-`CreatePublicKeyCredentialDomException` to `"UnknownError"`, and the JS
+ * shim's `normalizePluginError` returns Capacitor's rejection unchanged
+ * whenever it is already an `Error` — which `CapacitorException` always is, and
+ * it never sets `name`. So a user dismissing the Android Credential Manager
+ * sheet arrives here as `Error("User cancelled the selector")` instead of
+ * `NotAllowedError`, and every caller that switches on `err.name` falls through
+ * to its unknown-failure branch (generic help modal + a `passkey_setup_error`
+ * Sentry report for something the user did on purpose).
+ *
+ * Recovering the name from the plugin's `code`/`data.name` is not enough on its
+ * own — the cancellation exceptions are the ones flattened to `UnknownError` —
+ * so androidx's cancellation and no-provider messages are mapped explicitly.
+ */
+const ANDROID_CANCELLATION_MESSAGE =
+    /user cancelled the selector|activity is cancelled by the user|cancelled by the user/i
+const ANDROID_NO_CREATE_OPTION_MESSAGE = /no create options|no credential available to create/i
+
+type PluginRejection = Error & { code?: unknown; data?: { name?: unknown } }
+
+function pluginErrorName(error: PluginRejection): string | undefined {
+    if (typeof error.code === 'string' && error.code.endsWith('Error')) return error.code
+    const dataName = error.data?.name
+    return typeof dataName === 'string' && dataName.endsWith('Error') ? dataName : undefined
+}
+
+export function normalizeNativePasskeyError(error: unknown): unknown {
+    if (!(error instanceof Error) || error.name !== 'Error') return error
+    const rejection = error as PluginRejection
+    const message = rejection.message ?? ''
+    const recovered =
+        ANDROID_CANCELLATION_MESSAGE.test(message) || ANDROID_NO_CREATE_OPTION_MESSAGE.test(message)
+            ? WebAuthnErrorName.NotAllowed
+            : pluginErrorName(rejection)
+    if (!recovered || recovered === 'UnknownError') return error
+    // Renaming in place keeps the original stack and the plugin's own fields.
+    rejection.name = recovered
+    return rejection
+}
+
 function isNetworkError(error: Error): boolean {
     if (error.name === 'TypeError' && /fetch|network/i.test(error.message)) return true
     // "Load failed" is WebKit's message for a failed fetch (common when the
@@ -61,7 +173,8 @@ function isNetworkError(error: Error): boolean {
  * Classification order: known DOMException name → network heuristic → fallback.
  */
 export function classifyPasskeyError(error: unknown): PasskeyErrorClassification {
-    const err = error instanceof Error ? error : new Error(String(error))
+    const normalized = normalizeNativePasskeyError(error)
+    const err = normalized instanceof Error ? normalized : new Error(String(normalized))
     let code: PasskeyErrorCode = 'LOGIN_ERROR'
     // iOS surfaces ceremony failures as a bare Error whose message carries the
     // ASAuthorizationError code, not a DOMException name: 1001 = user canceled,
@@ -101,6 +214,9 @@ export function classifyPasskeyError(error: unknown): PasskeyErrorClassification
         case 'PasskeyShimFailedError':
             code = 'PASSKEY_STATE'
             break
+        case 'PasskeyServerError':
+            code = 'NETWORK'
+            break
         default:
             if (isNetworkError(err)) code = 'NETWORK'
     }
@@ -133,9 +249,10 @@ export async function withWebAuthnRetry<T>(
 
             // Success - log if it was a retry
             if (attempt > 1) {
-                Sentry.captureMessage(`${operationName} succeeded on retry ${attempt - 1}`, {
+                Sentry.addBreadcrumb({
+                    message: `${operationName} succeeded on retry ${attempt - 1}`,
                     level: 'info',
-                    extra: { attempt, maxRetries },
+                    data: { attempt, maxRetries },
                 })
             }
 
@@ -153,9 +270,10 @@ export async function withWebAuthnRetry<T>(
             }
 
             // Log retry attempt to Sentry for monitoring
-            Sentry.captureMessage(`${operationName} retry attempt`, {
+            Sentry.addBreadcrumb({
+                message: `${operationName} retry attempt`,
                 level: 'warning',
-                extra: {
+                data: {
                     errorName: lastError.name,
                     errorMessage: lastError.message,
                     attempt,
@@ -170,7 +288,11 @@ export async function withWebAuthnRetry<T>(
                     await navigator.credentials.preventSilentAccess()
                 } catch (e) {
                     // Silent fail - this is a best-effort workaround
-                    console.warn('preventSilentAccess failed:', e)
+                    Sentry.addBreadcrumb({
+                        message: 'preventSilentAccess failed',
+                        level: 'info',
+                        data: { errorName: (e as Error)?.name },
+                    })
                 }
             }
 

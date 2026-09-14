@@ -13,9 +13,11 @@
  */
 
 import NavHeader from '@/components/Global/NavHeader'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import AmountInput from '@/components/Global/AmountInput'
 import UserCard from '@/components/User/UserCard'
-import ErrorAlert from '@/components/Global/ErrorAlert'
 import SupportCTA from '@/components/Global/SupportCTA'
 import { useContributePotFlow } from '../useContributePotFlow'
 import { useState } from 'react'
@@ -76,10 +78,10 @@ export function ContributePotInputView() {
     const isAmountEntered = !!amount && parseFloat(amount) > 0
 
     return (
-        <div className="flex min-h-[inherit] flex-col justify-between gap-8">
+        <div className="flex min-h-inherit flex-col justify-between gap-8">
             <NavHeader onPrev={onBack} title={t('headers.pay')} />
 
-            <div className="my-auto flex h-full flex-col justify-center space-y-4">
+            <PageStack.Center className="gap-4">
                 {/* recipient card with pot info */}
                 {recipient && (
                     <UserCard
@@ -96,24 +98,26 @@ export function ContributePotInputView() {
                     />
                 )}
 
-                {/* amount input with slider */}
-                <AmountInput
-                    initialAmount={amount}
-                    setPrimaryAmount={setAmount}
-                    onSubmit={handlePayWithPeanut}
-                    walletBalance={isLoggedIn ? formattedBalance : undefined}
-                    hideBalance={!isLoggedIn}
-                    hideCurrencyToggle={true}
-                    showSlider={totalAmount > 0}
-                    maxAmount={totalAmount}
-                    amountCollected={totalCollected}
-                    defaultSliderValue={sliderDefaults.percentage}
-                    defaultSliderSuggestedAmount={sliderDefaults.suggestedAmount}
-                />
+                {/* amount input with slider + its field error form one column, 4px apart */}
+                <div className="flex flex-col gap-1">
+                    <AmountInput
+                        initialAmount={amount}
+                        setPrimaryAmount={setAmount}
+                        onSubmit={handlePayWithPeanut}
+                        walletBalance={isLoggedIn ? formattedBalance : undefined}
+                        hideBalance={!isLoggedIn}
+                        hideCurrencyToggle={true}
+                        showSlider={totalAmount > 0}
+                        maxAmount={totalAmount}
+                        amountCollected={totalCollected}
+                        defaultSliderValue={sliderDefaults.percentage}
+                        defaultSliderSuggestedAmount={sliderDefaults.suggestedAmount}
+                    />
+                    {isInsufficientBalance && <FieldError>{t('errors.insufficientRequest')}</FieldError>}
+                </div>
 
                 {/* error display */}
-                {isInsufficientBalance && <ErrorAlert description={t('errors.insufficientRequest')} />}
-                {error.showError && <ErrorAlert description={error.errorMessage} />}
+                {error.showError && <Notification priority="error">{error.errorMessage}</Notification>}
 
                 {/* payment options */}
                 <RequestPotActionList
@@ -126,7 +130,7 @@ export function ContributePotInputView() {
                     isExternalWalletLoading={isExternalWalletLoading}
                     onPayWithExternalWallet={handleOpenExternalWalletFlow}
                 />
-            </div>
+            </PageStack.Center>
 
             {/* support cta */}
             {!isFetchingUser && <SupportCTA />}

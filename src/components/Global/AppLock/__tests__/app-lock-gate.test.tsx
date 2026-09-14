@@ -12,6 +12,7 @@ import { isCapacitor } from '@/utils/capacitor'
 
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: jest.fn(),
+    isAndroidNative: () => false,
 }))
 
 // The app-open lock is dormant behind OPEN_GATED (off unless

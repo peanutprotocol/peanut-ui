@@ -41,11 +41,10 @@ jest.mock('@/services/sendLinks', () => ({
     sendLinksApi: mockSendLinksApi,
 }))
 
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ fetchUser: jest.fn() }) }))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null, fetchUser: jest.fn() }) }))
 jest.mock('@/context/ClaimBankFlowContext', () => ({
     useClaimBankFlow: () => ({ offrampDetails: null, claimType: 'claim', bankDetails: null }),
 }))
-jest.mock('@/redux/hooks', () => ({ useUserStore: () => ({ user: null }) }))
 jest.mock('@/hooks/useRecipientDisplay', () => ({
     useRecipientDisplay: () => ({ displayName: 'alice' }),
 }))
@@ -62,7 +61,8 @@ jest.mock('@/components/Global/SoundPlayer', () => ({
         return null
     },
 }))
-jest.mock('@/components/Global/PeanutLoading', () => ({
+// ds: PeanutLoading is retired here; the view renders Loading variant="mascot"
+jest.mock('@/components/Global/Loading', () => ({
     __esModule: true,
     default: (props: any) => <div data-testid="peanut-loading">{props.message}</div>,
 }))
@@ -162,6 +162,20 @@ describe('SUCCESS view — polled claim failure', () => {
         mockSendLinksApi.get.mockResolvedValue({
             status: 'CLAIMED',
             claim: { txHash: '0xabc' },
+            events: [],
+        })
+
+        renderView()
+
+        await waitFor(() => expect(screen.getByTestId('success-card')).toBeInTheDocument())
+        expect(screen.queryByText(/network is busy/i)).not.toBeInTheDocument()
+    })
+
+    test('a CLAIMED status with no projected hash still renders the success card', async () => {
+        // matches the backend's notify point: CLAIMED means the money moved, so
+        // the view must not sit on "processing" waiting the txHash out
+        mockSendLinksApi.get.mockResolvedValue({
+            status: 'CLAIMED',
             events: [],
         })
 

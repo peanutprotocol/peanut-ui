@@ -53,6 +53,15 @@ describe('executeClaim error propagation', () => {
         expect(friendlyError(error)).toEqual({ kind: 'code', code: 'networkBusyTimeout' })
     })
 
+    test('a 409 on an already-claimed link carries LINK_ALREADY_CLAIMED (TASK-22091)', async () => {
+        mockClaimResponse(409, { error: 'This link was already claimed.', code: 'LINK_ALREADY_CLAIMED' })
+
+        const error = await executeClaim(CLAIM_ARGS).catch((e) => e)
+
+        expect((error as { code?: string }).code).toBe('LINK_ALREADY_CLAIMED')
+        expect(friendlyError(error)).toEqual({ kind: 'code', code: 'sendLinkAlreadyClaimed' })
+    })
+
     test('an uncoded failure keeps its message and the support fallback', async () => {
         mockClaimResponse(500, { error: 'An unexpected error occurred. Please try again or contact support.' })
 

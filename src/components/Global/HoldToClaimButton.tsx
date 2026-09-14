@@ -99,9 +99,9 @@ export const HoldToClaimButton: FC<Props> = ({
         >
             {/* Solid black overlay fills left→right with holdProgress.
                 Matches the QR-claim button exactly: bg-black (not /30),
-                transition-all duration-100. */}
+                transition-all duration-instant. */}
             <div
-                className="absolute inset-0 bg-black transition-all duration-100"
+                className="absolute inset-0 bg-black transition-all duration-instant"
                 style={{ width: `${holdProgress}%`, left: 0 }}
             />
             <span className="relative z-10">{children}</span>

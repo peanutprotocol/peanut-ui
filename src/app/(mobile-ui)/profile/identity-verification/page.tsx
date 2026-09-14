@@ -1,5 +1,5 @@
-import UnlockedRegions from '@/components/Profile/views/UnlockedRegions.view'
+import UnlockPayments from '@/components/Profile/views/UnlockPayments.view'
 
 export default function IdentityVerificationPage() {
-    return <UnlockedRegions />
+    return <UnlockPayments />
 }

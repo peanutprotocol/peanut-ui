@@ -2,7 +2,6 @@
 
 import { formatTokenAmount } from '@/utils/general.utils'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { twMerge } from 'tailwind-merge'
 import { Icon as IconComponent } from '@/components/Global/Icons/Icon'
 import { Slider } from '../Slider'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
@@ -25,6 +24,13 @@ interface AmountInputProps {
     secondaryDenomination?: { symbol: string; price: number; decimals: number }
     setCurrentDenomination?: (denomination: string) => void
     walletBalance?: string
+    /**
+     * Exact amount, in the primary denomination, that tapping the balance row
+     * fills in. Omit to keep the balance row plain text.
+     */
+    balanceFillAmount?: number
+    /** Called with the amount actually filled when the balance row is tapped. */
+    onBalanceFilled?: (value: string) => void
     hideCurrencyToggle?: boolean
     hideBalance?: boolean
     infoContent?: React.ReactNode
@@ -50,6 +56,8 @@ const AmountInput = ({
     secondaryDenomination,
     setCurrentDenomination,
     walletBalance,
+    balanceFillAmount,
+    onBalanceFilled,
     hideCurrencyToggle,
     hideBalance,
     infoContent,
@@ -87,8 +95,8 @@ const AmountInput = ({
     // Track when user is actively editing to prevent feedback loops from initialAmount sync
     const isEditingRef = useRef(false)
 
-    // Check if displayValue has a meaningful numeric value (not empty, "0", "0.00", etc.)
-    const hasValue = Boolean(Number(displayValue))
+    // A positive conversion can display as zero at the currency precision.
+    const hasValue = exactValue > 0
 
     // Sync displayValue with initialAmount changes (e.g. when charge is fetched)
     // Skip sync if user is actively editing to prevent overwriting their input
@@ -240,6 +248,40 @@ const AmountInput = ({
         }
     }, [defaultSliderSuggestedAmount])
 
+    // What tapping the balance row fills in, or undefined when the row stays
+    // plain text. Computed from the number the parent validates against, never
+    // parsed back out of the label. Floored to the 2 decimals the balance label
+    // shows — that label truncates too (formatNumberForDisplay, roundingMode
+    // 'trunc'), so the filled amount and the number under the user's thumb
+    // always agree, and neither can claim more than the wallet holds. Anything
+    // finer than a cent stays behind on purpose (TASK-21899).
+    const fillValue = useMemo(() => {
+        if (disabled || !balanceFillAmount || balanceFillAmount <= 0) return undefined
+        // The amount is denominated in the primary unit, so it must not be
+        // filled into a field the user toggled to the secondary one.
+        if (displaySymbol !== primaryDenomination.symbol) return undefined
+        // A denomination coarser than cents still wins — filling 10.12 into a
+        // whole-number field would show an amount it can't hold.
+        const decimals = Math.min(2, denominations[displaySymbol]?.decimals ?? 2)
+        // forInput slices the fraction instead of rounding it, so this floors.
+        const formatted = formatTokenAmount(String(balanceFillAmount), decimals, true)
+        // Anything the field can't express — a balance under a cent, or a
+        // magnitude String() writes in exponential notation — formats to "0"/"".
+        // Leave the row inert rather than offering an amount that can't be used.
+        return formatted && Number(formatted) ? formatted : undefined
+    }, [disabled, balanceFillAmount, displaySymbol, primaryDenomination.symbol, denominations])
+
+    const fillBalance = useCallback(() => {
+        if (!fillValue) return
+        isEditingRef.current = true
+        setDisplayValue(fillValue)
+        setExactValue(Number(fillValue) * 10 ** DECIMAL_SCALE)
+        // Reported separately from setPrimaryAmount, which cannot tell a filled
+        // amount from a typed one — the withdraw screen needs that distinction
+        // to know the user asked for "everything".
+        onBalanceFilled?.(fillValue)
+    }, [fillValue, onBalanceFilled])
+
     const inputRef = useRef<HTMLInputElement>(null)
     // set input width based on display value length
     // add extra space for decimal numbers to prevent cutoff
@@ -262,18 +304,31 @@ const AmountInput = ({
 
     return (
         <form
-            className={`relative cursor-text rounded-sm border border-n-1 bg-white p-4 dark:border-white ${className}`}
+            // usage board 17788:19201 (ruling 20, supersedes the borderless
+            // 17360:4451 read): the amount container is a bordered box —
+            // 1px border-default, L/16 padding, square corners. The dead
+            // dark: variant and disabled-text fixes from the earlier pass stay.
+            // DS input state pattern (design.md names AmountInput as a ring
+            // carrier): 3px blue ring replaces the border on focus; base
+            // outline-color stops the black->blue flash
+            className={`relative cursor-text border border-border-default bg-background-default p-4 outline-action-focus focus-within:border-transparent focus-within:outline-[3px] focus-within:outline-action-focus focus-within:outline-solid ${className}`}
             action=""
             onClick={() => inputRef.current?.focus()}
         >
             <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-2">
                 <div className="flex items-center gap-1 font-bold">
-                    <label className={`text-xl ${displayValue ? 'text-black' : 'text-gray-1'}`}>{displaySymbol}</label>
+                    <label
+                        className={`text-heading-xs ${displayValue ? 'text-foreground-primary' : 'text-foreground-secondary'}`}
+                    >
+                        {displaySymbol}
+                    </label>
 
                     {/* Input with fake caret */}
                     <div className="relative">
                         <input
-                            className={`h-12 max-w-80 bg-transparent text-6xl font-black text-black caret-primary-1 outline-none transition-colors placeholder:text-h1 placeholder:text-gray-1 focus:border-primary-1 disabled:opacity-100 disabled:[-webkit-text-fill-color:black] dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1 dark:disabled:[-webkit-text-fill-color:white]`}
+                            // h-16, not h-12: text-heading-big-input is 52px on a 64px line box, so a
+                            // 48px input clipped the digits at the baseline
+                            className={`h-16 max-w-80 bg-transparent text-heading-big-input text-foreground-primary caret-action-primary transition-colors outline-none placeholder:text-foreground-secondary disabled:text-foreground-secondary disabled:opacity-100 disabled:[-webkit-text-fill-color:var(--color-foreground-secondary)]`}
                             placeholder={'0.00'}
                             onChange={(e) => {
                                 isEditingRef.current = true
@@ -283,6 +338,7 @@ const AmountInput = ({
                                 if (formattedAmount !== undefined) {
                                     value = formattedAmount
                                 }
+                                if (value === displayValue) return
                                 setDisplayValue(value)
                                 setExactValue(Number(value) * 10 ** DECIMAL_SCALE)
                             }}
@@ -306,30 +362,64 @@ const AmountInput = ({
                         />
                         {/* Fake blinking caret shown when not focused and input is empty */}
                         {!isFocused && !displayValue && (
-                            <div className="pointer-events-none absolute left-0 top-1/2 h-12 w-[1px] -translate-y-1/2 animate-blink bg-primary-1" />
+                            <div className="pointer-events-none absolute top-1/2 left-0 h-16 w-[1px] -translate-y-1/2 animate-blink bg-action-primary" />
                         )}
                     </div>
                 </div>
 
                 {/* Conversion */}
                 {showConversion && (
-                    <label className={twMerge('text-lg font-bold', !Number(alternativeValue) && 'text-gray-1')}>
+                    <label
+                        className={`text-heading-card ${!Number(alternativeValue) ? 'text-foreground-secondary' : ''}`}
+                    >
                         ≈ {alternativeDisplaySymbol} {alternativeDisplayValue}{' '}
                     </label>
                 )}
 
                 {/* Balance */}
-                {walletBalance && !hideBalance && (
-                    <div className="text-center text-grey-1">
-                        {t('amountInput.balance')} {secondaryDenomination ? 'USD ' : '$ '}
-                        {walletBalance}
-                    </div>
-                )}
+                {walletBalance &&
+                    !hideBalance &&
+                    (() => {
+                        // A symbol sits against the number ($10.12), an ISO code
+                        // takes a space (USD 10.12) — the CLDR rule for en-US,
+                        // which is how the amount itself is formatted.
+                        const balanceAmount = `${secondaryDenomination ? 'USD ' : '$'}${walletBalance}`
+                        if (!fillValue) {
+                            return (
+                                <div className="text-center text-foreground-secondary">
+                                    {`${t('amountInput.balance')} ${balanceAmount}`}
+                                </div>
+                            )
+                        }
+                        // Only the amount is the action — "Balance:" stays a label,
+                        // so the underline marks exactly what the tap fills in.
+                        return (
+                            <div className="flex items-center justify-center gap-1 text-foreground-secondary">
+                                <span>{t('amountInput.balance')}</span>
+                                <button
+                                    type="button"
+                                    // The form wrapper focuses the amount field on any
+                                    // click inside it. Let this one bubble and the mobile
+                                    // keyboard opens over the CTA the user is heading for.
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        fillBalance()
+                                    }}
+                                    aria-label={t('amountInput.useFullBalance', { balance: balanceAmount })}
+                                    className="min-h-11 min-w-11 px-1 underline underline-offset-4 focus-visible:outline-[3px] focus-visible:outline-action-focus"
+                                >
+                                    {balanceAmount}
+                                </button>
+                            </div>
+                        )
+                    })()}
             </div>
             {/* Conversion toggle */}
             {showConversion && (
-                <div
-                    className="absolute right-0 top-1/2 -translate-x-1/2 -translate-y-1/2 transform cursor-pointer"
+                <button
+                    type="button"
+                    aria-label={t('amountInput.switchCurrency')}
+                    className="absolute top-1/2 right-0 -translate-x-1/2 -translate-y-1/2 transform cursor-pointer transition-opacity duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                     onClick={(e) => {
                         e.preventDefault()
                         // keep editing state true - user is interacting, prevent sync from initialAmount
@@ -343,17 +433,21 @@ const AmountInput = ({
                             return
                         }
                         setExactValue(alternativeValue)
-                        setDisplayValue(alternativeDisplayValue.replace(/,/g, ''))
+                        setDisplayValue(
+                            Number(alternativeDisplayValue.replace(/,/g, '')) === 0
+                                ? '0'
+                                : alternativeDisplayValue.replace(/,/g, '')
+                        )
                         setDisplaySymbol(alternativeDisplaySymbol)
                     }}
                 >
                     <IconComponent
                         name={'arrow-exchange'}
-                        className="ml-5 rotate-90 cursor-pointer"
+                        className="ml-4 rotate-90 cursor-pointer"
                         width={32}
                         height={32}
                     />
-                </div>
+                </button>
             )}
             {infoContent}
             {showSlider && maxAmount && (

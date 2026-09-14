@@ -1,5 +1,5 @@
 import { Icon } from '@/components/Global/Icons/Icon'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 
 interface NavigationArrowProps {
     size?: number

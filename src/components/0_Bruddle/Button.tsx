@@ -1,6 +1,6 @@
 'use client'
 import React, { forwardRef, useCallback, useEffect, useRef } from 'react'
-import { twMerge } from 'tailwind-merge'
+import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 import Loading from '../Global/Loading'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
@@ -20,11 +20,15 @@ type ShadowSize = '3' | '4' | '6' | '8'
 type ShadowType = 'primary' | 'secondary'
 
 /**
- * Primary button component.
+ * Primary button component. Styled to the figma button board (17802:61527):
+ * pill shape, sizes l=48/m=44 (default)/s=40px, primary + stroke carry the
+ * 4px shadow by default.
  *
- * @prop variant - Visual style. 'purple' for primary CTAs, 'stroke' for secondary.
- * @prop size - Height override. Omit for default h-13 (tallest). 'large' is h-10 (shorter!).
- * @prop shadowSize - Drop shadow depth. '4' is standard (160+ usages).
+ * @prop variant - Visual style. 'purple' = board primary, 'stroke' = board
+ *   secondary, 'transparent' = board ghost. Others are legacy.
+ * @prop size - Omit for medium (44px). 'large' is 48px, 'small' is 40px.
+ * @prop shadowSize - Shadow depth override; '4' is already the default on
+ *   purple/stroke, so passing it is a no-op kept for compatibility.
  * @prop longPress - Hold-to-confirm behavior with progress bar animation.
  */
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -54,22 +58,23 @@ const buttonVariants: Record<ButtonVariant, string> = {
     stroke: 'btn-stroke',
     'transparent-light': 'btn-transparent-light',
     'transparent-dark': 'btn-transparent-dark',
-    'primary-soft': 'bg-white',
+    'primary-soft': 'bg-white active:bg-action-primary',
     transparent:
-        'bg-transparent border-none hover:bg-transparent !active:bg-transparent focus:bg-transparent disabled:bg-transparent disabled:hover:bg-transparent',
+        'bg-transparent border-none hover:bg-transparent active:bg-transparent! focus:bg-transparent disabled:bg-transparent disabled:hover:bg-transparent hover:text-action-ghost-hover hover:fill-action-ghost-hover active:text-action-ghost-hover active:fill-action-ghost-hover',
 }
 
 const buttonSizes: Record<ButtonSize, string> = {
     small: 'btn-small',
     medium: 'btn-medium',
-    /** @deprecated large (h-10) is shorter than default (h-13). Avoid for primary CTAs. */
     large: 'btn-large',
 }
 
+// board 17802:61527 icon per button size: S = 16, M = 20, L = 24. 18 was off
+// the 16/20/24 icon scale entirely and matched no board row.
 const buttonIconSizes: Record<ButtonSize, number> = {
     small: 16,
-    medium: 16,
-    large: 18,
+    medium: 20,
+    large: 24,
 }
 
 const buttonShadows: Record<ShadowType, Record<ShadowSize, string>> = {
@@ -138,17 +143,24 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         )
 
         const buttonClasses = twMerge(
-            `btn w-full flex items-center gap-2 transition-all duration-100 active:translate-x-[3px] active:translate-y-[${shadowSize}px] active:shadow-none notranslate`,
+            // static pressed-state classes: the old `translate-y-[${shadowSize}px]`
+            // template never generated a real class under the jit scanner
+            'btn w-full flex items-center gap-2 transition-all duration-instant active:translate-x-1 active:translate-y-1 active:shadow-none notranslate',
             buttonVariants[variant],
             variant === 'transparent' && props.disabled && 'disabled:bg-transparent disabled:border-transparent',
             size && buttonSizes[size],
+            // board icon/label gap: S is XS/4, L and M are S/8. It has to sit
+            // here rather than in `.btn-small`, because @layer components loses
+            // to the base `gap-2` utility — twMerge is what resolves it.
+            size === 'small' && 'gap-1',
             shape === 'square' && 'btn-square',
             shadowSize && buttonShadows[shadowType || 'primary'][shadowSize],
 
             className
         )
 
-        const resolvedIconSize = iconSize ?? (size && buttonIconSizes[size]) ?? 18
+        // no `size` means medium (`.btn` is h-11), so the fallback is medium's icon
+        const resolvedIconSize = iconSize ?? (size && buttonIconSizes[size]) ?? buttonIconSizes.medium
 
         const renderIcon = () => {
             if (!icon || loading) return null
@@ -183,7 +195,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                 {/* Progress bar for long press */}
                 {longPress && pressProgress > 0 && (
                     <div
-                        className="absolute inset-0 bg-gradient-to-r from-purple-400 to-purple-600 opacity-30 transition-all duration-75 ease-out"
+                        className="absolute inset-0 bg-gradient-to-r from-purple-400 to-purple-600 opacity-30 transition-all duration-instant ease-out"
                         style={{
                             width: `${pressProgress}%`,
                         }}

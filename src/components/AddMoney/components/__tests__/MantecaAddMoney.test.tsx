@@ -104,7 +104,7 @@ jest.mock('@/components/AddMoney/components/MantecaPixQrDeposit', () => ({
     __esModule: true,
     default: () => <div data-testid="pix-qr" />,
 }))
-jest.mock('@/components/Global/PeanutLoading/CyclingLoading', () => ({ __esModule: true, default: () => <div /> }))
+jest.mock('@/components/Global/Loading/CyclingLoading', () => ({ __esModule: true, default: () => <div /> }))
 
 // records the props MantecaAddMoney hands to the amount step
 type InputStepProps = {

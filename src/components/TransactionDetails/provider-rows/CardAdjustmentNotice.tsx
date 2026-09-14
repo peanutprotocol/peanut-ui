@@ -1,7 +1,7 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import InfoCard from '@/components/Global/InfoCard'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { parseCents } from '@/components/TransactionDetails/transaction-details.utils'
 
@@ -32,10 +32,8 @@ export function CardAdjustmentNotice({ transaction }: { transaction: Transaction
     if (deltaCents <= 0) return null
 
     return (
-        <InfoCard
-            variant="info"
-            icon="info"
-            description={t('settlementAdjustedNotice', { amount: `$${(deltaCents / 100).toFixed(2)}` })}
-        />
+        <Notification priority="info" data-testid="info-card">
+            {t('settlementAdjustedNotice', { amount: `$${(deltaCents / 100).toFixed(2)}` })}
+        </Notification>
     )
 }
