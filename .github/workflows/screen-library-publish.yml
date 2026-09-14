@@ -6,10 +6,10 @@ on:
             # standard CLOUDFLARE_API_TOKEN runtime variable below.
             CLOUDFLARE_PUBLISH_TOKEN:
                 required: true
-            # The caller explicitly maps the same repository secret for the
-            # trusted deployment job.
+            # Supplied by the screen-library-deploy environment to the deploy
+            # job; callers do not pass the publisher credential into it.
             CLOUDFLARE_API_TOKEN:
-                required: true
+                required: false
 permissions:
     contents: read
     actions: read

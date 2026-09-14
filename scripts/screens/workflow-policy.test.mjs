@@ -20,9 +20,10 @@ test('only superseded pull-request captures are cancelled', () => {
     assert.match(screenLibrary, /cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \}\}/)
 })
 
-test('one Cloudflare API token is explicitly passed to publish and deploy', () => {
+test('publisher and deploy Cloudflare credentials remain isolated by scope', () => {
     assert.match(screenLibrary, /CLOUDFLARE_PUBLISH_TOKEN: \$\{\{ secrets\.CLOUDFLARE_API_TOKEN \}\}/)
-    assert.match(screenLibrary, /CLOUDFLARE_API_TOKEN: \$\{\{ secrets\.CLOUDFLARE_API_TOKEN \}\}/)
-    assert.match(publisher, /CLOUDFLARE_API_TOKEN:\n\s+required: true/)
+    assert.doesNotMatch(screenLibrary, /^\s+CLOUDFLARE_API_TOKEN:/m)
+    assert.match(publisher, /CLOUDFLARE_API_TOKEN:\n\s+required: false/)
+    assert.match(publisher, /environment: screen-library-deploy/)
     assert.match(publisher, /CLOUDFLARE_API_TOKEN: \$\{\{ secrets\.CLOUDFLARE_API_TOKEN \}\}/)
 })

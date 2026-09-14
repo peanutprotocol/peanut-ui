@@ -99,15 +99,20 @@ DevOps setup:
 
 1. Create a dedicated private R2 bucket. Retain objects
    indefinitely; respect object Cache-Control (index/latest use 60 seconds).
-2. Create one Cloudflare API token with Workers R2 Storage Edit scoped to this
-   gallery's R2 bucket and Workers Scripts Edit scoped to this gallery's Worker.
-   Until the first private publication has migrated every retained report, also
-   keep Images Edit so it can remove the old public Hosted Images objects. Save
-   it as the repository `CLOUDFLARE_API_TOKEN` secret. The caller explicitly
-   maps that secret to both trusted jobs; the reusable workflow retains its
-   historical `CLOUDFLARE_PUBLISH_TOKEN` input only at the workflow boundary.
-   The publisher verifies the token ID and derives the S3 secret from its SHA-256
-   hash at runtime; no separate R2 keys are stored.
+2. Create two Cloudflare API tokens with separate values, both stored under the
+   standard `CLOUDFLARE_API_TOKEN` name at different GitHub scopes:
+   - a publisher token with Workers R2 Storage Edit scoped to this gallery's R2
+     bucket. Until the first private publication has migrated every retained
+     report, also keep Images Edit so it can remove the old public Hosted Images
+     objects. Save it as the repository `CLOUDFLARE_API_TOKEN` secret. The
+     reusable workflow retains its historical `CLOUDFLARE_PUBLISH_TOKEN` input
+     only at the workflow boundary; the publisher process receives the standard
+     variable name and never receives Workers Scripts Edit.
+   - a deployment token with Workers Scripts Edit scoped to this gallery's
+     Worker. Save it as the `CLOUDFLARE_API_TOKEN` secret in the
+     `screen-library-deploy` environment. The publisher token is not passed to
+     this job. The publisher verifies its token ID and derives the S3 secret from
+     its SHA-256 hash at runtime; no separate R2 keys are stored.
 3. In GitHub Actions repository variables set `CLOUDFLARE_ACCOUNT_ID`,
    `SCREEN_LIBRARY_R2_BUCKET`, `SCREEN_LIBRARY_R2_JURISDICTION` (`eu` for screenshots-library),
    `SCREEN_LIBRARY_PUBLIC_URL` (gallery HTTPS origin,
@@ -117,8 +122,8 @@ DevOps setup:
    `/screens/*` and `/screen-data/*`. Allow the `peanut.me` email domain, permit
    only the Google identity provider, and enable instant authentication. Keep the
    root URL outside Access so it can render the branded sign-in shell.
-5. For a custom domain, the token additionally needs Zone Read and DNS Edit
-   scoped to the domain's zone, which must exist in this account. For
+5. For a custom domain, the deployment token additionally needs Zone Read and
+   DNS Edit scoped to the domain's zone, which must exist in this account. For
    workers.dev no zone permissions are needed. Initialize the account's
    workers.dev subdomain in the dashboard and set `SCREEN_LIBRARY_PUBLIC_URL`
    to the Worker origin. Generated deployments disable Preview URLs. A custom
@@ -141,14 +146,14 @@ deletes the corresponding public Hosted Images objects, and only then rewrites
 the manifest without those URLs. A failed deletion leaves the old manifest in
 place so the next run can retry; publication fails instead of declaring the
 migration complete. After one successful run reports that all retained reports
-were migrated, Images Edit can be removed from the token.
+were migrated, Images Edit can be removed from the publisher token.
 
-Only the trusted reusable publisher workflow receives the write credential; its
-publisher and deploy jobs never execute downloaded code. The publisher accepts
-hashes and validated JSON/PNG/WebP, reconstructs the comparison itself, and
-generates offline HTML from its own trusted viewer. Artifacts expire after 14
-days; published objects have no automatic expiry. Assets are deduplicated by
-SHA-256.
+Only the separate trusted publisher receives the storage write credential. The
+publisher accepts hashes and validated JSON/PNG/WebP; no downloaded code or HTML
+is executed. It reconstructs the comparison itself and generates offline HTML
+from its own trusted viewer. The Worker deployment credential is isolated in its
+protected GitHub environment. Artifacts expire after 14 days; published objects
+have no automatic expiry. Assets are deduplicated by SHA-256.
 
 ```sh
 node scripts/screens/publish.mjs /tmp/screens-comparison 2026-09-10/compare-main-2026-08-27/85f95e42fc25e09f1df6724b8dfb4b8afbfb6a00
