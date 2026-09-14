@@ -47,7 +47,10 @@ export const saveToCookie = (key: string, data: unknown, expiryDays?: number) =>
         cookieString += `; path=/; SameSite=Lax${isSecure ? '; Secure' : ''}`
 
         document.cookie = cookieString
-        console.log(`Saved ${key} to cookie:`, data)
+        // Cookie values can contain invite/source context or other account
+        // metadata. Keep diagnostics useful without copying the value into
+        // browser logs, replay breadcrumbs, or support screenshots.
+        console.log(`Saved ${key} to cookie`)
     } catch (error) {
         Sentry.captureException(error)
         console.error('Error saving to cookie:', error)
@@ -73,7 +76,7 @@ export const getFromCookie = (key: string) => {
         const decodedValue = decodeURIComponent(cookieValue)
 
         const parsedData = jsonParse(decodedValue)
-        console.log(`Retrieved ${key} from cookie:`, parsedData)
+        console.log(`Retrieved ${key} from cookie`)
         return parsedData
     } catch (error) {
         Sentry.captureException(error)

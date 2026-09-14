@@ -12,6 +12,7 @@ import {
 import { isAndroidNative, isIOSNative } from '../capacitor'
 import { clipboardHasStrings, clipboardHasProbableWebUrl } from '../clipboard-detect'
 import { saveToCookie } from '../cookie-url.utils'
+import { SIGNUP_ATTRIBUTION_COOKIE } from '../signup-attribution'
 
 const getReferrer = jest.fn()
 
@@ -51,10 +52,12 @@ jest.mock('@capacitor/preferences', () => ({
 }))
 
 const posthogCapture = jest.fn()
+const posthogRegister = jest.fn()
 jest.mock('posthog-js', () => ({
     __esModule: true,
     default: {
         capture: (...args: unknown[]) => posthogCapture(...args),
+        register: (...args: unknown[]) => posthogRegister(...args),
     },
 }))
 
@@ -83,6 +86,32 @@ beforeEach(() => {
 })
 
 describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
+    it('uses a compact attribution token within Play referrer limits', () => {
+        saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, {
+            schemaVersion: '1',
+            journeyId: '33333333-3333-4333-8333-333333333333',
+            platform: 'android',
+            analyticsState: 'enabled',
+            captureMethod: 'browser',
+            firstTouch: {
+                occurredAt: new Date().toISOString(),
+                utmSource: 'creator',
+                utmMedium: 'social',
+                utmCampaign: 'localized-landing-page',
+                path: '/es-419/blog/creator-guide',
+            },
+        })
+
+        const payload = buildDeferredPayload('/home')
+        expect(payload).toContain('at=')
+        expect(payload).not.toContain('attribution=')
+        expect(encodeURIComponent(payload).length).toBeLessThanOrEqual(512)
+        expect(parseDeferredPayload(payload)?.attribution).toMatchObject({
+            journeyId: '33333333-3333-4333-8333-333333333333',
+            firstTouch: { utmSource: 'creator', utmCampaign: 'localized-landing-page' },
+        })
+    })
+
     it('round-trips a full payload including an encoded dest with query', () => {
         window.history.replaceState({}, '', '/es-419/some-page')
         saveToCookie('inviteCode', 'abc123')
@@ -387,6 +416,37 @@ describe('restore telemetry', () => {
         })
         // the inviter and destination must never reach analytics
         expect(JSON.stringify(posthogCapture.mock.calls)).not.toContain('abc')
+        expect(JSON.stringify(posthogCapture.mock.calls)).not.toContain('/home')
+    })
+
+    it('restores attribution and registers only the durable journey identity', async () => {
+        mockIsAndroidNative.mockReturnValue(true)
+        getReferrer.mockResolvedValue({
+            referrer: `pnutdl=1&attribution=${encodeURIComponent(
+                JSON.stringify({
+                    schemaVersion: '1',
+                    journeyId: '33333333-3333-4333-8333-333333333333',
+                    platform: 'android',
+                    analyticsState: 'enabled',
+                    captureMethod: 'browser',
+                    firstTouch: {
+                        occurredAt: '2026-09-10T09:00:00.000Z',
+                        utmSource: 'creator',
+                        utmCampaign: 'summer',
+                        path: '/blog/how-it-works',
+                    },
+                })
+            )}&dest=%2Fhome`,
+        })
+
+        await restoreDeferredContext()
+
+        expect(posthogRegister).toHaveBeenCalledWith({
+            signup_journey_id: '33333333-3333-4333-8333-333333333333',
+            signup_platform: 'android',
+            signup_attribution_capture_method: 'deferred_link',
+        })
+        expect(JSON.stringify(posthogCapture.mock.calls)).not.toContain('creator')
         expect(JSON.stringify(posthogCapture.mock.calls)).not.toContain('/home')
     })
 
