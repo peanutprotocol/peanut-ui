@@ -19909,6 +19909,9 @@
                                         },
                                         "error": {
                                             "type": "string"
+                                        },
+                                        "retryAfterSeconds": {
+                                            "type": "number"
                                         }
                                     },
                                     "required": [
@@ -19930,6 +19933,9 @@
                                         },
                                         "error": {
                                             "type": "string"
+                                        },
+                                        "retryAfterSeconds": {
+                                            "type": "number"
                                         }
                                     },
                                     "required": [
@@ -19951,6 +19957,9 @@
                                         },
                                         "error": {
                                             "type": "string"
+                                        },
+                                        "retryAfterSeconds": {
+                                            "type": "number"
                                         }
                                     },
                                     "required": [

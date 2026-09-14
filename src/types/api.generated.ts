@@ -12332,6 +12332,7 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                            retryAfterSeconds?: number;
                         };
                     };
                 };
@@ -12344,6 +12345,7 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                            retryAfterSeconds?: number;
                         };
                     };
                 };
@@ -12356,6 +12358,7 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                            retryAfterSeconds?: number;
                         };
                     };
                 };
