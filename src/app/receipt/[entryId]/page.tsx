@@ -19,6 +19,7 @@ import { buildOgImageUrl } from '@/utils/og.utils'
 import getOrigin from '@/lib/hosting/get-origin'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { generateReceiptTitle, generateReceiptDescription } from './receipt-metadata.utils'
+import { getReceiptAuthorization } from './receipt-auth'
 
 // Helper function to map transaction card type to OG image type
 function mapTransactionTypeToOGType(transactionType: string): 'send' | 'request' {
@@ -60,7 +61,8 @@ export async function generateMetadata({
 
     let transactionDetails: TransactionDetails
     try {
-        const entry = await getHistoryEntry(entryId, kind)
+        const authorization = await getReceiptAuthorization()
+        const entry = await getHistoryEntry(entryId, kind, authorization)
         if (!entry) {
             return basicMetadata
         }
@@ -124,7 +126,8 @@ export default async function ReceiptPage({
     }
     let entry: HistoryEntry | null
     try {
-        entry = await getHistoryEntry(entryId, kind)
+        const authorization = await getReceiptAuthorization()
+        entry = await getHistoryEntry(entryId, kind, authorization)
     } catch (error) {
         // A BE hiccup was crashing the whole Server Components render
         // (PEANUT-UI-4S9); keep the Sentry signal but render a retryable state.
