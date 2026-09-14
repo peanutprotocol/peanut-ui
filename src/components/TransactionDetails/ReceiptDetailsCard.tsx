@@ -79,7 +79,7 @@ export function ReceiptDetailsCard({
     return (
         <Card
             position={shouldShowQrShare ? 'first' : 'single'}
-            className="divide-y divide-dashed divide-border-default px-4 py-0"
+            className="divide-y divide-dashed divide-border-default px-4 py-0 [&_.ds-data-row]:py-2.5 [&_.ds-data-row-label]:text-body-xs [&_.ds-data-row-value]:text-label-m"
         >
             {/* Request-pot progress (board): first row of the card. */}
             <RequestPotProgressRow transaction={transaction} />

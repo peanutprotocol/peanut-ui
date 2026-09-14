@@ -70,6 +70,12 @@ describe('buildReceiptPdfModel — completed bank withdraw', () => {
     test('carries the official-document header and footer facts', () => {
         expect(model.title).toBe('transaction.officialReceipt.pdf.title')
         expect(model.issuedBy).toBe('transaction.officialReceipt.issuedBy')
+        expect(model.companyName).toBe('Squirrel Labs Ltd')
+        expect(model.companyAddressLines).toEqual([
+            'Office One',
+            '1 Coldbath Square',
+            'Farringdon, London, EC1R 5HL, UK',
+        ])
         expect(model.site).toBe('peanut.me')
         expect(model.reference).toBe(baseTx.id)
         expect(model.fileName).toBe(`peanut-receipt-${baseTx.id}.pdf`)

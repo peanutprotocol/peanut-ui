@@ -9,19 +9,16 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import ShareButton from '@/components/Global/ShareButton'
 import { PasskeyDocsLink } from '@/components/Setup/Views/SignTestTransaction'
 import { CancelDepositActions } from './provider-actions/CancelDepositActions'
-import { ReceiptReferralNudge } from './ReceiptReferralNudge'
 import { ReceiptSupportLink } from './ReceiptSupportLink'
 import { DownloadReceiptPdfLink } from './DownloadReceiptPdfLink'
+import { PrivateReceiptPdfActions } from './PrivateReceiptPdfActions'
 import { type ReceiptViewModel } from './useReceiptViewModel'
 import { useReceiptActions } from './useReceiptActions'
 import { type TransactionDetails } from './transactionTransformer'
-import { hasReferralNudge, isRequestEntry, isSendLinkEntry, isSplittable } from './transaction-predicates'
+import { isRequestEntry, isSendLinkEntry, isSplittable } from './transaction-predicates'
 import { buildSplitBillRequestUrl } from './splitBill.utils'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
-import { useActivationStatus } from '@/hooks/useActivationStatus'
-import { useAuth } from '@/context/authContext'
 import { openExternalUrl } from '@/utils/capacitor'
-import { generateInviteCodeLink } from '@/utils/general.utils'
 import { getReceiptUrl, isTestTransaction } from '@/utils/history.utils'
 import { resolveInAppNavigation } from '@/utils/native-routes'
 
@@ -35,8 +32,8 @@ const CANCEL_LINK_KEYS = {
 
 /**
  * The receipt's CTA stack (DS 09): share/cancel for pending links, pay/reject
- * for requests, split bill, share receipt, deposit cancels, referral nudge and
- * the support footer. All api side effects route through useReceiptActions —
+ * for requests, split bill, share/download receipt, deposit cancels and the
+ * support footer. All api side effects route through useReceiptActions —
  * this view only holds ephemeral UI state.
  */
 export function ReceiptActions({
@@ -62,8 +59,6 @@ export function ReceiptActions({
 }) {
     const t = useAppTranslations('transaction')
     const router = useRouter()
-    const { user } = useAuth()
-    const { isActivated } = useActivationStatus()
     const { closeRequest, rejectRequest, cancelSendLink } = useReceiptActions(transaction)
     const { isPendingBankRequest, isPendingRequestee, isPendingRequester, isPendingSentLink } = vm
 
@@ -80,21 +75,10 @@ export function ReceiptActions({
     // short-circuit in useReceiptViewModel); `getReceiptUrl` returning undefined
     // is the real suppressor, so the CTA arithmetic must read the composite.
     const receiptUrl = getReceiptUrl(transaction)
-    const showShareReceipt = vm.shouldShowShareReceipt && !!receiptUrl
+    const showPublicShareReceipt = vm.shouldShowShareReceipt && !!receiptUrl
+    const showPrivateReceiptActions =
+        vm.shouldShowShareReceipt && vm.shouldShowDownloadPdf && !receiptUrl && !!transaction.extraDataForDrawer?.kind
     const showSplitCta = !isPublic && isSplittable(transaction)
-
-    // `!isPublic`: on a public receipt the *viewer's* username would credit a
-    // bystander for someone else's payment.
-    const inviteUsername = user?.user.username
-    const showReferralNudge =
-        !isPublic &&
-        isActivated &&
-        transaction.status === 'completed' &&
-        hasReferralNudge(transaction) &&
-        !!inviteUsername
-    const inviteLink = inviteUsername ? generateInviteCodeLink(inviteUsername).inviteLink : ''
-
-    const referralCtaVariant = showSplitCta && showShareReceipt ? 'text_link' : 'button'
 
     const handleCloseRequest = async () => {
         if (!setIsLoading || !onClose) return
@@ -226,12 +210,20 @@ export function ReceiptActions({
                 </Button>
             )}
 
-            {showShareReceipt && (
+            {showPublicShareReceipt && (
                 <div className="pr-1">
                     <ShareButton variant={showSplitCta ? 'stroke' : 'purple'} url={receiptUrl!}>
                         {t('actions.shareReceipt')}
                     </ShareButton>
                 </div>
+            )}
+
+            {showPrivateReceiptActions && (
+                <PrivateReceiptPdfActions
+                    entryId={transaction.id}
+                    kind={transaction.extraDataForDrawer!.kind!}
+                    shareVariant={showSplitCta ? 'stroke' : 'purple'}
+                />
             )}
 
             <CancelDepositActions
@@ -243,16 +235,7 @@ export function ReceiptActions({
                 setIsModalOpen={setIsModalOpen}
             />
 
-            {showReferralNudge && (
-                <ReceiptReferralNudge
-                    transactionId={transaction.id}
-                    inviteLink={inviteLink}
-                    variant={referralCtaVariant}
-                    label={t('actions.inviteFriends')}
-                />
-            )}
-
-            {vm.shouldShowDownloadPdf && transaction.extraDataForDrawer?.kind && (
+            {vm.shouldShowDownloadPdf && !showPrivateReceiptActions && transaction.extraDataForDrawer?.kind && (
                 <DownloadReceiptPdfLink entryId={transaction.id} kind={transaction.extraDataForDrawer.kind} />
             )}
 

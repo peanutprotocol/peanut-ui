@@ -35,12 +35,13 @@ describe('DownloadReceiptPdfLink', () => {
                 <DownloadReceiptPdfLink entryId="entry-1" kind="OFFRAMP" />
             </IntlWrapper>
         )
-        const link = screen.getByRole('link', { name: 'Download PDF' })
+        const link = screen.getByRole('link', { name: 'Download Receipt (PDF)' })
         // locale rides the URL: it is the CDN cache key, and the only locale
         // signal the native external browser ever gets
         expect(link).toHaveAttribute('href', '/receipt/entry-1/pdf?kind=OFFRAMP&locale=en')
         expect(link).toHaveAttribute('download')
         expect(link).toHaveAttribute('target', '_blank')
+        expect(link).toHaveClass('btn', 'btn-stroke')
         fireEvent.click(link)
         expect(mockOpenExternalUrl).not.toHaveBeenCalled()
     })
@@ -52,7 +53,7 @@ describe('DownloadReceiptPdfLink', () => {
                 <DownloadReceiptPdfLink entryId="entry-1" kind="SEND_LINK" />
             </IntlWrapper>
         )
-        fireEvent.click(screen.getByRole('link', { name: 'Download PDF' }))
+        fireEvent.click(screen.getByRole('link', { name: 'Download Receipt (PDF)' }))
         expect(mockOpenExternalUrl).toHaveBeenCalledTimes(1)
         const opened = mockOpenExternalUrl.mock.calls[0][0] as string
         expect(opened).toMatch(/^https?:\/\//)
@@ -97,8 +98,10 @@ describe('useReceiptViewModel — shouldShowDownloadPdf', () => {
         expect(downloadVisible(tx({ direction: 'send', txHash: '0xabc' }, { kind: 'SEND_LINK' }))).toBe(true)
     })
 
-    test('hides for kinds without a /receipt page, even with the share gate open', () => {
-        expect(downloadVisible(tx({ direction: 'send', txHash: '0xabc' }, { kind: 'DIRECT_TRANSFER' }))).toBe(false)
+    test('shows authenticated PDF actions for every in-app transaction kind', () => {
+        expect(downloadVisible(tx({ direction: 'send', txHash: '0xabc' }, { kind: 'DIRECT_TRANSFER' }))).toBe(true)
+        expect(downloadVisible(tx({ direction: 'card_pay' }, { kind: 'CARD_SPEND_CLEAR' }))).toBe(true)
+        // The standalone public page remains on its established capability-url whitelist.
         expect(downloadVisible(tx({}, { kind: 'DIRECT_TRANSFER' }), true)).toBe(false)
     })
 

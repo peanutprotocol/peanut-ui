@@ -9,8 +9,10 @@ jest.mock('@/assets', () => ({}))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
 
 const model: ReceiptPdfModel = {
-    title: 'Payment Receipt',
-    issuedBy: 'Issued by Peanut',
+    title: 'Official Transaction Receipt',
+    issuedBy: 'Issued by Squirrel Labs Ltd',
+    companyName: 'Squirrel Labs Ltd',
+    companyAddressLines: ['Office One', '1 Coldbath Square', 'Farringdon, London, EC1R 5HL, UK'],
     site: 'peanut.me',
     amountDisplay: '$125.5',
     convertedAmountDisplay: 'ARS 113,250.75',

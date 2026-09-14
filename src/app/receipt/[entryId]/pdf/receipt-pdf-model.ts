@@ -11,6 +11,7 @@ import {
 } from '@/components/TransactionDetails/transaction-details.utils'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
 import { formatAmount, formatCurrency, isStableCoin, printableAddress } from '@/utils/general.utils'
+import { RECEIPT_COMPANY } from '@/components/TransactionDetails/receipt-company'
 
 /** Full-catalog translator (`t('transaction.rows.fee')`), so the PDF reuses
  *  the exact strings the receipt page renders. */
@@ -24,6 +25,8 @@ export interface ReceiptPdfRow {
 export interface ReceiptPdfModel {
     title: string
     issuedBy: string
+    companyName: string
+    companyAddressLines: readonly string[]
     site: string
     amountDisplay: string
     convertedAmountDisplay?: string
@@ -192,8 +195,8 @@ export function buildReceiptPdfModel(
         push(t('transaction.rows.transferId'), transaction.id)
     }
 
-    // Always masked: the PDF lives behind a shareable URL, so the unmasked
-    // guest-claim exception the in-app receipt makes does not apply here.
+    // Always masked: PDF files are explicitly downloadable/shareable, so the
+    // unmasked guest-claim exception the in-app receipt makes does not apply.
     if (transaction.bankAccountDetails?.identifier && !isCancelled) {
         const labelKey = bankAccountLabelKey(transaction.bankAccountDetails.type)
         const label =
@@ -216,7 +219,9 @@ export function buildReceiptPdfModel(
     return {
         title: t('transaction.officialReceipt.pdf.title'),
         issuedBy: t('transaction.officialReceipt.issuedBy'),
-        site: 'peanut.me',
+        companyName: RECEIPT_COMPANY.name,
+        companyAddressLines: RECEIPT_COMPANY.addressLines,
+        site: RECEIPT_COMPANY.site,
         amountDisplay: `$${formatCurrency(safeAmount.toString())}`,
         convertedAmountDisplay: convertedAmount(transaction),
         statusLabel,

@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
     page: {
         fontFamily: 'Montserrat',
         fontWeight: 500,
-        fontSize: 10,
+        fontSize: 9,
         color: '#000000',
         paddingVertical: 48,
         paddingHorizontal: 56,
@@ -67,20 +67,20 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
         marginBottom: 28,
     },
-    issuer: { textAlign: 'right', fontSize: 9, color: grey },
+    issuer: { textAlign: 'right', fontSize: 8, color: grey },
     issuerName: { fontWeight: 600 },
-    title: { fontSize: 16, fontWeight: 600, marginBottom: 16 },
+    title: { fontSize: 14, fontWeight: 600, marginBottom: 14 },
     amountCard: {
         borderWidth: 1.5,
         borderColor: border,
         borderRadius: 8,
-        paddingVertical: 16,
+        paddingVertical: 14,
         paddingHorizontal: 20,
         marginBottom: 16,
     },
-    amount: { fontSize: 24, fontWeight: 600 },
-    convertedAmount: { fontSize: 11, color: grey, marginTop: 4 },
-    status: { fontSize: 10, color: grey, marginTop: 6 },
+    amount: { fontSize: 20, fontWeight: 600 },
+    convertedAmount: { fontSize: 9, color: grey, marginTop: 4 },
+    status: { fontSize: 9, color: grey, marginTop: 5 },
     rowsCard: {
         borderWidth: 1.5,
         borderColor: border,
@@ -92,14 +92,14 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         gap: 24,
-        paddingVertical: 10,
+        paddingVertical: 8,
         borderBottomWidth: 1,
         borderBottomColor: '#D5D5D5',
         borderBottomStyle: 'dashed',
     },
     lastRow: { borderBottomWidth: 0 },
     rowLabel: { color: grey },
-    rowValue: { maxWidth: 330, textAlign: 'right', fontWeight: 600 },
+    rowValue: { maxWidth: 330, textAlign: 'right', fontSize: 8.5, fontWeight: 600 },
     footer: {
         position: 'absolute',
         left: 56,
@@ -110,12 +110,14 @@ const styles = StyleSheet.create({
     footerRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 24, marginBottom: 4 },
     footerLabel: { fontSize: 8, color: grey },
     footerValue: { fontSize: 8, textAlign: 'right', maxWidth: 340 },
-    site: { fontSize: 8, color: grey, marginTop: 6 },
+    legalName: { fontSize: 8, fontWeight: 600, marginTop: 7 },
+    legalAddress: { fontSize: 7, color: grey, marginTop: 2 },
+    site: { fontSize: 7, color: grey, marginTop: 3 },
 })
 
 export function ReceiptPdfDocument({ model }: { model: ReceiptPdfModel }) {
     return (
-        <Document title={model.title} author="Peanut" creator="peanut.me" producer="peanut.me">
+        <Document title={model.title} author={model.companyName} creator="Peanut" producer="peanut.me">
             <Page size="A4" style={styles.page}>
                 <View style={styles.header}>
                     <ReceiptPdfWordmark width={110} />
@@ -153,7 +155,9 @@ export function ReceiptPdfDocument({ model }: { model: ReceiptPdfModel }) {
                         <Text style={styles.footerLabel}>{model.referenceLabel}</Text>
                         <Text style={styles.footerValue}>{breakableIdentifier(model.reference)}</Text>
                     </View>
-                    <Text style={styles.site}>{`${model.issuedBy} - https://peanut.me`}</Text>
+                    <Text style={styles.legalName}>{model.companyName}</Text>
+                    <Text style={styles.legalAddress}>{model.companyAddressLines.join(' · ')}</Text>
+                    <Text style={styles.site}>{`https://${model.site}`}</Text>
                 </View>
             </Page>
         </Document>
