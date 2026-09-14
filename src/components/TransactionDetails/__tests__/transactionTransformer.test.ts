@@ -739,6 +739,32 @@ describe('mapTransactionDataForDrawer', () => {
             expect(result.avatarKey).toBeNull()
         })
 
+        // A bank send-link claimed by a Peanut user renders as a send to them,
+        // and the recipient-side offramp edge renders as a receive — both are
+        // person rows, so both must carry the pick.
+        it('carries the claimer pick on a bank send-link claim', () => {
+            const result = detailsOf(
+                baseEntry({
+                    userRole: EHistoryUserRole.SENDER,
+                    recipientAccount: { ...aliceUser, avatarKey: 'basic.frog' },
+                    extraData: { kind: 'OFFRAMP', bridgeFlow: 'BANK_SEND_LINK_CLAIM' },
+                })
+            )
+            expect(result.avatarKey).toBe('basic.frog')
+        })
+
+        it('carries the initiator pick on a received bank withdraw', () => {
+            const result = detailsOf(
+                baseEntry({
+                    userRole: EHistoryUserRole.RECIPIENT,
+                    senderAccount: { ...bobUser, avatarKey: 'basic.frog' },
+                    recipientAccount: aliceUser,
+                    extraData: { kind: 'OFFRAMP' },
+                })
+            )
+            expect(result.avatarKey).toBe('basic.frog')
+        })
+
         it('drops the pick on a failed QR payment', () => {
             const result = detailsOf(
                 baseEntry({

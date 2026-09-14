@@ -314,18 +314,35 @@ describe('PublicProfile avatar across navigations', () => {
         mockAuth = { user: { user: { username: 'hal', hasAppAccess: true } }, isFetchingUser: false }
     })
 
-    it('never wears the previous profile owner avatar', async () => {
+    it('never wears the previous profile owner avatar, not even for one render', async () => {
         mockGetByUsername.mockResolvedValue({ userId: 'user-1', avatarKey: 'basic.frog' })
         const { rerender } = renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
         await waitFor(() =>
             expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', 'basic.frog')
         )
 
-        // second profile: never resolves, so only the reset can clear the first
+        // second profile: never resolves, so the loaded avatar can only be
+        // excluded by the username it was loaded for — an effect-time reset
+        // would already have painted one render of the first owner's pick.
         mockGetByUsername.mockReturnValue(new Promise(() => {}))
-        rerender(<PublicProfile username="hal" isLoggedIn />)
+        rerender(<PublicProfile username="nakamoto" isLoggedIn />)
 
         expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', '')
+    })
+
+    it('shows the second owner pick once it lands', async () => {
+        mockGetByUsername.mockResolvedValue({ userId: 'user-1', avatarKey: 'basic.frog' })
+        const { rerender } = renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        await waitFor(() =>
+            expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', 'basic.frog')
+        )
+
+        mockGetByUsername.mockResolvedValue({ userId: 'user-2', avatarKey: 'basic.star' })
+        rerender(<PublicProfile username="nakamoto" isLoggedIn />)
+
+        await waitFor(() =>
+            expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', 'basic.star')
+        )
     })
 })
 
