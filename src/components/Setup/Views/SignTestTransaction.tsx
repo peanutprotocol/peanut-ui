@@ -20,6 +20,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { getFromCookie } from '@/utils/general.utils'
 import { twMerge } from '@/utils/tw'
 import { useTranslations } from 'next-intl'
+import { captureSignupStepViewed, signupAnalyticsContext } from '@/features/setup/signup-analytics'
 
 export function AccountReadyView({
     onContinue,
@@ -60,7 +61,13 @@ const SignTestTransaction = () => {
     const { address, handleSendUserOpEncoded } = useZeroDev()
     const { finalizeAccountSetup, isProcessing, error: setupError, handleRedirect } = useAccountSetup()
     const { user, isFetchingUser, fetchUser } = useAuth()
-    const { residenceCountry, secondResidenceCountry, setIsLoading: setSetupLoading } = useSetupFlowContext()
+    const {
+        residenceCountry,
+        secondResidenceCountry,
+        setIsLoading: setSetupLoading,
+        steps,
+        signupEntryFlow,
+    } = useSetupFlowContext()
     const [error, setError] = useState<string | null>(null)
     const [isSigning, setIsSigning] = useState(false)
     const [testTransactionCompleted, setTestTransactionCompleted] = useState(false)
@@ -78,17 +85,33 @@ const SignTestTransaction = () => {
      * the state only drives the button's disabled/loading affordance.
      */
     const redirectingRef = useRef(false)
+    const accountReadyCapturedRef = useRef(false)
     const [isRedirecting, setIsRedirecting] = useState(false)
 
     const goToAccount = () => {
         if (redirectingRef.current) return
         redirectingRef.current = true
         setIsRedirecting(true)
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_ACCOUNT_READY_CTA_CLICKED, {
+            ...signupAnalyticsContext(signupEntryFlow),
+        })
         // This screen is only reachable for an account created in this
         // session, so it inherits no earlier session's page — only a deep link
         // the person themselves asked for.
         handleRedirect({ isNewAccount: true })
     }
+
+    useEffect(() => {
+        if (!accountReady || accountReadyCapturedRef.current) return
+        accountReadyCapturedRef.current = true
+        captureSignupStepViewed({
+            screenId: 'account-ready',
+            stepIndex: steps.length + 1,
+            totalSteps: steps.length + 1,
+            navType: 'forward',
+            signupEntryFlow,
+        })
+    }, [accountReady, signupEntryFlow, steps.length])
 
     // ensure user is fetched when component mounts (important for new signups)
     useEffect(() => {
@@ -207,6 +230,7 @@ const SignTestTransaction = () => {
                 posthog.capture(ANALYTICS_EVENTS.SIGNUP_COMPLETED, {
                     acquisition_source: inviteCode ? 'referred' : 'organic',
                     invite_code: inviteCode || undefined,
+                    ...signupAnalyticsContext(signupEntryFlow),
                 })
 
                 // Persist the residence answer from the residence step, now that
