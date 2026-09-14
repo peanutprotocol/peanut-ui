@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react'
 import { NuqsTestingAdapter, type OnUrlUpdateFunction } from 'nuqs/adapters/testing'
 import type { ReactNode } from 'react'
 import { SETUP_DEFAULT_SCREEN, useSetupFlow } from '@/hooks/useSetupFlow'
+import { SETUP_SCREEN_IDS } from '@/components/Setup/setup-screen-ids'
 import { SetupFlowProvider, useSetupFlowContext } from '../SetupFlowContext'
 import { setupSteps } from '@/components/Setup/Setup.consts'
 
@@ -56,6 +57,10 @@ const seedSteps = async (
 }
 
 describe('useSetupFlow (URL stepper)', () => {
+    it('keeps the dependency-free fallback screen list aligned with setup config', () => {
+        expect(setupSteps.map((step) => step.screenId)).toEqual([...SETUP_SCREEN_IDS])
+    })
+
     it('reads a named screen id from the URL — never an index', async () => {
         const { result } = renderFlow({ screen: 'signup' })
         await seedSteps(result)

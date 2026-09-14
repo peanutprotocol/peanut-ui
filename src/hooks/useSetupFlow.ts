@@ -1,7 +1,7 @@
 'use client'
 
 import { type ISetupStep, type ScreenId } from '@/components/Setup/Setup.types'
-import { setupSteps as masterSetupSteps } from '@/components/Setup/Setup.consts'
+import { SETUP_SCREEN_IDS } from '@/components/Setup/setup-screen-ids'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import type { FlowStepGuard } from '@/hooks/useFlowStepper.types'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
@@ -49,7 +49,7 @@ export const useSetupFlow = () => {
         // effect rewrite a valid ?screen= away before the steps arrive.
         // Nothing renders during that window (the page's entry determination
         // is still loading).
-        () => (steps.length > 0 ? steps.map((s) => s.screenId) : masterSetupSteps.map((s) => s.screenId)),
+        () => (steps.length > 0 ? steps.map((s) => s.screenId) : [...SETUP_SCREEN_IDS]),
         [steps]
     )
 
