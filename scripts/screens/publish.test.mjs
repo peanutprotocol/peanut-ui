@@ -123,3 +123,71 @@ test('publication accepts locale-scoped dev paths and records the locale', async
         rmSync(dir, { recursive: true, force: true })
     }
 })
+
+test('publication accepts sanitized Nutcracker journeys without changing the synthetic latest pointer', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'screen-publish-nutcracker-test-'))
+    try {
+        const assets = join(dir, 'assets')
+        mkdirSync(assets)
+        // Nutcracker captures full pages. At the exporter's 197px thumbnail
+        // width, this produces a 197x1970 WebP: valid for journeys, but larger
+        // than the synthetic capture decoder ceiling.
+        const original = new PNG({ width: 240, height: 2400 })
+        original.data.fill(127)
+        const originalName = storeAsset(assets, PNG.sync.write(original))
+        const { default: sharp } = await import('sharp')
+        const thumbnailBytes = await sharp(PNG.sync.write(original)).resize({ width: 197 }).webp().toBuffer()
+        const thumbnailName = storeAsset(assets, thumbnailBytes, 'webp')
+        const report = {
+            schema: 1,
+            type: 'journeys',
+            source: 'nutcracker',
+            commit,
+            uiCommit: 'b'.repeat(40),
+            apiCommit: 'c'.repeat(40),
+            locale: 'en',
+            environment: 'sandbox',
+            capturedAt: '2026-09-14T00:00:00Z',
+            profile: 'en-iphone-14',
+            width: 390,
+            height: 664,
+            attemptedSteps: 1,
+            failedSteps: 0,
+            omittedFailedSteps: 0,
+            complete: true,
+            screens: [
+                {
+                    id: 'send-success',
+                    name: 'Send success',
+                    flow: 'e2e-send',
+                    kind: 'route',
+                    route: '/send/success',
+                    trustTier: 'full-e2e',
+                    status: 'passed',
+                    image: originalName,
+                    thumbnail: thumbnailName,
+                },
+            ],
+        }
+        writeFileSync(join(dir, 'manifest.json'), JSON.stringify(report))
+        const storage = memoryStorage()
+        await publishReport({
+            inputDir: dir,
+            reportPath: `2026-09-14/nutcracker/en/${commit}/run-123-1`,
+            env: {
+                SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.example',
+                EXPECTED_HEAD: commit,
+                DEV_SEQUENCE: '123',
+                RUN_ATTEMPT: '1',
+            },
+            storage,
+        })
+        const entryPath = storage.calls.find((pathname) => pathname.startsWith('entries/'))
+        const entry = JSON.parse(storage.objects.get(entryPath).toString())
+        assert.equal(entry.source, 'nutcracker')
+        assert.equal(entry.label, `Nutcracker · ${commit.slice(0, 8)}`)
+        assert.equal(storage.objects.has('latest.json'), false)
+    } finally {
+        rmSync(dir, { recursive: true, force: true })
+    }
+})

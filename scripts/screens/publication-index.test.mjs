@@ -54,6 +54,17 @@ test('latest prefers the English locale when the dev catalogue has a locale matr
     assert.equal(selectLatest(matrix).locale, 'en')
 })
 
+test('a newer Nutcracker run does not replace the latest deterministic app catalogue', () => {
+    const nutcracker = {
+        path: `2026-09-14/nutcracker/en/${sha('a')}/run-99-1`,
+        source: 'nutcracker',
+        complete: true,
+        sequence: 99,
+        attempt: 1,
+    }
+    assert.equal(selectLatest([...entries, nutcracker]).path, entries[2].path)
+})
+
 test('an interrupted pointer update can be retried safely', async () => {
     const storage = memoryStorage({ failLatest: true })
     await assert.rejects(updateIndexes(storage), /transient/)

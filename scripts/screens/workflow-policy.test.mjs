@@ -1,0 +1,20 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+
+const screenLibrary = readFileSync('.github/workflows/screen-library.yml', 'utf8')
+const baseline = readFileSync('.github/workflows/screen-library-baseline.yml', 'utf8')
+
+test('capture workflows run on the standard Ubuntu pool', () => {
+    assert.equal((screenLibrary.match(/runs-on: ubuntu-24\.04/g) ?? []).length, 3)
+    assert.doesNotMatch(screenLibrary, /runs-on: macos-/)
+    assert.match(baseline, /runs-on: ubuntu-24\.04/)
+    assert.doesNotMatch(baseline, /runs-on: macos-/)
+})
+
+test('only superseded pull-request captures are cancelled', () => {
+    assert.match(screenLibrary, /github\.event_name == 'pull_request'/)
+    assert.match(screenLibrary, /format\('pr-\{0\}', github\.event\.pull_request\.number\)/)
+    assert.match(screenLibrary, /format\('run-\{0\}', github\.run_id\)/)
+    assert.match(screenLibrary, /cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \}\}/)
+})
