@@ -11,11 +11,12 @@ interface RedirectQrStatusData {
 async function fetchRedirectQrStatus(code: string): Promise<RedirectQrStatusData> {
     const response = await serverFetch(`/qr/${code}`, {
         method: 'GET',
+        redactTelemetry: true,
     })
     const result = await response.json()
 
     if (!response.ok) {
-        throw new Error(result.message || 'Failed to fetch redirect QR status')
+        throw new Error('Failed to fetch redirect QR status')
     }
 
     return result

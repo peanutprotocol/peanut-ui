@@ -1,4 +1,6 @@
+import { redactQrTelemetry, redactQrTelemetryString, maskQrReplayRequest } from '@/utils/qr-telemetry-privacy'
 import { APP_RELEASE } from '@/constants/app-release'
+import { suppressDuplicateLogin } from '@/utils/login-once-per-session'
 import posthog from 'posthog-js'
 import { beforeSendHandler } from './sentry.utils'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
@@ -6,6 +8,8 @@ import { withoutBrowserTracing } from '@/utils/sentry-integrations'
 import { posthogErrorMirror } from '@/utils/sentry-posthog-mirror'
 import { whenIdle } from '@/utils/defer-analytics'
 import { startWebVitalsShim } from '@/utils/web-vitals-shim'
+import { noteAppReviewFriction } from '@/utils/app-review-friction'
+import { isNativeFetchRejectionExceptionEvent } from '@/utils/native-fetch-rejection'
 import { installPaymentNetworkGoogleAnalyticsGuard, isPaymentNetworkExplorerPath } from '@/utils/private-routes'
 
 // Same conditions as the GA bootstrap in app/layout.tsx: with no GA to disable
@@ -49,11 +53,26 @@ if (
         capture_pageleave: true,
         // The payment explorer contains team-only identity and relationship data.
         // Drop every event on client navigation; direct loads skip init above.
-        before_send: (event) => (isPaymentNetworkExplorerPath(window.location.pathname) ? null : event),
-        // autocapture walks the DOM ancestor chain on every tap, which costs frames
-        // in the in-app WebView renderer for data that 220+ explicit
-        // posthog.capture calls already cover. Native keeps the explicit events only.
-        autocapture: !isNativeBuild,
+        // Doubles as the review nudge's friction tap: every money-flow failure
+        // already funnels through here, so the suppressor needs no call sites.
+        before_send: (event) => {
+            if (isPaymentNetworkExplorerPath(window.location.pathname)) return null
+            // Handled WebKit/Chromium connectivity blips: Sentry already filters
+            // this class server-side; exception autocapture must not double-report
+            // it here (TASK-22408).
+            if (isNativeFetchRejectionExceptionEvent(event)) return null
+            if (event?.event) noteAppReviewFriction(event.event)
+            // Once-per-session login: runs here, after capture assigned/rotated
+            // $session_id — a pre-capture get_session_id() guard misses idle-
+            // resumed sessions and double-counts reloads (TASK-22516).
+            if (suppressDuplicateLogin(event) === null) return null
+            return redactQrTelemetry(event)
+        },
+        // Off everywhere since 2026-09-10 (server-side toggle, mirrored here):
+        // $autocapture was 35% of billed event volume with zero saved insights
+        // reading it, and the DOM ancestor walk on every tap costs frames. The
+        // 220+ explicit posthog.capture calls are the taxonomy (TASK-22516).
+        autocapture: false,
         /*
          * Session recording is ON everywhere, native included, as a deliberate
          * trial from 1.0.48.
@@ -81,6 +100,12 @@ if (
          * reach for, before switching recording off again.
          */
         disable_session_recording: true,
+        session_recording: {
+            recordBody: false,
+            recordHeaders: false,
+            maskCapturedNetworkRequestFn: maskQrReplayRequest,
+            maskAttributeFn: (_name, value) => redactQrTelemetryString(value),
+        },
     })
 
     whenIdle(() => posthog.startSessionRecording())
@@ -125,7 +150,7 @@ if (
                 beforeSend: (event) =>
                     isPaymentNetworkExplorerPath(window.location.pathname) ? null : beforeSendHandler(event),
                 beforeSendTransaction: (event) =>
-                    isPaymentNetworkExplorerPath(window.location.pathname) ? null : event,
+                    isPaymentNetworkExplorerPath(window.location.pathname) ? null : redactQrTelemetry(event),
                 // A WebView that can't reach the bundler can't reach ingest either,
                 // so the report of the failure died with the session. The offline
                 // transport parks undeliverable envelopes in IndexedDB and flushes

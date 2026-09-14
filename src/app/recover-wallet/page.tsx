@@ -36,7 +36,7 @@ import {
     PEANUT_WALLET_TOKEN_DECIMALS,
     PEANUT_WALLET_TOKEN_SYMBOL,
 } from '@/constants/zerodev.consts'
-import { type RecipientState } from '@/context/WithdrawFlowContext'
+import { type RecipientState } from '@/components/Global/GeneralRecipientInput/types'
 import { areEvmAddressesEqual, getExplorerUrl, isTxReverted } from '@/utils/general.utils'
 import { decodeRecoveryKey, toRescueWebAuthnKey, type RecoveryKeyInput } from '@/utils/walletRescue.utils'
 import { captureException } from '@sentry/nextjs'

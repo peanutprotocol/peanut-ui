@@ -18,15 +18,10 @@ const PASSTHROUGH_TIMEOUT_MS = 10_000
 
 // Public read-only rate endpoints proxied to the real backend so demo shows live
 // FX rates. Best-effort: any failure falls through to the canned handler below.
-// /tokens/* are public too — the canned {} fallback is NOT a valid shape for
-// them (fetchWalletBalances crashed on `{}.balances.filter` in recover-funds).
-const PASSTHROUGH_GET = new Set([
-    '/bridge/exchange-rate',
-    '/manteca/prices',
-    '/fx/rate',
-    '/tokens/price',
-    '/tokens/wallet-portfolio',
-])
+// /tokens/price is public too — the canned {} fallback is NOT a valid shape
+// for it. /tokens/wallet-portfolio is owner-only (session required), so it
+// gets a synthetic handler instead of a passthrough that would 401.
+const PASSTHROUGH_GET = new Set(['/bridge/exchange-rate', '/manteca/prices', '/fx/rate', '/tokens/price'])
 
 const EMPTY_GRAPH = {
     nodes: [] as unknown[],
@@ -53,6 +48,8 @@ type DemoRequestBody = {
     reference?: string
     dismissActivationCelebration?: boolean
     username?: string
+    /** card apply (demo): true submits, false/absent asks for terms */
+    termsAccepted?: boolean
 }
 
 function parseBody(options?: RequestInit): DemoRequestBody {
@@ -371,6 +368,9 @@ const stampDemoActivationCelebrated = (): void => {
 // demo state: a pick made through the picker must survive the next
 // GET /users/me or the tile snaps back. Fixtures still override on top.
 let demoAvatarKey: string | null = null
+// demo state: applying for the card flips the overview to a PENDING
+// application so the entry screen advances like the real flow
+let demoCardApplied = false
 
 // ---- routes (ordered: literal paths before :param paths) ----
 
@@ -397,6 +397,8 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         handler: () => ({ contacts: DEMO_CONTACTS, total: DEMO_CONTACTS.length, hasMore: false }),
     },
     { method: 'GET', pattern: '/users/limits', handler: () => DEMO_LIMITS },
+    // empty by default — the address-book fixtures override this with entries
+    { method: 'GET', pattern: '/users/saved-addresses', handler: () => ({ savedAddresses: [] }) },
     { method: 'GET', pattern: '/users/history', handler: () => ({ entries: DEMO_HISTORY_ENTRIES, hasMore: false }) },
     { method: 'GET', pattern: '/users/bridge-tos-link', handler: () => ({ tosLink: '' }) },
     { method: 'POST', pattern: '/users/bridge-tos-confirm', handler: () => ({ accepted: true }) },
@@ -479,6 +481,11 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'GET', pattern: '/send-links', handler: () => demoSendLink('demo-pubkey') },
     { method: 'POST', pattern: '/send-links', handler: () => demoSendLink('demo-pubkey') },
     { method: 'PATCH', pattern: '/send-links/claim/:txHash/associate-user', handler: () => ({}) },
+    {
+        method: 'GET',
+        pattern: '/send-links/:pubKey/status',
+        handler: ({ params }) => ({ ...demoSendLink(params.pubKey), status: 'CLAIMED' }),
+    },
     { method: 'GET', pattern: '/send-links/:pubKey', handler: ({ params }) => demoSendLink(params.pubKey) },
     { method: 'PATCH', pattern: '/send-links/:pubKey', handler: ({ params }) => demoSendLink(params.pubKey) },
 
@@ -500,6 +507,26 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         method: 'GET',
         pattern: '/fx/rate',
         handler: () => json({ error: 'FX_UNAVAILABLE', message: 'Exchange rates are unavailable.' }, 503),
+    },
+
+    // The demo wallet holds nothing to recover; the shape is what
+    // fetchWalletBalances reads.
+    { method: 'GET', pattern: '/tokens/wallet-portfolio', handler: () => ({ balances: [], totalBalance: 0 }) },
+
+    // Without a handler this landed on defaultShape ({}), and the recovery page
+    // called BigInt(undefined) during render.
+    {
+        method: 'GET',
+        pattern: '/rain/cards/recover-funds/preview',
+        handler: () => ({
+            collateralProxy: '0x0000000000000000000000000000000000000000',
+            recipient: '0x1111111111111111111111111111111111111111',
+            amountWei: '0',
+            amountCents: '0',
+            dustWei: '0',
+            autoBalanceEnabled: false,
+            hasRecoverableCard: false,
+        }),
     },
 
     // bridge on/off-ramp
@@ -672,29 +699,7 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     {
         method: 'GET',
         pattern: '/card',
-        handler: () => ({
-            hasPurchased: false,
-            hasCardAccess: false,
-            isEligible: false,
-            eligibilityReason: 'demo',
-            price: 50,
-            currentTier: 1,
-            slotsRemaining: 100,
-            recentPurchases: 0,
-        }),
-    },
-    {
-        method: 'POST',
-        pattern: '/card/purchase',
-        handler: () => ({
-            chargeUuid: 'demo-charge',
-            paymentUrl: '',
-            price: 50,
-            recipientAddress: DEMO_ADDRESS,
-            chainId: CHAIN_ID,
-            tokenAmount: '50',
-            tokenSymbol: PEANUT_WALLET_TOKEN_SYMBOL,
-        }),
+        handler: () => ({ isEligible: true, geoProhibited: false }),
     },
     // useRainCardOverview polls this for every logged-in user; the fallback {}
     // has no `status`/`cards` and crashes consumers that deref them
@@ -702,7 +707,26 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     {
         method: 'GET',
         pattern: '/rain/cards',
-        handler: () => ({ status: { hasApplication: false }, balance: null, cards: [] }),
+        handler: () =>
+            demoCardApplied
+                ? { status: { hasApplication: true, railStatus: 'PENDING' }, balance: null, cards: [] }
+                : { status: { hasApplication: false }, balance: null, cards: [] },
+    },
+    // Demo apply mirrors the real two-step contract: first call asks for
+    // terms, the accepting call submits and the overview flips to PENDING —
+    // without this, Get your card fell through to the {} fallback and the
+    // entry screen never advanced.
+    {
+        method: 'POST',
+        pattern: '/rain/cards',
+        handler: ({ options }) => {
+            const body = parseBody(options)
+            if (body.termsAccepted === true) {
+                demoCardApplied = true
+                return { status: 'pending' }
+            }
+            return { status: 'terms-required', isUsResident: false, termsVersion: 'demo' }
+        },
     },
 
     // rhino (crypto deposit / cross-chain) — return a believable deposit address
@@ -749,13 +773,34 @@ function defaultShape(pathname: string): unknown {
     return LIST_HINTS.test(last) ? [] : {}
 }
 
-export async function demoRespond(path: string, options?: RequestInit): Promise<Response> {
+export async function demoRespond(
+    path: string,
+    options?: RequestInit,
+    capture?: { offline: boolean; strict?: boolean }
+): Promise<Response> {
     const method = (options?.method ?? 'GET').toUpperCase()
     const pathname = path.split('?')[0].replace(/\/+$/, '') || '/'
 
+    // Capture mode never calls live rates or support sessions.
+    if (capture?.offline && method === 'GET') {
+        if (pathname === '/tokens/price') {
+            const query = new URL(path, 'http://capture.invalid').searchParams
+            return json({
+                chainId: query.get('chainId') ?? CHAIN_ID,
+                address: query.get('address') ?? PEANUT_WALLET_TOKEN,
+                name: 'Synthetic USD Coin',
+                symbol: 'USDC',
+                price: 1,
+            })
+        }
+        if (pathname === '/users/consent/status') return json({ documents: [], needsReConsent: false })
+        if (pathname === '/user/crisp-token')
+            return json({ userId: 'demo-user', crispTokenId: 'synthetic-screen-session' })
+    }
+
     // Live-rate passthrough to the real backend (best-effort).
     let passthroughFailed = false
-    if (method === 'GET' && PASSTHROUGH_GET.has(pathname)) {
+    if (!capture?.offline && method === 'GET' && PASSTHROUGH_GET.has(pathname)) {
         const controller = new AbortController()
         const timeout = setTimeout(() => controller.abort(), PASSTHROUGH_TIMEOUT_MS)
         try {
@@ -800,5 +845,6 @@ export async function demoRespond(path: string, options?: RequestInit): Promise<
     if (process.env.NODE_ENV !== 'production') {
         console.debug('[demo-api] unmocked', method, pathname)
     }
+    if (capture?.strict) throw new Error(`Unmapped capture API: ${method} ${pathname}`)
     return json(defaultShape(pathname))
 }

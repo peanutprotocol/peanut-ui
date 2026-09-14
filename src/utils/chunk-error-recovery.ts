@@ -70,6 +70,24 @@ export function recoverFromChunkError(error: unknown): boolean {
     return true
 }
 
+/**
+ * Retry an import() once if it failed to load its chunk.
+ *
+ * A frozen process resuming fires every overdue timer at once, webpack's
+ * chunkLoadTimeout included, so imports that were merely in flight reject with
+ * a timeout ChunkLoadError for local files that are intact. The second attempt
+ * runs with the process scheduled again and succeeds. Non-chunk errors rethrow
+ * untouched — this is not a general retry.
+ */
+export async function importWithChunkRetry<T>(load: () => Promise<T>): Promise<T> {
+    try {
+        return await load()
+    } catch (error) {
+        if (!isChunkLoadError(error)) throw error
+        return load()
+    }
+}
+
 export const CHUNK_ERROR_RECOVERY_SCRIPT = `
 (function () {
     var GUARD_KEY = '${GUARD_KEY}';

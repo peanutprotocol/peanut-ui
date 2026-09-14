@@ -13,6 +13,8 @@ import { AnimateOnView } from '@/components/Global/AnimateOnView'
 import { CloudsCss } from './CloudsCss'
 import type { LandingStrings } from './landingStrings'
 import type { LandingContentHrefs } from './landingContentHrefs'
+import { useAppModal } from '@/components/Migration/AppModalProvider'
+import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 
 export function NoFees({
     className,
@@ -24,6 +26,7 @@ export function NoFees({
     contentHrefs: LandingContentHrefs
 }) {
     const router = useRouter()
+    const interceptAppCta = useAppModal()
 
     // One vw ramp can't serve every locale: "TRANSFER" only clips under ~340px,
     // while "TRANSFERENCIA"/"TRANSFERÊNCIA" (both 491px at 60px) need ~545px.
@@ -44,11 +47,14 @@ export function NoFees({
 
     /*
      * Session is read from the cookie rather than AuthProvider: that context is
-     * the only thing that kept react-query and the redux store mounted on the
+     * the only thing that kept react-query mounted on the
      * marketing site. Native keeps its token outside cookies, but the landing
      * page there is a bootstrap shell that redirects away before this matters.
      */
     const handleCtaAction = async (sourceCurrency: string, destinationCurrency: string) => {
+        // During migration, this CTA downloads the app without a preset send destination.
+        if (interceptAppCta(MIGRATION_SURFACES.LANDING_RATES)) return
+
         const signedIn = typeof document !== 'undefined' && /(^|;\s*)jwt-token=/.test(document.cookie)
         if (!signedIn) {
             router.push('/setup')

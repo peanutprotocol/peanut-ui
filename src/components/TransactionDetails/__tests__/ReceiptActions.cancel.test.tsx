@@ -16,7 +16,7 @@ const mockCancelSendLink = jest.fn()
 
 jest.mock('@/i18n/app/useAppTranslations', () => ({ useAppTranslations: () => (key: string) => key }))
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
-jest.mock('@/redux/hooks', () => ({ useUserStore: () => ({ user: { user: { username: 'sender' } } }) }))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { username: 'sender' } } }) }))
 jest.mock('@/hooks/useActivationStatus', () => ({ useActivationStatus: () => ({ isActivated: false }) }))
 jest.mock('../useReceiptActions', () => ({
     useReceiptActions: () => ({

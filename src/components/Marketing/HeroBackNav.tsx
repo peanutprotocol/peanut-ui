@@ -23,7 +23,7 @@ export function HeroBackNav({ fallbackHref = '/' }: { fallbackHref?: string }) {
     const onBack = useSafeBack(fallbackHref)
 
     return (
-        <div className="absolute top-4 left-4 z-30">
+        <div className="absolute top-[calc(var(--safe-top)_+_1rem)] left-4 z-30">
             {/* no maintenance banner on marketing pages / shhhhh (ruled
                 2026-09-03) — and a banner inside this absolute overlay would
                 cover the hero anyway */}

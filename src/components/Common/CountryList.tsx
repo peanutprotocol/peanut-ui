@@ -15,7 +15,7 @@ import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { CountryListSkeleton } from './CountryListSkeleton'
 import AvatarWithBadge from '../Profile/AvatarWithBadge'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
-import EasterEggModal, { EASTER_EGG_COUNTRIES } from '@/components/Global/EasterEggModal'
+import EasterEggDrawer, { EASTER_EGG_COUNTRIES } from '@/components/Global/EasterEggDrawer'
 import StatusBadge from '../Global/Badges/StatusBadge'
 import Loading from '../Global/Loading'
 import { useSearchParams } from 'next/navigation'
@@ -198,9 +198,13 @@ export const CountryList = ({
                             let isSupported = false
 
                             if (viewMode === 'add-withdraw') {
-                                // for send->bank flow, enforce only bridge or manteca supported countries
+                                // send->bank flow: bridge countries, plus Brazil — a PIX send to a
+                                // third-party key rides the Manteca QR-payment endpoint (see the
+                                // method=pix delegation in /withdraw/manteca). Argentina stays
+                                // gated: its Manteca rails here are own-account offramps, same
+                                // ruling that keeps Mercado Pago off the send list (PR #2813).
                                 if (enforceSupportedCountries) {
-                                    isSupported = isBridgeSupportedCountryResult
+                                    isSupported = isBridgeSupportedCountryResult || country.path === 'brazil'
                                 } else {
                                     // otherwise allow all countries
                                     isSupported = true
@@ -280,7 +284,7 @@ export const CountryList = ({
             )}
 
             {/* Easter egg modal for weird/uninhabited countries */}
-            <EasterEggModal
+            <EasterEggDrawer
                 visible={!!easterEggCountry}
                 onClose={() => setEasterEggCountry(null)}
                 countryCode={easterEggCountry ?? ''}

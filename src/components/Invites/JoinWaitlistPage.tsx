@@ -14,7 +14,6 @@ import { PeanutWavingHello, PeanutPointing } from '@/assets/mascot'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import Loading from '../Global/Loading'
-import { useSetupStore } from '@/redux/hooks'
 import { useNotifications } from '@/hooks/useNotifications'
 import { updateUserById } from '@/app/actions/users'
 import { useQueryState, parseAsStringEnum } from 'nuqs'
@@ -23,10 +22,11 @@ import { BaseInput } from '@/components/0_Bruddle/BaseInput'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { getFromCookie, removeFromCookie, toInviteCode } from '@/utils/general.utils'
+import { getFromCookie, toInviteCode } from '@/utils/general.utils'
 import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
 import { settleAcceptedInviteAcquisition } from '@/services/invite-acquisition'
 import { isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
+import { clearInvite, readInviteCode, readInviteType } from '@/utils/invite-stash'
 
 type WaitlistStep = 'email' | 'notifications' | 'jail'
 type InviteAcceptanceOutcome = 'onboarding_resolved' | 'campaign_only' | 'failed'
@@ -41,7 +41,9 @@ const JoinWaitlistPage = () => {
     const tNotifications = useTranslations('notifications')
     const { fetchUser, isFetchingUser, logoutUser, user } = useAuth()
     const router = useRouter()
-    const { inviteType, inviteCode: setupInviteCode } = useSetupStore()
+    // invite hand-off lives in cookies — TASK-21460
+    const inviteType = readInviteType()
+    const setupInviteCode = readInviteCode()
     const { requestPermission, afterPermissionAttempt, isPermissionGranted } = useNotifications()
 
     // URL-backed step state — survives refresh, enables deep-linking
@@ -211,7 +213,7 @@ const JoinWaitlistPage = () => {
             // The adapter has done all it can. Settle terminal claims and keep
             // only retryable campaign state; never retry the non-invite code.
             settleAcceptedInviteAcquisition(res.legacyAcquisition, res.claims)
-            removeFromCookie('inviteCode')
+            clearInvite()
             // Provenance is audit-only. Refresh every confirmed permanent award
             // so any badge-owned access/reward projection is visible immediately;
             // unavailable outcomes must not masquerade as a capability change.
@@ -220,7 +222,7 @@ const JoinWaitlistPage = () => {
         }
         posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, { invite_code: code, source })
         sessionStorage.setItem('showNoMoreJailModal', 'true')
-        removeFromCookie('inviteCode')
+        clearInvite()
         await fetchUser()
         return 'onboarding_resolved'
     }

@@ -67,7 +67,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                     isModalOpen={isModalOpen}
                     setIsModalOpen={setIsModalOpen}
                     avatarUrl={avatarUrl}
-                    className="px-4 pb-4"
+                    className="pb-4"
                 />
             </DrawerContent>
         </Drawer>

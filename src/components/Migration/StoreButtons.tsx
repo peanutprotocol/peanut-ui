@@ -15,7 +15,7 @@ export default function StoreButtons({ surface }: { surface: MigrationSurface })
             variant="purple"
             shadowSize="4"
             icon={store === 'ios' ? 'apple-logo' : 'google-play'}
-            className="w-full"
+            className="h-11 w-full"
             onClick={() => openStore(store, surface)}
         >
             {STORE_NAME[store]}

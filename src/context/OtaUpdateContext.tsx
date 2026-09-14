@@ -2,8 +2,12 @@
 
 import type { BundleInfo } from '@capgo/capacitor-updater'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { isSplashVisible } from '@/hooks/useSplashGate'
 import { isAndroidNativeBridge, isCapacitor } from '@/utils/capacitor'
 import type { OtaApplyOutcome } from '@/utils/capgo-updater'
+import { importWithChunkRetry } from '@/utils/chunk-error-recovery'
+import { runningBundleOutranksBinary } from '@/utils/ota-native-gate'
+import { markNativeBootComplete } from '@/utils/native-app-ready'
 
 /**
  * `manual-restart` — a reload was issued but the page outlived it (iOS, which
@@ -54,26 +58,48 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
         let disposed = false
         let cleanup: (() => void) | undefined
 
-        // a bundle staged on an earlier launch is still queued in the plugin
-        import('@capgo/capacitor-updater')
-            .then(({ CapacitorUpdater }) => CapacitorUpdater.getNextBundle())
+        // This check describes already-running JS; it must not depend on a newer
+        // candidate existing, and failure must not prevent updater initialization.
+        runningBundleOutranksBinary()
+            .then((required) => {
+                if (!disposed && required) setStoreUpdateRequired(true)
+            })
+            .catch((err) => console.warn('[capgo] running floor read failed:', err))
+
+        // a bundle staged on an earlier launch is still queued in the plugin —
+        // read through the gate, which drops one built for a newer binary
+        importWithChunkRetry(() => import('@/utils/capgo-updater'))
+            .then((updater) => updater.readStagedBundle({ onStoreUpdateRequired: () => setStoreUpdateRequired(true) }))
             .then((bundle) => {
                 if (!disposed && bundle) setPendingBundle((current) => current ?? bundle)
             })
             .catch((err) => console.warn('[capgo] next bundle read failed:', err))
 
-        import('@/utils/capgo-updater')
-            .then(({ initCapgoUpdater }) =>
-                initCapgoUpdater({
+        importWithChunkRetry(() => import('@/utils/capgo-updater'))
+            .then(async (updater) => {
+                const remove = await updater.initCapgoUpdater({
                     onUpdateAvailable: (bundle) => setPendingBundle(bundle),
                     onStoreUpdateRequired: () => setStoreUpdateRequired(true),
                 })
-            )
-            .then((fn) => {
                 // Unmounted while init was still resolving: run the cleanup now
                 // or the listeners it registered are never removed.
-                if (disposed) fn()
-                else cleanup = fn
+                if (disposed) {
+                    remove()
+                    return
+                }
+                cleanup = remove
+                // Rendering alone does not prove this bundle can receive its
+                // replacement. Keep boot recovery armed until the local updater
+                // works too; init schedules its network check without awaiting it.
+                markNativeBootComplete()
+                // Sequenced after init on purpose: the launch apply writes the
+                // pending-apply marker that init's reportPendingApply consumes,
+                // and racing them would report this launch's marker as a
+                // failure of the previous one. Only while the splash still
+                // hides the reload — see applyStagedBundleOnLaunch.
+                if (!isSplashVisible()) return
+                const staged = await updater.applyStagedBundleOnLaunch()
+                if (!disposed && staged) setPendingBundle((current) => current ?? staged)
             })
             .catch((err) => console.warn('[capgo] ota init failed:', err))
 
@@ -93,7 +119,7 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
 
         let updater: typeof import('@/utils/capgo-updater')
         try {
-            updater = await import('@/utils/capgo-updater')
+            updater = await importWithChunkRetry(() => import('@/utils/capgo-updater'))
         } catch (err) {
             console.warn('[capgo] updater chunk failed to load:', err)
             applyingRef.current = false
@@ -109,7 +135,7 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
             updater.markPendingApply(pendingBundle.id)
             setApplyState('manual-restart')
             try {
-                const { App } = await import('@capacitor/app')
+                const { App } = await importWithChunkRetry(() => import('@capacitor/app'))
                 await App.exitApp()
             } catch (err) {
                 console.warn('[capgo] exitApp failed:', err)
@@ -127,7 +153,7 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
                 // exitApp (or its chunk) failing would otherwise strand the modal in
                 // 'applying': no close button, no enabled CTA, no way out. Fall back
                 // to the instruction iOS already gets.
-                import('@capacitor/app')
+                importWithChunkRetry(() => import('@capacitor/app'))
                     .then(({ App }) => App.exitApp())
                     .catch((err) => {
                         console.warn('[capgo] exitApp failed:', err)

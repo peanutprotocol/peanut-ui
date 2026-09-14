@@ -1,8 +1,10 @@
 /**
- * LIFO stack of hardware-back handlers. Overlays and in-page sub-views register
- * while they are showing; the native backButton listener dispatches top-down
- * and only falls through to history navigation when no handler consumed it.
- * Registration happens on every platform; dispatch only happens on Capacitor.
+ * LIFO stack of back handlers. Overlays and in-page sub-views register while
+ * they are showing; dispatch walks the stack top-down and only falls through
+ * to history navigation when no handler consumed it. Registration happens on
+ * every platform. Two things dispatch: the native backButton listener (on
+ * Capacitor) and the setup flow's visible back button (every platform), so
+ * both back paths share one semantics.
  */
 export type BackHandler = () => boolean
 

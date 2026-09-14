@@ -1,6 +1,7 @@
 import { captureException } from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import { isNativeFetchRejection } from '@/utils/native-fetch-rejection'
 
 /*
  * `TypeError: Failed to fetch` proves nothing about the user's connection: a
@@ -12,18 +13,6 @@ import { PEANUT_API_URL } from '@/constants/general.consts'
  * required, no preflight — so it answers "did the edge answer at all" where a
  * normal fetch cannot.
  */
-
-// Engine-exact rejection copy; also matched by the connectionLost classifier
-// in friendly-error.utils.tsx, which imports this predicate to stay in sync.
-export const NATIVE_FETCH_REJECTION_MESSAGES: readonly string[] = [
-    'Failed to fetch', // Chromium, so every Android WebView
-    'Load failed', // WebKit
-    'NetworkError when attempting to fetch resource.', // Gecko
-]
-
-export function isNativeFetchRejection(name: string | undefined, message: string | undefined): boolean {
-    return name === 'TypeError' && message !== undefined && NATIVE_FETCH_REJECTION_MESSAGES.includes(message)
-}
 
 type NetworkErrorClass = 'fetch_rejection' | 'timeout' | 'service_unavailable'
 

@@ -6,7 +6,6 @@ import { useHomeFlow } from '../useHomeFlow'
 
 const mockFetchUser = jest.fn()
 const mockResetClaimBankFlow = jest.fn()
-const mockResetWithdrawFlow = jest.fn()
 const mockDisconnect = jest.fn()
 
 let mockUser: any = null
@@ -16,20 +15,14 @@ let mockWagmiConnected = false
 jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => ({ spendableBalance: 123n, isFetchingSpendableBalance: false }),
 }))
-jest.mock('@/redux/hooks', () => ({
-    useUserStore: () => ({ user: mockUser }),
-}))
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ isFetchingUser: mockIsFetchingUser, fetchUser: mockFetchUser }),
+    useAuth: () => ({ user: mockUser, isFetchingUser: mockIsFetchingUser, fetchUser: mockFetchUser }),
 }))
 jest.mock('@/hooks/useActivationStatus', () => ({
     useActivationStatus: () => ({ isActivated: true, activationStep: 'verify', dismissCardStep: jest.fn() }),
 }))
 jest.mock('@/context/ClaimBankFlowContext', () => ({
     useClaimBankFlow: () => ({ resetFlow: mockResetClaimBankFlow }),
-}))
-jest.mock('@/context/WithdrawFlowContext', () => ({
-    useWithdrawFlow: () => ({ resetWithdrawFlow: mockResetWithdrawFlow }),
 }))
 jest.mock('@/hooks/useCardInfo', () => ({
     useCardInfo: jest.fn(() => ({})),
@@ -69,7 +62,6 @@ describe('useHomeFlow', () => {
         renderHook(() => useHomeFlow())
         expect(mockFetchUser).toHaveBeenCalledTimes(1)
         expect(mockResetClaimBankFlow).toHaveBeenCalled()
-        expect(mockResetWithdrawFlow).toHaveBeenCalled()
     })
 
     it('disconnects an external wallet on home', () => {
@@ -83,18 +75,15 @@ describe('useHomeFlow', () => {
         expect(mockDisconnect).not.toHaveBeenCalled()
     })
 
-    it('never derives an avatar name from the display name — the chip seeds from the username', () => {
+    it('hands down the username, never the display name', () => {
         mockUser = userWith({ showFullName: true, fullName: 'Kushagra S' })
         const flow = renderHook(() => useHomeFlow()).result.current
         expect(flow.username).toBe('kush')
         expect(flow).not.toHaveProperty('avatarName')
     })
 
-    it('passes the picked avatar through, null when there is none', () => {
+    it('carries no avatar any more — home wears a menu button (TASK-22142)', () => {
         mockUser = userWith({ avatarKey: 'basic.frog' })
-        expect(renderHook(() => useHomeFlow()).result.current.avatarKey).toBe('basic.frog')
-
-        mockUser = userWith({})
-        expect(renderHook(() => useHomeFlow()).result.current.avatarKey).toBeNull()
+        expect(renderHook(() => useHomeFlow()).result.current).not.toHaveProperty('avatarKey')
     })
 })

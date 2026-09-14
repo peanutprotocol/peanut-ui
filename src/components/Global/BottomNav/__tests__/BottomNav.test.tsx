@@ -13,6 +13,7 @@ jest.mock('next-intl', () => ({
 }))
 jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: jest.fn() }) }))
 jest.mock('@/hooks/useSupportUnread', () => ({ useSupportUnread: () => false }))
+jest.mock('@/hooks/useForegroundPushRefresh', () => ({ useForegroundPushRefresh: () => {} }))
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({
         isSupportModalOpen: false,
@@ -22,14 +23,14 @@ jest.mock('@/context/ModalsContext', () => ({
 }))
 
 let mockShowCardSurface = true
-let mockCardHref: '/card' | '/shhhhh' = '/card'
 jest.mock('@/hooks/useCardSurfaceAccess', () => ({
-    useCardSurfaceAccess: () => ({
+    // typed to the real contract so a hook change breaks this suite loudly
+    useCardSurfaceAccess: (): ReturnType<typeof import('@/hooks/useCardSurfaceAccess').useCardSurfaceAccess> => ({
         hasIssuedCard: mockShowCardSurface,
         hasCardRelationship: mockShowCardSurface,
-        hasCardAccess: mockShowCardSurface,
         showCardSurface: mockShowCardSurface,
-        cardHref: mockCardHref,
+        canSpendPathViaCard: mockShowCardSurface,
+        cardHref: '/card',
     }),
 }))
 
@@ -47,7 +48,6 @@ describe('BottomNav pill release', () => {
     beforeEach(() => {
         mockPathname = '/home'
         mockShowCardSurface = true
-        mockCardHref = '/card'
         mockPush.mockReset()
     })
 
@@ -94,6 +94,18 @@ describe('BottomNav pill release', () => {
         expect(mockPush).not.toHaveBeenCalled()
     })
 
+    it('a finger down on a tab squashes its icon and release springs it back', () => {
+        render(<BottomNav />)
+        const supportTab = screen.getByRole('button', { name: 'support' })
+        const icon = supportTab.querySelector('span')!
+
+        expect(icon.className).not.toContain('scale-[0.82]')
+        fireEvent.pointerDown(supportTab, { pointerId: 1 })
+        expect(icon.className).toContain('scale-[0.82]')
+        fireEvent.pointerUp(supportTab, { pointerId: 1 })
+        expect(icon.className).not.toContain('scale-[0.82]')
+    })
+
     it('leaving the tab routes clears the pill', () => {
         const { rerender } = render(<BottomNav />)
         expect(screen.getByTestId('bottom-nav-pill')).toBeInTheDocument()
@@ -105,10 +117,9 @@ describe('BottomNav pill release', () => {
 })
 
 /*
- * The middle slot is the card tab only while the card is attainable. Gating it
- * on `hasCardAccess` shipped a card tab to waitlist-released users resident in
- * Rain-prohibited countries, whose only destination is /card's geo-blocked
- * screen; they get the exchange-rates page in that slot instead.
+ * The middle slot is the card tab only while the card is attainable — a user
+ * whose residence prohibits the card gets the exchange-rates page in that
+ * slot instead. Applications are public, so the tab always links /card.
  */
 const stubRect = (el: HTMLElement, left: number) => {
     el.getBoundingClientRect = () => ({ left, width: 68, right: left + 68, top: 0, bottom: 52, height: 52 }) as DOMRect
@@ -130,25 +141,13 @@ describe('BottomNav middle slot', () => {
     beforeEach(() => {
         mockPathname = '/home'
         mockShowCardSurface = true
-        mockCardHref = '/card'
         mockPush.mockReset()
     })
 
-    it('links the middle tab to /card for a user past the waitlist gate', () => {
+    it('links the middle tab to /card', () => {
         render(<BottomNav />)
         expect(screen.getByLabelText('card')).toHaveAttribute('href', '/card')
         expect(screen.queryByLabelText('exchangeRates')).not.toBeInTheDocument()
-    })
-
-    /*
-     * /card notFound()s a user with no flowEarlyAccess stamp, so the tab sends
-     * everyone short of the gate to the /shhhhh door instead — the same rule
-     * the profile menu row follows.
-     */
-    it('links the middle tab to /shhhhh for an eligible user not past the gate', () => {
-        mockCardHref = '/shhhhh'
-        render(<BottomNav />)
-        expect(screen.getByLabelText('card')).toHaveAttribute('href', '/shhhhh')
     })
 
     it('swaps the middle tab to exchange rates when the card is not available', () => {

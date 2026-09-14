@@ -6,7 +6,6 @@ import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useAuth } from '@/context/authContext'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
-import { useUserStore } from '@/redux/hooks'
 import { useClaimSuccessPolling, type ClaimPollFailure } from './useClaimSuccessPolling'
 import { formatTokenAmount, getTokenDetails, shortenStringLong } from '@/utils/general.utils'
 import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
@@ -21,6 +20,7 @@ import CreateAccountButton from '@/components/Global/CreateAccountButton'
 import { PeanutCheering } from '@/assets/mascot'
 import Image from 'next/image'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
+import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 import { useTranslations } from 'next-intl'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import Loading from '@/components/Global/Loading'
@@ -46,8 +46,7 @@ export const SuccessClaimLinkView = ({
     // CLAIMED can settle before the on-chain txHash has projected, so success is
     // its own flag rather than "we have a hash".
     const [claimConfirmed, setClaimConfirmed] = useState(false)
-    const { user: authUser } = useUserStore()
-    const { fetchUser } = useAuth()
+    const { user: authUser, fetchUser } = useAuth()
     const router = useRouter()
     const queryClient = useQueryClient()
     const { offrampDetails, claimType, bankDetails } = useClaimBankFlow()
@@ -180,6 +179,9 @@ export const SuccessClaimLinkView = ({
         if (!isClaimed) return
         triggerHaptic()
     }, [isClaimed, triggerHaptic])
+
+    // same gate as the haptic: a confirmed claim, never the optimistic mount
+    useAppReviewNudge(authUser?.user.userId, 'money_received', isClaimed && !claimFailure)
 
     // The optimistic 202 lands here with no outcome yet. Hold the processing
     // state until the claim is confirmed — rendering success before that would

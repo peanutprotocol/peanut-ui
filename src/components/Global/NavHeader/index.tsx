@@ -79,14 +79,34 @@ const NavHeader = ({
 
     return (
         <div className="w-full" ref={rootRef}>
-            <div className="relative flex w-full flex-row items-center justify-between">
-                {hideBackBtn ? (
-                    <div />
-                ) : !onPrev ? (
-                    <Link href={href ?? '/home'}>
+            {/* Fixed side columns keep both controls at the navigation origin.
+                The center column stays clear of their 40px visuals plus a 24px
+                gap, and grows DOWN for translated titles that need more than one
+                line; absolute centering made a wrapped title grow into the safe
+                area and did not contribute height to the page stack. */}
+            <div className="grid w-full grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-start gap-x-6">
+                <div className="col-start-1 row-start-1">
+                    {hideBackBtn ? null : !onPrev ? (
+                        <Link href={href ?? '/home'}>
+                            <Button
+                                variant="stroke"
+                                className={navCircleBtn}
+                                aria-label={tCommon('back')}
+                                data-testid="nav-back"
+                            >
+                                <Icon
+                                    name={icon}
+                                    size={20}
+                                    className={twMerge(icon === 'chevron-up' && '-rotate-90') || undefined}
+                                />
+                            </Button>
+                        </Link>
+                    ) : (
                         <Button
                             variant="stroke"
                             className={navCircleBtn}
+                            onClick={onPrev}
+                            disabled={disableBackBtn}
                             aria-label={tCommon('back')}
                             data-testid="nav-back"
                         >
@@ -96,23 +116,8 @@ const NavHeader = ({
                                 className={twMerge(icon === 'chevron-up' && '-rotate-90') || undefined}
                             />
                         </Button>
-                    </Link>
-                ) : (
-                    <Button
-                        variant="stroke"
-                        className={navCircleBtn}
-                        onClick={onPrev}
-                        disabled={disableBackBtn}
-                        aria-label={tCommon('back')}
-                        data-testid="nav-back"
-                    >
-                        <Icon
-                            name={icon}
-                            size={20}
-                            className={twMerge(icon === 'chevron-up' && '-rotate-90') || undefined}
-                        />
-                    </Button>
-                )}
+                    )}
+                </div>
                 {!hideLabel && (
                     <div
                         className={twMerge(
@@ -120,27 +125,26 @@ const NavHeader = ({
                             // weight pair used here happened to render the same
                             // 24/800/32, but off the token the two drift apart the
                             // moment Heading/S moves.
-                            // min-w-max let a long title run under the 40px side buttons
-                            // on 360px screens; cap it to the space between them instead
-                            'absolute top-1/2 left-1/2 max-w-[calc(100%-8rem)] -translate-x-1/2 -translate-y-1/2 transform truncate pb-1 text-heading-s',
+                            'col-start-2 row-start-1 min-w-0 pt-0.5 pb-1 text-center text-heading-s break-words whitespace-normal',
                             titleClassName
                         )}
                     >
                         {label}
                     </div>
                 )}
-
-                {rightElement}
-                {showLogoutBtn && auth && (
-                    <Button
-                        onClick={() => auth.logoutUser()}
-                        loading={auth.isLoggingOut}
-                        variant="stroke"
-                        icon="logout"
-                        aria-label={tNav('logout')}
-                        className={navCircleBtn}
-                    />
-                )}
+                <div className="col-start-3 row-start-1 flex justify-end gap-3">
+                    {rightElement}
+                    {showLogoutBtn && auth && (
+                        <Button
+                            onClick={() => auth.logoutUser()}
+                            loading={auth.isLoggingOut}
+                            variant="stroke"
+                            icon="logout"
+                            aria-label={tNav('logout')}
+                            className={navCircleBtn}
+                        />
+                    )}
+                </div>
             </div>
             {/* maintenance announcement renders below the nav header (designer
                 ruling 2026-09-03) — null outside maintenance mode. The page's

@@ -76,7 +76,7 @@ const INLINE_STYLE_ALLOW = [
     'dev/loading-words/', // dev tooling
     'app/layout.tsx', // colorScheme on <html> — must be a style prop
     '0_Bruddle/BaseSelect.tsx', // width from radix var(--radix-select-trigger-width)
-    'qr-pay/page.tsx', // -webkit-touch-callout on the hold button — no utility
+    'qr-pay/views/QrPaySuccessView.tsx', // hold button: -webkit-touch-callout + clip-path progress fill — no utility
     'Global/ValidatedInput/', // -webkit tap-highlight/text-fill — no utility
 ]
 
@@ -279,7 +279,7 @@ counts.classNameSitesInPages = files
 // drives the count down, new drift pushes it up and fails.
 counts.fontWeightOnTypeToken = files
     .filter((f) => !allowed(f.path))
-    .reduce((sum, f) => sum + countWeightStacks(f.text), 0)
+    .reduce((sum, f) => sum + countWeightStacks(f.text, f.path), 0)
 // matchers live in ds-lint-rules.cjs (imported at the top) so the regression
 // tests in scripts/__tests__/ds-lint-rules.test.ts exercise the exact rules
 // this script counts with, without running the src/ scan. these five scan

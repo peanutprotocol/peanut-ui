@@ -17,6 +17,7 @@ const FIXTURE_FILES = [
     'android/build.gradle',
     'android/variables.gradle',
     'android/app/build.gradle',
+    'android/app/proguard-rules.pro',
     'android/app/src/main/AndroidManifest.xml',
     'android/app/src/main/res/values/capacitor-passkey.xml',
     'android/app/src/main/java/me/peanut/wallet/MainActivity.java',
@@ -67,7 +68,7 @@ function makeFixture() {
 }
 
 // The script is a CI entrypoint: its contract is stdout + exit code, so run it
-// the way capgo-deploy.yml does instead of reaching into its internals. (Jest
+// the way release-ota.yml does instead of reaching into its internals. (Jest
 // runs CJS here, so a dynamic import of the .mjs would not load anyway — same
 // reason semver-newer.test.js and release-version.test.js spawn it.)
 function run(root, ...args) {
@@ -117,6 +118,7 @@ describe('native-fingerprint', () => {
         // toContain on the key list, not toHaveProperty: these keys contain
         // dots, which toHaveProperty would read as a nested property path.
         expect(keys).toContain('android/capacitor.settings.gradle')
+        expect(keys).toContain('android/app/proguard-rules.pro')
         expect(keys).toContain('ios/App/CapApp-SPM/Package.swift')
         expect(keys).toContain('capacitor.config.ts')
         expect(keys).toContain('android/app/src/**.{java,kt}')
@@ -220,6 +222,16 @@ describe('native-fingerprint', () => {
             // when it changes.
             'android/app/src/main/java/me/peanut/wallet/MainActivity.java',
             (content) => `${content}\n// surface change\n`,
+            () => expect(fingerprint()).not.toBe(before)
+        )
+    })
+
+    it('moves when Android release shrinker rules change', () => {
+        const before = fingerprint()
+
+        withPatchedInput(
+            'android/app/proguard-rules.pro',
+            (content) => `${content}\n# release shrinker change\n`,
             () => expect(fingerprint()).not.toBe(before)
         )
     })
@@ -367,5 +379,50 @@ describe('native-fingerprint', () => {
 
         expect(result.status).toBe(1)
         expect(result.stderr).toContain('needs a directory')
+    })
+})
+
+/*
+ * Every native input must say which platform's binary carries it. A new input
+ * with no `platform` would be skipped by platformDiff for both platforms — the
+ * lenient direction, which is how an unnoticed native change reaches an older
+ * binary. `shared` is a deliberate answer, not a default: capacitor.config.ts,
+ * patches/ and the resolved plugin versions sit outside android/ and ios/ while
+ * describing the native half of both.
+ */
+describe('platform classification', () => {
+    const inputs = () => {
+        const result = spawnSync(process.execPath, [SCRIPT_PATH, '--inputs'], { encoding: 'utf-8' })
+        expect(result.status).toBe(0)
+        return JSON.parse(result.stdout)
+    }
+
+    it('classifies every native input', () => {
+        const unclassified = inputs().filter((input) => !['android', 'ios', 'shared'].includes(input.platform))
+        expect(unclassified.map((input) => input.id)).toEqual([])
+    })
+
+    it('agrees with the path prefix wherever there is one', () => {
+        const mismatched = inputs().filter(
+            (input) =>
+                (input.id.startsWith('android/') && input.platform !== 'android') ||
+                (input.id.startsWith('ios/') && input.platform !== 'ios')
+        )
+        expect(mismatched.map((input) => input.id)).toEqual([])
+    })
+
+    // Shared inputs are the reason platformDiff is not a path-prefix filter.
+    it('keeps the shared inputs shared', () => {
+        const shared = inputs()
+            .filter((input) => input.platform === 'shared')
+            .map((input) => input.id)
+        expect(shared).toEqual(expect.arrayContaining(['capacitor.config.ts', 'patches/**', 'native-plugin-versions']))
+    })
+
+    // Named for iOS but not under ios/ — it pins iOS native SDK versions after
+    // `cap sync`, so a prefix rule would have called it shared.
+    it('classifies the iOS post-sync script as iOS', () => {
+        const entry = inputs().find((input) => input.id === 'scripts/native-ios-postsync.js')
+        expect(entry.platform).toBe('ios')
     })
 })

@@ -22,6 +22,7 @@ const mockAdapter = {
     onPermissionChange: jest.fn(() => () => {}),
     onSubscriptionChange: jest.fn(() => () => {}),
     onNotificationClick: jest.fn(() => () => {}),
+    onNotificationReceived: jest.fn(() => () => {}),
 }
 jest.mock('@/services/onesignal', () => ({
     getOneSignalAdapter: () => Promise.resolve(mockAdapter),
@@ -42,9 +43,15 @@ jest.mock('@/utils/general.utils', () => ({
 const mockIsPwaSunsetOn = jest.fn(() => false)
 jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => mockIsPwaSunsetOn() }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
-jest.mock('@/redux/hooks', () => ({ useUserStore: () => ({ user: { user: { userId: 'user-1' } } }) }))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'user-1' } } }) }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
-jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), captureMessage: jest.fn() }))
+const mockSentryCaptureException = jest.fn()
+const mockSentryAddBreadcrumb = jest.fn()
+jest.mock('@sentry/nextjs', () => ({
+    captureException: (...args: unknown[]) => mockSentryCaptureException(...args),
+    captureMessage: jest.fn(),
+    addBreadcrumb: (...args: unknown[]) => mockSentryAddBreadcrumb(...args),
+}))
 
 import { NOTIF_PROMPT_SNOOZE_DAYS } from '@/constants/migration.consts'
 import { useNotifications } from '../useNotifications'
@@ -79,6 +86,7 @@ describe('useNotifications dismissal / snooze logic', () => {
         mockIsPwaSunsetOn.mockReturnValue(false)
         mockAdapter.getPermission.mockResolvedValue('default')
         mockAdapter.isOptedIn.mockResolvedValue(false)
+        mockAdapter.requestPermission.mockResolvedValue('default')
     })
 
     it('shows the modal for a user who never dismissed it', async () => {
@@ -142,5 +150,36 @@ describe('useNotifications dismissal / snooze logic', () => {
         await reEvaluate(rendered)
 
         expect(rendered.result.current.showPermissionModal).toBe(false)
+    })
+
+    it.each(['Permission dismissed', 'Permission blocked'])(
+        'breadcrumbs an expected permission outcome without reporting it: %s',
+        async (message) => {
+            const rendered = await renderWithShowingBaseline()
+            mockAdapter.requestPermission.mockRejectedValueOnce(new Error(message))
+
+            await act(async () => {
+                await expect(rendered.result.current.requestPermission()).resolves.toBe('default')
+            })
+
+            expect(mockSentryCaptureException).not.toHaveBeenCalled()
+            expect(mockSentryAddBreadcrumb).toHaveBeenCalledWith(
+                expect.objectContaining({ category: 'onesignal.permission', level: 'info' })
+            )
+        }
+    )
+
+    it('still reports a technical permission SDK failure', async () => {
+        const rendered = await renderWithShowingBaseline()
+        const failure = new Error('OneSignal SDK transport failed')
+        mockAdapter.requestPermission.mockRejectedValueOnce(failure)
+
+        await act(async () => {
+            await expect(rendered.result.current.requestPermission()).resolves.toBe('default')
+        })
+
+        expect(mockSentryCaptureException).toHaveBeenCalledWith(failure, {
+            tags: { source: 'onesignal_request_permission' },
+        })
     })
 })

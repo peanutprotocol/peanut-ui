@@ -27,7 +27,7 @@ import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { type RecipientType } from '@/lib/url-parser/types/payment'
-import { useUserStore } from '@/redux/hooks'
+import { useAuth } from '@/context/authContext'
 import type { TRequestChargeResponse, PaymentCreationResponse, ChargeEntry } from '@/services/services.types'
 import { formatAmount, getInitialsFromName } from '@/utils/general.utils'
 import { resolveRecipientDisplay } from '@/utils/recipient-display'
@@ -39,19 +39,22 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { type ReactNode, useEffect, useMemo, useRef } from 'react'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
+import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 import { PeanutCheering } from '@/assets/mascot'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import PointsCard from '@/components/Common/PointsCard'
-import { BASE_URL } from '@/constants/general.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import type { ParsedURL } from '@/lib/url-parser/types/payment'
+import { payLinkUrl } from '@/utils/url.utils'
 
 // minimal user info needed for display
 type UserDisplayInfo = {
     username?: string
     fullName?: string
+    /** Their picked profile avatar (TASK-22625); null means the letter fallback. */
+    avatarKey?: string | null
 }
 
 type DirectSuccessViewProps = {
@@ -111,7 +114,7 @@ const PaymentSuccessView = ({
     const router = useRouter()
     const t = useTranslations('payment')
     const { isTransactionSelected, openTransactionDetails, closeTransactionDetails } = useTransactionDetailsDrawer()
-    const { user: authUser } = useUserStore()
+    const { user: authUser } = useAuth()
     const queryClient = useQueryClient()
     const { triggerHaptic } = useAppHaptic()
 
@@ -159,7 +162,7 @@ const PaymentSuccessView = ({
 
         const recipientIdentifier = user?.username || parsedPaymentData?.recipient?.identifier
         const receiptLink = recipientIdentifier
-            ? `${BASE_URL}/${recipientIdentifier}?chargeId=${chargeDetails.uuid}`
+            ? payLinkUrl(`/${recipientIdentifier}?chargeId=${chargeDetails.uuid}`)
             : undefined
 
         let details: Partial<TransactionDetails> = {
@@ -205,6 +208,12 @@ const PaymentSuccessView = ({
                 amountDisplay: peanutFeeDisplayValue,
             },
             currency: usdAmount ? { amount: usdAmount, code: 'USD' } : undefined,
+            // The recipient we were handed, or the one the charge names. A
+            // handed-in recipient is authoritative: their explicit null means
+            // "no pick", not "look somewhere else".
+            avatarKey: user
+                ? (user.avatarKey ?? null)
+                : (chargeDetails.requestLink?.recipientAccount?.user?.avatarKey ?? null),
         }
 
         return details as TransactionDetails
@@ -286,6 +295,9 @@ const PaymentSuccessView = ({
         // trigger haptic on mount
         triggerHaptic()
     }, [triggerHaptic])
+
+    // type REQUEST is the "request created" screen — a link made, not money moved
+    useAppReviewNudge(authUser?.user.userId, 'payment_completed', type !== 'REQUEST')
 
     return (
         <div className="flex min-h-inherit flex-col justify-between gap-8">

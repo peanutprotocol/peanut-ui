@@ -27,7 +27,11 @@ jest.mock('@/utils/capacitor', () => ({
 }))
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: (...args: unknown[]) => mockServerFetch(...args) }))
 jest.mock('@/app/actions/ens', () => ({ resolveEns: jest.fn().mockResolvedValue(null) }))
-jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    // onFeatureFlags: the chain-rollout gate subscribes to flag loads.
+    default: { capture: jest.fn(), onFeatureFlags: jest.fn(() => jest.fn()) },
+}))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: jest.fn() }) }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({
@@ -112,4 +116,15 @@ describe('scanned peanut.me links on web', () => {
         await scan('https://peanut.me/alice/10USDC?id=req-123')
         expect(mockPush).toHaveBeenCalledWith('/alice/10USDC?id=req-123')
     })
+})
+
+it.each([true, false])('opts QR lookups into private telemetry on native=%s', async (native) => {
+    mockIsCapacitor.mockReturnValue(native)
+    mockServerFetch.mockResolvedValue({ json: async () => ({ claimed: false }) })
+    await scan('https://peanut.me/qr/private-id#p=secret')
+    expect(mockServerFetch).toHaveBeenCalledWith('/qr/private-id#p=secret', {
+        method: 'GET',
+        redactTelemetry: true,
+    })
+    expect(mockPush).toHaveBeenCalled()
 })

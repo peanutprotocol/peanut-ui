@@ -22,7 +22,7 @@ import { useCountUp } from '@/hooks/useCountUp'
 import { useInView } from 'framer-motion'
 import { useRef, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
-import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
+import InviteFriendsDrawer from '@/components/Global/InviteFriendsDrawer'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { isIOSNative } from '@/utils/capacitor'
 import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
@@ -97,7 +97,7 @@ const InvitesPage = () => {
                         }
                     />
                 </div>
-                <InviteFriendsModal
+                <InviteFriendsDrawer
                     visible={isInviteModalOpen}
                     onClose={() => setIsInviteModalOpen(false)}
                     username={user?.user.username ?? ''}
@@ -163,14 +163,19 @@ const InvitesPage = () => {
                                     <div className="flex items-center gap-3">
                                         <TransactionAvatarBadge
                                             initials={getInitialsFromName(displayName)}
-                                            userName={displayName}
+                                            // The invitee's own handle, so the letter fallback
+                                            // matches their profile. An invitee without one keeps
+                                            // the display name — an empty name reads as "not a
+                                            // user" and drops to a wallet icon.
+                                            userName={username || displayName}
+                                            avatarKey={invite.avatarKey}
                                             isLinkTransaction={false}
                                             transactionType={'send'}
                                             context="card"
                                             size="small"
                                         />
                                     </div>
-                                    <div className="min-w-0 flex-1 truncate font-roboto text-[16px] font-medium">
+                                    <div className="min-w-0 flex-1 truncate font-roboto text-body-m">
                                         <VerifiedUserLabel
                                             name={displayName}
                                             username={username}

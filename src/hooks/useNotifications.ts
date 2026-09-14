@@ -4,8 +4,10 @@ import { useEffect, useSyncExternalStore } from 'react'
 import { addBreadcrumb, captureException, captureMessage } from '@sentry/nextjs'
 import { getOneSignalAdapter, type NotificationPermissionState } from '@/services/onesignal'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
+import { isCapacitor } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
-import { useUserStore } from '@/redux/hooks'
+import { onForegroundPushDelivered } from '@/utils/notifications-events'
+import { useAuth } from '@/context/authContext'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import { NOTIF_PROMPT_SNOOZE_DAYS } from '@/constants/migration.consts'
@@ -13,6 +15,14 @@ import { isPwaSunsetOn } from '@/utils/migration.utils'
 import { UTM_SOURCES, UTM_MEDIUMS } from '@/utils/utm.utils'
 
 const NOTIF_PROMPT_SNOOZE_MS = NOTIF_PROMPT_SNOOZE_DAYS * 24 * 60 * 60 * 1000
+
+const EXPECTED_PERMISSION_ERRORS = ['permission dismissed', 'permission blocked']
+
+export function isExpectedNotificationPermissionError(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error ?? '')
+    const normalized = message.toLowerCase().trim().replace(/\.$/, '')
+    return EXPECTED_PERMISSION_ERRORS.includes(normalized)
+}
 
 /*
  * Notification state lives in a module-level store shared by every
@@ -215,6 +225,11 @@ async function ensureInitialized() {
         const adapter = await getOneSignalAdapter()
         await adapter.init()
 
+        // Web half of the foreground-push badge refresh (the Set dedupes the
+        // shared reference with useForegroundPushRefresh's registration; on
+        // native the bridge lives in useNativeAppLinks).
+        if (!isCapacitor()) adapter.onNotificationReceived(onForegroundPushDelivered)
+
         adapter.onPermissionChange((permissionState) => {
             addBreadcrumb({ category: 'onesignal', message: 'permission change', data: { permissionState } })
             // update permission state and immediately re-evaluate ui visibility
@@ -316,6 +331,14 @@ async function requestPermission(): Promise<NotificationPermissionState> {
         evaluateVisibility()
         return newPermission
     } catch (error) {
+        if (isExpectedNotificationPermissionError(error)) {
+            addBreadcrumb({
+                category: 'onesignal.permission',
+                level: 'info',
+                message: 'notification permission prompt was not accepted',
+            })
+            return 'default'
+        }
         console.warn('Error requesting permission:', error)
         captureException(error, { tags: { source: 'onesignal_request_permission' } })
         return 'default'
@@ -347,7 +370,7 @@ async function afterPermissionAttempt() {
 }
 
 export function useNotifications() {
-    const { user } = useUserStore()
+    const { user } = useAuth()
     const externalId = user?.user.userId
     const snapshot = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 

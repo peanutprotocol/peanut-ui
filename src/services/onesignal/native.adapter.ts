@@ -22,6 +22,7 @@ let initPromise: Promise<void> | null = null
 
 const permissionListeners = new Set<(state: NotificationPermissionState) => void>()
 const subscriptionListeners = new Set<(change: PushSubscriptionChange) => void>()
+const notificationReceivedListeners = new Set<() => void>()
 const clickListeners = new Set<(info: NotificationClickInfo) => void>()
 /**
  * Cold-start tap buffer. Capacitor retains the click event only until the first
@@ -97,6 +98,24 @@ function attachUnderlyingListeners() {
         subscriptionListeners.forEach((cb) => cb(change))
     })
 
+    /*
+     * Attaching ANY foregroundWillDisplay listener changes plugin behavior:
+     * @onesignal/capacitor-plugin (1.0.6) then calls preventDefault() natively
+     * and re-displays the banner only after the JS listeners return, with no
+     * timeout fallback. Accepted for the badge refresh — but a listener that
+     * throws would suppress the banner entirely, so each callback is guarded
+     * and must stay synchronous and cheap.
+     */
+    OneSignal.Notifications.addEventListener('foregroundWillDisplay', () => {
+        notificationReceivedListeners.forEach((cb) => {
+            try {
+                cb()
+            } catch (e) {
+                console.warn('notification received listener failed:', e)
+            }
+        })
+    })
+
     OneSignal.Notifications.addEventListener('click', (event: NotificationClickEvent) => {
         const info: NotificationClickInfo = {
             deepLink: event?.result?.url ?? event?.notification?.launchURL,
@@ -165,6 +184,11 @@ export const nativeOneSignalAdapter: OneSignalAdapter = {
     onSubscriptionChange(listener) {
         subscriptionListeners.add(listener)
         return () => subscriptionListeners.delete(listener)
+    },
+
+    onNotificationReceived(listener) {
+        notificationReceivedListeners.add(listener)
+        return () => notificationReceivedListeners.delete(listener)
     },
 
     onNotificationClick(listener) {

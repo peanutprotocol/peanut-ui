@@ -70,6 +70,32 @@ const restrictedImportsExcept = (...lifted) => [
     { paths: BASE_IMPORT_RESTRICTIONS.filter((restriction) => !lifted.includes(restriction)) },
 ]
 
+// The setup registry imports screen components, and those components use the
+// setup-flow hook. Importing the registry (or a view) back into the hook closes
+// a runtime cycle that production chunks can evaluate in TDZ order. The
+// generic import-x/no-cycle rule is disabled below because it is ineffective
+// with this resolver, so keep this high-risk boundary explicit and enforced.
+const SETUP_FLOW_RESTRICTED_IMPORTS = [
+    'error',
+    {
+        paths: [
+            ...BASE_IMPORT_RESTRICTIONS,
+            {
+                name: '@/components/Setup/Setup.consts',
+                message:
+                    'The setup registry imports views that use useSetupFlow, so importing it here creates a runtime cycle. Inject registry-derived data through SetupFlowProvider instead.',
+            },
+        ],
+        patterns: [
+            {
+                group: ['@/components/Setup/Views', '@/components/Setup/Views/**'],
+                message:
+                    'Setup views use useSetupFlow and must stay downstream of this hook. Inject view-independent data through SetupFlowProvider instead.',
+            },
+        ],
+    },
+]
+
 const QUERY_STRING_PUSH_MESSAGE =
     "Don't build a query string by hand for router.push/replace — write URL state with useQueryStates from 'nuqs' (its setter updates the params in place; pathname-only navigation is fine). See CLAUDE.md 'URL as State'. DS 10 ratchet: existing files are allowlisted; new files must use nuqs."
 
@@ -278,6 +304,12 @@ module.exports = [
             // toast literals) + hand-built query-string pushes (DS 10, TASK-21450).
             'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAX_BASE, ...QUERY_STRING_PUSH_RESTRICTIONS],
         },
+    },
+    {
+        // Dependency direction: registry -> views -> hook -> context. The
+        // registry owner injects its ordered ids through SetupFlowProvider.
+        files: ['src/hooks/useSetupFlow.ts'],
+        rules: { 'no-restricted-imports': SETUP_FLOW_RESTRICTED_IMPORTS },
     },
     {
         // The hook itself wraps router.back() — exempt from THAT selector only.

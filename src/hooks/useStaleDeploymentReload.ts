@@ -6,7 +6,7 @@ import { useCallback, useContext, useEffect, useRef } from 'react'
 import { DOCUMENT_CACHE_PATTERNS } from '@/constants/cache.consts'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
-import { useZerodevStore } from '@/redux/hooks'
+import { useZeroDevFlow } from '@/hooks/useZeroDevFlow'
 import { isCapacitor } from '@/utils/capacitor'
 import { isStandalonePwa, purgeCaches } from '@/utils/cache.utils'
 
@@ -97,7 +97,7 @@ function readSessionFlag(key: string): string | null {
 export function useStaleDeploymentReload() {
     const pathname = usePathname()
     const { hasPendingTransactions } = usePendingTransactions()
-    const { isSendingUserOp } = useZerodevStore()
+    const { isSendingUserOp } = useZeroDevFlow()
     const { isLoading } = useContext(loadingStateContext)
 
     const isStaleRef = useRef(false)

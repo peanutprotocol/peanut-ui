@@ -82,6 +82,25 @@ export const getOfframpCurrencyConfig = (countryId: string): CurrencyConfig => {
 }
 
 /**
+ * Resolve the capability-model country for a bank account. Bridge account
+ * types are more reliable than optional country metadata for the single-
+ * country rails (ACH, SPEI, and Faster Payments); IBAN always uses the EU
+ * SEPA rail in the capability model.
+ */
+export const getBankRailCountryFromAccount = (account: {
+    type?: string | AccountType | null
+    country?: string | null
+    details?: { countryCode?: string | null } | null
+}): string | undefined => {
+    const type = account.type?.toString().toLowerCase()
+    if (type === AccountType.US || type?.endsWith('ach') || type?.endsWith('us')) return 'US'
+    if (type === AccountType.CLABE || type?.endsWith('clabe')) return 'MX'
+    if (type === AccountType.GB || type?.endsWith('gb')) return 'GB'
+    if (type === AccountType.IBAN || type?.endsWith('iban')) return 'EU'
+    return railJurisdictionForBank(account.details?.countryCode ?? account.country)
+}
+
+/**
  * Derive the offramp destination currency + payment rail from the bank
  * account's actual `type`, falling back to country only when the type is
  * unknown.
@@ -224,9 +243,16 @@ export function getCountryFromPath(countryPath: string): CountryData | undefined
 
 export function getCountryFromAccount(account: Account): CountryData | undefined {
     const code = (account.details?.countryCode ?? '').toUpperCase()
+    const type = account.type?.toString().toLowerCase()
 
     if (account.type === AccountType.US) {
         return ALL_METHODS_DATA.find((c) => c.id === 'US')
+    }
+    if (account.type === AccountType.CLABE || type?.endsWith('clabe')) {
+        return ALL_METHODS_DATA.find((c) => c.iso2 === 'MX')
+    }
+    if (account.type === AccountType.GB || type?.endsWith('gb')) {
+        return ALL_METHODS_DATA.find((c) => c.iso2 === 'GB')
     }
     // Try countryName first; fall back to the country code. Bridge stores
     // ISO3 ('USA', 'GBR'); CountryData carries both `iso3` and `iso2` (= `id`),

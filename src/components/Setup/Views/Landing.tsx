@@ -7,6 +7,7 @@ import { useLogin } from '@/hooks/useLogin'
 import * as Sentry from '@sentry/nextjs'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
+import Divider from '@/components/0_Bruddle/Divider'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useEffect } from 'react'
@@ -22,6 +23,7 @@ import { isCapacitor } from '@/utils/capacitor'
 
 const LandingStep = () => {
     const t = useTranslations('setup')
+    const tCommon = useTranslations('common')
     const tMigration = useTranslations('migration')
     const migrationOn = useMigrationFlag()
     const hasKeepWebBypass = useKeepWebBypass()
@@ -91,6 +93,7 @@ const LandingStep = () => {
                         {t('landing.signUp')}
                     </Button>
                 )}
+                <Divider text={tCommon('or')} />
                 <Button
                     loading={isLoggingIn}
                     shadowSize="4"

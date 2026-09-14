@@ -18,7 +18,13 @@ const mockServerFetch = serverFetch as jest.MockedFunction<typeof serverFetch>
 const okResponse = (body: unknown) => ({ ok: true, status: 200, json: async () => body }) as unknown as Response
 
 const errorResponse = (status: number, body: unknown) =>
-    ({ ok: false, status, statusText: 'Error', json: async () => body }) as unknown as Response
+    ({
+        ok: false,
+        status,
+        statusText: 'Error',
+        json: async () => body,
+        text: async () => JSON.stringify(body),
+    }) as unknown as Response
 
 describe('mantecaApi.initiateQrPayment — scan timeout forwarding', () => {
     beforeEach(() => jest.clearAllMocks())
@@ -135,4 +141,34 @@ describe('mantecaApi.initiateQrPayment — error construction', () => {
         expect(thrown.name).toBe('ApiError')
         expect(thrown.status).toBe(502)
     })
+})
+
+it('preserves the terminal cancellation code from the signed QR response', async () => {
+    mockServerFetch.mockResolvedValue(
+        errorResponse(400, { code: 'QR_PAYMENT_CANCELLED', message: 'Cancelled before funding' })
+    )
+    await expect(mantecaApi.completeQrPaymentWithSignedTx({ kind: 'userOp' } as never)).rejects.toMatchObject({
+        status: 400,
+        code: 'QR_PAYMENT_CANCELLED',
+        message: 'Cancelled before funding',
+    })
+})
+
+it('preserves the confirmed-revert code through QR submission into the retry guard', async () => {
+    const { registerEphemeralArtifact, submitSignedSpend, requiresPasskeyRetry } =
+        await import('@/hooks/wallet/signSpendRetry')
+    const artifact = registerEphemeralArtifact({}, '0xtransport')
+    mockServerFetch.mockResolvedValue(errorResponse(500, { error: 'USER_OP_REVERTED', message: 'Operation failed' }))
+    await expect(
+        submitSignedSpend(artifact, () =>
+            mantecaApi.completeQrPaymentWithSignedTx({
+                kind: 'userOp',
+                paymentLockCode: 'lock',
+                signedUserOp: {} as never,
+                chainId: '42161',
+                entryPointAddress: '0xentry',
+            })
+        )
+    ).rejects.toMatchObject({ code: 'USER_OP_REVERTED' })
+    expect(requiresPasskeyRetry('0xtransport')).toBe(true)
 })

@@ -5,7 +5,6 @@ import { useAuth } from '@/context/authContext'
 import { WalletProviderType } from '@/interfaces/wallet.interfaces'
 import { clearAuthState } from '@/utils/auth.utils'
 import { POST_SIGNUP_ACTIONS } from '@/components/Global/PostSignupActionManager/post-signup-action.consts'
-import { useSetupStore } from '@/redux/hooks'
 import { consumePostAuthRedirect } from '@/services/post-auth-redirect'
 
 /**
@@ -15,16 +14,23 @@ import { consumePostAuthRedirect } from '@/services/post-auth-redirect'
 export const useAccountSetup = () => {
     const { user } = useAuth()
     const { addAccount } = useAuth()
-    const { telegramHandle } = useSetupStore()
     const router = useRouter()
     const searchParams = useSearchParams()
     const [error, setError] = useState<string | null>(null)
     const [isProcessing, setIsProcessing] = useState(false)
 
-    const handleRedirect = (): boolean => {
+    /**
+     * @param options.isNewAccount - This account was just created here, so a
+     * destination that only marks where an earlier session ended is not its
+     * inheritance (a fresh signup landed on the previous account's /profile).
+     * A deep link the person actually asked for still wins, stored or passed
+     * as `redirect_uri`.
+     */
+    const handleRedirect = (options?: { isNewAccount?: boolean }): boolean => {
         const redirect = consumePostAuthRedirect(searchParams.get('redirect_uri'), {
             deferStoredRedirect: (destination) =>
                 POST_SIGNUP_ACTIONS.some((action) => action.pathPattern.test(destination)),
+            rejectSessionEndOrigin: options?.isNewAccount,
         })
 
         console.log('[useAccountSetup] Resolved post-auth redirect:', redirect)
@@ -64,7 +70,6 @@ export const useAccountSetup = () => {
                         accountIdentifier: address,
                         accountType: WalletProviderType.PEANUT,
                         userId: user.user.userId as string,
-                        telegramHandle: telegramHandle.length > 0 ? telegramHandle : undefined,
                     })
                     console.log('[useAccountSetup] Account added successfully')
                     break // success, exit retry loop

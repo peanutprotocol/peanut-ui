@@ -41,7 +41,7 @@ export default function DrawerPage() {
                                     This is a vaul-based bottom sheet. Swipe down to dismiss.
                                 </DrawerDescription>
                             </DrawerHeader>
-                            <div className="px-4 pb-4">
+                            <div className="pb-4">
                                 <p className="text-body-s text-foreground-secondary">
                                     The Drawer component wraps vaul and provides a consistent bottom-sheet experience.
                                     It includes an overlay, drag handle, and max-height constraint (80vh).
@@ -83,7 +83,7 @@ export default function DrawerPage() {
       <DrawerTitle>Title</DrawerTitle>
       <DrawerDescription>Description</DrawerDescription>
     </DrawerHeader>
-    <div className="px-4 pb-4">
+    <div className="pb-4">
       {/* Content */}
     </div>
     <DrawerFooter>

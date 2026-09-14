@@ -20,14 +20,15 @@ import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
 import { useRouter } from 'next/navigation'
 import { NavHeaderPresenceProvider } from '@/components/Global/Banner/navHeaderPresence'
 import { ShellBannerFallback } from '@/components/Global/Banner/ShellBannerFallback'
-import { useSetupStore } from '@/redux/hooks'
 import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 import { isPublicRoute } from '@/constants/routes'
 import { saveRedirectUrl } from '@/utils/general.utils'
+import { consumeHeldSession, markSessionHeld } from '@/utils/session-presence'
 import { IS_DEV } from '@/constants/general.consts'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { FixtureBanner } from '@/dev/fixtures/FixtureBanner'
 import { usePullToRefresh, useShouldPullToRefresh } from '@/hooks/usePullToRefresh'
+import { useLongPressGuard } from '@/hooks/useLongPressGuard'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useAccountSetupRedirect } from '@/hooks/useAccountSetupRedirect'
 import { useNativePlugins } from '@/hooks/useNativePlugins'
@@ -40,6 +41,7 @@ import SunsetScreen from '@/components/Migration/SunsetScreen'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { shouldShowSunsetBlock } from '@/utils/migration.utils'
+import { useIosPwaInstallGate } from '@/hooks/useIosPwaInstallGate'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     useNativePlugins()
@@ -58,6 +60,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isHome = pathName === '/home' || pathName === '/home/'
     const isHistory = pathName === '/history'
     const isSupport = pathName === '/support'
+    const isReceipt = pathName === '/receipt' || pathName === '/receipt/'
     // The profile menu IS the full-screen menu: the bottom nav and its QR
     // button used to float over its own list of destinations. Exact match —
     // /profile/* sub-pages keep the nav.
@@ -65,7 +68,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isDev = pathName?.startsWith('/dev') ?? false
     const alignStart = isHome || isHistory || isSupport
     const router = useRouter()
-    const { showIosPwaInstallScreen } = useSetupStore()
+    const { showIosPwaInstallScreen } = useIosPwaInstallGate()
     const migrationOn = useMigrationFlag()
     const hasKeepWebBypass = useKeepWebBypass()
 
@@ -79,7 +82,22 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     // enable pull-to-refresh for both ios and android
     usePullToRefresh({ shouldPullToRefresh: useShouldPullToRefresh() })
 
+    // no OS long-press link preview on app-shell CTAs and menu rows
+    useLongPressGuard()
+
     const isRedirecting = useRef(false)
+    /*
+     * Whether this TAB has held a session separates the two reasons the gate
+     * below fires — a logged-out arrival at a deep link, or a session
+     * collapsing where it stood — and it is recorded per tab rather than per
+     * document so a reload after the token was revoked still knows the
+     * difference (see session-presence). In an effect, not during render:
+     * React can discard or replay a render, and this outlives the one it was
+     * observed in. Declared above the gate so the gate reads it settled.
+     */
+    useEffect(() => {
+        if (user) markSessionHeld()
+    }, [user])
 
     useEffect(() => {
         // Harness-only: if a reproduce session is in progress, ReproduceBootstrap
@@ -97,21 +115,22 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         // for a 5xx or a network failure. so an error here means the backend is
         // down, not that the person is logged out. leave them on the error screen
         // below — a bounce to signup reads as "you are logged out" during an outage.
-        if (
-            !isPublicPath &&
-            isReady &&
-            !isFetchingUser &&
-            !user &&
-            !userFetchError &&
-            !isRedirecting.current &&
-            !isDemoMode()
-        ) {
+        if (isPublicPath) {
+            // A session can expire while this tab is sitting on a public route.
+            // Retire that tab-local provenance here without storing the public
+            // route, so its next protected deep link is fresh intent.
+            if (isReady && !isFetchingUser && !user && !userFetchError) consumeHeldSession()
+            return undefined
+        }
+        if (isReady && !isFetchingUser && !user && !userFetchError && !isRedirecting.current && !isDemoMode()) {
             isRedirecting.current = true
             // Keep the target: a logged-out tap on a protected deep link
             // (/pay-request, /card, /receipt, every push) used to be dropped
             // here and land on /home after login. useLogin/useAccountSetup
-            // consume this via consumePostAuthRedirect.
-            saveRedirectUrl()
+            // consume this via consumePostAuthRedirect — which is why the
+            // origin rides along: a fresh signup must not inherit the page a
+            // previous session was standing on.
+            saveRedirectUrl(consumeHeldSession() ? 'session-end' : 'deep-link')
             router.replace('/setup')
             // Hard-nav fallback if the soft nav silently fails; re-check at fire time.
             const fallback = setTimeout(() => {
@@ -188,6 +207,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     'pb-[calc(6rem_+_var(--safe-bottom))]',
                     isSupport && 'p-0 pb-[calc(5rem_+_var(--safe-bottom))]',
                     isHome && 'p-0',
+                    // Receipt owns its 16px page inset so the same shell also
+                    // renders correctly on the public web receipt route.
+                    isReceipt && 'p-0',
                     // the 6rem reservation exists to clear the bottom nav, so a
                     // screen without one takes the same inset as a logged-out one
                     isUserLoggedIn && !isProfileMenu

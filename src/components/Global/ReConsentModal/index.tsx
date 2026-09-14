@@ -97,7 +97,7 @@ const ReConsentModal = () => {
             // Sentry (not console): if /accept fails systematically, nobody can
             // record consent at all — that must be visible in prod
             Sentry.captureException(e, { tags: { feature: 're-consent', action: 'accept' } })
-            setError('Could not save your acceptance — please try again.')
+            setError(t('reConsent.saveError'))
         } finally {
             setSubmitting(false)
         }
@@ -168,13 +168,13 @@ const ReConsentModal = () => {
                 </div>
             }
             checkbox={{
-                text: 'I accept the updated documents',
+                text: t('reConsent.acceptLabel'),
                 checked,
                 onChange: setChecked,
             }}
             ctas={[
                 {
-                    text: submitting ? 'Saving…' : 'Accept & continue',
+                    text: submitting ? t('reConsent.saving') : t('reConsent.acceptCta'),
                     variant: 'purple',
                     shadowSize: '4',
                     disabled: !checked || submitting,
@@ -184,7 +184,7 @@ const ReConsentModal = () => {
                     className: 'sm:flex-none',
                 },
                 {
-                    text: 'Not now',
+                    text: t('reConsent.notNow'),
                     variant: 'stroke',
                     disabled: submitting,
                     onClick: handlePostpone,

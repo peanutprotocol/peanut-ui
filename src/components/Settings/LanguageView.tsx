@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
@@ -42,9 +43,13 @@ export const LanguageView = () => {
     }
 
     return (
-        <div className="h-full w-full bg-background">
+        <PageStack gap="6" className="h-full bg-background">
             <NavHeader title={t('title')} onPrev={onBack} />
-            <div className="pt-4">
+            {/* top-aligned list page (design.md list recipe), not PageStack.Center:
+                a short settings list floating mid-screen read as misplaced.
+                one wrapper div, not one child per row: PageStack's gap-6 would
+                otherwise land between the rows and break the joined list geometry */}
+            <div>
                 {APP_LOCALES.map((appLocale, index) => (
                     <ListItem
                         key={appLocale}
@@ -68,6 +73,6 @@ export const LanguageView = () => {
                     />
                 ))}
             </div>
-        </div>
+        </PageStack>
     )
 }

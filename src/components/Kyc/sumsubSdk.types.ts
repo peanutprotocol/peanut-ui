@@ -4,6 +4,7 @@
  * interchangeable from a call site's point of view.
  */
 export interface SumsubSdkProps {
+    sessionKey?: string
     visible: boolean
     accessToken: string | null
     onClose: () => void
@@ -24,3 +25,9 @@ export interface SumsubSdkProps {
     /** multi-level workflow (e.g. LATAM) — don't close SDK on Level 1 submission */
     isMultiLevel?: boolean
 }
+
+/**
+ * Which confirmation the web modal's help ActionModal shows: `trouble` offers
+ * support, `stop-verification` confirms abandoning the session.
+ */
+export type SumsubHelpModalVariant = 'stop-verification' | 'trouble'

@@ -50,7 +50,9 @@ export function MarketingHero({
                         />
                     )}
                     <h1>
-                        <Title text={title} className="text-7xl md:text-9xl" />
+                        {/* 5xl on mobile: the knerd display face clips at 320px
+                            with text-7xl (TASK-22366 sweep) */}
+                        <Title text={title} className="text-5xl md:text-9xl" />
                     </h1>
                     <p className="mt-6 text-3xl font-bold text-black md:text-5xl">{subtitle}</p>
                     {ctaText && (

@@ -1,6 +1,6 @@
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { IS_DEV } from '@/constants/general.consts'
+import { BASE_URL, IS_DEV } from '@/constants/general.consts'
 import {
     MIGRATION_CUTOVER_DATE,
     PWA_SUNSET_FLAG,
@@ -17,14 +17,37 @@ import {
     trackDeferredHandoffCreated,
 } from '@/utils/deferred-link'
 
+const IS_PROD_DOMAIN = BASE_URL === 'https://peanut.me'
+
 /**
- * Flag read with a dev-only localStorage override. Local dev never inits
- * posthog (instrumentation-client gates on NODE_ENV), so e2e QA flips the
- * flag with `localStorage.setItem('pwa-sunset', 'true')` + reload instead.
- * Inert outside dev builds.
+ * PR previews are temporary review environments, so they must retain the web
+ * signup flow even when the production PWA sunset flag is enabled. The dev
+ * branch is excluded because its preview deployment backs staging, where QA
+ * still needs to exercise the production migration state.
+ *
+ * Require a git ref as well as VERCEL_ENV: local visual builds set only
+ * NEXT_PUBLIC_VERCEL_ENV=preview to enable fixtures and must keep the explicit
+ * localStorage sunset override working.
+ */
+function isVercelPrPreview(): boolean {
+    const gitRef = process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF
+    return process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview' && Boolean(gitRef) && gitRef !== 'dev'
+}
+
+/**
+ * Read the flag from PostHog. Local, CI and staging builds also accept
+ * localStorage['pwa-sunset'] = 'true' because PostHog may be unavailable there.
+ * Production builds for peanut.me ignore the override. Ad-hoc PR previews
+ * always keep the web signup flow available for product review.
  */
 export function isPwaSunsetOn(): boolean {
-    if (IS_DEV && typeof localStorage !== 'undefined' && localStorage.getItem(PWA_SUNSET_FLAG) === 'true') {
+    if (isVercelPrPreview()) return false
+
+    if (
+        (IS_DEV || !IS_PROD_DOMAIN) &&
+        typeof localStorage !== 'undefined' &&
+        localStorage.getItem(PWA_SUNSET_FLAG) === 'true'
+    ) {
         return true
     }
     return isFeatureFlagEnabled(PWA_SUNSET_FLAG)
@@ -66,12 +89,12 @@ export function getMigrationCutoverTime(): number {
     return MIGRATION_CUTOVER_DATE.getTime()
 }
 
-/** track a store CTA click without navigating (for anchors that navigate themselves). */
+/** Track a store CTA click without navigating (for anchors that navigate themselves). */
 export function trackStoreClick(store: StoreKind, surface: MigrationSurface, handoff = false) {
     posthog.capture(ANALYTICS_EVENTS.MIGRATION_STORE_CTA_CLICKED, { surface, store, handoff })
 }
 
-/** context a bounce surface knows before any cookie is written (claim page invite CTA). */
+/** Invite or destination known by the CTA, before it is saved in a cookie. */
 export interface StoreHandoff {
     invite?: string
     dest?: string
@@ -114,11 +137,9 @@ export function openStore(store: StoreKind, surface: MigrationSurface, handoff?:
 }
 
 /**
- * href for a store CTA that is a real anchor and navigates itself: android
- * carries the hand-off in the url; iOS can't (the clipboard needs the tap) —
- * pair with onStoreAnchorClick. never preventDefault such an anchor: its own
- * navigation is the fallback that still works where window.open is suppressed
- * (in-app browsers, strict popup blockers).
+ * Store anchor URL with an Android install referrer.
+ * Pair with onStoreAnchorClick for tracking and the iOS clipboard handoff.
+ * Keep the anchor's default navigation so it works when popups are blocked.
  */
 export function storeAnchorHref(store: StoreKind): string {
     if (!isCapacitor() && store === 'android') {
@@ -131,7 +152,7 @@ export function storeAnchorHref(store: StoreKind): string {
     return STORE_URL[store]
 }
 
-/** tracking + iOS clipboard hand-off for a self-navigating store anchor. */
+/** Track a store anchor click and write its iOS clipboard handoff. */
 export function onStoreAnchorClick(store: StoreKind, surface: MigrationSurface) {
     if (isCapacitor()) {
         trackStoreClick(store, surface)

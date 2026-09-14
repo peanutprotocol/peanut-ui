@@ -97,6 +97,9 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
                     }
                     verifiedWithdrawal = artifact.rainWithdrawal
                 }
+                // No draft back-out on a lockCard throw: the backend may have
+                // consumed the withdrawal before the error surfaced — cleanup
+                // belongs to the probe-verified TTL sweep (TASK-21815 review).
                 await rainApi.lockCard(cardId, verifiedWithdrawal)
             } else {
                 await rainApi.activateCard(cardId)
@@ -121,6 +124,22 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
 
     const isSuccess = phase === 'success'
 
+    const showError = phase === 'error' && !!error
+    const showSlide = mode === 'lock'
+    const hasBody = !isSuccess && (showError || showSlide)
+    const bodyContent = (
+        <>
+            {showError && <p className="text-body-s text-foreground-error">{error}</p>}
+            {showSlide && (
+                <SlideToConfirm
+                    label={phase === 'loading' ? t('lockModal.locking') : t('lockModal.slideToLock')}
+                    onConfirm={run}
+                    disabled={phase === 'loading'}
+                />
+            )}
+        </>
+    )
+
     return (
         <ActionModal
             visible={isOpen}
@@ -131,20 +150,11 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
             icon="lock"
             title={t(isSuccess ? copyKeys.success : copyKeys.title)}
             description={t(isSuccess ? copyKeys.successBody : copyKeys.body)}
-            content={
-                isSuccess ? undefined : (
-                    <>
-                        {phase === 'error' && error && <p className="text-body-s text-foreground-error">{error}</p>}
-                        {mode === 'lock' && (
-                            <SlideToConfirm
-                                label={phase === 'loading' ? t('lockModal.locking') : t('lockModal.slideToLock')}
-                                onConfirm={run}
-                                disabled={phase === 'loading'}
-                            />
-                        )}
-                    </>
-                )
-            }
+            /* undefined, not an empty fragment: ActionModal reads a truthy
+               `content` as "this modal has a body" and spaces it accordingly, so
+               a fragment whose children are all absent buys the head margin and
+               an empty wrapper for nothing. */
+            content={hasBody ? bodyContent : undefined}
             ctas={
                 !isSuccess && mode === 'unlock'
                     ? [

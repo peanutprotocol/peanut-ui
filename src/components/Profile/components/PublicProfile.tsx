@@ -19,7 +19,7 @@ import { useRouter } from 'next/navigation'
 import { isCapacitor } from '@/utils/capacitor'
 import { requestUrl } from '@/utils/native-routes'
 import Card from '@/components/Global/Card'
-import { saveToCookie, toInviteCode } from '@/utils/general.utils'
+import { toInviteCode } from '@/utils/general.utils'
 import { useAuth } from '@/context/authContext'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useSafeBack } from '@/hooks/useSafeBack'
@@ -28,6 +28,8 @@ import ShareButton from '@/components/Global/ShareButton'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import BadgesRow from '@/components/Badges/BadgesRow'
+import { stashInvite } from '@/utils/invite-stash'
+import { EInviteType } from '@/services/services.types'
 
 interface PublicProfileProps {
     username: string
@@ -42,6 +44,11 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     const [fullName, setFullName] = useState<string>(username)
     const [showFullName, setShowFullName] = useState<boolean>(false)
     const [isKycVerified, setIsKycVerified] = useState<boolean>(false)
+    // Keyed by the username it was loaded for: the [...recipient] route reuses
+    // this component instance across profiles, and an effect-time reset still
+    // lets one render paint the previous owner's avatar beside the new name.
+    const [loadedAvatar, setLoadedAvatar] = useState<{ username: string; avatarKey: string | null } | null>(null)
+    const avatarKey = loadedAvatar?.username === username ? loadedAvatar.avatarKey : null
     const router = useRouter()
     const goBack = useSafeBack('/home')
     const { user, isFetchingUser } = useAuth()
@@ -109,7 +116,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
             // Session scope, no expiryDays — a poisoned cookie outlives this page
             // and locks setup past the only screen with Log In (PR #2346).
             const resolvedToOwner = !!onboardingResolved && inviterUsername === code
-            if (resolvedToOwner) saveToCookie('inviteCode', code)
+            if (resolvedToOwner) stashInvite(code, EInviteType.DIRECT)
             posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
                 source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
                 link_type: resolvedToOwner ? 'invite_code' : 'none',
@@ -117,9 +124,8 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
             if (intercepted) return
             // Unresolvable and mismatched codes still navigate — /invite owns the
             // messaging. Native strips /invite; /setup?step=signup is its stand-in
-            // (the cookie above already carries the code, and ONLY when it resolved
-            // to the owner — don't route through inviteFlowUrl, which writes it
-            // unconditionally and would revert the resolvedToOwner guard).
+            // (the stash above already carries the code, and ONLY when it
+            // resolved to the owner).
             router.push(isCapacitor() ? '/setup?step=signup' : `/invite?code=${code}`)
         } finally {
             setIsJoining(false)
@@ -134,14 +140,21 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     )
 
     useEffect(() => {
+        // Ignore a response the next navigation has already superseded.
+        let superseded = false
         usersApi.getByUsername(username).then((apiUser) => {
+            if (superseded) return
             if (apiUser?.fullName) setFullName(apiUser.fullName)
             // get the profile owner's showFullName preference
             setShowFullName(apiUser?.showFullName ?? false)
             setIsKycVerified(apiUser?.isVerified ?? false)
             setProfileUserId(apiUser?.userId ?? null)
             setProfileBadges(apiUser?.badges ?? [])
+            setLoadedAvatar({ username, avatarKey: apiUser?.avatarKey ?? null })
         })
+        return () => {
+            superseded = true
+        }
     }, [username])
 
     // interaction-status is the complete "sent money before" source (covers send-link
@@ -176,6 +189,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                     isVerified={isKycVerified}
                     className="mb-6"
                     haveSentMoneyToUser={haveSentMoneyToUser}
+                    avatarKey={avatarKey}
                 />
 
                 {/* Action Buttons */}
@@ -204,7 +218,11 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                             className="flex w-1/2 items-center justify-center gap-2 rounded-full py-3"
                         >
                             <Icon name="arrow-down-left" size={20} fill="black" />
-                            <span className="font-bold">{tNav('request')}</span>
+                            {/* Not navigation.request: that labels the user's OWN
+                                Request flow, and es-419 renders it "Recibir" —
+                                receiving, which is not what this button does to
+                                someone else's profile. */}
+                            <span className="font-bold">{t('requestAction')}</span>
                         </Button>
                     </div>
                 )}
@@ -270,7 +288,6 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                         <HomeHistory username={username} />
                         {isSelfProfile && (
                             <div className="mt-3 mb-1 flex w-full items-center justify-center gap-2 rounded-sm bg-background-disabled/25 px-3 py-2">
-                                <Icon name="info" size={16} className="text-foreground-secondary" />
                                 <p className="text-center text-body-s text-foreground-secondary">
                                     {t('activityPrivateNote')}
                                 </p>
@@ -291,7 +308,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                     }}
                 >
                     <DrawerContent>
-                        <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
+                        <div className="flex flex-col items-center gap-4 pt-1 pb-6 text-center">
                             <IconBubble icon="user" className="bg-action-primary" />
                             <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                                 <DrawerTitle>{t('noInviteTitle')}</DrawerTitle>

@@ -429,6 +429,12 @@ describe('native-routes', () => {
                 expect(deepLinkToNativePath('/invite')).toBe('/setup?step=signup')
             })
 
+            it('preserves badge campaigns while rewriting /invite to signup', () => {
+                expect(
+                    deepLinkToNativePath('https://peanut.me/invite?code=kushagra&badge_campaign=bug_whisperer')
+                ).toBe('/setup?step=signup&code=kushagra&badge_campaign=bug_whisperer')
+            })
+
             // The claim-link password lives in the fragment and is never sent to
             // the server (see peanut-link.utils.ts), so dropping it here yields a
             // link that resolves to a claim page with no way to claim.
@@ -532,6 +538,31 @@ describe('native-routes', () => {
                 expect(deepLinkToNativePath('https://peanut.me/pay/alice')).toBe('/send?recipient=alice')
             })
 
+            // payLinkUrl() shape: /pay/<recipient>[/<amount><token>]?id=|?chargeId=.
+            // The root catch-all that used to serve these is claimed by neither the
+            // AASA nor the Android filter, so shared links now ride the /pay prefix.
+            it('maps a /pay request link onto the pay-request stand-in', () => {
+                expect(deepLinkToNativePath('https://peanut.me/pay/alice/10USDC?id=req-123')).toBe(
+                    '/pay-request?id=req-123'
+                )
+                expect(deepLinkToNativePath('https://peanut.me/pay/alice?id=req-123')).toBe('/pay-request?id=req-123')
+                expect(deepLinkToNativePath('https://peanut.me/pay/alice/10USDC?chargeId=charge-123')).toBe(
+                    '/pay-request?chargeId=charge-123'
+                )
+            })
+
+            it('carries the charge context param through a /pay link', () => {
+                expect(
+                    deepLinkToNativePath('https://peanut.me/pay/alice?chargeId=charge-123&context=card-pioneer')
+                ).toBe('/pay-request?chargeId=charge-123&context=card-pioneer')
+            })
+
+            it('funnels an amount-shaped /pay link with no charge into the send dispatcher', () => {
+                expect(deepLinkToNativePath('https://peanut.me/pay/alice/10USDC')).toBe(
+                    '/send?recipient=alice%2F10USDC'
+                )
+            })
+
             it('maps legacy /request/pay?id=<chargeUuid> as a CHARGE, not user "pay"', () => {
                 expect(deepLinkToNativePath('https://peanut.me/request/pay?id=charge-123')).toBe(
                     '/pay-request?chargeId=charge-123'
@@ -587,6 +618,16 @@ describe('native-routes', () => {
 
             it('maps /pay/<user> to the send route (mirror of the web page redirect)', () => {
                 expect(deepLinkToNativePath('https://peanut.me/pay/alice')).toBe('/send/alice')
+            })
+
+            // On web the /pay catch-all renders the payment page itself, so a link
+            // carrying payment context must reach it rather than be rewritten away
+            // — /send/<user>/<amount> drops the amount segment.
+            it('leaves a /pay payment link alone on web', () => {
+                expect(deepLinkToNativePath('https://peanut.me/pay/alice/10USDC?id=req-123')).toBe(
+                    '/pay/alice/10USDC?id=req-123'
+                )
+                expect(deepLinkToNativePath('https://peanut.me/pay/alice/10USDC')).toBe('/pay/alice/10USDC')
             })
 
             it('maps legacy /request/pay?id= to pay-request on web too', () => {
@@ -651,6 +692,23 @@ describe('native-routes', () => {
             const sample = SAMPLE_BY_ROOT[root] ?? `/${root}`
             expect(deepLinkToNativePath(`https://peanut.me${sample}`)).not.toBeNull()
         })
+
+        /*
+         * The claim is `/app` + `/app/*`, but only `/app` is a real page — on
+         * the web app and in the static export alike. The wildcard therefore has
+         * to collapse rather than pass through, or an installed user opening
+         * peanut.me/app/anything gets the SPA's missing-route → home bounce,
+         * which reads as a dropped tap.
+         */
+        it('collapses the /app wildcard onto the one real page', () => {
+            expect(deepLinkToNativePath('https://peanut.me/app')).toBe('/app')
+            expect(deepLinkToNativePath('https://peanut.me/app/anything')).toBe('/app')
+            expect(deepLinkToNativePath('https://peanut.me/app/x?pnutdl=1&dest=%2Fsend')).toBe(
+                '/app?pnutdl=1&dest=%2Fsend'
+            )
+            mockIsCapacitor.mockReturnValue(false)
+            expect(deepLinkToNativePath('https://peanut.me/app/anything')).toBe('/app')
+        })
     })
 })
 
@@ -671,11 +729,12 @@ describe('NATIVE_EXPORT_ROOTS matches the pages the native export ships', () => 
     const PAGE_FILE = /^page\.(tsx|ts|jsx|js)$/
 
     // Exported, deliberately not in NATIVE_EXPORT_ROOTS:
-    // - `app`: the smart store link. It must open externally, never be pushed
-    //   in-app, so isNativeExportPath must keep saying no.
     // - `dev`: pruneExportedAssets() strips every /dev page but /dev/deferred,
     //   which is reached through the AASA, not from in-app anchors.
-    const WEB_ONLY_EXPORTED = ['app', 'dev']
+    // (`app` used to sit here: the smart store link was web-only. It is now
+    // claimed by App Links so a scan by an installed user opens the app, which
+    // means the deep-link mapper has to resolve it — see NATIVE_EXPORT_ROOTS.)
+    const WEB_ONLY_EXPORTED = ['dev']
 
     // A directory counts once it has a page file anywhere below it that the
     // native build does not disable — a disabled page/dir contributes nothing.
@@ -854,6 +913,24 @@ describe('redactNativePath (deep-link telemetry)', () => {
     // rather than pass an unknown identifier through.
     it('redacts an undeclared root instead of trusting it', () => {
         expect(redactNativePath('/not-a-declared-route/secret-value')).toBe('/:id/:id')
+    })
+
+    // The API allows usernames such as `bank` or `crypto`, and `/<username>` is
+    // a profile link — a safe sub-view token must not leak one from the
+    // identifier position.
+    it('keeps safe sub-view tokens only in the sub-view position', () => {
+        expect(redactNativePath('https://peanut.me/bank')).toBe('https://peanut.me/:id')
+        expect(redactNativePath('/profile/crypto')).toBe('/profile/:id')
+        expect(redactNativePath('/manteca/success')).toBe('/:id/:id')
+        expect(redactNativePath('/add-money/us/bank')).toBe('/add-money/:id/bank')
+        expect(redactNativePath('/withdraw/manteca')).toBe('/withdraw/:id')
+    })
+
+    // The authority can carry userinfo, which is attacker-controlled on a link
+    // and would otherwise survive into `raw` next to the redacted path.
+    it('drops userinfo from the authority', () => {
+        expect(redactNativePath('https://CLAIM_SECRET@peanut.me/qr/aB3xK9mQ2pL7vN4z')).toBe('https://peanut.me/qr/:id')
+        expect(redactNativePath('https://user:pass@peanut.me/home')).toBe('https://peanut.me/home')
     })
 
     // A locale or other prefix must not shift the root out of a positional

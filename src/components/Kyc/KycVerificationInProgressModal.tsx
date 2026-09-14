@@ -167,7 +167,7 @@ export const KycVerificationInProgressModal = ({
     }
 
     // phase === 'complete'
-    // Deliberately neutral (not "You're unlocked"): the rich WelcomeUnlockModal
+    // Deliberately neutral (not "You're unlocked"): the rich WelcomeUnlockDrawer
     // on home is THE single celebration — it lists what unlocked. This terminal
     // must not stamp activationCelebratedAt, or home's celebration never shows.
     return (

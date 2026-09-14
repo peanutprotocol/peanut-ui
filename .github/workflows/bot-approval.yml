@@ -19,8 +19,8 @@
 # base main exempts only commits already ON main — the dev path never
 # required a second human, so a dev->main promotion must still collect one —
 # while any other base exempts main+dev, so back-merges carrying historical
-# bot commits don't wedge. PRs past GitHub's 250-commit listing cap fail
-# closed: a gate that cannot see every commit must not pass.
+# bot commits don't wedge. Pinned, paginated comparisons cover large PRs;
+# incomplete enumeration fails closed.
 #
 # PRs with no unlanded bot commits pass immediately — nothing changes for
 # people. This is a separate workflow because approval state changes on
@@ -109,18 +109,29 @@ jobs:
                       // PR opener. Trailer validity (presence, write access, order link) is
                       // human-authors' job in tests.yml; here the trailers only name whose
                       // ownership to demand.
-                      const commits = await github.paginate(github.rest.pulls.listCommits, {
-                        owner: context.repo.owner,
-                        repo: context.repo.repo,
-                        pull_number: pr.number,
-                        per_page: 100,
-                      });
-                      // Fail closed when the listing is truncated: the API caps PR commit
-                      // listings at 250, and a gate blind to even one commit must not pass.
-                      const total = typeof pr.commits === 'number' ? pr.commits : null;
-                      if ((total !== null && commits.length < total) || (total === null && commits.length >= 250)) {
-                        core.setFailed(`The PR has ${total ?? '250+'} commits but the API enumerated ${commits.length} — the gate cannot see every commit. Split the PR or merge in stages.`);
-                        return;
+                      // The PR commits endpoint stops at 250. Compare pinned SHAs instead.
+                      const comparison = context.payload.pull_request;
+                      const commits = [];
+                      let total;
+                      for (let page = 1; ; page++) {
+                        const { data } = await github.rest.repos.compareCommitsWithBasehead({
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          basehead: `${comparison.base.sha}...${comparison.head.sha}`,
+                          per_page: 100,
+                          page,
+                        });
+                        if (!Number.isSafeInteger(data.total_commits) || data.total_commits < 0 ||
+                            (total !== undefined && total !== data.total_commits)) {
+                          throw new Error('Cannot verify the comparison commit count');
+                        }
+                        total = data.total_commits;
+                        commits.push(...data.commits);
+                        if (commits.length >= total || data.commits.length === 0) break;
+                      }
+                      if (commits.length !== total || new Set(commits.map(c => c.sha)).size !== total ||
+                          (typeof comparison.commits === 'number' && comparison.commits !== total)) {
+                        throw new Error('Incomplete commit comparison — refusing to skip ownership checks');
                       }
                       const orderers = new Set();
                       const untrailed = [];

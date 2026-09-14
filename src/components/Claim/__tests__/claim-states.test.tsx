@@ -12,6 +12,7 @@ import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { withNuqsTestingAdapter } from 'nuqs/adapters/testing'
 
 // ---------- module-level mocks (must be before imports that depend on them) ----------
 
@@ -165,8 +166,9 @@ jest.mock('@/components/TransactionDetails/transactionTransformer', () => ({
     REWARD_TOKENS: {},
 }))
 
+const mockReceipt = jest.fn((_props: any) => <div data-testid="transaction-details-receipt">Receipt</div>)
 jest.mock('@/components/TransactionDetails/TransactionDetailsReceipt', () => ({
-    TransactionDetailsReceipt: (_props: any) => <div data-testid="transaction-details-receipt">Receipt</div>,
+    TransactionDetailsReceipt: (props: any) => mockReceipt(props),
 }))
 
 jest.mock('@/context/ModalsContext', () => ({
@@ -244,7 +246,9 @@ function renderClaim() {
             <QueryClientProvider client={queryClient}>
                 <Claim />
             </QueryClientProvider>
-        </IntlWrapper>
+        </IntlWrapper>,
+        // useClaimFlow reads query params through nuqs
+        { wrapper: withNuqsTestingAdapter() }
     )
 }
 
@@ -413,6 +417,33 @@ describe('GROUP 3: Already Claimed / Cancelled', () => {
         await waitFor(() => {
             expect(screen.getByTestId('transaction-details-receipt')).toBeInTheDocument()
         })
+    })
+
+    // A sender's cancel/reclaim leaves no SEND_LINK_CLAIM intent behind, so the
+    // `events` fallback is empty and the receipt used to show no cancellation
+    // date at all. GET /send-links carries the row's own cancelledAt as of
+    // peanut-api-ts#1525; until that ships the fallback keeps today's behaviour.
+    test('CANCELLED receipt shows the cancellation date from cancelledAt', async () => {
+        mockUseAuth.mockReturnValue({
+            user: { user: { userId: 'sender-123' } },
+            isFetchingUser: false,
+            fetchUser: jest.fn(),
+        })
+        mockSendLinksApi.get.mockResolvedValue(
+            makeSendLink({
+                status: 'CANCELLED',
+                cancelledAt: '2026-04-20T12:00:00.000Z',
+                sender: { userId: 'sender-123', username: 'alice' },
+            })
+        )
+
+        renderClaim()
+
+        await waitFor(() => {
+            expect(screen.getByTestId('transaction-details-receipt')).toBeInTheDocument()
+        })
+        const { transaction } = mockReceipt.mock.calls.at(-1)![0]
+        expect(transaction.cancelledDate).toEqual(new Date('2026-04-20T12:00:00.000Z'))
     })
 
     test('CLAIMING link (in progress) shows as already claimed', async () => {

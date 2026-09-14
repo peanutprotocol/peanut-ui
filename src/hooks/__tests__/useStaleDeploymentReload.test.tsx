@@ -24,8 +24,8 @@ jest.mock('@/hooks/wallet/usePendingTransactions', () => ({
         pendingCount: mockPendingCount,
     }),
 }))
-jest.mock('@/redux/hooks', () => ({
-    useZerodevStore: () => ({ isSendingUserOp: mockIsSendingUserOp }),
+jest.mock('@/hooks/useZeroDevFlow', () => ({
+    useZeroDevFlow: () => ({ isSendingUserOp: mockIsSendingUserOp }),
 }))
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: () => mockIsCapacitor(),

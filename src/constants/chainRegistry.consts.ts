@@ -333,7 +333,6 @@ export const NON_EVM_WITHDRAW_CHAINS: Record<string, ChainWithTokens> = Object.f
                 name: t.name,
                 symbol: t.symbol,
                 logoURI: t.logoURI,
-                usdPrice: 0,
             })),
         },
     ])

@@ -35,6 +35,7 @@ export function ContributorsDrawer({ contributors }: ContributorsDrawerProps) {
             fulfillmentPayment: null,
             isUserVerified: false,
             isPeanutUser: !!c.username,
+            avatarKey: c.avatarKey ?? null,
         }))
     }, [contributors])
 
@@ -59,7 +60,7 @@ export function ContributorsDrawer({ contributors }: ContributorsDrawerProps) {
                         {t('contributors.title', { count: contributors.length })}
                     </DrawerTitle>
                 </DrawerHeader>
-                <div className="space-y-0 max-h-[60vh] overflow-auto px-4">
+                <div className="space-y-0 max-h-[60vh] overflow-auto">
                     {contributorCards.map((contributor, index) => (
                         <ContributorCard
                             key={contributor.uuid}

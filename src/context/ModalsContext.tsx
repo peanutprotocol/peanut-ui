@@ -5,8 +5,8 @@ import { redactSupportText } from '@/utils/support-context'
 
 interface ModalsContextType {
     // iOS PWA Install Modal
-    isIosPwaInstallModalOpen: boolean
-    setIsIosPwaInstallModalOpen: (isOpen: boolean) => void
+    isIosPwaInstallDrawerOpen: boolean
+    setIsIosPwaInstallDrawerOpen: (isOpen: boolean) => void
 
     // Guest Login/Sign In Modal
     isSignInModalOpen: boolean
@@ -42,7 +42,7 @@ const ModalsContext = createContext<ModalsContextType | undefined>(undefined)
 
 export function ModalsProvider({ children }: { children: ReactNode }) {
     // iOS PWA Install Modal
-    const [isIosPwaInstallModalOpen, setIsIosPwaInstallModalOpen] = useState(false)
+    const [isIosPwaInstallDrawerOpen, setIsIosPwaInstallDrawerOpen] = useState(false)
 
     // Guest Login/Sign In Modal
     const [isSignInModalOpen, setIsSignInModalOpen] = useState(false)
@@ -96,8 +96,8 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
     const value = useMemo(
         () => ({
             // iOS PWA Install Modal
-            isIosPwaInstallModalOpen,
-            setIsIosPwaInstallModalOpen,
+            isIosPwaInstallDrawerOpen,
+            setIsIosPwaInstallDrawerOpen,
 
             // Guest Login/Sign In Modal
             isSignInModalOpen,
@@ -124,7 +124,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
             setIsSecurityVerificationOpen,
         }),
         [
-            isIosPwaInstallModalOpen,
+            isIosPwaInstallDrawerOpen,
             isSignInModalOpen,
             isGetAppModalOpen,
             isSupportModalOpen,

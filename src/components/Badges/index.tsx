@@ -7,11 +7,9 @@ import { getBadgeIcon } from './badge.utils'
 import { useBadgeCopy } from './useBadgeCopy'
 import { getCardPosition } from '../Global/Card/card.utils'
 import EmptyState from '../Global/EmptyStates/EmptyState'
-import { Icon } from '../Global/Icons/Icon'
-import { BadgeDetailModal } from './BadgeDetailModal'
+import { BadgeDetailDrawer } from './BadgeDetailDrawer'
 import { useMemo, useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
-import { useUserStore } from '@/redux/hooks'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { useAuth } from '@/context/authContext'
 import { BadgeImage } from './BadgeImage'
@@ -23,8 +21,7 @@ export const Badges = () => {
     const t = useTranslations('badges')
     const badgeCopy = useBadgeCopy()
     const onBack = useSafeBack('/profile')
-    const { user: authUser } = useUserStore()
-    const { fetchUser } = useAuth()
+    const { user: authUser, fetchUser } = useAuth()
     const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false)
     const [selectedBadge, setSelectedBadge] = useState<BadgeView | null>(null)
 
@@ -96,12 +93,11 @@ export const Badges = () => {
                 </div>
 
                 <div className="flex items-center justify-center gap-2 text-body-xs text-foreground-secondary">
-                    <Icon name="info" width={16} height={16} />
                     <span>{t('publicProfileNote')}</span>
                 </div>
             </div>
             {selectedBadge && (
-                <BadgeDetailModal
+                <BadgeDetailDrawer
                     isOpen={isBadgeModalOpen}
                     onClose={() => {
                         setIsBadgeModalOpen(false)

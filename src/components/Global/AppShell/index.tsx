@@ -49,6 +49,13 @@ export const AppShell = ({
                     on non-edge-to-edge Android — no-op there. On Android 15+ Capacitor
                     overwrites it with the natively measured inset. */}
                 <div className="bg-blue-300 pt-safe-top">{banner}</div>
+                {/* The strip above only RESERVES the inset — it scrolls away with the
+                    document on steps taller than the viewport (the dual-residence
+                    compare cards), and the illustration then rides up under the status
+                    bar. This cover paints the inset wherever the page is scrolled to,
+                    the same way the app variant does. Height is exactly the inset, so
+                    it stops short of the back button at top-8. */}
+                <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-40 h-safe-top bg-blue-300" />
                 {children}
                 {/* Bottom safe-area fill. Mirrors the strip above so the bottom
                     matches on edge-to-edge Android; iOS fills white (the panel
@@ -76,9 +83,11 @@ export const AppShell = ({
             {/* Scrollable content — one centered mobile column on every viewport */}
             <div
                 id="scrollable-content"
-                // spacing board 17291:2772: screen edge inset is L/16 (px-4); vertical keeps the XL/24 section rhythm
+                // Top navigation controls share the home screen's L/16 origin:
+                // the shell already starts below --safe-top, so pt-4 means 16px
+                // below the safe-area boundary. Keep the XL/24 bottom rhythm.
                 className={twMerge(
-                    'relative w-full flex-1 overflow-y-auto bg-background-page px-4 py-6',
+                    'relative w-full flex-1 overflow-y-auto bg-background-page px-4 pt-4 pb-6',
                     contentClassName
                 )}
             >

@@ -7,6 +7,7 @@
  * the root layout (server component) renders this single client boundary.
  */
 import { ConsoleGreeting } from '@/components/Global/ConsoleGreeting'
+import { InputModalityProvider } from '@/components/Accessibility/InputModalityProvider'
 import { ScreenOrientationLocker } from '@/components/Global/ScreenOrientationLocker'
 import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
 import { UnsupportedWebViewScreen, hasUnsupportedWebViewBypass } from '@/components/Global/UnsupportedWebViewScreen'
@@ -106,7 +107,9 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
                                             <HarnessBootstrap />
                                         </Suspense>
                                     )}
-                                    {marketing ? children : <AppGlobals>{children}</AppGlobals>}
+                                    <InputModalityProvider>
+                                        {marketing ? children : <AppGlobals>{children}</AppGlobals>}
+                                    </InputModalityProvider>
                                 </TranslationSafeWrapper>
                             </FooterVisibilityProvider>
                         </ContextProvider>

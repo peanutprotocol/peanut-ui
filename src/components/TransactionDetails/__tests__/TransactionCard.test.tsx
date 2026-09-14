@@ -325,3 +325,130 @@ describe('TransactionCard — open-request pending exemption', () => {
         expect(screen.getByText('+$10')).toHaveClass('opacity-40')
     })
 })
+
+// completeHistoryEntry blanks `currency.amount` to '' for a still-pending
+// Bridge OFFRAMP row (history.utils.ts) rather than leaving the mirrored
+// crypto-leg figure in place. The card must not render that blank/invalid
+// amount as if it were a real converted "≈ CODE x" figure.
+describe('TransactionCard — secondary currency line requires a valid amount', () => {
+    function currencyTx(currency: TransactionDetails['currency']): TransactionDetails {
+        return { ...eligibleTx(), currency } as TransactionDetails
+    }
+
+    it('renders the "≈ CODE x" line for a real converted amount', () => {
+        renderCard(currencyTx({ amount: '105.9', code: 'EUR' }))
+        expect(screen.getByText('≈ EUR 105.9')).toBeInTheDocument()
+    })
+
+    it('hides the line for a blanked (pending, unconverted) amount', () => {
+        renderCard(currencyTx({ amount: '', code: 'ARS' }))
+        expect(screen.queryByText(/≈ ARS/)).toBeNull()
+    })
+
+    it('hides the line when currency.amount is missing entirely', () => {
+        renderCard(currencyTx({ code: 'ARS' } as any)) // deliberately missing `amount`
+        expect(screen.queryByText(/≈ ARS/)).toBeNull()
+    })
+})
+
+// TASK-22625: the counterparty's picked avatar reaches the feed row. Only the
+// person branch — a merchant logo still wins, and a bank row keeps its icon.
+describe('TransactionCard — counterparty avatar', () => {
+    // The list always passes `transactionDetails.initials`; the person branch
+    // of TransactionAvatarBadge is gated on it.
+    const renderRow = (transaction: TransactionDetails, type: 'send' | 'bank_request_fulfillment' = 'send') =>
+        render(
+            <TransactionCard
+                type={type}
+                name="natalia"
+                amount={10}
+                status="completed"
+                initials="N"
+                transaction={transaction}
+                isSelected={false}
+                onOpen={openTransactionDetails}
+                onClose={jest.fn()}
+            />
+        )
+
+    const img = (container: HTMLElement) => container.querySelector('img')
+
+    it('renders the picked sticker for a person row', () => {
+        const { container } = renderRow({ ...eligibleTx(), avatarKey: 'basic.frog' } as TransactionDetails)
+
+        expect(img(container)).toHaveAttribute('src', '/avatars/basic/frog.webp')
+    })
+
+    it('falls back to the letter sticker of the displayed name without a pick', () => {
+        const { container } = renderRow({ ...eligibleTx(), avatarKey: null } as TransactionDetails)
+
+        expect(img(container)).toHaveAttribute('src', '/avatars/letter/n.webp')
+    })
+
+    it('lets a merchant logo win over the sticker', () => {
+        const tx = { ...eligibleTx(), avatarKey: 'basic.frog' } as TransactionDetails
+        ;(tx.extraDataForDrawer as Record<string, unknown>).rewardData = { avatarUrl: '/merchant-logo.png' }
+
+        const { container } = renderRow(tx)
+
+        expect(img(container)).toHaveAttribute('src', '/merchant-logo.png')
+    })
+
+    // The person's handle drives the letter, not the name the row displays —
+    // one person looks the same in the feed, in contacts and on their profile.
+    it('draws the letter from the handle even when the row shows a full name', () => {
+        const tx = {
+            ...eligibleTx(),
+            userName: 'satoshi',
+            fullName: 'Hal Finney',
+            showFullName: true,
+            avatarKey: null,
+        } as TransactionDetails
+
+        const { container } = renderRow(tx)
+
+        expect(img(container)).toHaveAttribute('src', '/avatars/letter/s.webp')
+    })
+
+    // A peer with a display name but no handle has an address in `userName`,
+    // which draws no letter — the display name is the only one left.
+    it('falls back to the display name when the handle is an address', () => {
+        const tx = {
+            ...eligibleTx(),
+            userName: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+            fullName: 'Nancy Drew',
+            showFullName: true,
+            avatarKey: null,
+        } as TransactionDetails
+
+        const { container } = renderRow(tx)
+
+        expect(img(container)).toHaveAttribute('src', '/avatars/letter/n.webp')
+    })
+
+    // A reaper-failed transfer has its name rewritten to system copy ("Send
+    // didn't complete"): named, not an address, and nobody behind it.
+    it('draws no person avatar for a system failure label', () => {
+        const tx = {
+            ...eligibleTx(),
+            userName: "Send didn't complete",
+            isPeerActuallyUser: false,
+            avatarKey: null,
+        } as TransactionDetails
+
+        const { container } = renderRow(tx)
+
+        expect(img(container)).toBeNull()
+        // the initials circle it had before this PR, not a letter sticker
+        expect(container).toHaveTextContent('SD')
+    })
+
+    it('leaves a bank row on its bank icon', () => {
+        const tx = { ...eligibleTx('bank_request_fulfillment'), avatarKey: 'basic.frog' } as TransactionDetails
+
+        const { container } = renderRow(tx, 'bank_request_fulfillment')
+
+        expect(img(container)).toBeNull()
+        expect(container.querySelector('svg')).not.toBeNull()
+    })
+})

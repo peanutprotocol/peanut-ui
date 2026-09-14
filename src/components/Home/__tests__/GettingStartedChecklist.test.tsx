@@ -5,7 +5,7 @@
  * Contract: always exactly three rows; registration pre-checked; the add-money
  * label follows residence and carries the KYC cost only while unverified; the
  * third slot is the card when eligible, otherwise the first payment (never a
- * dangling card step); renders nothing once everything is done.
+ * dangling card step); the reachable Home progress state stays visible.
  */
 import React from 'react'
 import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
@@ -30,7 +30,10 @@ jest.mock('@/hooks/useResidenceRestrictions', () => ({
 }))
 
 let mockIsEligible: boolean | undefined = true
-jest.mock('@/hooks/useCardInfo', () => ({ useCardInfo: () => ({ isEligible: mockIsEligible }) }))
+let mockIsCardInfoFetching = false
+jest.mock('@/hooks/useCardInfo', () => ({
+    useCardInfo: () => ({ isEligible: mockIsEligible, isFetching: mockIsCardInfoFetching }),
+}))
 
 let mockOverview: unknown = null
 jest.mock('@/hooks/useRainCardOverview', () => ({ useRainCardOverview: () => ({ overview: mockOverview }) }))
@@ -44,6 +47,7 @@ describe('GettingStartedChecklist', () => {
         mockUser = { user: { activationMilestone: 'registered' }, residence: { declared: 'BR', verified: null } }
         mockRestrictions = { banking: false, card: false }
         mockIsEligible = true
+        mockIsCardInfoFetching = false
         mockOverview = null
     })
 
@@ -56,6 +60,30 @@ describe('GettingStartedChecklist', () => {
         expect(screen.getByText('Create your account')).toBeInTheDocument()
         expect(screen.getByTestId('checklist-create-account')).toHaveAttribute('aria-disabled', 'true')
         expect(screen.getByText('Done. Your money has a username now')).toBeInTheDocument()
+    })
+
+    it('keeps completed rows on the same white surface as pending rows', () => {
+        render()
+        const completed = screen.getByTestId('checklist-create-account')
+        expect(completed).toHaveClass('bg-white', 'border-border-default')
+        expect(screen.getByTestId('checklist-add-money')).toHaveClass('bg-white', 'border-border-default')
+        expect(screen.getByTestId('checklist-get-card')).toHaveClass('bg-white', 'border-border-default')
+        expect(completed).not.toHaveClass('bg-background-disabled', 'bg-background-icon-bubble-green/10')
+        expect(completed).not.toHaveClass('border-border-subtle')
+    })
+
+    it('uses Get started for the reachable 33% Home state', () => {
+        render()
+        expect(screen.getByText('Get started')).toBeInTheDocument()
+        expect(screen.getByText('33%')).toBeInTheDocument()
+        expect(screen.queryByText('Keep going')).not.toBeInTheDocument()
+    })
+
+    it('wraps checklist subtitles instead of truncating them', () => {
+        render()
+        const subtitle = screen.getByText('Bank transfer or crypto · bank needs a one-time ID check')
+        expect(subtitle).toHaveClass('whitespace-normal', 'break-words')
+        expect(subtitle).not.toHaveClass('truncate')
     })
 
     // The row opens /add-money, a chooser offering bank transfer AND crypto, so
@@ -149,11 +177,12 @@ describe('GettingStartedChecklist', () => {
         expect(screen.getByText('Make your first payment')).toBeInTheDocument()
     })
 
-    it('renders nothing once every item is done', () => {
-        mockUser = { user: { activationMilestone: 'funded' }, residence: { declared: 'BR', verified: 'BR' } }
-        mockOverview = { cards: [{}] } // findActiveCard mock: truthy overview = active card
-        const { container } = render()
-        expect(container.firstChild).toBeNull()
+    it('keeps the cached card row stable while eligibility is refetching', () => {
+        mockIsEligible = true
+        mockIsCardInfoFetching = true
+        render()
+        expect(screen.getByText('Get your Peanut card')).toBeInTheDocument()
+        expect(screen.queryByText('Make your first payment')).not.toBeInTheDocument()
     })
 
     it('add money taps into /add-money', () => {

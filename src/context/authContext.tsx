@@ -1,19 +1,21 @@
 'use client'
 import { useTranslations } from 'next-intl'
 import { useToast } from '@/components/0_Bruddle/Toast'
+import { USER } from '@/constants/query.consts'
+import { recoverLoginSession } from '@/utils/login-session'
 import { useUserQuery } from '@/hooks/query/user'
 import { useUserAutoRefresh } from '@/hooks/useUserAutoRefresh'
 import type { IUserProfile } from '@/interfaces/interfaces'
-import { useAppDispatch } from '@/redux/hooks'
-import { setupActions } from '@/redux/slices/setup-slice'
-import { userActions } from '@/redux/slices/user-slice'
-import { zerodevActions } from '@/redux/slices/zerodev-slice'
+import { zeroDevFlowActions } from '@/hooks/useZeroDevFlow'
 import {
     removeFromCookie,
     syncLocalStorageToCookie,
+    beginIntentionalLogout,
     clearRedirectUrl,
+    endIntentionalLogout,
     updateUserPreferences,
 } from '@/utils/general.utils'
+import { clearSessionHeld } from '@/utils/session-presence'
 import { apiFetch } from '@/utils/api-fetch'
 import { useAppLocked } from '@/hooks/useAppLocked'
 import { currentAppLocale, currentDeviceContext, currentDeviceIdentity } from '@/i18n/app/locale-store'
@@ -31,12 +33,14 @@ import { purgeCaches } from '@/utils/cache.utils'
 import { clearStepUpToken } from '@/services/step-up'
 import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
 import { clearPendingBadgeCampaigns, getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
+import { clearInvite } from '@/utils/invite-stash'
 
 interface AuthContextType {
     user: IUserProfile | null
     userId: string | undefined
     username: string | undefined
     fetchUser: () => Promise<IUserProfile | null>
+    hydrateLoginSession: () => Promise<IUserProfile>
     addAccount: ({
         accountIdentifier,
         accountType,
@@ -59,7 +63,7 @@ interface AuthContextType {
     isLoggingOut: boolean
     invitedUsernamesSet: Set<string>
 }
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 /**
  * Context provider to manage user authentication and profile interactions.
@@ -67,7 +71,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
  * adding accounts and logging out. It also provides hooks for child components to access user data and auth-related functions.
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const dispatch = useAppDispatch()
     const toast = useToast()
     const tErrors = useTranslations('errors')
     const queryClient = useQueryClient()
@@ -188,6 +191,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return fetchedUser ?? null
     }, [fetchUser])
 
+    const hydrateLoginSession = useCallback(async () => {
+        const cancel = () => queryClient.cancelQueries({ queryKey: [USER] })
+        await cancel()
+        return recoverLoginSession(async () => {
+            const result = await fetchUser()
+            if (result.error) throw result.error
+            return result.data ?? null
+        }, cancel)
+    }, [fetchUser, queryClient])
+
     const [isLoggingOut, setIsLoggingOut] = useState(false)
 
     const addAccount = async ({
@@ -253,7 +266,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     /**
-     * Clears all client-side auth state (cookies, localStorage, redux, caches)
+     * Clears all client-side auth state (cookies, localStorage, query cache, zerodev flags)
      * Used by both normal logout and force logout (when backend is down)
      */
     const clearLocalAuthState = useCallback(async () => {
@@ -289,7 +302,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Log In. A signed-in native user who tapped a friend's invite App Link
         // has it set; leaving it through logout would strand them on Signup,
         // unable to log back in until the process dies (session cookie).
-        removeFromCookie('inviteCode')
+        clearInvite()
 
         // A cached step-up proof outliving the session would let the next user
         // of this device skip verification on card and withdrawal screens.
@@ -300,10 +313,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // re-persist a sliding-refresh token into native Preferences otherwise
         // (Android post-logout splash loop). Don't move it back down.
 
-        // reset redux state (user, setup, zerodev)
-        dispatch(userActions.setUser(null))
-        dispatch(setupActions.resetSetup())
-        dispatch(zerodevActions.resetZeroDevState())
+        // The user query cache is already gone (queryClient.clear() above)
+        // and the invite stash is cleared once at the top of logout — reset
+        // the zerodev flow flags too.
+        zeroDevFlowActions.reset()
 
         // clear service worker caches (non-fatal if it fails)
         await purgeCaches(USER_DATA_CACHE_PATTERNS)
@@ -313,15 +326,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             sessionStorage.removeItem('hasSeenIOSPWAPromptThisSession')
         } catch {}
 
+        // This tab is a logged-out tab again, so a deep link opened in it later
+        // is that person's own intent rather than a dead session's residue.
+        clearSessionHeld()
+
         // clear demo mode flag
         disableDemoMode()
 
         // reset third-party sessions (non-fatal)
-        try {
-            resetCrispProxySessions()
-        } catch (e) {
-            console.warn('crisp reset failed:', e)
-        }
+        void resetCrispProxySessions().catch((e) => console.warn('crisp reset failed:', e))
         try {
             posthog.reset()
             // reset() wipes registered super properties — re-register the
@@ -334,7 +347,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } catch (e) {
             console.warn('posthog reset failed:', e)
         }
-    }, [dispatch, queryClient, user?.user.userId])
+    }, [queryClient, user?.user.userId])
 
     /**
      * Logs out the user
@@ -345,6 +358,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (isLoggingOut) return
 
             setIsLoggingOut(true)
+            // Before anything empties the user cache: the auth gate reacts to
+            // that by storing the current path as the post-auth destination.
+            beginIntentionalLogout()
             try {
                 /*
                  * Revoke server-side FIRST (needs the still-valid JWT): POST
@@ -372,6 +388,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 // force full page refresh to /setup to clear all state
                 window.location.href = '/setup'
             } catch (error) {
+                // The hard nav never happened, so this document keeps serving
+                // the app — a later deep-link bounce must store its target again.
+                endIntentionalLogout()
                 captureException(error)
                 console.error('Error logging out user', error)
                 // TODO: remove debug info after native testing
@@ -390,6 +409,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 userId: user?.user?.userId,
                 username: user?.user?.username ?? undefined,
                 fetchUser: legacy_fetchUser,
+                hydrateLoginSession,
                 addAccount,
                 isFetchingUser,
                 userFetchError: userFetchError ?? null,

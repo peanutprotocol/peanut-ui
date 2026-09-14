@@ -73,7 +73,6 @@ jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSu
 // the SDK host renders a headless-ui Transition that needs a `show` prop it
 // only gets from real flow state; irrelevant to the branch under test
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
-jest.mock('@/redux/hooks', () => ({ useAppDispatch: () => jest.fn() }))
 jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
     useRouter: () => ({ push: jest.fn() }),

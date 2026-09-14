@@ -1,9 +1,9 @@
 import DocsLink from '@/components/Global/DocsLink'
-import PasskeyInfoModal from '@/components/Setup/components/PasskeyInfoModal'
+import PasskeyInfoDrawer from '@/components/Setup/components/PasskeyInfoDrawer'
+import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Notification } from '@/components/0_Bruddle/Notification'
-import { setupActions } from '@/redux/slices/setup-slice'
-import { useAppDispatch, useSetupStore } from '@/redux/hooks'
+import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { updateUserById } from '@/app/actions/users'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useAccountSetup } from '@/hooks/useAccountSetup'
@@ -21,14 +21,46 @@ import { getFromCookie } from '@/utils/general.utils'
 import { twMerge } from '@/utils/tw'
 import { useTranslations } from 'next-intl'
 
+export function AccountReadyView({
+    onContinue,
+    isRedirecting = false,
+}: {
+    onContinue: () => void
+    isRedirecting?: boolean
+}) {
+    const t = useTranslations('setup')
+    return (
+        <div className="flex w-full flex-col gap-4 text-left">
+            {/* neither block is a warning or a caveat, so they read as plain
+                    text under grey mini-headers rather than tinted Notifications */}
+            <div className="flex flex-col gap-1">
+                <MiniHeader>{t('accountReady.worksNowTitle')}</MiniHeader>
+                <p className="text-body-s text-foreground-primary">{t('accountReady.worksNowBody')}</p>
+            </div>
+            <div className="flex flex-col gap-1">
+                <MiniHeader>{t('accountReady.laterTitle')}</MiniHeader>
+                <p className="text-body-s text-foreground-primary">{t('accountReady.laterBody')}</p>
+            </div>
+            <Button
+                onClick={onContinue}
+                loading={isRedirecting}
+                disabled={isRedirecting}
+                shadowSize="4"
+                className="mt-2"
+            >
+                {t('accountReady.cta')}
+            </Button>
+        </div>
+    )
+}
+
 const SignTestTransaction = () => {
     const t = useTranslations('setup')
     const tCommon = useTranslations('common')
-    const dispatch = useAppDispatch()
     const { address, handleSendUserOpEncoded } = useZeroDev()
     const { finalizeAccountSetup, isProcessing, error: setupError, handleRedirect } = useAccountSetup()
     const { user, isFetchingUser, fetchUser } = useAuth()
-    const { residenceCountry, secondResidenceCountry } = useSetupStore()
+    const { residenceCountry, secondResidenceCountry, setIsLoading: setSetupLoading } = useSetupFlowContext()
     const [error, setError] = useState<string | null>(null)
     const [isSigning, setIsSigning] = useState(false)
     const [testTransactionCompleted, setTestTransactionCompleted] = useState(false)
@@ -52,7 +84,10 @@ const SignTestTransaction = () => {
         if (redirectingRef.current) return
         redirectingRef.current = true
         setIsRedirecting(true)
-        handleRedirect()
+        // This screen is only reachable for an account created in this
+        // session, so it inherits no earlier session's page — only a deep link
+        // the person themselves asked for.
+        handleRedirect({ isNewAccount: true })
     }
 
     // ensure user is fetched when component mounts (important for new signups)
@@ -119,7 +154,7 @@ const SignTestTransaction = () => {
         })
         setIsSigning(true)
         setError(null)
-        dispatch(setupActions.setLoading(true))
+        setSetupLoading(true)
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_TEST_TX_STARTED)
 
         try {
@@ -162,7 +197,7 @@ const SignTestTransaction = () => {
                     console.error('[SignTestTransaction] Failed to finalize account setup')
                     setError(setupError || t('testTransaction.errors.setupFailed'))
                     setIsSigning(false)
-                    dispatch(setupActions.setLoading(false))
+                    setSetupLoading(false)
                     return
                 }
 
@@ -208,7 +243,7 @@ const SignTestTransaction = () => {
                 // without ID, and plant the honest KYC expectation before home
                 // ever asks. The redirect moves to its CTA.
                 setIsSigning(false)
-                dispatch(setupActions.setLoading(false))
+                setSetupLoading(false)
                 setAccountReady(true)
             } else {
                 // if account already exists, just navigate home (login flow)
@@ -218,8 +253,10 @@ const SignTestTransaction = () => {
         } catch (e) {
             console.error('[SignTestTransaction] Test transaction failed:', e)
 
-            // capture comprehensive debug info for troubleshooting
-            await capturePasskeyDebugInfo('test-transaction-failed')
+            // Browser capability probes must not delay recovery from a failed signature.
+            void capturePasskeyDebugInfo('test-transaction-failed').catch((debugError) => {
+                console.warn('[SignTestTransaction] Diagnostics failed:', debugError)
+            })
 
             // capture the error with additional context
             Sentry.captureException(e, {
@@ -235,7 +272,7 @@ const SignTestTransaction = () => {
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_TEST_TX_FAILED, { error_name: (e as Error).name })
             setError(t('testTransaction.errors.supportNeeded'))
             setIsSigning(false)
-            dispatch(setupActions.setLoading(false))
+            setSetupLoading(false)
         }
     }
 
@@ -250,27 +287,7 @@ const SignTestTransaction = () => {
         return t('testTransaction.confirmAndFinish')
     }
 
-    if (accountReady) {
-        return (
-            <div className="flex w-full flex-col gap-3 text-left">
-                <Notification priority="info" hideIcon title={t('accountReady.worksNowTitle')}>
-                    {t('accountReady.worksNowBody')}
-                </Notification>
-                <Notification priority="info" hideIcon title={t('accountReady.laterTitle')}>
-                    {t('accountReady.laterBody')}
-                </Notification>
-                <Button
-                    onClick={goToAccount}
-                    loading={isRedirecting}
-                    disabled={isRedirecting}
-                    shadowSize="4"
-                    className="mt-2"
-                >
-                    {t('accountReady.cta')}
-                </Button>
-            </div>
-        )
-    }
+    if (accountReady) return <AccountReadyView onContinue={goToAccount} isRedirecting={isRedirecting} />
 
     return (
         <div>
@@ -306,7 +323,7 @@ const SignTestTransaction = () => {
                     </p>
                 </div>
             </div>
-            <PasskeyInfoModal visible={isPasskeyInfoOpen} onClose={() => setIsPasskeyInfoOpen(false)} />
+            <PasskeyInfoDrawer visible={isPasskeyInfoOpen} onClose={() => setIsPasskeyInfoOpen(false)} />
         </div>
     )
 }

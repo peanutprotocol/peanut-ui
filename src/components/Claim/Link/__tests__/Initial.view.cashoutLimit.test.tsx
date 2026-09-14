@@ -11,6 +11,7 @@
  */
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { withNuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { IClaimScreenProps } from '../../Claim.consts'
@@ -230,7 +231,9 @@ const renderView = () =>
             <QueryClientProvider client={queryClient}>
                 <InitialClaimLinkView {...baseProps} />
             </QueryClientProvider>
-        </IntlWrapper>
+        </IntlWrapper>,
+        // useInitialClaimFlow reads query params through nuqs
+        { wrapper: withNuqsTestingAdapter() }
     )
 
 beforeEach(() => {
@@ -270,7 +273,8 @@ describe('InitialClaimLinkView bank-claim cashout limits', () => {
                         }
                     />
                 </QueryClientProvider>
-            </IntlWrapper>
+            </IntlWrapper>,
+            { wrapper: withNuqsTestingAdapter() }
         )
 
         fireEvent.click(screen.getByRole('button'))

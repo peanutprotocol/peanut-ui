@@ -41,6 +41,12 @@ interface TransactionDetailsHeaderCardProps {
     isLinkTransaction?: boolean
     transactionType?: TransactionType
     avatarUrl?: string
+    /** The counterparty's picked profile avatar (TASK-22625). A merchant
+     *  `avatarUrl` still wins — it identifies the payee more precisely. */
+    avatarKey?: string | null
+    /** `false` for a row whose name is system copy (a reaper-failed transfer),
+     *  so the avatar slot does not draw a face for a failure message. */
+    isPeer?: boolean
     haveSentMoneyToUser?: boolean
     isNameClickable?: boolean
     isAvatarClickable?: boolean
@@ -210,6 +216,8 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     isLinkTransaction = false,
     transactionType,
     avatarUrl,
+    avatarKey,
+    isPeer,
     haveSentMoneyToUser = false,
     isNameClickable = false,
     isAvatarClickable = false,
@@ -234,6 +242,10 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
 
     // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
     const nameForAvatar = showFullName && fullName ? fullName : localizedUserName
+    // The sticker's letter follows the handle instead (same rule as the feed
+    // row), so the receipt and the profile agree. An address counterparty draws
+    // no letter from `userName`, so the display name is the fallback.
+    const avatarNameForAvatar = isAddress(userName) ? nameForAvatar : userName
 
     // check if this is a test transaction (setup confirmation)
     const isTest = isTestTransaction(userName)
@@ -288,6 +300,9 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                         <TransactionAvatarBadge
                             initials={initials}
                             userName={nameForAvatar}
+                            avatarName={avatarNameForAvatar}
+                            avatarKey={avatarKey}
+                            isPeer={isPeer}
                             isLinkTransaction={isLinkTransaction}
                             transactionType={typeForAvatar}
                             context="header"

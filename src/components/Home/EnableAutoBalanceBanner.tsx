@@ -108,6 +108,7 @@ export default function EnableAutoBalanceBanner() {
             shadowSize: '4',
             disabled: isGranting,
             onClick: () => {
+                if (isGranting) return
                 const grantedCardId = card?.id ?? null
                 void grant().then((result) => {
                     setLastAttemptFor(grantedCardId)

@@ -39,8 +39,9 @@ export const useRegionRestrictedCta = (onNavigate?: () => void) => {
 export const KycRegionRestrictedContent = () => {
     const t = useTranslations('kyc.regionRestricted')
 
+    // two paragraphs under the head → body reads left-aligned, not centered
     return (
-        <div className="space-y-3 text-center">
+        <div className="space-y-3 text-left">
             <p className="text-body-s text-foreground-secondary">{t('description')}</p>
             <p className="text-body-s text-foreground-secondary">{t('stillAvailable')}</p>
         </div>

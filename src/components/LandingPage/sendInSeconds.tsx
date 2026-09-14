@@ -96,9 +96,7 @@ export function SendInSeconds({ locale = DEFAULT_LOCALE }: { locale?: Locale }) 
                     {i18n.landingSendTagline2}
                 </p>
 
-                <div id="sticky-button-target">
-                    <SendInSecondsCTA strings={landingStrings(i18n)} />
-                </div>
+                <SendInSecondsCTA strings={landingStrings(i18n)} />
             </div>
         </section>
     )

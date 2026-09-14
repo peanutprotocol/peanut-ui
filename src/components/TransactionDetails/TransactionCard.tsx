@@ -123,6 +123,11 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
     const userNameForAvatar =
         transaction.showFullName && transaction.fullName ? transaction.fullName : transaction.userName
+    // The sticker's letter follows the handle instead, so a peer with no pick
+    // looks the same here as on their profile. A counterparty with only a
+    // display name has their address in `userName`, which draws no letter — the
+    // display name is the only thing left to derive one from.
+    const avatarNameForAvatar = isAddress(transaction.userName) ? userNameForAvatar : transaction.userName
     const avatarUrl = getAvatarUrl(transaction)
     // check if this is a test transaction (setup confirmation)
     const isTest = isTestTransaction(name)
@@ -179,7 +184,15 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     // Skip both for USD / USD-pegged stablecoins to avoid `$0.10 / ≈ USDC 0.10` noise.
     const ccyCode = transaction.currency?.code.toUpperCase()
     const tokenSymbolUpper = (transaction.tokenSymbol ?? '').toUpperCase()
-    if (transaction.currency && ccyCode && ccyCode !== 'USD' && !isStableCoin(ccyCode)) {
+    // A pending Bridge OFFRAMP row ships `currency.amount` blanked (see
+    // completeHistoryEntry's OFFRAMP branch) rather than the unconverted
+    // crypto-leg figure mislabeled as fiat — require it to actually parse
+    // before rendering the "≈ CODE" line, so a still-pending row falls
+    // through to the token-amount line below instead of showing a number
+    // that reads as converted but isn't.
+    const hasValidCurrencyAmount =
+        !!transaction.currency?.amount && Number.isFinite(Number(transaction.currency.amount))
+    if (transaction.currency && ccyCode && ccyCode !== 'USD' && !isStableCoin(ccyCode) && hasValidCurrencyAmount) {
         const formattedCurrencyAmount = formatNumberForDisplay(transaction.currency.amount, { maxDecimals: 2 })
         currencyDisplayAmount = `≈ ${ccyCode} ${formattedCurrencyAmount}`
     } else if (
@@ -255,6 +268,9 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         <TransactionAvatarBadge
             initials={initials}
             userName={userNameForAvatar}
+            avatarName={avatarNameForAvatar}
+            avatarKey={transaction.avatarKey}
+            isPeer={transaction.isPeerActuallyUser}
             isLinkTransaction={isLinkTx}
             transactionType={type}
             context="card"

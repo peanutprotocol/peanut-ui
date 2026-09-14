@@ -299,14 +299,15 @@ export interface IUserProfile {
     // `capabilities` on /get-user. Read via useIdentityVerification(). The status
     // surfaces render this; no provider names. Optional during the migration.
     identityVerification?: IdentityVerification
+    profileNameLocked?: boolean
     // Residence-based availability derived server-side from the residence the
     // user declared at signup. Read via useResidenceRestrictions(). Advisory
     // offer-shaping only: hides bank/card surfaces the user could never use.
     residenceRestrictions?: { banking: boolean; card: boolean }
     // Residence, both flavors: declared at signup (advisory) and verified by
     // KYC (Sumsub address — the compliance source of truth). ISO-2 or null.
-    // nextChangeAllowedAt: when the escalating change cooldown lifts (ISO);
-    // null or absent = a change is allowed right now.
+    // nextChangeAllowedAt: legacy field, ignored for self-declaration.
+    // Cooldowns belong to provider verification, not this country selection.
     // declaredSecond: the optional second jurisdiction from the signup step,
     // served by /users/me since 2026-08-26. Optional here only for the window
     // before that BE lands in production; callers fall back to the device
@@ -329,6 +330,9 @@ export interface Contact {
     userId: string
     username: string
     fullName: string | null
+    /** Picked profile avatar; null (or absent, on an older API) means the
+     *  username-letter fallback. Same shape as `User.avatarKey`. */
+    avatarKey?: string | null
     /** Provider-agnostic verified badge (BE-computed `computeIsVerified`). */
     isVerified: boolean
     showFullName: boolean
@@ -336,6 +340,18 @@ export interface Contact {
     firstInteractionDate: string
     lastInteractionDate: string
     transactionCount: number
+}
+
+/** Crypto address book entry (GET /users/saved-addresses). */
+export interface SavedAddress {
+    id: string
+    /** Storage form: lowercase hex, verbatim base58 (Tron/Solana). */
+    address: string
+    /** As the withdraw flow stores it: numeric id for EVM, chain name for non-EVM ('tron', 'solana'). */
+    chainId: string
+    nickname: string
+    lastUsedAt: string
+    createdAt: string
 }
 
 export interface ContactsResponse {
@@ -364,4 +380,12 @@ export interface MantecaLimit {
 export interface UserLimitsResponse {
     manteca: MantecaLimit[] | null
     bridge: BridgeLimits | null
+}
+
+/** Flow-level error banner state (`showError` + copy) — the one shared shape
+ * for flow contexts (withdraw, onramp; TASK-21462 dedup). Field-level
+ * validation errors are `FieldError` under their input instead. */
+export interface FlowErrorState {
+    showError: boolean
+    errorMessage: string
 }

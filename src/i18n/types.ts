@@ -88,6 +88,7 @@ export interface Translations {
 
     // Landing page — shared chrome
     landingSignUp: string
+    landingLogIn: string
     landingLearnMore: string
 
     // Landing page — "global cash, local feel" section

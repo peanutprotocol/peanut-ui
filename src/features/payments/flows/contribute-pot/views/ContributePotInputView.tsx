@@ -95,6 +95,7 @@ export function ContributePotInputView() {
                         amountCollected={totalCollected}
                         isRequestPot={true}
                         contributors={contributors}
+                        avatarKey={recipient.avatarKey}
                     />
                 )}
 

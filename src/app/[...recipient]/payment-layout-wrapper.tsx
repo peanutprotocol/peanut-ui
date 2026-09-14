@@ -7,11 +7,11 @@ import QRScannerOverlay from '@/components/Global/QRScannerOverlay'
 import SupportDrawer from '@/components/Global/SupportDrawer'
 import { NavHeaderPresenceProvider } from '@/components/Global/Banner/navHeaderPresence'
 import { ShellBannerFallback } from '@/components/Global/Banner/ShellBannerFallback'
-import { useUserStore } from '@/redux/hooks'
+import { useAuth } from '@/context/authContext'
 import { twMerge } from '@/utils/tw'
 
 export default function PaymentLayoutWrapper({ children }: { children: React.ReactNode }) {
-    const { user } = useUserStore()
+    const { user } = useAuth()
     const isUserLoggedIn = !!user?.user.userId || false
 
     return (

@@ -92,7 +92,7 @@ export function HomeActionDrawers() {
 
     return (
         <Drawer open={drawer !== null} onOpenChange={(isOpen) => !isOpen && setDrawer(null)} hideBottomNav>
-            <DrawerContent className="px-4 pb-2">
+            <DrawerContent className="pb-2">
                 {content && (
                     <div className="flex flex-col gap-4">
                         <DrawerTitle className="text-center text-heading-s text-foreground-primary">

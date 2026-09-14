@@ -22,6 +22,19 @@ const body = async (path: string, options?: RequestInit) => {
 }
 
 describe('demoRespond — routing', () => {
+    it('answers wallet-portfolio synthetically instead of hitting the owner-only endpoint', async () => {
+        const originalFetch = global.fetch
+        global.fetch = jest.fn()
+        try {
+            const { res, data } = await body('/tokens/wallet-portfolio?address=0xdemo')
+            expect(res.status).toBe(200)
+            expect(data).toEqual({ balances: [], totalBalance: 0 })
+            expect(global.fetch).not.toHaveBeenCalled()
+        } finally {
+            global.fetch = originalFetch
+        }
+    })
+
     it('bounds and forwards the shared FX passthrough', async () => {
         const originalFetch = global.fetch
         global.fetch = jest.fn().mockResolvedValue(
@@ -80,6 +93,13 @@ describe('demoRespond — routing', () => {
     it('treats GET /requests (search) as "none found" via 404', async () => {
         const { res } = await body('/requests?recipient=demo')
         expect(res.status).toBe(404)
+    })
+
+    it('returns a terminal claim status for the optimistic-claim poll', async () => {
+        const { res, data } = await body('/send-links/demo-pubkey/status?c=42161&v=v4.4&i=0')
+
+        expect(res.status).toBe(200)
+        expect(data).toMatchObject({ pubKey: 'demo-pubkey', status: 'CLAIMED' })
     })
 
     it('returns a believable off-ramp success for POST /bridge/offramp/create', async () => {
@@ -259,5 +279,21 @@ describe('demo mode is web-safe', () => {
         const { isDemoMode, enableDemoMode } = require('@/utils/demo')
         enableDemoMode() // even with the flag set...
         expect(isDemoMode()).toBe(false) // ...web stays inert
+    })
+})
+
+describe('demoRespond — card application', () => {
+    it('walks apply → terms → pending like the real contract', async () => {
+        const before = await body('/rain/cards')
+        expect(before.data.status.hasApplication).toBe(false)
+
+        const ask = await body('/rain/cards', { method: 'POST', body: JSON.stringify({ termsAccepted: false }) })
+        expect(ask.data.status).toBe('terms-required')
+
+        const accept = await body('/rain/cards', { method: 'POST', body: JSON.stringify({ termsAccepted: true }) })
+        expect(accept.data.status).toBe('pending')
+
+        const after = await body('/rain/cards')
+        expect(after.data.status).toEqual({ hasApplication: true, railStatus: 'PENDING' })
     })
 })

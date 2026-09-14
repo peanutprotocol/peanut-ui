@@ -107,3 +107,27 @@ describe('claimLinkMutation.onError', () => {
         expect(mockCaptureException).toHaveBeenCalledTimes(1)
     })
 })
+
+test('claim success refreshes once without a background polling loop', async () => {
+    jest.useFakeTimers()
+    const client = new QueryClient()
+    const refresh = jest.spyOn(client, 'refetchQueries')
+    const Wrapper = ({ children }: { children: React.ReactNode }) => (
+        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    )
+    mockClaimResponse(200, { txHash: '0xtx' })
+    try {
+        const { result, unmount } = renderHook(() => useClaimLink(), { wrapper: Wrapper })
+        await result.current.claimLink({
+            address: '0x1111111111111111111111111111111111111111',
+            link: 'https://peanut.me/claim#p=pw',
+        })
+        expect(refresh).toHaveBeenCalledTimes(2)
+        await jest.advanceTimersByTimeAsync(11_000)
+        expect(refresh).toHaveBeenCalledTimes(2)
+        unmount()
+    } finally {
+        client.clear()
+        jest.useRealTimers()
+    }
+})

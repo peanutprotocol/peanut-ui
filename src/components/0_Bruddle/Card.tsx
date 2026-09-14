@@ -8,6 +8,9 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
     color?: ShadowColor
 }
 
+/** Shared surface for Card and native button tiles (board 17802:61536). */
+export const CARD_SURFACE = 'rounded-sm border border-border-default bg-background-default'
+
 const shadowClasses: Record<ShadowColor, Record<ShadowSize, string>> = {
     primary: {
         '4': 'shadow-4',
@@ -27,12 +30,7 @@ const Card = ({ children, className, shadowSize, color = 'primary', ...props }: 
     return (
         <div
             // Tailwind merge makes sure classes added through className by component caller are merged and overrides the default classes
-            className={twMerge(
-                // board 17802:61536: white bg, border-default (#161616), 2px radius, no shadow by default
-                `flex flex-col rounded-sm border border-border-default bg-background-default`,
-                shadowClass,
-                className
-            )}
+            className={twMerge(`flex flex-col ${CARD_SURFACE}`, shadowClass, className)}
             {...props}
         >
             {children}

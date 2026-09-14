@@ -1,4 +1,4 @@
-import { formatBinaryVersion, formatRunningVersion, getRunningVersion } from '@/utils/app-version'
+import { formatRunningVersion, getRunningVersion } from '@/utils/app-version'
 
 const mockGetInfo = jest.fn()
 const mockCurrent = jest.fn()
@@ -9,46 +9,24 @@ jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => true }))
 /**
  * The About screen's version line is what a support conversation starts from.
  * Peanut's release scheme is `<major>.<build>.<ota>` (scripts/release-version.mjs),
- * so all three segments are load-bearing and the CI build number is appended
- * rather than substituted for any of them.
+ * so all three segments are load-bearing. The platform build is a separate
+ * diagnostic identifier and must not become a fourth release-version segment.
  */
-describe('formatBinaryVersion', () => {
-    it('appends the CI build to the release version, replacing nothing', () => {
-        expect(formatBinaryVersion({ appVersion: '1.1.0', appBuild: '34534' })).toBe('1.1.0.34534')
-    })
-
-    it('keeps the OTA counter intact', () => {
-        expect(formatBinaryVersion({ appVersion: '1.1.4', appBuild: '34534' })).toBe('1.1.4.34534')
-        expect(formatBinaryVersion({ appVersion: '2.17.3', appBuild: '7' })).toBe('2.17.3.7')
-    })
-
-    // Android is `10000 + run_number`, iOS is the run number: the same release
-    // legitimately shows a ~10000 gap, and the format must not hide or "fix" it.
-    it('shows each platform its own build number verbatim', () => {
-        expect(formatBinaryVersion({ appVersion: '1.1.0', appBuild: '44534' })).toBe('1.1.0.44534')
-        expect(formatBinaryVersion({ appVersion: '1.1.0', appBuild: '34534' })).toBe('1.1.0.34534')
-    })
-
-    // Never render `undefined` or a leading dot into the one number support asks for.
-    it.each([
-        ['', '99', '99'],
-        ['1.1.0', '', '1.1.0'],
-    ])('degrades cleanly when a component is missing (%s / %s)', (appVersion, appBuild, expected) => {
-        expect(formatBinaryVersion({ appVersion, appBuild })).toBe(expected)
-    })
-})
-
 describe('formatRunningVersion', () => {
     // The binary is frozen at the `.0` it shipped with; the OTA counter only
     // moves in the bundle, so the bundle is what names the running revision.
-    it('names the OTA bundle when one is applied, keeping the binary build', () => {
-        expect(formatRunningVersion({ appVersion: '1.1.0', appBuild: '10048', otaVersion: '1.1.2' })).toBe(
-            '1.1.2.10048'
-        )
+    it('names the OTA bundle when one is applied', () => {
+        expect(formatRunningVersion({ appVersion: '1.5.0', appBuild: '21653381', otaVersion: '1.5.1' })).toBe('1.5.1')
     })
 
     it('falls back to the binary on the builtin bundle', () => {
-        expect(formatRunningVersion({ appVersion: '1.1.0', appBuild: '10048', otaVersion: null })).toBe('1.1.0.10048')
+        expect(formatRunningVersion({ appVersion: '1.5.0', appBuild: '21653381', otaVersion: null })).toBe('1.5.0')
+    })
+
+    it('keeps an automatic staging bundle version intact', () => {
+        expect(formatRunningVersion({ appVersion: '1.5.0', appBuild: '21653381', otaVersion: '1.5.11715' })).toBe(
+            '1.5.11715'
+        )
     })
 })
 

@@ -80,8 +80,9 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.release
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }
@@ -111,6 +112,10 @@ if ((meaWalletUser as boolean) != (meaWalletPass as boolean)) {
     // ship a release binary with push provisioning silently stubbed out.
     throw new GradleException('[meawallet] set both MEAWALLET_NEXUS_USER and MEAWALLET_NEXUS_PASSWORD, or neither')
 }
+if (System.getenv('PEANUT_REQUIRE_PUSH_PROVISIONING') == '1' && (!meaWalletUser || !meaWalletPass)) {
+    throw new GradleException('Production releases require the MeaWallet SDK credentials')
+}
+
 if (meaWalletUser && meaWalletPass) {
     logger.lifecycle('[meawallet] Nexus credentials present — MPP SDK enabled')
     android.sourceSets.main.java.srcDirs += 'src/meawallet/java'

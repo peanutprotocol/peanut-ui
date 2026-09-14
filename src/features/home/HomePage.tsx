@@ -3,7 +3,6 @@
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import Loading from '@/components/Global/Loading'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
-import CardLaunchCTA from '@/components/Home/CardLaunchCTA'
 import EnableAutoBalanceBanner from '@/components/Home/EnableAutoBalanceBanner'
 import HomeCarouselCTA from '@/components/Home/HomeCarouselCTA'
 import HomeHistory from '@/components/Home/HomeHistory'
@@ -15,7 +14,7 @@ import { BalanceSection } from './views/BalanceSection'
 import { HomeTopNav } from './views/HomeTopNav'
 
 /**
- * home page (figma board 17830:75689): top nav (avatar / rewards), balance
+ * home page (figma board 17830:75689): top nav (menu / rewards), balance
  * block with add-send-request submenu, cta card slot, activity feed.
  *
  * cta surfaces (carousel, activation ctas, card launch, pending verification
@@ -27,7 +26,6 @@ export function HomePage() {
     const {
         isPageLoading,
         username,
-        avatarKey,
         isActivated,
         activationStep,
         dismissCardStep,
@@ -45,7 +43,7 @@ export function HomePage() {
     return (
         <PageContainer>
             <div className="flex h-full w-full flex-col gap-6 p-4">
-                <HomeTopNav username={username ?? undefined} avatarKey={avatarKey} showRewards={isActivated} />
+                <HomeTopNav showRewards={isActivated} />
                 <BalanceSection
                     balance={spendableBalance}
                     isFetching={isFetchingSpendableBalance}
@@ -55,7 +53,6 @@ export function HomePage() {
                 />
                 <div className="flex flex-col gap-2">
                     <EnableAutoBalanceBanner />
-                    <CardLaunchCTA />
                     <PendingVerificationTasks dismissible />
                     {isActivated ? (
                         <HomeCarouselCTA />

@@ -52,7 +52,8 @@ const ITEMS_TO_DISABLE = [
     { path: '(mobile-ui)/withdraw/[country]', type: 'dir' },
     { path: '(mobile-ui)/qr/[code]/page.tsx', type: 'file' },
     { path: '(mobile-ui)/qr/[code]/success/page.tsx', type: 'file' },
-    { path: '(mobile-ui)/pay/[...username]/page.tsx', type: 'file' },
+    { path: 'pay/[...recipient]/page.tsx', type: 'file' },
+    { path: 'pay/[...recipient]/layout.tsx', type: 'file' },
     // Team-only desktop web tool. force-dynamic cannot be statically exported, and
     // pruneExportedAssets() deletes /dev from the export anyway, so building it is waste.
     { path: '(mobile-ui)/dev/payment-graph', type: 'dir' },
@@ -596,7 +597,7 @@ async function main() {
             }
         } else if (strict) {
             throw new Error(
-                '.env.production.local not found — CI must write it before native-build.js (see capgo-deploy.yml / ios-release.yml / android-release.yml)'
+                '.env.production.local not found — CI must write it before native-build.js (see release-ota.yml / ios-release.yml / android-release.yml)'
             )
         } else {
             console.warn('⚠️  .env.production.local not found — using default rpId (peanut.me)')

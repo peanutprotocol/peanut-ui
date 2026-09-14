@@ -1,6 +1,7 @@
 'use client'
 
 import { UserAvatar } from '@/components/Avatar/UserAvatar'
+import { useAvatarKey } from '@/components/Avatar/useAvatarKey'
 import Link from 'next/link'
 import { Icon } from '../Global/Icons/Icon'
 import { twMerge } from '@/utils/tw'
@@ -19,6 +20,7 @@ interface UserHeaderProps {
 
 export const UserHeader = ({ username }: UserHeaderProps) => {
     const { user: authenticatedUser } = useAuth()
+    const ownAvatarKey = useAvatarKey(authenticatedUser?.user.avatarKey, authenticatedUser?.user.userId)
     return (
         <Link href={`/profile`} className="block">
             <Button
@@ -31,12 +33,7 @@ export const UserHeader = ({ username }: UserHeaderProps) => {
             >
                 {/* self surface — it links to /profile — so it shows the same
                     picked sticker as /home, never a bare initial (TASK-22142) */}
-                <UserAvatar
-                    size="extra-small"
-                    name={username}
-                    avatarKey={authenticatedUser?.user.avatarKey}
-                    className="h-[30px] w-[30px]"
-                />
+                <UserAvatar size="extra-small" name={username} avatarKey={ownAvatarKey} className="h-[30px] w-[30px]" />
                 <span className="pr-1 text-body-xs font-semibold whitespace-nowrap md:text-body-s">{username}</span>
             </Button>
         </Link>

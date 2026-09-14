@@ -140,168 +140,6 @@
                 }
             }
         },
-        "/admin/card-waitlist/release": {
-            "post": {
-                "parameters": [
-                    {
-                        "in": "header",
-                        "name": "x-admin-token",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "userIds": {
-                                        "items": {
-                                            "type": "string"
-                                        },
-                                        "maxItems": 100,
-                                        "minItems": 1,
-                                        "type": "array"
-                                    }
-                                },
-                                "required": [
-                                    "userIds"
-                                ],
-                                "type": "object"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "released": {
-                                            "items": {
-                                                "type": "string"
-                                            },
-                                            "type": "array"
-                                        },
-                                        "skipped": {
-                                            "items": {
-                                                "type": "string"
-                                            },
-                                            "type": "array"
-                                        }
-                                    },
-                                    "required": [
-                                        "released",
-                                        "skipped"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "message": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error",
-                                        "message"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "message": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error",
-                                        "message"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    }
-                },
-                "summary": "Release users from the card waitlist",
-                "tags": [
-                    "admin"
-                ]
-            }
-        },
-        "/admin/support/grant": {
-            "post": {
-                "parameters": [
-                    {
-                        "in": "header",
-                        "name": "x-admin-token",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "amountUsd": {
-                                        "maximum": 50,
-                                        "minimum": 0.01,
-                                        "type": "number"
-                                    },
-                                    "override": {
-                                        "type": "boolean"
-                                    },
-                                    "username": {
-                                        "maxLength": 64,
-                                        "minLength": 1,
-                                        "type": "string"
-                                    }
-                                },
-                                "required": [
-                                    "username"
-                                ],
-                                "type": "object"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "Default Response"
-                    }
-                }
-            }
-        },
         "/apple-app-site-association": {
             "get": {
                 "responses": {
@@ -498,20 +336,10 @@
                                                 "acquisition": {
                                                     "properties": {
                                                         "destination": {
-                                                            "anyOf": [
-                                                                {
-                                                                    "enum": [
-                                                                        "offramp_migration"
-                                                                    ],
-                                                                    "type": "string"
-                                                                },
-                                                                {
-                                                                    "enum": [
-                                                                        "normal_app"
-                                                                    ],
-                                                                    "type": "string"
-                                                                }
-                                                            ]
+                                                            "enum": [
+                                                                "normal_app"
+                                                            ],
+                                                            "type": "string"
                                                         },
                                                         "fallback": {
                                                             "enum": [
@@ -686,20 +514,10 @@
                                                     "acquisition": {
                                                         "properties": {
                                                             "destination": {
-                                                                "anyOf": [
-                                                                    {
-                                                                        "enum": [
-                                                                            "offramp_migration"
-                                                                        ],
-                                                                        "type": "string"
-                                                                    },
-                                                                    {
-                                                                        "enum": [
-                                                                            "normal_app"
-                                                                        ],
-                                                                        "type": "string"
-                                                                    }
-                                                                ]
+                                                                "enum": [
+                                                                    "normal_app"
+                                                                ],
+                                                                "type": "string"
                                                             },
                                                             "fallback": {
                                                                 "enum": [
@@ -811,6 +629,40 @@
                                     },
                                     "required": [
                                         "claims"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/badge/team": {
+            "post": {
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "awarded": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "awarded"
                                     ],
                                     "type": "object"
                                 }
@@ -2424,7 +2276,6 @@
         },
         "/card": {
             "get": {
-                "description": "Returns the authenticated user's card flow access, eligibility, waitlist state, and skip-badge holdings.",
                 "parameters": [
                     {
                         "in": "header",
@@ -2448,6 +2299,9 @@
                                             "type": "string"
                                         },
                                         "flowEarlyAccess": {
+                                            "type": "boolean"
+                                        },
+                                        "geoProhibited": {
                                             "type": "boolean"
                                         },
                                         "hasCardAccess": {
@@ -2500,8 +2354,9 @@
                                         }
                                     },
                                     "required": [
-                                        "hasCardAccess",
                                         "isEligible",
+                                        "geoProhibited",
+                                        "hasCardAccess",
                                         "flowEarlyAccess",
                                         "isPublicLaunched",
                                         "waitlistJoinedAt",
@@ -2540,57 +2395,7 @@
                         "description": "Default Response"
                     }
                 },
-                "summary": "Get card info + waitlist state",
-                "tags": [
-                    "card"
-                ]
-            }
-        },
-        "/card/flow-early-access": {
-            "post": {
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "grantedAt": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "grantedAt"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "message": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error",
-                                        "message"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    }
-                },
-                "summary": "Grant the user early access to the /card flow (via /shhhhh)",
+                "summary": "Get card geographic eligibility",
                 "tags": [
                     "card"
                 ]
@@ -2598,6 +2403,7 @@
         },
         "/card/waitlist/join": {
             "post": {
+                "deprecated": true,
                 "responses": {
                     "200": {
                         "content": {
@@ -2627,110 +2433,9 @@
                             }
                         },
                         "description": "Default Response"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "message": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error",
-                                        "message"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
                     }
                 },
-                "summary": "Join the virtual-card waitlist",
-                "tags": [
-                    "card"
-                ]
-            }
-        },
-        "/card/waitlist/state": {
-            "get": {
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "joinedAt": {
-                                            "anyOf": [
-                                                {
-                                                    "type": "string"
-                                                },
-                                                {
-                                                    "type": "null"
-                                                }
-                                            ]
-                                        },
-                                        "position": {
-                                            "anyOf": [
-                                                {
-                                                    "type": "number"
-                                                },
-                                                {
-                                                    "type": "null"
-                                                }
-                                            ]
-                                        },
-                                        "releasedAt": {
-                                            "anyOf": [
-                                                {
-                                                    "type": "string"
-                                                },
-                                                {
-                                                    "type": "null"
-                                                }
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "joinedAt",
-                                        "position",
-                                        "releasedAt"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "message": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error",
-                                        "message"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    }
-                },
-                "summary": "Get the user’s current waitlist state",
+                "summary": "Compatibility response for clients predating public card access",
                 "tags": [
                     "card"
                 ]
@@ -3331,6 +3036,7 @@
                                     },
                                     "claimParams": {
                                         "items": {},
+                                        "maxItems": 4,
                                         "minItems": 3,
                                         "type": "array"
                                     },
@@ -3686,101 +3392,6 @@
                                         "ok",
                                         "completed",
                                         "skipped"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "ok": {
-                                            "enum": [
-                                                false
-                                            ],
-                                            "type": "boolean"
-                                        }
-                                    },
-                                    "required": [
-                                        "ok",
-                                        "error"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "ok": {
-                                            "enum": [
-                                                false
-                                            ],
-                                            "type": "boolean"
-                                        }
-                                    },
-                                    "required": [
-                                        "ok",
-                                        "error"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    }
-                }
-            }
-        },
-        "/dev/cheats/clear-skip-celebration": {
-            "post": {
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "userId": {
-                                        "type": "string"
-                                    }
-                                },
-                                "required": [
-                                    "userId"
-                                ],
-                                "type": "object"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "ok": {
-                                            "enum": [
-                                                true
-                                            ],
-                                            "type": "boolean"
-                                        }
-                                    },
-                                    "required": [
-                                        "ok"
                                     ],
                                     "type": "object"
                                 }
@@ -5490,229 +5101,6 @@
                 }
             }
         },
-        "/dev/cheats/grant-card-access": {
-            "post": {
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "revoke": {
-                                        "type": "boolean"
-                                    },
-                                    "userId": {
-                                        "type": "string"
-                                    }
-                                },
-                                "required": [
-                                    "userId"
-                                ],
-                                "type": "object"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "cardAccessGrantedAt": {
-                                            "anyOf": [
-                                                {
-                                                    "type": "string"
-                                                },
-                                                {
-                                                    "type": "null"
-                                                }
-                                            ]
-                                        },
-                                        "ok": {
-                                            "enum": [
-                                                true
-                                            ],
-                                            "type": "boolean"
-                                        },
-                                        "userId": {
-                                            "type": "string"
-                                        },
-                                        "username": {
-                                            "anyOf": [
-                                                {
-                                                    "type": "string"
-                                                },
-                                                {
-                                                    "type": "null"
-                                                }
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "ok",
-                                        "userId",
-                                        "username",
-                                        "cardAccessGrantedAt"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "ok": {
-                                            "enum": [
-                                                false
-                                            ],
-                                            "type": "boolean"
-                                        }
-                                    },
-                                    "required": [
-                                        "ok",
-                                        "error"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "ok": {
-                                            "enum": [
-                                                false
-                                            ],
-                                            "type": "boolean"
-                                        }
-                                    },
-                                    "required": [
-                                        "ok",
-                                        "error"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    }
-                }
-            }
-        },
-        "/dev/cheats/grant-flow-early-access": {
-            "post": {
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "userId": {
-                                        "type": "string"
-                                    }
-                                },
-                                "required": [
-                                    "userId"
-                                ],
-                                "type": "object"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "grantedAt": {
-                                            "type": "string"
-                                        },
-                                        "ok": {
-                                            "enum": [
-                                                true
-                                            ],
-                                            "type": "boolean"
-                                        }
-                                    },
-                                    "required": [
-                                        "ok",
-                                        "grantedAt"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "ok": {
-                                            "enum": [
-                                                false
-                                            ],
-                                            "type": "boolean"
-                                        }
-                                    },
-                                    "required": [
-                                        "ok",
-                                        "error"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "ok": {
-                                            "enum": [
-                                                false
-                                            ],
-                                            "type": "boolean"
-                                        }
-                                    },
-                                    "required": [
-                                        "ok",
-                                        "error"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    }
-                }
-            }
-        },
         "/dev/cheats/hit-activation-threshold": {
             "post": {
                 "requestBody": {
@@ -5851,105 +5239,6 @@
                                         "ok",
                                         "inviteCode",
                                         "inviterUsername"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "ok": {
-                                            "enum": [
-                                                false
-                                            ],
-                                            "type": "boolean"
-                                        }
-                                    },
-                                    "required": [
-                                        "ok",
-                                        "error"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    }
-                }
-            }
-        },
-        "/dev/cheats/join-card-waitlist": {
-            "post": {
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "userId": {
-                                        "type": "string"
-                                    }
-                                },
-                                "required": [
-                                    "userId"
-                                ],
-                                "type": "object"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "joinedAt": {
-                                            "type": "string"
-                                        },
-                                        "ok": {
-                                            "enum": [
-                                                true
-                                            ],
-                                            "type": "boolean"
-                                        }
-                                    },
-                                    "required": [
-                                        "ok",
-                                        "joinedAt"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "ok": {
-                                            "enum": [
-                                                false
-                                            ],
-                                            "type": "boolean"
-                                        }
-                                    },
-                                    "required": [
-                                        "ok",
-                                        "error"
                                     ],
                                     "type": "object"
                                 }
@@ -6255,105 +5544,6 @@
                 }
             }
         },
-        "/dev/cheats/release-from-waitlist": {
-            "post": {
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "userId": {
-                                        "type": "string"
-                                    }
-                                },
-                                "required": [
-                                    "userId"
-                                ],
-                                "type": "object"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "ok": {
-                                            "enum": [
-                                                true
-                                            ],
-                                            "type": "boolean"
-                                        },
-                                        "releasedAt": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "ok",
-                                        "releasedAt"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "ok": {
-                                            "enum": [
-                                                false
-                                            ],
-                                            "type": "boolean"
-                                        }
-                                    },
-                                    "required": [
-                                        "ok",
-                                        "error"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "ok": {
-                                            "enum": [
-                                                false
-                                            ],
-                                            "type": "boolean"
-                                        }
-                                    },
-                                    "required": [
-                                        "ok",
-                                        "error"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    }
-                }
-            }
-        },
         "/dev/cheats/reset-card": {
             "post": {
                 "requestBody": {
@@ -6361,10 +5551,6 @@
                         "application/json": {
                             "schema": {
                                 "properties": {
-                                    "keepCardAccess": {
-                                        "description": "If true, leave card_access_granted_at intact; only clear the card rows.",
-                                        "type": "boolean"
-                                    },
                                     "userId": {
                                         "type": "string"
                                     }
@@ -6384,16 +5570,6 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
-                                        "cardAccessGrantedAt": {
-                                            "anyOf": [
-                                                {
-                                                    "type": "string"
-                                                },
-                                                {
-                                                    "type": "null"
-                                                }
-                                            ]
-                                        },
                                         "deletedCards": {
                                             "type": "number"
                                         },
@@ -6406,107 +5582,7 @@
                                     },
                                     "required": [
                                         "ok",
-                                        "deletedCards",
-                                        "cardAccessGrantedAt"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "ok": {
-                                            "enum": [
-                                                false
-                                            ],
-                                            "type": "boolean"
-                                        }
-                                    },
-                                    "required": [
-                                        "ok",
-                                        "error"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "ok": {
-                                            "enum": [
-                                                false
-                                            ],
-                                            "type": "boolean"
-                                        }
-                                    },
-                                    "required": [
-                                        "ok",
-                                        "error"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    }
-                }
-            }
-        },
-        "/dev/cheats/reset-card-waitlist": {
-            "post": {
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "userId": {
-                                        "type": "string"
-                                    }
-                                },
-                                "required": [
-                                    "userId"
-                                ],
-                                "type": "object"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "deletedPerkUsages": {
-                                            "type": "number"
-                                        },
-                                        "ok": {
-                                            "enum": [
-                                                true
-                                            ],
-                                            "type": "boolean"
-                                        }
-                                    },
-                                    "required": [
-                                        "ok",
-                                        "deletedPerkUsages"
+                                        "deletedCards"
                                     ],
                                     "type": "object"
                                 }
@@ -7281,7 +6357,7 @@
         },
         "/dev/poll": {
             "post": {
-                "description": "Triggers runPollingCycle() on demand — used by the QA harness to observe provider state transitions without waiting for the 5-minute interval.",
+                "description": "Triggers runPollingCycle() on demand \u2014 used by the QA harness to observe provider state transitions without waiting for the 5-minute interval.",
                 "responses": {
                     "200": {
                         "content": {
@@ -7946,7 +7022,7 @@
         },
         "/dev/submit-to-providers": {
             "post": {
-                "description": "Drives Peanut's submitToProviders(userId, applicantId) synchronously, the same function the Sumsub status-processor calls after GREEN. Used by QA harness to test routing (AR user → Manteca, US user → Bridge) end-to-end.",
+                "description": "Drives Peanut's submitToProviders(userId, applicantId) synchronously, the same function the Sumsub status-processor calls after GREEN. Used by QA harness to test routing (AR user \u2192 Manteca, US user \u2192 Bridge) end-to-end.",
                 "requestBody": {
                     "content": {
                         "application/json": {
@@ -8184,7 +7260,7 @@
         },
         "/dev/trigger-sumsub-webhook": {
             "post": {
-                "description": "Invokes processSumsubKycUpdate({ applicantId, externalUserId, reviewAnswer, reviewStatus, source: 'webhook' }) — same entry point as the real /sumsub/webhooks route, minus HMAC. Used by the QA harness to exercise the full Sumsub → routing chain without real webhook delivery.",
+                "description": "Invokes processSumsubKycUpdate({ applicantId, externalUserId, reviewAnswer, reviewStatus, source: 'webhook' }) \u2014 same entry point as the real /sumsub/webhooks route, minus HMAC. Used by the QA harness to exercise the full Sumsub \u2192 routing chain without real webhook delivery.",
                 "requestBody": {
                     "content": {
                         "application/json": {
@@ -9174,6 +8250,61 @@
                 }
             }
         },
+        "/healthz/bridge": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/healthz/manteca/{geo}": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "geo",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/healthz/rain": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/healthz/rhino": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/healthz/sumsub": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
         "/history/{entryId}": {
             "get": {
                 "parameters": [
@@ -9182,6 +8313,26 @@
                         "name": "kind",
                         "required": true,
                         "schema": {
+                            "enum": [
+                                "ONRAMP",
+                                "OFFRAMP",
+                                "P2P_SEND",
+                                "P2P_REQUEST_FULFILL",
+                                "DIRECT_TRANSFER",
+                                "SEND_LINK",
+                                "SEND_LINK_CLAIM",
+                                "CRYPTO_DEPOSIT",
+                                "CRYPTO_WITHDRAW",
+                                "CARD_SPEND_AUTH",
+                                "CARD_SPEND_CLEAR",
+                                "CARD_AUTH_REVERSAL",
+                                "QR_PAY",
+                                "INTERNAL_TRANSFER",
+                                "REWARD_PAYOUT",
+                                "REFUND",
+                                "CHARGEBACK",
+                                "PERK_REWARD"
+                            ],
                             "type": "string"
                         }
                     },
@@ -9304,20 +8455,10 @@
                                                     "acquisition": {
                                                         "properties": {
                                                             "destination": {
-                                                                "anyOf": [
-                                                                    {
-                                                                        "enum": [
-                                                                            "offramp_migration"
-                                                                        ],
-                                                                        "type": "string"
-                                                                    },
-                                                                    {
-                                                                        "enum": [
-                                                                            "normal_app"
-                                                                        ],
-                                                                        "type": "string"
-                                                                    }
-                                                                ]
+                                                                "enum": [
+                                                                    "normal_app"
+                                                                ],
+                                                                "type": "string"
                                                             },
                                                             "fallback": {
                                                                 "enum": [
@@ -9432,20 +8573,10 @@
                                                     "type": "string"
                                                 },
                                                 "destination": {
-                                                    "anyOf": [
-                                                        {
-                                                            "enum": [
-                                                                "offramp_migration"
-                                                            ],
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "enum": [
-                                                                "normal_app"
-                                                            ],
-                                                            "type": "string"
-                                                        }
-                                                    ]
+                                                    "enum": [
+                                                        "normal_app"
+                                                    ],
+                                                    "type": "string"
                                                 },
                                                 "fallback": {
                                                     "enum": [
@@ -9519,20 +8650,10 @@
                                                     "acquisition": {
                                                         "properties": {
                                                             "destination": {
-                                                                "anyOf": [
-                                                                    {
-                                                                        "enum": [
-                                                                            "offramp_migration"
-                                                                        ],
-                                                                        "type": "string"
-                                                                    },
-                                                                    {
-                                                                        "enum": [
-                                                                            "normal_app"
-                                                                        ],
-                                                                        "type": "string"
-                                                                    }
-                                                                ]
+                                                                "enum": [
+                                                                    "normal_app"
+                                                                ],
+                                                                "type": "string"
                                                             },
                                                             "fallback": {
                                                                 "enum": [
@@ -9647,20 +8768,10 @@
                                                     "type": "string"
                                                 },
                                                 "destination": {
-                                                    "anyOf": [
-                                                        {
-                                                            "enum": [
-                                                                "offramp_migration"
-                                                            ],
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "enum": [
-                                                                "normal_app"
-                                                            ],
-                                                            "type": "string"
-                                                        }
-                                                    ]
+                                                    "enum": [
+                                                        "normal_app"
+                                                    ],
+                                                    "type": "string"
                                                 },
                                                 "fallback": {
                                                     "enum": [
@@ -9791,20 +8902,10 @@
                                                     "type": "string"
                                                 },
                                                 "destination": {
-                                                    "anyOf": [
-                                                        {
-                                                            "enum": [
-                                                                "offramp_migration"
-                                                            ],
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "enum": [
-                                                                "normal_app"
-                                                            ],
-                                                            "type": "string"
-                                                        }
-                                                    ]
+                                                    "enum": [
+                                                        "normal_app"
+                                                    ],
+                                                    "type": "string"
                                                 },
                                                 "fallback": {
                                                     "enum": [
@@ -9881,20 +8982,10 @@
                                                     "type": "string"
                                                 },
                                                 "destination": {
-                                                    "anyOf": [
-                                                        {
-                                                            "enum": [
-                                                                "offramp_migration"
-                                                            ],
-                                                            "type": "string"
-                                                        },
-                                                        {
-                                                            "enum": [
-                                                                "normal_app"
-                                                            ],
-                                                            "type": "string"
-                                                        }
-                                                    ]
+                                                    "enum": [
+                                                        "normal_app"
+                                                    ],
+                                                    "type": "string"
                                                 },
                                                 "fallback": {
                                                     "enum": [
@@ -10117,7 +9208,7 @@
         },
         "/manteca/deposit/{depositId}/status": {
             "get": {
-                "description": "Poll the status of a deposit order by its Manteca synthetic id. Used by the BRL PIX QR flow to detect completion (intent.status === COMPLETED) without leaving the user on a static QR. Read-only — the webhook/poller remain the authoritative completion trigger.",
+                "description": "Poll the status of a deposit order by its Manteca synthetic id. Used by the BRL PIX QR flow to detect completion (intent.status === COMPLETED) without leaving the user on a static QR. Read-only \u2014 the webhook/poller remain the authoritative completion trigger.",
                 "parameters": [
                     {
                         "in": "path",
@@ -10142,54 +9233,6 @@
                     }
                 },
                 "summary": "Get deposit order status",
-                "tags": [
-                    "manteca"
-                ]
-            }
-        },
-        "/manteca/initiate-onboarding": {
-            "post": {
-                "description": "Creates an onboarding widget URL for the current user using userId as userExternalId and returns the URL",
-                "parameters": [
-                    {
-                        "in": "header",
-                        "name": "Authorization",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "exchange": {
-                                        "type": "string"
-                                    },
-                                    "failureUrl": {
-                                        "type": "string"
-                                    },
-                                    "returnUrl": {
-                                        "type": "string"
-                                    }
-                                },
-                                "required": [
-                                    "returnUrl"
-                                ],
-                                "type": "object"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "Default Response"
-                    }
-                },
-                "summary": "Initiate Manteca onboarding",
                 "tags": [
                     "manteca"
                 ]
@@ -10548,6 +9591,9 @@
                                     "amount": {
                                         "description": "Amount for static QR codes (optional for dynamic QR codes)",
                                         "type": "string"
+                                    },
+                                    "idempotencyKey": {
+                                        "description": "Idempotency key for THIS init request, a non-blank string of at most 200 characters. Scoped to the exact (qrCode, qrType, amount) tuple, not to the scan: retries of the same request reuse one Manteca price lock instead of minting a new one per attempt, but an open-amount QR MUST derive a new key once the user supplies an amount, or the second init is refused with QR_INIT_KEY_MISMATCH. Optional: older clients omit it and get the previous behaviour."
                                     },
                                     "qrCode": {
                                         "description": "The QR code string to process for payment",
@@ -11344,301 +10390,8 @@
                 }
             }
         },
-        "/notifications/admin/recent": {
-            "get": {
-                "parameters": [
-                    {
-                        "in": "query",
-                        "name": "userId",
-                        "required": true,
-                        "schema": {
-                            "minLength": 1,
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "in": "query",
-                        "name": "limit",
-                        "required": true,
-                        "schema": {
-                            "default": 20,
-                            "maximum": 100,
-                            "minimum": 1,
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "in": "header",
-                        "name": "x-admin-token",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "items": {
-                                            "items": {
-                                                "properties": {
-                                                    "channel": {
-                                                        "type": "string"
-                                                    },
-                                                    "createdAt": {
-                                                        "type": "string"
-                                                    },
-                                                    "error": {
-                                                        "anyOf": [
-                                                            {
-                                                                "properties": {
-                                                                    "name": {
-                                                                        "anyOf": [
-                                                                            {
-                                                                                "type": "string"
-                                                                            },
-                                                                            {
-                                                                                "type": "null"
-                                                                            }
-                                                                        ]
-                                                                    },
-                                                                    "reason": {
-                                                                        "anyOf": [
-                                                                            {
-                                                                                "type": "string"
-                                                                            },
-                                                                            {
-                                                                                "type": "null"
-                                                                            }
-                                                                        ]
-                                                                    }
-                                                                },
-                                                                "required": [
-                                                                    "reason",
-                                                                    "name"
-                                                                ],
-                                                                "type": "object"
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
-                                                        ]
-                                                    },
-                                                    "eventType": {
-                                                        "type": "string"
-                                                    },
-                                                    "id": {
-                                                        "type": "string"
-                                                    },
-                                                    "providerId": {
-                                                        "anyOf": [
-                                                            {
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
-                                                        ]
-                                                    },
-                                                    "sentAt": {
-                                                        "anyOf": [
-                                                            {
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
-                                                        ]
-                                                    },
-                                                    "skipReason": {
-                                                        "anyOf": [
-                                                            {
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "type": "null"
-                                                            }
-                                                        ]
-                                                    },
-                                                    "status": {
-                                                        "anyOf": [
-                                                            {
-                                                                "enum": [
-                                                                    "PENDING"
-                                                                ],
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "enum": [
-                                                                    "SENT"
-                                                                ],
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "enum": [
-                                                                    "FAILED"
-                                                                ],
-                                                                "type": "string"
-                                                            },
-                                                            {
-                                                                "enum": [
-                                                                    "SKIPPED"
-                                                                ],
-                                                                "type": "string"
-                                                            }
-                                                        ]
-                                                    }
-                                                },
-                                                "required": [
-                                                    "id",
-                                                    "eventType",
-                                                    "channel",
-                                                    "status",
-                                                    "skipReason",
-                                                    "providerId",
-                                                    "error",
-                                                    "createdAt",
-                                                    "sentAt"
-                                                ],
-                                                "type": "object"
-                                            },
-                                            "type": "array"
-                                        }
-                                    },
-                                    "required": [
-                                        "items"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "401": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    }
-                },
-                "summary": "Recent notification rows for a user (all channels + statuses)",
-                "tags": [
-                    "admin"
-                ]
-            }
-        },
         "/notifications/mark-read": {
             "post": {
-                "responses": {
-                    "200": {
-                        "description": "Default Response"
-                    }
-                }
-            }
-        },
-        "/notifications/send": {
-            "post": {
-                "parameters": [
-                    {
-                        "in": "header",
-                        "name": "x-admin-token",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "channel": {
-                                        "anyOf": [
-                                            {
-                                                "enum": [
-                                                    "push"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "email"
-                                                ],
-                                                "type": "string"
-                                            }
-                                        ]
-                                    },
-                                    "data": {
-                                        "additionalProperties": {},
-                                        "type": "object"
-                                    },
-                                    "externalUserIds": {
-                                        "items": {
-                                            "type": "string"
-                                        },
-                                        "maxItems": 10,
-                                        "minItems": 1,
-                                        "type": "array"
-                                    },
-                                    "idempotencyKey": {
-                                        "type": "string"
-                                    },
-                                    "message": {
-                                        "type": "string"
-                                    },
-                                    "templateId": {
-                                        "type": "string"
-                                    },
-                                    "title": {
-                                        "type": "string"
-                                    },
-                                    "url": {
-                                        "type": "string"
-                                    }
-                                },
-                                "required": [
-                                    "externalUserIds"
-                                ],
-                                "type": "object"
-                            }
-                        }
-                    },
-                    "required": true
-                },
                 "responses": {
                     "200": {
                         "description": "Default Response"
@@ -11988,51 +10741,6 @@
                 }
             }
         },
-        "/points/admin/adjust": {
-            "post": {
-                "parameters": [
-                    {
-                        "in": "header",
-                        "name": "api-key",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "pointsChange": {
-                                        "type": "number"
-                                    },
-                                    "reason": {
-                                        "type": "string"
-                                    },
-                                    "userId": {
-                                        "type": "string"
-                                    }
-                                },
-                                "required": [
-                                    "userId",
-                                    "pointsChange",
-                                    "reason"
-                                ],
-                                "type": "object"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "Default Response"
-                    }
-                }
-            }
-        },
         "/points/calculate": {
             "post": {
                 "parameters": [
@@ -12053,38 +10761,102 @@
                                     "actionType": {
                                         "anyOf": [
                                             {
+                                                "anyOf": [
+                                                    {
+                                                        "enum": [
+                                                            "BRIDGE_TRANSFER"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "MANTECA_TRANSFER"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "MANTECA_QR_PAYMENT"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "P2P_SEND_LINK"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "P2P_REQUEST_PAYMENT"
+                                                        ],
+                                                        "type": "string"
+                                                    },
+                                                    {
+                                                        "enum": [
+                                                            "KYC_VERIFIED"
+                                                        ],
+                                                        "type": "string"
+                                                    }
+                                                ]
+                                            },
+                                            {
                                                 "enum": [
-                                                    "BRIDGE_TRANSFER"
+                                                    "DIRECT_TRANSFER"
                                                 ],
                                                 "type": "string"
                                             },
                                             {
                                                 "enum": [
-                                                    "MANTECA_TRANSFER"
+                                                    "P2P_SEND"
                                                 ],
                                                 "type": "string"
                                             },
                                             {
                                                 "enum": [
-                                                    "MANTECA_QR_PAYMENT"
+                                                    "P2P_REQUEST_FULFILL"
                                                 ],
                                                 "type": "string"
                                             },
                                             {
                                                 "enum": [
-                                                    "P2P_SEND_LINK"
+                                                    "SEND_LINK"
                                                 ],
                                                 "type": "string"
                                             },
                                             {
                                                 "enum": [
-                                                    "P2P_REQUEST_PAYMENT"
+                                                    "QR_PAY"
                                                 ],
                                                 "type": "string"
                                             },
                                             {
                                                 "enum": [
-                                                    "KYC_VERIFIED"
+                                                    "ONRAMP"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "OFFRAMP"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "CRYPTO_WITHDRAW"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "CARD_SPEND_AUTH"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "CARD_SPEND_CLEAR"
                                                 ],
                                                 "type": "string"
                                             }
@@ -12724,6 +11496,37 @@
                             }
                         },
                         "description": "Default Response"
+                    },
+                    "403": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "enum": [
+                                                "geo-blocked"
+                                            ],
+                                            "type": "string"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "status": {
+                                            "enum": [
+                                                "error"
+                                            ],
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "status",
+                                        "message"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
                     }
                 }
             }
@@ -13318,76 +12121,6 @@
                                     "directTransfer": {
                                         "type": "boolean"
                                     },
-                                    "kind": {
-                                        "anyOf": [
-                                            {
-                                                "enum": [
-                                                    "P2P_SEND"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "QR_PAY"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "LINK_CREATE"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "CRYPTO_WITHDRAW"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "FIAT_OFFRAMP"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "FIAT_ONRAMP"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "REQUEST_PAY"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "AUTO_REBALANCE"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "CARD_SPEND"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "DEPOSIT_EXTERNAL"
-                                                ],
-                                                "type": "string"
-                                            },
-                                            {
-                                                "enum": [
-                                                    "OTHER"
-                                                ],
-                                                "type": "string"
-                                            }
-                                        ]
-                                    },
                                     "recipientAddress": {
                                         "pattern": "^0x[0-9a-fA-F]{40}$",
                                         "type": "string"
@@ -13400,8 +12133,7 @@
                                 "required": [
                                     "amount",
                                     "recipientAddress",
-                                    "directTransfer",
-                                    "kind"
+                                    "directTransfer"
                                 ],
                                 "type": "object"
                             }
@@ -13447,6 +12179,12 @@
                                         },
                                         "expiresAt": {
                                             "type": "number"
+                                        },
+                                        "mixedSpendContract": {
+                                            "enum": [
+                                                "broadcast-first-revert-v1"
+                                            ],
+                                            "type": "string"
                                         },
                                         "preparationId": {
                                             "type": "string"
@@ -13614,6 +12352,133 @@
                 }
             }
         },
+        "/rain/cards/withdraw/prepare/cancel": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "preparationId": {
+                                        "minLength": 1,
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "preparationId"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "ok": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "ok"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "503": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
         "/rain/cards/withdraw/session-approve": {
             "post": {
                 "requestBody": {
@@ -13758,6 +12623,27 @@
                                     },
                                     "required": [
                                         "ok"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
                                     ],
                                     "type": "object"
                                 }
@@ -14026,15 +12912,17 @@
                                         "type": "boolean"
                                     },
                                     "cardLimit": {
-                                        "minimum": 0,
-                                        "type": "number"
+                                        "maximum": 2147483647,
+                                        "minimum": 1,
+                                        "type": "integer"
                                     },
                                     "limits": {
                                         "items": {
                                             "properties": {
                                                 "amount": {
-                                                    "minimum": 0,
-                                                    "type": "number"
+                                                    "maximum": 2147483647,
+                                                    "minimum": 1,
+                                                    "type": "integer"
                                                 },
                                                 "frequency": {
                                                     "anyOf": [
@@ -14099,6 +12987,27 @@
                         "description": "Default Response"
                     },
                     "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "422": {
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -15048,225 +13957,17 @@
                 }
             }
         },
-        "/rain/cards/{cardId}/provisioning-data": {
+        "/rain/webhooks": {
             "post": {
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "wallet": {
-                                        "anyOf": [
-                                            {
-                                                "type": "string",
-                                                "enum": [
-                                                    "apple"
-                                                ]
-                                            },
-                                            {
-                                                "type": "string",
-                                                "enum": [
-                                                    "google"
-                                                ]
-                                            }
-                                        ]
-                                    }
-                                },
-                                "required": [
-                                    "wallet"
-                                ]
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "parameters": [
-                    {
-                        "schema": {
-                            "format": "uuid",
-                            "type": "string"
-                        },
-                        "in": "path",
-                        "name": "cardId",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
-                        "description": "Default Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "cardId": {
-                                            "type": "string"
-                                        },
-                                        "cardSecret": {
-                                            "type": "string"
-                                        },
-                                        "last4": {
-                                            "type": "string"
-                                        },
-                                        "network": {
-                                            "type": "string"
-                                        },
-                                        "cardholderName": {
-                                            "type": "string"
-                                        },
-                                        "billingAddress": {
-                                            "type": "object",
-                                            "properties": {
-                                                "line1": {
-                                                    "type": "string"
-                                                },
-                                                "line2": {
-                                                    "type": "string"
-                                                },
-                                                "city": {
-                                                    "type": "string"
-                                                },
-                                                "region": {
-                                                    "type": "string"
-                                                },
-                                                "postalCode": {
-                                                    "type": "string"
-                                                },
-                                                "countryCode": {
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "required": [
-                                                "line1",
-                                                "city",
-                                                "region",
-                                                "postalCode",
-                                                "countryCode"
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "cardId",
-                                        "cardSecret",
-                                        "last4",
-                                        "network",
-                                        "billingAddress"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Default Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "code": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "409": {
-                        "description": "Default Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "code": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "429": {
-                        "description": "Default Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "code": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Default Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "code": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "503": {
-                        "description": "Default Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "error": {
-                                            "type": "string"
-                                        },
-                                        "code": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error"
-                                    ]
-                                }
-                            }
-                        }
+                        "description": "Default Response"
                     }
                 }
             }
         },
-        "/rain/webhooks": {
-            "post": {
+        "/readyz": {
+            "get": {
                 "responses": {
                     "200": {
                         "description": "Default Response"
@@ -15561,6 +14262,26 @@
                         "application/json": {
                             "schema": {
                                 "properties": {
+                                    "context": {
+                                        "anyOf": [
+                                            {
+                                                "enum": [
+                                                    "withdraw"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "pay-request"
+                                                ],
+                                                "type": "string"
+                                            }
+                                        ]
+                                    },
+                                    "contextId": {
+                                        "format": "uuid",
+                                        "type": "string"
+                                    },
                                     "isSameChainSwap": {
                                         "type": "boolean"
                                     },
@@ -15615,6 +14336,26 @@
                                         "type": "string"
                                     },
                                     "chainOut": {
+                                        "minLength": 1,
+                                        "type": "string"
+                                    },
+                                    "context": {
+                                        "anyOf": [
+                                            {
+                                                "enum": [
+                                                    "withdraw"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "pay-request"
+                                                ],
+                                                "type": "string"
+                                            }
+                                        ]
+                                    },
+                                    "contextId": {
                                         "minLength": 1,
                                         "type": "string"
                                     },
@@ -15896,6 +14637,15 @@
                                     "depositChain": {
                                         "type": "string"
                                     },
+                                    "depositChainId": {
+                                        "type": "string"
+                                    },
+                                    "depositContractVersion": {
+                                        "type": "string"
+                                    },
+                                    "depositIdx": {
+                                        "type": "number"
+                                    },
                                     "destinationAddress": {
                                         "type": "string"
                                     },
@@ -15969,6 +14719,10 @@
                                     "chainOut": {
                                         "type": "string"
                                     },
+                                    "depositor": {
+                                        "minLength": 1,
+                                        "type": "string"
+                                    },
                                     "mode": {
                                         "anyOf": [
                                             {
@@ -15984,6 +14738,10 @@
                                                 "type": "string"
                                             }
                                         ]
+                                    },
+                                    "recipient": {
+                                        "minLength": 1,
+                                        "type": "string"
                                     },
                                     "token": {
                                         "minLength": 1,
@@ -16070,6 +14828,74 @@
                 }
             },
             "post": {
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "properties": {
+                                    "amount": {
+                                        "anyOf": [
+                                            {
+                                                "pattern": "^[0-9]+$",
+                                                "type": "string"
+                                            },
+                                            {
+                                                "minimum": 1,
+                                                "type": "integer"
+                                            }
+                                        ]
+                                    },
+                                    "attachment": {},
+                                    "chainId": {
+                                        "type": "string"
+                                    },
+                                    "contractVersion": {
+                                        "type": "string"
+                                    },
+                                    "depositIdx": {
+                                        "anyOf": [
+                                            {
+                                                "pattern": "^[0-9]+$",
+                                                "type": "string"
+                                            },
+                                            {
+                                                "minimum": 0,
+                                                "type": "integer"
+                                            }
+                                        ]
+                                    },
+                                    "filename": {
+                                        "type": "string"
+                                    },
+                                    "mimetype": {
+                                        "type": "string"
+                                    },
+                                    "preparationId": {
+                                        "type": "string"
+                                    },
+                                    "pubKey": {
+                                        "minLength": 1,
+                                        "type": "string"
+                                    },
+                                    "reference": {
+                                        "type": "string"
+                                    },
+                                    "tokenAddress": {
+                                        "type": "string"
+                                    },
+                                    "txHash": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "pubKey"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
                 "responses": {
                     "200": {
                         "description": "Default Response"
@@ -16149,6 +14975,118 @@
                         }
                     }
                 ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "amount": {
+                                        "anyOf": [
+                                            {
+                                                "pattern": "^[0-9]+$",
+                                                "type": "string"
+                                            },
+                                            {
+                                                "minimum": 1,
+                                                "type": "integer"
+                                            }
+                                        ]
+                                    },
+                                    "chainId": {
+                                        "minLength": 1,
+                                        "type": "string"
+                                    },
+                                    "contractVersion": {
+                                        "minLength": 1,
+                                        "type": "string"
+                                    },
+                                    "depositIdx": {
+                                        "anyOf": [
+                                            {
+                                                "pattern": "^[0-9]+$",
+                                                "type": "string"
+                                            },
+                                            {
+                                                "minimum": 0,
+                                                "type": "integer"
+                                            }
+                                        ]
+                                    },
+                                    "tokenAddress": {
+                                        "minLength": 1,
+                                        "type": "string"
+                                    },
+                                    "txHash": {
+                                        "minLength": 1,
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "txHash",
+                                    "chainId",
+                                    "depositIdx",
+                                    "contractVersion",
+                                    "amount",
+                                    "tokenAddress"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/send-links/{pubKey}/status": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "c",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "i",
+                        "required": false,
+                        "schema": {
+                            "type": "number"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "v",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "path",
+                        "name": "pubKey",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/status/summary": {
+            "get": {
                 "responses": {
                     "200": {
                         "description": "Default Response"
@@ -16182,7 +15120,7 @@
                         "name": "address",
                         "required": true,
                         "schema": {
-                            "minLength": 1,
+                            "pattern": "^0x[a-fA-F0-9]{40}$",
                             "type": "string"
                         }
                     },
@@ -16191,7 +15129,7 @@
                         "name": "chainId",
                         "required": true,
                         "schema": {
-                            "minLength": 1,
+                            "pattern": "^[0-9]{1,10}$",
                             "type": "string"
                         }
                     }
@@ -16214,7 +15152,7 @@
                         "name": "address",
                         "required": true,
                         "schema": {
-                            "minLength": 1,
+                            "pattern": "^0x[a-fA-F0-9]{40}$",
                             "type": "string"
                         }
                     }
@@ -16289,6 +15227,14 @@
                         "schema": {
                             "type": "string"
                         }
+                    },
+                    {
+                        "in": "header",
+                        "name": "x-step-up-token",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 ],
                 "requestBody": {
@@ -16296,6 +15242,18 @@
                         "application/json": {
                             "schema": {
                                 "properties": {
+                                    "avatarKey": {
+                                        "anyOf": [
+                                            {
+                                                "maxLength": 64,
+                                                "pattern": "^(basic\\.[a-z][a-z0-9-]*|badge\\.[A-Z0-9_]+\\.[a-z][a-z0-9-]*|letter\\.[a-z])$",
+                                                "type": "string"
+                                            },
+                                            {
+                                                "type": "null"
+                                            }
+                                        ]
+                                    },
                                     "bridgeKycStatus": {
                                         "anyOf": [
                                             {
@@ -16337,6 +15295,10 @@
                                         "type": "boolean"
                                     },
                                     "email": {
+                                        "type": "string"
+                                    },
+                                    "emailVerificationCode": {
+                                        "pattern": "^[0-9]{6}$",
                                         "type": "string"
                                     },
                                     "fullName": {
@@ -16389,6 +15351,140 @@
                 },
                 "responses": {
                     "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "additionalProperties": true,
+                                    "properties": {},
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "description": "Invalid input \u2014 malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code.",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Invalid input \u2014 malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code."
+                    },
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "enum": [
+                                                "STEP_UP_REQUIRED"
+                                            ],
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error",
+                                        "code"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "anyOf": [
+                                        {
+                                            "properties": {
+                                                "message": {
+                                                    "type": "string"
+                                                },
+                                                "success": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": [
+                                                "success",
+                                                "message"
+                                            ],
+                                            "type": "object"
+                                        },
+                                        {
+                                            "properties": {
+                                                "code": {
+                                                    "enum": [
+                                                        "EMAIL_IN_USE"
+                                                    ],
+                                                    "type": "string"
+                                                },
+                                                "error": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "error",
+                                                "code"
+                                            ],
+                                            "type": "object"
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "success": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "503": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
                         "description": "Default Response"
                     }
                 }
@@ -16693,6 +15789,12 @@
                                                                             "bridge-hosted"
                                                                         ],
                                                                         "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "rain-hosted"
+                                                                        ],
+                                                                        "type": "string"
                                                                     }
                                                                 ]
                                                             },
@@ -16992,6 +16094,12 @@
                                                                                     {
                                                                                         "enum": [
                                                                                             "bridge-hosted"
+                                                                                        ],
+                                                                                        "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "rain-hosted"
                                                                                         ],
                                                                                         "type": "string"
                                                                                     }
@@ -17375,6 +16483,172 @@
                 }
             }
         },
+        "/users/email-change": {
+            "post": {
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "Authorization",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "header",
+                        "name": "api-key",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "header",
+                        "name": "x-step-up-token",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "email": {
+                                        "maxLength": 320,
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "email"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "success"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "enum": [
+                                                "STEP_UP_REQUIRED"
+                                            ],
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error",
+                                        "code"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "429": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "503": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
         "/users/history": {
             "get": {
                 "parameters": [
@@ -17391,7 +16665,9 @@
                         "name": "limit",
                         "required": false,
                         "schema": {
-                            "type": "number"
+                            "maximum": 100,
+                            "minimum": 1,
+                            "type": "integer"
                         }
                     },
                     {
@@ -17417,6 +16693,181 @@
                         "description": "Default Response"
                     }
                 }
+            }
+        },
+        "/users/identity/restart": {
+            "post": {
+                "description": "Reset the Sumsub IDENTITY step after a residence change and mint a fresh SDK token. Allowed only while the declared residence differs from the verified one.",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "regionIntent": {
+                                        "anyOf": [
+                                            {
+                                                "enum": [
+                                                    "LATAM"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "ROW"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "EU"
+                                                ],
+                                                "type": "string"
+                                            },
+                                            {
+                                                "enum": [
+                                                    "NA"
+                                                ],
+                                                "type": "string"
+                                            }
+                                        ],
+                                        "description": "Level the token must target. The declared residence decides (AR/BR \u2192 LATAM, US/MX \u2192 NA, SEPA zone \u2192 EU, else ROW); a request for another provider's level is rejected with 400, an EU/ROW request is corrected. Defaults to the level the declared residence needs."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "applicantId": {
+                                            "type": "string"
+                                        },
+                                        "levelName": {
+                                            "type": "string"
+                                        },
+                                        "regionIntent": {
+                                            "description": "The intent the server resolved for this restart. The caller must drive its SDK session from THIS value, not from what it asked for: the declared residence can overrule the request, and `levelName` alone cannot tell EU from NA or LATAM from ROW (each pair shares a level).",
+                                            "type": "string"
+                                        },
+                                        "token": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "token",
+                                        "levelName",
+                                        "applicantId",
+                                        "regionIntent"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "403": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "429": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "retryAt": {
+                                            "format": "date-time",
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "503": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                },
+                "tags": [
+                    "users"
+                ]
             }
         },
         "/users/identity/resubmit": {
@@ -17655,6 +17106,12 @@
                                                                     {
                                                                         "enum": [
                                                                             "bridge-hosted"
+                                                                        ],
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "enum": [
+                                                                            "rain-hosted"
                                                                         ],
                                                                         "type": "string"
                                                                     }
@@ -17958,6 +17415,12 @@
                                                                                             "bridge-hosted"
                                                                                         ],
                                                                                         "type": "string"
+                                                                                    },
+                                                                                    {
+                                                                                        "enum": [
+                                                                                            "rain-hosted"
+                                                                                        ],
+                                                                                        "type": "string"
                                                                                     }
                                                                                 ]
                                                                             },
@@ -18168,9 +17631,32 @@
                                             ],
                                             "type": "object"
                                         },
+                                        "profileNameLocked": {
+                                            "type": "boolean"
+                                        },
                                         "residence": {
                                             "properties": {
                                                 "declared": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "declaredSecond": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "kycReported": {
                                                     "anyOf": [
                                                         {
                                                             "type": "string"
@@ -18203,7 +17689,9 @@
                                             },
                                             "required": [
                                                 "declared",
+                                                "declaredSecond",
                                                 "verified",
+                                                "kycReported",
                                                 "nextChangeAllowedAt"
                                             ],
                                             "type": "object"
@@ -18227,6 +17715,7 @@
                                     "required": [
                                         "capabilities",
                                         "identityVerification",
+                                        "profileNameLocked",
                                         "residenceRestrictions",
                                         "residence"
                                     ],
@@ -18269,6 +17758,405 @@
             "post": {
                 "responses": {
                     "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/users/saved-addresses": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "savedAddresses": {
+                                            "items": {
+                                                "properties": {
+                                                    "address": {
+                                                        "type": "string"
+                                                    },
+                                                    "chainId": {
+                                                        "type": "string"
+                                                    },
+                                                    "createdAt": {
+                                                        "type": "string"
+                                                    },
+                                                    "id": {
+                                                        "type": "string"
+                                                    },
+                                                    "lastUsedAt": {
+                                                        "type": "string"
+                                                    },
+                                                    "nickname": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "address",
+                                                    "chainId",
+                                                    "nickname",
+                                                    "lastUsedAt",
+                                                    "createdAt"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        }
+                                    },
+                                    "required": [
+                                        "savedAddresses"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            },
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "address": {
+                                        "pattern": "^(0x[a-fA-F0-9]{40}|[1-9A-HJ-NP-Za-km-z]{32,44})$",
+                                        "type": "string"
+                                    },
+                                    "chainId": {
+                                        "maxLength": 32,
+                                        "minLength": 1,
+                                        "type": "string"
+                                    },
+                                    "nickname": {
+                                        "maxLength": 15,
+                                        "minLength": 1,
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "address",
+                                    "chainId",
+                                    "nickname"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "savedAddress": {
+                                            "properties": {
+                                                "address": {
+                                                    "type": "string"
+                                                },
+                                                "chainId": {
+                                                    "type": "string"
+                                                },
+                                                "createdAt": {
+                                                    "type": "string"
+                                                },
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "lastUsedAt": {
+                                                    "type": "string"
+                                                },
+                                                "nickname": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "address",
+                                                "chainId",
+                                                "nickname",
+                                                "lastUsedAt",
+                                                "createdAt"
+                                            ],
+                                            "type": "object"
+                                        }
+                                    },
+                                    "required": [
+                                        "savedAddress"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/users/saved-addresses/{id}": {
+            "delete": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "format": "uuid",
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "deleted": {
+                                            "enum": [
+                                                true
+                                            ],
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": [
+                                        "deleted"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            },
+            "patch": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "format": "uuid",
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "nickname": {
+                                        "maxLength": 15,
+                                        "minLength": 1,
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "nickname"
+                                ],
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "savedAddress": {
+                                            "properties": {
+                                                "address": {
+                                                    "type": "string"
+                                                },
+                                                "chainId": {
+                                                    "type": "string"
+                                                },
+                                                "createdAt": {
+                                                    "type": "string"
+                                                },
+                                                "id": {
+                                                    "type": "string"
+                                                },
+                                                "lastUsedAt": {
+                                                    "type": "string"
+                                                },
+                                                "nickname": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "address",
+                                                "chainId",
+                                                "nickname",
+                                                "lastUsedAt",
+                                                "createdAt"
+                                            ],
+                                            "type": "object"
+                                        }
+                                    },
+                                    "required": [
+                                        "savedAddress"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
                         "description": "Default Response"
                     }
                 }
@@ -18452,6 +18340,13 @@
             }
         },
         "/webhooks/onesignal": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    }
+                }
+            },
             "post": {
                 "responses": {
                     "200": {

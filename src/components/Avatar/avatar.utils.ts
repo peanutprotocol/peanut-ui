@@ -4,9 +4,12 @@
  * in peanut-api-ts and never hand-edited. `avatars.basics` is the set every
  * user gets; `avatars.badges[CODE]` lists the slugs holding that badge unlocks.
  *
- * Keys are `basic.<slug>` and `badge.<CODE>.<slug>`. The API validates a
- * pick against the same pool. This file only mirrors the manifest into
- * paths and palettes; it never decides who may wear what.
+ * Keys are `basic.<slug>`, `badge.<CODE>.<slug>` and `letter.<a-z>`. The API
+ * validates a pick against the same pool. This file only mirrors the manifest
+ * into paths and palettes; it never decides who may wear what.
+ *
+ * The letters are not in the manifest — they are art everyone has
+ * (`public/avatars/letter/`), so they are listed here and unlocked for all.
  */
 import badgeAssets from '@/types/badge-assets.json'
 
@@ -19,30 +22,72 @@ const slugsOf = (code: string): readonly string[] => (Object.hasOwn(BADGE_AVATAR
 
 export const basicAvatarKeys = (): string[] => BASICS.map((slug) => `basic.${slug}`)
 
+/** a-z, the letter stickers every user may wear regardless of their name. */
+export const LETTERS: readonly string[] = Array.from({ length: 26 }, (_, i) => String.fromCharCode(97 + i))
+
 /** Avatar keys unlocked by holding these badge codes, in badge order. */
 export const badgeAvatarKeys = (heldCodes: readonly string[]): string[] =>
     heldCodes.flatMap((code) => slugsOf(code).map((slug) => `badge.${code}.${slug}`))
 
 /** Everything the user may pick: the basics plus what their badges unlock. */
 export const avatarPool = (heldCodes: readonly string[]): string[] => [
+    ...LETTERS.map((letter) => `letter.${letter}`),
     ...basicAvatarKeys(),
     ...badgeAvatarKeys(heldCodes),
 ]
 
+// slots 2-8 of the hand; slot 1 is the initial and slot 9 is the die
+const DEALT = 7
+
 /**
- * The basics row the picker offers: the current pick if it is a basic, then
- * random basics to fill `n`. The dice rerolls this row and never the pick
- * (Split's semantics: the dice changes what is offered, not who you are).
+ * The given keys, each drawing once: a key whose art this bundle does not know
+ * is dropped, and so is one whose art an earlier key already claimed (holding a
+ * badge code twice unlocks the same files twice).
  */
-export function offerBasics(pick: string | null, n = 5, random: () => number = Math.random): string[] {
-    const basics = basicAvatarKeys()
-    const keep = pick && basics.includes(pick) ? [pick] : []
-    const rest = basics.filter((key) => key !== pick)
-    for (let i = rest.length - 1; i > 0; i--) {
+const distinctArt = (keys: readonly string[]): string[] => {
+    const taken = new Set<string>()
+    return keys.filter((key) => {
+        const src = avatarSrc(key)
+        if (!src || taken.has(src)) return false
+        taken.add(src)
+        return true
+    })
+}
+
+/**
+ * The hand the picker deals: index 0 is always the initial (null) and never
+ * re-deals, then seven keys from the deck — the basics plus what the user's
+ * badges unlocked. One is guaranteed to be an earned badge avatar whenever the
+ * user holds a badge with art (`prefer` narrows that draw to one badge, for the
+ * badge-earned toast's deep link), the current pick stays in the hand so the
+ * selected state is on screen, and the rest fills the seven. Slots 2-8 are
+ * shuffled together and no two of them draw the same art. Rolling deals again
+ * and never changes the pick (Split's semantics: the die changes what is
+ * offered, not who you are).
+ *
+ * A pick outside the deck is not dealt: a letter is slot 1's own art, and a key
+ * this bundle's manifest does not know (a lagging native bundle after the API
+ * added a slug) would render as a second initial.
+ */
+export function dealHand(
+    pick: string | null,
+    unlocked: readonly string[],
+    { prefer, random = Math.random }: { prefer?: string; random?: () => number } = {}
+): (string | null)[] {
+    const draw = (pool: string[]) => pool.splice(Math.floor(random() * pool.length), 1)[0]
+    const deck = distinctArt([...basicAvatarKeys(), ...unlocked])
+    const earned = deck.filter((key) => key !== pick && unlocked.includes(key))
+    const preferred = prefer ? earned.filter((key) => key.startsWith(`badge.${prefer}.`)) : []
+    const hand: string[] = []
+    if (earned.length) hand.push(draw(preferred.length ? [...preferred] : [...earned]))
+    if (pick && deck.includes(pick)) hand.push(pick)
+    const rest = deck.filter((key) => !hand.includes(key))
+    while (hand.length < DEALT && rest.length) hand.push(draw(rest))
+    for (let i = hand.length - 1; i > 0; i--) {
         const j = Math.floor(random() * (i + 1))
-        ;[rest[i], rest[j]] = [rest[j], rest[i]]
+        ;[hand[i], hand[j]] = [hand[j], hand[i]]
     }
-    return [...keep, ...rest].slice(0, n)
+    return [null, ...hand]
 }
 
 /** Public path of the avatar art, or null for a key the manifest does not know. */
@@ -53,13 +98,15 @@ export function avatarSrc(key: string | null | undefined): string | null {
     if (kind === 'badge' && rest.length === 2 && slugsOf(rest[0]).includes(rest[1])) {
         return `/avatars/badge/${rest[0]}/${rest[1]}.webp`
     }
+    if (kind === 'letter' && rest.length === 1 && LETTERS.includes(rest[0])) return `/avatars/letter/${rest[0]}.webp`
     return null
 }
 
 /**
  * Sticker art for the first letter of a name, or null when the first character
- * is not a-z. The letter set is art in `public/avatars/letter/`, not a manifest
- * entry: it is never a pick, only the day-0 look of a user who has not picked.
+ * is not a-z. This is the day-0 look of a user who has not picked; the same art
+ * is also pickable outright as `letter.<a-z>`, which is how someone wears an
+ * initial that is not the one their username starts with.
  */
 export function letterAvatarSrc(name: string | null | undefined): string | null {
     const ch = name?.trim().charAt(0).toLowerCase()

@@ -159,20 +159,6 @@ describe('SumsubNativeSdk', () => {
         expect(props.onSubmitted).toHaveBeenCalledTimes(1)
     })
 
-    // ...but a genuinely finished multi-level workflow still completes: the plugin
-    // dismisses after the last level and the closing status is a submitted one.
-    it('multi-level completes when the closing status is itself a submission', async () => {
-        launch.mockResolvedValue({ success: true, status: 'Pending' })
-        const props = { ...baseProps(), isMultiLevel: true }
-        const { rerender } = render(<SumsubNativeSdk visible={false} {...props} />)
-        await act(async () => {
-            rerender(<SumsubNativeSdk visible {...props} />)
-        })
-
-        await waitFor(() => expect(props.onComplete).toHaveBeenCalled())
-        expect(props.onClose).not.toHaveBeenCalled()
-    })
-
     it('closes without completing when the user backs out', async () => {
         launch.mockResolvedValue({ success: true, status: 'Initial' })
         const props = baseProps()
@@ -185,6 +171,19 @@ describe('SumsubNativeSdk', () => {
         await waitFor(() => expect(props.onClose).toHaveBeenCalled())
         expect(props.onComplete).not.toHaveBeenCalled()
     })
+
+    it.each(['Pending', 'Approved', 'ActionCompleted'])(
+        'multi-level close with %s does not prove workflow completion',
+        async (status) => {
+            launch.mockResolvedValue({ success: true, status })
+            const props = { ...baseProps(), isMultiLevel: true, onSubmitted: jest.fn() }
+            await act(async () => {
+                render(<SumsubNativeSdk visible {...props} />)
+            })
+            await waitFor(() => expect(props.onClose).toHaveBeenCalled())
+            expect(props.onComplete).not.toHaveBeenCalled()
+        }
+    )
 
     // The whole point of moving off the WebSDK: a Sumsub-side failure used to
     // paint their "Initialization error" screen inside a cross-origin iframe and

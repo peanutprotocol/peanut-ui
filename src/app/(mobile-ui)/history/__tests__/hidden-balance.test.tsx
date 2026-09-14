@@ -12,10 +12,12 @@ jest.mock('next-intl', () => ({
 jest.mock('@tanstack/react-query', () => ({
     useQueryClient: () => ({ setQueryData: jest.fn(), invalidateQueries: jest.fn() }),
 }))
-jest.mock('@/redux/hooks', () => ({
-    useUserStore: () => ({ user: { user: { userId: 'user-1', username: 'alice', badges: [] }, accounts: [] } }),
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({
+        user: { user: { userId: 'user-1', username: 'alice', badges: [] }, accounts: [] },
+        fetchUser: jest.fn(),
+    }),
 }))
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ fetchUser: jest.fn() }) }))
 jest.mock('@/hooks/useCardInfo', () => ({ useCardInfo: () => ({ cardInfo: undefined }) }))
 jest.mock('@/hooks/useRainCardOverview', () => ({ useRainCardOverview: () => ({ overview: undefined }) }))
 jest.mock('@/hooks/useWebSocket', () => ({ useWebSocket: jest.fn() }))
@@ -51,11 +53,6 @@ jest.mock('@/utils/history.utils', () => ({
 jest.mock('@/components/Kyc/KycStatusItem', () => ({ KycStatusItem: () => null, isKycStatusItem: () => false }))
 jest.mock('@/components/Badges/BadgeStatusItem', () => ({ BadgeStatusItem: () => null }))
 jest.mock('@/components/Badges/badge.types', () => ({ isBadgeHistoryItem: () => false }))
-jest.mock('@/components/Card/CardUnlockHistoryItem', () => () => null)
-jest.mock('@/components/Card/cardUnlock.types', () => ({
-    deriveCardUnlockEntry: () => null,
-    isCardUnlockHistoryItem: () => false,
-}))
 jest.mock('@/components/Global/NavHeader', () => () => null)
 jest.mock('@/components/Global/Loading', () => () => null)
 jest.mock('@/components/Global/EmptyStates/EmptyState', () => () => null)

@@ -133,6 +133,7 @@ export type MantecaWithdrawResponseData = {
 }
 
 export type MantecaWithdrawResponse = {
+    code?: string
     data?: MantecaWithdrawResponseData
     error?: string
     message?: string

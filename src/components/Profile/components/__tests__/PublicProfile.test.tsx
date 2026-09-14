@@ -9,7 +9,7 @@ import en from '@/i18n/app/messages/en.json'
 
 const mockPush = jest.fn()
 const mockBack = jest.fn()
-const mockSaveToCookie = jest.fn()
+const mockStashInvite = jest.fn()
 const mockGetByUsername = jest.fn()
 const mockValidateInviteCode = jest.fn()
 const mockInterceptGuestCta = jest.fn(() => false)
@@ -31,9 +31,12 @@ jest.mock('@/hooks/useGuestStoreHandoff', () => ({
         storeHandoffModal: <div data-testid="store-handoff" />,
     }),
 }))
+jest.mock('@/utils/invite-stash', () => ({
+    stashInvite: (...args: unknown[]) => mockStashInvite(...args),
+}))
 jest.mock('@/utils/general.utils', () => {
     const actual = jest.requireActual('@/utils/general.utils')
-    return { ...actual, saveToCookie: (...args: unknown[]) => mockSaveToCookie(...args) }
+    return { ...actual }
 })
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
@@ -41,8 +44,12 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 // the prior-transfer indicator, not the page furniture.
 jest.mock('../ProfileHeader', () => ({
     __esModule: true,
-    default: ({ haveSentMoneyToUser }: { haveSentMoneyToUser?: boolean }) => (
-        <div data-testid="profile-header" data-sent-money={String(!!haveSentMoneyToUser)} />
+    default: ({ haveSentMoneyToUser, avatarKey }: { haveSentMoneyToUser?: boolean; avatarKey?: string | null }) => (
+        <div
+            data-testid="profile-header"
+            data-sent-money={String(!!haveSentMoneyToUser)}
+            data-avatar-key={avatarKey ?? ''}
+        />
     ),
 }))
 jest.mock('@/components/Badges/BadgesRow', () => ({ __esModule: true, default: () => null }))
@@ -131,7 +138,7 @@ describe('PublicProfile guest door', () => {
 
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/invite?code=satoshi'))
         expect(mockValidateInviteCode).toHaveBeenCalledWith('satoshi')
-        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'satoshi')
+        expect(mockStashInvite).toHaveBeenCalledWith('satoshi', 'DIRECT')
         expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
             source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
             link_type: 'invite_code',
@@ -149,7 +156,7 @@ describe('PublicProfile guest door', () => {
         // runs in a promise continuation — so it must fire before the validation
         // response lands, not after it
         expect(mockInterceptGuestCta).toHaveBeenCalled()
-        expect(mockSaveToCookie).not.toHaveBeenCalled()
+        expect(mockStashInvite).not.toHaveBeenCalled()
 
         settleValidation({
             success: true,
@@ -159,7 +166,7 @@ describe('PublicProfile guest door', () => {
         })
 
         // the handoff opens `_blank`, so this tab lives on and the cookie lands
-        await waitFor(() => expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'satoshi'))
+        await waitFor(() => expect(mockStashInvite).toHaveBeenCalledWith('satoshi', 'DIRECT'))
         expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
             source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
             link_type: 'invite_code',
@@ -208,7 +215,7 @@ describe('PublicProfile guest door', () => {
         fireEvent.click(joinButtons[joinButtons.length - 1])
 
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/invite?code=satoshi'))
-        expect(mockSaveToCookie).toHaveBeenCalledWith('inviteCode', 'satoshi')
+        expect(mockStashInvite).toHaveBeenCalledWith('satoshi', 'DIRECT')
     })
 
     // Three ways a code fails to credit. All three still navigate — /invite owns
@@ -229,7 +236,7 @@ describe('PublicProfile guest door', () => {
             fireEvent.click(await screen.findByRole('button', { name: JOIN_CTA }))
 
             await waitFor(() => expect(mockPush).toHaveBeenCalledWith(`/invite?code=${expectedCode}`))
-            expect(mockSaveToCookie).not.toHaveBeenCalled()
+            expect(mockStashInvite).not.toHaveBeenCalled()
             expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, {
                 source: REFERRAL_SOURCES.PUBLIC_PROFILE_GUEST,
                 link_type: 'none',
@@ -273,6 +280,69 @@ describe('PublicProfile prior-transfer indicator', () => {
 
         await screen.findByRole('button', { name: JOIN_CTA })
         expect(mockUseUserInteractions).toHaveBeenLastCalledWith([])
+    })
+})
+
+// TASK-22625: the profile owner's picked avatar comes from the same
+// getByUsername payload the rest of the header already reads.
+describe('PublicProfile avatar', () => {
+    beforeEach(() => {
+        mockAuth = { user: { user: { username: 'hal', hasAppAccess: true } }, isFetchingUser: false }
+    })
+
+    it('hands the profile owner pick to the header', async () => {
+        mockGetByUsername.mockResolvedValue({ userId: 'user-1', avatarKey: 'basic.frog' })
+        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+
+        await waitFor(() =>
+            expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', 'basic.frog')
+        )
+    })
+
+    it('hands null through when the owner has no pick', async () => {
+        mockGetByUsername.mockResolvedValue({ userId: 'user-1' })
+        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+
+        await waitFor(() => expect(mockGetByUsername).toHaveBeenCalled())
+        expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', '')
+    })
+})
+
+// The [...recipient] route reuses this component across profile navigations.
+describe('PublicProfile avatar across navigations', () => {
+    beforeEach(() => {
+        mockAuth = { user: { user: { username: 'hal', hasAppAccess: true } }, isFetchingUser: false }
+    })
+
+    it('never wears the previous profile owner avatar, not even for one render', async () => {
+        mockGetByUsername.mockResolvedValue({ userId: 'user-1', avatarKey: 'basic.frog' })
+        const { rerender } = renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        await waitFor(() =>
+            expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', 'basic.frog')
+        )
+
+        // second profile: never resolves, so the loaded avatar can only be
+        // excluded by the username it was loaded for — an effect-time reset
+        // would already have painted one render of the first owner's pick.
+        mockGetByUsername.mockReturnValue(new Promise(() => {}))
+        rerender(<PublicProfile username="nakamoto" isLoggedIn />)
+
+        expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', '')
+    })
+
+    it('shows the second owner pick once it lands', async () => {
+        mockGetByUsername.mockResolvedValue({ userId: 'user-1', avatarKey: 'basic.frog' })
+        const { rerender } = renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        await waitFor(() =>
+            expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', 'basic.frog')
+        )
+
+        mockGetByUsername.mockResolvedValue({ userId: 'user-2', avatarKey: 'basic.star' })
+        rerender(<PublicProfile username="nakamoto" isLoggedIn />)
+
+        await waitFor(() =>
+            expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', 'basic.star')
+        )
     })
 })
 

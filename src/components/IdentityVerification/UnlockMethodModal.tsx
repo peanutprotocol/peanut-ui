@@ -20,7 +20,7 @@ interface UnlockMethodModalProps {
 
 /**
  * Method-worded unlock sheet for the Unlock payments screen. The tap promised
- * a product ("SEPA transfers · Unlock"), so the sheet speaks about that
+ * a product ("Euro bank transfers · Unlock"), so the sheet speaks about that
  * product — never about regions. The body is the prep checklist: what to have
  * ready and how long it takes, stated BEFORE the SDK opens, so nobody starts
  * the check and then goes hunting for documents halfway through.
@@ -45,31 +45,37 @@ const UnlockMethodModal = ({
             }}
         >
             <DrawerContent>
-                <div className="flex flex-col items-center gap-4 px-4 pt-1 pb-6 text-center">
-                    <IconBubble icon="shield" className="bg-action-primary" />
-                    <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
-                        <DrawerTitle>
-                            {methodLabel ? t('title', { method: methodLabel }) : t('titleGeneric')}
-                        </DrawerTitle>
-                    </DrawerHeader>
-                    {/* the checklist is the body — left-aligned like the modal's descriptionClassName override */}
-                    <div className="w-full text-left">
-                        <KycPrepChecklist path={path} />
+                <div className="flex flex-col items-center pt-1 pb-6 text-center">
+                    {/* the head owns the M/12 beneath it; everything after it
+                        keeps the drawer's L/16 rhythm */}
+                    <div className="mb-3 flex w-full flex-col items-center gap-4">
+                        <IconBubble icon="shield" className="bg-action-primary" />
+                        <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                            <DrawerTitle>
+                                {methodLabel ? t('title', { method: methodLabel }) : t('titleGeneric')}
+                            </DrawerTitle>
+                        </DrawerHeader>
                     </div>
-                    <Button
-                        icon="check-circle"
-                        shadowSize="4"
-                        variant="purple"
-                        className="w-full justify-center"
-                        disabled={isLoading}
-                        onClick={onUnlock}
-                    >
-                        {isLoading ? tCommon('loading') : tPrep('startCta')}
-                    </Button>
-                    <Button variant="stroke" className="w-full justify-center" onClick={onClose}>
-                        {t('notNow')}
-                    </Button>
-                    <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
+                    <div className="flex w-full flex-col items-center gap-4">
+                        {/* the checklist is the body — left-aligned like the modal's descriptionClassName override */}
+                        <div className="w-full text-left">
+                            <KycPrepChecklist path={path} />
+                        </div>
+                        <Button
+                            icon="check-circle"
+                            shadowSize="4"
+                            variant="purple"
+                            className="w-full justify-center"
+                            disabled={isLoading}
+                            onClick={onUnlock}
+                        >
+                            {isLoading ? tCommon('loading') : tPrep('startCta')}
+                        </Button>
+                        <Button variant="stroke" className="w-full justify-center" onClick={onClose}>
+                            {t('notNow')}
+                        </Button>
+                        <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
+                    </div>
                 </div>
             </DrawerContent>
         </Drawer>

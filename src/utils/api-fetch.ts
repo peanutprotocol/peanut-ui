@@ -16,6 +16,8 @@ type FetchOptions = RequestInit & {
     includeAuth?: boolean
     /** See `FetchWithSentryOptions.silentTimeout`. Rides through on the spread. */
     silentTimeout?: boolean
+    /** Hide sensitive URL, request, response and error data in fetch telemetry. */
+    redactTelemetry?: boolean
 }
 
 async function callApi(path: string, options?: FetchOptions): Promise<Response> {

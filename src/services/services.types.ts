@@ -43,6 +43,7 @@ export interface TRequestResponse {
         type: string
         user: {
             username: string
+            avatarKey?: string | null
         }
     }
     totalCollectedAmount: number
@@ -77,6 +78,7 @@ export interface RequestLink {
         type: string
         user: {
             username: string
+            avatarKey?: string | null
         }
     }
 }
@@ -153,6 +155,7 @@ export interface Payment {
         user: {
             username: string
             bridgeKycStatus?: string
+            avatarKey?: string | null
         } | null
     }
 }
@@ -213,6 +216,7 @@ export interface TRequestChargeResponse {
             user: {
                 username: string
                 bridgeKycStatus?: string
+                avatarKey?: string | null
             }
         }
     }
@@ -342,6 +346,8 @@ export type SendLink = {
      *  claim path is answered 202 before the broadcast, so this is the only
      *  thing a poller can read to tell a retryable outage from a dead end. */
     claimFailureCode?: string | null
+    /** Stamped on cancel/reclaim — the receipt's cancellation date. */
+    cancelledAt?: Date | string | null
     createdAt: Date
     senderAddress: string
     amount: bigint
@@ -353,6 +359,7 @@ export type SendLink = {
         username: string
         fullName: string
         bridgeKycStatus: string
+        avatarKey?: string | null
         accounts: {
             identifier: string
             type: string
@@ -413,6 +420,8 @@ export interface PointsInvite {
     username: string
     fullName: string | null
     showFullName?: boolean
+    /** Invitee's picked profile avatar; null means the username-letter fallback. */
+    avatarKey?: string | null
     invitedAt: string
     kycStatus: BridgeKycStatus | null
     kycVerified: boolean

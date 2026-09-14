@@ -2,7 +2,8 @@
 import { countryData as ALL_METHODS_DATA, ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import { Section } from '@/components/0_Bruddle/Section'
 import { formatIban, middleEllipsisAccount } from '@/utils/general.utils'
-import { AccountType, type Account } from '@/interfaces/interfaces'
+import { AccountType, type Account, type SavedAddress } from '@/interfaces/interfaces'
+import SavedAddressesList from '@/features/withdraw/components/AddressBook/SavedAddressesList'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -25,6 +26,10 @@ interface SavedAccountListProps {
     onAccountClick: (account: Account, path: string) => void
     /** "Bank" row under Add new account — opens the new-method country list */
     onSelectNewMethodClick: () => void
+    /** Crypto address book — rendered as its own list under the bank accounts. */
+    savedAddresses?: SavedAddress[]
+    onSavedAddressClick?: (saved: SavedAddress) => void
+    onSavedAddressEdit?: (saved: SavedAddress) => void
     /** optional "Exchange or Wallet" row (withdraw board 17832:80463) */
     onCryptoClick?: () => void
     /** optional "Mercado Pago" row (withdraw board 17832:80463) */
@@ -47,6 +52,9 @@ export default function SavedAccountsView({
     savedAccounts,
     onAccountClick,
     onSelectNewMethodClick,
+    savedAddresses = [],
+    onSavedAddressClick,
+    onSavedAddressEdit,
     onCryptoClick,
     onMercadoPagoClick,
 }: SavedAccountListProps) {
@@ -59,9 +67,22 @@ export default function SavedAccountsView({
         <div className="flex min-h-inherit flex-col justify-normal gap-8">
             <NavHeader title={pageTitle} onPrev={onPrev} />
             <div className="space-y-6">
-                <Section title={t('savedAccounts.title')} className="h-full justify-center">
-                    <SavedAccountsMapping accounts={savedAccounts} onItemClick={onAccountClick} />
-                </Section>
+                {/* either list can be empty on its own — the caller only renders this
+                    view when at least one of the two has entries */}
+                {savedAccounts.length > 0 && (
+                    <Section title={t('savedAccounts.title')} className="h-full justify-center">
+                        <SavedAccountsMapping accounts={savedAccounts} onItemClick={onAccountClick} />
+                    </Section>
+                )}
+                {savedAddresses.length > 0 && onSavedAddressClick && onSavedAddressEdit && (
+                    <Section title={t('savedAddresses.title')} className="h-full justify-center">
+                        <SavedAddressesList
+                            savedAddresses={savedAddresses}
+                            onSelect={onSavedAddressClick}
+                            onEdit={onSavedAddressEdit}
+                        />
+                    </Section>
+                )}
                 <Divider
                     textClassname="text-label-m text-foreground-secondary"
                     dividerClassname="bg-border-subtle"

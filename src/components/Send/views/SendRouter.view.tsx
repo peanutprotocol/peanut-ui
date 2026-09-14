@@ -12,7 +12,6 @@ import { ACTION_METHODS, type PaymentMethod } from '@/constants/actionlist.const
 import Image from 'next/image'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { useWithdrawFlow } from '@/context/WithdrawFlowContext'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useMemo } from 'react'
@@ -51,7 +50,6 @@ export const SendRouterView = () => {
             ? decodeURIComponent(window.location.pathname.replace('/send/', '').split('/')[0])
             : null
     const recipientUsername = recipientFromQuery || recipientFromPath || null
-    const { resetWithdrawFlow } = useWithdrawFlow()
     const goBack = useSafeBack('/home')
     // replace, not push: a pushed fallback would mint a history entry that the
     // base view's own safe-back then walks right back into the subview (loop)
@@ -83,21 +81,16 @@ export const SendRouterView = () => {
                 router.push('/send?view=contacts')
                 break
             case 'bank':
-                // navigate to send via bank flow.
-                // fresh click = fresh intent: browser back skips the in-app NavHeader
-                // reset, and a stale selectedMethod left in the app-wide context would
-                // hijack the routing (Bank landing on the crypto amount step)
-                resetWithdrawFlow()
+                // navigate to send via bank flow. Fresh entry IS a fresh flow:
+                // the withdraw provider is scoped to /withdraw and mounts clean.
                 router.push('/withdraw?method=bank')
                 break
             case 'exchange-or-wallet':
                 // navigate to external wallet send flow
-                resetWithdrawFlow()
                 router.push('/withdraw?method=crypto')
                 break
             case 'pix':
                 // navigate to pix send flow
-                resetWithdrawFlow()
                 router.push('/withdraw/manteca?method=pix&country=brazil')
                 break
             default:

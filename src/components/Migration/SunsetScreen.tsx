@@ -36,7 +36,7 @@ export default function SunsetScreen() {
                     <h1 className="text-heading-m text-foreground-primary">{t('sunset.heading')}</h1>
                     <p className="text-body-m text-foreground-secondary">{t('sunset.sub')}</p>
                 </div>
-                <div className="mx-auto flex w-full max-w-md flex-col gap-4">
+                <div className="mx-auto flex w-full max-w-md flex-col gap-4 md:max-w-xs">
                     <StoreButtons surface={MIGRATION_SURFACES.SUNSET_SCREEN} />
                     <LinkButton onClick={() => setIsSupportModalOpen(true)} className="self-center">
                         {t('sunset.supportLink')}

@@ -95,7 +95,7 @@ export const KycStatusDrawer = ({ isOpen, onClose, onKeepMounted }: KycStatusDra
     return (
         <>
             <Drawer open={isOpen} onOpenChange={onClose}>
-                <DrawerContent accessibleTitle={t('statusDrawerTitle')} className="p-4 pb-12">
+                <DrawerContent accessibleTitle={t('statusDrawerTitle')} className="pt-4" scrollAreaClassName="pb-12">
                     {renderContent()}
                     {sumsubFlow.error && (
                         <p className="mt-3 text-center text-body-s text-foreground-error">{sumsubFlow.error}</p>

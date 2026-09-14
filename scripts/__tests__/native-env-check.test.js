@@ -75,7 +75,7 @@ describe('missingNativeEnv', () => {
 
     it('ignores comments and blank lines, so a commented-out key still counts as missing', () => {
         const env = [
-            '# written by capgo-deploy.yml',
+            '# written by release-ota.yml',
             '',
             ...REQUIRED_NATIVE_ENV.map((key) => (key === 'NEXT_PUBLIC_POSTHOG_KEY' ? `# ${key}=set` : `${key}=set`)),
             '',

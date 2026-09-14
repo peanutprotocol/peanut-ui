@@ -11,7 +11,7 @@ import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import { useLinkSendFlow } from '@/context/LinkSendFlowContext'
-import { useUserStore } from '@/redux/hooks'
+import { useAuth } from '@/context/authContext'
 import { captureException } from '@sentry/nextjs'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
@@ -30,7 +30,7 @@ const LinkSendSuccessView = () => {
     const { link, attachmentOptions, tokenValue, resetLinkSendFlow } = useLinkSendFlow()
     const queryClient = useQueryClient()
     const { fetchBalance } = useWallet()
-    const { user } = useUserStore()
+    const { user } = useAuth()
     const { cancelLinkAndClaim, pollForClaimConfirmation } = useClaimLink()
     const toast = useToast()
     const friendly = useFriendlyError()
@@ -127,7 +127,7 @@ const LinkSendSuccessView = () => {
                             }
 
                             // Cancel the link by claiming it back
-                            await cancelLinkAndClaim({
+                            const txHash = await cancelLinkAndClaim({
                                 link,
                                 walletAddress,
                                 userId: user?.user?.userId,
@@ -135,7 +135,7 @@ const LinkSendSuccessView = () => {
 
                             try {
                                 // Wait for transaction confirmation
-                                const isConfirmed = await pollForClaimConfirmation(link)
+                                const isConfirmed = txHash || (await pollForClaimConfirmation(link))
 
                                 if (!isConfirmed) {
                                     console.warn('Transaction confirmation timeout - proceeding with refresh')
@@ -143,7 +143,7 @@ const LinkSendSuccessView = () => {
 
                                 // Update UI and queries
                                 fetchBalance()
-                                await queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+                                void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] }).catch(captureException)
 
                                 setIsLoading(false)
                                 setShowCancelLinkDrawer(false)
@@ -176,7 +176,7 @@ const LinkSendSuccessView = () => {
                                 setCancelStatus('idle')
                                 setShowCancelLinkDrawer(false)
                                 toast.info(friendly(error))
-                                await queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] }).catch(() => undefined)
+                                void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] }).catch(() => undefined)
                                 router.push('/home')
                                 return
                             }

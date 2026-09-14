@@ -8,6 +8,9 @@ import { ensureNativeCameraPermission } from '@/utils/camera-permission'
 import { CAMERA_ERRORS, classifyCameraFailure } from '@/utils/camera-failure'
 import { reportQrScanError } from './utils'
 import { toError } from '@/utils/to-error'
+import posthog from 'posthog-js'
+import { addBreadcrumb } from '@sentry/nextjs'
+import { Capacitor } from '@capacitor/core'
 
 // ============================================================================
 // Configuration
@@ -173,9 +176,6 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
         async (data: string) => {
             const now = Date.now()
 
-            // debug: log when qr is decoded by library
-            console.log('[QR Scanner] QR decoded by library:', data.substring(0, 50) + '...')
-
             // Module-level deduplication: ignore if same data within debounce window
             if (lastScan && lastScan.data === data && now - lastScan.timestamp < SCAN_DEBOUNCE_MS) {
                 return
@@ -202,11 +202,8 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                     // Resume scanner on failure so user can try again
                     scannerRef.current?.start().catch(() => startCameraRef.current?.())
                 }
-            } catch (err) {
-                // console.info, not error: captureConsoleIntegration would turn an
-                // error-level log into a second Sentry event on top of the capture below.
-                console.info('Error processing QR code:', err)
-                reportQrScanError(err, data)
+            } catch {
+                reportQrScanError(data)
                 toast.error(t('qrScanner.qrProcessingError'))
                 processingQRRef.current = false
                 // Resume scanner on error so user can try again
@@ -323,6 +320,18 @@ export function useQRScanner(onScan: QRScanHandler, onClose: (() => void) | unde
                     const granted = await ensureNativeCameraPermission()
                     if (superseded()) return
                     if (!granted) {
+                        const data = {
+                            platform: Capacitor.getPlatform(),
+                            permission: 'denied',
+                            source: 'native_camera_permission',
+                        }
+                        posthog.capture('qr_camera_permission_denied', data)
+                        addBreadcrumb({
+                            category: 'qr_scanner',
+                            message: 'Native camera permission denied',
+                            level: 'info',
+                            data,
+                        })
                         setIsPermissionDenied(true)
                         setError(getErrorMessage(CAMERA_ERRORS.NOT_ALLOWED, 0))
                         return

@@ -145,8 +145,10 @@ const DeleteAccountButton: FC = () => {
 
     return (
         <>
-            {/* deliberate bigger size + destructive red kept; states come from LinkButton */}
-            <LinkButton onClick={open} className="w-full justify-center text-label-l text-foreground-error">
+            {/* design.md scopes red to the confirm modal's icon bubble only — no
+                red Button/link variant exists, so this rides LinkButton's own
+                neutral tokens (foreground-secondary → foreground-primary on hover). */}
+            <LinkButton onClick={open} className="w-full justify-center">
                 {t('button')}
             </LinkButton>
 

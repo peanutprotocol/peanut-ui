@@ -45,6 +45,7 @@ interface IExchangeRateWidgetProps {
     ctaLabel: string
     ctaIcon: IconName
     ctaAction: (sourceCurrency: string, destinationCurrency: string) => void
+    ctaDisabled?: boolean
     labels?: Partial<ExchangeRateWidgetLabels>
     // Marketing send-to pages seed the URL with currencies that only need a
     // quote (see the comment on `sourceCurrency` below). Product callers whose
@@ -53,14 +54,20 @@ interface IExchangeRateWidgetProps {
     // `?to=PLN` shows a rate the dropdown never offers and the CTA can only
     // route by falling back to the default pair.
     restrictToRoutable?: boolean
+    // Marketing/landing pages keep the hard drop shadow (matches the rest of
+    // that page's brutalist button styling); the in-app /profile/exchange-rate
+    // screen drops it — not used on any other in-app card (TASK-22121).
+    shadow?: boolean
 }
 
 const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
     ctaLabel,
     ctaIcon,
     ctaAction,
+    ctaDisabled = false,
     labels,
     restrictToRoutable = false,
+    shadow = true,
 }) => {
     const l = { ...DEFAULT_LABELS, ...labels }
     // shallow + history:'replace' uses window.history.replaceState — bypasses
@@ -233,17 +240,37 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
     // Determine delivery time text based on destination currency
     const deliveryTimeText = destinationCurrency === 'USD' ? l.arrivesHours : l.arrivesMinutes
 
+    // Space is reserved whenever there is an amount, but a CLAIM about that
+    // corridor needs a landed quote. Marketing callers do not pass
+    // restrictToRoutable and seed ~20 currencies the FX feed quotes but no rail
+    // supports (see the prop comment), so "arrives in minutes" gated on the
+    // typed amount alone promised fulfilment on corridors with neither a rate
+    // nor a route — including while loading and alongside "rate unavailable".
+    const hasAmount = typeof sourceAmount === 'number' && sourceAmount > 0
+    // A quote is not a route. The FX feed prices ~20 currencies no rail serves,
+    // so a marketing page can land a positive destinationAmount for a corridor
+    // Peanut cannot fulfil — checked here rather than via `restrictToRoutable`,
+    // which only says whether the CALLER clamps its URL, not whether this
+    // particular pair is servable.
+    const isRoutablePair =
+        toSupportedExchangeCurrency(sourceCurrency) !== null &&
+        toSupportedExchangeCurrency(destinationCurrency) !== null
+    const hasQuote = typeof destinationAmount === 'number' && destinationAmount > 0 && !isError && isRoutablePair
+
     // no exchange-rate board exists in figma (checked 2026-08-20) — container
     // rebuilt on the DS Card primitive (board 17802:61536) as the conservative
     // recipe; a dedicated board can restyle the internals later.
     return (
-        <Card shadowSize="4" className="mx-auto mt-12 h-fit w-full items-center justify-center gap-4 p-6 md:w-[420px]">
+        <Card
+            shadowSize={shadow ? '4' : undefined}
+            className="mx-auto mt-12 h-fit w-full items-center justify-center gap-4 p-6 md:w-[420px]"
+        >
             <div className="w-full">
                 <h2 className="text-left text-body-s">{l.youSend}</h2>
                 <div className="mt-2 flex w-full items-center justify-center gap-4 rounded-sm border border-border-default bg-background-default p-4">
                     {showLoading ? (
                         <div className="flex w-full items-center">
-                            <div className="h-8 w-40 animate-pulse rounded-full bg-background-disabled" />
+                            <div className="h-5 w-40 animate-pulse rounded-full bg-background-disabled" />
                         </div>
                     ) : (
                         <input
@@ -261,7 +288,9 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                                 }
                             }}
                             type="number"
-                            className="w-full bg-transparent text-body-m-semibold text-foreground-primary outline-none"
+                            // h-5 pins the field to its own line box so the skeleton
+                            // it swaps with is exactly as tall
+                            className="h-5 w-full bg-transparent text-body-m-semibold text-foreground-primary outline-none"
                         />
                     )}
                     <CurrencySelect
@@ -298,7 +327,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                 <div className="mt-2 flex w-full items-center justify-center gap-4 rounded-sm border border-border-default bg-background-default p-4">
                     {showLoading ? (
                         <div className="flex w-full items-center">
-                            <div className="h-8 w-40 animate-pulse rounded-full bg-background-disabled" />
+                            <div className="h-5 w-40 animate-pulse rounded-full bg-background-disabled" />
                         </div>
                     ) : (
                         <input
@@ -322,7 +351,9 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                                 }
                             }}
                             type="number"
-                            className="w-full bg-transparent text-body-m-semibold text-foreground-primary outline-none"
+                            // h-5 pins the field to its own line box so the skeleton
+                            // it swaps with is exactly as tall
+                            className="h-5 w-full bg-transparent text-body-m-semibold text-foreground-primary outline-none"
                         />
                     )}
                     <CurrencySelect
@@ -347,7 +378,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
 
             <div className="rounded-full bg-background-disabled px-2 py-[2px] text-label-m text-foreground-secondary">
                 {showLoading ? (
-                    <div className="mx-auto h-3 w-28 animate-pulse rounded-full bg-background-disabled" />
+                    <div className="mx-auto h-4 w-28 animate-pulse rounded-full bg-foreground-primary/10" />
                 ) : isError ? (
                     <span>{l.rateUnavailable}</span>
                 ) : (
@@ -357,21 +388,26 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                 )}
             </div>
 
-            {typeof destinationAmount === 'number' && destinationAmount > 0 && (
-                <div className="flex w-full flex-col gap-3 rounded-sm border border-border-default px-4 py-2">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-left text-body-s font-normal">{l.bankFee}</h2>
-                        <h2 className="text-left text-body-s font-normal">{l.free}</h2>
-                    </div>
+            {hasAmount && (
+                <div className="flex min-h-17 w-full flex-col justify-center gap-3 rounded-sm border border-border-default px-4 py-2">
+                    {hasQuote && (
+                        <>
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-left text-body-s font-normal">{l.bankFee}</h2>
+                                <h2 className="text-left text-body-s font-normal">{l.free}</h2>
+                            </div>
 
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-left text-body-s font-normal">{l.peanutFee}</h2>
-                        <h2 className="text-left text-body-s font-normal">{l.free}</h2>
-                    </div>
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-left text-body-s font-normal">{l.peanutFee}</h2>
+                                <h2 className="text-left text-body-s font-normal">{l.free}</h2>
+                            </div>
+                        </>
+                    )}
                 </div>
             )}
 
             <Button
+                disabled={ctaDisabled}
                 onClick={() => ctaAction(sourceCurrency, destinationCurrency)}
                 icon={ctaIcon}
                 shadowSize="4"
@@ -380,8 +416,8 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                 {ctaLabel}
             </Button>
 
-            {typeof destinationAmount === 'number' && destinationAmount > 0 && (
-                <p className="text-body-xs text-foreground-secondary">{deliveryTimeText}</p>
+            {hasAmount && (
+                <p className="min-h-4 text-body-xs text-foreground-secondary">{hasQuote ? deliveryTimeText : ''}</p>
             )}
         </Card>
     )

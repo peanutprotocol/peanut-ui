@@ -3,7 +3,6 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
 import { Notification } from '@/components/0_Bruddle/Notification'
-import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import AmountInput from '@/components/Global/AmountInput'
 import RateUnavailable from '@/components/Global/RateUnavailable'
@@ -121,10 +120,11 @@ const InputAmountStep = ({
                 </FieldColumn>
 
                 {/* limits warning/error card */}
-                {limitsCardProps && <LimitsWarningCard {...limitsCardProps} />}
+                {limitsCardProps && (
+                    <LimitsWarningCard {...limitsCardProps} flowType="onramp" currency={limitsCurrency} />
+                )}
 
                 <div className="flex items-center gap-2 text-body-xs text-foreground-secondary">
-                    <Icon name="info" width={16} height={16} />
                     <span>{t('mustMatchBankTransfer')}</span>
                 </div>
                 <Button

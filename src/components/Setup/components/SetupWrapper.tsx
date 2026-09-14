@@ -1,26 +1,46 @@
 import starImage from '@/assets/icons/star.png'
 import { Button } from '@/components/0_Bruddle/Button'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
-import { useToast } from '@/components/0_Bruddle/Toast'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { type BeforeInstallPromptEvent, type LayoutType, type ScreenId } from '@/components/Setup/Setup.types'
 import InstallPWA from '@/components/Setup/Views/InstallPWA'
-import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useBravePWAInstallState } from '@/hooks/useBravePWAInstallState'
 import { DeviceType } from '@/hooks/useGetDeviceType'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
-import { useLogin } from '@/hooks/useLogin'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
-import { getPasskeyErrorSetupKey, isAlreadyReported } from '@/utils/webauthn.utils'
-import * as Sentry from '@sentry/nextjs'
 import classNames from 'classnames'
 import { motion, useReducedMotion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
-import posthog from 'posthog-js'
-import { Children, type ReactNode, cloneElement, memo, type ReactElement, useState } from 'react'
+import {
+    Children,
+    type ReactNode,
+    cloneElement,
+    createContext,
+    memo,
+    type ReactElement,
+    useContext,
+    useEffect,
+    useState,
+} from 'react'
 import { twMerge } from '@/utils/tw'
+
+const SetupImageContext = createContext<(src: string | null) => void>(() => {})
+
+/**
+ * Lets a step's sub-view swap the wrapper's illustration for as long as it is
+ * mounted — the residence step's "Good news" outcome celebrates, while the
+ * selector it shares a step with keeps the neutral greeting. Sub-views are not
+ * steps, so they have no step config of their own to carry an image.
+ */
+export const useSetupImageOverride = (src: string | null) => {
+    const setImage = useContext(SetupImageContext)
+    useEffect(() => {
+        setImage(src)
+        return () => setImage(null)
+    }, [src, setImage])
+}
 
 /**
  * props interface for the SetupWrapper component
@@ -39,7 +59,6 @@ interface SetupWrapperProps {
     showBackButton?: boolean
     showSkipButton?: boolean
     showLogoutButton?: boolean
-    showLoginButton?: boolean
     onBack?: () => void
     onSkip?: () => void
     onLogout?: () => void
@@ -64,83 +83,40 @@ const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
 // each array element represents a star with specific positioning and animation
 const STAR_POSITIONS = [
     'left-[10%] md:left-[15%] lg:left-[15%] top-[15%] md:top-[20%]  size-13 md:size-14',
-    'right-[10%] md:right-[15%] lg:right-[15%] top-[10%] md:top-[20%] size-10 md:size-14',
+    // mobile top-[24%], not [10%]: the nav row (Iniciar sesión / skip) owns the
+    // top band and the star sat right under the text (TASK-22366 nit)
+    'right-[10%] md:right-[15%] lg:right-[15%] top-[24%] md:top-[20%] size-10 md:size-14',
     'left-[10%] md:left-[15%] lg:left-[15%] bottom-[15%] md:bottom-[20%] size-12 md:size-14',
     'right-[10%] md:right-[15%] lg:right-[15%] bottom-[30%] size-6 md:size-14',
 ] as const
 
 /**
- * Log In for the pre-auth steps (install walls, waitlist, signup): a returning
- * user whose entry link carried an invite code or ?step=signup used to have no
- * way back to the passkey ceremony. Same click path as the landing step.
- */
-function LoginButton() {
-    const t = useTranslations('setup')
-    const { handleLoginClick, isLoggingIn } = useLogin()
-    const toast = useToast()
-
-    const onLoginClick = async () => {
-        try {
-            await handleLoginClick()
-        } catch (error) {
-            const errorCode = error instanceof Error && 'code' in error ? String(error.code) : undefined
-            // PasskeyError carries a curated English message; known codes have
-            // translated catalog copy, so prefer that.
-            const i18nKey = getPasskeyErrorSetupKey(error)
-            toast.error(i18nKey ? t(i18nKey) : (error instanceof Error && error.message) || t('loginFailed'))
-            if (!isAlreadyReported(error)) {
-                Sentry.captureException(error, { extra: { errorCode } })
-            }
-            posthog.capture(ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR, { error_code: errorCode, native: isCapacitor() })
-        }
-    }
-
-    return (
-        <Button
-            onClick={onLoginClick}
-            variant="transparent-dark"
-            size="small"
-            className="h-auto w-fit p-0"
-            loading={isLoggingIn}
-            disabled={isLoggingIn}
-        >
-            <span className="text-foreground-over-color-secondary">{t('logIn')}</span>
-        </Button>
-    )
-}
-
-/**
- * navigation component for back, skip, login and logout buttons
+ * navigation component for back, skip and logout buttons
  * rendered at the top of the layout when any button is enabled
  */
 const Navigation = memo(function Navigation({
     showBackButton,
     showSkipButton,
     showLogoutButton,
-    showLoginButton,
     onBack,
     onSkip,
     onLogout,
     isLoggingOut,
 }: Pick<
     SetupWrapperProps,
-    | 'showBackButton'
-    | 'showSkipButton'
-    | 'showLogoutButton'
-    | 'showLoginButton'
-    | 'onBack'
-    | 'onSkip'
-    | 'onLogout'
-    | 'isLoggingOut'
+    'showBackButton' | 'showSkipButton' | 'showLogoutButton' | 'onBack' | 'onSkip' | 'onLogout' | 'isLoggingOut'
 >) {
     const t = useTranslations('setup.navigation')
 
-    if (!showBackButton && !showSkipButton && !showLogoutButton && !showLoginButton) return null
+    if (!showBackButton && !showSkipButton && !showLogoutButton) return null
 
     // Icons inherit currentColor: the stroke button inverts on hover/active, and
     // a hard-coded fill vanished into the black background.
+    // The row's containing block is the initial one (no positioned ancestor).
+    // Match app navigation at 16px from either horizontal edge and 16px below
+    // the safe-area boundary; on web --safe-top is zero.
     return (
-        <div className="absolute top-8 z-20 flex w-full items-center justify-between px-6">
+        <div className="absolute top-[calc(var(--safe-top)_+_1rem)] z-20 flex w-full items-center justify-between px-4">
             <div>
                 {showBackButton && (
                     <Button
@@ -154,7 +130,6 @@ const Navigation = memo(function Navigation({
                 )}
             </div>
             <div className="flex items-center gap-3">
-                {showLoginButton && <LoginButton />}
                 {showSkipButton && (
                     <Button onClick={onSkip} variant="transparent-dark" className="h-auto w-fit p-0">
                         <span className="text-foreground-over-color-secondary">{t('skip')}</span>
@@ -269,7 +244,6 @@ export const SetupWrapper = memo(function SetupWrapper({
     showBackButton,
     showSkipButton,
     showLogoutButton,
-    showLoginButton,
     onBack,
     onSkip,
     onLogout,
@@ -282,6 +256,7 @@ export const SetupWrapper = memo(function SetupWrapper({
     titleClassName,
 }: SetupWrapperProps) {
     const t = useTranslations('setup.braveInstall')
+    const [imageOverride, setImageOverride] = useState<string | null>(null)
     const { isBrave } = useBravePWAInstallState()
     const [showBraveSuccessMessage, setShowBraveSuccessMessage] = useState(false)
     const prefersReducedMotion = useReducedMotion()
@@ -306,7 +281,7 @@ export const SetupWrapper = memo(function SetupWrapper({
     const headingDescription = shouldShowBraveInstalledHeaderOnly ? t('description') : description
 
     return (
-        <div className="flex min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] flex-col overflow-hidden">
+        <div className="flex min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] flex-col overflow-x-hidden overflow-y-auto">
             {/* navigation buttons */}
             <Navigation
                 showBackButton={showBackButton}
@@ -314,7 +289,6 @@ export const SetupWrapper = memo(function SetupWrapper({
                     showSkipButton || (screenId === 'pwa-install' && (!canInstall || deviceType === DeviceType.WEB))
                 }
                 showLogoutButton={showLogoutButton}
-                showLoginButton={showLoginButton}
                 onBack={onBack}
                 onSkip={onSkip}
                 onLogout={onLogout}
@@ -328,7 +302,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                     imageClassName={imageClassName}
                     screenId={screenId}
                     layoutType={layoutType}
-                    image={image}
+                    image={imageOverride ?? image}
                 />
 
                 {/* content section */}
@@ -337,7 +311,10 @@ export const SetupWrapper = memo(function SetupWrapper({
                     animate={animatePanelIn ? { y: 0 } : undefined}
                     transition={{ type: 'spring', stiffness: 260, damping: 30 }}
                     className={twMerge(
-                        'flex flex-col justify-between overflow-hidden bg-white px-6 pt-6 pb-8 md:space-y-4 md:h-dvh md:justify-center',
+                        // y-auto, not hidden: es/pt copy wraps one line longer and the
+                        // bottom of the card (recover-account link) clipped at exact
+                        // viewport height (TASK-22366 sweep) — scroll instead of clip
+                        'flex flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-6 pb-8 md:space-y-4 md:h-dvh md:justify-center',
                         // signup: panel hugs its content so the hero absorbs the slack
                         // (paired with the grow classes in IMAGE_CONTAINER_CLASSES)
                         layoutType === 'signup' ? 'grow-0 md:grow' : 'flex-grow',
@@ -382,18 +359,20 @@ export const SetupWrapper = memo(function SetupWrapper({
                     )}
                     {/* main content area */}
                     <div className="mx-auto w-full md:max-w-xs">
-                        {Children.map(children, (child) => {
-                            if ((child as ReactElement).type === InstallPWA) {
-                                return cloneElement(child as ReactElement, {
-                                    deferredPrompt,
-                                    canInstall,
-                                    deviceType,
-                                    screenId,
-                                    setShowBraveSuccessMessage,
-                                })
-                            }
-                            return child
-                        })}
+                        <SetupImageContext.Provider value={setImageOverride}>
+                            {Children.map(children, (child) => {
+                                if ((child as ReactElement).type === InstallPWA) {
+                                    return cloneElement(child as ReactElement, {
+                                        deferredPrompt,
+                                        canInstall,
+                                        deviceType,
+                                        screenId,
+                                        setShowBraveSuccessMessage,
+                                    })
+                                }
+                                return child
+                            })}
+                        </SetupImageContext.Provider>
                     </div>
                 </motion.div>
             </div>

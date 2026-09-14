@@ -1,4 +1,5 @@
 'use client'
+import { ScreenMark } from '@/components/0_Bruddle/ScreenMark'
 import { type FC, useState } from 'react'
 import { Section } from '@/components/0_Bruddle/Section'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -8,7 +9,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Loading from '@/components/Global/Loading'
-import CardLimitEditModal, { CARD_LIMITS_QUERY_KEY } from '@/components/Card/CardLimitEditModal'
+import CardLimitEditDrawer, { CARD_LIMITS_QUERY_KEY } from '@/components/Card/CardLimitEditDrawer'
 import { rainApi, type RainCardLimit } from '@/services/rain'
 
 interface Props {
@@ -45,6 +46,7 @@ const CardLimitsScreen: FC<Props> = ({ cardId, onPrev }) => {
     return (
         <PageStack gap="6">
             <NavHeader title={t('navTitle')} onPrev={onPrev} />
+            <ScreenMark icon="credit-card" color="brand" />
             <Section title={t('subtitle')} className="gap-3">
                 {isLoading ? (
                     <div className="flex justify-center py-8">
@@ -70,7 +72,7 @@ const CardLimitsScreen: FC<Props> = ({ cardId, onPrev }) => {
                 )}
             </Section>
 
-            <CardLimitEditModal
+            <CardLimitEditDrawer
                 cardId={cardId}
                 frequency={FREQUENCY}
                 label={label}
