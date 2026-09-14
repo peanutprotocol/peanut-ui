@@ -26,6 +26,8 @@ export interface PotRecipient {
     address: Address
     userId?: string
     fullName?: string
+    /** Their picked profile avatar; null means the username-letter fallback. */
+    avatarKey?: string | null
 }
 
 // contributor info from charges
@@ -142,6 +144,7 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
             username: request.recipientAccount.user?.username || request.recipientAccount.identifier,
             address: request.recipientAddress as Address,
             userId: request.recipientAccount.userId,
+            avatarKey: request.recipientAccount.user?.avatarKey ?? null,
         }
     }, [request])
 

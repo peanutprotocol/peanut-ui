@@ -72,6 +72,7 @@ export function SendInputView() {
                         fullName={recipient.fullName}
                         recipientType="USERNAME"
                         isVerified={!!recipient.userId}
+                        avatarKey={recipient.avatarKey}
                     />
                 )}
 
