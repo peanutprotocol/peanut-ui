@@ -32,11 +32,7 @@ const AddCardEntryScreen: FC<Props> = ({ onApply, onPrev, applyError }) => {
         <PageStack gap="6">
             <NavHeader title={t('entry.navTitle')} onPrev={onPrev} />
 
-            {/* Pixelated card — keeps the anticipation/tease intact through
-                the "Get your card" CTA, matching the /shhhhh + eligibility
-                screens. The card's real details are still hidden until
-                issuance, so the same chunky-pixel treatment applies. */}
-            <ScaledPixelatedCardFace last4="????" blurAll />
+            <ScaledPixelatedCardFace last4="????" />
 
             <div className="flex flex-col gap-2">
                 <h1 className="text-heading-s text-foreground-primary">{t('entry.title')}</h1>

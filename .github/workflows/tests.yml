@@ -539,9 +539,9 @@ jobs:
               uses: actions/cache/restore@v4
               with:
                   path: .next/cache
-                  key: ds-shots-next-v2-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
+                  key: ds-shots-next-v3-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
                   restore-keys: |
-                      ds-shots-next-v2-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-
+                      ds-shots-next-v3-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-
 
             - name: Build
               env:
@@ -568,7 +568,7 @@ jobs:
               uses: actions/cache/save@v4
               with:
                   path: .next/cache
-                  key: ds-shots-next-v2-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
+                  key: ds-shots-next-v3-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
 
             # The capture fails a shot that still has a spinner on camera, on
             # purpose. No continue-on-error: a red step is how anyone finds out.
