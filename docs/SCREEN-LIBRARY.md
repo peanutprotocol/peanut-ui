@@ -254,8 +254,9 @@ third-party chat UI and its network readiness are not part of this visual tier.
 Modal readiness waits for full opacity before transitions are disabled, since
 browser visibility alone can accept a transparent entering panel.
 
-Capture jobs use the fixed macOS 26 Intel runner family because the existing
-tutorial assets contain HEVC with transparency. Linux Chromium cannot decode
-them, and H.264 conversion loses their transparency. Original media stays
-unchanged; the manifest records the actual OS and browser versions. Reference
-resolution and trusted publishing remain on Linux. See [GitHub runner labels](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
+Capture jobs use `ubuntu-24.04`. Current tutorial media is Chromium-compatible
+H.264; when an exact historical revision contains either known legacy HEVC
+tutorial asset, the capture harness serves its hash-pinned H.264 counterpart
+without mutating the target checkout. Unknown media hashes are never
+substituted. The manifest records the actual OS and browser versions. Reference
+resolution and trusted publishing also run on Linux. See [GitHub runner labels](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
