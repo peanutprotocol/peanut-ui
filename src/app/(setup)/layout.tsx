@@ -4,7 +4,7 @@ import { usePWAStatus } from '@/hooks/usePWAStatus'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useIosPwaInstallGate } from '@/hooks/useIosPwaInstallGate'
 import { useEffect, useRef, useState, Suspense } from 'react'
-import { setupSteps } from '../../components/Setup/Setup.consts'
+import { setupScreenIds, setupSteps } from '../../components/Setup/Setup.consts'
 import '../../styles/globals.css'
 import Loading from '@/components/Global/Loading'
 import { AppShell } from '@/components/Global/AppShell'
@@ -122,7 +122,7 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
 
 const SetupLayout = ({ children }: { children?: React.ReactNode }) => {
     return (
-        <SetupFlowProvider>
+        <SetupFlowProvider masterScreenIds={setupScreenIds}>
             <Suspense fallback={<Loading variant="mascot" coverFullScreen />}>
                 <SetupLayoutContent>{children}</SetupLayoutContent>
             </Suspense>

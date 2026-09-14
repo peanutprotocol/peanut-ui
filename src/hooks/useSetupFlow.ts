@@ -1,7 +1,6 @@
 'use client'
 
 import { type ISetupStep, type ScreenId } from '@/components/Setup/Setup.types'
-import { SETUP_SCREEN_IDS } from '@/components/Setup/setup-screen-ids'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import type { FlowStepGuard } from '@/hooks/useFlowStepper.types'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
@@ -41,7 +40,8 @@ export const SETUP_DEFAULT_SCREEN: ScreenId = 'landing'
  * bounces back, so a history pop cannot re-enter the forms.
  */
 export const useSetupFlow = () => {
-    const { steps, isLoading, setIsLoading, direction, setDirection, noBackLockScreenId } = useSetupFlowContext()
+    const { masterScreenIds, steps, isLoading, setIsLoading, direction, setDirection, noBackLockScreenId } =
+        useSetupFlowContext()
 
     const screenIds = useMemo<ScreenId[]>(
         // before the layout populates the filtered list, accept every master
@@ -49,8 +49,8 @@ export const useSetupFlow = () => {
         // effect rewrite a valid ?screen= away before the steps arrive.
         // Nothing renders during that window (the page's entry determination
         // is still loading).
-        () => (steps.length > 0 ? steps.map((s) => s.screenId) : [...SETUP_SCREEN_IDS]),
-        [steps]
+        () => (steps.length > 0 ? steps.map((s) => s.screenId) : [...masterScreenIds]),
+        [masterScreenIds, steps]
     )
 
     // The point of no return lives in the flow context, armed by the PAGE
