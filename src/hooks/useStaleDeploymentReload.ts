@@ -8,13 +8,14 @@ import { loadingStateContext } from '@/context/loadingStates.context'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { useZeroDevFlow } from '@/hooks/useZeroDevFlow'
 import { isCapacitor } from '@/utils/capacitor'
-import { purgeCaches } from '@/utils/cache.utils'
+import { isStandalonePwa, purgeCaches } from '@/utils/cache.utils'
 
 /**
  * Reloads a document left running on a superseded deployment.
  *
- * Nothing else in the app does this. App Router navigations fetch RSC payloads
- * rather than documents, and chunk-error
+ * Nothing else in the app does this. The service worker's `controllerchange`
+ * reload is skipped for installed PWAs because Android can leave the app
+ * window. App Router navigations fetch RSC payloads rather than documents, and chunk-error
  * recovery only fires once an asset actually 404s. So a loaded document can
  * outlive arbitrarily many deploys, keeping its original JS, its API
  * assumptions, and its response headers. That is how weeks-old
@@ -108,7 +109,8 @@ export function useStaleDeploymentReload() {
     isSafeRef.current = !hasPendingTransactions && !isSendingUserOp && !isLoading && !hasUnsafeSegment(pathname)
 
     const reloadDocument = useCallback(() => {
-        window.location.reload()
+        if (isStandalonePwa()) window.location.replace(window.location.href)
+        else window.location.reload()
     }, [])
 
     const reloadIfStaleAndSafe = useCallback(() => {

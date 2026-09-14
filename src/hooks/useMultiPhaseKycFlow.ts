@@ -3,6 +3,7 @@ import { useTranslations } from 'next-intl'
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useAuth } from '@/context/authContext'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
+import { useSumsubReloadResume, type KycResumeState } from '@/hooks/useSumsubReloadResume'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { deriveGate } from '@/utils/capability-gate'
@@ -380,15 +381,22 @@ export const useMultiPhaseKycFlow = ({
         }
     }, [originalHandleSdkComplete, handleSumsubApproved, isActionFlow, regionIntent, verificationSession])
 
+    // Existing Android PWAs can cold-reload after opening the camera or gallery.
+    // Keep the exact initiate arguments so the same applicant flow can reopen
+    // until installed PWAs are blocked at the native migration cutoff.
+    const resumingRef = useRef(false)
+    const lastInitiateArgsRef = useRef<KycResumeState>({})
+
     // wrap handleInitiateKyc to reset state for new attempts
     const handleInitiateKyc = useCallback(
         async (overrideIntent?: KYCRegionIntent, levelName?: string, crossRegion?: boolean, targetCountry?: string) => {
             const intent = overrideIntent ?? regionIntent
             lastIntentRef.current = intent
             setRequestedIntent(intent)
+            lastInitiateArgsRef.current = { intent, levelName, crossRegion, targetCountry }
             posthog.capture(
                 intent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_INITIATED : ANALYTICS_EVENTS.KYC_INITIATED,
-                { region_intent: intent, acquisition_source: acquisitionSource }
+                { region_intent: intent, acquisition_source: acquisitionSource, resumed: resumingRef.current }
             )
 
             setRequestedCountry(targetCountry?.toUpperCase())
@@ -405,6 +413,13 @@ export const useMultiPhaseKycFlow = ({
         },
         [originalHandleInitiateKyc, clearPreparingTimer, regionIntent, acquisitionSource]
     )
+
+    useSumsubReloadResume(showWrapper ? lastInitiateArgsRef.current : null, async (state) => {
+        resumingRef.current = true
+        const opened = await handleInitiateKyc(state.intent, state.levelName, state.crossRegion, state.targetCountry)
+        resumingRef.current = false
+        return !!opened
+    })
 
     // 30s timeout for preparing phase + elapsed time counter for progressive copy
     useEffect(() => {

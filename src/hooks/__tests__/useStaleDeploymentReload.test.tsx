@@ -12,6 +12,7 @@ let mockPendingCount = 0
 let mockIsSendingUserOp = false
 
 const mockPurgeCaches = jest.fn().mockResolvedValue(undefined)
+const mockIsStandalonePwa = jest.fn().mockReturnValue(false)
 const mockIsCapacitor = jest.fn().mockReturnValue(false)
 
 jest.mock('next/navigation', () => ({
@@ -31,6 +32,7 @@ jest.mock('@/utils/capacitor', () => ({
 }))
 jest.mock('@/utils/cache.utils', () => ({
     purgeCaches: (...args: unknown[]) => mockPurgeCaches(...args),
+    isStandalonePwa: () => mockIsStandalonePwa(),
 }))
 
 let appStateHandler: ((state: { isActive: boolean }) => void) | null = null
@@ -62,6 +64,7 @@ async function resumeApp() {
 }
 
 const mockReload = jest.fn()
+const mockReplace = jest.fn()
 
 function serveCommit(commit: string, ok = true) {
     global.fetch = jest.fn().mockResolvedValue({
@@ -89,7 +92,7 @@ function renderWithLoading(isLoading = false) {
 beforeAll(() => {
     Object.defineProperty(window, 'location', {
         writable: true,
-        value: { href: 'https://peanut.me/home', reload: mockReload },
+        value: { href: 'https://peanut.me/home', reload: mockReload, replace: mockReplace },
     })
 })
 
@@ -101,6 +104,7 @@ beforeEach(() => {
     mockPathname = '/home'
     mockPendingCount = 0
     mockIsSendingUserOp = false
+    mockIsStandalonePwa.mockReturnValue(false)
     mockIsCapacitor.mockReturnValue(false)
     mockPurgeCaches.mockResolvedValue(undefined)
     appStateHandler = null
@@ -130,6 +134,15 @@ describe('useStaleDeploymentReload', () => {
         expect(mockPurgeCaches).toHaveBeenCalledWith(
             expect.arrayContaining(['pages', 'pages-rsc', 'pages-rsc-prefetch', 'others'])
         )
+    })
+
+    it('uses location.replace in an installed PWA', async () => {
+        mockIsStandalonePwa.mockReturnValue(true)
+        serveCommit(NEW_COMMIT)
+        renderWithLoading()
+
+        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('https://peanut.me/home'))
+        expect(mockReload).not.toHaveBeenCalled()
     })
 
     it('re-checks on visibility change', async () => {

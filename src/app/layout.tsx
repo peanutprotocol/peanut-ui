@@ -195,6 +195,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 {process.env.NODE_ENV !== 'development' && (
                     <Script id="sw-registration" strategy="beforeInteractive">
                         {`
+                            /*
+                             * Native builds before 2026-04 registered the web service worker
+                             * inside the Capacitor WebView. Those registrations persist across
+                             * app updates, while the native bundle has no sw.js to update them.
+                             * Keep this idempotent eviction until that upgrade lineage expires.
+                             */
+                            if ('serviceWorker' in navigator && window.Capacitor) {
+                                navigator.serviceWorker.getRegistrations()
+                                    .then((regs) => regs.forEach((r) => r.unregister()))
+                                    .catch(() => {});
+                            }
                             if ('serviceWorker' in navigator && !window.Capacitor) {
                                 window.addEventListener('load', async () => {
                                     try {
@@ -220,13 +231,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                                 // Guards: (1) refreshing prevents double-reloads, (2) hadController
                                 // skips first-ever install (no previous SW = initial registration, not
                                 // an update — reloading on first visit would flash/reload for every new
-                                // user and SEO crawler).
+                                // user and SEO crawler), (3) standalone mode avoids an Android
+                                // PWA-to-Chrome bounce loop. Existing installs remain reachable
+                                // until the native migration cutoff.
                                 let refreshing = false;
                                 const hadController = !!navigator.serviceWorker.controller;
                                 navigator.serviceWorker.addEventListener('controllerchange', () => {
                                     if (refreshing || !hadController) return;
-                                    refreshing = true;
-                                    window.location.reload();
+                                    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                                        || navigator.standalone === true;
+                                    if (!isStandalone) {
+                                        refreshing = true;
+                                        window.location.reload();
+                                    }
                                 });
                             }
                         `}

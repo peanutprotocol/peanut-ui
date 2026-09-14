@@ -29,6 +29,8 @@ interface Navigator {
     brave?: {
         isBrave: () => Promise<boolean>
     }
+    // non-standard, iOS Safari only: true for an installed PWA
+    standalone?: boolean
     // User-Agent Client Hints. Chromium only, and the only way to read a device
     // model or OS version through Chrome's UA reduction, which otherwise
     // collapses every Android to "Android 10; K".

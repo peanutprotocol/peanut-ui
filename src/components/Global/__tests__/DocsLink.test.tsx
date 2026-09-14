@@ -4,6 +4,9 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import DocsLink from '@/components/Global/DocsLink'
 
+let mockIsPWA = false
+jest.mock('@/hooks/usePWAStatus', () => ({ usePWAStatus: () => mockIsPWA }))
+
 let mockIsCapacitor = false
 const mockOpenExternalUrl = jest.fn()
 jest.mock('@/utils/capacitor', () => ({
@@ -18,6 +21,7 @@ const renderLink = () => {
 
 describe('DocsLink', () => {
     beforeEach(() => {
+        mockIsPWA = false
         mockIsCapacitor = false
         mockOpenExternalUrl.mockClear()
     })
@@ -25,6 +29,13 @@ describe('DocsLink', () => {
     it('opens a new tab in a browser', () => {
         const link = renderLink()
         expect(link).toHaveAttribute('target', '_blank')
+        expect(link).toHaveAttribute('href', '/en/help/passkeys')
+    })
+
+    it('navigates in the same tab for an installed PWA', () => {
+        mockIsPWA = true
+        const link = renderLink()
+        expect(link).not.toHaveAttribute('target')
         expect(link).toHaveAttribute('href', '/en/help/passkeys')
     })
 

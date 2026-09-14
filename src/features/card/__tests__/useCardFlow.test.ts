@@ -68,6 +68,10 @@ jest.mock('@/context/ModalsContext', () => ({
 jest.mock('@/hooks/useSafeBack', () => ({
     useSafeBack: () => jest.fn(),
 }))
+jest.mock('@/hooks/useSumsubReloadResume', () => ({
+    useSumsubReloadResume: jest.fn(),
+}))
+
 const mockApplyForCard = rainApi.applyForCard as jest.Mock
 
 describe('useCardFlow', () => {

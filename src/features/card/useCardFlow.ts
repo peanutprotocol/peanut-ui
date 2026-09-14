@@ -18,6 +18,7 @@ import { useCapabilities } from '@/hooks/useCapabilities'
 import { useHostedVerification } from '@/hooks/useHostedVerification'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { useSumsubReloadResume } from '@/hooks/useSumsubReloadResume'
 import { getSkipCelebrationSeen, SKIP_CELEBRATION_SEEN_KEY } from './utils'
 
 // Eligibility-check screen lifetime per Hugo's spec: gate fires every
@@ -538,6 +539,19 @@ export function useCardFlow() {
         }
         return ''
     }, [invalidateOverview, refetchCardInfo])
+
+    // Preserve an interrupted Sumsub session for installed Android PWAs that
+    // remain reachable until the native migration cutoff.
+    useSumsubReloadResume(sumsubToken !== null ? {} : null, async () => {
+        const res = await rainApi.applyForCard({ termsAccepted: false })
+        if ((res.status === 'incomplete' || res.status === 'main-kyc-required') && 'sumsubAccessToken' in res) {
+            setSumsubToken(res.sumsubAccessToken)
+            posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED, { resumed: true })
+            return true
+        }
+        advanceFromApplyResponse(res)
+        return false
+    })
 
     return {
         // data
