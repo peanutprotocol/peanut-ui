@@ -1356,6 +1356,7 @@
         "unlockDescription": "Para enviar y recibir dinero aquí, confirmá tu identidad con un <b>documento oficial.</b>",
         "reasons": {
             "eea_tin_reupload": "Volvé a subir tu número de identificación fiscal.",
+            "residence_unresolved": "Todavía necesitamos tu domicilio para terminar de configurar las transferencias bancarias. Agregalo y lo reintentaremos automáticamente.",
             "email_required": "Necesitamos un correo electrónico para terminar de configurar esta cuenta. Agregá uno a tu perfil y lo reintentaremos automáticamente.",
             "submission_failed": "Tuvimos un problema al finalizar tu verificación de nuestro lado. Lo vamos a resolver: tocá abajo para escribirle a soporte.",
             "bridge_tos_required": "Aceptá los términos de nuestro socio de pagos para continuar.",

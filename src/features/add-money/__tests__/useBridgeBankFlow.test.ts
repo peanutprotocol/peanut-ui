@@ -64,6 +64,7 @@ const mockSumsubFlow = {
     showWrapper: false,
     handleInitiateKyc: jest.fn(),
     handleSelfHealResubmit: jest.fn(),
+    handleFixableGate: jest.fn(),
     handleRestartIdentity: jest.fn(),
 }
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
@@ -320,10 +321,14 @@ describe('useBridgeBankFlow', () => {
         await act(async () => result.current.handleVerify())
         expect(mockSumsubFlow.handleRestartIdentity).toHaveBeenCalled()
 
-        mockGate = { kind: 'fixable-rejection' }
+        // The WHOLE gate, not just the provider: the shared router reads
+        // `reason.code` off it to send a residence park to the address step
+        // instead of the resubmit route that 404s for it (TASK-22286).
+        mockGate = { kind: 'fixable-rejection', reason: { code: 'residence_unresolved' } }
         ;({ result } = renderFlow('?step=verify'))
         await act(async () => result.current.handleVerify())
-        expect(mockSumsubFlow.handleSelfHealResubmit).toHaveBeenCalledWith('BRIDGE')
+        expect(mockSumsubFlow.handleFixableGate).toHaveBeenCalledWith('BRIDGE', mockGate)
+        expect(mockSumsubFlow.handleSelfHealResubmit).not.toHaveBeenCalled()
 
         mockGate = { kind: 'needs-identity' }
         ;({ result } = renderFlow('?step=verify'))
