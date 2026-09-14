@@ -481,7 +481,14 @@ export const SURFACES: Record<string, Surface> = {
         render: () => (
             <ContributorsDrawer
                 contributors={[
-                    { uuid: 'c1', username: 'ana', amount: '25.00', createdAt: '2026-08-01T10:00:00.000Z' },
+                    {
+                        uuid: 'c1',
+                        username: 'ana',
+                        avatarKey: 'basic.star',
+                        amount: '25.00',
+                        createdAt: '2026-08-01T10:00:00.000Z',
+                    },
+                    // no pick — the username letter beside someone who has one
                     { uuid: 'c2', username: 'bruno', amount: '10.00', createdAt: '2026-08-01T11:00:00.000Z' },
                 ]}
             />

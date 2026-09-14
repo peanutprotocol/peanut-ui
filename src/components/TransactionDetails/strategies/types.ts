@@ -31,6 +31,13 @@ export interface TransactionStrategyOutput {
     isLinkTx: boolean
     fullName?: string
     showFullName?: boolean
+    /**
+     * The counterparty's picked profile avatar, taken from whichever account
+     * this strategy already reads for the name. Only set on branches with a
+     * real person behind them; the transformer drops it again whenever
+     * `isPeerActuallyUser` turns out false.
+     */
+    avatarKey?: string | null
     /** Optional override; most strategies leave status mapping to the global mapper. */
     uiStatus?: StatusPillType
 }

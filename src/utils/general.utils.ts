@@ -1297,6 +1297,7 @@ export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
                 // charge/service.ts to immutable response building). Scoped separately.
                 isUserVerified: payerAccount?.user?.bridgeKycStatus === 'approved',
                 isPeanutUser,
+                avatarKey: payerAccount?.user?.avatarKey ?? null,
             }
         })
         .filter((c): c is NonNullable<typeof c> => c !== null)
