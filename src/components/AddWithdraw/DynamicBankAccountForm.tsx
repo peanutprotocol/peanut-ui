@@ -424,19 +424,21 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
         return (
             <div className="my-auto flex h-full w-full flex-col justify-center gap-4 pb-4">
-                <PeanutActionDetailsCard
-                    countryCodeForFlag={countryCodeForFlag.toLowerCase()}
-                    avatarSize="small"
-                    transactionType={'WITHDRAW_BANK_ACCOUNT'}
-                    recipientType={'BANK_ACCOUNT'}
-                    recipientName={country}
-                    amount={amountDisplay ?? ''}
-                    tokenSymbol={PEANUT_WALLET_TOKEN_SYMBOL}
-                    {...actionDetailsProps}
-                    // after the spread: the flow-guarded value stays authoritative even
-                    // though actionDetailsProps is a Partial of the card's full props
-                    isFromSendFlow={framedAsSend}
-                />
+                {(flow !== 'withdraw' || amountDisplay) && (
+                    <PeanutActionDetailsCard
+                        countryCodeForFlag={countryCodeForFlag.toLowerCase()}
+                        avatarSize="small"
+                        transactionType={'WITHDRAW_BANK_ACCOUNT'}
+                        recipientType={'BANK_ACCOUNT'}
+                        recipientName={country}
+                        amount={amountDisplay ?? ''}
+                        tokenSymbol={PEANUT_WALLET_TOKEN_SYMBOL}
+                        {...actionDetailsProps}
+                        // after the spread: the flow-guarded value stays authoritative even
+                        // though actionDetailsProps is a Partial of the card's full props
+                        isFromSendFlow={framedAsSend}
+                    />
+                )}
 
                 <div className="flex flex-col gap-4">
                     <h3 className="text-heading-card text-foreground-primary">{t('heading')}</h3>
