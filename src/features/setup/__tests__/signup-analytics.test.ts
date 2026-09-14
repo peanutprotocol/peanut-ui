@@ -1,4 +1,4 @@
-import { classifySignupEntryFlow } from '@/features/setup/signup-analytics'
+import { classifySignupEntryFlow, resolveSignupEntryFlow } from '@/features/setup/signup-analytics'
 
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
@@ -20,5 +20,30 @@ describe('classifySignupEntryFlow', () => {
         ['%E0%A4%A', 'other'],
     ])('classifies %p as %s', (redirectUri, expected) => {
         expect(classifySignupEntryFlow(redirectUri)).toBe(expected)
+    })
+})
+
+describe('resolveSignupEntryFlow', () => {
+    it('prefers an explicit redirect over stored state', () => {
+        expect(
+            resolveSignupEntryFlow('/card', {
+                destination: '/claim?step=claim&id=payment-1',
+                origin: 'deep-link',
+            })
+        ).toBe('card')
+    })
+
+    it('classifies an unconsumed stored deep-link on bare setup', () => {
+        expect(resolveSignupEntryFlow(null, { destination: '/add-money/us/bank', origin: 'deep-link' })).toBe(
+            'add-money'
+        )
+    })
+
+    it('keeps a legacy unclassified redirect eligible during rollout', () => {
+        expect(resolveSignupEntryFlow(null, { destination: '/claim?id=payment-1', origin: null })).toBe('claim')
+    })
+
+    it('does not attribute a previous session-end record to the new signup', () => {
+        expect(resolveSignupEntryFlow(null, { destination: '/card', origin: 'session-end' })).toBe('default')
     })
 })

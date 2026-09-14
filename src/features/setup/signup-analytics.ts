@@ -1,5 +1,6 @@
 import { type ScreenId } from '@/components/Setup/Setup.types'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { type StoredRedirect } from '@/utils/general.utils'
 import posthog from 'posthog-js'
 
 export const SIGNUP_FLOW_VERSION = 1
@@ -42,6 +43,22 @@ export function classifySignupEntryFlow(redirectUri: string | null): SignupEntry
     } catch {
         return 'other'
     }
+}
+
+/**
+ * Resolves the immutable signup-entry category without consuming the post-auth
+ * destination. An explicit redirect always wins. A stored session-end record
+ * belongs to the previous account, while a legacy unclassified record remains
+ * eligible during the redirect-v2 rollout for the same reason the post-auth
+ * consumer still honours it.
+ */
+export function resolveSignupEntryFlow(
+    explicitRedirectUri: string | null,
+    storedRedirect: Pick<StoredRedirect, 'destination' | 'origin'> | null
+): SignupEntryFlow {
+    if (explicitRedirectUri !== null) return classifySignupEntryFlow(explicitRedirectUri)
+    if (storedRedirect?.origin === 'session-end') return 'default'
+    return classifySignupEntryFlow(storedRedirect?.destination ?? null)
 }
 
 export function signupAnalyticsContext(signupEntryFlow: SignupEntryFlow) {

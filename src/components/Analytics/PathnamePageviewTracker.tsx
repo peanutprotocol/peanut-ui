@@ -19,7 +19,16 @@ export function PathnamePageviewTracker() {
         previousPathnameRef.current = pathname
 
         if (previousPathname === null || previousPathname === pathname) return
-        posthog.capture('$pageview')
+        // Do not let posthog-js infer $current_url from window.location.href:
+        // native Send Link navigation deliberately keeps its bearer secret in
+        // #p=, and that fragment must never leave the device. Query-only state
+        // is intentionally ignored by this tracker too, so the pathname is the
+        // complete URL surface this event is allowed to report.
+        const origin = window.location.origin
+        posthog.capture('$pageview', {
+            $current_url: origin === 'null' ? pathname : `${origin}${pathname}`,
+            $pathname: pathname,
+        })
     }, [pathname])
 
     return null

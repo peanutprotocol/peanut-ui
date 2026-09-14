@@ -11,6 +11,7 @@ const mockedCapture = posthog.capture as jest.MockedFunction<typeof posthog.capt
 
 beforeEach(() => {
     pathname = '/setup'
+    window.history.replaceState({}, '', '/setup')
     jest.clearAllMocks()
 })
 
@@ -28,10 +29,27 @@ describe('PathnamePageviewTracker', () => {
         rerender(<PathnamePageviewTracker />)
 
         expect(mockedCapture).toHaveBeenCalledTimes(1)
-        expect(mockedCapture).toHaveBeenCalledWith('$pageview')
+        expect(mockedCapture).toHaveBeenCalledWith('$pageview', {
+            $current_url: `${window.location.origin}/home`,
+            $pathname: '/home',
+        })
 
         pathname = '/card'
         rerender(<PathnamePageviewTracker />)
         expect(mockedCapture).toHaveBeenCalledTimes(2)
+    })
+
+    it('does not export a Send Link bearer fragment during native-style claim navigation', () => {
+        const { rerender } = render(<PathnamePageviewTracker />)
+
+        window.history.replaceState({}, '', '/claim#p=claim-secret')
+        pathname = '/claim'
+        rerender(<PathnamePageviewTracker />)
+
+        expect(mockedCapture).toHaveBeenCalledWith('$pageview', {
+            $current_url: `${window.location.origin}/claim`,
+            $pathname: '/claim',
+        })
+        expect(JSON.stringify(mockedCapture.mock.calls)).not.toContain('claim-secret')
     })
 })
