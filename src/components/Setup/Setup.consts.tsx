@@ -111,3 +111,9 @@ export const setupSteps: ISetupStep[] = [
         contentClassName: 'flex flex-col items-end pt-8 justify-center gap-6',
     },
 ]
+
+/**
+ * The unfiltered setup order used while the layout resolves runtime filters.
+ * Derive it from the component registry so screen order has one owner.
+ */
+export const setupScreenIds = setupSteps.map((step) => step.screenId)

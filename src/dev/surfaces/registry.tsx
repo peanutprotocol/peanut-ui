@@ -17,7 +17,7 @@ import { AuthContext, useAuth } from '@/context/authContext'
 import { AccountReadyView } from '@/components/Setup/Views/SignTestTransaction'
 import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotificationsModal'
 import { useTranslations } from 'next-intl'
-import { setupSteps } from '@/components/Setup/Setup.consts'
+import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
 import type { ScreenId } from '@/components/Setup/Setup.types'
 
@@ -81,7 +81,7 @@ import NoMoreJailDrawer from '@/components/Global/NoMoreJailDrawer'
  */
 function SetupScreen({ screenId, children }: { screenId: ScreenId; children?: React.ReactNode }) {
     return (
-        <SetupFlowProvider>
+        <SetupFlowProvider masterScreenIds={setupScreenIds}>
             <SetupScreenBody screenId={screenId}>{children}</SetupScreenBody>
         </SetupFlowProvider>
     )

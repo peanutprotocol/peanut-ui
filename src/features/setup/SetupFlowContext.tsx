@@ -13,6 +13,8 @@ import { type ISetupStep, type ScreenId } from '@/components/Setup/Setup.types'
  * clamps (TASK-21404).
  */
 interface SetupFlowContextType {
+    /** Unfiltered setup order, injected by the registry owner. */
+    masterScreenIds: readonly ScreenId[]
     steps: ISetupStep[]
     setSteps: (steps: ISetupStep[]) => void
     isLoading: boolean
@@ -41,7 +43,10 @@ interface SetupFlowContextType {
 
 const SetupFlowContext = createContext<SetupFlowContextType | undefined>(undefined)
 
-export const SetupFlowProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds: readonly ScreenId[] }> = ({
+    children,
+    masterScreenIds,
+}) => {
     const [steps, setSteps] = useState<ISetupStep[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [direction, setDirection] = useState(0)
@@ -63,6 +68,7 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode }> = ({ children 
 
     const value = useMemo(
         () => ({
+            masterScreenIds,
             steps,
             setSteps,
             isLoading,
@@ -80,6 +86,7 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode }> = ({ children 
             resetSetupFlow,
         }),
         [
+            masterScreenIds,
             steps,
             isLoading,
             direction,
