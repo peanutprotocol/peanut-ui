@@ -94,6 +94,37 @@ describe('useMultiPhaseKycFlow — residence action composition', () => {
         expect(result.current.isModalOpen).toBe(false)
         expect(result.current.modalPhase).toBe('verifying')
     })
+
+    it('ignores base-identity APPROVED events during and after the residence action', async () => {
+        const onKycApproved = jest.fn()
+        const { result } = renderHook(() => useMultiPhaseKycFlow({ onKycApproved }))
+
+        await act(async () => {
+            await result.current.handleResidenceChange('PT')
+        })
+
+        await act(async () => {
+            mockWs.handler?.('APPROVED')
+        })
+        expect(result.current.showWrapper).toBe(true)
+        expect(markSubmitted).not.toHaveBeenCalled()
+        expect(mockFetchUser).not.toHaveBeenCalled()
+        expect(onKycApproved).not.toHaveBeenCalled()
+
+        act(() => result.current.handleSdkComplete())
+        await act(async () => {
+            mockWs.handler?.('PENDING')
+        })
+        await act(async () => {
+            mockWs.handler?.('APPROVED')
+        })
+
+        expect(markSubmitted).not.toHaveBeenCalled()
+        expect(mockFetchUser).not.toHaveBeenCalled()
+        expect(onKycApproved).not.toHaveBeenCalled()
+        expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.KYC_APPROVED, expect.anything())
+        expect(result.current.isModalOpen).toBe(false)
+    })
 })
 
 describe('useMultiPhaseKycFlow — KYC_REJECTED capture effect', () => {

@@ -227,6 +227,16 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         // can never leak a value this guard acts on.
         if (liveKycStatus === 'ACTION_REQUIRED' && showWrapper && isMultiLevel) return
 
+        // A residence Applicant Action leaves the base identity APPROVED. Ignore
+        // every identity-status transition for the action's full lifetime so a
+        // connect-time or delayed APPROVED event cannot close the action or start
+        // rail orchestration. Advancing the previous status consumes that stale
+        // base event instead of replaying it after the action closes.
+        if (residenceChangeRef.current) {
+            prevStatusRef.current = liveKycStatus
+            return
+        }
+
         // A provider action retains base identity approval. Only its own session
         // can finish this flow, never a stale identity APPROVED websocket event.
         if (verificationSessionRef.current) return
@@ -584,10 +594,10 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
     // called when sdk signals applicant submitted
     const handleSdkComplete = useCallback(() => {
-        userInitiatedRef.current = true
         selfHealProviderRef.current = null
         actionKeyRef.current = null
         if (residenceChangeRef.current) {
+            userInitiatedRef.current = false
             residenceChangeRef.current = false
             residenceChangeCountryRef.current = null
             setShowWrapper(false)
@@ -597,6 +607,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             onManualClose?.()
             return
         }
+        userInitiatedRef.current = true
         // Only a single-level submission proves the deferred action was completed.
         if (!isMultiLevel && liveKycStatus === 'ACTION_REQUIRED') prevStatusRef.current = 'ACTION_REQUIRED'
         setShowWrapper(false)
@@ -611,6 +622,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     // any close as a submission would swallow a real action-required state.
     // Only single-level completion consumes the deferred action.
     const handleClose = useCallback(() => {
+        if (residenceChangeRef.current) userInitiatedRef.current = false
         residenceChangeRef.current = false
         residenceChangeCountryRef.current = null
         setShowWrapper(false)
@@ -769,7 +781,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             setIsLoading(true)
             setError(null)
             setIsTerminalError(false)
-            userInitiatedRef.current = true
+            // The base applicant is already APPROVED, so identity status must
+            // never be allowed to complete this action or drive rail orchestration.
+            userInitiatedRef.current = false
             selfHealProviderRef.current = null
             actionKeyRef.current = null
             residenceChangeRef.current = true
@@ -782,6 +796,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     residenceChangeRef.current = false
                     residenceChangeCountryRef.current = null
                     setError(response.error ? actionErrorMessage(response) : t('errorResidenceChangeFailed'))
+                    setErrorCooldown(response.cooldown ?? null)
                     return
                 }
                 levelNameRef.current = response.data.levelName

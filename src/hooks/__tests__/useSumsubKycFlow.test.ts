@@ -478,6 +478,22 @@ describe('useSumsubKycFlow — multi-level workflows', () => {
         expect(result.current.error).not.toMatch(/identity/i)
     })
 
+    it('routes residence action budgets to the shared cooldown dialog', async () => {
+        mockResidenceChange.mockResolvedValue({
+            error: 'Wait a few minutes before starting another residence verification.',
+            cooldown: { retryAt: '2026-09-14T20:05:00.000Z' },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleResidenceChange('PT')
+        })
+
+        expect(result.current.error).toBeNull()
+        expect(result.current.errorCooldown).toEqual({ retryAt: '2026-09-14T20:05:00.000Z' })
+        expect(result.current.showWrapper).toBe(false)
+    })
+
     // The backend derives the intent from the declared residence when the caller
     // names none (the Manteca CTAs), and can overrule one that contradicts it.
     // `levelName` cannot stand in: EU and NA share `bridge-requirements`, LATAM

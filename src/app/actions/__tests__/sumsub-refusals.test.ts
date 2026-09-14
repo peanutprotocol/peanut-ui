@@ -220,4 +220,20 @@ describe('startResidenceChangeVerification — wire shape', () => {
         expect(mockFetch).toHaveBeenCalledTimes(1)
         expect(mockFetch).not.toHaveBeenCalledWith('/users/identity/restart', expect.anything())
     })
+
+    it('preserves a residence-action retry window from a 409 response', async () => {
+        const nowSpy = jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-09-14T20:00:00.000Z'))
+        try {
+            respondWith(409, {
+                error: 'Wait a few minutes before starting another residence verification.',
+                retryAfterSeconds: 300,
+            })
+
+            const result = await startResidenceChangeVerification('PT')
+
+            expect(result.cooldown).toEqual({ retryAt: '2026-09-14T20:05:00.000Z' })
+        } finally {
+            nowSpy.mockRestore()
+        }
+    })
 })

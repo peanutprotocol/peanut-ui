@@ -226,6 +226,7 @@ export const startResidenceChangeVerification = async (
     data?: ResidenceChangeVerificationResponse
     error?: string
     code?: SumsubActionErrorCode
+    cooldown?: { retryAt?: string }
 }> => {
     try {
         const expectedTargetCountry = targetCountry.trim().toUpperCase()
@@ -239,7 +240,15 @@ export const startResidenceChangeVerification = async (
         })
         const responseJson = await response.json()
         if (!response.ok) {
-            return backendOrFallback(responseJson, 'Failed to start residence verification', 'residence_change_failed')
+            const failure = backendOrFallback(
+                responseJson,
+                'Failed to start residence verification',
+                'residence_change_failed'
+            )
+            const retryAfterSeconds = responseJson.retryAfterSeconds
+            if (typeof retryAfterSeconds !== 'number' || !Number.isFinite(retryAfterSeconds)) return failure
+            const retryAt = new Date(Date.now() + Math.max(0, retryAfterSeconds) * 1000).toISOString()
+            return { ...failure, cooldown: { retryAt } }
         }
         if (!responseJson.token || !responseJson.applicantId || responseJson.targetCountry !== expectedTargetCountry) {
             return { error: 'Invalid response from server', code: 'invalid_response' }
