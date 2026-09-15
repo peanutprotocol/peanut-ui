@@ -78,4 +78,18 @@ describe('useWalletProvisioningLifecycle', () => {
         expect(mockedClearAuthorization).not.toHaveBeenCalled()
         expect(mockedClearCard).not.toHaveBeenCalled()
     })
+
+    it('clears Wallet state when the first loaded flag value is disabled', async () => {
+        mockedFlagsLoaded.mockReturnValue(false)
+        mockedFlag.mockReturnValue(false)
+        const { rerender } = renderHook(() => useWalletProvisioningLifecycle())
+        await waitFor(() => expect(mockedClearLegacy).toHaveBeenCalled())
+        expect(mockedClearAuthorization).not.toHaveBeenCalled()
+        expect(mockedClearCard).not.toHaveBeenCalled()
+
+        mockedFlagsLoaded.mockReturnValue(true)
+        rerender()
+        await waitFor(() => expect(mockedClearAuthorization).toHaveBeenCalled())
+        expect(mockedClearCard).toHaveBeenCalledTimes(1)
+    })
 })

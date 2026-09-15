@@ -19,6 +19,7 @@ import {
 export function useWalletProvisioningLifecycle(): void {
     const isFlagEnabled = useFeatureFlags()
     const flagOn = isFlagEnabled(PUSH_PROVISIONING_FLAG)
+    const flagsLoaded = areFeatureFlagsLoaded()
 
     useEffect(() => {
         if (!isIOSNative()) return
@@ -29,8 +30,8 @@ export function useWalletProvisioningLifecycle(): void {
         void clearLegacyWalletSessionForWallet()
         // `isFeatureEnabled` returns false before PostHog has answered. Do not
         // treat that unknown startup state as an explicit rollout kill.
-        if (areFeatureFlagsLoaded() && !flagOn) {
+        if (flagsLoaded && !flagOn) {
             void Promise.all([clearWalletCardForWallet(), clearWalletAuthorizationToken()])
         }
-    }, [flagOn])
+    }, [flagOn, flagsLoaded])
 }
