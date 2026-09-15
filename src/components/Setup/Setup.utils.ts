@@ -1,6 +1,6 @@
 import { isCapacitor } from '@/utils/capacitor'
 
-export const inAppSignatures = [
+const inAppSignatures = [
     // Do not use generic "WebView" or "Android.*wv" signatures: those also
     // match Peanut's supported Capacitor shell. Keep this list to known
     // third-party in-app browsers that cannot reliably complete passkeys.
@@ -29,7 +29,7 @@ export const inAppSignatures = [
 ]
 
 // checks user agent against a list of known in-app browser signatures
-export const isLikelyWebview = () => {
+export const isLikelyWebview = (): boolean => {
     if (typeof navigator === 'undefined') return false
     // capacitor webview is intentional — not an in-app browser
     if (isCapacitor()) return false

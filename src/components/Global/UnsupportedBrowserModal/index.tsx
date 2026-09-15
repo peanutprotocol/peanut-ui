@@ -4,10 +4,13 @@ import ActionModal, { type ActionModalButtonProps } from '@/components/Global/Ac
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { copyTextToClipboard } from '@/utils/clipboard.utils'
-import { useEffect, useState, Suspense, useRef } from 'react'
+import { useEffect, useState, Suspense, useRef, useSyncExternalStore } from 'react'
 import { useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
 import { isLikelyWebview } from '@/components/Setup/Setup.utils'
+
+const subscribeToStaticBrowserDetection = (): (() => void) => () => {}
+const getServerBrowserDetectionSnapshot = (): boolean => false
 
 const UnsupportedBrowserModalContent = ({
     allowClose = true,
@@ -18,18 +21,18 @@ const UnsupportedBrowserModalContent = ({
 }) => {
     const t = useTranslations('global')
     const searchParams = useSearchParams()
-    const [showInAppBrowserModalViaDetection, setShowInAppBrowserModalViaDetection] = useState(false)
+    // The UA/display-mode inputs are static for the lifetime of a page. A
+    // server snapshot keeps hydration deterministic, then React reads the real
+    // browser snapshot after hydration.
+    const isDetectedInAppBrowser = useSyncExternalStore(
+        subscribeToStaticBrowserDetection,
+        isLikelyWebview,
+        getServerBrowserDetectionSnapshot
+    )
+    const [hasDismissedDetection, setHasDismissedDetection] = useState(false)
     const [hasCopied, setHasCopied] = useState(false)
     const toast = useToast()
     const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-
-    useEffect(() => {
-        // This modal tells people to leave an in-app browser. Do not use
-        // conditional-mediation/passkey-autofill support as a proxy: it is an
-        // optional WebAuthn feature and can be false in supported Chrome and
-        // Safari sessions.
-        setShowInAppBrowserModalViaDetection(isLikelyWebview())
-    }, [])
 
     // Cleanup timeout on unmount to prevent memory leak
     useEffect(() => {
@@ -40,13 +43,15 @@ const UnsupportedBrowserModalContent = ({
         }
     }, [])
 
-    if (!showInAppBrowserModalViaDetection && !visible) {
+    // This modal tells people to leave an in-app browser. Do not use optional
+    // passkey autofill support as a proxy for whether Chrome/Safari works.
+    if ((!isDetectedInAppBrowser || hasDismissedDetection) && !visible) {
         return null
     }
 
     const handleModalClose = () => {
         if (allowClose) {
-            setShowInAppBrowserModalViaDetection(false)
+            setHasDismissedDetection(true)
         }
     }
 

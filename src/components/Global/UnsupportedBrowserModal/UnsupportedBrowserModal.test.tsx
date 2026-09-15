@@ -8,11 +8,6 @@ const mockIsLikelyWebview = jest.fn()
 jest.mock('@/components/Setup/Setup.utils', () => ({
     isLikelyWebview: () => mockIsLikelyWebview(),
 }))
-jest.mock('@/context/passkeySupportContext', () => ({
-    // Regression fixture: optional conditional mediation may be unavailable in
-    // a supported browser. That must not open the in-app-browser modal.
-    usePasskeySupportContext: () => ({ isSupported: false, isLoading: false }),
-}))
 jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
 }))
@@ -30,7 +25,7 @@ describe('UnsupportedBrowserModal', () => {
         mockIsLikelyWebview.mockReset()
     })
 
-    it('does not block a main browser when optional passkey autofill is unavailable', async () => {
+    it('does not block a main browser', async () => {
         mockIsLikelyWebview.mockReturnValue(false)
 
         render(<UnsupportedBrowserModal allowClose={false} />)
