@@ -25,6 +25,23 @@ jest.mock('@/hooks/useInfiniteScroll', () => ({ useInfiniteScroll: () => ({ load
 // selection is hoisted to the list — the page computes isSelected per row from
 // this hook (rows no longer subscribe to `?tx=` themselves)
 let mockSelectedTxId: string | null = null
+jest.mock('@/hooks/useHistoryRange', () => ({
+    useHistoryRange: () => ({
+        from: null,
+        to: null,
+        fromDate: undefined,
+        toDate: undefined,
+        fromIso: undefined,
+        toIso: undefined,
+        hasActiveRange: false,
+        activePreset: 'allTime',
+        setPreset: jest.fn(),
+        setCustom: jest.fn(),
+        isInRange: () => true,
+    }),
+}))
+jest.mock('@/components/History/HistoryRangeDrawer', () => ({ HistoryRangeDrawer: () => null }))
+jest.mock('@/components/History/ExportActivityDrawer', () => ({ ExportActivityDrawer: () => null }))
 jest.mock('@/hooks/useTransactionDetailsDrawer', () => ({
     useTransactionDetailsDrawer: () => ({
         selectedTxId: mockSelectedTxId,

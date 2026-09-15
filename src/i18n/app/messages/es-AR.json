@@ -1011,7 +1011,14 @@
     },
     "history": {
         "errorDescription": "Contactá a soporte.",
-        "empty": "No hiciste ninguna transacción"
+        "empty": "No hiciste ninguna transacción",
+        "range": {
+            "customTitle": "Elegí un rango"
+        },
+        "export": {
+            "error": "La exportación falló. Intentá de nuevo."
+        },
+        "emptyFilteredDescription": "Probá con otro rango de fechas."
     },
     "rewards": {
         "youHave": "Tenés",

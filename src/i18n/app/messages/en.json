@@ -2217,7 +2217,29 @@
         "empty": "You haven't done any transactions",
         "loadingMore": "Loading more...",
         "today": "Today",
-        "yesterday": "Yesterday"
+        "yesterday": "Yesterday",
+        "range": {
+            "title": "Filter by date",
+            "allTime": "All time",
+            "last7d": "Last 7 days",
+            "last30d": "Last 30 days",
+            "last3m": "Last 3 months",
+            "last6m": "Last 6 months",
+            "ytd": "Year to date",
+            "custom": "Custom range",
+            "customTitle": "Pick a range",
+            "apply": "Apply"
+        },
+        "export": {
+            "title": "Export activity",
+            "format": "Format",
+            "range": "Date range",
+            "download": "Download",
+            "success": "Export downloaded",
+            "error": "Export failed. Try again."
+        },
+        "emptyFiltered": "No activity in this period",
+        "emptyFilteredDescription": "Try a different date range."
     },
     "rewards": {
         "title": "Rewards",

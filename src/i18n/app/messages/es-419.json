@@ -2217,7 +2217,29 @@
         "empty": "No has hecho ninguna transacción",
         "loadingMore": "Cargando más...",
         "today": "Hoy",
-        "yesterday": "Ayer"
+        "yesterday": "Ayer",
+        "range": {
+            "title": "Filtrar por fecha",
+            "allTime": "Todo el historial",
+            "last7d": "Últimos 7 días",
+            "last30d": "Últimos 30 días",
+            "last3m": "Últimos 3 meses",
+            "last6m": "Últimos 6 meses",
+            "ytd": "Este año",
+            "custom": "Rango personalizado",
+            "customTitle": "Elige un rango",
+            "apply": "Aplicar"
+        },
+        "export": {
+            "title": "Exportar actividad",
+            "format": "Formato",
+            "range": "Rango de fechas",
+            "download": "Descargar",
+            "success": "Exportación descargada",
+            "error": "La exportación falló. Intenta de nuevo."
+        },
+        "emptyFiltered": "No hay actividad en este período",
+        "emptyFilteredDescription": "Prueba con otro rango de fechas."
     },
     "rewards": {
         "title": "Recompensas",

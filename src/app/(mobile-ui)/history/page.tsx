@@ -19,8 +19,14 @@ import { buildKycHistoryEntry } from '@/utils/kyc-grouping.utils'
 import { useAuth } from '@/context/authContext'
 import { BadgeStatusItem } from '@/components/Badges/BadgeStatusItem'
 import { isBadgeHistoryItem, type BadgeHistoryEntry } from '@/components/Badges/badge.types'
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useFormatter, useTranslations } from 'next-intl'
+import { Button } from '@/components/0_Bruddle/Button'
+import { Icon } from '@/components/Global/Icons/Icon'
+import { ExportActivityDrawer } from '@/components/History/ExportActivityDrawer'
+import { HistoryRangeControl } from '@/components/History/HistoryRangeControl'
+import { HistoryRangeDrawer } from '@/components/History/HistoryRangeDrawer'
+import { useHistoryRange } from '@/hooks/useHistoryRange'
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
@@ -49,6 +55,11 @@ const HistoryPage = () => {
     const userId = user?.user.userId
     const hideTxnAmount = useMemo(() => getUserPreferences(userId)?.balanceHidden ?? false, [userId])
 
+    // timeframe filter (URL state) + the two drawers it feeds
+    const { fromIso, toIso, hasActiveRange, isInRange } = useHistoryRange()
+    const [rangeDrawerOpen, setRangeDrawerOpen] = useState(false)
+    const [exportDrawerOpen, setExportDrawerOpen] = useState(false)
+
     const {
         data: historyData,
         hasNextPage,
@@ -60,6 +71,8 @@ const HistoryPage = () => {
     } = useTransactionHistory({
         mode: 'infinite',
         limit: 20,
+        from: fromIso,
+        to: toIso,
     })
 
     // infinite scroll hook
@@ -109,37 +122,42 @@ const HistoryPage = () => {
                 }
             }
 
+            // A filtered view only takes entries inside its window — everything
+            // else still refreshes the balance below.
+            const withinActiveRange = !hasActiveRange || isInRange(new Date(completedEntry.timestamp))
+
             // Update TanStack Query cache with processed transaction
-            queryClient.setQueryData<InfiniteData<HistoryResponse>>(
-                [TRANSACTIONS, 'infinite', { limit: 20 }],
-                (oldData) => {
-                    if (!oldData) return oldData
+            if (withinActiveRange)
+                queryClient.setQueryData<InfiniteData<HistoryResponse>>(
+                    [TRANSACTIONS, 'infinite', { limit: 20, from: fromIso, to: toIso }],
+                    (oldData) => {
+                        if (!oldData) return oldData
 
-                    // Check if entry exists on ANY page to prevent duplicates
-                    const existsAnywhere = oldData.pages.some((p) =>
-                        p.entries.some((e) => e.uuid === completedEntry.uuid)
-                    )
+                        // Check if entry exists on ANY page to prevent duplicates
+                        const existsAnywhere = oldData.pages.some((p) =>
+                            p.entries.some((e) => e.uuid === completedEntry.uuid)
+                        )
 
-                    if (existsAnywhere) {
-                        console.log('[History] Duplicate transaction ignored:', completedEntry.uuid)
-                        return oldData
-                    }
+                        if (existsAnywhere) {
+                            console.log('[History] Duplicate transaction ignored:', completedEntry.uuid)
+                            return oldData
+                        }
 
-                    // Add new entry to the first page
-                    return {
-                        ...oldData,
-                        pages: oldData.pages.map((page, index) => {
-                            if (index === 0) {
-                                return {
-                                    ...page,
-                                    entries: [completedEntry, ...page.entries],
+                        // Add new entry to the first page
+                        return {
+                            ...oldData,
+                            pages: oldData.pages.map((page, index) => {
+                                if (index === 0) {
+                                    return {
+                                        ...page,
+                                        entries: [completedEntry, ...page.entries],
+                                    }
                                 }
-                            }
-                            return page
-                        }),
+                                return page
+                            }),
+                        }
                     }
-                }
-            )
+                )
 
             // Invalidate balance query to refresh it (scoped to user's wallet address)
             const walletAddress = user?.accounts.find(
@@ -173,10 +191,12 @@ const HistoryPage = () => {
         }
         const entries: Array<HistoryEntry | BadgeHistoryEntry | KycHistoryEntry> = [...allEntries]
 
-        // inject badge items from user profile, placed by earnedAt
+        // inject badge items from user profile, placed by earnedAt — client-side
+        // rows must respect the active timeframe filter like API rows do
         const badges = displayableBadges(user?.user?.badges ?? [])
         badges.forEach((b) => {
             if (!b.earnedAt) return
+            if (hasActiveRange && !isInRange(new Date(b.earnedAt))) return
             entries.push({
                 isBadge: true,
                 uuid: b.id ?? b.code,
@@ -191,7 +211,7 @@ const HistoryPage = () => {
         // add the single identity-verification row (provider-agnostic)
         if (user) {
             const kycEntry = buildKycHistoryEntry(user)
-            if (kycEntry) entries.push(kycEntry)
+            if (kycEntry && (!hasActiveRange || isInRange(new Date(kycEntry.timestamp)))) entries.push(kycEntry)
         }
 
         entries.sort((a, b) => {
@@ -215,8 +235,39 @@ const HistoryPage = () => {
         return m
     }, [combinedAndSortedEntries])
 
+    const exportButton = (
+        <Button
+            variant="stroke"
+            // nav circle recipe (board 17802:61534): 40px visual, pseudo-element to 44px
+            className="relative size-10 w-10 p-0 shadow-none after:absolute after:-inset-0.5"
+            aria-label={t('export.title')}
+            onClick={() => setExportDrawerOpen(true)}
+            data-testid="history-export"
+        >
+            <Icon name="download" size={20} />
+        </Button>
+    )
+
+    const drawers = (
+        <>
+            <HistoryRangeDrawer open={rangeDrawerOpen} onOpenChange={setRangeDrawerOpen} />
+            <ExportActivityDrawer open={exportDrawerOpen} onOpenChange={setExportDrawerOpen} />
+        </>
+    )
+
     if (isLoading && combinedAndSortedEntries.length === 0) {
-        return <Loading variant="mascot" />
+        if (!hasActiveRange) return <Loading variant="mascot" />
+        // keep the filter reachable while a filtered window loads
+        return (
+            <PageStack>
+                <NavHeader title={t('title')} rightElement={exportButton} />
+                <div className="flex w-full flex-col gap-4">
+                    <HistoryRangeControl onClick={() => setRangeDrawerOpen(true)} />
+                    <Loading />
+                </div>
+                {drawers}
+            </PageStack>
+        )
     }
 
     if (isError) {
@@ -231,6 +282,24 @@ const HistoryPage = () => {
     }
 
     if (!isLoading && combinedAndSortedEntries.length === 0) {
+        // an empty FILTERED window keeps the filter and export reachable —
+        // the user changes the range from here
+        if (hasActiveRange) {
+            return (
+                <PageStack>
+                    <NavHeader title={t('title')} rightElement={exportButton} />
+                    <div className="flex w-full flex-col gap-4">
+                        <HistoryRangeControl onClick={() => setRangeDrawerOpen(true)} />
+                        <EmptyState
+                            icon="calendar"
+                            title={t('emptyFiltered')}
+                            description={t('emptyFilteredDescription')}
+                        />
+                    </div>
+                    {drawers}
+                </PageStack>
+            )
+        }
         return (
             <div className="flex h-[80dvh] flex-col items-center justify-center">
                 <NavHeader title={t('title')} />
@@ -252,80 +321,86 @@ const HistoryPage = () => {
 
     return (
         <PageStack>
-            <NavHeader title={t('title')} />
-            <div className="h-full w-full">
-                {combinedAndSortedEntries.map((item, index) => {
-                    const itemDate = new Date(item.timestamp)
-                    const group = getDateGroup(itemDate, today)
-                    const currentGroupHeaderKey = getDateGroupKey(itemDate, group)
-                    const showHeader = currentGroupHeaderKey !== lastGroupHeaderKey
-                    if (showHeader) {
-                        lastGroupHeaderKey = currentGroupHeaderKey
-                    }
+            <NavHeader title={t('title')} rightElement={exportButton} />
+            <div className="flex w-full flex-col gap-4">
+                <HistoryRangeControl onClick={() => setRangeDrawerOpen(true)} />
+                <div className="h-full w-full">
+                    {combinedAndSortedEntries.map((item, index) => {
+                        const itemDate = new Date(item.timestamp)
+                        const group = getDateGroup(itemDate, today)
+                        const currentGroupHeaderKey = getDateGroupKey(itemDate, group)
+                        const showHeader = currentGroupHeaderKey !== lastGroupHeaderKey
+                        if (showHeader) {
+                            lastGroupHeaderKey = currentGroupHeaderKey
+                        }
 
-                    // corners are per DATE GROUP: peek at the next entry to see
-                    // if it starts a new group
-                    const isFirstInGroup = showHeader
-                    const nextItem = combinedAndSortedEntries[index + 1]
-                    const isLastInGroup =
-                        !nextItem ||
-                        getDateGroupKey(
-                            new Date(nextItem.timestamp),
-                            getDateGroup(new Date(nextItem.timestamp), today)
-                        ) !== currentGroupHeaderKey
+                        // corners are per DATE GROUP: peek at the next entry to see
+                        // if it starts a new group
+                        const isFirstInGroup = showHeader
+                        const nextItem = combinedAndSortedEntries[index + 1]
+                        const isLastInGroup =
+                            !nextItem ||
+                            getDateGroupKey(
+                                new Date(nextItem.timestamp),
+                                getDateGroup(new Date(nextItem.timestamp), today)
+                            ) !== currentGroupHeaderKey
 
-                    let position: CardPosition = 'middle'
-                    if (isFirstInGroup && isLastInGroup) position = 'single'
-                    else if (isFirstInGroup) position = 'first'
-                    else if (isLastInGroup) position = 'last'
+                        let position: CardPosition = 'middle'
+                        if (isFirstInGroup && isLastInGroup) position = 'single'
+                        else if (isFirstInGroup) position = 'first'
+                        else if (isLastInGroup) position = 'last'
 
-                    return (
-                        <React.Fragment key={item.uuid}>
-                            {/* date group header — board 17966:12128: Label/M, 8px above the group's rows */}
-                            {showHeader && (
-                                <div
-                                    className={twMerge(
-                                        'mb-2 text-label-m text-foreground-primary',
-                                        index > 0 && 'mt-2'
-                                    )}
-                                >
-                                    {groupHeader(itemDate, group)}
-                                </div>
-                            )}
-                            {isKycStatusItem(item) ? (
-                                <KycStatusItem position={position} />
-                            ) : isBadgeHistoryItem(item) ? (
-                                <BadgeStatusItem position={position} entry={item} />
-                            ) : (
-                                (() => {
-                                    const { transactionDetails, transactionCardType } =
-                                        drawerByUuid.get(item.uuid) ?? mapTransactionDataForDrawer(item)
-                                    return (
-                                        <TransactionCard
-                                            type={transactionCardType}
-                                            name={transactionDetails.userName}
-                                            amount={transactionDetails.amount ? Number(transactionDetails.amount) : 0}
-                                            status={transactionDetails.status}
-                                            initials={transactionDetails.initials}
-                                            transaction={transactionDetails}
-                                            position={position}
-                                            haveSentMoneyToUser={transactionDetails.haveSentMoneyToUser}
-                                            hideTxnAmount={hideTxnAmount}
-                                            isSelected={isTransactionSelected(transactionDetails.id)}
-                                            onOpen={openTransactionDetails}
-                                            onClose={closeTransactionDetails}
-                                        />
-                                    )
-                                })()
-                            )}
-                        </React.Fragment>
-                    )
-                })}
+                        return (
+                            <React.Fragment key={item.uuid}>
+                                {/* date group header — board 17966:12128: Label/M, 8px above the group's rows */}
+                                {showHeader && (
+                                    <div
+                                        className={twMerge(
+                                            'mb-2 text-label-m text-foreground-primary',
+                                            index > 0 && 'mt-2'
+                                        )}
+                                    >
+                                        {groupHeader(itemDate, group)}
+                                    </div>
+                                )}
+                                {isKycStatusItem(item) ? (
+                                    <KycStatusItem position={position} />
+                                ) : isBadgeHistoryItem(item) ? (
+                                    <BadgeStatusItem position={position} entry={item} />
+                                ) : (
+                                    (() => {
+                                        const { transactionDetails, transactionCardType } =
+                                            drawerByUuid.get(item.uuid) ?? mapTransactionDataForDrawer(item)
+                                        return (
+                                            <TransactionCard
+                                                type={transactionCardType}
+                                                name={transactionDetails.userName}
+                                                amount={
+                                                    transactionDetails.amount ? Number(transactionDetails.amount) : 0
+                                                }
+                                                status={transactionDetails.status}
+                                                initials={transactionDetails.initials}
+                                                transaction={transactionDetails}
+                                                position={position}
+                                                haveSentMoneyToUser={transactionDetails.haveSentMoneyToUser}
+                                                hideTxnAmount={hideTxnAmount}
+                                                isSelected={isTransactionSelected(transactionDetails.id)}
+                                                onOpen={openTransactionDetails}
+                                                onClose={closeTransactionDetails}
+                                            />
+                                        )
+                                    })()
+                                )}
+                            </React.Fragment>
+                        )
+                    })}
 
-                <div ref={loaderRef} className="w-full py-4">
-                    {isFetchingNextPage && <div className="w-full text-center">{t('loadingMore')}</div>}
+                    <div ref={loaderRef} className="w-full py-4">
+                        {isFetchingNextPage && <div className="w-full text-center">{t('loadingMore')}</div>}
+                    </div>
                 </div>
             </div>
+            {drawers}
         </PageStack>
     )
 }
