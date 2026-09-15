@@ -189,7 +189,7 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                         ]
                       : [
                             {
-                                text: tCommon('cancel'),
+                                text: t('yourCard.cancelCard'),
                                 variant: 'purple',
                                 onClick: runCancel,
                                 loading: phase === 'canceling',

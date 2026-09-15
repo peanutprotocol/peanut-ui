@@ -1,11 +1,11 @@
 'use client'
-import { type FC } from 'react'
+import { type FC, useRef } from 'react'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { twMerge } from '@/utils/tw'
 import { Button } from '@/components/0_Bruddle/Button'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
-import CopyToClipboard from '@/components/Global/CopyToClipboard'
+import CopyToClipboard, { type CopyToClipboardRef } from '@/components/Global/CopyToClipboard'
 import { PEANUT_CARD_HAND, VISA_BRAND_MARK } from '@/assets/cards'
 import { PEANUTMAN } from '@/assets/mascot'
 import { PEANUT_LOGO_BLACK } from '@/assets/logos'
@@ -38,6 +38,36 @@ interface Props {
 }
 
 export type CopyableCardField = 'pan' | 'expiry' | 'cvv'
+
+interface CardCopyButtonProps {
+    value: string
+    ariaLabel: string
+    onCopy: () => void
+}
+
+const CardCopyButton: FC<CardCopyButtonProps> = ({ value, ariaLabel, onCopy }) => {
+    const copyRef = useRef<CopyToClipboardRef>(null)
+
+    return (
+        <Button
+            type="button"
+            variant="transparent"
+            aria-label={ariaLabel}
+            onClick={() => copyRef.current?.copy()}
+            disableHaptics
+            className="relative size-4 min-h-0 w-4 shrink-0 p-0 after:absolute after:-inset-4"
+        >
+            <CopyToClipboard
+                ref={copyRef}
+                type="icon"
+                textToCopy={value}
+                iconSize="4"
+                interactive={false}
+                onCopy={onCopy}
+            />
+        </Button>
+    )
+}
 
 const formatPan = (pan: string) => pan.replace(/(.{4})/g, '$1 ').trim()
 const formatExpiry = (month: number, year: number) => `${String(month).padStart(2, '0')}/${String(year).slice(-2)}`
@@ -128,10 +158,9 @@ const CardFace: FC<Props> = ({
                                     {formatPan(revealed.pan)}
                                 </span>
                                 {onCopy && (
-                                    <CopyToClipboard
-                                        type="icon"
-                                        textToCopy={revealed.pan}
-                                        iconSize="4"
+                                    <CardCopyButton
+                                        value={revealed.pan}
+                                        ariaLabel={t('copyCardNumber')}
                                         onCopy={() => onCopy(revealed.pan, 'pan')}
                                     />
                                 )}
@@ -154,10 +183,9 @@ const CardFace: FC<Props> = ({
                                             </div>
                                         </div>
                                         {onCopy && (
-                                            <CopyToClipboard
-                                                type="icon"
-                                                textToCopy={formatExpiry(revealed.expiryMonth, revealed.expiryYear)}
-                                                iconSize="4"
+                                            <CardCopyButton
+                                                value={formatExpiry(revealed.expiryMonth, revealed.expiryYear)}
+                                                ariaLabel={t('copyExpiry')}
                                                 onCopy={() =>
                                                     onCopy(
                                                         formatExpiry(revealed.expiryMonth, revealed.expiryYear),
@@ -174,10 +202,9 @@ const CardFace: FC<Props> = ({
                                             <div className="ph-no-capture text-body-s-semibold">{revealed.cvv}</div>
                                         </div>
                                         {onCopy && (
-                                            <CopyToClipboard
-                                                type="icon"
-                                                textToCopy={revealed.cvv}
-                                                iconSize="4"
+                                            <CardCopyButton
+                                                value={revealed.cvv}
+                                                ariaLabel={t('copyCvv')}
                                                 onCopy={() => onCopy(revealed.cvv, 'cvv')}
                                             />
                                         )}

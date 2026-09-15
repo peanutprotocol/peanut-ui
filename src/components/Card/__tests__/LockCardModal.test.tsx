@@ -66,8 +66,11 @@ const mockOverview = useRainCardOverview as jest.Mock
 const mockUseWallet = useWallet as jest.Mock
 const mockUseSignSpendBundle = useSignSpendBundle as jest.Mock
 const mockLockCard = rainApi.lockCard as jest.Mock
+const mockActivateCard = rainApi.activateCard as jest.Mock
 const mockCancelCard = rainApi.cancelCard as jest.Mock
 const mockSignSpend = jest.fn()
+const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+const mockInvalidateQueries = jest.spyOn(queryClient, 'invalidateQueries')
 
 const RAIN_WITHDRAWAL = { preparationId: 'prep-1', amount: '10060000' }
 // $10.06 spending power — the reporting user's exact state.
@@ -82,9 +85,7 @@ const FORCED_SIGN_ARGS = {
 
 const Wrapper = ({ children }: { children: ReactNode }) => (
     <IntlWrapper>
-        <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-            {children}
-        </QueryClientProvider>
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     </IntlWrapper>
 )
 
@@ -96,12 +97,15 @@ const setup = (overview?: { balance: { spendingPower: number } }) => {
 
 const renderLock = () =>
     render(<LockCardModal cardId="card-1" mode="lock" isOpen onClose={mockOnClose} />, { wrapper: Wrapper })
+const renderUnlock = () =>
+    render(<LockCardModal cardId="card-1" mode="unlock" isOpen onClose={mockOnClose} />, { wrapper: Wrapper })
 const renderCancel = () => render(<CancelCardModal cardId="card-1" isOpen onClose={jest.fn()} />, { wrapper: Wrapper })
 
 beforeEach(() => {
     jest.clearAllMocks()
     mockSignSpend.mockResolvedValue({ strategy: 'collateral-only', rainWithdrawal: RAIN_WITHDRAWAL })
     mockLockCard.mockResolvedValue({})
+    mockActivateCard.mockResolvedValue({})
     mockCancelCard.mockResolvedValue({})
 })
 
@@ -136,11 +140,25 @@ describe('LockCardModal — lock with spending power', () => {
     })
 })
 
+describe('LockCardModal — unlock', () => {
+    it('activates the card, refreshes the overview, and closes with a success toast', async () => {
+        setup(OVERVIEW)
+        renderUnlock()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Unlock' }))
+
+        await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
+        expect(mockActivateCard).toHaveBeenCalledWith('card-1')
+        expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['rain-card-overview'] })
+        expect(mockToastSuccess).toHaveBeenCalledWith('Card unlocked')
+    })
+})
+
 describe('CancelCardModal', () => {
     it('forces collateral-only routing and delivers the withdrawal to the cancel call', async () => {
         setup(OVERVIEW)
         renderCancel()
-        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel card' }))
         expect(await screen.findByText('Card canceled')).toBeInTheDocument()
         expect(mockSignSpend).toHaveBeenCalledWith(FORCED_SIGN_ARGS)
         expect(mockCancelCard).toHaveBeenCalledWith('card-1', { verifiedWithdrawal: RAIN_WITHDRAWAL })
@@ -149,7 +167,7 @@ describe('CancelCardModal', () => {
     it('fails closed before signing when the overview has not loaded', async () => {
         setup(undefined)
         renderCancel()
-        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel card' }))
         expect(await screen.findByText(/still loading/)).toBeInTheDocument()
         expect(mockSignSpend).not.toHaveBeenCalled()
         expect(mockCancelCard).not.toHaveBeenCalled()
@@ -158,7 +176,7 @@ describe('CancelCardModal', () => {
     it('cancels without signing when there is no spending power to return', async () => {
         setup({ balance: { spendingPower: 0 } })
         renderCancel()
-        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel card' }))
         expect(await screen.findByText('Card canceled')).toBeInTheDocument()
         expect(mockSignSpend).not.toHaveBeenCalled()
         expect(mockCancelCard).toHaveBeenCalledWith('card-1', { verifiedWithdrawal: undefined })

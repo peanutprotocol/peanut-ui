@@ -40,13 +40,15 @@ describe('CardFace copy buttons', () => {
     it('copies the expiry as MM/YY and the CVV', async () => {
         const onCopy = jest.fn()
         render(<CardFace last4="1234" revealed={revealed} onCopy={onCopy} />)
-        const copyButtons = screen.getAllByRole('button', { name: 'Copy' })
+        expect(screen.getByRole('button', { name: 'Copy card number' })).toBeInTheDocument()
+        const copyExpiry = screen.getByRole('button', { name: 'Copy expiry date' })
+        const copyCvv = screen.getByRole('button', { name: 'Copy CVV' })
 
-        fireEvent.click(copyButtons[1])
+        fireEvent.click(copyExpiry)
         await waitFor(() => expect(onCopy).toHaveBeenCalledWith('12/30', 'expiry'))
         expect(writeText).toHaveBeenCalledWith('12/30')
 
-        fireEvent.click(copyButtons[2])
+        fireEvent.click(copyCvv)
         await waitFor(() => expect(onCopy).toHaveBeenCalledWith('123', 'cvv'))
         expect(writeText).toHaveBeenCalledWith('123')
     })
