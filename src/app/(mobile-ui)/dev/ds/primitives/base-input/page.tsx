@@ -59,6 +59,12 @@ export default function BaseInputPage() {
                         description: 'Height: sm=h-10 (40px), md=h-12 (48px, default)',
                     },
                     {
+                        name: 'leftContent',
+                        type: 'ReactNode',
+                        default: '(none)',
+                        description: "The input board's 40px leading slot (e.g. a currency prefix)",
+                    },
+                    {
                         name: 'rightContent',
                         type: 'ReactNode',
                         default: '(none)',
@@ -88,10 +94,21 @@ export default function BaseInputPage() {
                 <DocSection.Content>
                     <BaseInput
                         placeholder="Amount"
+                        leftContent={<span className="text-foreground-secondary">$</span>}
+                    />
+                    <BaseInput
+                        placeholder="Amount"
                         rightContent={<span className="text-body-s text-foreground-secondary">USD</span>}
                     />
                 </DocSection.Content>
                 <DocSection.Code>
+                    <CodeBlock
+                        label="Leading slot"
+                        code={`<BaseInput
+  placeholder="Amount"
+  leftContent={<span className="text-foreground-secondary">$</span>}
+/>`}
+                    />
                     <CodeBlock
                         label="With Right Content"
                         code={`<BaseInput
