@@ -1437,6 +1437,7 @@
         },
         "cancel": {
             "title": "Cancelar seu cartão?",
+            "keepCard": "Manter meu cartão",
             "body": "Você não vai poder usar de novo.",
             "canceling": "Cancelando…",
             "slideToCancel": "Deslize para cancelar",
