@@ -2,7 +2,7 @@
 // answer on native binaries with the MeaWallet SDK, silently unavailable on
 // web and on older binaries running OTA'd JS (plugin call throws) — those must
 // keep the manual carousel, never surface an error.
-import { addCardToWallet, getPushProvisioningAvailability } from '../push-provisioning'
+import { addCardToWallet, clearWalletSession, getPushProvisioningAvailability } from '../push-provisioning'
 import { isAndroidNative, isIOSNative } from '../capacitor'
 
 const isAvailable = jest.fn()
@@ -10,6 +10,7 @@ const addCard = jest.fn()
 const setWalletAuthorizationToken = jest.fn()
 const clearWalletCard = jest.fn()
 const clearWalletAuthorizationToken = jest.fn()
+const nativeClearWalletSession = jest.fn()
 
 jest.mock('@capacitor/core', () => ({
     registerPlugin: jest.fn(() => ({
@@ -18,6 +19,7 @@ jest.mock('@capacitor/core', () => ({
         setWalletAuthorizationToken: (o: unknown) => setWalletAuthorizationToken(o),
         clearWalletCard: (o: unknown) => clearWalletCard(o),
         clearWalletAuthorizationToken: (o: unknown) => clearWalletAuthorizationToken(o),
+        clearWalletSession: (o: unknown) => nativeClearWalletSession(o),
     })),
 }))
 
@@ -105,5 +107,24 @@ describe('addCardToWallet', () => {
             error: 'PushProvisioning is not available on this platform',
         })
         expect(addCard).not.toHaveBeenCalled()
+    })
+})
+
+describe('clearWalletSession', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockIsIOSNative.mockReturnValue(true)
+        mockIsAndroidNative.mockReturnValue(false)
+    })
+
+    it('clears the native Wallet session and legacy state', async () => {
+        await clearWalletSession()
+        expect(nativeClearWalletSession).toHaveBeenCalledWith({})
+    })
+
+    it('does not touch the native plugin on web', async () => {
+        mockIsIOSNative.mockReturnValue(false)
+        await clearWalletSession()
+        expect(nativeClearWalletSession).not.toHaveBeenCalled()
     })
 })

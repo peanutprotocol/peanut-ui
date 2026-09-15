@@ -19,10 +19,6 @@ enum WalletExtensionAuth {
         Bundle.main.object(forInfoDictionaryKey: accessGroupInfoKey) as? String
     }
 
-    static func saveSessionToken(_ token: String) {
-        save(token, account: sessionAccount)
-    }
-
     static func saveStepUpToken(_ token: String, expiresIn: Int) {
         let payload = CredentialPayload(token: token, expiresAt: Date().timeIntervalSince1970 + Double(expiresIn))
         guard let data = try? JSONEncoder().encode(payload),
@@ -50,10 +46,6 @@ enum WalletExtensionAuth {
             kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
         ]
         _ = SecItemAdd(query as CFDictionary, nil)
-    }
-
-    static func sessionToken() -> String? {
-        read(account: sessionAccount)
     }
 
     static func stepUpToken() -> String? {

@@ -219,6 +219,11 @@ export interface RainProvisioningDataResponse {
     }
 }
 
+export interface RainProvisioningAuthorizationResponse {
+    walletAuthorizationToken: string
+    walletAuthorizationExpiresIn: number
+}
+
 export type RainLimitFrequency = 'perAuthorization' | 'per24HourPeriod' | 'per30DayPeriod' | 'perAllTime'
 
 export interface RainCardLimit {
@@ -765,6 +770,21 @@ export const rainApi = {
         return rainRequest<RainProvisioningDataResponse>({
             method: 'POST',
             path: `/rain/cards/${cardId}/provisioning-data`,
+            body: { wallet },
+            stepUp: true,
+            rateLimitSensitive: true,
+            noStore: true,
+        })
+    },
+
+    /** Mint the card-scoped Wallet credential without returning card secrets. */
+    getProvisioningAuthorization: async (
+        cardId: string,
+        wallet: 'apple' | 'google'
+    ): Promise<RainProvisioningAuthorizationResponse> => {
+        return rainRequest<RainProvisioningAuthorizationResponse>({
+            method: 'POST',
+            path: `/rain/cards/${cardId}/provisioning-authorization`,
             body: { wallet },
             stepUp: true,
             rateLimitSensitive: true,

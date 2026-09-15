@@ -15317,6 +15317,13 @@
                                         "cardholderName": {
                                             "type": "string"
                                         },
+                                        "walletAuthorizationToken": {
+                                            "type": "string"
+                                        },
+                                        "walletAuthorizationExpiresIn": {
+                                            "minimum": 1,
+                                            "type": "integer"
+                                        },
                                         "billingAddress": {
                                             "type": "object",
                                             "properties": {
@@ -15463,6 +15470,151 @@
                                 }
                             }
                         }
+                    }
+                }
+            }
+        },
+        "/rain/cards/{cardId}/provisioning-data/wallet": {
+            "post": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "cardId",
+                        "required": true,
+                        "schema": {
+                            "format": "uuid",
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "header",
+                        "name": "x-wallet-provisioning-token",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "wallet": {
+                                        "anyOf": [
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "apple"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "google"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "wallet"
+                                ]
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Default Response"
+                    },
+                    "401": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/rain/cards/{cardId}/provisioning-authorization": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "wallet": {
+                                        "anyOf": [
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "apple"
+                                                ]
+                                            },
+                                            {
+                                                "type": "string",
+                                                "enum": [
+                                                    "google"
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "wallet"
+                                ]
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "parameters": [
+                    {
+                        "schema": {
+                            "format": "uuid",
+                            "type": "string"
+                        },
+                        "in": "path",
+                        "name": "cardId",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Default Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "walletAuthorizationToken": {
+                                            "type": "string"
+                                        },
+                                        "walletAuthorizationExpiresIn": {
+                                            "minimum": 1,
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "required": [
+                                        "walletAuthorizationToken",
+                                        "walletAuthorizationExpiresIn"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "description": "Default Response"
+                    },
+                    "429": {
+                        "description": "Default Response"
+                    },
+                    "503": {
+                        "description": "Default Response"
                     }
                 }
             }

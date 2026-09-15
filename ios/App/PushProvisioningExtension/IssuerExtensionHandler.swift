@@ -101,6 +101,11 @@ class IssuerExtensionHandler: PKIssuerProvisioningExtensionHandler {
                 completion([])
                 return
             }
+            if let replacement = provisioningData.walletAuthorizationToken,
+               let expiresIn = provisioningData.walletAuthorizationExpiresIn,
+               expiresIn > 0 {
+                WalletExtensionAuth.saveAuthorizationToken(replacement, expiresIn: expiresIn)
+            }
             let cardParams = MppCardDataParameters(
                 cardId: provisioningData.cardId,
                 cardSecret: provisioningData.cardSecret

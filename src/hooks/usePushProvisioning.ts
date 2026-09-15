@@ -7,7 +7,6 @@ import { rainApi } from '@/services/rain'
 import { isIOSNative } from '@/utils/capacitor'
 import {
     addCardToWallet,
-    clearWalletCardForWallet,
     getPushProvisioningAvailability,
     rememberCardForWallet,
     PUSH_PROVISIONING_FLAG,
@@ -42,15 +41,26 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
         // starting the flow from a button Google has not sanctioned. The native
         // Android path underneath is complete; re-enable it with the asset.
         if (!flagOn || !iosNative) {
-            if (!flagOn && iosNative) void clearWalletCardForWallet()
             setNativeAvailable(false)
             return
         }
-        void rememberCardForWallet({ peanutCardId: card.id, last4: card.last4 }).then(() =>
-            getPushProvisioningAvailability(card.last4).then(({ available, alreadyInWallet }) => {
-                if (!cancelled) setNativeAvailable(available && !alreadyInWallet)
-            })
-        )
+        void rememberCardForWallet({ peanutCardId: card.id, last4: card.last4 }).then(async () => {
+            // Bootstrap the extension grant when the card is mirrored. This
+            // lets Wallet start from its own UI, while the endpoint returns no
+            // PAN-equivalent credentials and still requires step-up auth.
+            try {
+                const authorization = await rainApi.getProvisioningAuthorization(card.id, 'apple')
+                await syncWalletAuthorizationToken(
+                    authorization.walletAuthorizationToken,
+                    authorization.walletAuthorizationExpiresIn
+                )
+            } catch {
+                // A canceled step-up or an older API binary must not hide the
+                // in-app row; Add to Wallet can retry the step-up path.
+            }
+            const { available, alreadyInWallet } = await getPushProvisioningAvailability(card.last4)
+            if (!cancelled) setNativeAvailable(available && !alreadyInWallet)
+        })
         return () => {
             cancelled = true
         }

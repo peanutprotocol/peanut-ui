@@ -27,10 +27,10 @@ public class PushProvisioningPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "isAvailable", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "addCard", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "rememberCard", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "setWalletSession", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setWalletAuthorizationToken", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setWalletStepUpToken", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "clearWalletSession", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "clearWalletLegacySession", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "clearWalletCard", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "clearWalletAuthorizationToken", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "clearWalletStepUpToken", returnType: CAPPluginReturnPromise),
@@ -53,12 +53,10 @@ public class PushProvisioningPlugin: CAPPlugin, CAPBridgedPlugin {
         call.resolve()
     }
 
-    @objc func setWalletSession(_ call: CAPPluginCall) {
-        guard let token = call.getString("token"), !token.isEmpty else {
-            call.reject("token is required", "BAD_PARAMS")
-            return
-        }
-        WalletExtensionAuth.saveSessionToken(token)
+    @objc func clearWalletLegacySession(_ call: CAPPluginCall) {
+        // Kept as a migration endpoint for bundles that previously mirrored
+        // the account JWT into the Wallet keychain access group.
+        WalletExtensionAuth.deleteSessionToken()
         call.resolve()
     }
 

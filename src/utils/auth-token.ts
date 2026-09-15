@@ -63,13 +63,6 @@ let clearEpoch = 0
 // the token (or a clear tears the session down).
 let readyGate: { promise: Promise<void>; resolve: () => void } | null = null
 
-// The Wallet extension is optional and older shells do not have these native
-// methods. Keep the bridge lazy so auth hydration and logout remain compatible
-// with every shipped Capacitor binary.
-function syncWalletSessionForExtension(token: string): void {
-    void import('./push-provisioning').then(({ syncWalletSession }) => syncWalletSession(token)).catch(() => {})
-}
-
 function armReadyGate(): void {
     if (readyGate) return
     let resolve!: () => void
@@ -136,7 +129,6 @@ async function hydrateFromPreferences(): Promise<void> {
         // a login that raced hydration is fresher than the stored value
         if (value && nativeToken === null) {
             nativeToken = value
-            syncWalletSessionForExtension(value)
         }
     } catch {
         // plugin missing (older binary running OTA'd JS) — those builds still
@@ -162,7 +154,6 @@ async function hydrateFromPreferences(): Promise<void> {
         const cookieToken = cookies?.[JWT_COOKIE_KEY]
         if (cookieToken) {
             nativeToken = cookieToken
-            syncWalletSessionForExtension(cookieToken)
         }
     } catch {}
 }
@@ -203,7 +194,6 @@ export async function unlockGuardedToken(reason: string): Promise<UnlockResult> 
     try {
         const token = await guardedRead(reason)
         nativeToken = token
-        syncWalletSessionForExtension(token)
         setLockState('unlocked')
         releaseReadyGate()
         void finishGuardedMigration()
@@ -335,7 +325,6 @@ export function setAuthToken(token: string): void {
         if (getLockState() === 'locked') return
         nativeToken = token
         void persistNativeToken(token)
-        syncWalletSessionForExtension(token)
         return
     }
     Cookies.set(JWT_COOKIE_KEY, token, { expires: 30, path: '/' })

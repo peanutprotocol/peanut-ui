@@ -6,7 +6,6 @@ import { rainApi, RainCardRateLimitError, type RainProvisioningDataResponse } fr
 import { isAndroidNative, isIOSNative } from '@/utils/capacitor'
 import {
     addCardToWallet,
-    clearWalletCardForWallet,
     getPushProvisioningAvailability,
     rememberCardForWallet,
     syncWalletAuthorizationToken,
@@ -14,7 +13,10 @@ import {
 
 jest.mock('@/services/rain', () => {
     const actual = jest.requireActual('@/services/rain')
-    return { ...actual, rainApi: { ...actual.rainApi, getProvisioningData: jest.fn() } }
+    return {
+        ...actual,
+        rainApi: { ...actual.rainApi, getProvisioningData: jest.fn(), getProvisioningAuthorization: jest.fn() },
+    }
 })
 jest.mock('@/utils/push-provisioning', () => {
     const actual = jest.requireActual('@/utils/push-provisioning')
@@ -23,7 +25,6 @@ jest.mock('@/utils/push-provisioning', () => {
         getPushProvisioningAvailability: jest.fn(),
         addCardToWallet: jest.fn(),
         rememberCardForWallet: jest.fn(),
-        clearWalletCardForWallet: jest.fn(),
         syncWalletAuthorizationToken: jest.fn(),
     }
 })
@@ -36,12 +37,14 @@ const mockedFlag = jest.fn()
 jest.mock('@/hooks/useFeatureFlag', () => ({ useFeatureFlags: () => mockedFlag }))
 
 const mockedGetProvisioningData = rainApi.getProvisioningData as jest.MockedFunction<typeof rainApi.getProvisioningData>
+const mockedGetProvisioningAuthorization = rainApi.getProvisioningAuthorization as jest.MockedFunction<
+    typeof rainApi.getProvisioningAuthorization
+>
 const mockedAvailability = getPushProvisioningAvailability as jest.MockedFunction<
     typeof getPushProvisioningAvailability
 >
 const mockedAddCard = addCardToWallet as jest.MockedFunction<typeof addCardToWallet>
 const mockedRememberCard = rememberCardForWallet as jest.MockedFunction<typeof rememberCardForWallet>
-const mockedClearWalletCard = clearWalletCardForWallet as jest.MockedFunction<typeof clearWalletCardForWallet>
 const mockedSyncWalletAuthorizationToken = syncWalletAuthorizationToken as jest.MockedFunction<
     typeof syncWalletAuthorizationToken
 >
@@ -76,6 +79,10 @@ describe('usePushProvisioning', () => {
         mockedAvailability.mockResolvedValue({ available: true, alreadyInWallet: false })
         mockedRememberCard.mockResolvedValue()
         mockedGetProvisioningData.mockResolvedValue(provisioningData)
+        mockedGetProvisioningAuthorization.mockResolvedValue({
+            walletAuthorizationToken: 'wallet-grant',
+            walletAuthorizationExpiresIn: 2_592_000,
+        })
         jest.spyOn(posthog, 'capture').mockImplementation(() => undefined as never)
     })
 
@@ -84,6 +91,7 @@ describe('usePushProvisioning', () => {
         await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
         expect(mockedAvailability).toHaveBeenCalledWith('0420')
         expect(mockedRememberCard).toHaveBeenCalledWith({ peanutCardId: 'card-1', last4: '0420' })
+        expect(mockedGetProvisioningAuthorization).toHaveBeenCalledWith('card-1', 'apple')
     })
 
     it('keeps the manual carousel for a card already in the wallet', async () => {
@@ -104,7 +112,6 @@ describe('usePushProvisioning', () => {
         await waitFor(() => expect(flagOff.result.current.nativeAvailable).toBe(false))
 
         expect(mockedAvailability).not.toHaveBeenCalled()
-        expect(mockedClearWalletCard).toHaveBeenCalledTimes(1)
     })
 
     it('removes the native card mirror when the rollout flag changes from on to off', async () => {
@@ -114,7 +121,6 @@ describe('usePushProvisioning', () => {
         mockedFlag.mockReturnValue(false)
         rerender()
 
-        await waitFor(() => expect(mockedClearWalletCard).toHaveBeenCalled())
         expect(result.current.nativeAvailable).toBe(false)
     })
 

@@ -7,6 +7,8 @@ struct WalletExtensionProvisioningData: Decodable {
     let last4: String
     let network: String
     let cardholderName: String?
+    let walletAuthorizationToken: String?
+    let walletAuthorizationExpiresIn: Int?
 }
 
 /**
