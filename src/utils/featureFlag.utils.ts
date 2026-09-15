@@ -27,6 +27,11 @@ export function isFeatureFlagEnabled(flagKey: string, options: FeatureFlagOption
     return posthog.isFeatureEnabled(flagKey) ?? false
 }
 
+/** PostHog distinguishes an evaluated false from the pre-fetch unknown state. */
+export function areFeatureFlagsLoaded(): boolean {
+    return posthog.featureFlags.hasLoadedFlags
+}
+
 /** Chains without a rollout flag (the legacy set) are always on. */
 export function isChainRolledOut(chainKey: string): boolean {
     const flag = CHAIN_ROLLOUT_FLAGS[chainKey]
