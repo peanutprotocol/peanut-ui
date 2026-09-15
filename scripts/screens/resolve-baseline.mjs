@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { repositoryApiPath } from './repository-api.mjs'
 
 const repo = process.env.REPOSITORY,
     runId = process.env.RUN_ID
@@ -10,7 +11,7 @@ if (!/^[\w.-]+\/[\w.-]+$/.test(repo ?? '') || !/^\d+$/.test(runId ?? ''))
     throw new Error('Invalid baseline lookup identity')
 
 const api = (path, args = []) =>
-    JSON.parse(execFileSync('gh', ['api', `repos/${repo}/${path}`, ...args], { encoding: 'utf8' }))
+    JSON.parse(execFileSync('gh', ['api', repositoryApiPath(repo, path), ...args], { encoding: 'utf8' }))
 const currentRun = api(`actions/runs/${runId}`)
 const defaultBranch = api('').default_branch
 if (currentRun.event !== 'pull_request' || currentRun.head_repository?.full_name !== repo)
