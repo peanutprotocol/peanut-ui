@@ -271,6 +271,13 @@ leaves no tag, so a re-run resolves the same number instead of burning one. CI t
 the tag records the release without re-triggering the build. **A PAT there would
 double-build.**
 
+If that replacement must restore a missing native `.0` Capgo record, the publisher passes
+an explicit replacement-platform flag and revalidates the complete diff against the same
+legacy-compatible allowlist before deriving its floors. The shared record remains gated at
+the existing native version when the replacement surface differs, so the post-store OTA
+step cannot fail merely because the original release tag correctly describes the original
+binary.
+
 Both build workflows still accept a `v*` tag push as break-glass, and validate the
 version against the scheme before starting. That check is what a glob cannot do: `v*`
 cannot reject `v2026.02.26` (a real tag on `main`) because it is `X.Y.Z` shaped — only

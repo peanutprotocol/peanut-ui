@@ -479,6 +479,7 @@ function publishNative({
     androidFloor = '1.7.0',
     iosFloor = '1.7.0',
     sharedFloor = '1.7.0',
+    isRebuild = false,
 } = {}) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'native-ota-publish-'))
     const log = path.join(dir, 'calls')
@@ -500,6 +501,7 @@ function publishNative({
                 RESULT="$SHARED_FLOOR"
               fi
               printf '%s\\n' "$MODE" >> "$CALL_LOG"
+              printf 'floor-args:%s\\n' "$*" >> "$CALL_LOG"
               [ "$FAILURE" != "$MODE" ] || return 1
               printf '%s\\n' "$RESULT"
               return
@@ -527,6 +529,7 @@ function publishNative({
                     ANDROID_FLOOR: androidFloor,
                     IOS_FLOOR: iosFloor,
                     SHARED_FLOOR: sharedFloor,
+                    IS_REBUILD: isRebuild ? 'true' : 'false',
                     CALL_LOG: log,
                     EXISTING: existing,
                     FAILURE: failure,
@@ -557,6 +560,23 @@ it('native publisher uses the stricter compatible floor when platform floors dif
     const upload = calls.find((line) => line.includes('bundle upload'))
     expect(upload).toContain('--min-update-version 1.8.0')
     expect(upload).toContain('[ota-floors: android=1.8.0 ios=1.7.0]')
+})
+it('native publisher explicitly validates a same-version replacement', () => {
+    const { status, calls } = publishNative({
+        platform: 'android',
+        androidFloor: '1.8.0',
+        iosFloor: '1.7.0',
+        sharedFloor: '1.8.0',
+        isRebuild: true,
+    })
+    expect(status).toBe(0)
+    expect(calls).toContain(
+        'floor-args:scripts/ota-platform-floor.mjs --platform android --prospective-version 1.8.0 --replacement-platform android'
+    )
+    expect(calls).toContain(
+        'floor-args:scripts/ota-platform-floor.mjs --shared --prospective-version 1.8.0 --replacement-platform android'
+    )
+    expect(calls.find((line) => line.includes('bundle upload'))).toContain('--min-update-version 1.8.0')
 })
 it('native publisher skips uploading only an already verified record', () => {
     const { status, calls } = publishNative({ existing: '1.8.0' })

@@ -24,13 +24,17 @@
 //   node scripts/ota-platform-floor.mjs --platform ios   # one, as a bare version
 //   node scripts/ota-platform-floor.mjs --shared         # safe floor for one shared record
 //   node scripts/ota-platform-floor.mjs --prospective-version 1.8.0
+//   node scripts/ota-platform-floor.mjs --prospective-version 1.8.0 --replacement-platform android
 //   node scripts/ota-platform-floor.mjs --ref <git-ref>
 
+import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { platformDiff, setRepoRoot } from './native-fingerprint.mjs'
+import { diff, platformDiff, setRepoRoot } from './native-fingerprint.mjs'
 import { allNativeReleases, setRepoRoot as setVersionRepoRoot } from './release-version.mjs'
 
+const require = createRequire(import.meta.url)
+const { changesOutsidePlatform, changesUnsafeForSameVersion } = require('./check-native-change-scope.cjs')
 const defaultRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
 export const PLATFORMS = ['android', 'ios']
@@ -56,8 +60,40 @@ const NATIVE_VERSION = /^(0|[1-9]\d*)\.([1-9]\d*)\.0$/
  * binary in the field that carries this tree's contract, which is the state
  * check-native-ota-surface fails the publish on.
  */
-export function platformFloor({ platform, headRef = 'HEAD', root = defaultRoot, prospectiveVersion } = {}) {
+function validateSameVersionReplacement({ platform, baseRef, headRef }) {
+    const changes = diff(baseRef, headRef)
+    const outside = changesOutsidePlatform(changes, platform)
+    if (outside.length > 0) {
+        throw new Error(
+            `${baseRef} replacement contains non-${platform} native inputs:\n${outside
+                .map(({ path }) => `  ${path}`)
+                .join('\n')}`
+        )
+    }
+    const unsafe = changesUnsafeForSameVersion(changes, platform)
+    if (unsafe.length > 0) {
+        throw new Error(
+            `${baseRef} replacement is not safe for older same-version ${platform} installs:\n${unsafe
+                .map(({ path }) => `  ${path}`)
+                .join('\n')}`
+        )
+    }
+}
+
+export function platformFloor({
+    platform,
+    headRef = 'HEAD',
+    root = defaultRoot,
+    prospectiveVersion,
+    replacementPlatform,
+} = {}) {
     if (!PLATFORMS.includes(platform)) throw new Error(`platform must be android or ios, got "${platform}"`)
+    if (replacementPlatform && !PLATFORMS.includes(replacementPlatform)) {
+        throw new Error(`replacement platform must be android or ios, got "${replacementPlatform}"`)
+    }
+    if (replacementPlatform && !prospectiveVersion) {
+        throw new Error('replacement platform requires --prospective-version')
+    }
     setRepoRoot(root)
     setVersionRepoRoot(root)
 
@@ -87,7 +123,14 @@ export function platformFloor({ platform, headRef = 'HEAD', root = defaultRoot, 
             const changed = platformDiff(platform, tag, headRef)
             if (build === prospective.build) {
                 if (changed.length > 0) {
-                    throw new Error(`${tag} already exists but its ${platform} native surface differs from ${headRef}`)
+                    if (replacementPlatform !== platform) {
+                        throw new Error(
+                            `${tag} already exists but its ${platform} native surface differs from ${headRef}`
+                        )
+                    }
+                    // Older binaries share this versionName. Only the explicit,
+                    // narrowly allowlisted replacement surface may differ.
+                    validateSameVersionReplacement({ platform, baseRef: tag, headRef })
                 }
                 continue
             }
@@ -120,9 +163,12 @@ export function platformFloor({ platform, headRef = 'HEAD', root = defaultRoot, 
     return floor
 }
 
-export function platformFloors({ headRef = 'HEAD', root = defaultRoot, prospectiveVersion } = {}) {
+export function platformFloors({ headRef = 'HEAD', root = defaultRoot, prospectiveVersion, replacementPlatform } = {}) {
     return Object.fromEntries(
-        PLATFORMS.map((platform) => [platform, platformFloor({ platform, headRef, root, prospectiveVersion })])
+        PLATFORMS.map((platform) => [
+            platform,
+            platformFloor({ platform, headRef, root, prospectiveVersion, replacementPlatform }),
+        ])
     )
 }
 
@@ -152,11 +198,12 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import
         const headRef = flag(argv, '--ref') ?? 'HEAD'
         const platform = flag(argv, '--platform')
         const prospectiveVersion = flag(argv, '--prospective-version')
-        for (const name of ['--root', '--ref', '--platform', '--prospective-version']) {
+        const replacementPlatform = flag(argv, '--replacement-platform')
+        for (const name of ['--root', '--ref', '--platform', '--prospective-version', '--replacement-platform']) {
             if (argv.includes(name) && !flag(argv, name)) throw new Error(`${name} needs a value`)
         }
         if (platform && argv.includes('--shared')) throw new Error('--platform and --shared are mutually exclusive')
-        const options = { headRef, root, prospectiveVersion }
+        const options = { headRef, root, prospectiveVersion, replacementPlatform }
         if (argv.includes('--lowest')) {
             // Diagnostic only. Never use this value as a shared server floor:
             // legacy updaters cannot enforce the stricter platform requirement.

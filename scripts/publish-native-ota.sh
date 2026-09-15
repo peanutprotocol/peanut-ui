@@ -6,9 +6,16 @@
 # records keep separate -ios/-android identities and can use each floor fully.
 set -euo pipefail
 case "$PLATFORM" in ios|android) ;; *) echo 'Invalid platform' >&2; exit 1;; esac
-FLOOR_ANDROID="$(node scripts/ota-platform-floor.mjs --platform android --prospective-version "$VERSION")"
-FLOOR_IOS="$(node scripts/ota-platform-floor.mjs --platform ios --prospective-version "$VERSION")"
-NATIVE_FLOOR="$(node scripts/ota-platform-floor.mjs --shared --prospective-version "$VERSION")"
+resolve_floor() {
+  if [ "${IS_REBUILD:-false}" = true ]; then
+    node scripts/ota-platform-floor.mjs "$@" --prospective-version "$VERSION" --replacement-platform "$PLATFORM"
+  else
+    node scripts/ota-platform-floor.mjs "$@" --prospective-version "$VERSION"
+  fi
+}
+FLOOR_ANDROID="$(resolve_floor --platform android)"
+FLOOR_IOS="$(resolve_floor --platform ios)"
+NATIVE_FLOOR="$(resolve_floor --shared)"
 export FLOOR_ANDROID FLOOR_IOS NATIVE_FLOOR
 test -f out/index.html
 node scripts/capgo-release-guard.mjs verify-promotion
