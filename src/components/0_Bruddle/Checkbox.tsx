@@ -19,7 +19,7 @@ const Checkbox = ({ className, label, value, onChange }: CheckboxProps) => (
             checkbox rows) — styled with semantic tokens, flagged for design */}
         <span
             className={twMerge(
-                'relative flex h-5 w-5 shrink-0 items-center justify-center rounded-sm border border-border-default bg-background-default transition-colors duration-instant peer-focus-visible:ring-2 peer-focus-visible:ring-action-primary peer-focus-visible:ring-offset-2',
+                'relative flex h-5 w-5 shrink-0 items-center justify-center rounded-sm border border-border-default bg-background-default transition-colors duration-instant peer-focus-visible:outline-[3px] peer-focus-visible:outline-action-focus',
                 value && 'bg-action-primary'
             )}
         >
