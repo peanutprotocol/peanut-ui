@@ -42,12 +42,10 @@ interface PushProvisioningPlugin {
     isAvailable(options: { last4?: string }): Promise<PushProvisioningAvailability>
     rememberCard(options: { peanutCardId: string; last4: string; displayName?: string }): Promise<void>
     setWalletAuthorizationToken(options: { token: string; expiresIn: number }): Promise<void>
-    setWalletStepUpToken(options: { token: string; expiresIn: number }): Promise<void>
     clearWalletSession(options: Record<string, never>): Promise<void>
     clearWalletLegacySession(options: Record<string, never>): Promise<void>
     clearWalletCard(options: Record<string, never>): Promise<void>
     clearWalletAuthorizationToken(options: Record<string, never>): Promise<void>
-    clearWalletStepUpToken(options: Record<string, never>): Promise<void>
     addCard(options: AddCardToWalletArgs): Promise<AddCardToWalletResult>
 }
 
@@ -113,14 +111,4 @@ export async function clearWalletCardForWallet(): Promise<void> {
 /** Drop the direct Wallet credential when the rollout is disabled. */
 export async function clearWalletAuthorizationToken(): Promise<void> {
     await PushProvisioning.call('clearWalletAuthorizationToken', {}, () => undefined)
-}
-
-/** Cache the current short-lived step-up proof for a direct Wallet invocation. */
-export async function syncWalletStepUpToken(token: string, expiresIn: number): Promise<void> {
-    await PushProvisioning.call('setWalletStepUpToken', { token, expiresIn }, () => undefined)
-}
-
-/** Drop the extension copy when the in-app step-up proof is invalidated. */
-export async function clearWalletStepUpToken(): Promise<void> {
-    await PushProvisioning.call('clearWalletStepUpToken', {}, () => undefined)
 }

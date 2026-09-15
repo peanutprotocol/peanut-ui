@@ -13,17 +13,9 @@ enum WalletExtensionAuth {
     private static let service = "me.peanut.wallet.wallet-extension"
     private static let sessionAccount = "session"
     private static let authorizationAccount = "wallet-authorization"
-    private static let stepUpAccount = "step-up"
 
     private static var accessGroup: String? {
         Bundle.main.object(forInfoDictionaryKey: accessGroupInfoKey) as? String
-    }
-
-    static func saveStepUpToken(_ token: String, expiresIn: Int) {
-        let payload = CredentialPayload(token: token, expiresAt: Date().timeIntervalSince1970 + Double(expiresIn))
-        guard let data = try? JSONEncoder().encode(payload),
-              let encoded = String(data: data, encoding: .utf8) else { return }
-        save(encoded, account: stepUpAccount)
     }
 
     static func saveAuthorizationToken(_ token: String, expiresIn: Int) {
@@ -46,17 +38,6 @@ enum WalletExtensionAuth {
             kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
         ]
         _ = SecItemAdd(query as CFDictionary, nil)
-    }
-
-    static func stepUpToken() -> String? {
-        guard let encoded = read(account: stepUpAccount),
-              let data = encoded.data(using: .utf8),
-              let payload = try? JSONDecoder().decode(CredentialPayload.self, from: data),
-              payload.expiresAt - 30 > Date().timeIntervalSince1970 else {
-            deleteStepUpToken()
-            return nil
-        }
-        return payload.token
     }
 
     static func authorizationToken() -> String? {
@@ -88,10 +69,6 @@ enum WalletExtensionAuth {
 
     static func deleteSessionToken() {
         delete(account: sessionAccount)
-    }
-
-    static func deleteStepUpToken() {
-        delete(account: stepUpAccount)
     }
 
     static func deleteAuthorizationToken() {

@@ -835,24 +835,21 @@ one-time signing-material setup, secrets table, and manual App Store promotion.
 ### Compiled capability gate (TASK-22282)
 
 Production Android releases require both MeaWallet Nexus credentials and the
-MeaWallet config. Production iOS archives compile with
-`PEANUT_REQUIRE_PUSH_PROVISIONING`; compilation fails if the SDK cannot be imported.
-The iOS sync step uses `MEAWALLET_NEXUS_USER_IOS` and
-`MEAWALLET_NEXUS_PASSWORD_IOS`. The archive also requires the iOS encrypted
-config in `MEAWALLET_CONFIG_BASE64_IOS`; the Xcode build phase refuses a missing
-or empty config and copies it into the app and issuer-extension bundles. The
-issuer and authorization UI extensions are embedded in the app and share only
-non-sensitive card metadata plus OS-protected session credentials. Local builds
-can still use the stub.
+MeaWallet config. Production iOS releases require those credentials and config
+only when `IOS_WALLET_PROVISIONING_ENABLED=true`. Enabled archives compile with
+`PEANUT_REQUIRE_PUSH_PROVISIONING`; compilation fails if the SDK cannot be
+imported. Before Apple approval, the workflow passes no MeaWallet credentials,
+skips the config/profile requirements, removes the Wallet extension
+dependencies and embed phase from the release project, and ships the ordinary
+app. Local builds can still use the stub.
 
 ### Apple Pay issuer-provisioning gate
 
 Apple must approve `com.apple.developer.payment-pass-provisioning` for the app,
 the issuer extension, and the authorization UI extension. The entitlement is
-committed in all three targets so the signed archive is explicit, but it is not
-effective until Apple Developer portal App IDs and the corresponding profiles
-contain it. The iOS workflow therefore requires these additional secrets after
-approval:
+committed in all three source targets, but is omitted from release builds while
+`IOS_WALLET_PROVISIONING_ENABLED` is false. After approval, set that variable
+and provide these additional secrets:
 
 - `IOS_WALLET_EXTENSION_PROVISIONING_PROFILE_BASE64`
 - `IOS_WALLET_EXTENSION_UI_PROVISIONING_PROFILE_BASE64`
@@ -868,6 +865,5 @@ addition to the source fingerprint. Older tags and manually created tags lack
 this evidence and cannot serve as OTA floors. Run App Release Android & iOS to establish
 a compatible floor; do not add an attestation to an unverified old tag.
 
-This gate intentionally blocks new native releases until the MeaWallet SDK
-setup is complete. It proves SDK compilation, not vendor activation or Apple
-entitlements. Those remain separate launch checks.
+The enabled archive gate proves SDK compilation and profile entitlements, not
+vendor activation or Apple launch readiness. Those remain separate launch checks.

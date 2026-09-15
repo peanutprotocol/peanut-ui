@@ -18,8 +18,8 @@ name: App Release iOS
 #   APPLE_TEAM_ID                                  Apple Developer team id
 #   IOS_DIST_CERT_P12_BASE64 / IOS_DIST_CERT_PASSWORD   Apple Distribution cert (.p12, base64) + its password
 #   IOS_PROVISIONING_PROFILE_BASE64                App Store provisioning profile (.mobileprovision, base64)
-#   IOS_WALLET_EXTENSION_PROVISIONING_PROFILE_BASE64      issuer extension profile
-#   IOS_WALLET_EXTENSION_UI_PROVISIONING_PROFILE_BASE64   authorization UI extension profile
+#   IOS_WALLET_EXTENSION_PROVISIONING_PROFILE_BASE64      issuer extension profile (when enabled)
+#   IOS_WALLET_EXTENSION_UI_PROVISIONING_PROFILE_BASE64   authorization UI profile (when enabled)
 #   SUBMODULE_TOKEN                                read access to the src/content submodule
 # Plus the production NEXT_PUBLIC_* the static export bakes in (see the env step).
 
@@ -199,13 +199,14 @@ jobs:
                   # postsync stamps project.pbxproj; without this it would stamp
                   # package.json's version, which no longer tracks releases.
                   IOS_MARKETING_VERSION: ${{ steps.version.outputs.name }}
-                  MEAWALLET_NEXUS_USER: ${{ secrets.MEAWALLET_NEXUS_USER_IOS }}
-                  MEAWALLET_NEXUS_PASSWORD: ${{ secrets.MEAWALLET_NEXUS_PASSWORD_IOS }}
+                  MEAWALLET_NEXUS_USER: ${{ vars.IOS_WALLET_PROVISIONING_ENABLED == 'true' && secrets.MEAWALLET_NEXUS_USER_IOS || '' }}
+                  MEAWALLET_NEXUS_PASSWORD: ${{ vars.IOS_WALLET_PROVISIONING_ENABLED == 'true' && secrets.MEAWALLET_NEXUS_PASSWORD_IOS || '' }}
               run: |
                   node scripts/native-build.js && npx cap sync ios
                   if [ -f scripts/native-ios-postsync.js ]; then node scripts/native-ios-postsync.js; fi
 
             - name: Write MeaWallet config
+              if: ${{ vars.IOS_WALLET_PROVISIONING_ENABLED == 'true' }}
               env:
                   MEA_CONFIG: ${{ secrets.MEAWALLET_CONFIG_BASE64_IOS }}
               run: |
@@ -215,6 +216,10 @@ jobs:
                   fi
                   printf '%s' "$MEA_CONFIG" | base64 --decode > ios/App/App/mea_config
                   test -s ios/App/App/mea_config
+
+            - name: Omit Wallet targets from unentitled release
+              if: ${{ vars.IOS_WALLET_PROVISIONING_ENABLED != 'true' }}
+              run: node scripts/disable-wallet-ios-targets.mjs
 
             - name: Install Apple distribution certificate
               uses: apple-actions/import-codesign-certs@5142e029c445c10ffc7149d172e540235a065466 # v7
@@ -247,6 +252,7 @@ jobs:
 
             - name: Install Wallet extension provisioning profiles
               id: wallet_provision
+              if: ${{ vars.IOS_WALLET_PROVISIONING_ENABLED == 'true' }}
               env:
                   IOS_WALLET_EXTENSION_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_WALLET_EXTENSION_PROVISIONING_PROFILE_BASE64 }}
                   IOS_WALLET_EXTENSION_UI_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_WALLET_EXTENSION_UI_PROVISIONING_PROFILE_BASE64 }}
@@ -282,6 +288,7 @@ jobs:
             - name: Archive & export IPA
               env:
                   APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+                  WALLET_PROVISIONING_ENABLED: ${{ vars.IOS_WALLET_PROVISIONING_ENABLED == 'true' }}
                   PROFILE_NAME: ${{ steps.provision.outputs.name }}
                   WALLET_EXTENSION_PROFILE_NAME: ${{ steps.wallet_provision.outputs.wallet_extension_name }}
                   WALLET_EXTENSION_UI_PROFILE_NAME: ${{ steps.wallet_provision.outputs.wallet_extension_ui_name }}
@@ -304,6 +311,15 @@ jobs:
                   # CURRENT_PROJECT_VERSION is always the CI run number.
                   # Info.plist reads both via $(...) build settings.
                   MARKETING_ARG=("MARKETING_VERSION=$IOS_VERSION_NAME")
+                  WALLET_PROFILE_ENTRIES=''
+                  XCODE_WALLET_ARGS=()
+                  if [ "$WALLET_PROVISIONING_ENABLED" = "true" ]; then
+                      WALLET_PROFILE_ENTRIES='                      <key>me.peanut.wallet.PushProvisioningExtension</key>
+                      <string>${WALLET_EXTENSION_PROFILE_NAME}</string>
+                      <key>me.peanut.wallet.PushProvisioningExtensionUI</key>
+                      <string>${WALLET_EXTENSION_UI_PROFILE_NAME}</string>'
+                      XCODE_WALLET_ARGS+=("SWIFT_ACTIVE_COMPILATION_CONDITIONS=\$(inherited) PEANUT_REQUIRE_PUSH_PROVISIONING")
+                  fi
 
                   cat > /tmp/ExportOptions.plist <<EOF
                   <?xml version="1.0" encoding="UTF-8"?>
@@ -318,12 +334,9 @@ jobs:
                       <string>manual</string>
                       <key>provisioningProfiles</key>
                       <dict>
-                          <key>me.peanut.wallet</key>
-                          <string>${PROFILE_NAME}</string>
-                          <key>me.peanut.wallet.PushProvisioningExtension</key>
-                          <string>${WALLET_EXTENSION_PROFILE_NAME}</string>
-                          <key>me.peanut.wallet.PushProvisioningExtensionUI</key>
-                          <string>${WALLET_EXTENSION_UI_PROFILE_NAME}</string>
+                      <key>me.peanut.wallet</key>
+                      <string>${PROFILE_NAME}</string>
+                  ${WALLET_PROFILE_ENTRIES}
                       </dict>
                       <key>uploadSymbols</key>
                       <true/>
@@ -348,7 +361,7 @@ jobs:
                       CURRENT_PROJECT_VERSION="$IOS_BUILD_NUMBER" \
                       "${MARKETING_ARG[@]}" \
                       SENTRY_DSN="$SENTRY_DSN" \
-                      'SWIFT_ACTIVE_COMPILATION_CONDITIONS=$(inherited) PEANUT_REQUIRE_PUSH_PROVISIONING' \
+                      "${XCODE_WALLET_ARGS[@]}" \
                       archive
 
                   xcodebuild \
@@ -358,6 +371,7 @@ jobs:
                       -exportOptionsPlist /tmp/ExportOptions.plist
 
             - name: Verify push entitlements + Sentry DSN in exported IPA
+              if: ${{ vars.IOS_WALLET_PROVISIONING_ENABLED == 'true' }}
               run: |
                   # Extract into a clean directory. `macos-15` is ephemeral so a stale
                   # /tmp/ipa-check cannot survive today, but unzip without -o prompts on

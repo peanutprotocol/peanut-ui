@@ -53,8 +53,6 @@ jest.mock('@capacitor/preferences', () => ({
 
 jest.mock('../push-provisioning', () => ({
     clearWalletSession: jest.fn(),
-    syncWalletStepUpToken: jest.fn(),
-    clearWalletStepUpToken: jest.fn(),
 }))
 
 const mockIsCapacitor = isCapacitor as jest.MockedFunction<typeof isCapacitor>

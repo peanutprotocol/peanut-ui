@@ -7,15 +7,10 @@ import { apiFetch } from '@/utils/api-fetch'
 import { startAuthentication } from '@simplewebauthn/browser'
 import { CeremonyTimeoutError, guardPasskeyCeremony } from '@/utils/passkeyCeremony.utils'
 import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
-import { clearWalletStepUpToken, syncWalletStepUpToken } from '@/utils/push-provisioning'
 
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: jest.fn() }))
 jest.mock('@/utils/webauthn-ceremony-telemetry', () => ({
     withCeremonyPurpose: jest.fn((_purpose: string, fn: () => Promise<unknown>) => fn()),
-}))
-jest.mock('@/utils/push-provisioning', () => ({
-    clearWalletStepUpToken: jest.fn(),
-    syncWalletStepUpToken: jest.fn(),
 }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false, getNativeRpId: () => 'peanut.me' }))
 // passthrough spy — the suite asserts the ceremony is routed through the guard
@@ -28,8 +23,6 @@ jest.mock('@/utils/passkeyCeremony.utils', () => {
 const mockedFetch = apiFetch as jest.MockedFunction<typeof apiFetch>
 const mockedAuth = startAuthentication as jest.MockedFunction<typeof startAuthentication>
 const mockedGuard = guardPasskeyCeremony as jest.MockedFunction<typeof guardPasskeyCeremony>
-const mockedClearWalletStepUpToken = clearWalletStepUpToken as jest.MockedFunction<typeof clearWalletStepUpToken>
-const mockedSyncWalletStepUpToken = syncWalletStepUpToken as jest.MockedFunction<typeof syncWalletStepUpToken>
 
 function jsonResponse(body: unknown, ok = true, status = 200) {
     return { ok, status, json: async () => body } as Response
@@ -55,8 +48,6 @@ describe('getStepUpToken', () => {
         expect(mockedFetch).toHaveBeenCalledTimes(2)
         expect(mockedFetch.mock.calls[0][0]).toBe('/auth/step-up/options')
         expect(mockedFetch.mock.calls[1][0]).toBe('/auth/step-up/verify')
-        await new Promise((resolve) => setTimeout(resolve, 0))
-        expect(mockedSyncWalletStepUpToken).toHaveBeenCalledWith('proof-token', 300)
     })
 
     it('reuses a live proof instead of prompting again', async () => {
@@ -160,7 +151,6 @@ describe('primeStepUpToken', () => {
         await expect(getStepUpToken()).resolves.toBe('from-login')
         expect(mockedAuth).not.toHaveBeenCalled()
         expect(mockedFetch).not.toHaveBeenCalled()
-        expect(mockedSyncWalletStepUpToken).toHaveBeenCalledWith('from-login', 300)
     })
 
     it('ignores a primed proof inside the expiry margin', async () => {
@@ -170,11 +160,5 @@ describe('primeStepUpToken', () => {
         happyPath('fresh')
         await expect(getStepUpToken()).resolves.toBe('fresh')
         expect(mockedAuth).toHaveBeenCalledTimes(1)
-    })
-
-    it('clears the native step-up mirror when the cached proof is invalidated', async () => {
-        clearStepUpToken()
-        await new Promise((resolve) => setTimeout(resolve, 0))
-        expect(mockedClearWalletStepUpToken).toHaveBeenCalled()
     })
 })

@@ -5,11 +5,9 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import { rainApi } from '@/services/rain'
 import { isIOSNative } from '@/utils/capacitor'
-import { getCachedStepUpToken } from '@/services/step-up-cache'
 import {
     addCardToWallet,
     getPushProvisioningAvailability,
-    rememberCardForWallet,
     PUSH_PROVISIONING_FLAG,
     syncWalletAuthorizationToken,
     type AddCardToWalletResult,
@@ -45,26 +43,7 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
             setNativeAvailable(false)
             return
         }
-        void rememberCardForWallet({ peanutCardId: card.id, last4: card.last4 }).then(async () => {
-            // Bootstrap the extension grant when the card is mirrored. This
-            // lets Wallet start from its own UI, while the endpoint returns no
-            // PAN-equivalent credentials and still requires step-up auth.
-            const cachedStepUpToken = getCachedStepUpToken()
-            if (cachedStepUpToken) {
-                try {
-                    const authorization = await rainApi.getProvisioningAuthorization(card.id, 'apple', {
-                        stepUpToken: cachedStepUpToken,
-                    })
-                    await syncWalletAuthorizationToken(
-                        authorization.walletAuthorizationToken,
-                        authorization.walletAuthorizationExpiresIn
-                    )
-                } catch {
-                    // An expired cached proof or an older API binary must not
-                    // hide the in-app row; Add to Wallet can retry step-up.
-                }
-            }
-            const { available, alreadyInWallet } = await getPushProvisioningAvailability(card.last4)
+        void getPushProvisioningAvailability(card.last4).then(({ available, alreadyInWallet }) => {
             if (!cancelled) setNativeAvailable(available && !alreadyInWallet)
         })
         return () => {

@@ -1,22 +1,32 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { useWalletProvisioningLifecycle } from '../useWalletProvisioningLifecycle'
+import { rainApi } from '@/services/rain'
 import { isIOSNative } from '@/utils/capacitor'
 import {
     clearLegacyWalletSessionForWallet,
     clearWalletAuthorizationToken,
     clearWalletCardForWallet,
+    rememberCardForWallet,
+    syncWalletAuthorizationToken,
 } from '@/utils/push-provisioning'
 
 const mockedFlag = jest.fn()
 const mockedFlagsLoaded = jest.fn()
+const mockedOverview = jest.fn()
+const mockedCachedStepUpToken = jest.fn()
 
 jest.mock('@/hooks/useFeatureFlag', () => ({ useFeatureFlags: () => mockedFlag }))
 jest.mock('@/utils/featureFlag.utils', () => ({ areFeatureFlagsLoaded: () => mockedFlagsLoaded() }))
+jest.mock('@/hooks/useRainCardOverview', () => ({ useRainCardOverview: () => mockedOverview() }))
+jest.mock('@/services/rain', () => ({ rainApi: { getProvisioningAuthorization: jest.fn() } }))
+jest.mock('@/services/step-up-cache', () => ({ getCachedStepUpToken: () => mockedCachedStepUpToken() }))
 jest.mock('@/utils/capacitor', () => ({ isIOSNative: jest.fn() }))
 jest.mock('@/utils/push-provisioning', () => ({
     clearLegacyWalletSessionForWallet: jest.fn(),
     clearWalletAuthorizationToken: jest.fn(),
     clearWalletCardForWallet: jest.fn(),
+    rememberCardForWallet: jest.fn(),
+    syncWalletAuthorizationToken: jest.fn(),
     PUSH_PROVISIONING_FLAG: 'push-provisioning',
 }))
 
@@ -28,6 +38,19 @@ const mockedClearAuthorization = clearWalletAuthorizationToken as jest.MockedFun
     typeof clearWalletAuthorizationToken
 >
 const mockedClearCard = clearWalletCardForWallet as jest.MockedFunction<typeof clearWalletCardForWallet>
+const mockedRememberCard = rememberCardForWallet as jest.MockedFunction<typeof rememberCardForWallet>
+const mockedSyncAuthorization = syncWalletAuthorizationToken as jest.MockedFunction<typeof syncWalletAuthorizationToken>
+const mockedGetAuthorization = rainApi.getProvisioningAuthorization as jest.MockedFunction<
+    typeof rainApi.getProvisioningAuthorization
+>
+
+const overviewWithCard = (id: string) => ({
+    overview: {
+        status: { hasApplication: true },
+        balance: null,
+        cards: [{ id, last4: id === 'card-a' ? '1111' : '2222', status: 'ACTIVE' }],
+    },
+})
 
 describe('useWalletProvisioningLifecycle', () => {
     beforeEach(() => {
@@ -35,6 +58,8 @@ describe('useWalletProvisioningLifecycle', () => {
         mockedIsIOS.mockReturnValue(true)
         mockedFlag.mockReturnValue(false)
         mockedFlagsLoaded.mockReturnValue(true)
+        mockedOverview.mockReturnValue({ overview: null })
+        mockedCachedStepUpToken.mockReturnValue('cached-step-up')
     })
 
     it('clears legacy sessions and disabled rollout state globally', async () => {
@@ -91,5 +116,57 @@ describe('useWalletProvisioningLifecycle', () => {
         rerender()
         await waitFor(() => expect(mockedClearAuthorization).toHaveBeenCalled())
         expect(mockedClearCard).toHaveBeenCalledTimes(1)
+    })
+
+    it('bootstraps from an app-wide card overview without prompting', async () => {
+        mockedFlag.mockReturnValue(true)
+        mockedOverview.mockReturnValue(overviewWithCard('card-a'))
+        mockedGetAuthorization.mockResolvedValue({
+            walletAuthorizationToken: 'grant-a',
+            walletAuthorizationExpiresIn: 2_592_000,
+        })
+
+        renderHook(() => useWalletProvisioningLifecycle())
+
+        await waitFor(() => expect(mockedRememberCard).toHaveBeenCalledWith({ peanutCardId: 'card-a', last4: '1111' }))
+        await waitFor(() => expect(mockedSyncAuthorization).toHaveBeenCalledWith('grant-a', 2_592_000))
+        expect(mockedGetAuthorization).toHaveBeenCalledWith('card-a', 'apple', { stepUpToken: expect.any(String) })
+    })
+
+    it('only mirrors metadata globally when no step-up proof is cached', async () => {
+        mockedFlag.mockReturnValue(true)
+        mockedCachedStepUpToken.mockReturnValue(null)
+        mockedOverview.mockReturnValue(overviewWithCard('card-a'))
+
+        renderHook(() => useWalletProvisioningLifecycle())
+
+        await waitFor(() => expect(mockedRememberCard).toHaveBeenCalledWith({ peanutCardId: 'card-a', last4: '1111' }))
+        expect(mockedGetAuthorization).not.toHaveBeenCalled()
+        expect(mockedSyncAuthorization).not.toHaveBeenCalled()
+    })
+
+    it('does not let a stale card authorization overwrite the replacement card grant', async () => {
+        mockedFlag.mockReturnValue(true)
+        mockedOverview.mockReturnValue(overviewWithCard('card-a'))
+        let resolveA!: (value: { walletAuthorizationToken: string; walletAuthorizationExpiresIn: number }) => void
+        let resolveB!: (value: { walletAuthorizationToken: string; walletAuthorizationExpiresIn: number }) => void
+        mockedGetAuthorization
+            .mockReturnValueOnce(new Promise((resolve) => (resolveA = resolve)))
+            .mockReturnValueOnce(new Promise((resolve) => (resolveB = resolve)))
+
+        const { rerender } = renderHook(() => useWalletProvisioningLifecycle())
+        await waitFor(() => expect(mockedGetAuthorization).toHaveBeenCalledWith('card-a', 'apple', expect.anything()))
+
+        mockedOverview.mockReturnValue(overviewWithCard('card-b'))
+        rerender()
+        await waitFor(() => expect(mockedGetAuthorization).toHaveBeenCalledWith('card-b', 'apple', expect.anything()))
+
+        resolveB({ walletAuthorizationToken: 'grant-b', walletAuthorizationExpiresIn: 2_592_000 })
+        await waitFor(() => expect(mockedSyncAuthorization).toHaveBeenCalledWith('grant-b', 2_592_000))
+        resolveA({ walletAuthorizationToken: 'grant-a', walletAuthorizationExpiresIn: 2_592_000 })
+        await Promise.resolve()
+
+        expect(mockedSyncAuthorization).toHaveBeenCalledTimes(1)
+        expect(mockedSyncAuthorization).toHaveBeenLastCalledWith('grant-b', 2_592_000)
     })
 })
