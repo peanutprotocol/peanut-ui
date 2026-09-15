@@ -1586,6 +1586,7 @@
         "page": {
             "loadFailed": "Failed to load card info. Please try again.",
             "applyFailed": "Failed to apply for card",
+            "issueFailed": "Your application was approved, but we couldn't create your card. Please try again.",
             "confirmCountryFailed": "Failed to confirm country",
             "setupCancelled": "Setup cancelled — please try again.",
             "setupFailed": "Could not complete setup — please try again.",

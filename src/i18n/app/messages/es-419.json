@@ -1586,6 +1586,7 @@
         "page": {
             "loadFailed": "No se pudo cargar la información de la tarjeta. Inténtalo de nuevo.",
             "applyFailed": "No se pudo solicitar la tarjeta",
+            "issueFailed": "Tu solicitud fue aprobada, pero no pudimos crear tu tarjeta. Inténtalo de nuevo.",
             "confirmCountryFailed": "No se pudo confirmar el país",
             "setupCancelled": "Configuración cancelada — inténtalo de nuevo.",
             "setupFailed": "No se pudo completar la configuración — inténtalo de nuevo.",

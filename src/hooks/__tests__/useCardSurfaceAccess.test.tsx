@@ -37,6 +37,11 @@ describe('public card surfaces', () => {
     it('keeps the card entry available while geography loads', () => {
         expect(setup({ loading: true }).showCardSurface).toBe(true)
     })
+    it('withholds the spend promise while geography loads, unless a card is issued', () => {
+        // loading must not read as "not prohibited" — no spend-arm flash
+        expect(setup({ loading: true }).canSpendPathViaCard).toBe(false)
+        expect(setup({ loading: true, cardStatuses: ['ACTIVE'] }).canSpendPathViaCard).toBe(true)
+    })
     it.each([{ geoProhibited: true }, { restrictedCard: true }])(
         'hides a known prohibited residence: %p',
         (scenario) => {
