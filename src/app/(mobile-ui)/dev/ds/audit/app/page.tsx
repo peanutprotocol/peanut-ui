@@ -22,7 +22,7 @@ export default function AppDivergencesPage() {
                     <code className="rounded-sm bg-foreground-primary/10 px-1">/dev</code> and tests removed. A lot of
                     &ldquo;design system&rdquo; exists in code but is rendered on{' '}
                     <span className="rounded-sm bg-foreground-primary/10 px-1">zero</span> app screens (e.g.{' '}
-                    <code className="rounded-sm bg-foreground-primary/10 px-1">bg-peanut-repeat-*</code>, the{' '}
+                    <code className="rounded-sm bg-foreground-primary/10 px-1">bg-peanut-repeat-normal</code>, the{' '}
                     <code className="rounded-sm bg-foreground-primary/10 px-1">Title</code> primitive). Those are
                     labeled <span className="rounded-sm bg-foreground-primary/10 px-1">showcase-only</span> /{' '}
                     <span className="rounded-sm bg-foreground-primary/10 px-1">dead</span>.

@@ -28,7 +28,7 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
         category: 'Primitives & Backgrounds',
         layer: 'primitives',
         summary:
-            'src/components/0_Bruddle/ has grown from 10 files to 21. Ten primitives are new since the June sweep (LinkButton, Accordion, ProgressBar, SegmentedControl, CarouselDots, Notification, SlideToConfirm, Toggle, ListItem, IconBubble, plus the split-out ToastStack) and three of them are already among the most-rendered components in the product: Notification (99 call-sites, imported by 60 product files), ListItem (38) and LinkButton (20). No 0_Bruddle barrel exists, so imports cannot hide. Counts are grep occurrences in src/**/*.{ts,tsx,css}; realUsages excludes /dev routes, __tests__ and *.test.*, devUsages is the remainder. Two June findings survive re-testing unchanged: Title still has exactly ONE product consumer (MarketingHero) against 8 /dev references, so it is still a Marketing-only decorative primitive parked in the shared DS; and the bg-peanut-repeat-* backgrounds still render on ZERO product screens — the only non-/dev matches are the class definitions in globals.css and the twMerge group config in utils/tw.ts. public/bg.svg is still orphaned. New this round: CloudsBackground dropped to 2 call-sites and both still pass `minimal`, so the full cloud config remains a dead branch; Accordion has 24 /dev references against a single product consumer (BridgeLimitsView), which makes it the most showcase-heavy of the new primitives.',
+            'src/components/0_Bruddle/ has grown from 10 files to 21. Ten primitives are new since the June sweep (LinkButton, Accordion, ProgressBar, SegmentedControl, CarouselDots, Notification, SlideToConfirm, Toggle, ListItem, IconBubble, plus the split-out ToastStack) and three of them are already among the most-rendered components in the product: Notification (99 call-sites, imported by 60 product files), ListItem (38) and LinkButton (20). No 0_Bruddle barrel exists, so imports cannot hide. Counts are grep occurrences in src/**/*.{ts,tsx,css}; realUsages excludes /dev routes, __tests__ and *.test.*, devUsages is the remainder. Two June findings survive re-testing unchanged: Title still has exactly ONE product consumer (MarketingHero) against 8 /dev references, so it is still a Marketing-only decorative primitive parked in the shared DS; and bg-peanut-repeat-normal still renders on ZERO product screens. Its only non-/dev matches are the CSS definition and the twMerge conflict group. The undocumented large and small variants were removed. public/bg.svg is still orphaned. New this round: CloudsBackground dropped to 2 call-sites and both still pass `minimal`, so the full cloud config remains a dead branch; Accordion has 24 /dev references against a single product consumer (BridgeLimitsView), which makes it the most showcase-heavy of the new primitives.',
         items: [
             {
                 name: 'Button (0_Bruddle/Button)',
@@ -319,13 +319,13 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                 verified: true,
             },
             {
-                name: 'bg-peanut-repeat-{normal,large,small} (component classes)',
-                realUsages: 4,
-                devUsages: 3,
+                name: 'bg-peanut-repeat-normal (component class)',
+                realUsages: 2,
+                devUsages: 1,
                 status: 'showcase-only',
-                source: 'src/styles/globals.css:1013-1021',
+                source: 'src/styles/globals.css:973 + src/utils/tw.ts:93',
                 divergence:
-                    'SUSPICION RE-CONFIRMED AFTER THE TAILWIND 4 MIGRATION. Re-sourced from the deleted tailwind.config.js to globals.css:1013-1021. All 4 non-/dev matches are plumbing, not renders: 3 are the class definitions themselves in globals.css and 1 is the twMerge conflict-group registration in utils/tw.ts. ZERO product screens render the waving-peanut background that CLAUDE.md documents as the product background. Everything else is /dev/ds/foundations/colors, the audit pages and the twMerge unit test.',
+                    'Mono documents this background, but no product screen renders it. Its two non-/dev matches are the CSS definition and the twMerge conflict group. The undocumented large and small variants were removed.',
                 verified: true,
             },
             {
