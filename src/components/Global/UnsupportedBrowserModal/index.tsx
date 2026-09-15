@@ -7,35 +7,7 @@ import { copyTextToClipboard } from '@/utils/clipboard.utils'
 import { useEffect, useState, Suspense, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
-import { usePasskeySupportContext } from '@/context/passkeySupportContext'
-
-export const inAppSignatures = [
-    // removed 'WebView' and 'Android.*wv' — too broad, matches capacitor's webview
-    // specific app signatures below catch the actual problem apps
-    '(iPhone|iPod|iPad)(?!.*Safari\\/)', // iOS WebView (non-safari)
-    'FBAN', // Facebook App
-    'FBAV', // Facebook App
-    'Instagram', // Instagram App
-    'Twitter', // Twitter App
-    'Snapchat', // Snapchat App
-    'Line', // LINE App
-    'WhatsApp', // WhatsApp
-    'WeChat', // WeChat
-    'TelegramBot', // Telegram bot WebView
-    'Telegram', // Telegram in-app
-    'TelegramWebApp', // Telegram Web App
-    'Puffin', // Puffin browser (non-standard)
-    'Discord', // Discord in-app browser
-    'TikTok', // TikTok App
-    'Messenger', // Facebook Messenger
-    'Viber', // Viber App
-    'Reddit', // Reddit App
-    'Pinterest', // Pinterest App
-    'LinkedInApp', // LinkedIn in-app
-    'SnapKit', // Snapchat Kit
-    'Instagram 100.', // Instagram WebView variant
-    'Electron', // Electron App
-]
+import { isLikelyWebview } from '@/components/Setup/Setup.utils'
 
 const UnsupportedBrowserModalContent = ({
     allowClose = true,
@@ -49,14 +21,15 @@ const UnsupportedBrowserModalContent = ({
     const [showInAppBrowserModalViaDetection, setShowInAppBrowserModalViaDetection] = useState(false)
     const [hasCopied, setHasCopied] = useState(false)
     const toast = useToast()
-    const { isSupported: isPasskeySupported, isLoading: isLoadingPasskeySupport } = usePasskeySupportContext()
     const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
     useEffect(() => {
-        if (!isPasskeySupported && !isLoadingPasskeySupport) {
-            setShowInAppBrowserModalViaDetection(true)
-        }
-    }, [isPasskeySupported, isLoadingPasskeySupport])
+        // This modal tells people to leave an in-app browser. Do not use
+        // conditional-mediation/passkey-autofill support as a proxy: it is an
+        // optional WebAuthn feature and can be false in supported Chrome and
+        // Safari sessions.
+        setShowInAppBrowserModalViaDetection(isLikelyWebview())
+    }, [])
 
     // Cleanup timeout on unmount to prevent memory leak
     useEffect(() => {
