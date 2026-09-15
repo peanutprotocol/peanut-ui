@@ -105,6 +105,14 @@ export const HoldToClaimButton: FC<Props> = ({
                 style={{ width: `${holdProgress}%`, left: 0 }}
             />
             <span className="relative z-10">{children}</span>
+            {/* white copy of the label clipped to the fill so the text stays
+                readable over the black overlay — matches the QR-claim button */}
+            <span
+                className="absolute inset-0 z-20 flex items-center justify-center text-white transition-all duration-instant"
+                style={{ clipPath: `inset(0 ${100 - holdProgress}% 0 0)` }}
+            >
+                {children}
+            </span>
         </Button>
     )
 }

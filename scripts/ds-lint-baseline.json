@@ -1,27 +1,27 @@
 {
     "rawHex": 8,
     "rawHexFiles": 5,
-    "inlineStyle": 21,
+    "inlineStyle": 22,
     "stockTextSize": 0,
-    "dsTextScale": 11,
+    "dsTextScale": 8,
     "nonDsClassesInViews": 6,
-    "useSearchParamsFiles": 44,
-    "nuqsFiles": 25,
+    "useSearchParamsFiles": 34,
+    "nuqsFiles": 37,
     "legacyColorClasses": 0,
     "offRampPalette": 0,
     "deadLegacyTokens": 0,
     "consumedUndefinedTokens": 0,
-    "classNameSitesInPages": 298,
-    "fontWeightOnTypeToken": 45,
-    "offScaleSpacing": 188,
-    "iconOffScale": 68,
-    "offScaleRadius": 37,
-    "rawDuration": 6,
+    "classNameSitesInPages": 127,
+    "fontWeightOnTypeToken": 44,
+    "offScaleSpacing": 139,
+    "iconOffScale": 65,
+    "offScaleRadius": 25,
+    "rawDuration": 2,
     "retypedCardLiteral": 16,
-    "hoverNoActiveFiles": 44,
-    "arbitraryFontSize": 110,
-    "rawErrorText": 25,
-    "handRolledCloseGlyphFiles": 9,
+    "hoverNoActiveFiles": 35,
+    "arbitraryFontSize": 32,
+    "rawErrorText": 23,
+    "handRolledCloseGlyphFiles": 8,
     "_meta": [
         {
             "date": "2026-09-01",
@@ -62,6 +62,11 @@
             "date": "2026-09-07",
             "metrics": ["fontWeightOnTypeToken 46 -> 45"],
             "reason": "PR #3004 semantic contract: conditional branches are alternatives in all contexts. The only per-file count change is dev/_components/DevSegmented.tsx: font-bold in the small branch never co-applies with text-label-m in the other branch. CVA support is explicitly deferred with a diagnostic; there are no src consumers and its removal changes no counts. See scripts/ds-lint-contract.md."
+        },
+        {
+            "date": "2026-09-15",
+            "metrics": ["inlineStyle 21 -> 22"],
+            "reason": "HoldToClaimButton clipped-white label: dynamic clipPath percent must be inline (same pattern as QrPaySuccessView), TASK-22452"
         }
     ]
 }

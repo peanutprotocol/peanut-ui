@@ -290,7 +290,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                             type="number"
                             // h-5 pins the field to its own line box so the skeleton
                             // it swaps with is exactly as tall
-                            className="h-5 w-full bg-transparent text-body-m-semibold text-foreground-primary outline-none"
+                            className="h-5 w-full rounded-xs bg-transparent text-body-m-semibold text-foreground-primary outline-action-focus focus:outline-[3px] focus:outline-action-focus focus:outline-solid"
                         />
                     )}
                     <CurrencySelect
@@ -353,7 +353,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                             type="number"
                             // h-5 pins the field to its own line box so the skeleton
                             // it swaps with is exactly as tall
-                            className="h-5 w-full bg-transparent text-body-m-semibold text-foreground-primary outline-none"
+                            className="h-5 w-full rounded-xs bg-transparent text-body-m-semibold text-foreground-primary outline-action-focus focus:outline-[3px] focus:outline-action-focus focus:outline-solid"
                         />
                     )}
                     <CurrencySelect

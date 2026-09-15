@@ -64,12 +64,13 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                 !isEnabled && 'cursor-not-allowed opacity-70',
                 className
             )}
-            onClick={isEnabled ? onClick : undefined}
         >
             <Card
                 position={position}
+                onClick={isEnabled ? onClick : undefined}
+                aria-disabled={!isEnabled || undefined}
                 className={twMerge(
-                    '!overflow-visible border border-border-default p-4 shadow-4',
+                    '!overflow-visible border border-border-default p-4 shadow-4 focus-visible:outline-[3px] focus-visible:outline-action-focus',
                     isSelected ? 'bg-purple-200' : 'bg-background-default',
                     !isEnabled && 'bg-background-disabled'
                 )}

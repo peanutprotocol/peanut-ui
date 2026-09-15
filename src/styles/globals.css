@@ -894,7 +894,7 @@
     /* board sizes: l=48px, m=44px (default, on .btn), s=40px visual with a
        pseudo-element extending the hit area to 44px (touch-target law). */
     .btn-small {
-        @apply relative h-10 px-2 text-button-s after:absolute after:inset-x-0 after:-inset-y-0.5;
+        @apply relative h-10 px-2 text-button-s after:absolute after:-inset-0.5;
     }
     .btn-medium {
         @apply h-11 px-3 text-button-m;

@@ -218,12 +218,13 @@ export function RewardsPage() {
                         <p className="text-center text-body-s">
                             {user?.invitedBy && (
                                 <>
-                                    <span
+                                    <button
+                                        type="button"
                                         onClick={() => router.push(profileUrl(user.invitedBy!))}
-                                        className="inline-flex cursor-pointer items-center gap-1 font-bold"
+                                        className="inline-flex cursor-pointer items-center gap-1 font-bold focus-visible:outline-[3px] focus-visible:outline-action-focus"
                                     >
                                         {user.invitedBy} <Icon name="invite-heart" size={16} />
-                                    </span>{' '}
+                                    </button>{' '}
                                     {t('invitedYou')}{' '}
                                 </>
                             )}
@@ -237,13 +238,14 @@ export function RewardsPage() {
                 {invites && invites?.invitees && invites.invitees.length > 0 ? (
                     <>
                         {/* people you invited */}
-                        <div
-                            className="flex cursor-pointer items-center justify-between"
+                        <button
+                            type="button"
+                            className="flex w-full cursor-pointer items-center justify-between text-left focus-visible:outline-[3px] focus-visible:outline-action-focus"
                             onClick={() => router.push('/rewards/invites')}
                         >
                             <h2 className="text-heading-card text-foreground-primary">{t('peopleYouInvited')}</h2>
                             <NavigationArrow className="text-foreground-primary" />
-                        </div>
+                        </button>
 
                         <div ref={inviteesRef}>
                             {invites.invitees?.slice(0, 5).map((invite: PointsInvite, i: number) => {
@@ -258,7 +260,7 @@ export function RewardsPage() {
                                         key={invite.inviteeId}
                                         position={getCardPosition(i, Math.min(5, invites.invitees.length))}
                                         onClick={() => router.push(profileUrl(username))}
-                                        className="cursor-pointer"
+                                        className="cursor-pointer focus-visible:outline-[3px] focus-visible:outline-action-focus"
                                     >
                                         <div className="flex items-center justify-between gap-4">
                                             <div className="flex items-center gap-3">

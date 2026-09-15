@@ -68,6 +68,9 @@ const Card: React.FC<CardProps> = ({
     const interactive = !!onClick
     const defaultKeyDown: React.KeyboardEventHandler<HTMLDivElement> | undefined = interactive
         ? (e) => {
+              // only act on keys pressed on the card itself — nested interactive
+              // children (buttons, links) keep their own enter/space behavior
+              if (e.target !== e.currentTarget) return
               if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault()
                   onClick()

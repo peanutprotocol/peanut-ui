@@ -171,7 +171,7 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                             placeholder={t('cancel.feedbackPlaceholder')}
                             rows={4}
                             maxLength={2000}
-                            className="w-full resize-none rounded-sm border border-border-default bg-background-default p-3 text-body-s focus:outline-none"
+                            className="w-full resize-none rounded-sm border border-border-default bg-background-default p-3 text-body-s outline-action-focus focus:border-transparent focus:outline-[3px] focus:outline-action-focus focus:outline-solid"
                             disabled={phase === 'submitting-feedback'}
                         />
                     </div>

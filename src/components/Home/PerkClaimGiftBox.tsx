@@ -64,7 +64,15 @@ export function PerkClaimGiftBox({ perk, onHoldComplete, claimPhase }: PerkClaim
                 />
 
                 {/* Gift box container */}
-                <div {...buttonProps} className="relative cursor-pointer touch-none select-none">
+                {/* not a <button>: the gift box holds block content (divs); keyboard
+                    handlers come from useHoldToClaim's buttonProps */}
+                <div
+                    {...buttonProps}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={t('holdToUnwrap')}
+                    className="relative cursor-pointer touch-none rounded-xl select-none focus-visible:outline-[3px] focus-visible:outline-action-focus"
+                >
                     {/* Gift box */}
                     <div
                         className={`gift-box-shine relative h-32 w-44 overflow-hidden rounded-xl border-4 border-action-primary bg-gradient-to-br from-action-primary/20 via-white to-action-primary/20 shadow-xl transition-transform ${holdProgress > 0 ? 'scale-[0.98]' : ''}`}
