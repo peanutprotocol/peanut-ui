@@ -217,7 +217,9 @@ const SignTestTransaction = () => {
                 creatingAccountRef.current = true
                 const success = await finalizeAccountSetup(address)
                 if (!success) {
-                    console.error('[SignTestTransaction] Failed to finalize account setup')
+                    // The request layer already recorded the concrete failure;
+                    // avoid another console-captured wrapper event here.
+                    console.info('[SignTestTransaction] Account setup remains retryable')
                     setError(setupError || t('testTransaction.errors.setupFailed'))
                     setIsSigning(false)
                     setSetupLoading(false)

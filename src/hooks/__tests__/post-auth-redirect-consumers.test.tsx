@@ -4,6 +4,9 @@ import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import { getRedirectUrl, saveRedirectUrl, saveToLocalStorage, setRedirectUrl } from '@/utils/general.utils'
 import { useAccountSetup } from '../useAccountSetup'
 import { useLogin } from '../useLogin'
+import { clearAuthState } from '@/utils/auth.utils'
+import { AccountSetupError } from '@/services/account-setup'
+import * as Sentry from '@sentry/nextjs'
 
 const mockRouterPush = jest.fn()
 const mockRouterReplace = jest.fn()
@@ -35,7 +38,11 @@ jest.mock('@/components/0_Bruddle/Toast', () => ({
 }))
 
 jest.mock('@/utils/auth.utils', () => ({ clearAuthState: jest.fn() }))
-jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), captureMessage: jest.fn() }))
+jest.mock('@sentry/nextjs', () => ({
+    captureException: jest.fn(),
+    captureMessage: jest.fn(),
+    addBreadcrumb: jest.fn(),
+}))
 
 const FINANCIAL_REDIRECT = '/claim?step=claim&id=payment-1'
 const CAMPAIGN_REDIRECT = '/add-money/crypto?network=EVM'
@@ -61,7 +68,7 @@ describe('post-auth redirect consumers', () => {
     })
 
     it('finalizing the account does not navigate — the account-ready screen owns the redirect', async () => {
-        mockAddAccount.mockResolvedValue(undefined)
+        mockAddAccount.mockResolvedValue({ status: 'created', requestAttempts: 1 })
         saveToLocalStorage('redirect', CAMPAIGN_REDIRECT)
         const { result } = renderHook(() => useAccountSetup())
 
@@ -74,6 +81,47 @@ describe('post-auth redirect consumers', () => {
         expect(mockRouterReplace).not.toHaveBeenCalled()
         // the redirect is still queued for the CTA to consume
         expect(getRedirectUrl()).toBe(CAMPAIGN_REDIRECT)
+    })
+
+    it('preserves auth after an ambiguous account-creation failure', async () => {
+        mockAddAccount.mockRejectedValue(
+            new AccountSetupError('Account creation could not be confirmed', {
+                kind: 'retryable',
+                requestAttempts: 2,
+                status: 503,
+            })
+        )
+        const { result } = renderHook(() => useAccountSetup())
+
+        await act(async () => {
+            await expect(result.current.finalizeAccountSetup('0xabc')).resolves.toBe(false)
+        })
+
+        expect(clearAuthState).not.toHaveBeenCalled()
+        expect(Sentry.captureException).not.toHaveBeenCalled()
+        expect(Sentry.addBreadcrumb).toHaveBeenCalledWith(
+            expect.objectContaining({
+                category: 'account-setup',
+                data: expect.objectContaining({ outcome: 'retryable', requestAttempts: 2, status: 503 }),
+            })
+        )
+    })
+
+    it('clears auth after the server proves the credentials are invalid', async () => {
+        mockAddAccount.mockRejectedValue(
+            new AccountSetupError('Account creation credentials are no longer valid', {
+                kind: 'invalid_credentials',
+                requestAttempts: 1,
+                status: 401,
+            })
+        )
+        const { result } = renderHook(() => useAccountSetup())
+
+        await act(async () => {
+            await expect(result.current.finalizeAccountSetup('0xabc')).resolves.toBe(false)
+        })
+
+        expect(clearAuthState).toHaveBeenCalledWith('user-1')
     })
 
     /*
