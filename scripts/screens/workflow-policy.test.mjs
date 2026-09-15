@@ -21,9 +21,11 @@ test('only superseded pull-request captures are cancelled', () => {
 })
 
 test('publisher and deploy Cloudflare credentials remain isolated by scope', () => {
+    const declaredInputs = publisher.slice(0, publisher.indexOf('permissions:'))
     assert.match(screenLibrary, /CLOUDFLARE_PUBLISH_TOKEN: \$\{\{ secrets\.CLOUDFLARE_API_TOKEN \}\}/)
     assert.doesNotMatch(screenLibrary, /^\s+CLOUDFLARE_API_TOKEN:/m)
-    assert.match(publisher, /CLOUDFLARE_API_TOKEN:\n\s+required: false/)
+    assert.doesNotMatch(declaredInputs, /CLOUDFLARE_API_TOKEN:/)
     assert.match(publisher, /environment: screen-library-deploy/)
     assert.match(publisher, /CLOUDFLARE_API_TOKEN: \$\{\{ secrets\.CLOUDFLARE_API_TOKEN \}\}/)
+    assert.match(publisher, /CLOUDFLARE_API_TOKEN is missing from the screen-library-deploy environment/)
 })

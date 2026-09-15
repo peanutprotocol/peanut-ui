@@ -56,9 +56,25 @@ const parseIsoDate = (value) => {
     return Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value ? null : date
 }
 const isoDate = (date) => date.toISOString().slice(0, 10)
-const shortDate = (value) => {
+const shortDateParts = (value) => {
     const date = parseIsoDate(value)
-    return date ? `${date.getUTCDate()} ${MONTHS[date.getUTCMonth()]}` : value
+    return date ? { day: String(date.getUTCDate()), month: MONTHS[date.getUTCMonth()] } : { day: value, month: '' }
+}
+const versionDetails = (entry) => {
+    const channel = entry.path.split('/')[1] ?? ''
+    const pathPr = /^pr-([1-9][0-9]*)$/.exec(channel)
+    const prNumber =
+        Number.isSafeInteger(entry.prNumber) && entry.prNumber > 0 ? entry.prNumber : Number(pathPr?.[1]) || null
+    const branch = entry.branch || (channel.startsWith('dev') ? 'dev' : channel.startsWith('main') ? 'main' : channel)
+    const changedScreens =
+        Number.isSafeInteger(entry.changedScreens) && entry.changedScreens >= 0 ? entry.changedScreens : null
+    const kind =
+        entrySource(entry) === 'nutcracker'
+            ? 'Real journey'
+            : entry.reportType === 'capture' || channel === 'dev' || channel === 'main'
+              ? 'Full library'
+              : 'Changed screens'
+    return { branch, prNumber, changedScreens, kind }
 }
 const asset = (name) => {
     if (!/^[a-f0-9]{64}\.(png|webp)$/.test(name || '')) return null
@@ -293,6 +309,7 @@ function populateSource(entries, selected) {
         if (b === 'synthetic') return 1
         return a.localeCompare(b)
     })
+    $('source-control').hidden = sources.length <= 1
     $('source').replaceChildren(
         ...sources.map((value) => {
             const option = el('option', SOURCE_LABELS[value] ?? value)
@@ -345,9 +362,11 @@ function renderDateStrip(availableEntries) {
             const available = availableDates.has(date)
             const button = el(
                 'button',
-                shortDate(date),
+                undefined,
                 `date-tile${available ? '' : ' unavailable'}${selected === date ? ' active' : ''}`
             )
+            const label = shortDateParts(date)
+            button.append(el('strong', label.day), el('span', label.month))
             button.type = 'button'
             button.disabled = !available
             button.setAttribute(
@@ -393,8 +412,25 @@ function renderLanding() {
         const heading = el('h2', formatCaptureDate(date), 'version-date')
         const grid = el('div', undefined, 'version-grid')
         for (const v of grouped.get(date)) {
-            const a = el('a', `${v.label}${v.complete ? '' : ' · Incomplete'}`, 'version')
+            const details = versionDetails(v)
+            const a = el('a', undefined, 'version')
             a.href = shareableHref(`/screens/${v.path}/`, { source: selectedSource, locale: selected, date: '' }, '')
+            const top = el('div', undefined, 'version-top')
+            top.append(
+                el('span', formatCaptureDate(v.date), 'version-card-date'),
+                el('span', details.kind, 'version-kind')
+            )
+            const branch = el('strong', details.branch || 'Unknown branch', 'version-branch')
+            const meta = el('div', undefined, 'version-meta')
+            if (details.prNumber) meta.append(el('span', `PR #${details.prNumber}`, 'version-pr'))
+            if (!v.complete) meta.append(el('span', 'Incomplete', 'version-incomplete'))
+            const count = el('div', undefined, 'version-count')
+            count.append(
+                el('strong', details.changedScreens === null ? '—' : String(details.changedScreens)),
+                el('span', details.changedScreens === 1 ? 'screen changed' : 'screens changed')
+            )
+            const arrow = el('span', 'Open →', 'version-open')
+            a.append(top, branch, meta, count, arrow)
             grid.append(a)
         }
         group.append(heading, grid)

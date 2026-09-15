@@ -6,10 +6,6 @@ on:
             # standard CLOUDFLARE_API_TOKEN runtime variable below.
             CLOUDFLARE_PUBLISH_TOKEN:
                 required: true
-            # Supplied by the screen-library-deploy environment to the deploy
-            # job; callers do not pass the publisher credential into it.
-            CLOUDFLARE_API_TOKEN:
-                required: false
 permissions:
     contents: read
     actions: read
@@ -113,4 +109,9 @@ jobs:
               env:
                   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
                   CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-              run: scripts/screens/deploy/node_modules/.bin/wrangler deploy --config /tmp/screen-gallery/wrangler.json
+              run: |
+                  if [[ -z "$CLOUDFLARE_API_TOKEN" ]]; then
+                      echo 'CLOUDFLARE_API_TOKEN is missing from the screen-library-deploy environment.' >&2
+                      exit 1
+                  fi
+                  scripts/screens/deploy/node_modules/.bin/wrangler deploy --config /tmp/screen-gallery/wrangler.json
