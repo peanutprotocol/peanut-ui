@@ -114,7 +114,8 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
     // username validation neutral until contact search settles, and leave it
     // neutral when relationship-scoped matches are available.
     const contactSearchCanStillSucceed = isFetchingContacts || contacts.length > 0
-    const validationIsNeutral = (isExactUsernameMiss || isUsernameSyntaxInvalid) && contactSearchCanStillSucceed
+    const exactValidationFailed = isExactUsernameMiss || isUsernameSyntaxInvalid || !!usernameCheckError
+    const validationIsNeutral = exactValidationFailed && contactSearchCanStillSucceed
     const hasDefinitiveSearchMiss = isUsernameSyntaxInvalid || (isExactUsernameMiss && !isUsernameChanging)
 
     return (

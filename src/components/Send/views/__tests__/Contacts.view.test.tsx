@@ -140,6 +140,33 @@ describe('ContactsView exact username entry', () => {
         expect(input.closest('[data-input-container="true"]')).not.toHaveClass('border-border-error')
     })
 
+    it('keeps a contact-name match neutral when the exact lookup is rate-limited', async () => {
+        mockCheckUsername.mockResolvedValue({ status: 'rate-limited', retryAfterSeconds: 3600 })
+        renderContacts([contact({ username: 'globee1', fullName: 'Alice Smith' })])
+        const input = screen.getByRole('textbox', { name: 'Peanut username or contact' })
+
+        fireEvent.change(input, { target: { value: 'alice' } })
+
+        await waitFor(() => expect(mockCheckUsername).toHaveBeenCalledWith('alice'))
+        expect(screen.getByText('Alice Smith')).toBeInTheDocument()
+        expect(screen.queryByText('Too many username checks. Please try again later.')).not.toBeInTheDocument()
+        expect(input.closest('[data-input-container="true"]')).not.toHaveClass('border-border-error')
+    })
+
+    it('keeps a contact-name match neutral when the exact lookup fails', async () => {
+        mockCheckUsername.mockRejectedValue(new Error('timeout'))
+        renderContacts([contact({ username: 'globee1', fullName: 'Alice Smith' })])
+        const input = screen.getByRole('textbox', { name: 'Peanut username or contact' })
+
+        fireEvent.change(input, { target: { value: 'alice' } })
+
+        await waitFor(() => expect(mockCheckUsername).toHaveBeenCalledWith('alice'))
+        expect(screen.getByText('Alice Smith')).toBeInTheDocument()
+        expect(screen.queryByText("We couldn't check that username. Please try again.")).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument()
+        expect(input.closest('[data-input-container="true"]')).not.toHaveClass('border-border-error')
+    })
+
     it('treats a full-name match as a contact query instead of an invalid username', async () => {
         renderContacts([contact({ username: 'globee1', fullName: 'Alice Smith' })])
         const input = screen.getByRole('textbox', { name: 'Peanut username or contact' })
