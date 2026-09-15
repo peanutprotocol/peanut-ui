@@ -186,12 +186,13 @@ export function useCardFlow() {
     const advanceFromApplyResponse = useCallback(
         (res: ApplyForCardResponse) => {
             // Main applicant is missing a doc Rain requires (e.g. SELFIE
-            // after liveness was added to the level). Open WebSDK at the
-            // MAIN level — Sumsub asks only for the missing step. Same
-            // wrapper handles both action and main-level tokens.
+            // after liveness was added to the level). Stage the MAIN-level
+            // token behind the same Rain prep screen as an incomplete action:
+            // both tokens open the Rain verification level, which can ask for
+            // phone verification. Sumsub itself still asks only for the
+            // missing step once the user continues.
             if (res.status === 'main-kyc-required' && 'sumsubAccessToken' in res) {
-                setSumsubToken(res.sumsubAccessToken)
-                posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+                setPendingSumsubToken(res.sumsubAccessToken)
                 return
             }
             // Conflicting residence evidence — collect the user's pick before

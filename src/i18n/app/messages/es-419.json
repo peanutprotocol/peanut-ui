@@ -2959,6 +2959,16 @@
                     "title": "Un número de teléfono que pueda recibir SMS",
                     "body": "Recibirás un código de verificación por mensaje de texto durante la verificación."
                 },
+                "rainTaxId": {
+                    "label": "ID fiscal",
+                    "title": "Tu número de identificación fiscal",
+                    "body": "El número fiscal emitido por tu país. Tenlo a la mano para ingresarlo durante la verificación."
+                },
+                "emailCode": {
+                    "label": "Correo electrónico",
+                    "title": "Acceso a tu correo electrónico",
+                    "body": "Recibirás un código de verificación por email durante la verificación."
+                },
                 "taxId": {
                     "label": "ID fiscal",
                     "title": "Tu identificación fiscal",
@@ -2978,6 +2988,7 @@
             "howLongLabel": "Cuánto tarda",
             "howLong": {
                 "standard": "Menos de 2 minutos para la mayoría. Si un revisor debe verlo, de 1 a 3 días hábiles.",
+                "rain": "Unos 8 minutos para la mayoría. Si un revisor debe verlo, de 1 a 3 días hábiles.",
                 "extended": "Más que la verificación habitual. Si un revisor debe verlo, de 1 a 3 días hábiles.",
                 "hosted": "Unos 5 minutos si tienes tus documentos a la mano. Si un revisor debe verlo, de 1 a 3 días hábiles."
             },

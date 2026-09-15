@@ -100,6 +100,31 @@ describe('useCardFlow', () => {
         expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
     })
 
+    it('shows Rain requirements before opening the sumsub sdk when main KYC is required', async () => {
+        mockApplyForCard.mockResolvedValue({
+            status: 'main-kyc-required',
+            missingDocTypes: ['SELFIE'],
+            sumsubAccessToken: 'main-tok-1',
+        })
+        const { result } = renderHook(() => useCardFlow())
+
+        await act(async () => {
+            await result.current.handleApply()
+        })
+
+        expect(result.current.pendingSumsubToken).toBe('main-tok-1')
+        expect(result.current.sumsubToken).toBeNull()
+        expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+
+        act(() => {
+            result.current.handleStartCardKyc()
+        })
+
+        expect(result.current.pendingSumsubToken).toBeNull()
+        expect(result.current.sumsubToken).toBe('main-tok-1')
+        expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+    })
+
     it('routes terms-required to the terms screen', async () => {
         mockApplyForCard.mockResolvedValue({ status: 'terms-required', isUsResident: true })
         const { result } = renderHook(() => useCardFlow())

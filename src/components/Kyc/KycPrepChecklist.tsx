@@ -32,11 +32,15 @@ const KycPrepChecklist = ({ path, provider }: { path: KycPrepPath; provider?: Ky
             : isHosted
               ? (['id', 'selfie', 'proofOfAddress'] as const)
               : (['id', 'selfie'] as const)
-    // Rain requires a phone-number challenge during card KYC. Keep this as a
-    // provider add-on rather than a fourth path: standard/extended/hosted
-    // describe the verification flow, while SMS is specific to the rail that
-    // requested it. That keeps Bridge and Manteca entry points unchanged.
-    const items = provider === 'rain' ? ([...baseItems, 'sms'] as const) : baseItems
+    // Rain's card level adds applicant data, phone + email challenges, and a
+    // questionnaire. Keep these as a provider add-on rather than a fourth
+    // path: standard/extended/hosted describe the verification shell, while
+    // these requirements are specific to the rail that requested it. A
+    // separate tax-ID key avoids showing Rain users the Manteca-only CPF/CUIT
+    // examples. Bridge and Manteca entry points remain unchanged.
+    const items =
+        provider === 'rain' ? (['id', 'selfie', 'rainTaxId', 'sms', 'emailCode', 'questions'] as const) : baseItems
+    const howLongKey = provider === 'rain' ? 'rain' : path
 
     return (
         <div className="flex w-full flex-col gap-3 text-left" data-testid="kyc-prep-checklist">
@@ -73,7 +77,7 @@ const KycPrepChecklist = ({ path, provider }: { path: KycPrepPath; provider?: Ky
                 requirement alongside the list above it, when it is only a note. */}
             <div className="flex flex-col gap-0.5">
                 <span className="text-label-m tracking-wide uppercase">{t('howLongLabel')}</span>
-                <span className="text-body-xs text-foreground-secondary">{t(`howLong.${path}`)}</span>
+                <span className="text-body-xs text-foreground-secondary">{t(`howLong.${howLongKey}`)}</span>
             </div>
         </div>
     )

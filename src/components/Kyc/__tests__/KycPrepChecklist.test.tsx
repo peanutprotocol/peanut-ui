@@ -32,12 +32,22 @@ describe('KycPrepChecklist', () => {
         expect(screen.getByText('howLongLabel')).toBeInTheDocument()
     })
 
-    it('shows SMS verification only for Rain-backed payment methods', () => {
+    it('shows the complete Rain requirements and duration only for Rain-backed payment methods', () => {
         const { rerender } = render(<KycPrepChecklist path="standard" />)
         expect(screen.queryByText('items.sms.title')).not.toBeInTheDocument()
+        expect(screen.queryByText('items.rainTaxId.title')).not.toBeInTheDocument()
+        expect(screen.queryByText('items.emailCode.title')).not.toBeInTheDocument()
+        expect(screen.getByText('howLong.standard')).toBeInTheDocument()
 
         rerender(<KycPrepChecklist path="standard" provider="rain" />)
         expect(screen.getByText('items.sms.title')).toBeInTheDocument()
         expect(screen.getByText('items.sms.body')).toBeInTheDocument()
+        expect(screen.getByText('items.rainTaxId.title')).toBeInTheDocument()
+        expect(screen.getByText('items.rainTaxId.body')).toBeInTheDocument()
+        expect(screen.getByText('items.emailCode.title')).toBeInTheDocument()
+        expect(screen.getByText('items.emailCode.body')).toBeInTheDocument()
+        expect(screen.getByText('items.questions.title')).toBeInTheDocument()
+        expect(screen.getByText('howLong.rain')).toBeInTheDocument()
+        expect(screen.queryByText('howLong.standard')).not.toBeInTheDocument()
     })
 })
