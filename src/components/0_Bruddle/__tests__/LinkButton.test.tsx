@@ -24,6 +24,15 @@ describe('LinkButton', () => {
         expect(screen.getByRole('button', { name: /View transaction/ })).toBeDisabled()
     })
 
+    test('download renders a plain anchor with the download attribute', () => {
+        render(
+            <LinkButton href="/receipt/1/pdf" download>
+                Download PDF
+            </LinkButton>
+        )
+        expect(screen.getByRole('link', { name: /Download PDF/ })).toHaveAttribute('download')
+    })
+
     test('external adds new-tab attributes', () => {
         render(
             <LinkButton href="https://docs.peanut.me" external>

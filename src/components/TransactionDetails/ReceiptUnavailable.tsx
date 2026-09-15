@@ -1,9 +1,9 @@
 'use client'
 
 import Image from 'next/image'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import PEANUT_LOGO from '@/assets/logos/peanut-logo.svg'
+import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
 import { Button } from '@/components/0_Bruddle/Button'
 import Card from '@/components/Global/Card'
 
@@ -24,10 +24,11 @@ export function ReceiptUnavailable({
     const t = useTranslations('transaction.receiptUnavailable')
     const tCommon = useTranslations('common')
     const tNav = useTranslations('navigation')
+    const router = useRouter()
 
     return (
         <div className="flex w-full max-w-md flex-col items-center gap-6 text-center">
-            <Image src={PEANUT_LOGO} alt={tNav('peanutLogoAlt')} className="w-28" />
+            <Image src={PEANUT_LOGO_BLACK} alt={tNav('peanutLogoAlt')} className="w-28" />
             <Card position="single" className="space-y-2 w-full px-6 py-8">
                 <h1 className="text-heading-card text-foreground-primary">
                     {variant === 'gone' ? t('title') : t('loadFailedTitle')}
@@ -45,11 +46,13 @@ export function ReceiptUnavailable({
                     {tCommon('retry')}
                 </Button>
             )}
-            <Link href="/home" className="w-full print:hidden">
-                <Button variant={variant === 'loadFailed' ? 'primary-soft' : 'purple'} className="w-full">
-                    {tCommon('goToHome')}
-                </Button>
-            </Link>
+            <Button
+                variant={variant === 'loadFailed' ? 'stroke' : 'purple'}
+                className="w-full print:hidden"
+                onClick={() => router.push('/home')}
+            >
+                {tCommon('goToHome')}
+            </Button>
         </div>
     )
 }
