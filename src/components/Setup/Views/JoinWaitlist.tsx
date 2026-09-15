@@ -48,6 +48,10 @@ const JoinWaitlist = () => {
     const validationSeq = useRef(0)
 
     const validateInviteCode = async (inviteCode: string): Promise<boolean> => {
+        // token first — even the demo early-return must retire any in-flight
+        // validation so a stale resolution cannot write errors for this value
+        const seq = ++validationSeq.current
+        const isCurrent = () => seq === validationSeq.current
         // Demo mode (native): `demo` is a client-only trigger — never hit the invite
         // API. Keeps it from creating accounts / bypassing the waitlist, and lets it
         // work even when the (prod) backend doesn't know the code.
@@ -55,8 +59,6 @@ const JoinWaitlist = () => {
             enableDemoMode()
             return true
         }
-        const seq = ++validationSeq.current
-        const isCurrent = () => seq === validationSeq.current
         try {
             setError('')
             setFlowError('')
@@ -104,8 +106,13 @@ const JoinWaitlist = () => {
                         setIsChanging(isChanging)
                         setInviteCode(value)
                         if (isChanging) {
+                            // retire any in-flight validation: a cleared or
+                            // shortened value skips the next lookup, so a stale
+                            // resolution must not repopulate the channels
+                            validationSeq.current++
                             setError('')
                             setFlowError('')
+                            setisLoading(false)
                         }
                     }}
                     isSetupFlow
