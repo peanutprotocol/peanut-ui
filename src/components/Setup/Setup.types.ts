@@ -6,15 +6,12 @@ export type ScreenId =
     | 'passkey-permission'
     | 'passkey-success'
     | 'notification-permission'
-    | 'pwa-install'
-    | 'android-initial-pwa-install'
     | 'add-wallets'
     | 'success'
-    | 'unsupported-browser'
     | 'join-beta'
     | 'sign-test-transaction'
 
-export type LayoutType = 'signup' | 'standard' | 'android-initial-pwa-install'
+export type LayoutType = 'signup'
 
 export type ScreenProps = {
     landing: undefined
@@ -29,17 +26,12 @@ export type ScreenProps = {
     'add-wallets': undefined
     success: undefined
     'contact-info': undefined
-    'pwa-install': undefined
-    'android-initial-pwa-install': undefined
-    'unsupported-browser': undefined
     'join-beta': undefined
     'sign-test-transaction': undefined
 }
 
 export interface StepComponentProps {
     handle?: string
-    deferredPrompt?: BeforeInstallPromptEvent | null
-    canInstall?: boolean
 }
 
 export interface ISetupStep {
@@ -62,13 +54,4 @@ export interface ISetupStep {
     imageClassName?: string
     titleClassName?: string
     contentClassName?: string
-}
-
-export interface BeforeInstallPromptEvent extends Event {
-    readonly platforms: Array<string>
-    readonly userChoice: Promise<{
-        outcome: 'accepted' | 'dismissed'
-        platform: string
-    }>
-    prompt(): Promise<void>
 }

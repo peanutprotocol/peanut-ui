@@ -2,6 +2,7 @@
 
 import MERCADO_PAGO from '@/assets/payment-apps/mercado-pago.svg'
 import { Notification } from '@/components/0_Bruddle/Notification'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import PIX from '@/assets/payment-apps/pix.svg'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
@@ -101,7 +102,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
 
         if (currentStep === MercadoPagoStep.SUCCESS) {
             return (
-                <Button onClick={() => router.push('/home')} shadowSize="4">
+                <Button variant="purple" shadowSize="4" className="w-full" onClick={() => router.push('/home')}>
                     {t('backToHome')}
                 </Button>
             )
@@ -126,10 +127,10 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
     }
 
     return (
-        <div className="flex min-h-inherit flex-col justify-between gap-8 md:min-h-fit">
-            <NavHeader icon={isSuccess ? 'cancel' : 'chevron-up'} title={t('receive')} onPrev={onPrev} />
+        <PageStack>
+            <NavHeader icon={isSuccess ? 'cancel' : undefined} title={t('receive')} onPrev={onPrev} />
 
-            <div className="my-auto space-y-4">
+            <PageStack.Center className="gap-4">
                 <PeanutActionDetailsCard
                     viewType={isSuccess ? 'SUCCESS' : 'NORMAL'}
                     avatarSize="medium"
@@ -148,7 +149,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
 
                 {renderStepDetails()}
                 {sumsubFlow.error && <Notification priority="error">{sumsubFlow.error}</Notification>}
-            </div>
+            </PageStack.Center>
             <InitiateKycModal
                 cooldownActive={!!sumsubFlow.errorCooldown}
                 prepPath="extended"
@@ -193,7 +194,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                 regionName={selectedCountry ? localizedCountryTitle(locale, selectedCountry) : undefined}
             />
             <SumsubKycModals flow={sumsubFlow} onCooldownClose={() => setShowKycModal(false)} />
-        </div>
+        </PageStack>
     )
 }
 

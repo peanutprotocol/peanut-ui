@@ -1,5 +1,6 @@
 'use client'
 import { Button } from '@/components/0_Bruddle/Button'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
@@ -188,25 +189,21 @@ export const SuccessClaimLinkView = ({
     // claim money that has not moved.
     if (!isClaimed && !claimFailure) {
         return (
-            <div className="flex min-h-inherit flex-col justify-between gap-8">
-                <div className="md:hidden">
-                    <NavHeader icon="cancel" title={navHeaderTitle} onPrev={goBack} />
-                </div>
-                <div className="relative z-10 my-auto flex h-full flex-col justify-center">
+            <PageStack>
+                <NavHeader icon="cancel" title={navHeaderTitle} onPrev={goBack} />
+                <PageStack.Center className="gap-4">
                     <Loading variant="mascot" message={tCommon('status.processing')} />
-                </div>
-            </div>
+                </PageStack.Center>
+            </PageStack>
         )
     }
 
     if (claimFailure) {
         const isRetryable = claimFailure.code === API_ERROR_CODES.CHAIN_INFRA_UNAVAILABLE
         return (
-            <div className="flex min-h-inherit flex-col justify-between gap-8">
-                <div className="md:hidden">
-                    <NavHeader icon="cancel" title={navHeaderTitle} onPrev={goBack} />
-                </div>
-                <div className="relative z-10 my-auto space-y-4 flex h-full flex-col justify-center">
+            <PageStack>
+                <NavHeader icon="cancel" title={navHeaderTitle} onPrev={goBack} />
+                <PageStack.Center className="gap-4">
                     <Notification priority="error" data-testid="error-alert">
                         {toFriendlyError({ code: claimFailure.code })}
                     </Notification>
@@ -227,13 +224,13 @@ export const SuccessClaimLinkView = ({
                     <Button variant="stroke" className="w-full" onClick={() => router.push('/home')}>
                         {t('backToHome')}
                     </Button>
-                </div>
-            </div>
+                </PageStack.Center>
+            </PageStack>
         )
     }
 
     return (
-        <div className="flex min-h-inherit flex-col justify-between gap-8">
+        <PageStack>
             <SoundPlayer sound="success" />
             <NavHeader
                 icon="cancel"
@@ -242,7 +239,7 @@ export const SuccessClaimLinkView = ({
                     router.push('/home')
                 }}
             />
-            <div className="relative z-10 my-auto space-y-4 flex h-full flex-col justify-center">
+            <PageStack.Center className="relative z-10 gap-4">
                 <Image
                     src={PeanutCheering.src}
                     unoptimized
@@ -258,7 +255,7 @@ export const SuccessClaimLinkView = ({
                         {t('success.devconnectReturnHint')}
                     </p>
                 )}
-            </div>
-        </div>
+            </PageStack.Center>
+        </PageStack>
     )
 }

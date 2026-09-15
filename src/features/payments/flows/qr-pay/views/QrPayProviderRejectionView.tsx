@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import NavHeader from '@/components/Global/NavHeader'
 import ActionModal from '@/components/Global/ActionModal'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { useModalsContext } from '@/context/ModalsContext'
 import { QrKycState } from '@/constants/kyc.consts'
@@ -30,7 +31,7 @@ export function QrPayProviderRejectionView() {
     const [kycPromptDismissed, setKycPromptDismissed] = useState(false)
 
     return (
-        <div className="flex min-h-inherit flex-col gap-8">
+        <PageStack>
             <NavHeader title={tNav('pay')} />
             <ActionModal
                 visible={!kycPromptDismissed && !sumsubFlow.errorCooldown}
@@ -89,6 +90,6 @@ export function QrPayProviderRejectionView() {
                     onBack()
                 }}
             />
-        </div>
+        </PageStack>
     )
 }

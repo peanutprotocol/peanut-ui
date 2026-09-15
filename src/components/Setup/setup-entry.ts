@@ -1,18 +1,14 @@
 import { USER_PREFERENCES_KEY_SUFFIX, WEB_AUTHN_COOKIE_KEY } from '@/constants/auth.consts'
-import type { DeviceType } from '@/hooks/useGetDeviceType'
 import type { ScreenId } from './Setup.types'
 
-export type SetupEntryStep = Extract<ScreenId, 'landing' | 'signup' | 'pwa-install' | 'android-initial-pwa-install'>
+export type SetupEntryStep = Extract<ScreenId, 'landing' | 'signup'>
 
 export interface SetupEntryInput {
-    isCapacitor: boolean
-    deviceType: DeviceType
-    isStandalonePWA: boolean
     /** An invite code from the store, the cookie or `?code=`. */
     hasInviteCode: boolean
     /** The legacy `?step=` param: `signup` skips the invite gate, `login` lands on Log In. */
     stepParam: string | null
-    /** pwa-sunset notice window on web: signups are closed, so nothing may skip the landing gate. */
+    /** Native-migration notice window on web: signups are closed, so nothing may skip the landing gate. */
     webSignupClosed: boolean
     /** Durable passkey credentials on this device (see hasKnownDeviceCredentials). */
     knownDevice: boolean
@@ -29,21 +25,10 @@ export interface SetupEntryInput {
  */
 export function resolveSetupEntryStep(input: SetupEntryInput): SetupEntryStep {
     if (input.knownDevice || input.stepParam === 'login') return 'landing'
-    // Once web signup is closed, every browser must enter through the landing
-    // screen. The removed PWA-install screens are still present in the setup
-    // sequence for native/backward compatibility, but must never be selected
-    // as the initial web step while the sunset gate is active.
-    if (input.webSignupClosed && !input.isCapacitor) return 'landing'
-    // ?step=signup is what every campaign entrypoint sends; the invite cookie
-    // survives the PWA-install hop. Keep the native sunset behavior unchanged:
-    // closed signup still lands there, while the browser guard above also
-    // prevents removed PWA steps from becoming the entry screen.
+    // ?step=signup is what every campaign entrypoint sends. Neither it nor an
+    // invite may skip the landing gate while web signups are closed.
     const skipInviteGate = (input.hasInviteCode || input.stepParam === 'signup') && !input.webSignupClosed
-    if (input.isCapacitor) return skipInviteGate ? 'signup' : 'landing'
-    if (skipInviteGate) return 'signup'
-    if (input.deviceType === 'android') return input.isStandalonePWA ? 'landing' : 'android-initial-pwa-install'
-    if (input.deviceType === 'ios') return 'landing'
-    return 'pwa-install'
+    return skipInviteGate ? 'signup' : 'landing'
 }
 
 function hasCookie(key: string): boolean {

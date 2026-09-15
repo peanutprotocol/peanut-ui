@@ -1,6 +1,6 @@
 /** @jest-environment jsdom */
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import DocsLink from '@/components/Global/DocsLink'
 
@@ -19,32 +19,30 @@ const renderLink = () => {
     return screen.getByRole('link', { name: 'docs' })
 }
 
-// A home-screen PWA that opens docs in a new tab leaves the standalone window;
-// returning relaunches at start_url, which re-derives the language from the
-// browser instead of the app's choice. Same-tab navigation keeps the session.
-describe('DocsLink in a standalone PWA', () => {
+describe('DocsLink', () => {
     beforeEach(() => {
         mockIsPWA = false
         mockIsCapacitor = false
+        mockOpenExternalUrl.mockClear()
     })
 
-    it('opens a new tab in a plain browser tab', () => {
+    it('opens a new tab in a browser', () => {
         const link = renderLink()
         expect(link).toHaveAttribute('target', '_blank')
         expect(link).toHaveAttribute('href', '/en/help/passkeys')
     })
 
-    it('navigates same-tab when the app runs standalone', () => {
+    it('navigates in the same tab for an installed PWA', () => {
         mockIsPWA = true
         const link = renderLink()
         expect(link).not.toHaveAttribute('target')
         expect(link).toHaveAttribute('href', '/en/help/passkeys')
     })
 
-    it('keeps the in-app browser path on Capacitor, where usePWAStatus also reads true', () => {
-        mockIsPWA = true
+    it('opens the production URL in the native in-app browser', () => {
         mockIsCapacitor = true
         const link = renderLink()
-        expect(link).toHaveAttribute('target', '_blank')
+        fireEvent.click(link)
+        expect(mockOpenExternalUrl).toHaveBeenCalledWith(expect.stringMatching(/\/en\/help\/passkeys$/))
     })
 })

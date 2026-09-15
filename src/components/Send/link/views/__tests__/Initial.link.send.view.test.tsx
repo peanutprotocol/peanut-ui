@@ -64,11 +64,6 @@ jest.mock('@/components/Global/PeanutActionCard', () => ({
     default: () => <div data-testid="action-card" />,
 }))
 
-jest.mock('@/components/Global/FileUploadInput', () => ({
-    __esModule: true,
-    default: () => <div data-testid="file-upload" />,
-}))
-
 jest.mock('@/components/Global/AmountInput', () => ({
     __esModule: true,
     default: ({ setPrimaryAmount, onSubmit }: { setPrimaryAmount: (value: string) => void; onSubmit?: () => void }) => (

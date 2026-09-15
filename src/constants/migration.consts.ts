@@ -3,9 +3,9 @@
  *
  * Everything here is dark until the `pwa-sunset` PostHog flag is flipped ON
  * (no deploy needed). Flag ON starts the notice window: download prompts +
- * store links appear and new signups skip the PWA-install steps. Once
- * MIGRATION_CUTOVER_DATE passes (flag still ON), the web app is replaced by
- * the full-screen sunset block (SunsetScreen).
+ * store links appear and web signups close. Once MIGRATION_CUTOVER_DATE passes
+ * (flag still ON), the web app is replaced by the full-screen sunset block
+ * (SunsetScreen).
  */
 
 export const PWA_SUNSET_FLAG = 'pwa-sunset'

@@ -123,24 +123,20 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     }
 
     return (
-        <div className="flex min-h-inherit flex-col justify-between gap-8 md:min-h-fit">
+        <PageStack className="justify-between md:min-h-fit">
             {!!user?.user.userId || claimBankFlowStep || claimToExternalWallet ? (
-                <div>
-                    <NavHeader
-                        title={t('receive')}
-                        onPrev={() => {
-                            if (claimToExternalWallet) {
-                                setClaimToExternalWallet(false)
-                            } else {
-                                router.push('/home')
-                            }
-                        }}
-                    />
-                </div>
+                <NavHeader
+                    title={t('receive')}
+                    onPrev={() => {
+                        if (claimToExternalWallet) {
+                            setClaimToExternalWallet(false)
+                        } else {
+                            router.push('/home')
+                        }
+                    }}
+                />
             ) : (
-                <div className="-mt-1 md:hidden">
-                    <div className="pb-1 text-center text-heading-s">{t('receive')}</div>
-                </div>
+                <NavHeader title={t('receive')} hideBackBtn />
             )}
             <PageStack.Center className="gap-4">
                 <PeanutActionDetailsCard
@@ -205,7 +201,6 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                                 !isValidRecipient ||
                                 (isXChain && !selectedRoute && (!hasFetchedRoute || isXchainLoading))
                             }
-                            className="text-body-s md:text-body-m"
                         >
                             {getButtonText()}
                         </Button>
@@ -244,6 +239,6 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                 }
                 inviterUsername={claimLinkData?.sender?.username}
             />
-        </div>
+        </PageStack>
     )
 }

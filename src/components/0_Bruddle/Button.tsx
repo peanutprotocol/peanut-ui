@@ -142,10 +142,19 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             [longPress, isLongPressed, onClick, disableHaptics, triggerHaptic]
         )
 
+        // press translate exists to drop the button into its own shadow (design.md
+        // "button press translate") — shadowless buttons must not jump.
+        // ponytail: string-sniffing className for shadow-none; misses responsive
+        // variants like sm:shadow-none — none exist today.
+        const hasShadow =
+            (shadowSize !== undefined || variant === 'purple' || variant === 'stroke') &&
+            !/(?:^|\s)shadow-none(?:\s|$)/.test(className ?? '')
+
         const buttonClasses = twMerge(
             // static pressed-state classes: the old `translate-y-[${shadowSize}px]`
             // template never generated a real class under the jit scanner
-            'btn w-full flex items-center gap-2 transition-all duration-instant active:translate-x-1 active:translate-y-1 active:shadow-none notranslate',
+            'btn w-full flex items-center gap-2 transition-all duration-instant notranslate',
+            hasShadow && 'active:translate-x-1 active:translate-y-1 active:shadow-none',
             buttonVariants[variant],
             variant === 'transparent' && props.disabled && 'disabled:bg-transparent disabled:border-transparent',
             size && buttonSizes[size],
@@ -155,6 +164,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             size === 'small' && 'gap-1',
             shape === 'square' && 'btn-square',
             shadowSize && buttonShadows[shadowType || 'primary'][shadowSize],
+            // loading replaces the icon slot (the Loading spinner is a border-animated div, unaffected)
+            loading && '[&_svg]:hidden [&_img]:hidden',
 
             className
         )

@@ -13,7 +13,6 @@
 
 import React from 'react'
 import { SetupFlowProvider } from '@/features/setup/SetupFlowContext'
-import { AuthContext, useAuth } from '@/context/authContext'
 import { AccountReadyView } from '@/components/Setup/Views/SignTestTransaction'
 import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotificationsModal'
 import { useTranslations } from 'next-intl'
@@ -69,7 +68,6 @@ import MigrationDownloadModal from '@/components/Migration/MigrationDownloadModa
 import PerkClaimDrawer from '@/components/Home/PerkClaimDrawer'
 import { PerkClaimSuccessDrawer } from '@/components/Home/PerkClaimSuccessDrawer'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
-import IosPwaInstallDrawer from '@/components/Global/IosPwaInstallDrawer'
 import NoMoreJailDrawer from '@/components/Global/NoMoreJailDrawer'
 
 /**
@@ -83,12 +81,6 @@ function SetupScreen({ screenId, children }: { screenId: ScreenId; children?: Re
         <SetupFlowProvider masterScreenIds={setupScreenIds}>
             <SetupScreenBody screenId={screenId}>{children}</SetupScreenBody>
         </SetupFlowProvider>
-    )
-}
-function GuestCapture({ children }: { children: React.ReactNode }) {
-    const auth = useAuth()
-    return (
-        <AuthContext.Provider value={{ ...auth, user: null, isFetchingUser: false }}>{children}</AuthContext.Provider>
     )
 }
 function SetupScreenBody({ screenId, children }: { screenId: ScreenId; children?: React.ReactNode }) {
@@ -138,7 +130,7 @@ export type Surface = SurfaceMeta & {
     /** Mounted open. Absent when `blocked` explains why it cannot be. */
     render?: () => React.ReactNode
     /** Opened by flipping a ModalsContext flag rather than a prop. */
-    modalsContextFlag?: 'signIn' | 'support' | 'iosPwaInstall' | 'qrScanner'
+    modalsContextFlag?: 'signIn' | 'support' | 'qrScanner'
 }
 
 export const SURFACES: Record<string, Surface> = {
@@ -153,14 +145,6 @@ export const SURFACES: Record<string, Surface> = {
     '03-a-residence-select': {
         ...SURFACE_META['03-a-residence-select'],
         render: () => <SetupScreen screenId="residence" />,
-    },
-    '04-a-installpwa': {
-        ...SURFACE_META['04-a-installpwa'],
-        render: () => (
-            <GuestCapture>
-                <SetupScreen screenId="pwa-install" />
-            </GuestCapture>
-        ),
     },
     '05-a-signtesttransaction': {
         ...SURFACE_META['05-a-signtesttransaction'],
@@ -235,14 +219,6 @@ export const SURFACES: Record<string, Surface> = {
         name: 'InviteFriendsDrawer',
         path: 'Global/InviteFriendsDrawer/index.tsx',
         render: () => <InviteFriendsDrawer visible onClose={noop} username="demo" />,
-    },
-    '16-a-iospwainstallmodal': {
-        name: 'IosPwaInstallDrawer',
-        path: 'Global/IosPwaInstallDrawer/index.tsx',
-        // mounted by the home screen's modal stack, not the app layout, so the
-        // harness renders it itself and flips the context flag that opens it
-        render: () => <IosPwaInstallDrawer />,
-        modalsContextFlag: 'iosPwaInstall',
     },
     '17-a-nomorejailmodal': {
         ...SURFACE_META['17-a-nomorejailmodal'],

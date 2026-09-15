@@ -21,12 +21,6 @@ const STEPS = setupSteps.filter((s) =>
     ['landing', 'welcome', 'signup', 'residence', 'passkey-permission', 'sign-test-transaction'].includes(s.screenId)
 )
 
-// What the (setup) layout hands over during the pwa-sunset window: the three
-// install/unsupported screens the master list STARTS with are filtered out.
-const SUNSET_STEPS = setupSteps.filter(
-    (s) => !['pwa-install', 'android-initial-pwa-install', 'unsupported-browser'].includes(s.screenId)
-)
-
 const wrapperFor = (searchParams: Record<string, string>) =>
     function Wrapper({ children }: { children: ReactNode }) {
         return (
@@ -151,28 +145,26 @@ describe('useSetupFlow (URL stepper)', () => {
 
     /*
      * The cursor a clean /setup URL means must be a screen the runtime filter
-     * keeps. While it was steps[0] it moved with the list — the master
-     * fallback starts at 'unsupported-browser', the sunset list at 'landing' —
-     * so a clean URL could name a screen absent from the list in force, which
-     * is no step at all and put the page on its recovery screen instead of the
-     * flow (PEANUT-UI-T3A: back into /setup after signup).
+     * keeps. It must not move with the filtered list or resolve to a screen
+     * absent from the active flow.
      */
     it('the default cursor survives every runtime filter the layout applies', () => {
-        for (const list of [setupSteps, STEPS, SUNSET_STEPS]) {
+        for (const list of [setupSteps, STEPS]) {
             expect(list.some((s) => s.screenId === SETUP_DEFAULT_SCREEN)).toBe(true)
         }
     })
 
-    it('a clean URL resolves to a step the sunset-filtered list actually has', async () => {
+    it('a clean URL resolves to a step the filtered list actually has', async () => {
         const { result } = renderFlow()
-        await seedSteps(result, SUNSET_STEPS)
+        await seedSteps(result, STEPS)
         expect(result.current.flow.step?.screenId).toBe(SETUP_DEFAULT_SCREEN)
         expect(result.current.flow.currentIndex).toBeGreaterThanOrEqual(0)
     })
 
     it('a filtered-out screen in the URL resolves to the default, never to no step', async () => {
-        const { result } = renderFlow({ screen: 'unsupported-browser' })
-        await seedSteps(result, SUNSET_STEPS)
+        const { result } = renderFlow({ screen: 'welcome' })
+        const filteredSteps = setupSteps.filter((step) => step.screenId !== 'welcome')
+        await seedSteps(result, filteredSteps)
         expect(result.current.flow.step).toBeDefined()
         expect(result.current.flow.step?.screenId).toBe(SETUP_DEFAULT_SCREEN)
     })

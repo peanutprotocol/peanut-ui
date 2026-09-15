@@ -57,7 +57,6 @@ jest.mock('@/components/Global/SupportDrawer', () => ({ __esModule: true, defaul
 jest.mock('@/components/Global/SupportDeepLink', () => ({ __esModule: true, default: () => <div /> }))
 jest.mock('@/components/Global/QRScannerOverlay', () => ({ __esModule: true, default: () => <div /> }))
 jest.mock('@/components/Global/SecurityVerificationOverlay', () => ({ __esModule: true, default: () => <div /> }))
-jest.mock('@/components/ForceIOSPWAInstall', () => ({ __esModule: true, default: () => <div /> }))
 jest.mock('@/components/Invites/JoinWaitlistPage', () => ({ __esModule: true, default: () => <div /> }))
 jest.mock('@/components/Migration/SunsetScreen', () => ({ __esModule: true, default: () => <div /> }))
 

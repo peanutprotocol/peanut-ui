@@ -227,20 +227,10 @@ export const IN_APP_SURFACES: InAppSurface[] = [
         name: 'Carousel: notification prompt',
         copy: '"Stay in the loop!"',
         cta: { label: 'tap', dest: 'push permission prompt' },
-        condition: 'PWA install without push permissions',
+        condition: 'Native app without push permissions',
         sourceFile: 'src/hooks/useHomeCarouselCTAs.tsx',
         states: ['card-active-unfunded', 'funded-no-spend', 'spent'],
     },
-    {
-        id: 'carousel-ios-pwa-install',
-        kind: 'carousel',
-        name: 'Carousel: iOS PWA install',
-        copy: '"Add Peanut to your home screen"',
-        condition: 'iOS Safari, not installed as PWA',
-        sourceFile: 'src/hooks/useHomeCarouselCTAs.tsx',
-        states: ['card-active-unfunded', 'funded-no-spend', 'spent'],
-    },
-
     // ---------- 🏠 modals & celebrations ----------
     {
         id: 'modal-initiate-kyc',

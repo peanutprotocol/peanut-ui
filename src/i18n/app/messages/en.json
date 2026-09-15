@@ -219,10 +219,6 @@
                 "description": "Turn on notifications and get alerts for all your wallet activity.",
                 "blockedToast": "Notifications blocked by your browser. Enable them in site settings and reload."
             },
-            "iosPwa": {
-                "title": "Add Peanut to your home screen",
-                "description": "Follow a quick guide to add the app to your home screen, no download needed."
-            },
             "qrPay": {
                 "title": "Pay with <b>QR code payments</b>",
                 "description": "Get the best exchange rate, pay like a <b>local</b> and earn <b>rewards</b>."
@@ -706,18 +702,6 @@
     },
     "setup": {
         "steps": {
-            "unsupported-browser": {
-                "title": "Browser Not Supported",
-                "description": "Please open Peanut in your device's main browser (Safari, Chrome, Firefox) to continue setup. If you are already in your main browser your device may not support Peanut."
-            },
-            "android-initial-pwa-install": {
-                "title": "Get the full experience",
-                "description": "Keep your wallet one tap away. Safe, fast, and on your home screen."
-            },
-            "pwa-install": {
-                "title": "Install Peanut on your phone",
-                "description": "Please install Peanut on your phone for the best experience!"
-            },
             "landing": {
                 "title": "Peanut makes dollars easy.",
                 "description": "Create your account in seconds to save, send, or cash out dollars fast, wherever you are in the world."
@@ -757,22 +741,6 @@
         "wrapper": {
             "starAlt": "star",
             "illustrationAlt": "Section illustration"
-        },
-        "braveInstall": {
-            "title": "Success!",
-            "description": "Please open the Peanut app from your home screen to continue setup."
-        },
-        "installPwa": {
-            "openPeanutApp": "Open Peanut app",
-            "installing": "Installing",
-            "addToHomeScreen": "Add Peanut to Home Screen",
-            "installCancelled": "Installation cancelled. You can try adding to Home Screen again.",
-            "manualInstallHint": "To install the app, please add it to your Home Screen from your browser menu.",
-            "mobileFirstTitle": "Peanut is mobile first!",
-            "mobileFirstDescription": "For a better experience, use Peanut on your phone.",
-            "openInApp": "Open in the App",
-            "installApp": "Install App",
-            "gotIt": "Got it!"
         },
         "next": "Next",
         "logIn": "Log In",
@@ -1089,7 +1057,13 @@
         "validation": {
             "talkToSupport": "Talk to support",
             "learnHow": "Learn how to receive money through Peanut",
-            "sadPeanutAlt": "Sad peanut"
+            "sadPeanutAlt": "Sad peanut",
+            "unknownUser": {
+                "title": "We don't know any @{username}",
+                "message": "Are you sure you clicked on the right link?",
+                "cta": "Go back to home",
+                "supportTemplate": "I clicked on this link but got an error: '{url}'"
+            }
         },
         "errorPage": {
             "title": "Something went wrong!",
@@ -1469,6 +1443,7 @@
         },
         "cancel": {
             "title": "Cancel your card?",
+            "keepCard": "Keep my card",
             "body": "You won't be able to use it again.",
             "canceling": "Canceling…",
             "slideToCancel": "Slide to Cancel",
@@ -3279,13 +3254,6 @@
             "title": "Unlock this payment method",
             "getStartedCta": "Get started"
         },
-        "iosPwaInstallModal": {
-            "title": "Add Peanut to your Home Screen",
-            "description": "Follow a quick guide to add the app to your home screen, no download needed.",
-            "firefoxDescription": "Firefox on iOS does not support installing apps to the home screen. Please open this page in Safari to continue.",
-            "gotItCta": "Got it!",
-            "videoUnsupported": "Your browser does not support the video tag."
-        },
         "unsupportedBrowserModal": {
             "title": "Open this link in your browser",
             "description": "We're still working on making Peanut work on your browser. For now, please use Chrome or Safari.",
@@ -3473,15 +3441,6 @@
             "savePrompt": "Save to address book",
             "editFailed": "Could not update the address. Try again.",
             "nicknameRequired": "Add a nickname to save this address."
-        },
-        "forceIosPwaInstall": {
-            "videoUnsupported": "Your browser does not support the video tag.",
-            "title": "Get the full experience",
-            "subtitle": "This is the final step!",
-            "description": "Add Peanut to your home screen to unlock your wallet and start using it.",
-            "tapShare": "Tap the <share>Share icon</share> on your browser",
-            "thenTapAddToHomeScreen": "and then on <bold>“Add To Home Screen”</bold>",
-            "continueInBrowser": "Continue in the browser"
         },
         "pointsCard": {
             "earned": "You've earned {count, plural, one {# point} other {# points}}!"

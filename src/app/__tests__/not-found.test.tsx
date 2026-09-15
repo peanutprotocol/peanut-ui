@@ -30,6 +30,8 @@ describe('global not-found page', () => {
         expect(screen.getByRole('heading', { name: "Hmm, we can't find that page." })).toBeInTheDocument()
         expect(screen.queryByTestId('support-drawer')).not.toBeInTheDocument()
         expect(screen.getByRole('link', { name: 'let support know' })).toHaveAttribute('href', 'mailto:help@peanut.me')
+        // both CTAs are real anchors so the 404 recovers even without hydration
+        expect(screen.getByRole('link', { name: 'Take me home' })).toHaveAttribute('href', '/')
         expect(screen.getByRole('link', { name: 'Contact support' })).toHaveAttribute('href', 'mailto:help@peanut.me')
     })
 

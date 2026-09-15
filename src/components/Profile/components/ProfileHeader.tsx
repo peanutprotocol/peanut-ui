@@ -153,7 +153,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                             onSuccess={() =>
                                 posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, REFERRAL_PILL_PROPS)
                             }
-                            className="relative ml-4 h-auto w-auto shrink-0 p-0 shadow-none after:absolute after:-inset-3.5 active:translate-x-0 active:translate-y-0"
+                            className="relative ml-4 h-auto w-auto shrink-0 p-0 shadow-none after:absolute after:-inset-3.5"
                         >
                             <span className="sr-only">{tGlobal('shareButton.share')}</span>
                             <Icon name="share" size={16} fill="black" />

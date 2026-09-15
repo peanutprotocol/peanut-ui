@@ -63,16 +63,6 @@ export const ListItem = ({
             onClick={disabled ? undefined : handleClick}
             role={onClick ? 'button' : undefined}
             tabIndex={onClick && !disabled ? 0 : undefined}
-            onKeyDown={
-                handleClick && !disabled
-                    ? (e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault()
-                              handleClick()
-                          }
-                      }
-                    : undefined
-            }
             aria-disabled={disabled || undefined}
             aria-label={ariaLabel}
             data-testid={dataTestId}

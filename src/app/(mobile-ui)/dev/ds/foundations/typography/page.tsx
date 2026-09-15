@@ -10,8 +10,6 @@ import { FONT_TOKENS, TEXT_STYLES, type TextStyle } from '../tokens.generated'
 const SEMANTIC_STYLES = TEXT_STYLES.filter((t) => t.section === 'semantic')
 const PARITY_STYLES = TEXT_STYLES.filter((t) => t.section === 'parity')
 
-// previews render from the token values inline, so they cannot drift and don't
-// depend on tailwind emitting a utility for every style.
 const px = (rem?: string) => (rem?.endsWith('rem') ? `${parseFloat(rem) * 16}px` : rem)
 
 function styleSpec(t: TextStyle) {
@@ -34,15 +32,7 @@ export default function TypographyPage() {
                     <div className="space-y-2 rounded-sm border border-border-default p-3">
                         {FONT_TOKENS.map((font) => (
                             <div key={font.name}>
-                                <p
-                                    className="text-label-l"
-                                    style={{
-                                        fontFamily: font.stack,
-                                        fontVariationSettings: font.fontVariationSettings,
-                                    }}
-                                >
-                                    font-{font.name}
-                                </p>
+                                <p className={`text-label-l ${font.previewClass}`}>font-{font.name}</p>
                                 <p className="font-mono text-body-xs break-all text-foreground-secondary">
                                     {font.stack}
                                     {font.fontVariationSettings && ` · ${font.fontVariationSettings}`}
@@ -77,18 +67,13 @@ export default function TypographyPage() {
             <DocSection title="Semantic Type Scale">
                 <p className="text-body-s text-foreground-secondary">
                     1:1 with the figma Heading/Body/Label/Button styles. New screens use these — e.g.{' '}
-                    <code className="font-mono font-bold text-foreground-primary">text-heading-m</code>,{' '}
-                    <code className="font-mono font-bold text-foreground-primary">text-body-s</code>.
+                    <code className="font-mono text-label-m text-foreground-primary">text-heading-m</code>,{' '}
+                    <code className="font-mono text-label-m text-foreground-primary">text-body-s</code>.
                 </p>
                 <div className="space-y-3 rounded-sm border border-border-default p-3">
                     {SEMANTIC_STYLES.map((t) => (
                         <div key={t.name} className="min-w-0">
-                            <p
-                                className="truncate"
-                                style={{ fontSize: t.fontSize, lineHeight: t.lineHeight, fontWeight: t.fontWeight }}
-                            >
-                                {t.name}
-                            </p>
+                            <p className={`truncate ${t.previewClass}`}>{t.name}</p>
                             <p className="font-mono text-body-xs text-foreground-secondary">
                                 .text-{t.name} — {styleSpec(t)}
                             </p>
@@ -100,12 +85,8 @@ export default function TypographyPage() {
             {/* weight conventions — guidance, not token data */}
             <DocSection title="Font Weights">
                 <p className="text-body-s text-foreground-secondary">
-                    The semantic styles above carry their own weight. For ad-hoc text:{' '}
-                    <code className="font-mono font-bold text-foreground-primary">font-bold</code> for labels and
-                    headings, <code className="font-mono font-bold text-foreground-primary">font-medium</code> for
-                    secondary text. The theme also defines{' '}
-                    <code className="font-mono font-bold text-foreground-primary">font-weight-extraBlack</code> (1000)
-                    for display moments.
+                    Semantic type tokens carry their own weight. Do not combine them with raw font-weight utilities. Use
+                    the token that matches the text role.
                 </p>
             </DocSection>
 
@@ -118,7 +99,7 @@ export default function TypographyPage() {
                 <div className="space-y-1 rounded-sm border border-border-default p-3 text-body-xs">
                     {PARITY_STYLES.map((t) => (
                         <div key={t.name} className="flex items-baseline justify-between">
-                            <code className="font-mono font-bold">.text-{t.name}</code>
+                            <code className="font-mono text-label-m">.text-{t.name}</code>
                             <span className="text-foreground-secondary">{styleSpec(t)}</span>
                         </div>
                     ))}

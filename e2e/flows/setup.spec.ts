@@ -4,7 +4,7 @@
  * A structurally valid but long-expired JWT is the "cookie present, session
  * dead" state a half-finished signup leaves behind. The old presence-only
  * proxy check 307'd /setup → /home on it, and the logged-out /home → /setup
- * redirect in (mobile-ui)/layout.tsx sent it back: the PWA reload loop.
+ * redirect in (mobile-ui)/layout.tsx sent it back: a reload loop.
  *
  * No API and no auth. The fixture shots cover how /setup looks; this covers
  * where it sends you.

@@ -3,7 +3,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Notification } from '@/components/0_Bruddle/Notification'
-import FileUploadInput from '@/components/Global/FileUploadInput'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
@@ -245,11 +245,11 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                         hideCurrencyToggle
                     />
 
-                    <FileUploadInput
+                    <BaseInput
                         placeholder={tCommon('comment')}
-                        attachmentOptions={attachmentOptions}
-                        setAttachmentOptions={setAttachmentOptions}
-                        className="h-11"
+                        value={attachmentOptions.message}
+                        maxLength={140}
+                        onChange={(e) => setAttachmentOptions({ ...attachmentOptions, message: e.target.value })}
                     />
                     {!authUser?.user.userId && (
                         <FieldColumn error={fieldError}>

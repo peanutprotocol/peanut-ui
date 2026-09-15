@@ -4,15 +4,11 @@ import { createContext, useContext, useState, useCallback, useMemo, type ReactNo
 import { redactSupportText } from '@/utils/support-context'
 
 interface ModalsContextType {
-    // iOS PWA Install Modal
-    isIosPwaInstallDrawerOpen: boolean
-    setIsIosPwaInstallDrawerOpen: (isOpen: boolean) => void
-
     // Guest Login/Sign In Modal
     isSignInModalOpen: boolean
     setIsSignInModalOpen: (isOpen: boolean) => void
 
-    // Get-the-app scan-to-download modal (pwa-sunset, desktop surfaces)
+    // Get-the-app scan-to-download modal for desktop surfaces
     isGetAppModalOpen: boolean
     setIsGetAppModalOpen: (isOpen: boolean) => void
 
@@ -41,9 +37,6 @@ export type SecurityVerificationVariant = 'default' | 'next-passkey'
 const ModalsContext = createContext<ModalsContextType | undefined>(undefined)
 
 export function ModalsProvider({ children }: { children: ReactNode }) {
-    // iOS PWA Install Modal
-    const [isIosPwaInstallDrawerOpen, setIsIosPwaInstallDrawerOpen] = useState(false)
-
     // Guest Login/Sign In Modal
     const [isSignInModalOpen, setIsSignInModalOpen] = useState(false)
 
@@ -95,10 +88,6 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
 
     const value = useMemo(
         () => ({
-            // iOS PWA Install Modal
-            isIosPwaInstallDrawerOpen,
-            setIsIosPwaInstallDrawerOpen,
-
             // Guest Login/Sign In Modal
             isSignInModalOpen,
             setIsSignInModalOpen,
@@ -124,7 +113,6 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
             setIsSecurityVerificationOpen,
         }),
         [
-            isIosPwaInstallDrawerOpen,
             isSignInModalOpen,
             isGetAppModalOpen,
             isSupportModalOpen,

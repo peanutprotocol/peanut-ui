@@ -8,7 +8,7 @@ import { useTranslations } from 'next-intl'
 import { useCallback } from 'react'
 import { twMerge } from '@/utils/tw'
 import Attachment from '../Attachment'
-import Card from '../Card'
+import { Card } from '@/components/0_Bruddle/Card'
 import { Icon, type IconName } from '../Icons/Icon'
 import Image, { type StaticImageData } from 'next/image'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
@@ -125,8 +125,8 @@ export default function PeanutActionDetailsCard({
         }
         if (transactionType === 'REGIONAL_METHOD_CLAIM') title = recipientName // Render the string as is for regional method
         return (
-            <h1 className="flex items-center gap-2 overflow-hidden text-body-m font-normal text-ellipsis whitespace-nowrap text-foreground-secondary">
-                {icon && <Icon name={icon} size={10} />} {title}
+            <h1 className="flex items-center gap-2 overflow-hidden text-body-m text-ellipsis whitespace-nowrap text-foreground-secondary">
+                {icon && <Icon name={icon} size={16} />} {title}
             </h1>
         )
     }
@@ -205,7 +205,7 @@ export default function PeanutActionDetailsCard({
                     )}
                     {!isRegionalMethodClaim && (
                         <div className="absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full bg-background-icon-bubble-blue p-1.5">
-                            <Icon size={14} name="bank" className="text-black" />
+                            <Icon size={14} name="bank" className="text-foreground-primary" />
                         </div>
                     )}
                 </div>
@@ -239,7 +239,7 @@ export default function PeanutActionDetailsCard({
                     )}
                 </div>
 
-                <div className="space-y-1 w-full">
+                <div className="flex w-full flex-col gap-1">
                     {getTitle()}
                     {isLoading ? (
                         <Loading />

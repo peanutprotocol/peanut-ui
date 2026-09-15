@@ -99,11 +99,9 @@ describe('capacitor utils', () => {
 
         afterEach(() => {
             Object.defineProperty(window, 'matchMedia', { value: originalMatchMedia, writable: true })
-            // reset navigator.standalone
             Object.defineProperty(window.navigator, 'standalone', { value: undefined, configurable: true })
         })
 
-        // helper: mock matchMedia for standalone detection
         function mockStandalone(isStandalone: boolean) {
             Object.defineProperty(window, 'matchMedia', {
                 writable: true,
@@ -150,7 +148,7 @@ describe('capacitor utils', () => {
             expect(getPlatform()).toBe('ios-native')
         })
 
-        it('should return android-pwa when standalone + android UA', () => {
+        it('should return android-pwa for an installed android session during the native migration', () => {
             delete process.env.NEXT_PUBLIC_CAPACITOR_BUILD
             mockUserAgent('Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36')
             mockStandalone(true)
@@ -158,7 +156,7 @@ describe('capacitor utils', () => {
             expect(getPlatform()).toBe('android-pwa')
         })
 
-        it('should return ios-pwa when standalone + iphone UA', () => {
+        it('should return ios-pwa for an installed iphone session during the native migration', () => {
             delete process.env.NEXT_PUBLIC_CAPACITOR_BUILD
             mockUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0) AppleWebKit/605.1.15')
             mockStandalone(true)
@@ -166,7 +164,7 @@ describe('capacitor utils', () => {
             expect(getPlatform()).toBe('ios-pwa')
         })
 
-        it('should return web as default when no capacitor and not standalone', () => {
+        it('should return web as default when no capacitor', () => {
             delete process.env.NEXT_PUBLIC_CAPACITOR_BUILD
             mockUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36')
             mockStandalone(false)

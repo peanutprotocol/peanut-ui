@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { StatusTag } from './StatusTag'
 
 interface CatalogCardProps {
     title: string
@@ -23,7 +22,7 @@ export function CatalogCard({ title, description, href, icon, status, quality, u
         <Link href={href} className="block h-full">
             <ListItem
                 position="single"
-                className="h-full cursor-pointer transition-colors duration-instant hover:bg-background-disabled"
+                className="h-full cursor-pointer transition-colors duration-instant hover:bg-background-disabled active:bg-background-disabled"
                 leading={icon ? <IconBubble icon={icon} size="s" color="yellow" /> : undefined}
                 title={title}
                 body={
@@ -31,12 +30,9 @@ export function CatalogCard({ title, description, href, icon, status, quality, u
                         <p>{description}</p>
                         {(status || quality || usages !== undefined) && (
                             <div className="mt-2 flex flex-wrap items-center gap-1">
-                                {status && <StatusTag status={status} />}
+                                {status && <span className="text-label-m text-foreground-secondary">{status}</span>}
                                 {quality && (
-                                    <span className="text-body-xs">
-                                        {'★'.repeat(quality)}
-                                        {'☆'.repeat(5 - quality)}
-                                    </span>
+                                    <span className="text-body-xs text-foreground-secondary">quality {quality}/5</span>
                                 )}
                                 {usages !== undefined && (
                                     <span className="text-body-xs">

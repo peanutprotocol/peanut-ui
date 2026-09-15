@@ -36,12 +36,6 @@ export const ANALYTICS_EVENTS = {
     SIGNUP_ACCOUNT_READY_CTA_CLICKED: 'signup_account_ready_cta_clicked',
     SIGNUP_COMPLETED: 'signup_completed',
 
-    // ── PWA install ──
-    PWA_INSTALL_CLICKED: 'pwa_install_clicked',
-    PWA_INSTALL_DISMISSED: 'pwa_install_dismissed',
-    PWA_INSTALL_COMPLETED: 'pwa_install_completed',
-    PWA_OPEN_APP_CLICKED: 'pwa_open_app_clicked',
-
     // ── KYC (Bridge) ──
     KYC_INITIATED: 'kyc_initiated',
     KYC_TOS_ACCEPTED: 'kyc_tos_accepted',
@@ -318,7 +312,7 @@ export const ANALYTICS_EVENTS = {
     // to move the money out first.
     DELETE_ACCOUNT_BLOCKED_BALANCE: 'delete_account_blocked_balance',
 
-    // ── PWA sunset / app migration ──
+    // ── Web-to-native app migration ──
     // Funnel: modal_shown(migration_download) → store_cta_clicked / qr_shown
     // → install (first native-platform event per distinct id, PostHog-side).
     // `surface` ∈ MIGRATION_SURFACES; store_cta_clicked also carries
