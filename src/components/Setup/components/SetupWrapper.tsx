@@ -126,7 +126,7 @@ const Navigation = memo(function Navigation({
                         aria-label={t('logout')}
                         disabled={isLoggingOut}
                     >
-                        {!isLoggingOut && <Icon name="logout" size={20} />}
+                        <Icon name="logout" size={20} />
                     </Button>
                 )}
             </div>
