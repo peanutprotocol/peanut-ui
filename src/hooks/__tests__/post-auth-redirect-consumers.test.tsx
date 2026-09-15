@@ -124,6 +124,23 @@ describe('post-auth redirect consumers', () => {
         expect(clearAuthState).toHaveBeenCalledWith('user-1')
     })
 
+    it('preserves auth when the account address belongs to another user', async () => {
+        mockAddAccount.mockRejectedValue(
+            new AccountSetupError('Account belongs to another user', {
+                kind: 'account_conflict',
+                requestAttempts: 1,
+                status: 409,
+            })
+        )
+        const { result } = renderHook(() => useAccountSetup())
+
+        await act(async () => {
+            await expect(result.current.finalizeAccountSetup('0xabc')).resolves.toBe(false)
+        })
+
+        expect(clearAuthState).not.toHaveBeenCalled()
+    })
+
     /*
      * A destination that only marks where an earlier session ended is not the
      * new account's inheritance. This is the reported bug — logout from

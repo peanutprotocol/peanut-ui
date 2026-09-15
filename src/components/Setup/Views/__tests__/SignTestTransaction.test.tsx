@@ -5,6 +5,8 @@ import SignTestTransaction from '../SignTestTransaction'
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { AccountSetupError } from '@/services/account-setup'
+import { AccountType } from '@/interfaces/interfaces'
 
 const WALLET = '0x1111111111111111111111111111111111111111'
 
@@ -13,7 +15,7 @@ const mockRouterReplace = jest.fn()
 const mockAddAccount = jest.fn()
 const mockSendUserOp = jest.fn()
 
-let accounts: Array<{ type: string }> = []
+let accounts: Array<{ type: AccountType }> = []
 
 // useAccountSetup is deliberately NOT mocked: the bug this locks down was a
 // router navigation inside finalizeAccountSetup, which no component-level mock
@@ -62,7 +64,7 @@ describe('SignTestTransaction — the account-ready screen', () => {
         // addAccount refetches the user, so the account appears while this
         // screen is up — the pre-existing-account fast path must not fire.
         mockAddAccount.mockImplementation(async () => {
-            accounts = [{ type: 'peanut' }]
+            accounts = [{ type: AccountType.PEANUT_WALLET }]
         })
     })
 
@@ -74,6 +76,31 @@ describe('SignTestTransaction — the account-ready screen', () => {
         await waitFor(() => expect(capturePasskeyDebugInfo).toHaveBeenCalled())
         await waitFor(() => expect(screen.getByRole('button', { name: /confirm/i })).toBeEnabled())
         expect(mockAddAccount).not.toHaveBeenCalled()
+    })
+
+    it('shows account-ready when Retry discovers an account from the ambiguous request', async () => {
+        mockAddAccount.mockRejectedValueOnce(
+            new AccountSetupError('Account creation could not be confirmed', {
+                kind: 'retryable',
+                requestAttempts: 2,
+                status: 503,
+            })
+        )
+        const { rerender } = renderWithIntl(<SignTestTransaction />)
+
+        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+        await waitFor(() => expect(screen.getByRole('button', { name: /retry account setup/i })).toBeEnabled())
+
+        // A later focus/profile refresh reveals that the first request did
+        // commit. The Retry action must consume the signup marker and finish.
+        accounts = [{ type: AccountType.PEANUT_WALLET }]
+        rerender(<SignTestTransaction />)
+        fireEvent.click(screen.getByRole('button', { name: /retry account setup/i }))
+
+        await screen.findByText(/works right now/i)
+        expect(mockAddAccount).toHaveBeenCalledTimes(1)
+        expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(mockRouterReplace).not.toHaveBeenCalled()
     })
 
     it('never navigates on its own — the CTA is the only way off it', async () => {

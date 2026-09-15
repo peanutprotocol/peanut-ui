@@ -63,6 +63,28 @@ describe('completeAccountSetup', () => {
         expect(request).toHaveBeenCalledTimes(1)
     })
 
+    it('accepts a 409 when the authenticated profile owns the exact address', async () => {
+        const request = jest.fn().mockResolvedValueOnce(response(409))
+        const fetchProfile = jest.fn().mockResolvedValueOnce(profile(true))
+
+        await expect(complete(request, fetchProfile)).resolves.toEqual({ status: 'reconciled', requestAttempts: 1 })
+        expect(request).toHaveBeenCalledTimes(1)
+        expect(fetchProfile).toHaveBeenCalledTimes(1)
+    })
+
+    it('rejects a 409 when the authenticated profile does not own the address', async () => {
+        const request = jest.fn().mockResolvedValueOnce(response(409))
+        const fetchProfile = jest.fn().mockResolvedValueOnce(profile(false))
+
+        await expect(complete(request, fetchProfile)).rejects.toMatchObject({
+            kind: 'account_conflict',
+            requestAttempts: 1,
+            status: 409,
+        })
+        expect(request).toHaveBeenCalledTimes(1)
+        expect(fetchProfile).toHaveBeenCalledTimes(1)
+    })
+
     it('classifies a genuine credential rejection without retrying', async () => {
         const request = jest.fn().mockResolvedValueOnce(response(401))
         const fetchProfile = jest.fn()
