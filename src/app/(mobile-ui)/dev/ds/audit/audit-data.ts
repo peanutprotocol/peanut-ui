@@ -5966,19 +5966,6 @@ export const AUDIT_CLUSTERS: AuditCluster[] = [
         ],
     },
     {
-        layer: 'templates',
-        cat: 'templates-showcase',
-        catLabel: 'Templates / showcase',
-        name: 'Derive the /dev/ds index counts from nav-config',
-        from: 3,
-        rec: 'The index card counts are typed by hand and have drifted: Primitives says 9 against 15 doc pages, Patterns says 9 against 10. Three primitives (icon-bubble, list-item, toggle) have a page and a nav entry but no catalog card on the Primitives index, so they are reachable only from the sidebar. nav-config.ts already holds all 43 hrefs - compute both the counts and the cards from it.',
-        collapses: [
-            'ds/page.tsx sections[].count (hand-typed)',
-            'primitives/page.tsx (12 cards vs 15 pages)',
-            'patterns/page.tsx (10 cards vs count:9)',
-        ],
-    },
-    {
         layer: 'primitives',
         cat: 'drawers',
         catLabel: 'Drawers / sheets',

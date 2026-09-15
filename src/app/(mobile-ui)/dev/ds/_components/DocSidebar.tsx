@@ -59,7 +59,7 @@ function SidebarSections({ pathname, onNavigate }: { pathname: string | null; on
                 const isActive = pathname?.startsWith(tier.href)
                 const items = SIDEBAR_CONFIG[tier.href.split('/').pop() as keyof typeof SIDEBAR_CONFIG] ?? []
                 return (
-                    <div key={tier.href} className="flex flex-col gap-4">
+                    <div key={tier.href} className="flex flex-col gap-7">
                         <LinkButton
                             href={tier.href}
                             onClick={onNavigate}
@@ -86,7 +86,9 @@ function SidebarLinks({
     onNavigate?: () => void
 }) {
     return (
-        <div className="flex flex-col gap-4">
+        // gap-7: LinkButton's 44px pseudo hit area extends ±14px, so stacked
+        // instances need ~28px between baselines or their targets overlap
+        <div className="flex flex-col gap-7">
             {items.map((item) => {
                 const isActive = pathname === item.href
                 return (
