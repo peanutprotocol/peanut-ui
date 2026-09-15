@@ -270,7 +270,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                 <div className="mt-2 flex w-full items-center justify-center gap-4 rounded-sm border border-border-default bg-background-default p-4">
                     {showLoading ? (
                         <div className="flex w-full items-center">
-                            <div className="h-5 w-40 animate-pulse rounded-full bg-background-disabled" />
+                            <div className="h-5 w-40 animate-pulse rounded-full bg-foreground-primary/10" />
                         </div>
                     ) : (
                         <input
@@ -327,7 +327,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                 <div className="mt-2 flex w-full items-center justify-center gap-4 rounded-sm border border-border-default bg-background-default p-4">
                     {showLoading ? (
                         <div className="flex w-full items-center">
-                            <div className="h-5 w-40 animate-pulse rounded-full bg-background-disabled" />
+                            <div className="h-5 w-40 animate-pulse rounded-full bg-foreground-primary/10" />
                         </div>
                     ) : (
                         <input
@@ -376,17 +376,20 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                 </div>
             </div>
 
-            <div className="rounded-full bg-background-disabled px-2 py-[2px] text-label-m text-foreground-secondary">
-                {showLoading ? (
-                    <div className="mx-auto h-4 w-28 animate-pulse rounded-full bg-foreground-primary/10" />
-                ) : isError ? (
-                    <span>{l.rateUnavailable}</span>
-                ) : (
-                    <>
-                        1 {sourceCurrency} = {exchangeRate.toFixed(4)} {destinationCurrency}
-                    </>
-                )}
-            </div>
+            {showLoading ? (
+                // one skeleton pill sized like the loaded pill — no tint-on-tint
+                <div className="h-5 w-32 animate-pulse rounded-full bg-foreground-primary/10" />
+            ) : (
+                <div className="rounded-full bg-background-disabled px-2 py-[2px] text-label-m text-foreground-secondary">
+                    {isError ? (
+                        <span>{l.rateUnavailable}</span>
+                    ) : (
+                        <>
+                            1 {sourceCurrency} = {exchangeRate.toFixed(4)} {destinationCurrency}
+                        </>
+                    )}
+                </div>
+            )}
 
             {hasAmount && (
                 <div className="flex min-h-17 w-full flex-col justify-center gap-3 rounded-sm border border-border-default px-4 py-2">

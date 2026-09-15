@@ -263,20 +263,21 @@ const HistoryPage = () => {
                         lastGroupHeaderKey = currentGroupHeaderKey
                     }
 
-                    let position: CardPosition = 'middle'
-                    const isFirstOverall = index === 0
-                    const isLastOverall = index === combinedAndSortedEntries.length - 1
+                    // corners are per DATE GROUP: peek at the next entry to see
+                    // if it starts a new group
                     const isFirstInGroup = showHeader
+                    const nextItem = combinedAndSortedEntries[index + 1]
+                    const isLastInGroup =
+                        !nextItem ||
+                        getDateGroupKey(
+                            new Date(nextItem.timestamp),
+                            getDateGroup(new Date(nextItem.timestamp), today)
+                        ) !== currentGroupHeaderKey
 
-                    if (combinedAndSortedEntries.length === 1) {
-                        position = 'single'
-                    } else if (isFirstInGroup && isLastOverall) {
-                        position = 'single'
-                    } else if (isFirstInGroup || isFirstOverall) {
-                        position = 'first'
-                    } else if (isLastOverall) {
-                        position = 'last'
-                    }
+                    let position: CardPosition = 'middle'
+                    if (isFirstInGroup && isLastInGroup) position = 'single'
+                    else if (isFirstInGroup) position = 'first'
+                    else if (isLastInGroup) position = 'last'
 
                     return (
                         <React.Fragment key={item.uuid}>
