@@ -3261,6 +3261,8 @@
         "unsupportedBrowserModal": {
             "title": "Open this link in your browser",
             "description": "We're still working on making Peanut work on your browser. For now, please use Chrome or Safari.",
+            "passkeyTitle": "Passkeys aren't available",
+            "passkeyDescription": "Peanut needs a passkey to create your account. Make sure your device has a screen lock and passkeys enabled, then try again. If it still doesn't work, try once from another phone or computer.",
             "copyLinkCta": "Copy Link",
             "copied": "Copied!",
             "copySuccessToast": "Link copied to clipboard!",
