@@ -3,7 +3,7 @@ import MoreInfo from '@/components/Global/MoreInfo'
 import { createSmartPasteHandler, type PasteFieldKind } from '@/utils/clipboard-extract.utils'
 import { useClipboardSuggestion } from '@/hooks/useClipboardSuggestion'
 import { useDebounce } from '@/hooks/useDebounce'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import * as Sentry from '@sentry/nextjs'
 import { useTranslations } from 'next-intl'
 import { type ChangeEvent, useEffect, useRef, useState } from 'react'
@@ -51,6 +51,7 @@ const ValidatedInput = ({
     smartPasteKind,
 }: ValidatedInputProps) => {
     const t = useTranslations('global')
+    const reduceMotion = useReducedMotion()
     const [isValid, setIsValid] = useState(false)
     const [isValidating, setIsValidating] = useState(false)
     const debouncedValue = useDebounce(value, debounceTime)
@@ -263,10 +264,14 @@ const ValidatedInput = ({
             <AnimatePresence initial={false}>
                 {smartPasteKind && suggestion && !value && (
                     <motion.div
-                        initial={{ height: 0, opacity: 0, marginTop: 0 }}
                         animate={{ height: 'auto', opacity: 1, marginTop: 4 }}
-                        exit={{ height: 0, opacity: 0, marginTop: 0 }}
-                        transition={{ duration: 0.25, ease: 'easeOut' }}
+                        {...(reduceMotion
+                            ? {}
+                            : {
+                                  initial: { height: 0, opacity: 0, marginTop: 0 },
+                                  exit: { height: 0, opacity: 0, marginTop: 0 },
+                                  transition: { duration: 0.25, ease: 'easeOut' },
+                              })}
                         className="overflow-hidden"
                     >
                         <button

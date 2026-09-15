@@ -1504,6 +1504,19 @@ input::placeholder {
     border-radius: inherit;
 }
 
+@media (prefers-reduced-motion: reduce) {
+    .perk-shake-weak,
+    .perk-shake-medium,
+    .perk-shake-strong,
+    .perk-shake-intense,
+    .animate-gift-opening,
+    .animate-gift-revealed,
+    .animate-gift-exit,
+    .gift-box-shine::before {
+        animation: none;
+    }
+}
+
 /* ── Landing page: entrance animations (replaces framer-motion whileInView) ── */
 /* Spring animation approximating framer-motion { type: 'spring', damping: 5, stiffness: 100 }
    damping:5 is heavily underdamped — large overshoot with visible bounces.
