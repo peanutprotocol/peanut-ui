@@ -205,7 +205,6 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                                 !isValidRecipient ||
                                 (isXChain && !selectedRoute && (!hasFetchedRoute || isXchainLoading))
                             }
-                            className="text-body-s md:text-body-m"
                         >
                             {getButtonText()}
                         </Button>

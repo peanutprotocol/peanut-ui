@@ -60,7 +60,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
         <div
             className={twMerge(
                 'cursor-pointer rounded-sm shadow-sm',
-                isSelected && 'bg-purple-200',
+                isSelected && 'bg-action-primary/10',
                 !isEnabled && 'cursor-not-allowed opacity-70',
                 className
             )}
@@ -70,7 +70,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
                 position={position}
                 className={twMerge(
                     '!overflow-visible border border-border-default p-4 shadow-4',
-                    isSelected ? 'bg-purple-200' : 'bg-background-default',
+                    isSelected ? 'bg-action-primary/10' : 'bg-background-default',
                     !isEnabled && 'bg-background-disabled'
                 )}
                 border={true}
