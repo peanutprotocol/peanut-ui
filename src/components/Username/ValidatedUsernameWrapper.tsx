@@ -41,7 +41,7 @@ export function ValidatedUsernameWrapper({
     username,
     children,
     errorProps,
-    loadingClassName = 'flex min-h-[inherit] w-full items-center justify-center',
+    loadingClassName = 'flex min-h-inherit w-full items-center justify-center',
 }: ValidatedUsernameWrapperProps) {
     const t = useTranslations('payment')
     const [isInvalid, setIsInvalid] = useState(false)
