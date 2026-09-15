@@ -6,28 +6,11 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { Drawer, DrawerClose, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
-import { SIDEBAR_CONFIG } from './nav-config'
+import { SIDEBAR_CONFIG, TIERS } from './nav-config'
 
 export function DocSidebar() {
     const pathname = usePathname()
     const [isOpen, setIsOpen] = useState(false)
-
-    // Determine which tier we're in
-    const tier = pathname?.includes('/foundations')
-        ? 'foundations'
-        : pathname?.includes('/primitives')
-          ? 'primitives'
-          : pathname?.includes('/patterns')
-            ? 'patterns'
-            : pathname?.includes('/audit')
-              ? 'audit'
-              : pathname?.includes('/playground')
-                ? 'playground'
-                : null
-
-    const items = tier ? SIDEBAR_CONFIG[tier] : []
-
-    if (!tier || items.length === 0) return null
 
     return (
         <>
@@ -42,9 +25,9 @@ export function DocSidebar() {
             </Button>
 
             <Drawer open={isOpen} onOpenChange={setIsOpen}>
-                <DrawerContent accessibleTitle={`${tier} navigation`} className="md:hidden">
+                <DrawerContent accessibleTitle="Design system navigation" className="md:hidden">
                     <DrawerHeader className="flex-row items-center justify-between text-left">
-                        <DrawerTitle className="capitalize">{tier}</DrawerTitle>
+                        <DrawerTitle>Design System</DrawerTitle>
                         <DrawerClose asChild>
                             <Button
                                 variant="transparent"
@@ -56,16 +39,40 @@ export function DocSidebar() {
                         </DrawerClose>
                     </DrawerHeader>
                     <nav className="pb-6">
-                        <SidebarLinks items={items} pathname={pathname} onNavigate={() => setIsOpen(false)} />
+                        <SidebarSections pathname={pathname} onNavigate={() => setIsOpen(false)} />
                     </nav>
                 </DrawerContent>
             </Drawer>
 
             {/* Desktop sidebar */}
             <nav className="hidden w-48 shrink-0 border-r border-border-disabled pr-4 md:block">
-                <SidebarLinks items={items} pathname={pathname} />
+                <SidebarSections pathname={pathname} />
             </nav>
         </>
+    )
+}
+
+function SidebarSections({ pathname, onNavigate }: { pathname: string | null; onNavigate?: () => void }) {
+    return (
+        <div className="flex flex-col gap-8">
+            {TIERS.map((tier) => {
+                const isActive = pathname?.startsWith(tier.href)
+                const items = SIDEBAR_CONFIG[tier.href.split('/').pop() as keyof typeof SIDEBAR_CONFIG] ?? []
+                return (
+                    <div key={tier.href} className="flex flex-col gap-4">
+                        <LinkButton
+                            href={tier.href}
+                            onClick={onNavigate}
+                            className={isActive ? 'text-foreground-primary no-underline' : undefined}
+                        >
+                            <Icon name={tier.icon} size={16} />
+                            {isActive ? <strong>{tier.label}</strong> : tier.label}
+                        </LinkButton>
+                        <SidebarLinks items={items} pathname={pathname} onNavigate={onNavigate} />
+                    </div>
+                )
+            })}
+        </div>
     )
 }
 
