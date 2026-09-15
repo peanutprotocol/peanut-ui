@@ -43,6 +43,9 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
     }, [visible])
 
     const handleSave = useCallback(async () => {
+        // one visible cause at a time: reset both channels before selecting
+        setError(null)
+        setFlowError(null)
         const trimmed = email.trim()
         if (!isValidEmail(trimmed)) {
             setError(t('provideEmail.invalidEmail'))
@@ -54,8 +57,6 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
             return
         }
         setIsSaving(true)
-        setError(null)
-        setFlowError(null)
         try {
             const response = await updateUserById({ userId, email: trimmed })
             if (response.error) {
