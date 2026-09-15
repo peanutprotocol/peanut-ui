@@ -235,10 +235,15 @@ export function useCardFlow() {
     // Waits for the refetched overview to reflect the application, then: back
     // on the entry screen means the promised card never got created — show the
     // same retryable notification the entry screen uses for apply errors.
+    // Stays armed through pending/manual-review: an asynchronous approval can
+    // fail auto-issuance too, landing ENABLED-without-card later in the mount.
+    // Disarms only once a card exists or a terminal state (incl. the surfaced
+    // add-card error) is reached.
     const awaitingIssuanceRef = useRef(false)
     useEffect(() => {
         if (!awaitingIssuanceRef.current) return
         if (!overview?.status?.hasApplication) return
+        if (state === 'loading' || state === 'pending' || state === 'manual-review') return
         awaitingIssuanceRef.current = false
         if (state === 'add-card') setApplyError(t('page.issueFailed'))
     }, [overview, state, t])

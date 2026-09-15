@@ -141,6 +141,42 @@ describe('useCardFlow', () => {
         expect(result.current.applyError).toBe('page.issueFailed')
     })
 
+    it('stays armed through pending review and still catches a later failed issuance', async () => {
+        // async approval path: apply lands on the pending screen first. If
+        // Rain approves later and auto-issuance fails, the overview moves to
+        // ENABLED with no card — the detector must not have disarmed on the
+        // intermediate pending state (chip review finding on 28c2a767).
+        mockApplyForCard.mockResolvedValue({ status: 'pending', rainUserId: 'ru-1', message: 'submitted' })
+        const { result, rerender } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply(true)
+        })
+        mockState = 'pending'
+        mockOverview = { cards: [], status: { hasApplication: true, railStatus: 'PENDING' } }
+        rerender()
+        expect(result.current.applyError).toBeNull()
+        mockState = 'add-card'
+        mockOverview = { cards: [], status: { hasApplication: true, railStatus: 'ENABLED' } }
+        rerender()
+        expect(result.current.applyError).toBe('page.issueFailed')
+    })
+
+    it('disarms silently once a card exists', async () => {
+        mockApplyForCard.mockResolvedValue({ status: 'pending', rainUserId: 'ru-1', message: 'submitted' })
+        const { result, rerender } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply(true)
+        })
+        mockState = 'active'
+        mockOverview = { cards: [{ status: 'ACTIVE' }], status: { hasApplication: true, railStatus: 'ENABLED' } }
+        rerender()
+        // detector disarmed — a later unrelated add-card render must not error
+        mockState = 'add-card'
+        mockOverview = { cards: [], status: { hasApplication: true, railStatus: 'ENABLED' } }
+        rerender()
+        expect(result.current.applyError).toBeNull()
+    })
+
     it('stays silent when a pending apply advances to a non-entry screen', async () => {
         mockApplyForCard.mockResolvedValue({ status: 'pending', rainUserId: 'ru-1', message: 'submitted' })
         const { result, rerender } = renderHook(() => useCardFlow())
