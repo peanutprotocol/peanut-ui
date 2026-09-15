@@ -127,7 +127,7 @@ export default function DesignSystemAuditPage() {
             </div>
 
             {/* Layer reduction table */}
-            <div className="overflow-hidden rounded-sm border border-border-default">
+            <div className="overflow-x-auto rounded-sm border border-border-default">
                 <table className="w-full text-left text-body-xs">
                     <thead className="bg-background-page">
                         <tr>
@@ -214,7 +214,7 @@ export default function DesignSystemAuditPage() {
                                     }`}
                                 >
                                     <div className="flex items-start justify-between gap-2">
-                                        <p className="text-label-l">{i.name}</p>
+                                        <p className="min-w-0 text-label-l break-words">{i.name}</p>
                                         <span className="shrink-0 text-label-m text-foreground-secondary">
                                             {i.usages}×
                                         </span>
@@ -244,7 +244,7 @@ export default function DesignSystemAuditPage() {
                 clusters.map((c, idx) => (
                     <Card key={idx} className="p-3">
                         <div className="flex items-start justify-between gap-2">
-                            <p className="text-label-l">→ {c.name}</p>
+                            <p className="min-w-0 text-label-l break-words">→ {c.name}</p>
                             {c.from > 0 && (
                                 <span className="shrink-0 text-label-m text-foreground-secondary">{c.from} → 1</span>
                             )}

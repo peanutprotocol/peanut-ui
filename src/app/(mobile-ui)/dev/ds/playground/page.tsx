@@ -5,7 +5,7 @@ export default function PlaygroundPage() {
     return (
         <DocPage>
             <div>
-                <h1 className="text-h3">Playground</h1>
+                <h1 className="text-heading-m">Playground</h1>
                 <p className="mt-1 text-body-s text-foreground-secondary">
                     Interactive test harnesses for motion, haptics, confetti and share assets. These are standalone
                     pages under{' '}

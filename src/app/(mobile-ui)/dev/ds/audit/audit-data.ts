@@ -2885,7 +2885,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         cat: 'templates-showcase',
         catLabel: 'Templates / showcase',
         layer: 'templates',
-        role: "The showcase's own template layer: DocPage, DocSection, DocHeader, DocSidebar, CatalogCard/Grid, CodeBlock, PropsTable, DesignNote, DoDont, WhenToUse, TierNav, SectionDivider, UsageAudit, Playground.",
+        role: "The showcase's own template layer: DocPage, DocSection, DocHeader, DocSidebar, CatalogCard/Grid, CodeBlock, PropsTable, DesignNote, DoDont, WhenToUse, SectionDivider, UsageAudit, Playground.",
         usages: 576,
         status: 'canonical',
         source: 'src/app/(mobile-ui)/dev/ds/_components/ (16 files) + _hooks/useHighlightedCode.ts',
