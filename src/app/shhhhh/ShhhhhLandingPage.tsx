@@ -75,7 +75,7 @@ export default function ShhhhhLandingPage() {
 
     return (
         <>
-            <section className="relative overflow-hidden bg-primary-1 px-4 py-20 text-n-1 md:py-24">
+            <section className="relative overflow-hidden bg-background-brand px-4 py-20 text-foreground-primary md:py-24">
                 <HeroBackNav />
                 <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 md:grid-cols-2">
                     <div className="min-w-0">
@@ -96,14 +96,14 @@ export default function ShhhhhLandingPage() {
                         >
                             {t('hero.cta')}
                         </Button>
-                        <p className="mt-6 text-sm leading-relaxed">{t('hero.disclaimer')}</p>
+                        <p className="mt-6 text-body-s leading-relaxed">{t('hero.disclaimer')}</p>
                     </div>
                     <div className="mx-auto w-full max-w-md -rotate-6">
                         <ScaledPixelatedCardFace last4="????" />
                     </div>
                 </div>
             </section>
-            <section className="bg-secondary-1 px-4 py-20 text-n-1">
+            <section className="bg-yellow-500 px-4 py-20 text-foreground-primary">
                 <div className="mx-auto max-w-3xl">
                     <h2 className="font-roboto-flex-extrabold text-heading font-extraBlack md:text-headingMedium">
                         {t('whatItDoes.titleLine1')} {t('whatItDoes.titleLine2')}
@@ -112,7 +112,7 @@ export default function ShhhhhLandingPage() {
                     <h3 className="font-roboto-flex-extrabold mt-12 text-2xl font-extraBlack">
                         {t('howToApply.title')}
                     </h3>
-                    <ol className="space-y-4 mt-6 list-decimal pl-6 text-lg">
+                    <ol className="space-y-4 mt-6 list-decimal pl-6 text-body-l">
                         <li>{t('howToApply.verify')}</li>
                         <li>{t('howToApply.terms')}</li>
                         <li>{t('howToApply.spend')}</li>
@@ -124,10 +124,13 @@ export default function ShhhhhLandingPage() {
                     <h2 className="font-roboto-flex-extrabold text-heading font-extraBlack md:text-headingMedium">
                         {t('faq.title')}
                     </h2>
-                    <div className="mt-10 border-y-2 border-n-1">
+                    <div className="mt-10 border-y-2 border-border-default">
                         {faqKeys.map((key, index) => (
-                            <details key={key} className={`group py-5 ${index > 0 ? 'border-t-2 border-n-1' : ''}`}>
-                                <summary className="flex cursor-pointer list-none items-center justify-between text-lg font-bold [&::-webkit-details-marker]:hidden">
+                            <details
+                                key={key}
+                                className={`group py-4 ${index > 0 ? 'border-t-2 border-border-default' : ''}`}
+                            >
+                                <summary className="flex cursor-pointer list-none items-center justify-between text-heading-card [&::-webkit-details-marker]:hidden">
                                     {t(`faq.${key}.question`)}
                                     <span aria-hidden className="ml-4 select-none group-open:hidden">
                                         {'+'}
@@ -136,13 +139,13 @@ export default function ShhhhhLandingPage() {
                                         {'−'}
                                     </span>
                                 </summary>
-                                <p className="mt-4 text-lg leading-relaxed">{t(`faq.${key}.answer`)}</p>
+                                <p className="mt-4 text-body-l leading-relaxed">{t(`faq.${key}.answer`)}</p>
                             </details>
                         ))}
                     </div>
                 </div>
             </section>
-            <section className="bg-n-1 px-4 py-20 text-center text-white">
+            <section className="bg-gray-950 px-4 py-20 text-center text-white">
                 <h2 className="font-roboto-flex-extrabold text-heading font-extraBlack md:text-headingMedium">
                     {t('ready.title')}
                 </h2>
