@@ -59,12 +59,13 @@ describe('UnsupportedBrowserModal', () => {
 
         expect(await screen.findByRole('dialog')).toHaveTextContent("Passkeys aren't available")
         expect(screen.getByRole('dialog')).toHaveTextContent(
-            'You can also try opening this link in a different browser, such as Chrome or Safari.'
+            "If it still doesn't work, try once from another phone or computer."
         )
+        expect(screen.getByRole('dialog')).not.toHaveTextContent('different browser')
         expect(screen.queryByText('Open this link in your browser')).not.toBeInTheDocument()
     })
 
-    it('does not recommend Chrome to someone already using Chrome', async () => {
+    it('recommends another device instead of another browser to someone using Chrome', async () => {
         mockIsLikelyWebview.mockReturnValue(false)
         mockPasskeySupport = { isSupported: false, isLoading: false }
         mockBrowser = { browserType: BrowserType.CHROME, isLoading: false }
@@ -72,12 +73,12 @@ describe('UnsupportedBrowserModal', () => {
         render(<UnsupportedBrowserModal allowClose={false} />)
 
         expect(await screen.findByRole('dialog')).toHaveTextContent(
-            'You can also try opening this link in a different browser.'
+            "If it still doesn't work, try once from another phone or computer."
         )
-        expect(screen.getByRole('dialog')).not.toHaveTextContent('such as Chrome')
+        expect(screen.getByRole('dialog')).not.toHaveTextContent('different browser')
     })
 
-    it('blocks a Safari-looking iOS environment with passkey guidance and recommends only Chrome', async () => {
+    it('blocks a Safari-looking iOS environment with passkey guidance and recommends another device', async () => {
         mockIsLikelyWebview.mockReturnValue(false)
         mockPasskeySupport = { isSupported: false, isLoading: false }
         mockBrowser = { browserType: BrowserType.SAFARI, isLoading: false }
@@ -85,11 +86,11 @@ describe('UnsupportedBrowserModal', () => {
         render(<UnsupportedBrowserModal allowClose={false} />)
 
         expect(await screen.findByRole('dialog')).toHaveTextContent(
-            'You can also try opening this link in a different browser, such as Chrome.'
+            "If it still doesn't work, try once from another phone or computer."
         )
         expect(screen.getByRole('dialog')).toHaveTextContent("Passkeys aren't available")
         expect(screen.getByRole('dialog')).not.toHaveTextContent('Open this link in your browser')
-        expect(screen.getByRole('dialog')).not.toHaveTextContent('Chrome or Safari')
+        expect(screen.getByRole('dialog')).not.toHaveTextContent('different browser')
     })
 
     it('waits for browser detection before choosing passkey guidance', async () => {
