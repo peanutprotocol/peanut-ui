@@ -128,6 +128,29 @@ describe('ContactsView exact username entry', () => {
         expect(input.closest('[data-input-container="true"]')).not.toHaveClass('border-border-error')
     })
 
+    it('treats a full-name match as a contact query instead of an invalid username', async () => {
+        renderContacts([contact({ username: 'globee1', fullName: 'Alice Smith' })])
+        const input = screen.getByRole('textbox', { name: 'Peanut username or contact' })
+
+        fireEvent.change(input, { target: { value: 'Alice Smith' } })
+
+        await waitFor(() => expect(screen.getByText('Alice Smith')).toBeInTheDocument())
+        expect(mockCheckUsername).not.toHaveBeenCalled()
+        expect(screen.queryByText('Enter a valid Peanut username.')).not.toBeInTheDocument()
+        expect(input.closest('[data-input-container="true"]')).not.toHaveClass('border-border-error')
+    })
+
+    it('shows username syntax feedback when a full-name query has no contact match', async () => {
+        renderContacts([])
+
+        fireEvent.change(screen.getByRole('textbox', { name: 'Peanut username or contact' }), {
+            target: { value: 'Alice Smith' },
+        })
+
+        expect(await screen.findByText('Enter a valid Peanut username.')).toBeInTheDocument()
+        expect(mockCheckUsername).not.toHaveBeenCalled()
+    })
+
     it('shows a specific message when the lookup quota is exhausted', async () => {
         mockCheckUsername.mockResolvedValue({ status: 'rate-limited', retryAfterSeconds: 3600 })
         renderContacts([])

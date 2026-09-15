@@ -28,6 +28,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
     const [searchQuery, setSearchQuery] = useState('')
     const [isExactUsernameFound, setIsExactUsernameFound] = useState(false)
     const [isExactUsernameMiss, setIsExactUsernameMiss] = useState(false)
+    const [isUsernameSyntaxInvalid, setIsUsernameSyntaxInvalid] = useState(false)
     const [isUsernameChanging, setIsUsernameChanging] = useState(false)
     const [usernameCheckError, setUsernameCheckError] = useState('')
     const [canRetryUsernameCheck, setCanRetryUsernameCheck] = useState(false)
@@ -82,6 +83,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
         setUsernameCheckError('')
         setCanRetryUsernameCheck(false)
         setIsExactUsernameMiss(false)
+        setIsUsernameSyntaxInvalid(false)
         try {
             const result = await usersApi.checkUsername(username)
             if (generation !== usernameCheckGeneration.current) return false
@@ -108,10 +110,11 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
     const isSearching = !!normalizedSearchQuery
     const exactUsernameIsContact = contacts.some((contact) => contact.username.toLowerCase() === exactUsername)
     const showExactUsername = !!exactUsername && isExactUsernameFound && !isUsernameChanging && !exactUsernameIsContact
-    // A search term may be a contact's name without being that person's exact
-    // username. Keep an exact miss neutral until contact search settles, and
-    // leave it neutral when relationship-scoped matches are available.
-    const exactMissIsNeutral = isExactUsernameMiss && (isFetchingContacts || contacts.length > 0)
+    // A search term may be a contact's full name rather than a username. Keep
+    // username validation neutral until contact search settles, and leave it
+    // neutral when relationship-scoped matches are available.
+    const contactSearchCanStillSucceed = isFetchingContacts || contacts.length > 0
+    const validationIsNeutral = (isExactUsernameMiss || isUsernameSyntaxInvalid) && contactSearchCanStillSucceed
 
     return (
         <div className="flex min-h-inherit flex-col gap-8">
@@ -133,21 +136,19 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                             if (isChanging) {
                                 usernameCheckGeneration.current += 1
                                 setIsExactUsernameMiss(false)
+                                const syntaxInvalid = username.length >= 4 && !isPlausibleUsername(username)
+                                setIsUsernameSyntaxInvalid(syntaxInvalid)
                                 setCanRetryUsernameCheck(false)
-                                setUsernameCheckError(
-                                    username.length >= 4 && !isPlausibleUsername(username)
-                                        ? t('contacts.invalidUsername')
-                                        : ''
-                                )
+                                setUsernameCheckError(syntaxInvalid ? t('contacts.invalidUsername') : '')
                             }
                         }}
                         placeholder={t('contacts.searchPlaceholder')}
                         aria-label={t('contacts.searchLabel')}
                         isSetupFlow
                         isInputChanging={isUsernameChanging}
-                        validationIsNeutral={exactMissIsNeutral}
+                        validationIsNeutral={validationIsNeutral}
                     />
-                    {usernameCheckError && !exactMissIsNeutral && (
+                    {usernameCheckError && !validationIsNeutral && (
                         <div className="flex items-center justify-between gap-2">
                             <FieldError>{usernameCheckError}</FieldError>
                             {canRetryUsernameCheck && (
