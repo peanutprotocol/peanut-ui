@@ -3291,6 +3291,8 @@
             "description": "Todavía estamos trabajando para que Peanut funcione en tu navegador. Por ahora, usa Chrome o Safari.",
             "passkeyTitle": "Las llaves de acceso no están disponibles",
             "passkeyDescription": "Peanut necesita una llave de acceso para crear tu cuenta. Asegúrate de que tu dispositivo tenga bloqueo de pantalla y las llaves de acceso activadas, y vuelve a intentarlo. También puedes intentar abrir este enlace en otro navegador, como Chrome o Safari.",
+            "passkeyDescriptionInChrome": "Peanut necesita una llave de acceso para crear tu cuenta. Asegúrate de que tu dispositivo tenga bloqueo de pantalla y las llaves de acceso activadas, y vuelve a intentarlo. También puedes intentar abrir este enlace en otro navegador.",
+            "passkeyDescriptionInSafari": "Peanut necesita una llave de acceso para crear tu cuenta. Asegúrate de que tu dispositivo tenga bloqueo de pantalla y las llaves de acceso activadas, y vuelve a intentarlo. También puedes intentar abrir este enlace en otro navegador, como Chrome.",
             "copyLinkCta": "Copiar enlace",
             "copied": "¡Copiado!",
             "copySuccessToast": "¡Enlace copiado al portapapeles!",

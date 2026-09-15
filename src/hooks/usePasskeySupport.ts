@@ -12,50 +12,61 @@ export interface PasskeySupportResult {
     recheckSupport: () => void
 }
 
-/** Checks whether this device can create a passkey with a local biometric/PIN authenticator. */
+type PasskeyCapability = Pick<PasskeySupportResult, 'isSupported' | 'error' | 'browserSupported'>
+
+const unsupported = (error: string, browserSupported: boolean): PasskeyCapability => ({
+    isSupported: false,
+    error,
+    browserSupported,
+})
+
+const checkPasskeyCapability = async (): Promise<PasskeyCapability> => {
+    // Native shells use the Capacitor passkey bridge; browser APIs can return
+    // false negatives inside their webviews.
+    if (isCapacitor()) {
+        return { isSupported: true, error: null, browserSupported: true }
+    }
+
+    const basicWebAuthnSupport = browserSupportsWebAuthn()
+    if (!basicWebAuthnSupport) {
+        return unsupported('WebAuthn is not available', false)
+    }
+
+    if (typeof window !== 'undefined' && !window.isSecureContext) {
+        return unsupported('Passkeys require a secure context (HTTPS)', true)
+    }
+
+    // Desktop browsers can create a credential through a QR/hybrid ceremony
+    // or a security key even when no authenticator is attached locally. The
+    // on-device authenticator is a hard prerequisite only on Android, where a
+    // false result usually means screen lock or Credential Manager is missing.
+    if (!/android/i.test(navigator.userAgent)) {
+        return { isSupported: true, error: null, browserSupported: true }
+    }
+
+    const platformAuthenticatorAvailable = await platformAuthenticatorIsAvailable()
+    return platformAuthenticatorAvailable
+        ? { isSupported: true, error: null, browserSupported: true }
+        : unsupported('A platform authenticator is not available', true)
+}
+
+/** Checks whether this environment has a usable path to create a passkey. */
 export function usePasskeySupport(): PasskeySupportResult {
-    const [isSupported, setIsSupported] = useState(false)
+    const [capability, setCapability] = useState<PasskeyCapability>({
+        isSupported: false,
+        error: null,
+        browserSupported: false,
+    })
     const [isLoading, setIsLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
-    const [browserSupported, setBrowserSupported] = useState(false)
 
     const checkSupport = useCallback(async () => {
         setIsLoading(true)
-        setError(null)
 
         try {
-            // Native shells use the Capacitor passkey bridge; browser APIs can
-            // return false negatives inside their webviews.
-            if (isCapacitor()) {
-                setBrowserSupported(true)
-                setIsSupported(true)
-                return
-            }
-
-            const basicWebAuthnSupport = browserSupportsWebAuthn()
-            setBrowserSupported(basicWebAuthnSupport)
-            if (!basicWebAuthnSupport) {
-                setIsSupported(false)
-                setError('WebAuthn is not available')
-                return
-            }
-
-            if (typeof window !== 'undefined' && !window.isSecureContext) {
-                setIsSupported(false)
-                setError('Passkeys require a secure context (HTTPS)')
-                return
-            }
-
-            const platformAuthenticatorAvailable = await platformAuthenticatorIsAvailable()
-            setIsSupported(platformAuthenticatorAvailable)
-            if (!platformAuthenticatorAvailable) {
-                setError('A platform authenticator is not available')
-            }
+            setCapability(await checkPasskeyCapability())
         } catch (err) {
             console.error('Error checking passkey support:', err)
-            setError('Failed to check passkey support')
-            setIsSupported(false)
-            setBrowserSupported(false)
+            setCapability(unsupported('Failed to check passkey support', false))
         } finally {
             setIsLoading(false)
         }
@@ -72,7 +83,15 @@ export function usePasskeySupport(): PasskeySupportResult {
         }
 
         void checkSupport()
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                void checkSupport()
+            }
+        }
+        document.addEventListener('visibilitychange', handleVisibilityChange)
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
     }, [checkSupport])
 
-    return { isSupported, isLoading, error, browserSupported, recheckSupport }
+    return { ...capability, isLoading, recheckSupport }
 }

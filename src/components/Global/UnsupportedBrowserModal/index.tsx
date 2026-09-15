@@ -9,9 +9,21 @@ import { useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
 import { isLikelyWebview } from '@/components/Setup/Setup.utils'
 import { usePasskeySupportContext } from '@/context/passkeySupportContext'
+import { BrowserType, useGetBrowserType } from '@/hooks/useGetBrowserType'
 
 const subscribeToStaticBrowserDetection = (): (() => void) => () => {}
 const getServerBrowserDetectionSnapshot = (): boolean => false
+
+const getPasskeyDescriptionKey = (
+    browserType: BrowserType | null
+):
+    | 'unsupportedBrowserModal.passkeyDescription'
+    | 'unsupportedBrowserModal.passkeyDescriptionInChrome'
+    | 'unsupportedBrowserModal.passkeyDescriptionInSafari' => {
+    if (browserType === BrowserType.CHROME) return 'unsupportedBrowserModal.passkeyDescriptionInChrome'
+    if (browserType === BrowserType.SAFARI) return 'unsupportedBrowserModal.passkeyDescriptionInSafari'
+    return 'unsupportedBrowserModal.passkeyDescription'
+}
 
 const UnsupportedBrowserModalContent = ({
     allowClose = true,
@@ -34,6 +46,7 @@ const UnsupportedBrowserModalContent = ({
     const [hasCopied, setHasCopied] = useState(false)
     const toast = useToast()
     const { isSupported: isPasskeySupported, isLoading: isLoadingPasskeySupport } = usePasskeySupportContext()
+    const { browserType, isLoading: isLoadingBrowserType } = useGetBrowserType()
     const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
     // Cleanup timeout on unmount to prevent memory leak
@@ -46,7 +59,8 @@ const UnsupportedBrowserModalContent = ({
     }, [])
 
     const showBrowserMessage = visible || isDetectedInAppBrowser
-    const showPasskeyMessage = !showBrowserMessage && !isLoadingPasskeySupport && !isPasskeySupported
+    const showPasskeyMessage =
+        !showBrowserMessage && !isLoadingPasskeySupport && !isLoadingBrowserType && !isPasskeySupported
 
     if ((!showBrowserMessage && !showPasskeyMessage) || (hasDismissedDetection && !visible)) {
         return null
@@ -104,9 +118,7 @@ const UnsupportedBrowserModalContent = ({
             onClose={handleModalClose}
             title={t(showBrowserMessage ? 'unsupportedBrowserModal.title' : 'unsupportedBrowserModal.passkeyTitle')}
             description={t(
-                showBrowserMessage
-                    ? 'unsupportedBrowserModal.description'
-                    : 'unsupportedBrowserModal.passkeyDescription'
+                showBrowserMessage ? 'unsupportedBrowserModal.description' : getPasskeyDescriptionKey(browserType)
             )}
             icon={'alert' as IconName}
             iconContainerClassName="bg-action-primary"
