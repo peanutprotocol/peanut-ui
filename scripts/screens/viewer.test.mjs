@@ -11,6 +11,7 @@ const elementIds = [
     'view-mode',
     'view-mode-control',
     'view-mode-row',
+    'source',
     'locale',
     'title',
     'description',
@@ -79,9 +80,29 @@ class Element {
     }
 }
 
-async function loadLanding(pathname, { ok = true, index = [], report } = {}) {
+async function loadLanding(pathname, { ok = true, index = [], report, search = '', hash = '' } = {}) {
     const elements = new Map(elementIds.map((id) => [id, new Element(id)]))
     const brand = new Element('brand')
+    const location = {
+        pathname,
+        protocol: 'https:',
+        search,
+        hash,
+        href: '',
+        reload() {},
+    }
+    const historyCalls = []
+    const history = {
+        replaceState(_state, _title, href) {
+            historyCalls.push(href)
+            const next = new URL(href, 'https://screens.example')
+            location.pathname = next.pathname
+            location.search = next.search
+            location.hash = next.hash
+        },
+    }
+    elements.location = location
+    elements.historyCalls = historyCalls
     let resolveResponse
     const response = new Promise((resolve) => {
         resolveResponse = resolve
@@ -99,14 +120,8 @@ async function loadLanding(pathname, { ok = true, index = [], report } = {}) {
             url.endsWith('/index.json')
                 ? Promise.resolve({ ok: true, status: 200, json: async () => index })
                 : response,
-        location: {
-            pathname,
-            protocol: 'https:',
-            search: '',
-            hash: '',
-            href: '',
-            reload() {},
-        },
+        history,
+        location,
         window: {},
     })
     vm.runInContext(viewer, context, {
@@ -206,6 +221,34 @@ test('landing locale selector filters published versions', async () => {
     elements.get('locale').dispatch('change')
     assert.equal(elements.get('versions').children.length, 1)
     assert.match(elements.get('versions').children[0].textContent, /Español/)
+    assert.equal(elements.location.search, '?source=synthetic&locale=es-419')
+})
+
+test('landing source selector restores and shares deterministic or real journey filters', async () => {
+    const syntheticPath = '2026-09-14/dev/en/' + 'a'.repeat(40)
+    const nutcrackerPath = '2026-09-14/nutcracker/en/' + 'b'.repeat(40)
+    const elements = await loadLanding('/', {
+        search: '?source=nutcracker&locale=en',
+        index: [
+            { path: syntheticPath, date: '2026-09-14', label: 'dev', locale: 'en', source: 'synthetic' },
+            {
+                path: nutcrackerPath,
+                date: '2026-09-14',
+                label: 'Nutcracker',
+                locale: 'en',
+                source: 'nutcracker',
+            },
+        ],
+    })
+    assert.equal(elements.get('source').children.length, 2)
+    assert.equal(elements.get('source').value, 'nutcracker')
+    assert.equal(elements.get('versions').children[0].href, `/screens/${nutcrackerPath}/?source=nutcracker&locale=en`)
+    assert.match(elements.get('title').textContent, /Real backend journeys/)
+    elements.get('source').value = 'synthetic'
+    elements.get('source').dispatch('change')
+    assert.equal(elements.get('versions').children.length, 1)
+    assert.equal(elements.get('versions').children[0].href, `/screens/${syntheticPath}/?source=synthetic&locale=en`)
+    assert.equal(elements.location.search, '?source=synthetic&locale=en')
 })
 
 test('comparison reports ignore legacy public image URLs and can switch to the full catalogue', async () => {
@@ -271,6 +314,132 @@ test('comparison reports ignore legacy public image URLs and can switch to the f
     assert.equal(elements.get('screens').children[0].children[1].className, 'pair single')
 })
 
+test('report filters restore from and continuously update the shareable URL', async () => {
+    const image = 'a'.repeat(64) + '.png'
+    const path = '2026-09-11/pr-1/en/' + 'b'.repeat(40)
+    const report = {
+        schema: 1,
+        type: 'comparison',
+        locale: 'en',
+        complete: true,
+        before: { commit: 'a'.repeat(40), capturedAt: 'now', environment: 'test' },
+        after: { commit: 'b'.repeat(40), capturedAt: 'now', environment: 'test' },
+        screens: [
+            {
+                id: 'changed',
+                name: 'Changed screen',
+                flow: 'Home',
+                kind: 'route',
+                status: 'changed',
+                before: { status: 'captured', image, thumbnail: image },
+                after: { status: 'captured', image, thumbnail: image },
+            },
+            {
+                id: 'unchanged',
+                name: 'Unchanged screen',
+                flow: 'Home',
+                kind: 'route',
+                status: 'unchanged',
+                before: { status: 'captured', image, thumbnail: image },
+                after: { status: 'captured', image, thumbnail: image },
+            },
+        ],
+    }
+    const elements = await loadLanding(`/screens/${path}/`, {
+        index: [{ path, locale: 'en', source: 'synthetic' }],
+        report,
+        search: '?source=synthetic&locale=en&q=changed&flow=Home&status=changed&view=all',
+    })
+    assert.equal(elements.get('search').value, 'changed')
+    assert.equal(elements.get('flow').value, 'Home')
+    assert.equal(elements.get('status').value, 'changed')
+    assert.equal(elements.get('view-mode').checked, true)
+    assert.equal(elements.get('screens').children.length, 1)
+
+    elements.get('search').value = 'Changed screen'
+    elements.get('search').dispatch('input')
+    assert.equal(
+        elements.location.search,
+        '?source=synthetic&locale=en&q=Changed+screen&flow=Home&status=changed&view=all'
+    )
+})
+
+test('report navigation drops status filters that belong to a different source', async () => {
+    const image = 'a'.repeat(64) + '.png'
+    const thumbnail = 'b'.repeat(64) + '.webp'
+    const journeyPath = '2026-09-14/nutcracker/en/' + 'c'.repeat(40)
+    const syntheticPath = '2026-09-14/dev/en/' + 'd'.repeat(40)
+    const report = {
+        schema: 1,
+        type: 'journeys',
+        source: 'nutcracker',
+        commit: 'c'.repeat(40),
+        uiCommit: 'd'.repeat(40),
+        apiCommit: 'e'.repeat(40),
+        locale: 'en',
+        environment: 'sandbox',
+        capturedAt: '2026-09-14T08:00:00Z',
+        profile: 'en-iphone-14',
+        width: 390,
+        height: 664,
+        complete: true,
+        screens: [
+            {
+                id: 'send-success',
+                name: 'Send success',
+                flow: 'e2e-send',
+                kind: 'route',
+                route: '/send/success',
+                trustTier: 'full-e2e',
+                status: 'passed',
+                image,
+                thumbnail,
+            },
+        ],
+    }
+    const elements = await loadLanding(`/screens/${journeyPath}/`, {
+        index: [
+            { path: journeyPath, locale: 'en', source: 'nutcracker' },
+            { path: syntheticPath, locale: 'en', source: 'synthetic' },
+        ],
+        report,
+        search: '?source=nutcracker&locale=en&status=passed',
+    })
+    assert.equal(elements.get('status').value, 'passed')
+    elements.get('source').value = 'synthetic'
+    elements.get('source').dispatch('change')
+    assert.equal(elements.location.href, `/screens/${syntheticPath}/?source=synthetic&locale=en`)
+})
+
+test('reports discard status filters that do not exist in their rows', async () => {
+    const image = 'a'.repeat(64) + '.png'
+    const report = {
+        schema: 1,
+        type: 'capture',
+        locale: 'en',
+        complete: true,
+        capturedAt: '2026-09-14T08:00:00Z',
+        screens: [
+            {
+                id: 'home',
+                name: 'Home',
+                flow: 'Home',
+                kind: 'route',
+                status: 'captured',
+                image,
+                thumbnail: image,
+            },
+        ],
+    }
+    const elements = await loadLanding('/screens/2026-09-14/dev/en/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/', {
+        report,
+        search: '?source=synthetic&locale=en&status=passed',
+    })
+    assert.equal(elements.get('status').value, '')
+    assert.equal(elements.get('screens').children.length, 1)
+    assert.equal(elements.location.search, '?source=synthetic&locale=en')
+})
+
 test('screen lists load the first page and leave the next page for scroll loading', async () => {
     const image = 'a'.repeat(64) + '.png'
     const report = {
@@ -321,6 +490,52 @@ test('new reports use Access-protected same-origin screenshot URLs', async () =>
     })
     const screenshot = elements.get('screens').children[0].children[1].children[0].children[1].children[0]
     assert.equal(screenshot.src, `/screen-data/assets/${image}`)
+})
+
+test('Nutcracker reports show real-backend provenance and retain a screenshot when its assertion failed', async () => {
+    const original = 'a'.repeat(64) + '.png'
+    const thumbnail = 'b'.repeat(64) + '.webp'
+    const commit = 'c'.repeat(40)
+    const report = {
+        schema: 1,
+        type: 'journeys',
+        source: 'nutcracker',
+        commit,
+        uiCommit: 'd'.repeat(40),
+        apiCommit: 'e'.repeat(40),
+        locale: 'en',
+        environment: 'sandbox',
+        capturedAt: '2026-09-14T08:00:00Z',
+        profile: 'en-iphone-14',
+        width: 390,
+        height: 664,
+        complete: false,
+        screens: [
+            {
+                id: 'send-success',
+                name: 'Send success',
+                flow: 'e2e-send',
+                kind: 'route',
+                route: '/send/success',
+                trustTier: 'full-e2e',
+                status: 'failed',
+                reason: 'Journey assertion failed',
+                image: original,
+                thumbnail,
+            },
+        ],
+    }
+    const path = `2026-09-14/nutcracker/en/${commit}/run-123-1`
+    const elements = await loadLanding(`/screens/${path}/`, {
+        index: [{ path, locale: 'en', source: 'nutcracker' }],
+        report,
+    })
+    assert.equal(elements.get('view-mode-row').hidden, true)
+    assert.match(elements.get('coverage').textContent, /Incomplete Nutcracker run/)
+    assert.match(elements.get('footer').textContent, /Nutcracker sandbox backend/)
+    assert.match(elements.get('provenance').children[0].children[0].textContent, /Nutcracker/)
+    const screenshot = elements.get('screens').children[0].children[1].children[0].children[1].children[0]
+    assert.equal(screenshot.src, `/screen-data/assets/${thumbnail}`)
 })
 
 test('report pages expose the locale selector and use a long-form capture date', async () => {

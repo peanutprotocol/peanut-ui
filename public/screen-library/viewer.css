@@ -256,6 +256,9 @@ label {
 #locale-control {
     flex: 0 0 96px;
 }
+#source-control {
+    flex: 0 0 170px;
+}
 #search-control {
     flex: 1 1 auto;
     min-width: 180px;
@@ -388,6 +391,12 @@ button {
 .tag.added {
     background: #d7f4db;
 }
+.tag.passed {
+    background: #d7f4db;
+}
+.tag.failed {
+    background: #ffecd4;
+}
 .tag.unavailable {
     background: #ffecd4;
 }
@@ -433,6 +442,11 @@ figcaption {
     width: 197px;
     height: 427px;
     object-fit: cover;
+}
+.journey-screens .pair.single .shot button,
+.journey-screens .pair.single .shot img {
+    height: auto;
+    object-fit: contain;
 }
 .shot img {
     width: 100%;

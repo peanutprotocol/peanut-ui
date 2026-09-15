@@ -21,6 +21,7 @@ export type SumsubActionErrorCode =
     | 'manteca_us_nationality_restricted'
     | 'initiate_failed'
     | 'restart_failed'
+    | 'residence_change_failed'
     | 'resubmit_failed'
     | 'start_action_failed'
     | 'invalid_response'
@@ -202,6 +203,57 @@ export const restartIdentityVerification = async (
                     typeof resolved === 'string' && RESTART_REGION_INTENTS.has(resolved) ? resolved : undefined,
             },
         }
+    } catch (e: unknown) {
+        return caughtError(e)
+    }
+}
+
+export interface ResidenceChangeVerificationResponse {
+    token: string
+    levelName: string
+    applicantId: string
+    targetCountry: string
+}
+
+/**
+ * Resume the pending residence's dedicated Applicant Action. Unlike
+ * restartIdentityVerification this endpoint never resets the approved
+ * applicant's IDENTITY step.
+ */
+export const startResidenceChangeVerification = async (
+    targetCountry: string
+): Promise<{
+    data?: ResidenceChangeVerificationResponse
+    error?: string
+    code?: SumsubActionErrorCode
+    cooldown?: { retryAt?: string }
+}> => {
+    try {
+        const expectedTargetCountry = targetCountry.trim().toUpperCase()
+        if (!/^[A-Z]{2}$/.test(expectedTargetCountry)) {
+            return { error: 'Invalid residence country', code: 'residence_change_failed' }
+        }
+        const response = await serverFetch('/users/residence-change/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ targetCountry: expectedTargetCountry }),
+        })
+        const responseJson = await response.json()
+        if (!response.ok) {
+            const failure = backendOrFallback(
+                responseJson,
+                'Failed to start residence verification',
+                'residence_change_failed'
+            )
+            const retryAfterSeconds = responseJson.retryAfterSeconds
+            if (typeof retryAfterSeconds !== 'number' || !Number.isFinite(retryAfterSeconds)) return failure
+            const retryAt = new Date(Date.now() + Math.max(0, retryAfterSeconds) * 1000).toISOString()
+            return { ...failure, cooldown: { retryAt } }
+        }
+        if (!responseJson.token || !responseJson.applicantId || responseJson.targetCountry !== expectedTargetCountry) {
+            return { error: 'Invalid response from server', code: 'invalid_response' }
+        }
+        return { data: responseJson }
     } catch (e: unknown) {
         return caughtError(e)
     }

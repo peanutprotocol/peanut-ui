@@ -9674,6 +9674,10 @@ export interface paths {
                             /** @enum {string} */
                             code: "EMAIL_IN_USE";
                             error: string;
+                        } | {
+                            /** @enum {string} */
+                            code: "RESIDENCE_CHANGE_UNAVAILABLE";
+                            error: string;
                         };
                     };
                 };
@@ -10327,7 +10331,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Reset the Sumsub IDENTITY step after a residence change and mint a fresh SDK token. Allowed only while the declared residence differs from the verified one. */
+        /** @description Reset the Sumsub IDENTITY step for an authorised document-replacement flow and mint a fresh SDK token. Residence changes use a non-destructive Applicant Action. */
         post: {
             parameters: {
                 query?: never;
@@ -10784,6 +10788,10 @@ export interface paths {
                                 declaredSecond: string | null;
                                 kycReported: string | null;
                                 nextChangeAllowedAt: string | null;
+                                pending: string | null;
+                                pendingRequestedAt: string | null;
+                                pendingSecond: string | null;
+                                pendingStatus: string | null;
                                 verified: string | null;
                             };
                             residenceRestrictions: {
@@ -10881,6 +10889,94 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/residence-change/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                    "api-key"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        targetCountry: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            applicantId: string;
+                            levelName: string;
+                            targetCountry: string;
+                            token: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            retryAfterSeconds?: number;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            retryAfterSeconds?: number;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            retryAfterSeconds?: number;
+                        };
+                    };
                 };
             };
         };
@@ -11229,6 +11325,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            avatarKey: string | null;
                             canReceiveBankOfframp: boolean;
                             fullName: string | null;
                             isVerified: boolean;

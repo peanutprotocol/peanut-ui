@@ -20,6 +20,7 @@ import { NATIVE_TOKEN_ADDRESS, NATIVE_TOKEN_PROXY_ADDRESS } from '@/constants/to
 import { toWebAuthnKey } from '@zerodev/passkey-validator'
 import { USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants/userop.consts'
 import { CHAIN_LOGOS, TOKEN_LOGOS, type ChainName, type TokenName } from '@/constants/rhino.consts'
+import { resolveChainRegistryEntry } from '@/constants/chainRegistry.consts'
 
 export const shortenAddress = (address?: string, chars?: number) => {
     if (!address) return ''
@@ -493,6 +494,23 @@ export const getExplorerUrl = (chainId: string) => {
     } else {
         return explorers?.[0].url
     }
+}
+
+/** Build a transaction proof URL from any chain identifier the API emits.
+ *  EVM chains keep using chain-details.json; non-EVM explorer shapes live in
+ *  the canonical chain registry. */
+export const getTransactionExplorerUrl = (chainIdentifier: string, transactionHash: string) => {
+    const exactIdentifier = chainIdentifier.trim()
+    const chain = resolveChainRegistryEntry(exactIdentifier)
+    const aliasPrefix = chain?.aliasTransactionExplorerUrlPrefixes?.[exactIdentifier]
+    if (aliasPrefix) {
+        return `${aliasPrefix}${encodeURIComponent(transactionHash)}`
+    }
+    if (chain?.transactionExplorerUrlPrefix) {
+        return `${chain.transactionExplorerUrlPrefix}${encodeURIComponent(transactionHash)}`
+    }
+    const baseUrl = getExplorerUrl(chain?.id ?? exactIdentifier)
+    return baseUrl ? `${baseUrl}/tx/${transactionHash}` : undefined
 }
 
 export function formatDate(date: Date | null | undefined): string {

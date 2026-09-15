@@ -2,6 +2,7 @@
 
 import React, { createContext, type ReactNode, useContext, useMemo, useState, useCallback } from 'react'
 import { type ISetupStep, type ScreenId } from '@/components/Setup/Setup.types'
+import { type SignupEntryFlow } from '@/features/setup/signup-analytics'
 
 /**
  * Setup flow memory that cannot live in the URL: the filtered step list (a
@@ -28,6 +29,8 @@ interface SetupFlowContextType {
     setResidenceCountry: (country: string) => void
     secondResidenceCountry: string
     setSecondResidenceCountry: (country: string) => void
+    signupEntryFlow: SignupEntryFlow
+    setSignupEntryFlow: (entryFlow: SignupEntryFlow) => void
     /**
      * The point of no return: the no-back step the PAGE has confirmed visible
      * (stepRendered — entry resolution done, no interstitial/modal). Guards
@@ -53,6 +56,7 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
     const [username, setUsername] = useState('')
     const [residenceCountry, setResidenceCountry] = useState('')
     const [secondResidenceCountry, setSecondResidenceCountry] = useState('')
+    const [signupEntryFlow, setSignupEntryFlow] = useState<SignupEntryFlow>('default')
     const [noBackLockScreenId, setNoBackLockScreenId] = useState<ScreenId | null>(null)
 
     // "start fresh" on the existing-session interstitial: the provider stays
@@ -81,6 +85,8 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
             setResidenceCountry,
             secondResidenceCountry,
             setSecondResidenceCountry,
+            signupEntryFlow,
+            setSignupEntryFlow,
             noBackLockScreenId,
             setNoBackLockScreenId,
             resetSetupFlow,
@@ -93,6 +99,7 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds:
             username,
             residenceCountry,
             secondResidenceCountry,
+            signupEntryFlow,
             noBackLockScreenId,
             resetSetupFlow,
         ]

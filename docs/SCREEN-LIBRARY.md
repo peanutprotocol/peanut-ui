@@ -1,8 +1,23 @@
 # Versioned screen library
 
-The library captures synthetic app states at English / 393×852. It is visual
-coverage, not proof that payments or provider integrations work. Nutcracker
-continues to provide that evidence. Native system dialogs are outside v1.
+The library combines two complementary sources. The app-state catalogue captures
+deterministic synthetic states at 393×852 in every supported locale. Nutcracker
+adds English screenshots from real Peanut backend journeys, provider sandboxes,
+Arbitrum Sepolia and an isolated Postgres database. Synthetic captures remain the
+complete visual baseline; Nutcracker supplies integration evidence for the subset
+of states reachable through real journeys. Native system dialogs remain outside
+the library.
+
+Gallery filters are URL-backed. Source, locale, search, flow, status, and
+all/changed mode are restored from the query string, so copying the browser URL
+shares the exact visible view.
+
+Only Nutcracker PNGs and a small allowlisted manifest are published. Replay
+credentials, database snapshots, API traces, console output and provider details
+stay in the private GitHub Actions artifact and never enter R2. Published routes
+contain pathname only, thumbnails must be bounded WebP assets, and run-wide
+attempted/failed counts prevent failures without screenshots from being labelled
+complete.
 
 ## Capture and compare
 
@@ -239,8 +254,9 @@ third-party chat UI and its network readiness are not part of this visual tier.
 Modal readiness waits for full opacity before transitions are disabled, since
 browser visibility alone can accept a transparent entering panel.
 
-Capture jobs use the fixed macOS 26 Intel runner family because the existing
-tutorial assets contain HEVC with transparency. Linux Chromium cannot decode
-them, and H.264 conversion loses their transparency. Original media stays
-unchanged; the manifest records the actual OS and browser versions. Reference
-resolution and trusted publishing remain on Linux. See [GitHub runner labels](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).
+Capture jobs use `ubuntu-24.04`. Current tutorial media is Chromium-compatible
+H.264; when an exact historical revision contains either known legacy HEVC
+tutorial asset, the capture harness serves its hash-pinned H.264 counterpart
+without mutating the target checkout. Unknown media hashes are never
+substituted. The manifest records the actual OS and browser versions. Reference
+resolution and trusted publishing also run on Linux. See [GitHub runner labels](https://docs.github.com/en/actions/reference/runners/github-hosted-runners).

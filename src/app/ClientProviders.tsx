@@ -26,6 +26,7 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
 import { Suspense } from 'react'
+import { PathnamePageviewTracker } from '@/components/Analytics/PathnamePageviewTracker'
 
 // Harness bootstrap ships only in harness builds. In prod bundles the dynamic
 // import is in dead code behind `if (false)` and webpack drops the chunk.
@@ -90,6 +91,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
            only through the dynamically-imported AppStateProviders chunk, and a
            chunk that loads slowly or fails would take readiness down with it. */
         <OtaUpdateProvider>
+            <PathnamePageviewTracker />
             <NuqsAdapter>
                 <PeanutProvider>
                     {/* Must sit ABOVE ContextProvider: TokenContextProvider → useWallet

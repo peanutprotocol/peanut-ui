@@ -37,15 +37,12 @@ describe('resolveSetupEntryStep', () => {
             expect(resolveSetupEntryStep({ ...base, ...overrides })).toBe('signup')
         })
 
-        it('does not skip the landing gate while web signups are closed', () => {
-            expect(
-                resolveSetupEntryStep({
-                    ...base,
-                    hasInviteCode: true,
-                    webSignupClosed: true,
-                })
-            ).toBe('landing')
-            expect(resolveSetupEntryStep({ ...base, stepParam: 'signup', webSignupClosed: true })).toBe('landing')
+        it.each([
+            ['plain entry', {}],
+            ['?step=signup', { stepParam: 'signup' }],
+            ['invite code', { hasInviteCode: true }],
+        ])('routes %s to Log In while web signups are closed', (_name, overrides) => {
+            expect(resolveSetupEntryStep({ ...base, ...overrides, webSignupClosed: true })).toBe('landing')
         })
 
         it('an unknown ?step value changes nothing', () => {

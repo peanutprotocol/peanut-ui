@@ -12,6 +12,7 @@ import { HomeModals } from './components/HomeModals'
 import { useHomeFlow } from './useHomeFlow'
 import { BalanceSection } from './views/BalanceSection'
 import { HomeTopNav } from './views/HomeTopNav'
+import { useHomeViewAnalytics } from './useHomeViewAnalytics'
 
 /**
  * home page (figma board 17830:75689): top nav (menu / rewards), balance
@@ -35,6 +36,7 @@ export function HomePage() {
         isBalanceHidden,
         toggleBalanceVisibility,
     } = useHomeFlow()
+    useHomeViewAnalytics(isPageLoading)
 
     if (isPageLoading) {
         return <Loading variant="mascot" coverFullScreen />
