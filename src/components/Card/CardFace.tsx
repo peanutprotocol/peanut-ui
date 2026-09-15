@@ -1,9 +1,11 @@
 'use client'
-import { type FC, useState } from 'react'
+import { type FC } from 'react'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { twMerge } from '@/utils/tw'
-import { Icon } from '@/components/Global/Icons/Icon'
+import { Button } from '@/components/0_Bruddle/Button'
+import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { PEANUT_CARD_HAND, VISA_BRAND_MARK } from '@/assets/cards'
 import { PEANUTMAN } from '@/assets/mascot'
 import { PEANUT_LOGO_BLACK } from '@/assets/logos'
@@ -27,11 +29,6 @@ interface Props {
      *  "user tapped reveal" and the reveal payload arriving — replaces the
      *  static loading sentence with in-place skeletons. */
     loading?: boolean
-    /** Reveal-error message. Rendered INSIDE the card face so a failed reveal
-     *  doesn't push surrounding layout. `useCardReveal` clears the error on
-     *  the next attempt, so the eye button (visible when not loading) is
-     *  the retry affordance — no separate dismiss needed. */
-    error?: string | null
     onToggleReveal?: () => void
     onCopy?: (value: string, field: CopyableCardField) => void
     /** Pre-activation preview: PAN/cardholder/expiry rendered as `?`s.
@@ -51,7 +48,6 @@ const CardFace: FC<Props> = ({
     isLocked = false,
     revealed,
     loading = false,
-    error,
     onToggleReveal,
     onCopy,
     locked = false,
@@ -63,29 +59,17 @@ const CardFace: FC<Props> = ({
     // so it never covers the PAN / expiry / CVV (or the loading skeletons).
     // It slides back when the card is re-masked.
     const detailsShown = showingDetails || loading
-    const [copiedField, setCopiedField] = useState<CopyableCardField | null>(null)
-
-    const handleCopy = (value: string, field: CopyableCardField) => {
-        setCopiedField(field)
-        // Clear only if still showing the same field — guards against an
-        // earlier setTimeout overwriting a fresher copy on the other field.
-        setTimeout(() => setCopiedField((current) => (current === field ? null : current)), 1500)
-        onCopy?.(value, field)
-    }
 
     return (
         <div
             className={twMerge(
-                'relative aspect-[1.586/1] w-full overflow-hidden rounded-xl bg-action-primary text-foreground-primary',
+                // iso/iec 7810 id-1 card ratio
+                'relative aspect-[1.586/1] w-full overflow-hidden rounded-sm bg-action-primary text-foreground-primary',
                 isLocked && 'grayscale',
                 className
             )}
         >
-            {/* Hand + yellow stripe artwork. Decorative — sits behind content,
-             * bottom-anchored to match the finalised Rain card art. On reveal
-             * (or while fetching) it slides diagonally off the bottom-right
-             * corner so it never covers the card details; slides back when
-             * re-masked. pointer-events-none so it never intercepts the eye tap. */}
+            {/* issued artwork uses 90% of the card height */}
             <Image
                 src={PEANUT_CARD_HAND}
                 alt=""
@@ -112,7 +96,7 @@ const CardFace: FC<Props> = ({
                     <div className="flex flex-col items-end leading-none">
                         <Image src={VISA_BRAND_MARK} alt="Visa" className="h-6 w-auto brightness-0" />
                         {/* Card-tier brand lockup, not copy — stays English in every locale. */}
-                        <span className="mt-0.5 text-[11px] font-semibold tracking-wide">{'Platinum'}</span>
+                        <span className="mt-0.5 text-label-m tracking-wide">{'Platinum'}</span>
                     </div>
                 </div>
 
@@ -126,11 +110,11 @@ const CardFace: FC<Props> = ({
                             <div className="mt-1 flex items-end justify-between gap-6 text-body-xs">
                                 <div>
                                     <div className="opacity-70">{t('cardholder')}</div>
-                                    <div className="font-bold">????</div>
+                                    <div className="text-body-s-semibold">????</div>
                                 </div>
                                 <div>
                                     <div className="opacity-70">{t('valid')}</div>
-                                    <div className="font-bold">??/??</div>
+                                    <div className="text-body-s-semibold">??/??</div>
                                 </div>
                             </div>
                         </>
@@ -144,117 +128,89 @@ const CardFace: FC<Props> = ({
                                     {formatPan(revealed.pan)}
                                 </span>
                                 {onCopy && (
-                                    <button
-                                        type="button"
-                                        aria-label={t('copyCardNumber')}
-                                        onClick={() => handleCopy(revealed.pan, 'pan')}
-                                        className="relative p-1 transition-opacity duration-instant after:absolute after:-inset-3 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
-                                    >
-                                        <Icon name={copiedField === 'pan' ? 'check' : 'copy'} size={16} />
-                                    </button>
+                                    <CopyToClipboard
+                                        type="icon"
+                                        textToCopy={revealed.pan}
+                                        iconSize="4"
+                                        onCopy={() => onCopy(revealed.pan, 'pan')}
+                                    />
                                 )}
                             </div>
                             {/* Registered cardholder name — PII, kept out of session
                              * recordings like the other revealed fields. */}
                             {revealed.cardholderName && (
-                                <span className="ph-no-capture mt-1 text-body-s font-bold tracking-wide uppercase">
+                                <span className="ph-no-capture mt-1 text-body-s-semibold tracking-wide uppercase">
                                     {revealed.cardholderName}
                                 </span>
                             )}
                             <div className="flex items-end justify-between">
-                                <div className="text-s flex gap-6">
+                                <div className="flex gap-6 text-body-s">
                                     <div className="flex items-end gap-1">
                                         <div>
                                             {/* "Expiry" label dropped — value row stays one line so PAN/name clear the artwork */}
                                             {/* ph-no-capture: expiry digits out of recordings. */}
-                                            <div className="ph-no-capture font-bold">
+                                            <div className="ph-no-capture text-body-s-semibold">
                                                 {formatExpiry(revealed.expiryMonth, revealed.expiryYear)}
                                             </div>
                                         </div>
                                         {onCopy && (
-                                            <button
-                                                type="button"
-                                                aria-label={t('copyExpiry')}
-                                                onClick={() =>
-                                                    handleCopy(
+                                            <CopyToClipboard
+                                                type="icon"
+                                                textToCopy={formatExpiry(revealed.expiryMonth, revealed.expiryYear)}
+                                                iconSize="4"
+                                                onCopy={() =>
+                                                    onCopy(
                                                         formatExpiry(revealed.expiryMonth, revealed.expiryYear),
                                                         'expiry'
                                                     )
                                                 }
-                                                className="relative p-1 transition-opacity duration-instant after:absolute after:-inset-3 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
-                                            >
-                                                <Icon name={copiedField === 'expiry' ? 'check' : 'copy'} size={16} />
-                                            </button>
+                                            />
                                         )}
                                     </div>
                                     <div className="flex items-end gap-1">
                                         <div>
                                             {/* "CVV" label dropped — value only */}
                                             {/* ph-no-capture: CVV out of recordings. */}
-                                            <div className="ph-no-capture font-bold">{revealed.cvv}</div>
+                                            <div className="ph-no-capture text-body-s-semibold">{revealed.cvv}</div>
                                         </div>
                                         {onCopy && (
-                                            <button
-                                                type="button"
-                                                aria-label={t('copyCvv')}
-                                                onClick={() => handleCopy(revealed.cvv, 'cvv')}
-                                                className="relative p-1 transition-opacity duration-instant after:absolute after:-inset-3 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
-                                            >
-                                                <Icon name={copiedField === 'cvv' ? 'check' : 'copy'} size={16} />
-                                            </button>
+                                            <CopyToClipboard
+                                                type="icon"
+                                                textToCopy={revealed.cvv}
+                                                iconSize="4"
+                                                onCopy={() => onCopy(revealed.cvv, 'cvv')}
+                                            />
                                         )}
                                     </div>
                                 </div>
                                 {onToggleReveal && (
-                                    <button
+                                    <Button
                                         type="button"
+                                        variant="transparent"
+                                        size="small"
+                                        shape="square"
                                         aria-label={t('hideDetails')}
                                         onClick={onToggleReveal}
-                                        className="relative p-1 transition-opacity duration-instant after:absolute after:-inset-2 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
-                                    >
-                                        <Icon name="eye-slash" size={22} />
-                                    </button>
+                                        icon="eye-slash"
+                                        iconSize={20}
+                                        className="w-10 shrink-0"
+                                    />
                                 )}
                             </div>
                         </>
                     ) : loading ? (
                         <>
-                            <div className="h-7 w-56 animate-pulse rounded bg-background-default/40" />
+                            <div className="h-7 w-56 animate-pulse rounded bg-foreground-primary/10" />
                             <div className="mt-2 flex items-end gap-6 text-body-xs">
                                 <div>
                                     {/* label dropped to match the revealed layout — no height jump on reveal */}
-                                    <div className="mt-1 h-4 w-12 animate-pulse rounded bg-background-default/40" />
+                                    <div className="mt-1 h-4 w-12 animate-pulse rounded bg-foreground-primary/10" />
                                 </div>
                                 <div>
                                     {/* label dropped to match the revealed layout */}
-                                    <div className="mt-1 h-4 w-10 animate-pulse rounded bg-background-default/40" />
+                                    <div className="mt-1 h-4 w-10 animate-pulse rounded bg-foreground-primary/10" />
                                 </div>
                             </div>
-                        </>
-                    ) : error ? (
-                        <>
-                            {/* Retry eye inline with the message — hand is still present
-                             * in the error state, so keep the control in the left zone. */}
-                            <div className="flex items-start gap-3">
-                                <span className="text-body-s leading-snug font-bold">{error}</span>
-                                {onToggleReveal && (
-                                    <button
-                                        type="button"
-                                        aria-label={t('retryDetails')}
-                                        onClick={onToggleReveal}
-                                        className="relative shrink-0 p-1 transition-opacity duration-instant after:absolute after:-inset-2 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
-                                    >
-                                        <Icon name="eye" size={22} />
-                                    </button>
-                                )}
-                            </div>
-                            {isVirtual && (
-                                <div className="mt-1">
-                                    <span className="rounded-full bg-background-default px-4 py-1.5 text-body-s font-semibold">
-                                        {t('virtual')}
-                                    </span>
-                                </div>
-                            )}
                         </>
                     ) : (
                         <>
@@ -264,21 +220,22 @@ const CardFace: FC<Props> = ({
                             <div className="flex items-center gap-3">
                                 <span className="text-heading-s tracking-wider">•••• {last4}</span>
                                 {onToggleReveal && (
-                                    <button
+                                    <Button
                                         type="button"
+                                        variant="transparent"
+                                        size="small"
+                                        shape="square"
                                         aria-label={t('showDetails')}
                                         onClick={onToggleReveal}
-                                        className="relative p-1 transition-opacity duration-instant after:absolute after:-inset-2 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
-                                    >
-                                        <Icon name="eye" size={22} />
-                                    </button>
+                                        icon="eye"
+                                        iconSize={20}
+                                        className="w-10 shrink-0"
+                                    />
                                 )}
                             </div>
                             {isVirtual && (
                                 <div className="mt-1">
-                                    <span className="rounded-full bg-background-default px-4 py-1.5 text-body-s font-semibold">
-                                        {t('virtual')}
-                                    </span>
+                                    <StatusBadge status="custom" customText={t('virtual')} />
                                 </div>
                             )}
                         </>

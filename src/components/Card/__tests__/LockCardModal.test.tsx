@@ -17,7 +17,7 @@
  *     (no passkey prompt when there is nothing to return).
  */
 import React, { type ReactNode } from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
 import LockCardModal from '@/components/Card/LockCardModal'
@@ -28,8 +28,11 @@ import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { rainApi } from '@/services/rain'
 
 const WALLET = '0xafbea1a6a6036d7d827e08072cd4315248b77352'
+const mockToastSuccess = jest.fn()
+const mockOnClose = jest.fn()
 
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ success: mockToastSuccess }) }))
 jest.mock('@/hooks/useRainCardOverview', () => ({
     useRainCardOverview: jest.fn(),
     RAIN_CARD_OVERVIEW_QUERY_KEY: 'rain-card-overview',
@@ -92,7 +95,7 @@ const setup = (overview?: { balance: { spendingPower: number } }) => {
 }
 
 const renderLock = () =>
-    render(<LockCardModal cardId="card-1" mode="lock" isOpen onClose={jest.fn()} />, { wrapper: Wrapper })
+    render(<LockCardModal cardId="card-1" mode="lock" isOpen onClose={mockOnClose} />, { wrapper: Wrapper })
 const renderCancel = () => render(<CancelCardModal cardId="card-1" isOpen onClose={jest.fn()} />, { wrapper: Wrapper })
 
 beforeEach(() => {
@@ -107,7 +110,8 @@ describe('LockCardModal — lock with spending power', () => {
         setup(OVERVIEW)
         renderLock()
         fireEvent.click(screen.getByText('Slide to Lock'))
-        expect(await screen.findByText('Card locked')).toBeInTheDocument()
+        await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
+        expect(mockToastSuccess).toHaveBeenCalledWith('Card locked')
         expect(mockSignSpend).toHaveBeenCalledWith(FORCED_SIGN_ARGS)
         expect(mockLockCard).toHaveBeenCalledWith('card-1', RAIN_WITHDRAWAL)
     })
@@ -125,7 +129,8 @@ describe('LockCardModal — lock with spending power', () => {
         setup({ balance: { spendingPower: 0 } })
         renderLock()
         fireEvent.click(screen.getByText('Slide to Lock'))
-        expect(await screen.findByText('Card locked')).toBeInTheDocument()
+        await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
+        expect(mockToastSuccess).toHaveBeenCalledWith('Card locked')
         expect(mockSignSpend).not.toHaveBeenCalled()
         expect(mockLockCard).toHaveBeenCalledWith('card-1', undefined)
     })
@@ -135,7 +140,7 @@ describe('CancelCardModal', () => {
     it('forces collateral-only routing and delivers the withdrawal to the cancel call', async () => {
         setup(OVERVIEW)
         renderCancel()
-        fireEvent.click(screen.getByText('Slide to Cancel'))
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
         expect(await screen.findByText('Card canceled')).toBeInTheDocument()
         expect(mockSignSpend).toHaveBeenCalledWith(FORCED_SIGN_ARGS)
         expect(mockCancelCard).toHaveBeenCalledWith('card-1', { verifiedWithdrawal: RAIN_WITHDRAWAL })
@@ -144,7 +149,7 @@ describe('CancelCardModal', () => {
     it('fails closed before signing when the overview has not loaded', async () => {
         setup(undefined)
         renderCancel()
-        fireEvent.click(screen.getByText('Slide to Cancel'))
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
         expect(await screen.findByText(/still loading/)).toBeInTheDocument()
         expect(mockSignSpend).not.toHaveBeenCalled()
         expect(mockCancelCard).not.toHaveBeenCalled()
@@ -153,7 +158,7 @@ describe('CancelCardModal', () => {
     it('cancels without signing when there is no spending power to return', async () => {
         setup({ balance: { spendingPower: 0 } })
         renderCancel()
-        fireEvent.click(screen.getByText('Slide to Cancel'))
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
         expect(await screen.findByText('Card canceled')).toBeInTheDocument()
         expect(mockSignSpend).not.toHaveBeenCalled()
         expect(mockCancelCard).toHaveBeenCalledWith('card-1', { verifiedWithdrawal: undefined })
