@@ -89,7 +89,7 @@ describe('the shared receipt page', () => {
 
         // the shared read takes the id and the kind and nothing else — no
         // cookie, no bearer token, nothing that could vary the cached body
-        expect(mockGetHistoryEntry).toHaveBeenCalledWith(ENTRY_ID, 'CRYPTO_DEPOSIT')
+        expect(mockGetHistoryEntry).toHaveBeenCalledWith(ENTRY_ID, 'CRYPTO_DEPOSIT', undefined)
         expect(await screen.findByTestId('receipt')).toHaveTextContent(ENTRY_ID)
     })
 })

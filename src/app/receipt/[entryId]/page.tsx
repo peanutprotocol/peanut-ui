@@ -61,7 +61,8 @@ export async function generateMetadata({
 
     let transactionDetails: TransactionDetails
     try {
-        const authorization = await getReceiptAuthorization()
+        // Crypto deposit links keep a public baseline across client account changes.
+        const authorization = kind === 'CRYPTO_DEPOSIT' ? undefined : await getReceiptAuthorization()
         const entry = await getHistoryEntry(entryId, kind, authorization)
         if (!entry) {
             return basicMetadata
@@ -126,7 +127,8 @@ export default async function ReceiptPage({
     }
     let entry: HistoryEntry | null
     try {
-        const authorization = await getReceiptAuthorization()
+        // Crypto deposit links keep a public baseline across client account changes.
+        const authorization = kind === 'CRYPTO_DEPOSIT' ? undefined : await getReceiptAuthorization()
         entry = await getHistoryEntry(entryId, kind, authorization)
     } catch (error) {
         // A BE hiccup was crashing the whole Server Components render
