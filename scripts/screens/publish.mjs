@@ -4,7 +4,7 @@ import { resolve, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { tmpdir } from 'node:os'
 import { execFileSync } from 'node:child_process'
-import { compare, validateCapture, validateJourneys, verifyAsset } from './core.mjs'
+import { compare, hash, validateCapture, validateJourneys, verifyAsset } from './core.mjs'
 import { createStorage } from './cloudflare-storage.mjs'
 import { updateIndexes } from './publication-index.mjs'
 import { migrateLegacyReports } from './private-assets.mjs'
@@ -73,14 +73,51 @@ export async function publishReport({ inputDir, reportPath, env = process.env, s
     if (env.EXPECTED_HEAD && after.commit !== env.EXPECTED_HEAD) throw new Error('Head differs from triggering run')
     if (env.EXPECTED_BASE && report.before?.commit !== env.EXPECTED_BASE)
         throw new Error('Base differs from verified comparison')
-    const refs = new Set()
-    for (const capture of report.type === 'comparison' ? [report.before, report.after] : [report])
-        for (const screen of capture.screens)
-            if (screen.image) {
-                refs.add(screen.image)
-                refs.add(screen.thumbnail)
-            }
-    if (report.type === 'comparison') for (const screen of report.screens) if (screen.diff) refs.add(screen.diff)
+    // Comparisons above always consume the exact PNG capture artifacts. Only
+    // this public copy is rewritten to lossy, full-resolution WebP assets.
+    const publicReport = JSON.parse(JSON.stringify(report))
+    const publicAssets = new Map()
+    const convertedAssets = new Map()
+    const variableDimensions = report.type === 'journeys'
+    async function convertToPublicWebp(name, variable = variableDimensions) {
+        if (convertedAssets.has(name)) return convertedAssets.get(name)
+        if (!name?.endsWith('.png')) throw new Error('Full screenshots must remain PNG until publication')
+        const source = verifyAsset(assets, name, { variableDimensions: variable })
+        const inputOptions = { limitInputPixels: variable ? 16_000_000 : 393 * 852 }
+        const sourceMetadata = await sharp(source, inputOptions).metadata()
+        const pipeline = sharp(source, inputOptions)
+        if (!variable) pipeline.resize({ width: 393, height: 852, fit: 'fill' })
+        const bytes = await pipeline
+            .webp({ quality: 90, alphaQuality: 100, smartSubsample: true, effort: 4 })
+            .toBuffer()
+        const metadata = await sharp(bytes, inputOptions).metadata()
+        const expectedWidth = variable ? sourceMetadata.width : 393
+        const expectedHeight = variable ? sourceMetadata.height : 852
+        if (metadata.width !== expectedWidth || metadata.height !== expectedHeight)
+            throw new Error('Invalid public WebP dimensions')
+        const publicName = `${hash(bytes)}.webp`
+        publicAssets.set(publicName, bytes)
+        convertedAssets.set(name, publicName)
+        return publicName
+    }
+    async function rewriteScreen(screen) {
+        if (!screen?.image) return
+        const publicName = await convertToPublicWebp(screen.image)
+        screen.image = publicName
+        // Schema compatibility: both fields intentionally resolve to the same
+        // 393 x 852 asset so cards never select a reduced-size variant.
+        screen.thumbnail = publicName
+    }
+    for (const capture of publicReport.type === 'comparison'
+        ? [publicReport.before, publicReport.after]
+        : [publicReport])
+        for (const screen of capture.screens) await rewriteScreen(screen)
+    if (publicReport.type === 'comparison')
+        for (const screen of publicReport.screens) {
+            await rewriteScreen(screen.before)
+            await rewriteScreen(screen.after)
+            if (screen.diff) screen.diff = await convertToPublicWebp(screen.diff, false)
+        }
     const options = { allowOverwrite: false }
     async function immutable(path, body, contentType) {
         // Conflict on a rerun is acceptable only when the remote bytes agree.
@@ -98,24 +135,11 @@ export async function publishReport({ inputDir, reportPath, env = process.env, s
     const offline = mkdtempSync(join(tmpdir(), 'peanut-screens-offline-'))
     try {
         mkdirSync(join(offline, 'assets'))
-        for (const name of refs) {
-            const bytes = verifyAsset(assets, name, { variableDimensions: report.type === 'journeys' })
-            if (name.endsWith('.webp')) {
-                const meta = await sharp(bytes, {
-                    limitInputPixels: report.type === 'journeys' ? 197 * 2000 : 393 * 852,
-                }).metadata()
-                if (
-                    meta.width !== 197 ||
-                    (report.type === 'journeys'
-                        ? !Number.isInteger(meta.height) || meta.height < 120 || meta.height > 2000
-                        : meta.height !== 427)
-                )
-                    throw new Error('Invalid thumbnail dimensions')
-            }
-            await immutable(`assets/${name}`, bytes, name.endsWith('.png') ? 'image/png' : 'image/webp')
-            copyFileSync(join(assets, name), join(offline, 'assets', name))
+        for (const [name, bytes] of publicAssets) {
+            await immutable(`assets/${name}`, bytes, 'image/webp')
+            writeFileSync(join(offline, 'assets', name), bytes)
         }
-        const json = JSON.stringify(report)
+        const json = JSON.stringify(publicReport)
         writeFileSync(join(offline, 'manifest.json'), json)
         // JSON is escaped for a JS data file; it is not accepted from the PR artifact.
         writeFileSync(
@@ -143,7 +167,7 @@ export async function publishReport({ inputDir, reportPath, env = process.env, s
         // Commit marker last. Incomplete captures remain explicitly incomplete in the viewer.
         const manifest = await immutable(
             `reports/${reportPath}/manifest.json`,
-            JSON.stringify(report),
+            JSON.stringify(publicReport),
             'application/json'
         )
         const date = reportPath.slice(0, 10)
@@ -160,14 +184,14 @@ export async function publishReport({ inputDir, reportPath, env = process.env, s
                 sequence: Number(env.DEV_SEQUENCE ?? 0),
                 attempt: Number(env.RUN_ATTEMPT ?? 0),
                 captureAttempt: Number(env.CAPTURE_ATTEMPT ?? 0),
-                ...entryMetadata(report, reportPath, env),
+                ...entryMetadata(publicReport, reportPath, env),
             }),
             'application/json'
         )
         await updateIndexes({ put, list, read })
         console.log(`${env.SCREEN_LIBRARY_PUBLIC_URL}/screens/${reportPath}/`)
         console.log(`Storage manifest: ${manifest.url}`)
-        return { report, manifest }
+        return { report: publicReport, manifest }
     } finally {
         rmSync(offline, { recursive: true, force: true })
     }

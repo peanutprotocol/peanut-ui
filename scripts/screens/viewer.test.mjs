@@ -675,7 +675,9 @@ test('Nutcracker reports show real-backend provenance and retain a screenshot wh
     assert.match(elements.get('footer').textContent, /Nutcracker sandbox backend/)
     assert.match(elements.get('provenance').children[0].children[0].textContent, /Nutcracker/)
     const screenshot = elements.get('screens').children[0].children[1].children[0].children[1].children[0]
-    assert.equal(screenshot.src, `/screen-data/assets/${thumbnail}`)
+    assert.equal(screenshot.src, `/screen-data/assets/${original}`)
+    elements.get('screens').children[0].children[1].children[0].children[1].onclick()
+    assert.equal(elements.get('zoom-images').children[0].src, screenshot.src)
 })
 
 test('report pages expose the locale selector and use a long-form capture date', async () => {

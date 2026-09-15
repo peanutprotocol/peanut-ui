@@ -201,7 +201,7 @@ function renderTile(row) {
         if (!unavailable(s)) {
             const b = el('button')
             b.setAttribute('aria-label', `Enlarge ${row.name}, ${label}`)
-            b.append(image(s.thumbnail || s.image, row.name))
+            b.append(image(s.image, row.name))
             b.onclick = () => zoom(row, showSingle ? 'screen' : 'side')
             fig.append(b)
         } else fig.append(el('div', s?.reason ?? 'Not in this version', 'missing'))
