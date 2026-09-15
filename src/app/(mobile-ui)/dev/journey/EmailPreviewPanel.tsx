@@ -62,7 +62,7 @@ export default function EmailPreviewPanel({
                 disableHaptics
                 aria-label="Close preview"
                 onClick={onClose}
-                className="absolute inset-0 h-full w-full cursor-default rounded-none bg-foreground-primary/80 p-0 active:translate-x-0 active:translate-y-0"
+                className="absolute inset-0 h-full w-full cursor-default rounded-none bg-foreground-primary/80 p-0"
             />
 
             <aside className="relative flex h-full w-full max-w-full flex-col border-l-2 border-border-default bg-background-default md:w-160">

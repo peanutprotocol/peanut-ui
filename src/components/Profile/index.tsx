@@ -1,7 +1,6 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { Icon } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
 import NavHeader from '../Global/NavHeader'
 import ProfileHeader from './components/ProfileHeader'
@@ -163,8 +162,8 @@ export const Profile = () => {
                             shadowSize="4"
                             className="w-full"
                             onClick={logout}
+                            icon="logout"
                         >
-                            <Icon name="logout" size={20} fill="black" />
                             <span className="font-bold">{t('logOut')}</span>
                         </Button>
                     </div>
