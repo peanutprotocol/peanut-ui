@@ -97,7 +97,7 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
             },
             {
                 name: 'Card (0_Bruddle/Card)',
-                realUsages: 21,
+                realUsages: 34,
                 devUsages: 12,
                 status: 'variant',
                 source: 'src/components/0_Bruddle/Card.tsx',
