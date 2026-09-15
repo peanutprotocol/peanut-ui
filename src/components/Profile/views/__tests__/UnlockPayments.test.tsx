@@ -24,6 +24,7 @@ const render = () =>
 
 const mockPush = jest.fn()
 let mockOpenView: string | null = null
+const mockSetOpenView = jest.fn()
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn() }),
     // NavHeader mounts the maintenance Banner, which reads the pathname
@@ -31,7 +32,7 @@ jest.mock('next/navigation', () => ({
 }))
 jest.mock('nuqs', () => ({
     parseAsString: {},
-    useQueryState: () => [mockOpenView, jest.fn()],
+    useQueryState: () => [mockOpenView, mockSetOpenView],
 }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
 
@@ -123,10 +124,19 @@ jest.mock('@/components/IdentityVerification/UnlockMethodModal', () => ({
 }))
 jest.mock('@/components/Profile/views/ResidenceChangeDrawer', () => ({
     __esModule: true,
-    default: ({ visible, onReverify }: { visible: boolean; onReverify: (targetCountry: string) => void }) =>
+    default: ({
+        visible,
+        onClose,
+        onReverify,
+    }: {
+        visible: boolean
+        onClose: () => void
+        onReverify: (targetCountry: string) => void
+    }) =>
         visible ? (
             <div>
                 change-modal-open
+                <button onClick={onClose}>close residence</button>
                 <button onClick={() => onReverify('PT')}>reverify</button>
             </div>
         ) : null,
@@ -155,6 +165,8 @@ describe('UnlockPayments', () => {
         render()
 
         expect(screen.getByText('change-modal-open')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'close residence' }))
+        expect(mockSetOpenView).toHaveBeenCalledWith(null, { history: 'replace' })
     })
 
     it('shows the in-review line with the submitted date while identity is processing', () => {

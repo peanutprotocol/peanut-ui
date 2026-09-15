@@ -137,7 +137,7 @@ const UnlockPayments = () => {
     const locale = useLocale()
     const onBack = useSafeBack('/profile', { replace: true })
     const router = useRouter()
-    const [openView] = useQueryState('open', parseAsString)
+    const [openView, setOpenView] = useQueryState('open', parseAsString)
     const { user, fetchUser } = useAuth()
     const { rails, isKycApproved, railsForProvider, nextActionsForRail } = useCapabilities()
     const restrictions = useResidenceRestrictions()
@@ -247,9 +247,15 @@ const UnlockPayments = () => {
     const [selectedRegion, setSelectedRegion] = useState<Region | null>(null)
     const [selectedMethodLabel, setSelectedMethodLabel] = useState<string | null>(null)
     // Card recovery deep-links here when only a pending residence change is
-    // blocking issuance. Open the existing drawer directly so the user can
-    // cancel by re-selecting the approved country or choose another country.
-    const [isChangeModalOpen, setIsChangeModalOpen] = useState(openView === 'residence')
+    // blocking issuance. Keep the deep link live rather than snapshotting it,
+    // and clear it when the drawer closes so refresh/native restore cannot
+    // reopen a completed recovery flow.
+    const [isChangeModalOpen, setIsChangeModalOpen] = useState(false)
+    const isResidenceChangeVisible = isChangeModalOpen || openView === 'residence'
+    const closeResidenceChange = useCallback(() => {
+        setIsChangeModalOpen(false)
+        void setOpenView(null, { history: 'replace' })
+    }, [setOpenView])
     const [activeRegionIntent, setActiveRegionIntent] = useState<KYCRegionIntent | undefined>(undefined)
     const [errorAcknowledged, setErrorAcknowledged] = useState(false)
     const [reverifyTarget, setReverifyTarget] = useState<string | null>(null)
@@ -474,8 +480,8 @@ const UnlockPayments = () => {
             )}
 
             <ResidenceChangeDrawer
-                visible={isChangeModalOpen}
-                onClose={() => setIsChangeModalOpen(false)}
+                visible={isResidenceChangeVisible}
+                onClose={closeResidenceChange}
                 userId={user?.user?.userId}
                 declared={residence?.declared ?? null}
                 declaredSecond={declaredSecondIso2}

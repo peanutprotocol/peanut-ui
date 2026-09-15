@@ -1467,7 +1467,7 @@
             "geoBlockedBody": "A disponibilidade do cartão depende de onde você mora. Você pode continuar usando os outros recursos da Peanut disponíveis para você.",
             "geoBlockedPolicyLink": "Veja quais regiões estão restritas",
             "pendingResidenceBlockedTitle": "Revise sua mudança de residência",
-            "pendingResidenceBlockedBody": "Sua residência aprovada continua ativa, mas as solicitações de cartão ficam pausadas enquanto houver uma mudança pendente para um país restrito. Revise ou cancele essa mudança para continuar.",
+            "pendingResidenceBlockedBody": "Sua residência aprovada continua ativa, mas as solicitações de cartão ficam pausadas enquanto houver uma mudança de residência pendente. Revise ou cancele essa mudança para continuar.",
             "pendingResidenceBlockedCta": "Revisar mudança de residência"
         },
         "cancel": {

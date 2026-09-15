@@ -800,7 +800,7 @@
             "rejectedBody": "Podés seguir usando Peanut sin problema para depositar, retirar y pagar con cripto.",
             "geoBlockedBody": "La disponibilidad de la tarjeta depende de dónde vivís. Podés seguir usando las otras funciones de Peanut disponibles para vos.",
             "pendingResidenceBlockedTitle": "Revisá tu cambio de residencia",
-            "pendingResidenceBlockedBody": "Tu residencia aprobada sigue activa, pero las solicitudes de tarjeta están pausadas mientras haya un cambio pendiente a un país restringido. Revisá o cancelá ese cambio para continuar.",
+            "pendingResidenceBlockedBody": "Tu residencia aprobada sigue activa, pero las solicitudes de tarjeta están pausadas mientras haya un cambio de residencia pendiente. Revisá o cancelá ese cambio para continuar.",
             "pendingResidenceBlockedCta": "Revisar cambio de residencia"
         },
         "cancel": {
