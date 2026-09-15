@@ -70,7 +70,7 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
             {
                 <div
                     data-testid="sticky-mobile-cta"
-                    className={`pointer-events-none fixed right-0 bottom-0 left-0 z-50 border-t-2 border-n-1 bg-white px-4 py-3 md:hidden ${
+                    className={`pointer-events-none fixed right-0 bottom-0 left-0 z-50 border-t-2 border-border-default bg-white px-4 py-3 md:hidden ${
                         visible ? 'sticky-cta-in' : 'sticky-cta-out'
                     }`}
                 >

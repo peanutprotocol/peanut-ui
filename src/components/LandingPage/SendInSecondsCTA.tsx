@@ -14,7 +14,7 @@ export function SendInSecondsCTA({ strings }: { strings: LandingStrings }) {
                 <LandingAppLink href="/send" surface={MIGRATION_SURFACES.LANDING_APP_FOLD}>
                     <Button
                         shadowSize="4"
-                        className="bg-white px-7 py-3 text-base font-extrabold hover:bg-white/90 md:px-9 md:py-8 md:text-xl"
+                        className="bg-white px-6 py-3 text-base font-extrabold hover:bg-white/90 md:px-8 md:py-8 md:text-xl"
                     >
                         {strings.sendNow}
                     </Button>
