@@ -69,7 +69,10 @@ export function PerkClaimGiftBox({ perk, onHoldComplete, claimPhase }: PerkClaim
                 <div
                     {...buttonProps}
                     role="button"
-                    tabIndex={0}
+                    // out of the tab order + announced disabled while the hook
+                    // rejects input (claim already running)
+                    tabIndex={claimPhase === 'idle' ? 0 : -1}
+                    aria-disabled={claimPhase !== 'idle' || undefined}
                     aria-label={t('holdToUnwrap')}
                     className="relative cursor-pointer touch-none rounded-xl select-none focus-visible:outline-[3px] focus-visible:outline-action-focus"
                 >
