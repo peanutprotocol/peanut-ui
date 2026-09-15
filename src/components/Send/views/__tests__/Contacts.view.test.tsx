@@ -116,6 +116,18 @@ describe('ContactsView exact username entry', () => {
         expect(screen.getByText('Enter a valid Peanut username.')).toBeInTheDocument()
     })
 
+    it('keeps an exact miss neutral when the query matches a contact name', async () => {
+        renderContacts([contact({ username: 'globee1', fullName: 'Alice Smith' })])
+        const input = screen.getByRole('textbox', { name: 'Peanut username or contact' })
+
+        fireEvent.change(input, { target: { value: 'alice' } })
+
+        await waitFor(() => expect(mockCheckUsername).toHaveBeenCalledWith('alice'))
+        expect(screen.getByText('Alice Smith')).toBeInTheDocument()
+        expect(screen.queryByText("We couldn't find that exact username.")).not.toBeInTheDocument()
+        expect(input.closest('[data-input-container="true"]')).not.toHaveClass('border-border-error')
+    })
+
     it('shows a specific message when the lookup quota is exhausted', async () => {
         mockCheckUsername.mockResolvedValue({ status: 'rate-limited', retryAfterSeconds: 3600 })
         renderContacts([])
@@ -149,6 +161,7 @@ describe('ContactsView exact username entry', () => {
         expect(await screen.findByRole('button', { name: /@bob22 found/i })).toBeInTheDocument()
         await act(async () => resolveFirst({ status: 'not-found' }))
         expect(screen.getByRole('button', { name: /@bob22 found/i })).toBeInTheDocument()
+        expect(screen.queryByText("We couldn't find that exact username.")).not.toBeInTheDocument()
     })
 
     it('retries an operational lookup failure without editing the input', async () => {

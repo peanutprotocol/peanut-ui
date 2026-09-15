@@ -27,6 +27,7 @@ type ValidatedInputProps = {
     formatDisplayValue?: (value: string) => string
     isSetupFlow?: boolean
     isInputChanging?: boolean
+    validationIsNeutral?: boolean
     smartPasteKind?: PasteFieldKind
 }
 
@@ -52,6 +53,7 @@ const ValidatedInput = ({
     formatDisplayValue,
     isSetupFlow = false,
     isInputChanging = false,
+    validationIsNeutral = false,
     smartPasteKind,
 }: ValidatedInputProps) => {
     const t = useTranslations('global')
@@ -184,7 +186,9 @@ const ValidatedInput = ({
                     // Pointer focus is pink; InputModalityProvider applies the
                     // shared 3px blue ring for keyboard focus.
                     'relative w-full rounded-sm border border-border-default bg-background-default focus-within:border-action-primary',
-                    value && !isValidating && !isValid && debouncedValue === value ? 'border-border-error' : '',
+                    value && !isValidating && !isValid && !validationIsNeutral && debouncedValue === value
+                        ? 'border-border-error'
+                        : '',
                     className
                 )}
                 data-input-container="true"
@@ -242,7 +246,7 @@ const ValidatedInput = ({
                                 <div className="flex h-full w-12 items-center justify-center">
                                     <Loading />
                                 </div>
-                            ) : !!isSetupFlow && !isValid && !isInputChanging ? (
+                            ) : !!isSetupFlow && !isValid && !isInputChanging && !validationIsNeutral ? (
                                 <div className="mr-2 flex h-full items-center justify-center rounded-full">
                                     <Icon size={20} className="text-foreground-error" name="error" />
                                 </div>

@@ -6,7 +6,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { useContacts } from '@/hooks/useContacts'
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { UserAvatar } from '@/components/Avatar/UserAvatar'
 import { VerifiedUserLabel } from '@/components/UserHeader'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
@@ -27,10 +27,12 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
     const router = useRouter()
     const [searchQuery, setSearchQuery] = useState('')
     const [isExactUsernameFound, setIsExactUsernameFound] = useState(false)
+    const [isExactUsernameMiss, setIsExactUsernameMiss] = useState(false)
     const [isUsernameChanging, setIsUsernameChanging] = useState(false)
     const [usernameCheckError, setUsernameCheckError] = useState('')
     const [canRetryUsernameCheck, setCanRetryUsernameCheck] = useState(false)
     const [usernameCheckRetry, setUsernameCheckRetry] = useState(0)
+    const usernameCheckGeneration = useRef(0)
 
     // Relationship-scoped contact filtering can be faster than the protected
     // global check, which ValidatedInput debounces separately below.
@@ -75,21 +77,28 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
     }
 
     const validateExactUsername = async (value: string): Promise<boolean> => {
+        const generation = ++usernameCheckGeneration.current
         const username = value.trim().replace(/^@/, '').toLowerCase()
         setUsernameCheckError('')
         setCanRetryUsernameCheck(false)
+        setIsExactUsernameMiss(false)
         try {
             const result = await usersApi.checkUsername(username)
+            if (generation !== usernameCheckGeneration.current) return false
             if (result.status === 'found') return true
             if (result.status === 'rate-limited') {
                 setUsernameCheckError(t('contacts.lookupLimitReached'))
                 return false
             }
-            setUsernameCheckError(
-                result.status === 'invalid' ? t('contacts.invalidUsername') : t('contacts.usernameNotFound')
-            )
+            if (result.status === 'invalid') {
+                setUsernameCheckError(t('contacts.invalidUsername'))
+            } else {
+                setIsExactUsernameMiss(true)
+                setUsernameCheckError(t('contacts.usernameNotFound'))
+            }
             return false
         } catch {
+            if (generation !== usernameCheckGeneration.current) return false
             setUsernameCheckError(t('contacts.lookupError'))
             setCanRetryUsernameCheck(true)
             return false
@@ -99,6 +108,10 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
     const isSearching = !!normalizedSearchQuery
     const exactUsernameIsContact = contacts.some((contact) => contact.username.toLowerCase() === exactUsername)
     const showExactUsername = !!exactUsername && isExactUsernameFound && !isUsernameChanging && !exactUsernameIsContact
+    // A search term may be a contact's name without being that person's exact
+    // username. Keep an exact miss neutral until contact search settles, and
+    // leave it neutral when relationship-scoped matches are available.
+    const exactMissIsNeutral = isExactUsernameMiss && (isFetchingContacts || contacts.length > 0)
 
     return (
         <div className="flex min-h-inherit flex-col gap-8">
@@ -118,6 +131,8 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                             setIsExactUsernameFound(isValid)
                             setIsUsernameChanging(isChanging)
                             if (isChanging) {
+                                usernameCheckGeneration.current += 1
+                                setIsExactUsernameMiss(false)
                                 setCanRetryUsernameCheck(false)
                                 setUsernameCheckError(
                                     username.length >= 4 && !isPlausibleUsername(username)
@@ -130,8 +145,9 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                         aria-label={t('contacts.searchLabel')}
                         isSetupFlow
                         isInputChanging={isUsernameChanging}
+                        validationIsNeutral={exactMissIsNeutral}
                     />
-                    {usernameCheckError && (
+                    {usernameCheckError && !exactMissIsNeutral && (
                         <div className="flex items-center justify-between gap-2">
                             <FieldError>{usernameCheckError}</FieldError>
                             {canRetryUsernameCheck && (
