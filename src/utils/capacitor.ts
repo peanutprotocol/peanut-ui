@@ -1,5 +1,7 @@
 // platform detection and api routing for capacitor native app
 
+import { isStandalonePwa } from '@/utils/cache.utils'
+
 // env var baked in at build time — set in vercel preview for this branch
 const IS_CAPACITOR_BUILD = process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true'
 
@@ -37,7 +39,7 @@ export function isNativeBridge(): boolean {
 /**
  * returns the platform the app is running on
  */
-export function getPlatform(): 'web' | 'ios-native' | 'android-native' {
+export function getPlatform(): 'web' | 'ios-native' | 'android-native' | 'ios-pwa' | 'android-pwa' {
     if (typeof window === 'undefined') return 'web'
 
     const capacitor = window.Capacitor
@@ -53,6 +55,13 @@ export function getPlatform(): 'web' | 'ios-native' | 'android-native' {
         const ua = navigator.userAgent
         if (/Android/i.test(ua)) return 'android-native'
         if (/iPhone|iPad|iPod/i.test(ua)) return 'ios-native'
+    }
+
+    // preserve support routing for existing installs until the native migration cutoff
+    if (isStandalonePwa()) {
+        const ua = navigator.userAgent.toLowerCase()
+        if (/iphone|ipad|ipod/.test(ua)) return 'ios-pwa'
+        if (/android/.test(ua)) return 'android-pwa'
     }
 
     return 'web'

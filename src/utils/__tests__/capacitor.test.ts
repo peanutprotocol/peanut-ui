@@ -95,6 +95,25 @@ describe('capacitor utils', () => {
     })
 
     describe('getPlatform', () => {
+        const originalMatchMedia = window.matchMedia
+
+        afterEach(() => {
+            Object.defineProperty(window, 'matchMedia', { value: originalMatchMedia, writable: true })
+            Object.defineProperty(window.navigator, 'standalone', { value: undefined, configurable: true })
+        })
+
+        function mockStandalone(isStandalone: boolean) {
+            Object.defineProperty(window, 'matchMedia', {
+                writable: true,
+                value: jest.fn().mockImplementation((query: string) => ({
+                    matches: query === '(display-mode: standalone)' ? isStandalone : false,
+                    media: query,
+                    addEventListener: jest.fn(),
+                    removeEventListener: jest.fn(),
+                })),
+            })
+        }
+
         // helper: mock user agent
         function mockUserAgent(ua: string) {
             Object.defineProperty(window.navigator, 'userAgent', {
@@ -129,9 +148,26 @@ describe('capacitor utils', () => {
             expect(getPlatform()).toBe('ios-native')
         })
 
+        it('should return android-pwa for an installed android session during the native migration', () => {
+            delete process.env.NEXT_PUBLIC_CAPACITOR_BUILD
+            mockUserAgent('Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36')
+            mockStandalone(true)
+            ;({ getPlatform } = require('../capacitor'))
+            expect(getPlatform()).toBe('android-pwa')
+        })
+
+        it('should return ios-pwa for an installed iphone session during the native migration', () => {
+            delete process.env.NEXT_PUBLIC_CAPACITOR_BUILD
+            mockUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0) AppleWebKit/605.1.15')
+            mockStandalone(true)
+            ;({ getPlatform } = require('../capacitor'))
+            expect(getPlatform()).toBe('ios-pwa')
+        })
+
         it('should return web as default when no capacitor', () => {
             delete process.env.NEXT_PUBLIC_CAPACITOR_BUILD
             mockUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36')
+            mockStandalone(false)
             ;({ getPlatform } = require('../capacitor'))
             expect(getPlatform()).toBe('web')
         })
