@@ -7,6 +7,7 @@ import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { Drawer, DrawerClose, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { SIDEBAR_CONFIG, TIERS } from './nav-config'
+import { twMerge } from '@/utils/tw'
 
 export function DocSidebar() {
     const pathname = usePathname()
@@ -59,11 +60,14 @@ function SidebarSections({ pathname, onNavigate }: { pathname: string | null; on
                 const isActive = pathname?.startsWith(tier.href)
                 const items = SIDEBAR_CONFIG[tier.href.split('/').pop() as keyof typeof SIDEBAR_CONFIG] ?? []
                 return (
-                    <div key={tier.href} className="flex flex-col gap-7">
+                    <div key={tier.href} className="flex flex-col">
                         <LinkButton
                             href={tier.href}
                             onClick={onNavigate}
-                            className={isActive ? 'text-foreground-primary no-underline' : undefined}
+                            className={twMerge(
+                                'min-h-11 items-center after:inset-y-0',
+                                isActive && 'text-foreground-primary no-underline'
+                            )}
                         >
                             <Icon name={tier.icon} size={16} />
                             {isActive ? <strong>{tier.label}</strong> : tier.label}
@@ -86,9 +90,7 @@ function SidebarLinks({
     onNavigate?: () => void
 }) {
     return (
-        // gap-7: LinkButton's 44px pseudo hit area extends ±14px, so stacked
-        // instances need ~28px between baselines or their targets overlap
-        <div className="flex flex-col gap-7">
+        <div className="flex flex-col">
             {items.map((item) => {
                 const isActive = pathname === item.href
                 return (
@@ -96,7 +98,12 @@ function SidebarLinks({
                         key={item.href}
                         href={item.href}
                         onClick={onNavigate}
-                        className={isActive ? 'text-foreground-primary no-underline' : undefined}
+                        // min-h-11 row owns the 44px target; the ±14px pseudo is
+                        // squashed so flush-stacked rows cannot overlap hit areas
+                        className={twMerge(
+                            'min-h-11 items-center after:inset-y-0',
+                            isActive && 'text-foreground-primary no-underline'
+                        )}
                     >
                         <Icon name={item.icon} size={16} />
                         {isActive ? <strong>{item.label}</strong> : item.label}
