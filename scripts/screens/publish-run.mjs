@@ -14,6 +14,7 @@ const LOCALES = {
     'es-AR': 'Español (Argentina)',
     'pt-BR': 'Português (Brasil)',
 }
+const visualChangeStatuses = new Set(['changed', 'added', 'removed'])
 const localeSlug = (locale) => ({ en: 'en', 'es-419': 'es-419', 'es-AR': 'es-ar', 'pt-BR': 'pt-br' })[locale]
 const repo = process.env.REPOSITORY,
     runId = process.env.RUN_ID,
@@ -173,12 +174,17 @@ for (const capturePair of capturePairs) {
     const path = `${canonicalPath}/run-${runId}-${attempt}`
     const reportDir = `publication-${slug}`
     execFileSync('node', ['scripts/screens/report.mjs', ...dirs, reportDir], { stdio: 'inherit' })
+    const comparison = JSON.parse(readFileSync(join(reportDir, 'manifest.json'), 'utf8'))
+    const changedScreens = comparison.screens.filter((screen) => visualChangeStatuses.has(screen.status)).length
     const env = {
         ...process.env,
         EXPECTED_HEAD: after.commit,
         EXPECTED_BASE: before.commit,
         DEV_SEQUENCE: String(run.run_number),
         CAPTURE_ATTEMPT: String(captureAttempt),
+        SOURCE_BRANCH: pr?.head?.ref ?? run.head_branch,
+        PR_NUMBER: pr ? String(pr.number) : '',
+        CHANGED_SCREENS: String(changedScreens),
     }
     execFileSync('node', ['scripts/screens/publish.mjs', reportDir, path], { stdio: 'inherit', env })
     reports.push({ locale: after.locale, path, before, after })
@@ -216,6 +222,7 @@ for (const capturePair of capturePairs) {
                     EXPECTED_HEAD: capture.commit,
                     EXPECTED_BASE: '',
                     CAPTURE_ATTEMPT: String(captureAttempt),
+                    SOURCE_BRANCH: branch,
                 },
             }
         )

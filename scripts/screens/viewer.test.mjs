@@ -12,6 +12,7 @@ const elementIds = [
     'view-mode-control',
     'view-mode-row',
     'source',
+    'source-control',
     'locale',
     'title',
     'description',
@@ -196,6 +197,7 @@ test('landing catalogue hides screen controls on the root URL and deployed alias
         })
         assert.equal(elements.get('screen-filters').hidden, true, pathname)
         assert.equal(elements.get('dashboard-filters').hidden, false, pathname)
+        assert.equal(elements.get('source-control').hidden, true, pathname)
         assert.equal(elements.get('date-filter').hidden, false, pathname)
         assert.equal(versionGroups(elements).length, 1, pathname)
         assert.equal(versionLinks(elements).length, 1, pathname)
@@ -228,7 +230,7 @@ test('landing locale selector filters published versions', async () => {
     elements.get('locale').value = 'es-419'
     elements.get('locale').dispatch('change')
     assert.equal(versionLinks(elements).length, 1)
-    assert.match(versionLinks(elements)[0].textContent, /Español/)
+    assert.equal(versionLinks(elements)[0].children[1].textContent, 'pr-1')
     assert.equal(elements.location.search, '?source=synthetic&locale=es-419')
 })
 
@@ -249,6 +251,7 @@ test('landing source selector restores and shares deterministic or real journey 
         ],
     })
     assert.equal(elements.get('source').children.length, 2)
+    assert.equal(elements.get('source-control').hidden, false)
     assert.equal(elements.get('source').value, 'nutcracker')
     assert.equal(versionLinks(elements)[0].href, `/screens/${nutcrackerPath}/?source=nutcracker&locale=en`)
     assert.match(elements.get('title').textContent, /Real backend journeys/)
@@ -263,7 +266,16 @@ test('landing groups versions by date and exposes a shareable horizontal date fi
     const latest = '2026-09-14'
     const older = '2026-09-12'
     const index = [
-        { path: `${latest}/pr-2/en/${'b'.repeat(40)}`, date: latest, label: 'PR 2', locale: 'en' },
+        {
+            path: `${latest}/pr-2/en/${'b'.repeat(40)}`,
+            date: latest,
+            label: 'PR 2',
+            locale: 'en',
+            reportType: 'comparison',
+            branch: 'fix/card-entry-feature-list-ds',
+            prNumber: 2,
+            changedScreens: 4,
+        },
         { path: `${latest}/dev/en/${'a'.repeat(40)}`, date: latest, label: 'Dev', locale: 'en' },
         { path: `${older}/pr-1/en/${'c'.repeat(40)}`, date: older, label: 'PR 1', locale: 'en' },
     ]
@@ -274,10 +286,21 @@ test('landing groups versions by date and exposes a shareable horizontal date fi
     assert.equal(versionGroups(elements)[0].children[0].textContent, 'September 14, 2026')
     assert.equal(versionGroups(elements)[0].children[1].children.length, 2)
     assert.equal(versionGroups(elements)[1].children[0].textContent, 'September 12, 2026')
+    const latestCard = versionLinks(elements)[0]
+    assert.equal(latestCard.children[0].children[0].textContent, 'September 14, 2026')
+    assert.equal(latestCard.children[0].children[1].textContent, 'Changed screens')
+    assert.equal(latestCard.children[1].textContent, 'fix/card-entry-feature-list-ds')
+    assert.equal(latestCard.children[2].children[0].textContent, 'PR #2')
+    assert.equal(latestCard.children[3].children[0].textContent, '4')
+    assert.equal(latestCard.children[3].children[1].textContent, 'screens changed')
 
     const dateButtons = elements.get('date-strip').children
-    const latestButton = dateButtons.find((button) => button.textContent === '14 Sep')
-    const gapButton = dateButtons.find((button) => button.textContent === '13 Sep')
+    const latestButton = dateButtons.find((button) => button['aria-label'] === 'Show captures from September 14, 2026')
+    const gapButton = dateButtons.find((button) => button['aria-label'] === 'September 13, 2026 — no captures')
+    assert.deepEqual(
+        latestButton.children.map((child) => child.textContent),
+        ['14', 'Sep']
+    )
     assert.equal(gapButton.disabled, true)
     assert.match(gapButton.className, /unavailable/)
     latestButton.onclick()
