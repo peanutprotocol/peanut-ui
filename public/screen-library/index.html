@@ -72,7 +72,7 @@
                         ><label id="status-control"
                             >Show<select id="status">
                                 <option value="">All screens</option>
-                                <option value="differences">Changes and gaps</option>
+                                <option value="differences">Visual changes</option>
                                 <option value="changed">Changed pixels</option>
                                 <option value="added">Added</option>
                                 <option value="removed">Removed</option>
@@ -91,7 +91,27 @@
                     <div class="date-filter-head">
                         <h2 id="date-filter-title">Capture date</h2>
                     </div>
-                    <div id="date-strip" class="date-strip" role="group" aria-label="Filter by capture date"></div>
+                    <div class="date-carousel">
+                        <button
+                            id="date-prev"
+                            class="date-nav"
+                            type="button"
+                            aria-label="Show newer capture dates"
+                            hidden
+                        >
+                            ‹
+                        </button>
+                        <div id="date-strip" class="date-strip" role="group" aria-label="Filter by capture date"></div>
+                        <button
+                            id="date-next"
+                            class="date-nav"
+                            type="button"
+                            aria-label="Show older capture dates"
+                            hidden
+                        >
+                            ›
+                        </button>
+                    </div>
                 </section>
             </div>
             <section id="versions" aria-label="Versions"></section>

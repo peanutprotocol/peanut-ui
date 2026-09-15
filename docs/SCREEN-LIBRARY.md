@@ -12,12 +12,12 @@ Gallery filters are URL-backed. Source, locale, search, flow, status, and
 all/changed mode are restored from the query string, so copying the browser URL
 shares the exact visible view.
 
-Only Nutcracker PNGs and a small allowlisted manifest are published. Replay
-credentials, database snapshots, API traces, console output and provider details
-stay in the private GitHub Actions artifact and never enter R2. Published routes
-contain pathname only, thumbnails must be bounded WebP assets, and run-wide
-attempted/failed counts prevent failures without screenshots from being labelled
-complete.
+For Nutcracker, only full-resolution WebP renders and a small allowlisted
+manifest are published. Replay credentials, database snapshots, API traces,
+console output and provider details stay in the private GitHub Actions artifact
+and never enter R2. Published routes contain pathname only, and run-wide
+attempted/failed counts prevent failures without screenshots from being
+labelled complete.
 
 ## Capture and compare
 
@@ -34,7 +34,7 @@ node scripts/screens/report.mjs /tmp/screens-before /tmp/screens-after /tmp/scre
 ```
 
 A failed capture command still writes `capture.json`, with failures attached to
-specific states. The comparison command creates `manifest.json`, images,
+specific states. The comparison command creates `manifest.json`, exact PNG images,
 `offline/index.html`, and `offline.tar.gz`. Open the offline HTML directly; it
 needs no backend, login, or network. Reports preserve failed/unavailable states.
 Those per-state gaps are publishable and do not fail the capture job; harness,
@@ -44,8 +44,15 @@ The shared registry is `src/dev/screens/catalogue.ts`. It imports named API
 fixtures, route checkpoints and surface metadata. Add stable IDs, concrete
 synthetic data, and explicit interactions for new states. An exclusion needs a
 reason. Never substitute a loading mascot, redirected page or harness placard
-for the requested screen. Animated GIF/WebP assets are frozen at their first frame; tutorial videos use a paused 0.5-second checkpoint. Remote images hidden behind Next.js image optimization use a deterministic neutral placeholder so third-party CDN availability cannot change or fail a capture. Original PNGs drive pixel comparison; WebP thumbnails
-are presentation only. Experimental design options are not product states.
+for the requested screen. Animated GIF/WebP assets are frozen at their first
+frame; tutorial videos use a paused 0.5-second checkpoint. Remote images hidden
+behind Next.js image optimization use a deterministic neutral placeholder so
+third-party CDN availability cannot change or fail a capture. Original 393×852
+PNGs drive pixel comparison and remain in GitHub Actions artifacts for future
+baselines. After comparison, the trusted publisher creates a lossy 393×852 WebP
+and rewrites both card and zoom references to that same full-resolution asset.
+Published WebPs are never used as future diff inputs. Experimental design
+options are not product states.
 
 Run `node --import tsx scripts/screens/inventory.ts` to audit app routes against
 the catalogue, and `pnpm screens:test` for provenance/diff/adapter regressions.
@@ -89,11 +96,12 @@ The R2 bucket remains private. Cloudflare Access protects `/screens/*` and
 and sends users to Google authentication. The Access policy allows only verified
 `@peanut.me` identities.
 
-R2 holds screenshots, thumbnails, pixel-difference images, JSON/indexes and offline
-archives. The Worker exposes only content-addressed PNG/WebP assets and known report
-objects under the Access-protected `/screen-data/*` route. Pixel comparisons run on
-the original local capture bytes before upload, and online zoom/overlay views retain
-the original image resolution. No public Cloudflare Images or Vercel Blob store is needed.
+R2 holds full-resolution WebP screenshots and pixel-difference images, JSON/indexes
+and offline archives. New reports reference only content-addressed WebP assets and
+known report objects under the Access-protected `/screen-data/*` route. Pixel
+comparisons run on the original local PNG bytes before publication, and online cards,
+zoom and overlay views all use the same 393×852 WebP. No public Cloudflare Images or
+Vercel Blob store is needed.
 
 DevOps setup:
 
@@ -149,11 +157,12 @@ migration complete. After one successful run reports that all retained reports
 were migrated, Images Edit can be removed from the publisher token.
 
 Only the separate trusted publisher receives the storage write credential. The
-publisher accepts hashes and validated JSON/PNG/WebP; no downloaded code or HTML
-is executed. It reconstructs the comparison itself and generates offline HTML
-from its own trusted viewer. The Worker deployment credential is isolated in its
-protected GitHub environment. Artifacts expire after 14 days; published objects
-have no automatic expiry. Assets are deduplicated by SHA-256.
+publisher accepts hashes and validated JSON plus exact PNG capture inputs; no
+downloaded code or HTML is executed. It reconstructs the comparison itself, converts
+the public copy to full-resolution WebP, and generates offline HTML from its own
+trusted viewer. The Worker deployment credential is isolated in its protected GitHub
+environment. Artifacts expire after 14 days; published objects have no automatic
+expiry. Assets are deduplicated by SHA-256.
 
 ```sh
 node scripts/screens/publish.mjs /tmp/screens-comparison 2026-09-10/compare-main-2026-08-27/85f95e42fc25e09f1df6724b8dfb4b8afbfb6a00

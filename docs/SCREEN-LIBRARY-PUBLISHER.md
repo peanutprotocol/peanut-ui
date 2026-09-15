@@ -42,11 +42,13 @@ The R2 bucket remains private. Cloudflare Access protects `/screens/*` and
 and sends users to Google authentication. The Access policy allows only verified
 `@peanut.me` identities.
 
-R2 holds screenshots, thumbnails, pixel-difference images, JSON/indexes and offline
-archives. The Worker exposes only content-addressed PNG/WebP assets and known report
-objects under the Access-protected `/screen-data/*` route. Pixel comparisons run on
-the original local capture bytes before upload, and online zoom/overlay views retain
-the original image resolution. No public Cloudflare Images or Vercel Blob store is needed.
+R2 holds full-resolution WebP screenshots and pixel-difference images, JSON/indexes
+and offline archives. New reports reference only content-addressed WebP assets and
+known report objects under the Access-protected `/screen-data/*` route. Pixel
+comparisons run on exact PNGs inside GitHub Actions before publication. The publisher
+then creates one 393×852 lossy WebP per app-state image and uses that same asset for
+cards, zoom and overlays; those WebPs are never used as future diff inputs. No public
+Cloudflare Images or Vercel Blob store is needed.
 
 DevOps setup:
 
@@ -104,10 +106,11 @@ migration complete. After one successful run reports that all retained reports
 were migrated, Images Edit can be removed from the publisher token.
 
 Only the separate trusted publisher receives the write credentials. The
-publisher accepts hashes and validated JSON/PNG/WebP; no downloaded code or
-HTML is executed. It reconstructs the comparison itself and generates offline
-HTML from its own trusted viewer. Artifacts expire after 14 days; published
-objects have no automatic expiry. Assets are deduplicated by SHA-256.
+publisher accepts hashes and validated JSON plus exact PNG capture inputs; no
+downloaded code or HTML is executed. It reconstructs the comparison itself,
+converts only the public copy to full-resolution WebP, and generates offline HTML
+from its own trusted viewer. Artifacts expire after 14 days; published objects
+have no automatic expiry. Assets are deduplicated by SHA-256.
 
 ```sh
 node scripts/screens/publish.mjs /tmp/screens-comparison 2026-09-10/compare-main-2026-08-27/85f95e42fc25e09f1df6724b8dfb4b8afbfb6a00
