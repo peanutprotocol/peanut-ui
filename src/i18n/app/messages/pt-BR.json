@@ -1026,8 +1026,8 @@
             "cta": "Enviar por link"
         },
         "methods": {
-            "contactsTitle": "Contatos do Peanut",
-            "contactsDescription": "Peanuts com quem você já interagiu",
+            "contactsTitle": "Usuário do Peanut",
+            "contactsDescription": "Digite um @usuário exato ou escolha um contato",
             "bankTitle": "Banco",
             "bankDescription": "EUR, USD, MXN, ARS e mais",
             "instantTransfers": "Transferências instantâneas",
@@ -1035,15 +1035,17 @@
             "exchangeOrWalletDescription": "Binance, Metamask e mais"
         },
         "contacts": {
-            "searchPlaceholder": "Buscar contatos...",
+            "searchPlaceholder": "Digite o usuário exato ou busque contatos...",
+            "searchLabel": "Usuário do Peanut ou contato",
+            "exactUsername": "Usuário exato",
             "yourContacts": "Seus contatos",
             "loadingMore": "Carregando mais...",
             "errorTitle": "Não foi possível carregar os contatos",
             "errorDescription": "Não conseguimos carregar seus contatos. Tente de novo.",
-            "noResultsTitle": "Nenhum contato encontrado",
-            "noResultsDescription": "Tente buscar outro contato.",
+            "noResultsTitle": "Usuário ou contato não encontrado",
+            "noResultsDescription": "Confira o usuário exato do Peanut e tente de novo.",
             "emptyTitle": "Nenhum contato ainda",
-            "emptyDescription": "Os contatos aparecem quando você envia, cobra ou convida alguém"
+            "emptyDescription": "Digite acima um usuário exato do Peanut ou envie por link"
         },
         "link": {
             "createLink": "Criar link",

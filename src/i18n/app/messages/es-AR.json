@@ -594,13 +594,18 @@
             "title": "Enviá dinero con un enlace"
         },
         "methods": {
-            "contactsDescription": "Peanuts con los que interactuaste"
+            "contactsTitle": "Nombre de usuario de Peanut",
+            "contactsDescription": "Ingresá un @usuario exacto o elegí un contacto"
         },
         "contacts": {
+            "searchPlaceholder": "Ingresá el usuario exacto o buscá contactos...",
+            "searchLabel": "Nombre de usuario de Peanut o contacto",
+            "exactUsername": "Nombre de usuario exacto",
             "errorDescription": "No pudimos cargar tus contactos. Intentalo de nuevo.",
-            "noResultsDescription": "Intentá buscar otro contacto.",
+            "noResultsTitle": "No encontramos el usuario ni el contacto",
+            "noResultsDescription": "Revisá el nombre de usuario exacto de Peanut e intentalo de nuevo.",
             "emptyTitle": "Aún no tenés contactos",
-            "emptyDescription": "Los contactos aparecen cuando enviás, solicitás o invitás a alguien"
+            "emptyDescription": "Ingresá arriba un nombre de usuario exacto de Peanut o enviá mediante un enlace"
         },
         "link": {
             "cancelSuccessRefresh": "¡Enlace cancelado! Actualizá para ver tu saldo al día.",
