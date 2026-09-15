@@ -32,7 +32,7 @@ class IssuerAuthorizationExtensionHandler: UIViewController, PKIssuerProvisionin
             completionHandler?(.canceled)
             return
         }
-        guard WalletExtensionAuth.sessionToken() != nil else {
+        guard WalletExtensionAuth.authorizationToken() != nil else {
             completionHandler?(.canceled)
             return
         }

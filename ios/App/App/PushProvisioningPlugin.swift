@@ -28,8 +28,11 @@ public class PushProvisioningPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "addCard", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "rememberCard", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setWalletSession", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setWalletAuthorizationToken", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setWalletStepUpToken", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "clearWalletSession", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "clearWalletCard", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "clearWalletAuthorizationToken", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "clearWalletStepUpToken", returnType: CAPPluginReturnPromise),
     ]
 
@@ -59,10 +62,33 @@ public class PushProvisioningPlugin: CAPPlugin, CAPBridgedPlugin {
         call.resolve()
     }
 
+    @objc func setWalletAuthorizationToken(_ call: CAPPluginCall) {
+        guard let token = call.getString("token"),
+              let expiresIn = call.getInt("expiresIn"),
+              !token.isEmpty,
+              expiresIn > 0 else {
+            call.reject("token and expiresIn are required", "BAD_PARAMS")
+            return
+        }
+        WalletExtensionAuth.saveAuthorizationToken(token, expiresIn: expiresIn)
+        call.resolve()
+    }
+
     @objc func clearWalletSession(_ call: CAPPluginCall) {
         WalletExtensionAuth.deleteSessionToken()
+        WalletExtensionAuth.deleteAuthorizationToken()
         WalletExtensionAuth.deleteStepUpToken()
         WalletExtensionCardStore.clear()
+        call.resolve()
+    }
+
+    @objc func clearWalletCard(_ call: CAPPluginCall) {
+        WalletExtensionCardStore.clear()
+        call.resolve()
+    }
+
+    @objc func clearWalletAuthorizationToken(_ call: CAPPluginCall) {
+        WalletExtensionAuth.deleteAuthorizationToken()
         call.resolve()
     }
 

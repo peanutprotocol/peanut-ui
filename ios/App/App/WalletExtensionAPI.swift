@@ -13,9 +13,9 @@ struct WalletExtensionProvisioningData: Decodable {
  * Native-only client for the issuer extension.
  *
  * Wallet cannot execute the Capacitor web layer, so it calls the same
- * authenticated provisioning endpoint directly. The JWT comes from the
- * app/extension keychain access group; no PAN or provisioning secret is cached
- * on disk. Apple invokes this after the authorization extension has run.
+ * provisioning service directly. The app stores a short-lived, card-scoped
+ * authorization credential in the extension keychain; no session JWT, PAN, or
+ * provisioning secret is needed in the extension process.
  */
 enum WalletExtensionAPI {
     private static let endpoint = URL(string: "https://api.peanut.me")!
@@ -23,18 +23,14 @@ enum WalletExtensionAPI {
 
     static func fetchProvisioningData(
         cardId: String,
-        sessionToken: String,
-        stepUpToken: String?,
+        authorizationToken: String,
         completion: @escaping (WalletExtensionProvisioningData?) -> Void
     ) {
-        let url = endpoint.appendingPathComponent("rain/cards/\(cardId)/provisioning-data")
+        let url = endpoint.appendingPathComponent("rain/cards/\(cardId)/provisioning-data/wallet")
         var request = URLRequest(url: url, timeoutInterval: timeout)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(sessionToken)", forHTTPHeaderField: "Authorization")
-        if let stepUpToken, !stepUpToken.isEmpty {
-            request.setValue(stepUpToken, forHTTPHeaderField: "x-step-up-token")
-        }
+        request.setValue(authorizationToken, forHTTPHeaderField: "x-wallet-provisioning-token")
         request.httpBody = try? JSONSerialization.data(withJSONObject: ["wallet": "apple"])
 
         URLSession(configuration: .ephemeral).dataTask(with: request) { data, response, _ in

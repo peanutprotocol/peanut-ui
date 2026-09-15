@@ -7,11 +7,17 @@ import { isAndroidNative, isIOSNative } from '../capacitor'
 
 const isAvailable = jest.fn()
 const addCard = jest.fn()
+const setWalletAuthorizationToken = jest.fn()
+const clearWalletCard = jest.fn()
+const clearWalletAuthorizationToken = jest.fn()
 
 jest.mock('@capacitor/core', () => ({
     registerPlugin: jest.fn(() => ({
         isAvailable: (o: unknown) => isAvailable(o),
         addCard: (o: unknown) => addCard(o),
+        setWalletAuthorizationToken: (o: unknown) => setWalletAuthorizationToken(o),
+        clearWalletCard: (o: unknown) => clearWalletCard(o),
+        clearWalletAuthorizationToken: (o: unknown) => clearWalletAuthorizationToken(o),
     })),
 }))
 

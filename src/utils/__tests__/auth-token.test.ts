@@ -5,6 +5,7 @@ import { isCapacitor } from '@/utils/capacitor'
 import { CapacitorCookies } from '@capacitor/core'
 import { Preferences } from '@capacitor/preferences'
 import * as secureStore from '@/utils/secure-token-store'
+import { clearWalletSession, syncWalletSession } from '../push-provisioning'
 
 // Exercise the guarded-mode paths: with OPEN_GATED on, guarded use defers to the
 // isGuardedStoreSupported mock below (default false → plain), so the flag is a
@@ -50,6 +51,13 @@ jest.mock('@capacitor/preferences', () => ({
     },
 }))
 
+jest.mock('../push-provisioning', () => ({
+    clearWalletSession: jest.fn(),
+    syncWalletSession: jest.fn(),
+    syncWalletStepUpToken: jest.fn(),
+    clearWalletStepUpToken: jest.fn(),
+}))
+
 const mockIsCapacitor = isCapacitor as jest.MockedFunction<typeof isCapacitor>
 // Cookies.get has overloaded signatures (one-arg returns string|undefined, no-arg
 // returns { [key: string]: string }). jest.Mocked<typeof Cookies> picks the no-arg
@@ -77,6 +85,8 @@ const mockSecureStore = secureStore as unknown as {
     guardedDelete: jest.Mock
     canWriteSilently: jest.Mock
 }
+const mockSyncWalletSession = syncWalletSession as jest.MockedFunction<typeof syncWalletSession>
+const mockClearWalletSession = clearWalletSession as jest.MockedFunction<typeof clearWalletSession>
 
 // setAuthToken persistence and mode detection run through several awaited
 // dynamic imports and Preferences reads — a timer turn flushes the whole chain
@@ -110,6 +120,8 @@ describe('auth-token', () => {
         mockPreferences.get.mockResolvedValue({ value: null })
         mockPreferences.set.mockResolvedValue(undefined)
         mockPreferences.remove.mockResolvedValue(undefined)
+        mockSyncWalletSession.mockResolvedValue(undefined)
+        mockClearWalletSession.mockResolvedValue(undefined)
         // reset document.cookie
         document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
         loadModule()
@@ -130,6 +142,7 @@ describe('auth-token', () => {
                 await auth.authReady()
                 expect(auth.getAuthToken()).toBe('stored-native-token')
                 expect(mockPreferences.get).toHaveBeenCalledWith({ key: 'jwt-token' })
+                expect(mockSyncWalletSession).toHaveBeenCalledWith('stored-native-token')
             })
 
             it('returns null when neither Preferences nor the cookie jar holds a token', async () => {
@@ -143,6 +156,7 @@ describe('auth-token', () => {
                 mockCapCookies.getCookies.mockResolvedValue({ 'jwt-token': 'legacy-cookie-jwt' })
                 await auth.authReady()
                 expect(auth.getAuthToken()).toBe('legacy-cookie-jwt')
+                expect(mockSyncWalletSession).toHaveBeenCalledWith('legacy-cookie-jwt')
             })
 
             it('attaches the Authorization header from the cookie-jar fallback (QR-pay POST fix)', async () => {
@@ -204,6 +218,7 @@ describe('auth-token', () => {
                 expect(auth.getAuthToken()).toBe('new-cap-token')
                 await flushAsync() // fire-and-forget persistence awaits mode detection first
                 expect(mockPreferences.set).toHaveBeenCalledWith({ key: 'jwt-token', value: 'new-cap-token' })
+                expect(mockSyncWalletSession).toHaveBeenCalledWith('new-cap-token')
             })
 
             it('does not write cookies or localStorage', () => {
@@ -310,6 +325,11 @@ describe('auth-token', () => {
                 expect(mockCookies.remove).toHaveBeenCalledWith('jwt-token', { path: '/' })
             })
 
+            it('awaits clearing the Wallet session mirror', async () => {
+                await auth.clearAuthToken()
+                expect(mockClearWalletSession).toHaveBeenCalledTimes(1)
+            })
+
             it('resolves even when the native clears fail', async () => {
                 mockPreferences.remove.mockRejectedValue(new Error('bridge down'))
                 mockCapCookies.clearCookies.mockRejectedValue(new Error('bridge down'))
@@ -331,6 +351,7 @@ describe('auth-token', () => {
                 await auth.clearAuthToken()
                 expect(mockPreferences.remove).not.toHaveBeenCalled()
                 expect(mockCapCookies.clearCookies).not.toHaveBeenCalled()
+                expect(mockClearWalletSession).not.toHaveBeenCalled()
             })
         })
     })
@@ -465,6 +486,7 @@ describe('auth-token', () => {
                 await ready
                 expect(readyResolved).toBe(true)
                 expect(auth.getAuthToken()).toBe('guarded-jwt')
+                expect(mockSyncWalletSession).toHaveBeenCalledWith('guarded-jwt')
             })
 
             it('re-arms after suspendAuthSession without bumping the clear epoch', async () => {

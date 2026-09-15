@@ -206,6 +206,9 @@ export interface RainProvisioningDataResponse {
     last4: string
     network: string
     cardholderName?: string
+    /** Revocable, wallet-scoped credential for Apple Wallet's direct launch. */
+    walletAuthorizationToken?: string
+    walletAuthorizationExpiresIn?: number
     billingAddress: {
         line1: string
         line2?: string

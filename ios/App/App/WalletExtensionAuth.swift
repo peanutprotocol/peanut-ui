@@ -12,6 +12,7 @@ enum WalletExtensionAuth {
     private static let accessGroupInfoKey = "PeanutWalletKeychainAccessGroup"
     private static let service = "me.peanut.wallet.wallet-extension"
     private static let sessionAccount = "session"
+    private static let authorizationAccount = "wallet-authorization"
     private static let stepUpAccount = "step-up"
 
     private static var accessGroup: String? {
@@ -23,10 +24,17 @@ enum WalletExtensionAuth {
     }
 
     static func saveStepUpToken(_ token: String, expiresIn: Int) {
-        let payload = StepUpPayload(token: token, expiresAt: Date().timeIntervalSince1970 + Double(expiresIn))
+        let payload = CredentialPayload(token: token, expiresAt: Date().timeIntervalSince1970 + Double(expiresIn))
         guard let data = try? JSONEncoder().encode(payload),
               let encoded = String(data: data, encoding: .utf8) else { return }
         save(encoded, account: stepUpAccount)
+    }
+
+    static func saveAuthorizationToken(_ token: String, expiresIn: Int) {
+        let payload = CredentialPayload(token: token, expiresAt: Date().timeIntervalSince1970 + Double(expiresIn))
+        guard let data = try? JSONEncoder().encode(payload),
+              let encoded = String(data: data, encoding: .utf8) else { return }
+        save(encoded, account: authorizationAccount)
     }
 
     private static func save(_ value: String, account: String) {
@@ -51,9 +59,20 @@ enum WalletExtensionAuth {
     static func stepUpToken() -> String? {
         guard let encoded = read(account: stepUpAccount),
               let data = encoded.data(using: .utf8),
-              let payload = try? JSONDecoder().decode(StepUpPayload.self, from: data),
+              let payload = try? JSONDecoder().decode(CredentialPayload.self, from: data),
               payload.expiresAt - 30 > Date().timeIntervalSince1970 else {
             deleteStepUpToken()
+            return nil
+        }
+        return payload.token
+    }
+
+    static func authorizationToken() -> String? {
+        guard let encoded = read(account: authorizationAccount),
+              let data = encoded.data(using: .utf8),
+              let payload = try? JSONDecoder().decode(CredentialPayload.self, from: data),
+              payload.expiresAt - 30 > Date().timeIntervalSince1970 else {
+            deleteAuthorizationToken()
             return nil
         }
         return payload.token
@@ -83,6 +102,10 @@ enum WalletExtensionAuth {
         delete(account: stepUpAccount)
     }
 
+    static func deleteAuthorizationToken() {
+        delete(account: authorizationAccount)
+    }
+
     private static func delete(account: String) {
         guard let accessGroup else { return }
         let query: [String: Any] = [
@@ -94,7 +117,7 @@ enum WalletExtensionAuth {
         _ = SecItemDelete(query as CFDictionary)
     }
 
-    private struct StepUpPayload: Codable {
+    private struct CredentialPayload: Codable {
         let token: String
         let expiresAt: TimeInterval
     }

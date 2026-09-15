@@ -4,7 +4,13 @@ import { usePushProvisioning } from '@/hooks/usePushProvisioning'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { rainApi, RainCardRateLimitError, type RainProvisioningDataResponse } from '@/services/rain'
 import { isAndroidNative, isIOSNative } from '@/utils/capacitor'
-import { addCardToWallet, getPushProvisioningAvailability, rememberCardForWallet } from '@/utils/push-provisioning'
+import {
+    addCardToWallet,
+    clearWalletCardForWallet,
+    getPushProvisioningAvailability,
+    rememberCardForWallet,
+    syncWalletAuthorizationToken,
+} from '@/utils/push-provisioning'
 
 jest.mock('@/services/rain', () => {
     const actual = jest.requireActual('@/services/rain')
@@ -17,6 +23,8 @@ jest.mock('@/utils/push-provisioning', () => {
         getPushProvisioningAvailability: jest.fn(),
         addCardToWallet: jest.fn(),
         rememberCardForWallet: jest.fn(),
+        clearWalletCardForWallet: jest.fn(),
+        syncWalletAuthorizationToken: jest.fn(),
     }
 })
 jest.mock('@/utils/capacitor', () => {
@@ -33,6 +41,10 @@ const mockedAvailability = getPushProvisioningAvailability as jest.MockedFunctio
 >
 const mockedAddCard = addCardToWallet as jest.MockedFunction<typeof addCardToWallet>
 const mockedRememberCard = rememberCardForWallet as jest.MockedFunction<typeof rememberCardForWallet>
+const mockedClearWalletCard = clearWalletCardForWallet as jest.MockedFunction<typeof clearWalletCardForWallet>
+const mockedSyncWalletAuthorizationToken = syncWalletAuthorizationToken as jest.MockedFunction<
+    typeof syncWalletAuthorizationToken
+>
 const mockedIsIOS = isIOSNative as jest.MockedFunction<typeof isIOSNative>
 const mockedIsAndroid = isAndroidNative as jest.MockedFunction<typeof isAndroidNative>
 
@@ -44,6 +56,8 @@ const provisioningData: RainProvisioningDataResponse = {
     last4: '0420',
     network: 'visa',
     cardholderName: 'Ada Lovelace',
+    walletAuthorizationToken: 'wallet-grant',
+    walletAuthorizationExpiresIn: 2_592_000,
     billingAddress: {
         line1: '1 Main St',
         city: 'Lisbon',
@@ -79,7 +93,7 @@ describe('usePushProvisioning', () => {
         expect(result.current.nativeAvailable).toBe(false)
     })
 
-    it('never touches the plugin on web or behind the flag', async () => {
+    it('does not query the plugin on web or behind the flag', async () => {
         mockedIsIOS.mockReturnValue(false)
         const { result } = renderHook(() => usePushProvisioning(card))
         await waitFor(() => expect(result.current.nativeAvailable).toBe(false))
@@ -90,6 +104,18 @@ describe('usePushProvisioning', () => {
         await waitFor(() => expect(flagOff.result.current.nativeAvailable).toBe(false))
 
         expect(mockedAvailability).not.toHaveBeenCalled()
+        expect(mockedClearWalletCard).toHaveBeenCalledTimes(1)
+    })
+
+    it('removes the native card mirror when the rollout flag changes from on to off', async () => {
+        const { result, rerender } = renderHook(() => usePushProvisioning(card))
+        await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+
+        mockedFlag.mockReturnValue(false)
+        rerender()
+
+        await waitFor(() => expect(mockedClearWalletCard).toHaveBeenCalled())
+        expect(result.current.nativeAvailable).toBe(false)
     })
 
     it('flips the row back to the carousel after a successful add', async () => {
@@ -102,6 +128,7 @@ describe('usePushProvisioning', () => {
         })
 
         expect(mockedGetProvisioningData).toHaveBeenCalledWith('card-1', 'apple')
+        expect(mockedSyncWalletAuthorizationToken).toHaveBeenCalledWith('wallet-grant', 2_592_000)
         expect(mockedAddCard).toHaveBeenCalledWith({
             peanutCardId: 'card-1',
             cardId: 'mea-card-1',

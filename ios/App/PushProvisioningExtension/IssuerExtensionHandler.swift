@@ -26,7 +26,7 @@ class IssuerExtensionHandler: PKIssuerProvisioningExtensionHandler {
 #if canImport(MeaPushProvisioning)
         let card = WalletExtensionCardStore.load()
         let hasConfig = Bundle.main.url(forResource: "mea_config", withExtension: nil) != nil
-        let available = card != nil && hasConfig
+        let available = card != nil && hasConfig && WalletExtensionAuth.authorizationToken() != nil
         status.passEntriesAvailable = available
         status.remotePassEntriesAvailable = available
         status.requiresAuthentication = true
@@ -87,7 +87,7 @@ class IssuerExtensionHandler: PKIssuerProvisioningExtensionHandler {
         completion: @escaping ([PKIssuerProvisioningExtensionPassEntry]) -> Void
     ) {
         guard let card = WalletExtensionCardStore.load(),
-              let token = WalletExtensionAuth.sessionToken(),
+              let token = WalletExtensionAuth.authorizationToken(),
               Bundle.main.url(forResource: "mea_config", withExtension: nil) != nil else {
             completion([])
             return
@@ -95,8 +95,7 @@ class IssuerExtensionHandler: PKIssuerProvisioningExtensionHandler {
 
         WalletExtensionAPI.fetchProvisioningData(
             cardId: card.cardId,
-            sessionToken: token,
-            stepUpToken: WalletExtensionAuth.stepUpToken()
+            authorizationToken: token
         ) { provisioningData in
             guard let provisioningData else {
                 completion([])
