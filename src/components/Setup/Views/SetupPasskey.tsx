@@ -276,7 +276,7 @@ const SetupPasskey = () => {
                             <Button
                                 loading={isLoggingIn}
                                 disabled={isLoggingIn}
-                                variant="primary-soft"
+                                variant="stroke"
                                 onClick={onLogInClick}
                                 className="text-nowrap"
                                 shadowSize="4"

@@ -1057,7 +1057,13 @@
         "validation": {
             "talkToSupport": "Talk to support",
             "learnHow": "Learn how to receive money through Peanut",
-            "sadPeanutAlt": "Sad peanut"
+            "sadPeanutAlt": "Sad peanut",
+            "unknownUser": {
+                "title": "We don't know any @{username}",
+                "message": "Are you sure you clicked on the right link?",
+                "cta": "Go back to home",
+                "supportTemplate": "I clicked on this link but got an error: '{url}'"
+            }
         },
         "errorPage": {
             "title": "Something went wrong!",

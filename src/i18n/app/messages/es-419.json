@@ -1057,7 +1057,13 @@
         "validation": {
             "talkToSupport": "Hablar con soporte",
             "learnHow": "Aprende cómo recibir dinero a través de Peanut",
-            "sadPeanutAlt": "Peanut triste"
+            "sadPeanutAlt": "Peanut triste",
+            "unknownUser": {
+                "title": "No conocemos a ningún @{username}",
+                "message": "¿Seguro que hiciste clic en el enlace correcto?",
+                "cta": "Volver al inicio",
+                "supportTemplate": "Hice clic en este enlace pero recibí un error: '{url}'"
+            }
         },
         "errorPage": {
             "title": "¡Algo salió mal!",

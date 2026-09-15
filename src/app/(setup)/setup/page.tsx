@@ -482,7 +482,7 @@ function SetupPageContent() {
     if (recoveryReason) {
         return (
             <div className="flex min-h-dvh w-full flex-col items-center justify-center gap-6 p-6">
-                <h1 className="text-heading-2 text-center">{tCommon('somethingWentWrong')}</h1>
+                <h1 className="text-center text-heading-m">{tCommon('somethingWentWrong')}</h1>
                 <p className="text-center">{tCommon('genericError')}</p>
                 <div className="flex w-full max-w-sm flex-col gap-3">
                     <Button onClick={() => window.location.reload()}>{tCommon('tryAgain')}</Button>

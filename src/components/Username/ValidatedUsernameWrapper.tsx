@@ -24,6 +24,7 @@
  */
 
 import { useState, useEffect, type ReactNode } from 'react'
+import { useTranslations } from 'next-intl'
 import { verifyPeanutUsername } from '@/lib/validation/recipient'
 import type { ValidationErrorViewProps } from '@/components/Payment/Views/Error.validation.view'
 import ValidationErrorView from '@/components/Payment/Views/Error.validation.view'
@@ -40,8 +41,9 @@ export function ValidatedUsernameWrapper({
     username,
     children,
     errorProps,
-    loadingClassName = 'flex min-h-[calc(100dvh_-_180px)] w-full items-center justify-center',
+    loadingClassName = 'flex min-h-[inherit] w-full items-center justify-center',
 }: ValidatedUsernameWrapperProps) {
+    const t = useTranslations('payment')
     const [error, setError] = useState<ValidationErrorViewProps | null>(null)
     const [isValidating, setIsValidating] = useState(false)
     const [isValidated, setIsValidated] = useState(false)
@@ -60,12 +62,13 @@ export function ValidatedUsernameWrapper({
 
             if (!isValid) {
                 setError({
-                    title: `We don't know any @${username}`,
-                    message: 'Are you sure you clicked on the right link?',
-                    buttonText: 'Go back to home',
+                    title: t('validation.unknownUser.title', { username }),
+                    message: t('validation.unknownUser.message'),
+                    buttonText: t('validation.unknownUser.cta'),
                     redirectTo: '/home',
                     showLearnMore: false,
-                    supportMessageTemplate: 'I clicked on this link but got an error: {url}',
+                    // the literal {url} placeholder is replaced by the error view, not next-intl
+                    supportMessageTemplate: t('validation.unknownUser.supportTemplate'),
                     ...errorProps,
                 })
                 setIsValidated(false)
