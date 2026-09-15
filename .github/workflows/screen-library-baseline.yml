@@ -1,0 +1,100 @@
+name: Screen library baseline
+
+on:
+    # A baseline is independent of PR commits and is refreshed once per UTC
+    # day. The manual trigger is useful after enabling the workflow or after a
+    # long artifact-retention gap.
+    schedule:
+        - cron: '17 0 * * *'
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    revisions:
+        runs-on: ubuntu-24.04
+        outputs:
+            revisions: ${{ steps.revisions.outputs.revisions }}
+            dev_sha: ${{ steps.revisions.outputs.dev_sha }}
+        steps:
+            - name: Resolve active baseline revisions
+              id: revisions
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  repo="$GITHUB_REPOSITORY"
+                  dev_sha="$(gh api "repos/$repo/git/ref/heads/dev" --jq '.object.sha')"
+                  revisions=("$dev_sha")
+                  prs="$(gh api --paginate --slurp "repos/$repo/pulls?state=open&base=dev&per_page=100")"
+
+                  while IFS=$'\t' read -r number base_sha head_sha head_repo; do
+                      [ -n "$number" ] || continue
+                      if [ "$head_repo" != "$repo" ]; then
+                          echo "Skipping fork PR #$number; its code is not a trusted capture source."
+                          continue
+                      fi
+
+                      if merge_base="$(gh api "repos/$repo/compare/$base_sha...$head_sha" --jq '.merge_base_commit.sha')"; then
+                          revisions+=("$merge_base")
+                      else
+                          echo "::warning::Unable to resolve merge base for PR #$number ($base_sha...$head_sha)"
+                      fi
+                  done < <(jq -r '.[][] | [.number, .base.sha, .head.sha, .head.repo.full_name] | @tsv' <<< "$prs")
+
+                  matrix="$(printf '%s\n' "${revisions[@]}" | jq -Rsc 'split("\n") | map(select(test("^[a-f0-9]{40}$"))) | unique | sort')"
+                  [ "$matrix" != "[]" ]
+                  echo "revisions=$matrix" >> "$GITHUB_OUTPUT"
+                  echo "dev_sha=$dev_sha" >> "$GITHUB_OUTPUT"
+
+    capture:
+        needs: revisions
+        strategy:
+            fail-fast: false
+            max-parallel: 4
+            matrix:
+                sha: ${{ fromJSON(needs.revisions.outputs.revisions) }}
+        runs-on: macos-26-intel
+        timeout-minutes: 60
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  ref: ${{ needs.revisions.outputs.dev_sha }}
+                  path: harness
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+                  persist-credentials: false
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  ref: ${{ matrix.sha }}
+                  path: target
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+                  persist-credentials: false
+            - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+              with:
+                  version: 10.30.1
+            - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+              with:
+                  node-version: '20'
+            - name: Install capture tools
+              working-directory: harness
+              run: pnpm install --frozen-lockfile
+            - name: Install pinned browser
+              working-directory: harness
+              run: pnpm exec playwright install --with-deps --no-shell chromium
+            - name: Build and capture full dev catalogue
+              working-directory: harness
+              env:
+                  TARGET_SHA: ${{ matrix.sha }}
+              run: node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --full-catalogue
+            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+              if: always()
+              with:
+                  name: screen-library-baseline-${{ matrix.sha }}-${{ github.run_attempt }}
+                  path: capture/
+                  if-no-files-found: error
+                  retention-days: 7
