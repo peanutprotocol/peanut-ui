@@ -58,7 +58,6 @@ export const ClaimedView: FC<ClaimedViewProps> = ({ amount, senderUsername }) =>
                         }
                     }}
                     shadowSize="4"
-                    className="text-body-s md:text-body-m"
                 >
                     {user ? t('backToHome') : t('claimed.getStarted')}
                 </Button>

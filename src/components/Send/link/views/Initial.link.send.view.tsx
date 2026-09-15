@@ -265,7 +265,8 @@ const LinkSendInitialView = () => {
     const isFlowError = !!errorState?.showError && !isFieldError
 
     return (
-        <div className="space-y-4 w-full">
+        // ponytail: no wrapper — PageStack.Center's gap-4 owns the spacing
+        <>
             <PeanutActionCard type="send" />
 
             <FieldColumn error={isFieldError ? errorState?.errorMessage : undefined} errorTestId="error-alert">
@@ -313,7 +314,7 @@ const LinkSendInitialView = () => {
                     </Notification>
                 )}
             </div>
-        </div>
+        </>
     )
 }
 

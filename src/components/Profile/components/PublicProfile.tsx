@@ -202,7 +202,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                             className="flex w-1/2 items-center justify-center gap-2 rounded-full py-3"
                         >
                             <Icon name="arrow-up-right" size={20} fill="black" />
-                            <span className="font-bold">{tNav('send')}</span>
+                            <span>{tNav('send')}</span>
                         </Button>
 
                         <Button
@@ -222,7 +222,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                                 Request flow, and es-419 renders it "Recibir" —
                                 receiving, which is not what this button does to
                                 someone else's profile. */}
-                            <span className="font-bold">{t('requestAction')}</span>
+                            <span>{t('requestAction')}</span>
                         </Button>
                     </div>
                 )}

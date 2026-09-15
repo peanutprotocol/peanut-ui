@@ -164,7 +164,7 @@ export const Profile = () => {
                             onClick={logout}
                             icon="logout"
                         >
-                            <span className="font-bold">{t('logOut')}</span>
+                            <span>{t('logOut')}</span>
                         </Button>
                     </div>
                 </div>
