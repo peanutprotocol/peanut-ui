@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { useFeatureFlags } from '@/hooks/useFeatureFlag'
+import { areFeatureFlagsLoaded } from '@/utils/featureFlag.utils'
 import { isIOSNative } from '@/utils/capacitor'
 import {
     clearLegacyWalletSessionForWallet,
@@ -26,7 +27,9 @@ export function useWalletProvisioningLifecycle(): void {
         // group. Remove that legacy item on every app start; logout also calls
         // clearWalletSession, which clears the complete Wallet state.
         void clearLegacyWalletSessionForWallet()
-        if (!flagOn) {
+        // `isFeatureEnabled` returns false before PostHog has answered. Do not
+        // treat that unknown startup state as an explicit rollout kill.
+        if (areFeatureFlagsLoaded() && !flagOn) {
             void Promise.all([clearWalletCardForWallet(), clearWalletAuthorizationToken()])
         }
     }, [flagOn])

@@ -385,6 +385,8 @@ interface RequestOpts {
      * ID unless a proof from the last few minutes is still good.
      */
     stepUp?: boolean
+    /** Use an already-cached proof without opening a new ceremony. */
+    stepUpToken?: string
 }
 
 async function rainRequest<T>(opts: RequestOpts): Promise<T> {
@@ -395,7 +397,7 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
 
     const headers: Record<string, string> = { 'api-key': PEANUT_API_KEY }
     if (opts.noStore) headers['Cache-Control'] = 'no-store'
-    if (opts.stepUp) headers[STEP_UP_HEADER] = await getStepUpToken()
+    if (opts.stepUp) headers[STEP_UP_HEADER] = opts.stepUpToken ?? (await getStepUpToken())
 
     const response = await apiFetch(opts.path, {
         method: opts.method,
@@ -792,13 +794,15 @@ export const rainApi = {
     /** Mint the card-scoped Wallet credential without returning card secrets. */
     getProvisioningAuthorization: async (
         cardId: string,
-        wallet: 'apple' | 'google'
+        wallet: 'apple' | 'google',
+        options?: { stepUpToken?: string }
     ): Promise<RainProvisioningAuthorizationResponse> => {
         return rainRequest<RainProvisioningAuthorizationResponse>({
             method: 'POST',
             path: `/rain/cards/${cardId}/provisioning-authorization`,
             body: { wallet },
             stepUp: true,
+            stepUpToken: options?.stepUpToken,
             rateLimitSensitive: true,
             noStore: true,
         })

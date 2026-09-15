@@ -8,8 +8,10 @@ import {
 } from '@/utils/push-provisioning'
 
 const mockedFlag = jest.fn()
+const mockedFlagsLoaded = jest.fn()
 
 jest.mock('@/hooks/useFeatureFlag', () => ({ useFeatureFlags: () => mockedFlag }))
+jest.mock('@/utils/featureFlag.utils', () => ({ areFeatureFlagsLoaded: () => mockedFlagsLoaded() }))
 jest.mock('@/utils/capacitor', () => ({ isIOSNative: jest.fn() }))
 jest.mock('@/utils/push-provisioning', () => ({
     clearLegacyWalletSessionForWallet: jest.fn(),
@@ -32,6 +34,7 @@ describe('useWalletProvisioningLifecycle', () => {
         jest.clearAllMocks()
         mockedIsIOS.mockReturnValue(true)
         mockedFlag.mockReturnValue(false)
+        mockedFlagsLoaded.mockReturnValue(true)
     })
 
     it('clears legacy sessions and disabled rollout state globally', async () => {
@@ -54,6 +57,24 @@ describe('useWalletProvisioningLifecycle', () => {
         mockedFlag.mockReturnValue(true)
         renderHook(() => useWalletProvisioningLifecycle())
         await waitFor(() => expect(mockedClearLegacy).toHaveBeenCalled())
+        expect(mockedClearAuthorization).not.toHaveBeenCalled()
+        expect(mockedClearCard).not.toHaveBeenCalled()
+    })
+
+    it('does not clear a valid grant while the startup flag state is unknown', async () => {
+        mockedFlagsLoaded.mockReturnValue(false)
+        mockedFlag.mockReturnValue(false)
+        const { rerender } = renderHook(() => useWalletProvisioningLifecycle())
+        await waitFor(() => expect(mockedClearLegacy).toHaveBeenCalled())
+        expect(mockedClearAuthorization).not.toHaveBeenCalled()
+        expect(mockedClearCard).not.toHaveBeenCalled()
+
+        // Once the same launch receives an explicit enabled answer, the
+        // previous unknown false must not have destroyed the Wallet state.
+        mockedFlagsLoaded.mockReturnValue(true)
+        mockedFlag.mockReturnValue(true)
+        rerender()
+        await Promise.resolve()
         expect(mockedClearAuthorization).not.toHaveBeenCalled()
         expect(mockedClearCard).not.toHaveBeenCalled()
     })

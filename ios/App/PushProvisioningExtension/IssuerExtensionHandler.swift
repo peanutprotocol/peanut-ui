@@ -26,10 +26,28 @@ class IssuerExtensionHandler: PKIssuerProvisioningExtensionHandler {
 #if canImport(MeaPushProvisioning)
         let card = WalletExtensionCardStore.load()
         let hasConfig = Bundle.main.url(forResource: "mea_config", withExtension: nil) != nil
-        let available = card != nil && hasConfig && WalletExtensionAuth.authorizationToken() != nil
-        status.passEntriesAvailable = available
-        status.remotePassEntriesAvailable = available
-        status.requiresAuthentication = true
+        guard let card,
+              hasConfig,
+              WalletExtensionAuth.authorizationToken() != nil else {
+            status.passEntriesAvailable = false
+            status.remotePassEntriesAvailable = false
+            status.requiresAuthentication = false
+            completion(status)
+            return
+        }
+        // These are local PassKit/MeaWallet capability checks and distinguish
+        // an iPhone that can add the card from a paired Watch that can add it
+        // remotely. Do not advertise an entry that loadEntry will immediately
+        // discard, especially after the card was already added everywhere.
+        let canAddLocal = MeaPushProvisioning.canAddSecureElementPass(
+            withPrimaryAccountNumberSuffix: card.last4
+        )
+        let canAddRemote = MeaPushProvisioning.canAddRemoteSecureElementPass(
+            withPrimaryAccountNumberSuffix: card.last4
+        )
+        status.passEntriesAvailable = canAddLocal
+        status.remotePassEntriesAvailable = canAddRemote
+        status.requiresAuthentication = canAddLocal || canAddRemote
 #else
         status.passEntriesAvailable = false
         status.remotePassEntriesAvailable = false

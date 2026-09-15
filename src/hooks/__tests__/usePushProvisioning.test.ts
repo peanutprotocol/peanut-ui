@@ -4,6 +4,7 @@ import { usePushProvisioning } from '@/hooks/usePushProvisioning'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { rainApi, RainCardRateLimitError, type RainProvisioningDataResponse } from '@/services/rain'
 import { isAndroidNative, isIOSNative } from '@/utils/capacitor'
+import { getCachedStepUpToken } from '@/services/step-up-cache'
 import {
     addCardToWallet,
     getPushProvisioningAvailability,
@@ -32,6 +33,7 @@ jest.mock('@/utils/capacitor', () => {
     const actual = jest.requireActual('@/utils/capacitor')
     return { ...actual, isIOSNative: jest.fn(), isAndroidNative: jest.fn() }
 })
+jest.mock('@/services/step-up-cache', () => ({ getCachedStepUpToken: jest.fn(() => 'cached-step-up') }))
 
 const mockedFlag = jest.fn()
 jest.mock('@/hooks/useFeatureFlag', () => ({ useFeatureFlags: () => mockedFlag }))
@@ -50,6 +52,7 @@ const mockedSyncWalletAuthorizationToken = syncWalletAuthorizationToken as jest.
 >
 const mockedIsIOS = isIOSNative as jest.MockedFunction<typeof isIOSNative>
 const mockedIsAndroid = isAndroidNative as jest.MockedFunction<typeof isAndroidNative>
+const mockedGetCachedStepUpToken = getCachedStepUpToken as jest.MockedFunction<typeof getCachedStepUpToken>
 
 const card = { id: 'card-1', last4: '0420' }
 
@@ -76,6 +79,7 @@ describe('usePushProvisioning', () => {
         mockedFlag.mockReturnValue(true)
         mockedIsIOS.mockReturnValue(true)
         mockedIsAndroid.mockReturnValue(false)
+        mockedGetCachedStepUpToken.mockReturnValue('cached-step-up')
         mockedAvailability.mockResolvedValue({ available: true, alreadyInWallet: false })
         mockedRememberCard.mockResolvedValue()
         mockedGetProvisioningData.mockResolvedValue(provisioningData)
@@ -91,7 +95,9 @@ describe('usePushProvisioning', () => {
         await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
         expect(mockedAvailability).toHaveBeenCalledWith('0420')
         expect(mockedRememberCard).toHaveBeenCalledWith({ peanutCardId: 'card-1', last4: '0420' })
-        expect(mockedGetProvisioningAuthorization).toHaveBeenCalledWith('card-1', 'apple')
+        expect(mockedGetProvisioningAuthorization).toHaveBeenCalledWith('card-1', 'apple', {
+            stepUpToken: expect.any(String),
+        })
     })
 
     it('keeps the manual carousel for a card already in the wallet', async () => {
@@ -99,6 +105,13 @@ describe('usePushProvisioning', () => {
         const { result } = renderHook(() => usePushProvisioning(card))
         await waitFor(() => expect(mockedAvailability).toHaveBeenCalled())
         expect(result.current.nativeAvailable).toBe(false)
+    })
+
+    it('does not prompt or bootstrap when no cached step-up proof exists', async () => {
+        mockedGetCachedStepUpToken.mockReturnValue(null)
+        const { result } = renderHook(() => usePushProvisioning(card))
+        await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+        expect(mockedGetProvisioningAuthorization).not.toHaveBeenCalled()
     })
 
     it('does not query the plugin on web or behind the flag', async () => {
