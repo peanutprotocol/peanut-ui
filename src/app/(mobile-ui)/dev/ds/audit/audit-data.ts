@@ -6192,7 +6192,7 @@ export const AUDIT_CLUSTERS: AuditCluster[] = [
         catLabel: 'Inputs / textarea',
         name: '<ValidatedInput> (documented validation variant)',
         from: 2,
-        rec: 'Keep ValidatedInput as the canonical async-validated variant (7 sites); GeneralRecipientInput (5 sites) is already just a domain wrapper over it — good reuse, leave it. BUT align it to the canonical input: it forces h-12 + border-0 on the inner BaseInput and re-draws the border/focus on its own wrapper div, so it did not inherit the ds-06 focus ring or the aria-invalid error border.',
+        rec: 'Keep ValidatedInput as the canonical async-validated variant (7 sites); GeneralRecipientInput (5 sites) is already just a domain wrapper over it — good reuse, leave it. BUT align it to the canonical input: it passes border-0 + padding to the inner BaseInput (no height class — the md default) and re-draws the border/focus on its own wrapper div, so it did not inherit the ds-06 focus ring or the aria-invalid error border.',
         collapses: ['ValidatedInput (7)', 'GeneralRecipientInput (5 — thin wrapper over ValidatedInput)'],
     },
     {
