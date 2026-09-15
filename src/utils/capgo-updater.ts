@@ -168,7 +168,11 @@ async function checkAndStageUpdate(callbacks: OtaUpdateCallbacks = {}): Promise<
 
 // The bundle Capgo serves was built for a newer native version than the one
 // installed (major/minor gate), so no OTA can land until the store binary does.
-const NEWER_BINARY_ERRORS = ['disable_auto_update_to_major', 'disable_auto_update_to_minor']
+const NEWER_BINARY_ERRORS = [
+    'disable_auto_update_to_major',
+    'disable_auto_update_to_minor',
+    'disable_auto_update_to_metadata',
+]
 
 function isNewerBinaryRejection(message: string): boolean {
     return NEWER_BINARY_ERRORS.some((pattern) => message.includes(pattern))

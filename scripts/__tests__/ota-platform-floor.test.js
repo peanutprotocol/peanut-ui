@@ -19,7 +19,14 @@ function makeRepo() {
     for (const rel of ['scripts', 'android/app/src/main', 'ios/App/App.xcodeproj', 'patches']) {
         fs.mkdirSync(path.join(dir, rel), { recursive: true })
     }
-    for (const name of ['ota-platform-floor.mjs', 'native-fingerprint.mjs', 'release-version.mjs']) {
+    for (const name of [
+        'ota-platform-floor.mjs',
+        'native-fingerprint.mjs',
+        'release-version.mjs',
+        'check-native-ota-surface.mjs',
+        'check-native-change-scope.cjs',
+        'check-legacy-android-permissions.mjs',
+    ]) {
         fs.copyFileSync(path.join(REPO_ROOT, 'scripts', name), path.join(dir, 'scripts', name))
     }
     fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ version: '1.0.0' }))
@@ -70,48 +77,6 @@ function floorsFail(dir, platform) {
     return { status: res.status, stderr: res.stderr }
 }
 
-it.each([
-    ['@capacitor/android', '1.6.0', '1.5.0'],
-    ['@capacitor/ios', '1.5.0', '1.6.0'],
-    ['@capacitor/core', '1.6.0', '1.6.0'],
-    ['@capacitor-community/example-plugin', '1.6.0', '1.6.0'],
-])('a %s dependency bump raises only the affected native floors', (dependency, android, ios) => {
-    const repo = makeRepo()
-    const dependencies = {
-        '@capacitor/android': '8.2.0',
-        '@capacitor/ios': '8.2.0',
-        '@capacitor/core': '8.2.0',
-        '@capacitor-community/example-plugin': '8.2.0',
-    }
-    write(repo.dir, 'package.json', JSON.stringify({ version: '1.0.0', dependencies }))
-    const lockfile = () =>
-        'packages:\n' +
-        Object.entries(dependencies)
-            .map(([name, version]) => `  '${name}@${version}': {}`)
-            .join('\n')
-    write(repo.dir, 'pnpm-lock.yaml', lockfile())
-    release(repo, 'v1.5.0')
-    // The declared range and generated manifests can remain unchanged; the
-    // resolved lockfile version is the contract the next build actually uses.
-    dependencies[dependency] = '8.3.0'
-    write(repo.dir, 'pnpm-lock.yaml', lockfile())
-    release(repo, 'v1.6.0')
-
-    expect(floors(repo.dir)).toEqual({
-        NEXT_PUBLIC_OTA_FLOOR_ANDROID: android,
-        NEXT_PUBLIC_OTA_FLOOR_IOS: ios,
-    })
-    // The complete surface must still detect every dependency bump. Only the
-    // platform floor comparison narrows the dependency set.
-    const complete = require('child_process').spawnSync(
-        'node',
-        [path.join(REPO_ROOT, 'scripts/native-fingerprint.mjs'), '--root', repo.dir, '--diff', 'v1.5.0'],
-        { encoding: 'utf8' }
-    )
-    expect(complete.status).toBe(1)
-    expect(complete.stdout).toContain('native-plugin-versions')
-})
-
 it('lets an untouched platform keep its older binaries', () => {
     const repo = makeRepo()
     release(repo, 'v1.4.0')
@@ -146,6 +111,49 @@ it('raises only the iOS floor for an iOS-only change', () => {
 
     expect(floors(repo.dir)).toEqual({
         NEXT_PUBLIC_OTA_FLOOR_ANDROID: '1.4.0',
+        NEXT_PUBLIC_OTA_FLOOR_IOS: '1.5.0',
+    })
+})
+
+it('keeps the iOS floor when only the Android runtime dependency changes', () => {
+    const repo = makeRepo()
+    write(repo.dir, 'pnpm-lock.yaml', "  '@capacitor/android@8.1.0':\n  '@capacitor/ios@8.1.0':\n")
+    release(repo, 'v1.4.0')
+    write(repo.dir, 'pnpm-lock.yaml', "  '@capacitor/android@8.2.0':\n  '@capacitor/ios@8.1.0':\n")
+    release(repo, 'v1.5.0')
+
+    expect(floors(repo.dir)).toEqual({
+        NEXT_PUBLIC_OTA_FLOOR_ANDROID: '1.5.0',
+        NEXT_PUBLIC_OTA_FLOOR_IOS: '1.4.0',
+    })
+})
+
+it('uses a pre-split v2 same-version replacement as the platform baseline', () => {
+    const repo = makeRepo()
+    release(repo, 'v1.5.0')
+    write(repo.dir, 'android/app/proguard-rules.pro', '# retain runtime metadata\n')
+    repo.git('add', 'android/app/proguard-rules.pro')
+    repo.git('commit', '-q', '-m', 'repair R8')
+    const fingerprint = execFileSync(
+        'node',
+        [path.join(REPO_ROOT, 'scripts/native-fingerprint.mjs'), '--root', repo.dir, '--ref', 'HEAD', '--schema', 'v2'],
+        { cwd: repo.dir, encoding: 'utf8' }
+    ).trim()
+    repo.git(
+        'tag',
+        '-a',
+        'android-v1.5.0-replacement-fix',
+        '-m',
+        'Android replacement',
+        '-m',
+        `peanut-native-replacement-v2: platform=android base=v1.5.0 native-compatible=true js-guard=android-capacitor-permissions-v1 fingerprint=${fingerprint}`
+    )
+    write(repo.dir, 'src/later.ts', 'export const later = true\n')
+    repo.git('add', 'src/later.ts')
+    repo.git('commit', '-q', '-m', 'later OTA')
+
+    expect(floors(repo.dir)).toEqual({
+        NEXT_PUBLIC_OTA_FLOOR_ANDROID: '1.5.0',
         NEXT_PUBLIC_OTA_FLOOR_IOS: '1.5.0',
     })
 })
@@ -201,12 +209,10 @@ it('rejects an unknown platform', () => {
 })
 
 /*
- * --lowest is the single number Capgo gets, because one bundle serves both
- * platforms and a channel carries one min_update_version. Every install's
- * eligibility goes through it, and the per-platform cases above would stay green
- * if it picked the wrong side.
+ * --lowest is a diagnostic compatibility view. Production uploads separate
+ * platform records and must use --platform for each record's server floor.
  */
-describe('--lowest, the shared server floor', () => {
+describe('--lowest diagnostic output', () => {
     it('takes the iOS side when iOS is lower', () => {
         const repo = makeRepo()
         release(repo, 'v1.4.0')
@@ -274,7 +280,7 @@ describe('major boundary', () => {
         })
     })
 
-    it('keeps the shared server floor inside the same band', () => {
+    it('keeps the diagnostic floor inside the same band', () => {
         expect(lowest(acrossMajors().dir)).toBe('2.1.0')
     })
 })

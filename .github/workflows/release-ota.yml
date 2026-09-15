@@ -1,10 +1,10 @@
 name: App Release OTA
 
-# Production OTA releases remain manual from dev, main, or release/android-kyc.
-# The selected commit must contain the newest attested native release and pass
-# native compatibility checks. It uploads two signed platform bundle records to an
-# inactive candidate channel, verifies their exact metadata, then promotes each to
-# its platform production channel. A merge or push alone never publishes an OTA.
+# Production OTA releases run automatically after every update to main. Main is
+# the only ref this workflow can ship. The selected commit must contain the
+# newest attested native release and pass native compatibility checks. It uploads
+# two signed platform bundle records to an inactive candidate channel, verifies
+# their exact metadata, then promotes each to its platform production channel.
 #
 # The version always lands inside the current native build's range
 # (<major>.<build>.<ota+1>), so it cannot sort below the binary it targets — the
@@ -16,7 +16,8 @@ name: App Release OTA
 # leaves no tag; any partial upload still reserves its number for a fresh retry.
 
 on:
-    workflow_dispatch:
+    push:
+        branches: [main]
 
 env:
     CAPGO_APP_ID: me.peanut.wallet
@@ -39,12 +40,12 @@ jobs:
         outputs:
             version: ${{ steps.resolve.outputs.version }}
         steps:
-            # Keep the existing manual release refs. Provenance and native
-            # compatibility are checked separately; a branch name proves neither.
+            # A production OTA is a consequence of updating main. Staging remains
+            # available for code that is not ready for every production install.
             - name: Guard release ref
               run: |
-                  if [ "$GITHUB_REF_NAME" != "dev" ] && [ "$GITHUB_REF_NAME" != "main" ] && [ "$GITHUB_REF_NAME" != "release/android-kyc" ]; then
-                      echo "::error::OTAs are shipped from dev, main, or release/android-kyc, not $GITHUB_REF_NAME" >&2
+                  if [ "$GITHUB_REF_NAME" != "main" ]; then
+                      echo "::error::production OTAs ship automatically from main only, not $GITHUB_REF_NAME" >&2
                       exit 1
                   fi
 
@@ -267,20 +268,9 @@ jobs:
                   for PLATFORM in ios android; do
                     export PLATFORM VERSION="$RELEASE_VERSION-$PLATFORM"
                     if [ "$PLATFORM" = ios ]; then export NATIVE_FLOOR="$FLOOR_IOS"; else export NATIVE_FLOOR="$FLOOR_ANDROID"; fi
-                    # The two promotions are independent. Recheck before each;
-                    # a failure leaves the other platform on its previous bundle.
-                    node scripts/capgo-release-guard.mjs verify-promotion
-                    CHANNEL_SET_ARGS=(--apikey "$CAPGO_API_KEY" --bundle "$VERSION")
-                    CURRENT_PRODUCTION="$(node scripts/capgo-release-guard.mjs current-version)"
-                    # A builtin bundle has no native-package metadata, so Capgo
-                    # cannot compare it with the first OTA on this channel. The
-                    # workflow's native-surface and exact-artifact gates cover
-                    # this one-time bootstrap. Keep Capgo's check for later OTAs.
-                    if [ "$CURRENT_PRODUCTION" = builtin ]; then
-                      CHANNEL_SET_ARGS+=(--ignore-metadata-check)
-                    fi
-                    npx @capgo/cli@8.42.4 channel set "$PLATFORM-mobile-release" \
-                      "${CHANNEL_SET_ARGS[@]}"
+                    # Bundle selection and rollout disablement are one Capgo
+                    # mutation, followed by exact channel and artifact readback.
+                    node scripts/capgo-release-guard.mjs promote-production
                     node scripts/capgo-release-guard.mjs verify-production
                   done
 

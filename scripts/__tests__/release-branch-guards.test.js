@@ -19,24 +19,30 @@ function run(guard, branch) {
     })
 }
 
-// Backport the OTA protections without changing the existing manual refs.
-describe('release-ota.yml manual release branches', () => {
+/*
+ * A production OTA reaches every shipped install, and there is exactly one ref
+ * it may come from. `dev` and `main` both looked shippable at dispatch time and
+ * the older one was picked — bundle 1.6.1 went out from a `main` two days behind
+ * the v1.6.0 release. Merging to `main` is now the decision to ship; `dev` goes
+ * to staging, which no production device sees.
+ */
+describe('release-ota.yml ships from main only', () => {
     const guard = guardOf('release-ota.yml')
 
-    it.each(['dev', 'main', 'release/android-kyc'])('accepts %s', (branch) => {
-        expect(run(guard, branch).status).toBe(0)
+    it('accepts main', () => {
+        expect(run(guard, 'main').status).toBe(0)
     })
 
-    it.each(['feature/kyc', 'release/other', 'main-fix', ''])('refuses %s', (branch) => {
+    it.each(['dev', 'release/android-kyc', 'feature/kyc', 'release/other', 'main-fix', ''])('refuses %s', (branch) => {
         const result = run(guard, branch)
         expect(result.status).toBe(1)
         expect(result.stderr).toContain('::error::')
     })
 
-    it('requires a manual dispatch, never a push or tag', () => {
+    it('only auto-runs on pushes to main', () => {
         const workflow = fs.readFileSync(path.join(workflowsDir, 'release-ota.yml'), 'utf8')
-        const triggers = workflow.match(/^on:\n([\s\S]*?)(?=^\S)/m)[1]
-        expect(triggers.trim()).toBe('workflow_dispatch:')
+        expect(workflow).toMatch(/push:\n\s+branches: \[main\]/)
+        expect(workflow).not.toContain('workflow_dispatch')
     })
 })
 

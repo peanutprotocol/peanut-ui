@@ -6,7 +6,11 @@ describe('check-native-change-scope', () => {
     it('accepts only the selected platform native paths', () => {
         expect(
             changesOutsidePlatform(
-                [{ path: 'android/app/proguard-rules.pro' }, { path: 'android/app/src/**.{java,kt}' }],
+                [
+                    { path: 'android/app/proguard-rules.pro' },
+                    { path: 'android/app/src/**.{java,kt}' },
+                    { path: 'android/native-plugin-versions' },
+                ],
                 'android'
             )
         ).toEqual([])
@@ -16,12 +20,14 @@ describe('check-native-change-scope', () => {
         const changes = [
             { path: 'android/app/proguard-rules.pro' },
             { path: 'ios/App/**.swift' },
-            { path: 'native-plugin-versions' },
+            { path: 'ios/native-plugin-versions' },
+            { path: 'shared/native-plugin-versions' },
         ]
 
         expect(changesOutsidePlatform(changes, 'android')).toEqual([
             { path: 'ios/App/**.swift' },
-            { path: 'native-plugin-versions' },
+            { path: 'ios/native-plugin-versions' },
+            { path: 'shared/native-plugin-versions' },
         ])
     })
 
