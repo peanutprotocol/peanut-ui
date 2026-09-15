@@ -4,6 +4,8 @@ import { usePrimaryNameServer } from '@/hooks/usePrimaryNameServer'
 import { isCapacitor } from '@/utils/capacitor'
 import { recipientPayUrl } from '@/utils/native-routes'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import Link from 'next/link'
+import { twMerge } from '@/utils/tw'
 import { useEffect, useState } from 'react'
 import { isAddress } from 'viem'
 
@@ -12,9 +14,13 @@ interface AddressLinkProps {
     className?: string
     children?: React.ReactNode
     isLink?: boolean
+    /** render as a plain underlined link with no LinkButton chrome — for use
+        INSIDE a sentence or dense row, per the inline-links exception (the
+        44px LinkButton hit area would overlap adjacent lines there) */
+    inline?: boolean
 }
 
-const AddressLink = ({ address, className = '', isLink = true }: AddressLinkProps) => {
+const AddressLink = ({ address, className = '', isLink = true, inline = false }: AddressLinkProps) => {
     const [displayAddress, setDisplayAddress] = useState<string>(
         isCryptoAddress(address) ? printableAddress(address) : address
     )
@@ -41,12 +47,24 @@ const AddressLink = ({ address, className = '', isLink = true }: AddressLinkProp
     // is a dead tap in the WebView).
     const url = recipientPayUrl(urlAddress)
 
-    return isLink ? (
+    if (!isLink) {
+        return <span className={className}>{displayAddress}</span>
+    }
+    if (inline) {
+        return (
+            <Link
+                href={url}
+                {...(!isCapacitor() && { target: '_blank', rel: 'noopener noreferrer' })}
+                className={twMerge('cursor-pointer underline', className)}
+            >
+                {displayAddress}
+            </Link>
+        )
+    }
+    return (
         <LinkButton href={url} external={!isCapacitor()} className={className}>
             {displayAddress}
         </LinkButton>
-    ) : (
-        <span className={className}>{displayAddress}</span>
     )
 }
 

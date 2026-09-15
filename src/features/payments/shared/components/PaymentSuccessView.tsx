@@ -327,9 +327,12 @@ const PaymentSuccessView = ({
                                 !isWithdrawFlow &&
                                 type !== 'DEPOSIT' &&
                                 (recipientType !== 'USERNAME' ? (
+                                    // inline: keeps the tap-to-pay-again navigation (open problem
+                                    // cant-tap-name-to-open-profile) without LinkButton's 44px
+                                    // hit area bleeding into the amount line below
                                     <AddressLink
-                                        isLink={false}
-                                        className="text-body-s text-foreground-secondary"
+                                        inline
+                                        className="text-body-s text-foreground-secondary no-underline"
                                         address={recipientName}
                                     />
                                 ) : (
