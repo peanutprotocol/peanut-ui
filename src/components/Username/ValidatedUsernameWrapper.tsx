@@ -24,6 +24,7 @@
  */
 
 import { useState, useEffect, type ReactNode } from 'react'
+import { useTranslations } from 'next-intl'
 import { verifyPeanutUsername } from '@/lib/validation/recipient'
 import type { ValidationErrorViewProps } from '@/components/Payment/Views/Error.validation.view'
 import ValidationErrorView from '@/components/Payment/Views/Error.validation.view'
@@ -40,9 +41,10 @@ export function ValidatedUsernameWrapper({
     username,
     children,
     errorProps,
-    loadingClassName = 'flex min-h-[calc(100dvh_-_180px)] w-full items-center justify-center',
+    loadingClassName = 'flex min-h-inherit w-full items-center justify-center',
 }: ValidatedUsernameWrapperProps) {
-    const [error, setError] = useState<ValidationErrorViewProps | null>(null)
+    const t = useTranslations('payment')
+    const [isInvalid, setIsInvalid] = useState(false)
     const [isValidating, setIsValidating] = useState(false)
     const [isValidated, setIsValidated] = useState(false)
 
@@ -52,22 +54,14 @@ export function ValidatedUsernameWrapper({
 
         const validateUsername = async () => {
             setIsValidating(true)
-            setError(null)
+            setIsInvalid(false)
 
             const isValid = await verifyPeanutUsername(username)
 
             if (!isMounted) return
 
             if (!isValid) {
-                setError({
-                    title: `We don't know any @${username}`,
-                    message: 'Are you sure you clicked on the right link?',
-                    buttonText: 'Go back to home',
-                    redirectTo: '/home',
-                    showLearnMore: false,
-                    supportMessageTemplate: 'I clicked on this link but got an error: {url}',
-                    ...errorProps,
-                })
+                setIsInvalid(true)
                 setIsValidated(false)
             } else {
                 setIsValidated(true)
@@ -81,7 +75,7 @@ export function ValidatedUsernameWrapper({
         return () => {
             isMounted = false
         }
-    }, [username, errorProps])
+    }, [username])
 
     // show loading while validating
     if (isValidating) {
@@ -92,11 +86,22 @@ export function ValidatedUsernameWrapper({
         )
     }
 
-    // show error if validation failed
-    if (error) {
+    // show error if validation failed. the strings are translated at render,
+    // not stored at validation time: IntlCore swaps the locale catalog in
+    // asynchronously, so a stored translation could stay English on cold loads.
+    if (isInvalid) {
         return (
             <div className="mx-auto space-y-8 h-full w-full self-center md:w-6/12">
-                <ValidationErrorView {...error} />
+                <ValidationErrorView
+                    title={t('validation.unknownUser.title', { username })}
+                    message={t('validation.unknownUser.message')}
+                    buttonText={t('validation.unknownUser.cta')}
+                    redirectTo="/home"
+                    showLearnMore={false}
+                    // the literal {url} placeholder is replaced by the error view, not next-intl
+                    supportMessageTemplate={t('validation.unknownUser.supportTemplate')}
+                    {...errorProps}
+                />
             </div>
         )
     }

@@ -6,7 +6,6 @@ import { Notification } from '@/components/0_Bruddle/Notification'
 import { invitesApi } from '@/services/invites'
 import { useEffect, useRef, useState } from 'react'
 import InvitesPageLayout from './InvitesPageLayout'
-import { twMerge } from '@/utils/tw'
 import ValidatedInput from '../Global/ValidatedInput'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
@@ -298,12 +297,7 @@ const JoinWaitlistPage = () => {
 
     return (
         <InvitesPageLayout image={stepImage} showRagdoll={step === 'jail'}>
-            <div
-                className={twMerge(
-                    'flex flex-grow flex-col justify-between overflow-hidden bg-background-default px-6 pt-6 pb-8 md:space-y-4 md:h-dvh md:justify-center',
-                    'flex flex-col items-end justify-center gap-6 pt-8'
-                )}
-            >
+            <div className="flex flex-grow flex-col items-end justify-center gap-6 overflow-hidden bg-background-default px-6 pt-8 pb-8 md:h-dvh md:justify-center md:gap-4">
                 <div className="mx-auto w-full md:max-w-xs">
                     {/* Step 1: Email Collection */}
                     {step === 'email' && (
@@ -315,7 +309,6 @@ const JoinWaitlistPage = () => {
                             <div className="flex flex-col gap-1">
                                 <BaseInput
                                     type="email"
-                                    variant="sm"
                                     aria-label={t('emailLabel')}
                                     placeholder={t('emailPlaceholder')}
                                     value={emailValue}
@@ -326,7 +319,6 @@ const JoinWaitlistPage = () => {
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter' && isValidEmail(emailValue)) handleEmailSubmit()
                                     }}
-                                    className="h-12"
                                 />
                                 {emailError && <FieldError>{emailError}</FieldError>}
                             </div>
@@ -395,7 +387,8 @@ const JoinWaitlistPage = () => {
                                     />
 
                                     <Button
-                                        className="h-12 w-4/12"
+                                        size="large"
+                                        className="w-4/12"
                                         loading={isAccepting}
                                         shadowSize="4"
                                         onClick={handleAcceptInvite}

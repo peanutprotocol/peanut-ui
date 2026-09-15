@@ -6,7 +6,6 @@ import { type LayoutType, type ScreenId } from '@/components/Setup/Setup.types'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
-import classNames from 'classnames'
 import { motion, useReducedMotion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
@@ -113,7 +112,11 @@ const Navigation = memo(function Navigation({
             </div>
             <div className="flex items-center gap-3">
                 {showSkipButton && (
-                    <Button onClick={onSkip} variant="transparent-dark" className="h-auto w-fit p-0">
+                    <Button
+                        onClick={onSkip}
+                        variant="transparent-dark"
+                        className="relative h-auto w-fit p-0 after:absolute after:-inset-3"
+                    >
                         <span className="text-foreground-over-color-secondary">{t('skip')}</span>
                     </Button>
                 )}
@@ -160,7 +163,7 @@ const ImageSection = ({
             <div
                 className={twMerge(
                     containerClass,
-                    'relative flex w-full flex-row items-center justify-center overflow-hidden bg-blue-300/100 px-4 md:h-dvh md:w-7/12 md:px-6'
+                    'relative flex w-full flex-row items-center justify-center overflow-hidden bg-blue-300 px-4 md:h-dvh md:w-7/12 md:px-6'
                 )}
             >
                 {/* render animated star decorations */}
@@ -193,9 +196,9 @@ const ImageSection = ({
     // standard layout rendering without decorations
     return (
         <div
-            className={classNames(
+            className={twMerge(
                 containerClass,
-                'flex w-full flex-row items-center justify-center bg-blue-300/100 md:h-dvh md:w-7/12',
+                'flex w-full flex-row items-center justify-center bg-blue-300 md:h-dvh md:w-7/12',
                 screenId === 'success' && 'bg-action-secondary/15'
             )}
         >
