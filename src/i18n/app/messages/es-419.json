@@ -1465,7 +1465,10 @@
             "rejectedBody": "Puedes seguir usando Peanut sin problema para depositar, retirar y pagar con cripto.",
             "geoBlockedTitle": "Las tarjetas aún no están disponibles en tu región",
             "geoBlockedBody": "La disponibilidad de la tarjeta depende de dónde vives. Puedes seguir usando las otras funciones de Peanut disponibles para ti.",
-            "geoBlockedPolicyLink": "Ver qué regiones están restringidas"
+            "geoBlockedPolicyLink": "Ver qué regiones están restringidas",
+            "pendingResidenceBlockedTitle": "Revisa tu cambio de residencia",
+            "pendingResidenceBlockedBody": "Tu residencia aprobada sigue activa, pero las solicitudes de tarjeta están pausadas mientras haya un cambio pendiente a un país restringido. Revisa o cancela ese cambio para continuar.",
+            "pendingResidenceBlockedCta": "Revisar cambio de residencia"
         },
         "cancel": {
             "title": "¿Cancelar tu tarjeta?",

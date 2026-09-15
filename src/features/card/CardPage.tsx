@@ -34,6 +34,7 @@ export const CardPage: FC = () => {
         setPendingCountryConfirmation,
         isIssuing,
         geoBlocked,
+        pendingResidenceBlocked,
         handleApply,
         handleConfirmCountry,
         handleAcceptTerms,
@@ -92,6 +93,9 @@ export const CardPage: FC = () => {
         // are moot once the country verdict is in).
         if (geoBlocked) {
             return <ApplicationStatusScreen variant="geo-blocked" onPrev={onBack} />
+        }
+        if (pendingResidenceBlocked) {
+            return <ApplicationStatusScreen variant="pending-residence-blocked" onPrev={onBack} />
         }
         // Residence confirmation comes before terms in the funnel — the
         // backend won't return terms-required until the country is resolved.

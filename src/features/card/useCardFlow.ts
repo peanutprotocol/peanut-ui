@@ -67,6 +67,10 @@ export function useCardFlow() {
     // time). Per-mount — the cardInfo refetch it triggers makes the state
     // machine's geoProhibited path own the block durably.
     const [geoBlocked, setGeoBlocked] = useState(false)
+    // Unlike geoBlocked, this is not a terminal issuer denial: the approved
+    // KYC residence is eligible and only an open residence-change request is
+    // restricting issuance. The recovery screen links to that exact request.
+    const [pendingResidenceBlocked, setPendingResidenceBlocked] = useState(false)
 
     const state = computeCardState({
         overview,
@@ -212,8 +216,16 @@ export function useCardFlow() {
             if (res.status === 'geo-blocked') {
                 setPendingTerms(null)
                 setPendingCountryConfirmation(null)
+                setPendingResidenceBlocked(false)
                 setGeoBlocked(true)
                 void refetchCardInfo()
+                return
+            }
+            if (res.status === 'pending-residence-blocked') {
+                setPendingTerms(null)
+                setPendingCountryConfirmation(null)
+                setGeoBlocked(false)
+                setPendingResidenceBlocked(true)
                 return
             }
             // pending / already-applied → state machine routes based on overview.
@@ -439,8 +451,12 @@ export function useCardFlow() {
         } else if (res.status === 'country-confirmation-required' && 'candidates' in res) {
             setPendingCountryConfirmation({ candidates: res.candidates })
         } else if (res.status === 'geo-blocked') {
+            setPendingResidenceBlocked(false)
             setGeoBlocked(true)
             void refetchCardInfo()
+        } else if (res.status === 'pending-residence-blocked') {
+            setGeoBlocked(false)
+            setPendingResidenceBlocked(true)
         } else {
             invalidateOverview()
         }
@@ -486,6 +502,7 @@ export function useCardFlow() {
         setPendingCountryConfirmation,
         isIssuing,
         geoBlocked,
+        pendingResidenceBlocked,
         handleApply,
         handleConfirmCountry,
         handleAcceptTerms,

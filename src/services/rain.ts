@@ -355,6 +355,12 @@ export type ApplyForCardResponse =
           message: string
       }
     | {
+          // Approved residence is eligible, but a restricted residence change
+          // is still pending. Recoverable by reviewing/cancelling that request.
+          status: 'pending-residence-blocked'
+          message: string
+      }
+    | {
           status: string
           rainUserId?: string
           message: string
@@ -653,13 +659,12 @@ export const rainApi = {
                 timeoutMs: 60_000,
             })
         } catch (e) {
-            // The backend answers a prohibited residence with HTTP 403 +
-            // code 'geo-blocked'. Normalize it into the union here so every
-            // caller's existing `status === 'geo-blocked'` branch renders the
-            // terminal screen instead of a retryable applyError — mid-funnel
-            // unknown-residence users only learn their block from this call.
-            if (e instanceof ApiError && e.code === 'geo-blocked') {
-                return { status: 'geo-blocked', message: e.message }
+            // Residence denials are HTTP 403s, so normalize both stable codes
+            // into the success union. Keep a prohibited ACTIVE residence
+            // terminal while routing a prohibited PENDING change to its
+            // recoverable residence-management screen.
+            if (e instanceof ApiError && (e.code === 'geo-blocked' || e.code === 'pending-residence-blocked')) {
+                return { status: e.code, message: e.message }
             }
             throw e
         }

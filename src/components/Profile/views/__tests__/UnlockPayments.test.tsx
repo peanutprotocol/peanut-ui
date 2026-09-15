@@ -23,10 +23,15 @@ const render = () =>
     )
 
 const mockPush = jest.fn()
+let mockOpenView: string | null = null
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn() }),
     // NavHeader mounts the maintenance Banner, which reads the pathname
     usePathname: () => '/profile/unlock-payments',
+}))
+jest.mock('nuqs', () => ({
+    parseAsString: {},
+    useQueryState: () => [mockOpenView, jest.fn()],
 }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
 
@@ -141,6 +146,15 @@ describe('UnlockPayments', () => {
         mockKycDegraded = false
         mockFlowError = null
         mockFlowCooldown = null
+        mockOpenView = null
+    })
+
+    it('opens the residence drawer from the card recovery deep link', () => {
+        mockOpenView = 'residence'
+
+        render()
+
+        expect(screen.getByText('change-modal-open')).toBeInTheDocument()
     })
 
     it('shows the in-review line with the submitted date while identity is processing', () => {
