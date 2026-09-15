@@ -200,7 +200,7 @@ function RecoverWalletInner() {
                     <h1 className="text-heading-s">{tCommon('fundsOnTheWay')}</h1>
                     <Card className="flex flex-col gap-1 p-4">
                         <span className="text-body-s text-foreground-secondary">
-                            Sent to <AddressLink address={recipient.address} />
+                            Sent to <AddressLink inline address={recipient.address} />
                         </span>
                         <span className="text-heading-s">
                             {formattedBalance} {PEANUT_WALLET_TOKEN_SYMBOL}
@@ -230,7 +230,7 @@ function RecoverWalletInner() {
 
                 <Card className="flex flex-col gap-1 p-4">
                     <span className="text-body-s text-foreground-secondary">
-                        Wallet <AddressLink address={recoveryKey!.address} />
+                        Wallet <AddressLink inline address={recoveryKey!.address} />
                     </span>
                     <span className="text-heading-s">
                         {formattedBalance} {PEANUT_WALLET_TOKEN_SYMBOL}
