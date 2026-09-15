@@ -5,7 +5,7 @@ import { Divider } from '@/components/0_Bruddle/Divider'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import ValidatedInput from '@/components/Global/ValidatedInput'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { stashInvite } from '@/utils/invite-stash'
 import { EInviteType } from '@/services/services.types'
@@ -42,6 +42,11 @@ const JoinWaitlist = () => {
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_WAITLIST_VIEWED)
     }, [])
 
+    // stale-request guard: only the latest validation may touch the error
+    // channels — a slow request A resolving after fresh request B must not
+    // stack its message next to B's.
+    const validationSeq = useRef(0)
+
     const validateInviteCode = async (inviteCode: string): Promise<boolean> => {
         // Demo mode (native): `demo` is a client-only trigger — never hit the invite
         // API. Keeps it from creating accounts / bypassing the waitlist, and lets it
@@ -50,6 +55,8 @@ const JoinWaitlist = () => {
             enableDemoMode()
             return true
         }
+        const seq = ++validationSeq.current
+        const isCurrent = () => seq === validationSeq.current
         try {
             setError('')
             setFlowError('')
@@ -61,7 +68,7 @@ const JoinWaitlist = () => {
                 source: 'setup',
                 invite_code: inviteCode,
             })
-            if (!isValid) {
+            if (!isValid && isCurrent()) {
                 setError(t('waitlist.inviterNotFound'))
             }
             return isValid
@@ -71,10 +78,14 @@ const JoinWaitlist = () => {
                 source: 'setup',
                 invite_code: inviteCode,
             })
-            setFlowError(tCommon('genericError'))
+            if (isCurrent()) {
+                setFlowError(tCommon('genericError'))
+            }
             return false
         } finally {
-            setisLoading(false)
+            if (isCurrent()) {
+                setisLoading(false)
+            }
         }
     }
 
