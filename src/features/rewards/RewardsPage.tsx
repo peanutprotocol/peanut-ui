@@ -240,7 +240,7 @@ export function RewardsPage() {
                         {/* people you invited */}
                         <button
                             type="button"
-                            className="flex w-full cursor-pointer items-center justify-between text-left focus-visible:outline-[3px] focus-visible:outline-action-focus"
+                            className="flex min-h-11 w-full cursor-pointer items-center justify-between text-left focus-visible:outline-[3px] focus-visible:outline-action-focus"
                             onClick={() => router.push('/rewards/invites')}
                         >
                             <h2 className="text-heading-card text-foreground-primary">{t('peopleYouInvited')}</h2>
