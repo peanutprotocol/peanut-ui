@@ -87,7 +87,7 @@ export default async function UseCasePage({ params }: PageProps) {
                     : undefined
             }
         >
-            <div className="mx-auto max-w-[640px] px-6 pt-4 md:px-4">
+            <div className="mx-auto max-w-160 px-6 pt-4 md:px-4">
                 <ArticleLocaleNav currentLocale={locale as Locale} localizedHrefs={localizedHrefs} />
             </div>
             {content}
