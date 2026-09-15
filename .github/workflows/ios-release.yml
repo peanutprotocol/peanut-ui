@@ -311,38 +311,12 @@ jobs:
                   # CURRENT_PROJECT_VERSION is always the CI run number.
                   # Info.plist reads both via $(...) build settings.
                   MARKETING_ARG=("MARKETING_VERSION=$IOS_VERSION_NAME")
-                  WALLET_PROFILE_ENTRIES=''
                   XCODE_WALLET_ARGS=()
                   if [ "$WALLET_PROVISIONING_ENABLED" = "true" ]; then
-                      WALLET_PROFILE_ENTRIES='                      <key>me.peanut.wallet.PushProvisioningExtension</key>
-                      <string>${WALLET_EXTENSION_PROFILE_NAME}</string>
-                      <key>me.peanut.wallet.PushProvisioningExtensionUI</key>
-                      <string>${WALLET_EXTENSION_UI_PROFILE_NAME}</string>'
                       XCODE_WALLET_ARGS+=("SWIFT_ACTIVE_COMPILATION_CONDITIONS=\$(inherited) PEANUT_REQUIRE_PUSH_PROVISIONING")
                   fi
 
-                  cat > /tmp/ExportOptions.plist <<EOF
-                  <?xml version="1.0" encoding="UTF-8"?>
-                  <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-                  <plist version="1.0">
-                  <dict>
-                      <key>method</key>
-                      <string>app-store</string>
-                      <key>teamID</key>
-                      <string>${APPLE_TEAM_ID}</string>
-                      <key>signingStyle</key>
-                      <string>manual</string>
-                      <key>provisioningProfiles</key>
-                      <dict>
-                      <key>me.peanut.wallet</key>
-                      <string>${PROFILE_NAME}</string>
-                  ${WALLET_PROFILE_ENTRIES}
-                      </dict>
-                      <key>uploadSymbols</key>
-                      <true/>
-                  </dict>
-                  </plist>
-                  EOF
+                  EXPORT_OPTIONS_PATH=/tmp/ExportOptions.plist node scripts/render-ios-export-options.mjs
 
                   # Manual signing lives in the App target's Release build config
                   # (CODE_SIGN_STYLE=Manual, DEVELOPMENT_TEAM, CODE_SIGN_IDENTITY,

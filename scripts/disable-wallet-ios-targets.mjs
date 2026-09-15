@@ -12,7 +12,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const projectPath = path.join(__dirname, '..', 'ios/App/App.xcodeproj/project.pbxproj')
+const projectPath = process.env.IOS_PROJECT_FILE ?? path.join(__dirname, '..', 'ios/App/App.xcodeproj/project.pbxproj')
 
 export function disableWalletTargets(project) {
     const withoutEmbeddedExtensions = project.replace(
@@ -30,7 +30,15 @@ export function disableWalletTargets(project) {
     if (withoutTargetDependencies === withoutEmbeddedExtensions) {
         throw new Error('[disable-wallet-ios-targets] App target dependency anchor not found')
     }
-    return withoutTargetDependencies
+
+    const withoutWalletEntitlements = withoutTargetDependencies.replace(
+        /CODE_SIGN_ENTITLEMENTS = App\/AppRelease\.entitlements;/,
+        'CODE_SIGN_ENTITLEMENTS = App/AppReleaseBaseline.entitlements;'
+    )
+    if (withoutWalletEntitlements === withoutTargetDependencies) {
+        throw new Error('[disable-wallet-ios-targets] App Release entitlements anchor not found')
+    }
+    return withoutWalletEntitlements
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

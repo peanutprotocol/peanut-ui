@@ -840,8 +840,9 @@ only when `IOS_WALLET_PROVISIONING_ENABLED=true`. Enabled archives compile with
 `PEANUT_REQUIRE_PUSH_PROVISIONING`; compilation fails if the SDK cannot be
 imported. Before Apple approval, the workflow passes no MeaWallet credentials,
 skips the config/profile requirements, removes the Wallet extension
-dependencies and embed phase from the release project, and ships the ordinary
-app. Local builds can still use the stub.
+dependencies and embed phase from the release project, switches the App target
+to `AppReleaseBaseline.entitlements` without Wallet-only capabilities, and
+ships the ordinary app. Local builds can still use the stub.
 
 ### Apple Pay issuer-provisioning gate
 
