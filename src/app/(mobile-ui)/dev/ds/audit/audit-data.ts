@@ -3802,7 +3802,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         usages: 17,
         status: 'canonical',
         source: 'src/components/0_Bruddle/BaseInput.tsx',
-        notes: 'Remeasured 2026-09-15: 17 direct render sites outside /dev pages, tests, and the defining file (2 of them in the team-gated payment-network-explorer FilterPanel); the count grew when FileUploadInput was retired and its 4 comment fields plus CardLimitEditDrawer inlined BaseInput. Some consumers still override height by className instead of the sm variant (SearchInput h-10, CopyField h-10, ValidatedInput h-12 + border-0).',
+        notes: 'Remeasured 2026-09-15: 17 direct render sites outside /dev pages, tests, and the defining file (2 of them in the team-gated payment-network-explorer FilterPanel); the count grew when FileUploadInput was retired and its 4 comment fields plus CardLimitEditDrawer inlined BaseInput. Some consumers still override height by className instead of the sm variant (SearchInput h-10, CopyField h-10; ValidatedInput overrides border-0/error chrome, not height).',
     },
     {
         name: '.input (CSS class, globals.css)',
@@ -3824,7 +3824,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         usages: 7,
         status: 'variant',
         source: 'src/components/Global/ValidatedInput/index.tsx',
-        notes: 'Flat at 7. Legit specialized variant, but it still duplicates the .input border/focus on its own wrapper div and forces the inner BaseInput to border-0 at the default md height (h-12 IS the md variant since the lg deletion) — the real fork is the border override and the duplicated focus chrome on its wrapper, not height.',
+        notes: 'Flat at 7. Legit specialized variant, but it still duplicates the .input border/focus on its own wrapper div and passes the inner BaseInput border-0 + padding only (no height class — it rides the md default) — the real fork is the border override and the duplicated focus chrome on its wrapper, not height.',
     },
     {
         name: 'AmountInput (Global/AmountInput)',
@@ -5064,10 +5064,10 @@ export const AUDIT_ITEMS: AuditItem[] = [
         catLabel: 'Avatars / icons',
         layer: 'components',
         role: '<Icon> sized through a Tailwind className instead of the documented size= prop.',
-        usages: 13,
+        usages: 10,
         status: 'adhoc',
-        source: '13 sites incl. src/components/Global/ActionModal/index.tsx, SearchInput, MoreInfo, ValidatedInput (FileUploadInput retired 2026-09-15)',
-        notes: "Down from 18 to 13 (FileUploadInput's site left with the component) but not eliminated. Directly contradicts Icon.tsx's own note ('Don't reintroduce Tailwind h-X w-X to size icons — pass size'). The !important in the icon-NN utilities means these className sizes can silently fight the wrapper.",
+        source: '10 sites: BaseSelect (2), ValidatedInput (2), Attachment, MoreInfo, NetworkButton, TokenSelector, Kyc/PeanutDoesntStoreAnyPersonalInformation, RainCooldownContext (remeasured 2026-09-15)',
+        notes: "Down from 18 to 10 (FileUploadInput took three commented-body sites with it; ActionModal and SearchInput now pass size with non-sizing classes) but not eliminated. Directly contradicts Icon.tsx's own note ('Don't reintroduce Tailwind h-X w-X to size icons — pass size'). The !important in the icon-NN utilities means these className sizes can silently fight the wrapper.",
     },
     {
         name: 'InvitesIcon (Home/InvitesIcon.tsx)',
@@ -6165,7 +6165,7 @@ export const AUDIT_CLUSTERS: AuditCluster[] = [
         collapses: [
             'BaseInput (17 product render sites — canonical, remeasured 2026-09-15)',
             '.input CSS class (canonical, globals.css)',
-            'ValidatedInput border-0 override',
+            'ValidatedInput border-0 / duplicated focus-chrome override (no height class)',
         ],
     },
     {
