@@ -247,13 +247,45 @@ h1 {
     margin: 0;
     font-size: 12px;
 }
+.date-carousel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
 .date-strip {
     display: flex;
+    min-width: 0;
+    flex: 1 1 auto;
     gap: 8px;
-    overflow-x: auto;
-    padding: 3px 2px 9px;
-    scrollbar-width: thin;
-    scroll-snap-type: x proximity;
+    overflow-x: hidden;
+    padding: 3px 2px;
+    scroll-behavior: smooth;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+}
+.date-strip::-webkit-scrollbar {
+    display: none;
+}
+.date-nav {
+    display: grid;
+    width: 62px;
+    height: 62px;
+    flex: 0 0 62px;
+    place-items: center;
+    padding: 0 0 4px;
+    border: 1px solid #aaa2ac;
+    border-radius: 12px;
+    background: white;
+    font-size: 30px;
+    line-height: 1;
+}
+.date-nav:hover,
+.date-nav:focus-visible {
+    border-color: var(--ink);
+}
+.date-nav:focus-visible {
+    outline: 3px solid rgb(255 144 232 / 65%);
+    outline-offset: 2px;
 }
 .date-tile {
     width: 62px;
@@ -930,8 +962,10 @@ footer {
     display: none !important;
 }
 @media (prefers-reduced-motion: reduce) {
-    .google-sign-in {
+    .google-sign-in,
+    .date-strip {
         transition: none;
+        scroll-behavior: auto;
     }
 }
 @media (max-width: 600px) {

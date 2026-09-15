@@ -334,6 +334,24 @@ function populateLocale(entries, selected) {
     $('locale').value = value ?? ''
     return value
 }
+function updateDateNavigation() {
+    const strip = $('date-strip')
+    const scrollLeft = Number(strip.scrollLeft) || 0
+    const maxScroll = Math.max(0, (Number(strip.scrollWidth) || 0) - (Number(strip.clientWidth) || 0))
+    $('date-prev').hidden = scrollLeft <= 1
+    $('date-next').hidden = maxScroll <= 1 || scrollLeft >= maxScroll - 1
+}
+function scheduleDateNavigationUpdate() {
+    if (typeof window.requestAnimationFrame === 'function') window.requestAnimationFrame(updateDateNavigation)
+    else updateDateNavigation()
+}
+function scrollDateStrip(direction) {
+    const strip = $('date-strip')
+    const distance = Math.max(70, (Number(strip.clientWidth) || 0) - 70)
+    if (typeof strip.scrollBy === 'function') strip.scrollBy({ left: direction * distance, behavior: 'smooth' })
+    else strip.scrollLeft = Math.max(0, (Number(strip.scrollLeft) || 0) + direction * distance)
+    scheduleDateNavigationUpdate()
+}
 function renderDateStrip(availableEntries) {
     const availableDates = new Set(availableEntries.map((entry) => entry.date).filter((date) => parseIsoDate(date)))
     const catalogueDates = indexEntries.map((entry) => entry.date).filter((date) => parseIsoDate(date))
@@ -356,7 +374,7 @@ function renderDateStrip(availableEntries) {
         const earliest = parseIsoDate(catalogueDates[0])
         const thirtyDaysAgo = new Date(end)
         thirtyDaysAgo.setUTCDate(thirtyDaysAgo.getUTCDate() - 29)
-        const start = earliest && earliest < thirtyDaysAgo ? earliest : thirtyDaysAgo
+        const start = earliest && earliest > thirtyDaysAgo ? earliest : thirtyDaysAgo
         for (let cursor = new Date(end); cursor >= start; cursor.setUTCDate(cursor.getUTCDate() - 1)) {
             const date = isoDate(cursor)
             const available = availableDates.has(date)
@@ -383,6 +401,7 @@ function renderDateStrip(availableEntries) {
         }
     }
     $('date-strip').replaceChildren(...buttons)
+    scheduleDateNavigationUpdate()
     return selected
 }
 function renderLanding() {
@@ -647,6 +666,10 @@ $('close').onclick = () => $('zoom').close()
 $('side').onclick = () => zoom(active, 'side')
 $('overlay').onclick = () => zoom(active, 'overlay')
 $('difference').onclick = () => zoom(active, 'difference')
+$('date-prev').onclick = () => scrollDateStrip(-1)
+$('date-next').onclick = () => scrollDateStrip(1)
+$('date-strip').addEventListener('scroll', updateDateNavigation)
+if (typeof window.addEventListener === 'function') window.addEventListener('resize', scheduleDateNavigationUpdate)
 $('slider').oninput = () => {
     const n = $('zoom-images').querySelector('.overlay img+img')
     if (n) n.style.clipPath = `inset(0 ${100 - Number($('slider').value)}% 0 0)`

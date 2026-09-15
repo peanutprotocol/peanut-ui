@@ -37,7 +37,9 @@ const elementIds = [
     'dashboard-filters',
     'filters-row',
     'date-filter',
+    'date-prev',
     'date-strip',
+    'date-next',
     'versions',
     'screens',
     'screen-load-more',
@@ -59,6 +61,9 @@ class Element {
         this.className = ''
         this.dataset = {}
         this.listeners = new Map()
+        this.clientWidth = 280
+        this.scrollWidth = 0
+        this.scrollLeft = 0
     }
 
     addEventListener(type, listener) {
@@ -72,6 +77,7 @@ class Element {
     }
     replaceChildren(...children) {
         this.children = children
+        if (this.id === 'date-strip') this.scrollWidth = children.length * 70
     }
     setAttribute(name, value) {
         this[name] = value
@@ -81,6 +87,10 @@ class Element {
     }
     close() {
         this.open = false
+    }
+    scrollBy({ left }) {
+        this.scrollLeft = Math.max(0, Math.min(this.scrollLeft + left, this.scrollWidth - this.clientWidth))
+        this.dispatch('scroll')
     }
 }
 
@@ -297,6 +307,10 @@ test('landing groups versions by date and exposes a shareable horizontal date fi
     const dateButtons = elements.get('date-strip').children
     const latestButton = dateButtons.find((button) => button['aria-label'] === 'Show captures from September 14, 2026')
     const gapButton = dateButtons.find((button) => button['aria-label'] === 'September 13, 2026 — no captures')
+    assert.equal(
+        dateButtons.some((button) => button['aria-label'] === 'September 11, 2026 — no captures'),
+        false
+    )
     assert.deepEqual(
         latestButton.children.map((child) => child.textContent),
         ['14', 'Sep']
@@ -318,6 +332,24 @@ test('landing groups versions by date and exposes a shareable horizontal date fi
     restored.get('date-strip').children[0].onclick()
     assert.equal(versionGroups(restored).length, 2)
     assert.equal(restored.location.search, '?source=synthetic&locale=en')
+})
+
+test('date navigator pages without exposing a native scrollbar', async () => {
+    const elements = await loadLanding('/', {
+        index: [
+            { path: `2026-09-15/dev/en/${'a'.repeat(40)}`, date: '2026-09-15', locale: 'en' },
+            { path: `2026-09-12/dev/en/${'b'.repeat(40)}`, date: '2026-09-12', locale: 'en' },
+        ],
+    })
+    assert.equal(elements.get('date-strip').children.length, 5)
+    assert.equal(elements.get('date-prev').hidden, true)
+    assert.equal(elements.get('date-next').hidden, false)
+    elements.get('date-next').onclick()
+    assert.equal(elements.get('date-prev').hidden, false)
+    assert.equal(elements.get('date-next').hidden, true)
+    elements.get('date-prev').onclick()
+    assert.equal(elements.get('date-prev').hidden, true)
+    assert.equal(elements.get('date-next').hidden, false)
 })
 
 test('comparison reports ignore legacy public image URLs and can switch to the full catalogue', async () => {
