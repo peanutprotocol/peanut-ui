@@ -3,11 +3,13 @@ import { readFileSync, writeFileSync, mkdirSync, copyFileSync, readdirSync, exis
 import { join } from 'node:path'
 import { validateCapture, verifyAsset } from './core.mjs'
 import { integrationBase } from './integration.mjs'
-import { reviewProvenance } from './review-provenance.mjs'
+import { reviewHeadRevision, reviewProvenance } from './review-provenance.mjs'
 import { verifyRunIdentity } from './run-identity.mjs'
 import { selectCaptureArtifact, selectCapturePairs } from './capture-artifacts.mjs'
-import { filterRetainedBaselineArtifacts, selectBaselineArtifacts } from './baseline-artifacts.mjs'
+import { selectBaselineArtifacts } from './baseline-artifacts.mjs'
+import { verifiedExternalBaselineSource } from './baseline-runs.mjs'
 import { normalizePublicOrigin } from './public-origin.mjs'
+import { repositoryApiPath } from './repository-api.mjs'
 const LOCALES = {
     en: 'English',
     'es-419': 'Español',
@@ -21,17 +23,16 @@ const repo = process.env.REPOSITORY,
     attempt = process.env.RUN_ATTEMPT
 if (!/^[\w.-]+\/[\w.-]+$/.test(repo ?? '') || !/^\d+$/.test(runId ?? '') || !/^\d+$/.test(attempt ?? ''))
     throw new Error('Invalid run identity')
-const api = (path) => JSON.parse(execFileSync('gh', ['api', `repos/${repo}/${path}`], { encoding: 'utf8' }))
+const api = (path) => JSON.parse(execFileSync('gh', ['api', repositoryApiPath(repo, path)], { encoding: 'utf8' }))
 const run = api(`actions/runs/${runId}`)
 verifyRunIdentity(run, repo, Number(runId), Number(attempt))
 let expectedBase, pr
 if (run.event === 'pull_request') {
+    const reviewHead = reviewHeadRevision(run)
     const candidates = JSON.parse(
-        execFileSync(
-            'gh',
-            ['api', `repos/${repo}/commits/${run.head_sha}/pulls?per_page=100`, '--paginate', '--slurp'],
-            { encoding: 'utf8' }
-        )
+        execFileSync('gh', ['api', `repos/${repo}/commits/${reviewHead}/pulls?per_page=100`, '--paginate', '--slurp'], {
+            encoding: 'utf8',
+        })
     ).flat()
     const binding = reviewProvenance(repo, run, candidates, (args) => execFileSync('git', args, { encoding: 'utf8' }))
     if (!binding) {
@@ -70,33 +71,23 @@ function verifyExternalBaseline(expected) {
     const source = api(`actions/runs/${baselineRunId}`)
     const defaultBranch = api('').default_branch
     const artifacts = api(`actions/runs/${baselineRunId}/artifacts?per_page=100`).artifacts ?? []
-    const localeSuffix = '(?:en|es-419|es-AR|pt-BR)'
-    const baselineRun =
-        source.path === '.github/workflows/screen-library-baseline.yml' &&
-        ['push', 'workflow_dispatch'].includes(source.event) &&
-        source.head_branch === defaultBranch &&
-        artifacts.some((artifact) =>
-            new RegExp(`^screen-library-baseline-${expected}-(?:${localeSuffix}-)?[1-9]\\d*$`).test(artifact.name)
-        )
-    const integrationBaseline =
-        source.path === '.github/workflows/screen-library.yml' &&
-        source.event === 'push' &&
-        artifacts.some((artifact) =>
-            new RegExp(`^screen-library-after-(?:${localeSuffix}-)?[1-9]\\d*$`).test(artifact.name)
-        )
-    if (
-        (!baselineRun && !integrationBaseline) ||
-        source.status !== 'completed' ||
-        source.conclusion !== 'success' ||
-        source.head_repository?.full_name !== repo ||
-        (integrationBaseline && (source.head_branch !== 'dev' || source.head_sha !== expected))
-    )
-        throw new Error('External baseline run provenance mismatch')
-    const validArtifacts = filterRetainedBaselineArtifacts(artifacts, expected)
-    if (!validArtifacts.length) throw new Error('External baseline artifact is missing or expired')
+    const jobs =
+        source.path === '.github/workflows/screen-library.yml'
+            ? (api(`actions/runs/${baselineRunId}/jobs?per_page=100`).jobs ?? [])
+            : []
+    const verified = verifiedExternalBaselineSource({
+        run: source,
+        jobs,
+        artifacts,
+        repository: repo,
+        expectedCommit: expected,
+        defaultBranch,
+    })
+    if (!verified) throw new Error('External baseline run provenance mismatch')
+    const validArtifacts = verified.artifacts
     if (baselineArtifact && !validArtifacts.some((artifact) => artifact.name === baselineArtifact))
         throw new Error('External baseline artifact identity mismatch')
-    return { dir: baselineDir, kind: baselineRun ? 'baseline' : 'integration', artifact: baselineArtifact }
+    return { dir: baselineDir, kind: verified.kind, artifact: baselineArtifact }
 }
 
 const captureNames = readdirSync('incoming')
@@ -161,7 +152,8 @@ for (const capturePair of capturePairs) {
     )
     if (before.locale !== capturePair.locale || after.locale !== capturePair.locale)
         throw new Error(`Capture locale identity mismatch for ${capturePair.locale}`)
-    if (after.commit !== run.head_sha) throw new Error('Capture does not match triggering run head')
+    const expectedHead = run.event === 'pull_request' ? reviewHeadRevision(run) : run.head_sha
+    if (after.commit !== expectedHead) throw new Error('Capture does not match triggering run head')
     if (before.commit !== expectedBase)
         throw new Error('Capture baseline does not match verified integration/review/history baseline')
     const slug = localeSlug(after.locale)
