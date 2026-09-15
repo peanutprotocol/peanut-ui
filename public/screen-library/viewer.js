@@ -100,6 +100,7 @@ let rows = [],
     renderedCount = 0
 const PAGE_SIZE = 24
 const unavailable = (s) => !s || !s.image
+const availableScreen = (row) => [row?.after, row?.before].find((screen) => !unavailable(screen))
 const requestedFilter = (name) => new URLSearchParams(location.search ?? '').get(name) ?? ''
 function shareableParams(overrides = {}) {
     const params = new URLSearchParams()
@@ -143,7 +144,7 @@ function zoom(row, mode = 'side') {
     const before = row.before,
         after = row.after
     if (mode === 'screen') {
-        const screen = after ?? before
+        const screen = availableScreen(row)
         if (screen?.image) $('zoom-images').append(image(screen.image, row.name, { preview: false }))
         else $('zoom-images').append(el('p', screen?.reason ?? 'No screenshot available.'))
     } else if (mode === 'difference') {
@@ -170,6 +171,7 @@ function filteredScreenRows() {
         changedMode = report?.type === 'comparison' && viewMode === 'changed'
     return rows.filter(
         (r) =>
+            availableScreen(r) &&
             (!q || `${r.name} ${r.id} ${r.flow}`.toLowerCase().includes(q)) &&
             (!flow || flow === r.flow) &&
             (!changedMode || VISUAL_CHANGE_STATUSES.has(r.status)) &&
@@ -189,7 +191,7 @@ function renderTile(row) {
     const showSingle = report.type !== 'comparison' || viewMode === 'all'
     const pair = el('div', undefined, `pair${showSingle ? ' single' : ''}`)
     for (const [label, s] of showSingle
-        ? [['Screen', row.after ?? row.before]]
+        ? [['Screen', availableScreen(row)]]
         : [
               ['Before', row.before],
               ['After', row.after],

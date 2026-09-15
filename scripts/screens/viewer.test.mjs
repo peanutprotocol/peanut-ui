@@ -96,6 +96,7 @@ class Element {
 
 const versionGroups = (elements) => elements.get('versions').children
 const versionLinks = (elements) => versionGroups(elements).flatMap((group) => group.children[1]?.children ?? [])
+const imageSources = (element) => [element?.src, ...(element?.children ?? []).flatMap(imageSources)].filter(Boolean)
 
 async function loadLanding(pathname, { ok = true, index = [], report, search = '', hash = '' } = {}) {
     const elements = new Map(elementIds.map((id) => [id, new Element(id)]))
@@ -434,11 +435,22 @@ test('changed mode shows only visual changes and can switch to the full catalogu
         elements.get('screens').children.map(({ id }) => id),
         ['changed', 'added', 'removed']
     )
+    assert.equal(
+        elements.get('screens').children.every((tile) => imageSources(tile).length > 0),
+        true
+    )
     elements.get('screens').children[0].children[1].children[0].children[1].onclick()
     assert.equal(elements.get('zoom-images').children[0].src, `/screen-data/assets/${image}`)
     elements.get('view-mode').checked = true
     elements.get('view-mode').dispatch('change')
-    assert.equal(elements.get('screens').children.length, 8)
+    assert.deepEqual(
+        elements.get('screens').children.map(({ id }) => id),
+        ['changed', 'unchanged', 'added', 'removed']
+    )
+    assert.equal(
+        elements.get('screens').children.every((tile) => imageSources(tile).length === 1),
+        true
+    )
     assert.equal(elements.get('screens').children[0].children[1].className, 'pair single')
 })
 
