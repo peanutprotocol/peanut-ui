@@ -28,10 +28,13 @@ export const checkPasskeyCapability = async (): Promise<PasskeyCapability> => {
     }
 
     // Desktop browsers can create a credential through a QR/hybrid ceremony
-    // or a security key even when no authenticator is attached locally. The
-    // on-device authenticator is a hard prerequisite only on Android, where a
-    // false result usually means screen lock or Credential Manager is missing.
-    if (!/android/i.test(navigator.userAgent)) {
+    // or a security key even when no authenticator is attached locally. Mobile
+    // Android and iOS need the on-device probe: it also prevents Safari-looking
+    // iOS webviews with unusable WebAuthn from bypassing the invite gate.
+    const isMobileDevice =
+        /android|iphone|ipad|ipod/i.test(navigator.userAgent) ||
+        (/macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1)
+    if (!isMobileDevice) {
         return { isSupported: true, error: null, browserSupported: true }
     }
 

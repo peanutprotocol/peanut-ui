@@ -64,6 +64,27 @@ describe('usePasskeySupport', () => {
         expect(mockPlatformAuthenticatorIsAvailable).not.toHaveBeenCalled()
     })
 
+    it.each([
+        [
+            'iOS Safari',
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1',
+        ],
+        [
+            'iOS Chrome',
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/140.0.7339.122 Mobile/15E148 Safari/604.1',
+        ],
+    ])('keeps a Safari-looking %s environment behind the passkey gate', async (_browser, userAgent) => {
+        Object.defineProperty(navigator, 'userAgent', { configurable: true, value: userAgent })
+        mockPlatformAuthenticatorIsAvailable.mockResolvedValue(false)
+        const { result } = renderHook(() => usePasskeySupport())
+
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+        expect(result.current.isSupported).toBe(false)
+        expect(result.current.error).toBe('A platform authenticator is not available')
+        expect(mockPlatformAuthenticatorIsAvailable).toHaveBeenCalledTimes(1)
+    })
+
     it('rechecks Android support after returning from device settings', async () => {
         mockPlatformAuthenticatorIsAvailable.mockResolvedValueOnce(false).mockResolvedValueOnce(true)
         const { result } = renderHook(() => usePasskeySupport())

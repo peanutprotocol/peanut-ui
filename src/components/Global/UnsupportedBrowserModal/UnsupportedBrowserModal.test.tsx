@@ -77,7 +77,7 @@ describe('UnsupportedBrowserModal', () => {
         expect(screen.getByRole('dialog')).not.toHaveTextContent('such as Chrome')
     })
 
-    it('recommends Chrome, but not Safari, to someone already using Safari', async () => {
+    it('blocks a Safari-looking iOS environment with passkey guidance and recommends only Chrome', async () => {
         mockIsLikelyWebview.mockReturnValue(false)
         mockPasskeySupport = { isSupported: false, isLoading: false }
         mockBrowser = { browserType: BrowserType.SAFARI, isLoading: false }
@@ -87,6 +87,8 @@ describe('UnsupportedBrowserModal', () => {
         expect(await screen.findByRole('dialog')).toHaveTextContent(
             'You can also try opening this link in a different browser, such as Chrome.'
         )
+        expect(screen.getByRole('dialog')).toHaveTextContent("Passkeys aren't available")
+        expect(screen.getByRole('dialog')).not.toHaveTextContent('Open this link in your browser')
         expect(screen.getByRole('dialog')).not.toHaveTextContent('Chrome or Safari')
     })
 
