@@ -106,13 +106,18 @@ export const HoldToClaimButton: FC<Props> = ({
             />
             <span className="relative z-10">{children}</span>
             {/* white copy of the label clipped to the fill so the text stays
-                readable over the black overlay — matches the QR-claim button */}
-            <span
-                className="absolute inset-0 z-20 flex items-center justify-center text-white transition-all duration-instant"
-                style={{ clipPath: `inset(0 ${100 - holdProgress}% 0 0)` }}
-            >
-                {children}
-            </span>
+                readable over the black overlay — matches the QR-claim button.
+                aria-hidden: it duplicates the label for sighted users only;
+                hidden while loading so it never overlays the spinner state. */}
+            {!loading && (
+                <span
+                    aria-hidden="true"
+                    className="absolute inset-0 z-20 flex items-center justify-center text-white transition-all duration-instant"
+                    style={{ clipPath: `inset(0 ${100 - holdProgress}% 0 0)` }}
+                >
+                    {children}
+                </span>
+            )}
         </Button>
     )
 }
