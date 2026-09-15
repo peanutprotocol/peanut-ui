@@ -15,16 +15,19 @@ type ValidatedInputProps = {
     value: string
     placeholder?: string
     debounceTime?: number
+    validationNonce?: number
     validate: (value: string) => Promise<boolean>
     shouldValidate?: (value: string) => boolean
     onUpdate: (update: InputUpdate) => void
     className?: string
     autoComplete?: string
     name?: string
+    'aria-label'?: string
     infoText?: string
     formatDisplayValue?: (value: string) => string
     isSetupFlow?: boolean
     isInputChanging?: boolean
+    validationIsNeutral?: boolean
     smartPasteKind?: PasteFieldKind
 }
 
@@ -38,16 +41,19 @@ const ValidatedInput = ({
     placeholder = '',
     value,
     debounceTime = 750,
+    validationNonce = 0,
     onUpdate,
     validate,
     shouldValidate,
     className,
     autoComplete,
     name,
+    'aria-label': ariaLabel,
     infoText,
     formatDisplayValue,
     isSetupFlow = false,
     isInputChanging = false,
+    validationIsNeutral = false,
     smartPasteKind,
 }: ValidatedInputProps) => {
     const t = useTranslations('global')
@@ -153,7 +159,7 @@ const ValidatedInput = ({
         return () => {
             isStale = true
         }
-    }, [debouncedValue])
+    }, [debouncedValue, validationNonce])
 
     // Update currentValueRef when value changes
     useEffect(() => {
@@ -180,9 +186,12 @@ const ValidatedInput = ({
                     // the text field and the trailing clear (×) affordance.
                     // The shared 3px blue ring replaces the border on every focus.
                     'relative w-full rounded-sm border border-border-default bg-background-default outline-action-focus focus-within:border-transparent focus-within:outline-[3px] focus-within:outline-action-focus focus-within:outline-solid',
-                    value && !isValidating && !isValid && debouncedValue === value ? 'border-border-error' : '',
+                    value && !isValidating && !isValid && !validationIsNeutral && debouncedValue === value
+                        ? 'border-border-error'
+                        : '',
                     className
                 )}
+                data-input-container="true"
                 translate="no"
             >
                 <div className="absolute top-1/2 left-1 z-10 flex -translate-y-1/2 items-center gap-1">
@@ -218,6 +227,7 @@ const ValidatedInput = ({
                         autoCorrect="off"
                         autoCapitalize="off"
                         name={name}
+                        aria-label={ariaLabel}
                         translate="no"
                         style={{
                             WebkitTapHighlightColor: 'transparent',
@@ -236,7 +246,7 @@ const ValidatedInput = ({
                                 <div className="flex h-full w-12 items-center justify-center">
                                     <Loading />
                                 </div>
-                            ) : !!isSetupFlow && !isValid && !isInputChanging ? (
+                            ) : !!isSetupFlow && !isValid && !isInputChanging && !validationIsNeutral ? (
                                 <div className="mr-2 flex h-full items-center justify-center rounded-full">
                                     <Icon size={20} className="text-foreground-error" name="error" />
                                 </div>
@@ -253,6 +263,7 @@ const ValidatedInput = ({
                                         onUpdate({ value: '', isValid: false, isChanging: false })
                                     }}
                                     className="relative flex h-full w-6 items-center justify-center pr-2 transition-opacity duration-instant after:absolute after:-inset-x-3 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60 md:w-8 md:pr-0"
+                                    data-input-clear="true"
                                 >
                                     <Icon className="h-6 w-6" name="cancel" />
                                 </button>
