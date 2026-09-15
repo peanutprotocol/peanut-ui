@@ -25,6 +25,8 @@ const localeLabel = (locale) => LOCALE_LABELS[locale] ?? locale ?? 'English'
 const localeCode = (locale) => LOCALE_CODES[locale] ?? locale ?? 'EN'
 const SOURCE_LABELS = { synthetic: 'App states', nutcracker: 'Real journeys' }
 const VISUAL_CHANGE_STATUSES = new Set(['changed', 'added', 'removed'])
+const explicitNonvisualStatus = (status) =>
+    Boolean(status) && status !== 'differences' && !VISUAL_CHANGE_STATUSES.has(status)
 const entrySource = (entry) => entry?.source ?? 'synthetic'
 const localeSlugs = new Set(['en', 'es-419', 'es-ar', 'pt-br'])
 const withoutLocale = (path) =>
@@ -168,7 +170,7 @@ function filteredScreenRows() {
     const q = $('search').value.toLowerCase(),
         flow = $('flow').value,
         status = $('status').value,
-        changedMode = report?.type === 'comparison' && viewMode === 'changed'
+        changedMode = report?.type === 'comparison' && viewMode === 'changed' && !explicitNonvisualStatus(status)
     return rows.filter(
         (r) =>
             availableScreen(r) &&
@@ -353,7 +355,7 @@ function scheduleDateNavigationUpdate() {
 function scrollDateStrip(direction) {
     const strip = $('date-strip')
     const distance = Math.max(70, (Number(strip.clientWidth) || 0) - 70)
-    if (typeof strip.scrollBy === 'function') strip.scrollBy({ left: direction * distance, behavior: 'smooth' })
+    if (typeof strip.scrollBy === 'function') strip.scrollBy({ left: direction * distance })
     else strip.scrollLeft = Math.max(0, (Number(strip.scrollLeft) || 0) + direction * distance)
     scheduleDateNavigationUpdate()
 }
@@ -616,6 +618,10 @@ async function start() {
         : report.type === 'comparison' && viewMode === 'changed'
           ? 'differences'
           : ''
+    if (report.type === 'comparison' && viewMode === 'changed' && explicitNonvisualStatus($('status').value)) {
+        viewMode = 'all'
+        $('view-mode').checked = true
+    }
     render()
     if (location.hash) {
         viewMode = 'all'
@@ -627,11 +633,19 @@ async function start() {
     }
     syncShareableUrl()
 }
-for (const name of ['search', 'flow', 'status'])
+for (const name of ['search', 'flow'])
     $(name).addEventListener('input', () => {
         render()
         syncShareableUrl()
     })
+$('status').addEventListener('input', () => {
+    if (report?.type === 'comparison' && viewMode === 'changed' && explicitNonvisualStatus($('status').value)) {
+        viewMode = 'all'
+        $('view-mode').checked = true
+    }
+    render()
+    syncShareableUrl()
+})
 $('locale').addEventListener('change', () => {
     if (report && reportLocaleEntries.length) {
         const entry = reportLocaleEntries.find((candidate) => candidate.locale === $('locale').value)

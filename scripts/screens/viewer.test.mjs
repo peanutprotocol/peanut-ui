@@ -64,6 +64,7 @@ class Element {
         this.clientWidth = 280
         this.scrollWidth = 0
         this.scrollLeft = 0
+        this.lastScrollOptions = null
     }
 
     addEventListener(type, listener) {
@@ -88,7 +89,9 @@ class Element {
     close() {
         this.open = false
     }
-    scrollBy({ left }) {
+    scrollBy(options) {
+        this.lastScrollOptions = options
+        const { left } = options
         this.scrollLeft = Math.max(0, Math.min(this.scrollLeft + left, this.scrollWidth - this.clientWidth))
         this.dispatch('scroll')
     }
@@ -346,6 +349,8 @@ test('date navigator pages without exposing a native scrollbar', async () => {
     assert.equal(elements.get('date-prev').hidden, true)
     assert.equal(elements.get('date-next').hidden, false)
     elements.get('date-next').onclick()
+    assert.equal(elements.get('date-strip').lastScrollOptions.left, 210)
+    assert.equal('behavior' in elements.get('date-strip').lastScrollOptions, false)
     assert.equal(elements.get('date-prev').hidden, false)
     assert.equal(elements.get('date-next').hidden, true)
     elements.get('date-prev').onclick()
@@ -370,7 +375,7 @@ test('changed mode shows only visual changes and can switch to the full catalogu
         flow: 'Home',
         kind: 'route',
         status,
-        before: { status, reason: 'No comparable screenshot' },
+        before: { status: 'captured', image },
         after: { status, reason: 'No comparable screenshot' },
     })
     const report = {
@@ -445,13 +450,54 @@ test('changed mode shows only visual changes and can switch to the full catalogu
     elements.get('view-mode').dispatch('change')
     assert.deepEqual(
         elements.get('screens').children.map(({ id }) => id),
-        ['changed', 'unchanged', 'added', 'removed']
+        ['changed', 'unchanged', 'added', 'removed', 'failed', 'unavailable', 'excluded', 'absent']
     )
     assert.equal(
         elements.get('screens').children.every((tile) => imageSources(tile).length === 1),
         true
     )
     assert.equal(elements.get('screens').children[0].children[1].className, 'pair single')
+
+    elements.get('view-mode').checked = false
+    elements.get('view-mode').dispatch('change')
+    elements.get('status').value = 'failed'
+    elements.get('status').dispatch('input')
+    assert.equal(elements.get('view-mode').checked, true)
+    assert.equal(elements.get('screens').children.length, 1)
+    assert.equal(elements.get('screens').children[0].id, 'failed')
+    assert.equal(elements.location.search, '?source=synthetic&locale=en&status=failed&view=all')
+})
+
+test('a restored nonvisual status opens the full catalogue instead of an empty changed view', async () => {
+    const image = 'a'.repeat(64) + '.webp'
+    const report = {
+        schema: 1,
+        type: 'comparison',
+        locale: 'en',
+        complete: false,
+        before: { commit: 'a'.repeat(40), capturedAt: 'now', environment: 'test' },
+        after: { commit: 'b'.repeat(40), capturedAt: 'now', environment: 'test' },
+        screens: [
+            {
+                id: 'failed',
+                name: 'Failed screen',
+                flow: 'Home',
+                kind: 'route',
+                status: 'failed',
+                before: { status: 'captured', image },
+                after: { status: 'failed', reason: 'Capture failed' },
+            },
+        ],
+    }
+    const elements = await loadLanding('/screens/2026-09-15/pr-1/en/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/', {
+        report,
+        search: '?status=failed&view=changed',
+    })
+    assert.equal(elements.get('view-mode').checked, true)
+    assert.equal(elements.get('status').value, 'failed')
+    assert.equal(elements.get('screens').children.length, 1)
+    assert.equal(elements.get('screens').children[0].id, 'failed')
+    assert.equal(elements.location.search, '?source=synthetic&locale=en&status=failed&view=all')
 })
 
 test('report filters restore from and continuously update the shareable URL', async () => {
