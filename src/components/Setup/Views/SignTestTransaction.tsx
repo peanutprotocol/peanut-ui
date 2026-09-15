@@ -88,6 +88,54 @@ const SignTestTransaction = () => {
     const accountReadyCapturedRef = useRef(false)
     const [isRedirecting, setIsRedirecting] = useState(false)
 
+    const showAccountReady = () => {
+        creatingAccountRef.current = false
+        console.log('[SignTestTransaction] Account setup complete, showing the account-ready screen')
+        const inviteCode = getFromCookie('inviteCode')
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_COMPLETED, {
+            acquisition_source: inviteCode ? 'referred' : 'organic',
+            invite_code: inviteCode || undefined,
+            ...signupAnalyticsContext(signupEntryFlow),
+        })
+
+        // Persist the residence answer from the residence step, now that
+        // the account exists. Fire-and-forget: prequalification data,
+        // never a reason to fail or delay the redirect.
+        if (residenceCountry) {
+            posthog.setPersonProperties({
+                residence_country: residenceCountry,
+                second_residence_country: secondResidenceCountry || undefined,
+            })
+            const userId = user?.user?.userId
+            if (userId) {
+                storeDeclaredResidence(userId, residenceCountry)
+                storeSecondResidence(userId, secondResidenceCountry || null)
+                void updateUserById({
+                    userId,
+                    residenceCountry,
+                    ...(secondResidenceCountry ? { secondResidenceCountry } : {}),
+                })
+                    .then((result) => {
+                        // updateUserById maps API failures to { error },
+                        // it doesn't throw them — inspect the result.
+                        if (result?.error) {
+                            console.error('[SignTestTransaction] Failed to persist residence:', result.error)
+                        }
+                    })
+                    .catch((err: unknown) => {
+                        console.error('[SignTestTransaction] Failed to persist residence:', err)
+                    })
+            }
+        }
+
+        // The finish line does two jobs: celebrate what already works
+        // without ID, and plant the honest KYC expectation before home
+        // ever asks. The redirect moves to its CTA.
+        setIsSigning(false)
+        setSetupLoading(false)
+        setAccountReady(true)
+    }
+
     const goToAccount = () => {
         if (redirectingRef.current) return
         redirectingRef.current = true
@@ -217,62 +265,30 @@ const SignTestTransaction = () => {
                 creatingAccountRef.current = true
                 const success = await finalizeAccountSetup(address)
                 if (!success) {
-                    console.error('[SignTestTransaction] Failed to finalize account setup')
+                    // The request layer already recorded the concrete failure;
+                    // avoid another console-captured wrapper event here.
+                    console.info('[SignTestTransaction] Account setup remains retryable')
                     setError(setupError || t('testTransaction.errors.setupFailed'))
                     setIsSigning(false)
                     setSetupLoading(false)
                     return
                 }
 
-                // account setup complete - addAccount() already fetched and verified user data
-                console.log('[SignTestTransaction] Account setup complete, showing the account-ready screen')
-                const inviteCode = getFromCookie('inviteCode')
-                posthog.capture(ANALYTICS_EVENTS.SIGNUP_COMPLETED, {
-                    acquisition_source: inviteCode ? 'referred' : 'organic',
-                    invite_code: inviteCode || undefined,
-                    ...signupAnalyticsContext(signupEntryFlow),
-                })
-
-                // Persist the residence answer from the residence step, now that
-                // the account exists. Fire-and-forget: prequalification data,
-                // never a reason to fail or delay the redirect.
-                if (residenceCountry) {
-                    posthog.setPersonProperties({
-                        residence_country: residenceCountry,
-                        second_residence_country: secondResidenceCountry || undefined,
-                    })
-                    const userId = user?.user?.userId
-                    if (userId) {
-                        storeDeclaredResidence(userId, residenceCountry)
-                        storeSecondResidence(userId, secondResidenceCountry || null)
-                        void updateUserById({
-                            userId,
-                            residenceCountry,
-                            ...(secondResidenceCountry ? { secondResidenceCountry } : {}),
-                        })
-                            .then((result) => {
-                                // updateUserById maps API failures to { error },
-                                // it doesn't throw them — inspect the result.
-                                if (result?.error) {
-                                    console.error('[SignTestTransaction] Failed to persist residence:', result.error)
-                                }
-                            })
-                            .catch((err: unknown) => {
-                                console.error('[SignTestTransaction] Failed to persist residence:', err)
-                            })
-                    }
-                }
-
-                // The finish line does two jobs: celebrate what already works
-                // without ID, and plant the honest KYC expectation before home
-                // ever asks. The redirect moves to its CTA.
-                setIsSigning(false)
-                setSetupLoading(false)
-                setAccountReady(true)
+                // addAccount() already fetched and verified user data.
+                showAccountReady()
             } else {
-                // if account already exists, just navigate home (login flow)
-                console.log('[SignTestTransaction] Account exists, redirecting to the app')
-                // keep loading state active until redirect completes
+                if (creatingAccountRef.current) {
+                    // A prior ambiguous request can commit after both immediate
+                    // profile reconciliations fail. Retry consumes that signup
+                    // marker and presents the same success state as the direct
+                    // response instead of leaving the button loading forever.
+                    console.log('[SignTestTransaction] Reconciled account from an earlier setup request')
+                    showAccountReady()
+                } else {
+                    // Login flow: the account-exists effect owns navigation.
+                    console.log('[SignTestTransaction] Account exists, redirecting to the app')
+                    // keep loading state active until redirect completes
+                }
             }
         } catch (e) {
             console.error('[SignTestTransaction] Test transaction failed:', e)

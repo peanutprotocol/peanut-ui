@@ -6,6 +6,7 @@ import { WalletProviderType } from '@/interfaces/wallet.interfaces'
 import { clearAuthState } from '@/utils/auth.utils'
 import { POST_SIGNUP_ACTIONS } from '@/components/Global/PostSignupActionManager/post-signup-action.consts'
 import { consumePostAuthRedirect } from '@/services/post-auth-redirect'
+import { AccountSetupError } from '@/services/account-setup'
 
 /**
  * shared hook for finalizing account setup after test transaction succeeds
@@ -58,51 +59,46 @@ export const useAccountSetup = () => {
         try {
             console.log('[useAccountSetup] Adding account to database')
 
-            // add account with retry logic for transient failures
-            // this is especially important for external passkey managers (1Password, etc)
-            // that might have timing issues
-            let retries = 0
-            const MAX_RETRIES = 3
-
-            while (retries <= MAX_RETRIES) {
-                try {
-                    await addAccount({
-                        accountIdentifier: address,
-                        accountType: WalletProviderType.PEANUT,
-                        userId: user.user.userId as string,
-                    })
-                    console.log('[useAccountSetup] Account added successfully')
-                    break // success, exit retry loop
-                } catch (e) {
-                    const error = e as Error
-
-                    // if account already exists, that's fine - user is already set up
-                    if (error.message.includes('Account already exists')) {
-                        console.log('[useAccountSetup] Account already exists, proceeding')
-                        break
-                    }
-
-                    // if it's a user data fetch error and we're not on last retry, wait and retry
-                    if (error.message.includes('Failed to load user data') && retries < MAX_RETRIES) {
-                        retries++
-                        console.log(`[useAccountSetup] User data fetch failed, retry ${retries}/${MAX_RETRIES}`)
-                        await new Promise((resolve) => setTimeout(resolve, 1000 * retries))
-                        continue
-                    }
-
-                    // other errors or max retries reached, throw
-                    throw error
-                }
-            }
+            const outcome = await addAccount({
+                accountIdentifier: address,
+                accountType: WalletProviderType.PEANUT,
+                userId: user.user.userId as string,
+            })
+            Sentry.addBreadcrumb({
+                category: 'account-setup',
+                level: 'info',
+                message: 'Account setup completed',
+                data: outcome,
+            })
 
             return true
         } catch (e) {
-            Sentry.captureException(e)
-            console.error('[useAccountSetup] Error adding account:', e)
+            const setupError = e instanceof AccountSetupError ? e : null
+            Sentry.addBreadcrumb({
+                category: 'account-setup',
+                level: 'warning',
+                message: 'Account setup did not complete',
+                data: {
+                    outcome: setupError?.kind ?? 'unknown',
+                    requestAttempts: setupError?.requestAttempts,
+                    status: setupError?.status,
+                },
+            })
+            // fetchWithSentry is the error event of record. Keep this wrapper
+            // informational so one failed request does not create extra issues.
+            console.info('[useAccountSetup] Account setup did not complete', {
+                outcome: setupError?.kind ?? 'unknown',
+                requestAttempts: setupError?.requestAttempts,
+                status: setupError?.status,
+            })
             setError('Error adding account. Please try refreshing the page.')
 
-            // clear auth state if account creation fails
-            await clearAuthState(user?.user.userId)
+            // Ambiguous transport/server failures keep the valid signup session.
+            // Only the authenticated endpoint's explicit credential rejection
+            // proves this session should be removed.
+            if (setupError?.kind === 'invalid_credentials') {
+                await clearAuthState(user.user.userId)
+            }
             return false
         } finally {
             setIsProcessing(false)
