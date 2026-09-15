@@ -9,45 +9,46 @@ jest.mock('@/assets', () => ({}))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
 
 const model: ReceiptPdfModel = {
-    title: 'Payment Receipt',
-    issuedBy: 'Issued by Peanut',
+    title: 'Transaction Receipt',
+    issuedBy: 'Issued by Squirrel Labs Ltd',
+    companyName: 'Squirrel Labs Ltd',
+    companyAddressLines: ['Office One', '1 Coldbath Square', 'Farringdon, London, EC1R 5HL, UK'],
     site: 'peanut.me',
     amountDisplay: '$125.5',
     convertedAmountDisplay: 'ARS 113,250.75',
-    statusLabel: 'Completed',
     rows: [
+        { label: 'Date', value: 'August 20, 2026 - 15:22 UTC' },
         { label: 'Type', value: 'Withdraw' },
         { label: 'Status', value: 'Completed' },
         { label: 'To', value: 'kkonrad' },
-        { label: 'Completed', value: 'August 20, 2026 - 15:22 UTC' },
-        { label: 'Exchange rate', value: '1 USD = ARS 902.4' },
         { label: 'Fee', value: '0.5' },
-        { label: 'Transaction ID', value: '0x74a9c1e9c1f5f3ab8a7e2ac5c250aabbccddeeff00112233445566778899aabb' },
         { label: 'IBAN', value: 'ES91 **** **** **** **** 1332' },
+        { label: 'Exchange rate', value: '1 USD = ARS 902.4' },
+        { label: 'Transaction ID', value: '0x74a9c1e9c1f5f3ab8a7e2ac5c250aabbccddeeff00112233445566778899aabb' },
+        { label: 'Transfer ID', value: 'transfer-a3f5c250' },
+        { label: 'Reference', value: 'a3f5c250-1234-4abc-8def-9012aa34bb56' },
     ],
-    referenceLabel: 'Receipt reference',
-    reference: 'A3F5C250-1234-4ABC-8DEF-9012AA34BB56',
     fileName: 'peanut-receipt-a3f5c250.pdf',
 }
 
-describe('long identifier wrapping', () => {
-    // A 66-char tx hash is wider than the value column. Without a break it
-    // overflows the row, and the byte-level assertions below still pass — so
-    // assert the wrapping helper directly. It must never ADD a character:
-    // react-pdf's hyphenation callback wraps but renders a hyphen at the break,
-    // which would corrupt a hash read off the page.
-    test('hard-wraps identifiers without altering their characters', async () => {
+describe('identifier wrapping', () => {
+    test('keeps EVM addresses and hashes on one line in the wider value column', async () => {
         const { breakableIdentifier } = await import('../ReceiptPdfDocument')
+        const address = '0xc9f6e1a780e62bbb751375bea25415581f77beb55c'
         const hash = '0x74a9c1e9c1f5f3ab8a7e2ac5c250aabbccddeeff00112233445566778899aabb'
 
-        const wrapped = breakableIdentifier(hash)
-        expect(wrapped).toContain('\n')
-        expect(wrapped.split('\n').join('')).toBe(hash)
-        expect(wrapped).not.toContain('-')
+        expect(breakableIdentifier(address)).toBe(address)
+        expect(breakableIdentifier(hash)).toBe(hash)
+    })
 
-        // a mixed-case Manteca reference wraps too, case intact
-        const ref = 'MaNtEcA-Qr-7f3B-AbCd-0123456789abcdef0123456789'
-        expect(breakableIdentifier(ref).split('\n').join('')).toBe(ref)
+    test('hard-wraps only longer identifiers without altering their characters', async () => {
+        const { breakableIdentifier } = await import('../ReceiptPdfDocument')
+        const longIdentifier = `0x${'1234567890abcdef'.repeat(5)}`
+        const wrapped = breakableIdentifier(longIdentifier)
+
+        expect(wrapped).toContain('\n')
+        expect(wrapped.split('\n').join('')).toBe(longIdentifier)
+        expect(wrapped).not.toContain('-')
     })
 
     test('leaves ordinary values untouched', async () => {

@@ -12,6 +12,32 @@
 
 import { test, expect } from '@playwright/test'
 
+test('logged-out /home reaches setup without a setup-module initialization crash', async ({ page }) => {
+    const runtimeErrors: string[] = []
+    page.on('pageerror', (error) => runtimeErrors.push(error.message))
+    page.on('console', (message) => {
+        if (message.type() === 'error') runtimeErrors.push(message.text())
+    })
+
+    // Make the entry deterministic and keep the test off the real API. This is
+    // the production path from the Sentry reports: /home discovers that there
+    // is no session and boots /setup in the same client navigation.
+    await page.route('**/users/me', (route) =>
+        route.fulfill({ status: 401, headers: { 'Access-Control-Allow-Origin': '*' }, body: '{}' })
+    )
+    await page.goto('/home', { waitUntil: 'domcontentloaded' })
+    await expect.poll(() => new URL(page.url()).pathname).toBe('/setup')
+
+    const initializationErrors = runtimeErrors.filter((error) =>
+        /ReferenceError|before initialization|Cannot access .* before initialization/i.test(error)
+    )
+    expect(
+        initializationErrors,
+        `setup boot emitted initialization errors: ${JSON.stringify(initializationErrors)}`
+    ).toEqual([])
+    await expect(page.getByText(/Application error/i)).toHaveCount(0)
+})
+
 test('stale jwt-token cookie must not bounce /setup to /home', async ({ page, baseURL }) => {
     const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url')
     const staleJwt = [

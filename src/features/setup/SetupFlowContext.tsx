@@ -2,6 +2,7 @@
 
 import React, { createContext, type ReactNode, useContext, useMemo, useState, useCallback } from 'react'
 import { type ISetupStep, type ScreenId } from '@/components/Setup/Setup.types'
+import { type SignupEntryFlow } from '@/features/setup/signup-analytics'
 
 /**
  * Setup flow memory that cannot live in the URL: the filtered step list (a
@@ -13,6 +14,8 @@ import { type ISetupStep, type ScreenId } from '@/components/Setup/Setup.types'
  * clamps (TASK-21404).
  */
 interface SetupFlowContextType {
+    /** Unfiltered setup order, injected by the registry owner. */
+    masterScreenIds: readonly ScreenId[]
     steps: ISetupStep[]
     setSteps: (steps: ISetupStep[]) => void
     isLoading: boolean
@@ -26,6 +29,8 @@ interface SetupFlowContextType {
     setResidenceCountry: (country: string) => void
     secondResidenceCountry: string
     setSecondResidenceCountry: (country: string) => void
+    signupEntryFlow: SignupEntryFlow
+    setSignupEntryFlow: (entryFlow: SignupEntryFlow) => void
     /**
      * The point of no return: the no-back step the PAGE has confirmed visible
      * (stepRendered — entry resolution done, no interstitial/modal). Guards
@@ -41,13 +46,17 @@ interface SetupFlowContextType {
 
 const SetupFlowContext = createContext<SetupFlowContextType | undefined>(undefined)
 
-export const SetupFlowProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const SetupFlowProvider: React.FC<{ children: ReactNode; masterScreenIds: readonly ScreenId[] }> = ({
+    children,
+    masterScreenIds,
+}) => {
     const [steps, setSteps] = useState<ISetupStep[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [direction, setDirection] = useState(0)
     const [username, setUsername] = useState('')
     const [residenceCountry, setResidenceCountry] = useState('')
     const [secondResidenceCountry, setSecondResidenceCountry] = useState('')
+    const [signupEntryFlow, setSignupEntryFlow] = useState<SignupEntryFlow>('default')
     const [noBackLockScreenId, setNoBackLockScreenId] = useState<ScreenId | null>(null)
 
     // "start fresh" on the existing-session interstitial: the provider stays
@@ -63,6 +72,7 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode }> = ({ children 
 
     const value = useMemo(
         () => ({
+            masterScreenIds,
             steps,
             setSteps,
             isLoading,
@@ -75,17 +85,21 @@ export const SetupFlowProvider: React.FC<{ children: ReactNode }> = ({ children 
             setResidenceCountry,
             secondResidenceCountry,
             setSecondResidenceCountry,
+            signupEntryFlow,
+            setSignupEntryFlow,
             noBackLockScreenId,
             setNoBackLockScreenId,
             resetSetupFlow,
         }),
         [
+            masterScreenIds,
             steps,
             isLoading,
             direction,
             username,
             residenceCountry,
             secondResidenceCountry,
+            signupEntryFlow,
             noBackLockScreenId,
             resetSetupFlow,
         ]

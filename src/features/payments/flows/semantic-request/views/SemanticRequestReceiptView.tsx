@@ -73,6 +73,7 @@ export function SemanticRequestReceiptView() {
                 link: receiptLink,
             },
             userName: payerName,
+            avatarKey: successfulPayment.payerAccount?.user?.avatarKey ?? null,
             sourceView: 'status',
             memo: charge.requestLink?.reference || undefined,
             attachmentUrl: charge.requestLink?.attachmentUrl || undefined,

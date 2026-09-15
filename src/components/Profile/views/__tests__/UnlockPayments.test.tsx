@@ -31,10 +31,13 @@ jest.mock('next/navigation', () => ({
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
 
 let mockRails: unknown[] = []
+// A provider rejection only surfaces for an APPROVED user, so this has to be
+// settable — the residence-park case below is exactly that shape.
+let mockIsKycApproved = false
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
         rails: mockRails,
-        isKycApproved: false,
+        isKycApproved: mockIsKycApproved,
         railsForProvider: () => [],
         nextActionsForRail: () => [],
     }),
@@ -61,8 +64,10 @@ let mockKycDegraded = false
 jest.mock('@/hooks/useKycDegraded', () => ({ useKycDegraded: () => mockKycDegraded }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn(), setPersonProperties: jest.fn() } }))
 
-let mockUser: { residence?: { declared: string | null; verified: string | null }; user?: { userId: string } } | null =
-    null
+let mockUser: {
+    residence?: { declared: string | null; verified: string | null; pending?: string | null }
+    user?: { userId: string }
+} | null = null
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser }) }))
 
 jest.mock('@/hooks/useCardInfo', () => ({
@@ -78,14 +83,19 @@ jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSu
 
 const mockInitiateKyc = jest.fn()
 const mockRestartIdentity = jest.fn()
+const mockResidenceChange = jest.fn()
 const mockDismissCooldown = jest.fn()
 let mockFlowCooldown: { retryAt?: string } | null = null
 let mockFlowError: string | null = null
+const mockSelfHealResubmit = jest.fn()
+const mockFixableRejection = jest.fn()
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
         handleInitiateKyc: mockInitiateKyc,
-        handleSelfHealResubmit: jest.fn(),
+        handleSelfHealResubmit: mockSelfHealResubmit,
+        handleFixableRejection: mockFixableRejection,
         handleRestartIdentity: mockRestartIdentity,
+        handleResidenceChange: mockResidenceChange,
         isLoading: false,
         error: mockFlowError,
         errorCooldown: mockFlowCooldown,
@@ -108,11 +118,11 @@ jest.mock('@/components/IdentityVerification/UnlockMethodModal', () => ({
 }))
 jest.mock('@/components/Profile/views/ResidenceChangeDrawer', () => ({
     __esModule: true,
-    default: ({ visible, onReverify }: { visible: boolean; onReverify: (iso2: string) => void }) =>
+    default: ({ visible, onReverify }: { visible: boolean; onReverify: (targetCountry: string) => void }) =>
         visible ? (
             <div>
                 change-modal-open
-                <button onClick={() => onReverify('BR')}>reverify</button>
+                <button onClick={() => onReverify('PT')}>reverify</button>
             </div>
         ) : null,
 }))
@@ -123,6 +133,7 @@ describe('UnlockPayments', () => {
         mockBridgeLimits = null
         jest.clearAllMocks()
         mockRails = []
+        mockIsKycApproved = false
         mockRestrictions = { banking: false, card: false }
         mockUser = null
         mockIdentity = { status: 'not_started' }
@@ -211,22 +222,20 @@ describe('UnlockPayments', () => {
     })
 
     it('a failed residence re-verification reads as retriable, not "Not available yet"', () => {
-        mockUser = { residence: { declared: 'ES', verified: 'BR' }, user: { userId: 'u1' } }
+        mockUser = { residence: { declared: 'BR', verified: 'BR', pending: 'ES' }, user: { userId: 'u1' } }
         mockFlowError = 'Not Found'
         render()
         expect(screen.getByText('Not available yet')).toBeInTheDocument()
 
         fireEvent.click(screen.getByLabelText('Change'))
         fireEvent.click(screen.getByText('reverify'))
-        // the new residence's intent rides along so the token targets the right level
-        expect(mockRestartIdentity).toHaveBeenCalledTimes(1)
-        expect(mockRestartIdentity).toHaveBeenCalledWith('LATAM')
+        expect(mockResidenceChange).toHaveBeenNthCalledWith(1, 'PT')
+        expect(mockRestartIdentity).not.toHaveBeenCalled()
 
         expect(screen.getByText("Verification couldn't start")).toBeInTheDocument()
         expect(screen.queryByText('Not available yet')).not.toBeInTheDocument()
         fireEvent.click(screen.getByText('Try again'))
-        expect(mockRestartIdentity).toHaveBeenCalledTimes(2)
-        expect(mockRestartIdentity).toHaveBeenLastCalledWith('LATAM')
+        expect(mockResidenceChange).toHaveBeenNthCalledWith(2, 'PT')
         expect(mockInitiateKyc).not.toHaveBeenCalled()
     })
 
@@ -272,9 +281,77 @@ describe('UnlockPayments', () => {
         expect(screen.getByText('No limits on Peanut-to-Peanut payments')).toBeInTheDocument()
     })
 
-    it('a declared change pending re-verification is surfaced on the row', () => {
-        mockUser = { residence: { declared: 'ES', verified: 'BR' }, user: { userId: 'u1' } }
+    // A residence-parked rail. The TOP-LEVEL status is `blocked` (the backend maps
+    // REQUIRES_SUPPORT that way); only `resolved.status` is fixable. That is what
+    // makes `hasFunctionalRail` treat the region as LOCKED, so this modal is the
+    // surface the cohort actually reaches (TASK-22286).
+    const residenceParkedRail = {
+        id: 'bridge.sepa_eu',
+        provider: 'bridge',
+        channel: 'bank',
+        country: 'DE',
+        status: 'blocked',
+        reason: {
+            code: 'residence_unresolved',
+            userMessage: 'We still need your home address to finish setting up bank transfers.',
+        },
+        resolved: {
+            status: 'fixable',
+            blocking: {
+                code: 'residence_unresolved',
+                userMessage: 'We still need your home address to finish setting up bank transfers.',
+                selfHealable: true,
+                selfHealKind: 'document-resubmit',
+            },
+            nextAction: {
+                key: 'sumsub:address_of_residence',
+                kind: 'sumsub',
+                purpose: 'bridge-rfi',
+                levelKey: 'address_of_residence',
+            },
+        },
+    }
+
+    it('a residence park opens the address step, not the resubmit that 404s for it', () => {
+        mockRails = [residenceParkedRail]
+        mockIsKycApproved = true
         render()
-        expect(screen.getByText('Update to Spain pending re-verification')).toBeInTheDocument()
+        fireEvent.click(screen.getByText('Euro bank transfers'))
+        fireEvent.click(screen.getByText('Upload document'))
+
+        expect(mockFixableRejection).toHaveBeenCalledWith(
+            expect.objectContaining({ provider: 'BRIDGE', reasonCode: 'residence_unresolved' })
+        )
+        expect(mockSelfHealResubmit).not.toHaveBeenCalled()
+    })
+
+    it('every other fixable rejection here still takes resubmit — Manteca is untouched', () => {
+        mockRails = [
+            {
+                ...residenceParkedRail,
+                id: 'manteca.pix_br',
+                provider: 'manteca',
+                country: 'BR',
+                reason: { code: 'source_of_funds', userMessage: 'We need information about your source of funds.' },
+                resolved: {
+                    ...residenceParkedRail.resolved,
+                    blocking: { ...residenceParkedRail.resolved.blocking, code: 'source_of_funds' },
+                    nextAction: { ...residenceParkedRail.resolved.nextAction, key: 'sumsub:source_of_funds' },
+                },
+            },
+        ]
+        mockIsKycApproved = true
+        render()
+        fireEvent.click(screen.getByText('PIX (Brazil), QR & bank transfers (Argentina)'))
+        fireEvent.click(screen.getByText('Upload document'))
+
+        expect(mockSelfHealResubmit).toHaveBeenCalledWith('MANTECA')
+        expect(mockFixableRejection).not.toHaveBeenCalled()
+    })
+
+    it('a pending residence verification is surfaced without replacing the active country', () => {
+        mockUser = { residence: { declared: 'BR', verified: 'BR', pending: 'ES' }, user: { userId: 'u1' } }
+        render()
+        expect(screen.getByText('Change to Spain pending verification')).toBeInTheDocument()
     })
 })

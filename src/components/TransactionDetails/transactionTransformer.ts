@@ -6,6 +6,7 @@ import {
 import { EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
 import {
     getExplorerUrl,
+    getTransactionExplorerUrl,
     getInitialsFromName,
     getTokenDetails,
     getChainName,
@@ -249,6 +250,7 @@ function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDir
  */
 function computeDerivedFields(entry: HistoryEntry): {
     explorerUrlWithTx: string | undefined
+    proofTxHash: string | undefined
     addressExplorerUrl: string | undefined
     tokenDisplayDetails:
         | {
@@ -260,20 +262,25 @@ function computeDerivedFields(entry: HistoryEntry): {
         | undefined
     rewardData: RewardData | undefined
 } {
-    // For crypto deposits, force the explorer URL to Peanut's wallet chain
-    // (Arbitrum) — the underlying chainId field is the deposit-source chain.
-    // CRYPTO_DEPOSIT and CRYPTO_WITHDRAW both record the tx hash on Peanut's
-    // wallet chain (Arbitrum) — for withdrawals entry.chainId is the
-    // DESTINATION, so linking it with the recorded hash mislinked receipts on
-    // destinations that have an explorer (e.g. Avalanche) and left them
-    // linkless on ones that don't (Tempo, Solana, Tron). Always link the
-    // chain the recorded hash actually lives on. (Known residual: a withdraw
-    // completed via the BRIDGE_EXECUTED webhook carries the destination-side
-    // hash — rare; linking source keeps the dominant case correct.)
+    // Charge history's top-level hash is the source-side proof. A completed
+    // cross-chain withdraw can additionally carry a server-authenticated
+    // destination proof from BRIDGE_EXECUTED; only switch when the pair is
+    // complete, so pending and partially-deployed API responses stay on the
+    // source transaction instead of combining a hash with the wrong chain.
     const kind = intentKindOf(entry)
-    const explorerUrlChainID =
+    const sourceExplorerChainId =
         kind === 'CRYPTO_DEPOSIT' || kind === 'CRYPTO_WITHDRAW' ? PEANUT_WALLET_CHAIN.id.toString() : entry.chainId
-    const baseUrl = getExplorerUrl(explorerUrlChainID)
+    const destinationProof =
+        kind === 'CRYPTO_WITHDRAW' &&
+        entry.status?.toUpperCase() === 'COMPLETED' &&
+        entry.extraData?.destinationTxHash &&
+        entry.extraData.destinationChain
+            ? {
+                  hash: entry.extraData.destinationTxHash,
+                  chain: entry.extraData.destinationChain,
+              }
+            : undefined
+    const baseUrl = getExplorerUrl(sourceExplorerChainId)
 
     let explorerUrlWithTx: string | undefined
     let addressExplorerUrl: string | undefined
@@ -281,9 +288,11 @@ function computeDerivedFields(entry: HistoryEntry): {
         if (entry.senderAccount?.identifier) {
             addressExplorerUrl = `${baseUrl}/address/${entry.senderAccount.identifier}`
         }
-        if (entry.txHash && explorerUrlChainID) {
-            explorerUrlWithTx = `${baseUrl}/tx/${entry.txHash}`
-        }
+    }
+    const proofHash = destinationProof?.hash ?? entry.txHash
+    const proofChain = destinationProof?.chain ?? sourceExplorerChainId
+    if (proofHash && proofChain) {
+        explorerUrlWithTx = getTransactionExplorerUrl(proofChain, proofHash)
     }
 
     let tokenDisplayDetails
@@ -303,7 +312,7 @@ function computeDerivedFields(entry: HistoryEntry): {
     }
 
     const rewardData = REWARD_TOKENS[entry.tokenAddress?.toLowerCase()]
-    return { explorerUrlWithTx, addressExplorerUrl, tokenDisplayDetails, rewardData }
+    return { explorerUrlWithTx, proofTxHash: proofHash, addressExplorerUrl, tokenDisplayDetails, rewardData }
 }
 
 /**
@@ -327,6 +336,10 @@ export interface TransactionDetails {
     isPeerActuallyUser?: boolean
     fullName: string
     showFullName?: boolean
+    /** The counterparty's picked profile avatar (TASK-22625). Null whenever the
+     *  counterparty is not a Peanut user, so a render site can pass it straight
+     *  through without re-checking `isPeerActuallyUser`. */
+    avatarKey?: string | null
     amount: number | bigint
     /** Raw destination-token amount string from the BE (e.g. "0.000416666"
      *  for a $1 ETH withdraw). Preserves full decimals for receipt rendering;
@@ -569,7 +582,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     const networkFeeUsd = typeof entry.extraData?.networkFeeUsd === 'number' ? entry.extraData.networkFeeUsd : 0
     const amount = baseAmount + networkFeeUsd
 
-    const { explorerUrlWithTx, addressExplorerUrl, tokenDisplayDetails, rewardData } = computeDerivedFields(entry)
+    const { explorerUrlWithTx, proofTxHash, addressExplorerUrl, tokenDisplayDetails, rewardData } =
+        computeDerivedFields(entry)
 
     // If full name is empty, set it to same as nameForDetails as fallback
     if (!fullName || fullName === '') {
@@ -595,6 +609,9 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         tokenAmount: entry.amount,
         fullName,
         showFullName,
+        // Read after the reaper / failed-QR overrides above, so a row whose
+        // counterparty was rewritten to system copy cannot keep their sticker.
+        avatarKey: isPeerActuallyUser ? (out.avatarKey ?? null) : null,
         currency: rewardData ? undefined : entry.currency,
         currencySymbol: `${displayUserRole === EHistoryUserRole.SENDER ? '-' : '+'}$`,
         tokenSymbol: rewardData?.getSymbol(amount) ?? entry.tokenSymbol,
@@ -628,7 +645,10 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         })(),
         attachmentUrl: entry.attachmentUrl,
         cancelledDate: entry.cancelledAt,
-        txHash: entry.txHash,
+        // Keep displayed/copied proof and its explorer URL atomic. Completed
+        // cross-chain withdrawals use the destination pair; pending and legacy
+        // rows keep the source pair.
+        txHash: proofTxHash,
         explorerUrl: explorerUrlWithTx,
         tokenDisplayDetails,
         tokenAddress: entry.tokenAddress,

@@ -281,3 +281,19 @@ describe('demo mode is web-safe', () => {
         expect(isDemoMode()).toBe(false) // ...web stays inert
     })
 })
+
+describe('demoRespond — card application', () => {
+    it('walks apply → terms → pending like the real contract', async () => {
+        const before = await body('/rain/cards')
+        expect(before.data.status.hasApplication).toBe(false)
+
+        const ask = await body('/rain/cards', { method: 'POST', body: JSON.stringify({ termsAccepted: false }) })
+        expect(ask.data.status).toBe('terms-required')
+
+        const accept = await body('/rain/cards', { method: 'POST', body: JSON.stringify({ termsAccepted: true }) })
+        expect(accept.data.status).toBe('pending')
+
+        const after = await body('/rain/cards')
+        expect(after.data.status).toEqual({ hasApplication: true, railStatus: 'PENDING' })
+    })
+})

@@ -125,7 +125,7 @@ const CardFace: FC<Props> = ({
                             <span className="text-heading-xs tracking-wider">???? ???? ???? ????</span>
                             <div className="mt-1 flex items-end justify-between gap-6 text-body-xs">
                                 <div>
-                                    <div className="opacity-70">{t('peanutPioneer')}</div>
+                                    <div className="opacity-70">{t('cardholder')}</div>
                                     <div className="font-bold">????</div>
                                 </div>
                                 <div>

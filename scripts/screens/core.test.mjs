@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os'
 import { PNG } from 'pngjs'
 import {
     validateCapture,
+    validateJourneys,
     compare,
     storeAsset,
     verifyAsset,
@@ -56,12 +57,21 @@ test('same pixels remain unchanged; changed pixels get a diff', () => {
 test('failure cannot become a removed or unchanged screen', () => {
     const failed = { id: 'home', name: 'Home', flow: 'Home', kind: 'route', status: 'failed', reason: 'Wrong route' }
     const r = compare(capture([screen('home')]), capture([failed]), dir)
-    assert.equal(r.screens[0].status, 'unavailable')
+    assert.equal(r.screens[0].status, 'failed')
     assert.equal(r.complete, false)
 })
 test('historical unsupported state is unavailable, not new', () => {
     const old = { ...screen('home'), status: 'unavailable', reason: 'Adapter unavailable' }
     assert.equal(compare(capture([old]), capture([screen('home')]), dir).screens[0].status, 'unavailable')
+})
+test('intentional exclusions and absent routes remain distinguishable from failures', () => {
+    const excluded = { ...screen('excluded'), status: 'excluded', reason: 'Alias covered elsewhere' }
+    const absent = { ...screen('absent'), status: 'absent', reason: 'Route does not exist' }
+    const r = compare(capture([excluded, absent]), capture([excluded, absent]), dir)
+    assert.deepEqual(
+        r.screens.map((s) => s.status),
+        ['absent', 'excluded']
+    )
 })
 test('only complete catalogues prove additions and removals', () => {
     const r = compare(capture([screen('old')]), capture([screen('new')]), dir)
@@ -77,11 +87,16 @@ test('different harness, fixtures or environment requires recapture', () => {
         assert.throws(() => compare(capture([screen('home')]), r, dir), /environments differ/)
     }
 })
+test('captures from different locales cannot be compared', () => {
+    const portuguese = { ...capture([screen('home')]), locale: 'pt-BR', profile: 'pt-BR-393x852' }
+    assert.throws(() => compare(capture([screen('home')]), portuguese, dir), /environments differ/)
+})
 test('reject empty, duplicate, path traversal, and forged completion', () => {
     assert.throws(() => validateCapture(capture([])))
     assert.throws(() => validateCapture(capture([screen('home'), screen('home')])))
     assert.throws(() => validateCapture(capture([screen('../escape')])))
     assert.throws(() => validateCapture(capture([{ ...screen('home'), image: '../../secret' }])))
+    assert.throws(() => validateCapture({ ...capture([screen('home')]), locale: 'fr', profile: 'fr-393x852' }))
     assert.equal(
         validateCapture({ ...capture([{ ...screen('home'), status: 'failed', reason: 'timeout' }]), complete: true })
             .complete,
@@ -95,6 +110,98 @@ test('asset digest and dimensions are checked before decoding', () => {
     const p = new PNG({ width: 2, height: 2 })
     const tiny = storeAsset(dir, PNG.sync.write(p))
     assert.throws(() => verifyAsset(dir, tiny), /dimensions/)
+    const journey = new PNG({ width: 1170, height: 1992 })
+    const journeyName = storeAsset(dir, PNG.sync.write(journey))
+    assert.doesNotThrow(() => verifyAsset(dir, journeyName, { variableDimensions: true }))
+})
+
+test('Nutcracker journeys retain only allowlisted public metadata', () => {
+    const input = {
+        schema: 1,
+        type: 'journeys',
+        source: 'nutcracker',
+        commit: 'a'.repeat(40),
+        uiCommit: 'b'.repeat(40),
+        apiCommit: 'c'.repeat(40),
+        locale: 'en',
+        environment: 'sandbox',
+        capturedAt: '2026-09-14T00:00:00Z',
+        profile: 'en-iphone-14',
+        width: 390,
+        height: 664,
+        attemptedSteps: 1,
+        failedSteps: 0,
+        omittedFailedSteps: 0,
+        complete: true,
+        replaySecret: 'do-not-publish',
+        screens: [
+            {
+                id: 'send-success',
+                name: 'Send success',
+                flow: 'e2e-send',
+                route: '/send/success',
+                kind: 'route',
+                status: 'passed',
+                trustTier: 'full-e2e',
+                image: a,
+                thumbnail: b.replace(/\.png$/, '.webp'),
+                trace: { authorization: 'secret' },
+            },
+        ],
+    }
+    const output = validateJourneys(input)
+    assert.equal(output.complete, true)
+    assert.equal(output.replaySecret, undefined)
+    assert.equal(output.screens[0].trace, undefined)
+    assert.equal(output.screens[0].route, '/send/success')
+    assert.equal(output.screens[0].trustTier, 'full-e2e')
+    assert.equal(output.attemptedSteps, 1)
+    assert.equal(output.failedSteps, 0)
+    assert.equal(output.omittedFailedSteps, 0)
+    assert.equal(
+        validateJourneys({
+            ...input,
+            complete: true,
+            failedSteps: 1,
+            screens: [{ ...input.screens[0], status: 'failed' }],
+        }).complete,
+        false
+    )
+    assert.equal(
+        validateJourneys({
+            ...input,
+            complete: true,
+            attemptedSteps: 2,
+            failedSteps: 1,
+            omittedFailedSteps: 1,
+        }).complete,
+        false
+    )
+    assert.throws(
+        () =>
+            validateJourneys({
+                ...input,
+                screens: [{ ...input.screens[0], route: '/claim#p=do-not-publish' }],
+            }),
+        /Invalid journey route/
+    )
+    assert.throws(
+        () =>
+            validateJourneys({
+                ...input,
+                screens: [{ ...input.screens[0], thumbnail: a }],
+            }),
+        /Invalid journey image/
+    )
+    assert.throws(() => validateJourneys({ ...input, attemptedSteps: undefined }), /Invalid journey run counts/)
+    assert.throws(
+        () =>
+            validateJourneys({
+                ...input,
+                screens: [{ ...input.screens[0], trustTier: 'surface-only' }],
+            }),
+        /Invalid journey trust tier/
+    )
 })
 test('exact review merge-base and first-parent resolution', () => {
     const head = 'a'.repeat(40),

@@ -44,6 +44,11 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     const [fullName, setFullName] = useState<string>(username)
     const [showFullName, setShowFullName] = useState<boolean>(false)
     const [isKycVerified, setIsKycVerified] = useState<boolean>(false)
+    // Keyed by the username it was loaded for: the [...recipient] route reuses
+    // this component instance across profiles, and an effect-time reset still
+    // lets one render paint the previous owner's avatar beside the new name.
+    const [loadedAvatar, setLoadedAvatar] = useState<{ username: string; avatarKey: string | null } | null>(null)
+    const avatarKey = loadedAvatar?.username === username ? loadedAvatar.avatarKey : null
     const router = useRouter()
     const goBack = useSafeBack('/home')
     const { user, isFetchingUser } = useAuth()
@@ -135,14 +140,21 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
     )
 
     useEffect(() => {
+        // Ignore a response the next navigation has already superseded.
+        let superseded = false
         usersApi.getByUsername(username).then((apiUser) => {
+            if (superseded) return
             if (apiUser?.fullName) setFullName(apiUser.fullName)
             // get the profile owner's showFullName preference
             setShowFullName(apiUser?.showFullName ?? false)
             setIsKycVerified(apiUser?.isVerified ?? false)
             setProfileUserId(apiUser?.userId ?? null)
             setProfileBadges(apiUser?.badges ?? [])
+            setLoadedAvatar({ username, avatarKey: apiUser?.avatarKey ?? null })
         })
+        return () => {
+            superseded = true
+        }
     }, [username])
 
     // interaction-status is the complete "sent money before" source (covers send-link
@@ -177,6 +189,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                     isVerified={isKycVerified}
                     className="mb-6"
                     haveSentMoneyToUser={haveSentMoneyToUser}
+                    avatarKey={avatarKey}
                 />
 
                 {/* Action Buttons */}

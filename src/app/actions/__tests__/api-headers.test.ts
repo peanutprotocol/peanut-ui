@@ -80,14 +80,6 @@ describe('action functions Content-Type headers', () => {
         expect(headers['Content-Type']).toBe('application/json')
     })
 
-    it('should include Content-Type in purchaseCard', async () => {
-        const { purchaseCard } = require('@/app/actions/card')
-        await purchaseCard()
-
-        const headers = getLastCallHeaders()
-        expect(headers['Content-Type']).toBe('application/json')
-    })
-
     it('should include Content-Type in createBridgeExternalAccountForGuest', async () => {
         const { createBridgeExternalAccountForGuest } = require('@/app/actions/external-accounts')
         await createBridgeExternalAccountForGuest('customer-123', {
@@ -203,12 +195,6 @@ describe('action functions call PEANUT_API_URL directly on web', () => {
         expect(getLastCallUrl()).toBe('https://api.test.com/invites/validate')
     })
 
-    it('should call PEANUT_API_URL directly for GET', async () => {
-        const { getCardInfo } = require('@/app/actions/card')
-        await getCardInfo()
-        expect(getLastCallUrl()).toBe('https://api.test.com/card')
-    })
-
     it('should call PEANUT_API_URL directly for DELETE', async () => {
         const { cancelOnramp } = require('@/app/actions/onramp')
         await cancelOnramp('transfer-123')
@@ -232,22 +218,9 @@ describe('action functions call backend directly on native', () => {
         expect(getLastCallUrl()).toBe('https://api.test.com/invites/validate')
     })
 
-    it('should call PEANUT_API_URL directly for GET actions', async () => {
-        const { getCardInfo } = require('@/app/actions/card')
-        await getCardInfo()
-        expect(getLastCallUrl()).toBe('https://api.test.com/card')
-    })
-
     it('should call PEANUT_API_URL directly for DELETE actions', async () => {
         const { cancelOnramp } = require('@/app/actions/onramp')
         await cancelOnramp('transfer-123')
         expect(getLastCallUrl()).toBe('https://api.test.com/bridge/onramp/transfer-123/cancel')
-    })
-
-    it('should include auth headers in native mode', async () => {
-        const { getCardInfo } = require('@/app/actions/card')
-        await getCardInfo()
-        const headers = getLastCallHeaders()
-        expect(headers['Authorization']).toBe('Bearer test-token')
     })
 })

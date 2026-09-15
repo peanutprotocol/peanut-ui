@@ -1,6 +1,7 @@
 import { mapTransactionDataForDrawer } from '../transactionTransformer'
 import { EHistoryUserRole, EHistoryStatus, getTransactionSign, type HistoryEntry } from '@/utils/history.utils'
 import { pipelineAlert } from '@/utils/pipelineAlerts'
+import { getTransactionExplorerUrl } from '@/utils/general.utils'
 
 jest.mock('@/assets', () => ({}))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
@@ -494,6 +495,59 @@ describe('mapTransactionDataForDrawer', () => {
         }
     })
 
+    describe('cross-chain withdrawal transaction proof (TASK-22614)', () => {
+        const completedWithdraw = (destinationChain: string, destinationTxHash: string) =>
+            baseEntry({
+                txHash: '0x' + 'a'.repeat(64),
+                status: EHistoryStatus.COMPLETED,
+                userRole: EHistoryUserRole.SENDER,
+                recipientAccount: externalEoa,
+                extraData: { kind: 'CRYPTO_WITHDRAW', destinationChain, destinationTxHash },
+            })
+
+        it('links a completed Tron delivery to its destination transaction', () => {
+            const result = mapTransactionDataForDrawer(completedWithdraw('TRON', 'b'.repeat(64))).transactionDetails
+
+            expect(result.txHash).toBe('b'.repeat(64))
+            expect(result.explorerUrl).toBe(`https://tronscan.org/#/transaction/${'b'.repeat(64)}`)
+        })
+
+        it('preserves a case-sensitive Solana signature in the destination link', () => {
+            const signature = '2AgqhXGtYtBBaEPLtxUSuvXikE6bb1jF2nbYb61CSEhe78CqrDCCTcyDD6pDbDDjHsVGnrUfEDbKf2utWxM6TCqG'
+            const result = mapTransactionDataForDrawer(completedWithdraw('SOLANA', signature)).transactionDetails
+
+            expect(result.txHash).toBe(signature)
+            expect(result.explorerUrl).toBe(`https://solscan.io/tx/${signature}`)
+        })
+
+        it('keeps a pending withdrawal on the source proof even if destination fields arrive prematurely', () => {
+            const sourceHash = '0x' + 'c'.repeat(64)
+            const result = mapTransactionDataForDrawer(
+                baseEntry({
+                    txHash: sourceHash,
+                    status: EHistoryStatus.PENDING,
+                    userRole: EHistoryUserRole.SENDER,
+                    recipientAccount: externalEoa,
+                    extraData: {
+                        kind: 'CRYPTO_WITHDRAW',
+                        destinationChain: 'TRON',
+                        destinationTxHash: 'd'.repeat(64),
+                    },
+                })
+            ).transactionDetails
+
+            expect(result.txHash).toBe(sourceHash)
+            expect(result.explorerUrl).toContain(`/tx/${sourceHash}`)
+            expect(result.explorerUrl).not.toContain('tronscan.org')
+        })
+
+        it('preserves the exact Arbitrum Sepolia network for a sandbox proof', () => {
+            const sourceHash = '0x' + 'e'.repeat(64)
+
+            expect(getTransactionExplorerUrl('421614', sourceHash)).toBe(`https://sepolia.arbiscan.io/tx/${sourceHash}`)
+        })
+    })
+
     describe('unknown-kind default arm (forward-compat / regression guard)', () => {
         it('routes an unhandled kind to the fallback (undefined kind on output)', () => {
             // Per `isIntentKind` runtime guard — an unknown kind is NOT
@@ -661,6 +715,120 @@ describe('mapTransactionDataForDrawer', () => {
             expect(result.fullName).toBe('Nancy Drew')
             expect(result.showFullName).toBe(true)
             expect(result.initials).toBe('ND')
+        })
+    })
+
+    describe('counterparty avatarKey (TASK-22625)', () => {
+        const detailsOf = (entry: HistoryEntry) => mapTransactionDataForDrawer(entry).transactionDetails
+
+        it('carries the recipient pick on an outgoing send', () => {
+            const result = detailsOf(
+                baseEntry({
+                    userRole: EHistoryUserRole.SENDER,
+                    recipientAccount: { ...aliceUser, avatarKey: 'basic.frog' },
+                    extraData: { kind: 'DIRECT_TRANSFER' },
+                })
+            )
+            expect(result.avatarKey).toBe('basic.frog')
+        })
+
+        it('carries the sender pick on an incoming receive', () => {
+            const result = detailsOf(
+                baseEntry({
+                    userRole: EHistoryUserRole.RECIPIENT,
+                    senderAccount: { ...bobUser, avatarKey: 'badge.OG.hat' },
+                    recipientAccount: aliceUser,
+                    extraData: { kind: 'DIRECT_TRANSFER' },
+                })
+            )
+            expect(result.avatarKey).toBe('badge.OG.hat')
+        })
+
+        it('carries the sender pick on a claimed send link', () => {
+            const result = detailsOf(
+                baseEntry({
+                    userRole: EHistoryUserRole.RECIPIENT,
+                    senderAccount: { ...bobUser, avatarKey: 'basic.frog' },
+                    recipientAccount: aliceUser,
+                    extraData: { kind: 'SEND_LINK' },
+                })
+            )
+            expect(result.avatarKey).toBe('basic.frog')
+        })
+
+        it('is null when the counterparty is not a Peanut user', () => {
+            const result = detailsOf(
+                baseEntry({
+                    userRole: EHistoryUserRole.SENDER,
+                    recipientAccount: externalEoa,
+                    extraData: { kind: 'DIRECT_TRANSFER' },
+                })
+            )
+            expect(result.avatarKey).toBeNull()
+        })
+
+        it('is null when the user has no pick', () => {
+            const result = detailsOf(
+                baseEntry({
+                    userRole: EHistoryUserRole.SENDER,
+                    recipientAccount: aliceUser,
+                    extraData: { kind: 'DIRECT_TRANSFER' },
+                })
+            )
+            expect(result.avatarKey).toBeNull()
+        })
+
+        // The reaper rewrites the name to system copy ("Transaction did not
+        // complete") — keeping the sticker beside it would still read as "sent
+        // to alice".
+        it('drops the pick on a reaper-failed row', () => {
+            const result = detailsOf(
+                baseEntry({
+                    status: EHistoryStatus.FAILED,
+                    userRole: EHistoryUserRole.SENDER,
+                    recipientAccount: { ...aliceUser, avatarKey: 'basic.frog' },
+                    extraData: { kind: 'DIRECT_TRANSFER', failReason: 'DIRECT_TRANSFER_timeout' },
+                })
+            )
+            expect(result.avatarKey).toBeNull()
+        })
+
+        // A bank send-link claimed by a Peanut user renders as a send to them,
+        // and the recipient-side offramp edge renders as a receive — both are
+        // person rows, so both must carry the pick.
+        it('carries the claimer pick on a bank send-link claim', () => {
+            const result = detailsOf(
+                baseEntry({
+                    userRole: EHistoryUserRole.SENDER,
+                    recipientAccount: { ...aliceUser, avatarKey: 'basic.frog' },
+                    extraData: { kind: 'OFFRAMP', bridgeFlow: 'BANK_SEND_LINK_CLAIM' },
+                })
+            )
+            expect(result.avatarKey).toBe('basic.frog')
+        })
+
+        it('carries the initiator pick on a received bank withdraw', () => {
+            const result = detailsOf(
+                baseEntry({
+                    userRole: EHistoryUserRole.RECIPIENT,
+                    senderAccount: { ...bobUser, avatarKey: 'basic.frog' },
+                    recipientAccount: aliceUser,
+                    extraData: { kind: 'OFFRAMP' },
+                })
+            )
+            expect(result.avatarKey).toBe('basic.frog')
+        })
+
+        it('drops the pick on a failed QR payment', () => {
+            const result = detailsOf(
+                baseEntry({
+                    status: EHistoryStatus.FAILED,
+                    userRole: EHistoryUserRole.SENDER,
+                    recipientAccount: { ...aliceUser, avatarKey: 'basic.frog' },
+                    extraData: { kind: 'QR_PAY' },
+                })
+            )
+            expect(result.avatarKey).toBeNull()
         })
     })
 })

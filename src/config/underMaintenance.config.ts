@@ -30,22 +30,13 @@
  *    - shows info message explaining cross-chain is temporarily unavailable
  *    - same-chain operations continue to work
  *
- * 6. disableCardPioneers: hides the card pioneers waitlist feature entirely
- *    - /card page redirects to /home
- *    - /lp/card redirects to /shhhhh (redirects.json) — the marketing page itself is gone
- *    - card pioneer modal, carousel cta, and perk rewards hidden from home
- *    - the landing-page card section it used to hide was removed in 2026-08; use disableLandingCardFold for the new one
- *    - set to false to enable the feature
- *
  * 7. pixBrazilOnrampMaintenance: warn-only flag for the BRL-via-PIX onramp (Manteca Brazil deposit)
  *    - shows a "Maintenance" tag on the Pix option in /add-money/brazil
  *    - does NOT block deposits — the option stays usable (warn-only)
  *    - set to true if the PIX onramp degrades again
  *
- * 8. disableCardLaunchCTA: kill-switch for the in-app "shhh" card CTA (the home nudge)
- *    - true hides BOTH the activation-funnel card step and the activated-base home splash
- *    - the /card flow, /shhhhh page, and waitlist pill stay reachable regardless — this only mutes the proactive in-app nudge
- *    - currently false (CTA live, routes to /shhhhh); set true to dial down in-app load without touching the flow
+ * 8. disableCardPromotion: hides the funded user's Home card prompt.
+ *    - direct card applications remain available.
  *
  * 9. disabledMantecaCurrencies: per-currency kill-switch for the Manteca add-money (onramp) and withdraw (offramp) flows
  *    - list the fiat currencies still down (e.g. ['BRL']) — those countries' /add-money/<country>/manteca and
@@ -54,10 +45,8 @@
  *    - use during a partial Manteca outage so recovered currencies (e.g. ARS) come back while others stay blocked
  *    - does NOT touch QR payments (Manteca QR / Brazil PIX-over-QR stay open) — that is disabledPaymentProviders
  *
- * 10. disableLandingCardFold: hides the "shhhhh" card fold on the landing page
- *    - removes the black door fold and the closed-beta marquee strip under it
- *    - /shhhhh and the rest of the card flow stay reachable — this only mutes the homepage pitch
- *    - use if the closed beta fills up or the card goes down
+ * 10. disableLandingCardFold: hides the homepage card offer and feature strip.
+ *    - card applications and the public card landing remain available.
  *
  * note: if either mode is enabled, the maintenance banner shows everywhere EXCEPT
  * /home — home never shows it, whatever these switches say (designer ruling
@@ -77,8 +66,7 @@ interface MaintenanceConfig {
     disabledPaymentProviders: PaymentProvider[]
     disableXchainWithdraw: boolean
     disableXchainSend: boolean
-    disableCardPioneers: boolean
-    disableCardLaunchCTA: boolean
+    disableCardPromotion: boolean
     disableLandingCardFold: boolean
     pixBrazilOnrampMaintenance: boolean
     /** Manteca fiat currencies still down (e.g. ['BRL']); currencies not listed stay live. Empty = all enabled. */
@@ -101,9 +89,8 @@ const underMaintenanceConfig: MaintenanceConfig = {
      */
     disableXchainWithdraw: false,
     disableXchainSend: true, // set to true to disable cross-chain sends (claim, request payments - only allows USDC on Arbitrum)
-    disableCardPioneers: true, // set to false to enable the Card Pioneers waitlist feature
-    disableCardLaunchCTA: false, // kill-switch for the in-app "shhh" card CTA (funnel card step + activated home splash). Set true to mute it (dial down in-app load); /card flow + /shhhhh + waitlist stay reachable regardless.
-    disableLandingCardFold: false, // set to true to hide the landing-page card fold (black door fold + the closed-beta strip under it)
+    disableCardPromotion: false, // Mute the Home card prompt; /card remains available.
+    disableLandingCardFold: false,
     pixBrazilOnrampMaintenance: false, // BRL deposits restored via dynamic PIX QR (2026-07-02). Set true if the onramp degrades again.
     disabledMantecaCurrencies: [], // Manteca restored after the 2026-08-24 outage (ARS + BRL live). Add a currency here to block it during a future outage.
 }

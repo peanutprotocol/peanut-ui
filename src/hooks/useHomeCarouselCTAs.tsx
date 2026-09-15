@@ -19,7 +19,6 @@ import { useCardInfo } from './useCardInfo'
 import { useActivationStatus } from './useActivationStatus'
 import { useTransactionHistory } from './useTransactionHistory'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
-import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { PEANUTMAN_MOBILE, PeanutWavingHello } from '@/assets/mascot'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
@@ -29,6 +28,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { USER_INTERVIEW_CAL_URL } from '@/constants/general.consts'
 import { useFeatureFlags } from './useFeatureFlag'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 // Days a dismissed CTA stays hidden before reappearing. Set above 1 so dismiss feels
 // "sticky" but below 14 so we still nudge users about valuable actions they haven't
@@ -103,7 +103,7 @@ export const useHomeCarouselCTAs = () => {
     } = useNotifications()
     const toast = useToast()
     const router = useRouter()
-    const { canDo, rails, bankRails } = useCapabilities()
+    const { canDo, rails, bankRails, channelOf } = useCapabilities()
     // Suppress the "verify your account" CTA when the user is already mid-flow
     // on ANY rail (`pending` = submitted/provisioning, `requires-info` = finish
     // tos/proof). Includes pool-tier Manteca + QR-only rails, not just bank —
@@ -115,7 +115,7 @@ export const useHomeCarouselCTAs = () => {
 
     const { setIsQRScannerOpen } = useModalsContext()
     const { countryCode: userCountryCode } = useGeoLocation()
-    const { hasCardAccess: hasCardAccessGranted } = useCardInfo()
+    const { isEligible: isCardEligible, cardInfo } = useCardInfo()
     const { isActivated } = useActivationStatus()
 
     // Completion signals — used to hide educational CTAs from users who've already
@@ -201,25 +201,6 @@ export const useHomeCarouselCTAs = () => {
         // Rain (card) does NOT count; a card-only user must still see the verify CTA.
         const hasKycApproval = bankRails().some((r) => r.status === 'enabled') || canDo('pay')
         const isLatamUser = userCountryCode === 'AR' || userCountryCode === 'BR'
-
-        // Card CTA — Pioneers replaced by free badge-gated waitlist (M2).
-        // Show to all users who don't already have card access.
-        // Routes via /shhhhh so the user passes the outer gate AND lands on
-        // the marketing context for the closed beta. Users with badges that
-        // skip the queue will go straight to celebration on /card.
-        if (!underMaintenanceConfig.disableCardPioneers && hasCardAccessGranted === false) {
-            _carouselCTAs.push({
-                id: 'card-pioneer',
-                title: <span>{t.rich('card.title', { b })}</span>,
-                description: <span>{t.rich('card.description', { b })}</span>,
-                iconContainerClassName: 'bg-action-primary',
-                icon: 'credit-card',
-                onClick: () => {
-                    router.push('/shhhhh')
-                },
-                iconSize: 16,
-            })
-        }
 
         // Generic invite CTA for non-LATAM activated users who haven't invited yet.
         if (!isLatamUser && isActivated && !hasSentInvites) {
@@ -345,13 +326,34 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        // Don't push card-eligible users (skip badge / admin grant) to the
-        // region picker. This CTA routes to /profile/identity-verification,
-        // where EU/NA users get `bridge-requirements` + Bridge bank rails — the
-        // detour we steer eligible users away from (they go to /card instead,
-        // which KYCs on `rain-requirements`). `=== false` so we suppress while
-        // card-info is still loading too, mirroring the card-pioneer gate above.
-        if (!hasKycApproval && !isInFlight && hasCardAccessGranted === false) {
+        // Public card offer for ACTIVATED users — pre-activation Home is owned
+        // by ActivationCTAs (checklist / spend step), which carries its own
+        // card arm. Excluded: known prohibited residences, anyone with a card
+        // relationship (any card-channel rail: active card or in-flight
+        // application), and the same kill switch as every other card prompt.
+        const hasCardRelationship = rails.some((rail) => channelOf(rail) === 'card')
+        if (
+            !underMaintenanceConfig.disableCardPromotion &&
+            isActivated === true &&
+            cardInfo &&
+            !cardInfo.geoProhibited &&
+            !hasCardRelationship
+        ) {
+            _carouselCTAs.push({
+                id: 'card-offer',
+                title: <span>{t.rich('card.title', { b })}</span>,
+                description: <span>{t.rich('card.description', { b })}</span>,
+                iconContainerClassName: 'bg-action-primary',
+                icon: 'credit-card',
+                iconSize: 16,
+                onClick: () => {
+                    router.push('/card')
+                },
+            })
+        }
+
+        // Card-eligible users use the card verification flow instead of bank onboarding.
+        if (!hasKycApproval && !isInFlight && isCardEligible === false) {
             _carouselCTAs.push({
                 id: 'kyc-prompt',
                 title: <span>{t.rich('kyc.title', { b })}</span>,
@@ -368,7 +370,6 @@ export const useHomeCarouselCTAs = () => {
         setCarouselCTAs(_carouselCTAs.filter((cta) => !dismissedRef.current.has(cta.id)))
     }, [
         t,
-        user?.user?.userId,
         isPermissionGranted,
         isPermissionDenied,
         isPushOptedIn,
@@ -382,7 +383,10 @@ export const useHomeCarouselCTAs = () => {
         deviceType,
         isPwa,
         userCountryCode,
-        hasCardAccessGranted,
+        isCardEligible,
+        cardInfo,
+        rails,
+        channelOf,
         isActivated,
         hasMadeQrPayment,
         hasSentInvites,

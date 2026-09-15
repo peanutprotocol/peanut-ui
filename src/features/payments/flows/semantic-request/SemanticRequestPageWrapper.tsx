@@ -13,11 +13,12 @@
  */
 
 import { SemanticRequestPage } from './SemanticRequestPage'
+import { chargesApi } from '@/services/charges'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { parsePaymentURL, type ParseUrlError } from '@/lib/url-parser/parser'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useEffect, useState } from 'react'
 import { type ParsedURL } from '@/lib/url-parser/types/payment'
@@ -33,6 +34,8 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
     const t = useTranslations('payment')
     const searchParams = useSearchParams()
     const chargeIdFromUrl = searchParams.get('chargeId')
+    const isRetiredCardPayment = searchParams.get('context') === 'card-pioneer'
+    const router = useRouter()
 
     const [parsedUrl, setParsedUrl] = useState<ParsedURL | null>(null)
     const [isLoading, setIsLoading] = useState(true)
@@ -40,6 +43,28 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
 
     // parse the url segments
     useEffect(() => {
+        // Old admission links must never open a payable charge after public
+        // launch — but a COMPLETED admission charge is a real payment whose
+        // receipt must stay reachable. Resolve the charge first and only
+        // redirect the unpaid (or unresolvable) links.
+        if (isRetiredCardPayment) {
+            if (!chargeIdFromUrl) {
+                router.replace('/card')
+                return
+            }
+            chargesApi
+                .get(chargeIdFromUrl)
+                .then((charge) => {
+                    if (charge.fulfillmentPayment?.status === 'SUCCESSFUL') {
+                        setParsedUrl({ recipient: null, amount: undefined, token: undefined, chain: undefined })
+                        setIsLoading(false)
+                    } else {
+                        router.replace('/card')
+                    }
+                })
+                .catch(() => router.replace('/card'))
+            return
+        }
         // if we have a chargeId, skip URL parsing — charge will provide all needed data.
         // check this before recipient validation so /pay-request?chargeId=X works with empty recipient.
         if (chargeIdFromUrl) {
@@ -82,9 +107,11 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
             .finally(() => {
                 setIsLoading(false)
             })
-    }, [recipient, chargeIdFromUrl, t])
+    }, [recipient, chargeIdFromUrl, isRetiredCardPayment, router, t])
 
-    // loading state
+    // loading state — retired admission links stay here while the charge
+    // resolves (paid → receipt below) or the redirect to /card lands, because
+    // isLoading only clears on the paid branch.
     if (isLoading) {
         return (
             <div className="flex min-h-inherit w-full flex-col gap-4">

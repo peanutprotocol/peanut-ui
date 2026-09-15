@@ -67,15 +67,6 @@ describe('action functions should NOT include apiKey in body', () => {
         expect(body).not.toHaveProperty('apiKey')
     })
 
-    it('should not include apiKey in purchaseCard body', async () => {
-        const { purchaseCard } = require('@/app/actions/card')
-        await purchaseCard()
-
-        const body = getLastCallBody()
-        expect(body).not.toBeNull()
-        expect(body).not.toHaveProperty('apiKey')
-    })
-
     it('should not include apiKey in createBridgeExternalAccountForGuest body', async () => {
         const { createBridgeExternalAccountForGuest } = require('@/app/actions/external-accounts')
         await createBridgeExternalAccountForGuest('customer-123', {

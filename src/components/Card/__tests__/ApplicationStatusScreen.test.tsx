@@ -62,10 +62,12 @@ describe('ApplicationStatusScreen — rejected', () => {
 })
 
 describe('ApplicationStatusScreen — geo-blocked', () => {
-    it('renders the regional copy with the reassurance', () => {
+    it('renders regional availability without promising access to every other feature', () => {
         render(<ApplicationStatusScreen variant="geo-blocked" />)
         expect(screen.getByText("Cards aren't available in your region yet")).toBeInTheDocument()
-        expect(screen.getByText(/regulatory restrictions.*deposit, withdraw, and pay with crypto/)).toBeInTheDocument()
+        expect(
+            screen.getByText(/Card availability depends on where you live.*other features available to you/)
+        ).toBeInTheDocument()
     })
 
     it('never renders a Contact-support CTA — regulation is not a support case', () => {

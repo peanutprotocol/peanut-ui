@@ -120,7 +120,9 @@ const InputAmountStep = ({
                 </FieldColumn>
 
                 {/* limits warning/error card */}
-                {limitsCardProps && <LimitsWarningCard {...limitsCardProps} />}
+                {limitsCardProps && (
+                    <LimitsWarningCard {...limitsCardProps} flowType="onramp" currency={limitsCurrency} />
+                )}
 
                 <div className="flex items-center gap-2 text-body-xs text-foreground-secondary">
                     <span>{t('mustMatchBankTransfer')}</span>

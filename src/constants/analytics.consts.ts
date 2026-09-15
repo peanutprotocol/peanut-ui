@@ -15,6 +15,7 @@ export const ANALYTICS_EVENTS = {
     SIGNUP_RESIDENCE_RESTRICTED_CONTINUED: 'signup_residence_restricted_continued',
     SIGNUP_RESIDENCE_NOTIFY_SUBMITTED: 'signup_residence_notify_submitted',
     RESIDENCE_CHANGED: 'residence_changed',
+    HOME_VIEWED: 'home_viewed',
     HOME_CHECKLIST_VIEWED: 'home_checklist_viewed',
     HOME_CHECKLIST_ITEM_CLICKED: 'home_checklist_item_clicked',
     KYC_DEGRADED_NOTIFY_REQUESTED: 'kyc_degraded_notify_requested',
@@ -32,6 +33,7 @@ export const ANALYTICS_EVENTS = {
     SIGNUP_TEST_TX_STARTED: 'signup_test_tx_started',
     SIGNUP_TEST_TX_SIGNED: 'signup_test_tx_signed',
     SIGNUP_TEST_TX_FAILED: 'signup_test_tx_failed',
+    SIGNUP_ACCOUNT_READY_CTA_CLICKED: 'signup_account_ready_cta_clicked',
     SIGNUP_COMPLETED: 'signup_completed',
 
     // ── PWA install ──
@@ -102,6 +104,11 @@ export const ANALYTICS_EVENTS = {
     DEPOSIT_CONFIRMED: 'deposit_confirmed',
     DEPOSIT_COMPLETED: 'deposit_completed',
     DEPOSIT_FAILED: 'deposit_failed',
+
+    // ── Limits ──
+    // The warning-card route check is intentionally separate from the payment
+    // funnel: a native WebView can swallow a same-origin push without throwing.
+    LIMITS_CHECK_LINK_NAVIGATION: 'limits_check_link_navigation',
 
     // ── Withdraw ──
     WITHDRAW_AMOUNT_ENTERED: 'withdraw_amount_entered',
@@ -232,42 +239,12 @@ export const ANALYTICS_EVENTS = {
     SESSION_KEY_SPEND_ATTEMPTED: 'session_key_spend_attempted',
     SESSION_KEY_SPEND_FALLBACK: 'session_key_spend_fallback',
 
-    // ── Card: waitlist + early-access funnel (M2 Card Waitlist Launch) ──
-    // /shhhhh closed-beta landing page → /card.
-    DOOR_TRY: 'door_try',
-    CARD_FLOW_EARLY_ACCESS_GRANTED: 'card_flow_early_access_granted',
-    // Outer-gate fail: user landed on /card without /shhhhh early access pre-launch.
-    CARD_FLOW_GATED: 'card_flow_gated',
-    // Home Carousel CTA for card launch (shown to everyone post-public-launch who
-    // has no active card). viewed = CTA became visible; clicked = tapped through
-    // to /card; dismissed = tapped the X. Click and dismiss both hide it permanently.
-    CARD_LAUNCH_CTA_VIEWED: 'card_launch_cta_viewed',
-    CARD_LAUNCH_CTA_CLICKED: 'card_launch_cta_clicked',
-    CARD_LAUNCH_CTA_DISMISSED: 'card_launch_cta_dismissed',
-    // Eligibility-check screen — press-and-hold gate between /shhhhh and the
-    // celebration/waitlist verdict.
-    CARD_ELIGIBILITY_CHECK_VIEWED: 'card_eligibility_check_viewed',
-    CARD_ELIGIBILITY_CHECK_COMPLETED: 'card_eligibility_check_completed',
-    // Waitlist screen (no card access yet).
-    CARD_WAITLIST_VIEWED: 'card_waitlist_viewed',
-    CARD_WAITLIST_JOINED: 'card_waitlist_joined',
-    CARD_WAITLIST_JOIN_FAILED: 'card_waitlist_join_failed',
-    // Skip-badge celebration (one-time gift-box reveal of the share asset).
-    CARD_WAITLIST_SKIPPED_BY_BADGE: 'card_waitlist_skipped_by_badge',
-    CARD_SHARE_ASSET_VIEWED: 'card_share_asset_viewed',
-    CARD_SHARE_ASSET_SHARED: 'card_share_asset_shared',
-    CARD_SHARE_ASSET_SAVED: 'card_share_asset_saved',
-    // Capture/share failures (CORS taint, ref unmounted, OS share-sheet
-    // rejection). Lets the funnel distinguish "users not tapping share"
-    // from "users tapping share but it silently fails".
-    CARD_SHARE_ASSET_FAILED: 'card_share_asset_failed',
+    // Public card application entry.
+    CARD_APPLICATION_CTA_CLICKED: 'card_application_cta_clicked',
     // Non-intrusive badge-earn toast on /home (TASK-19791) — coalesced; tap
     // opens the badge detail modal (or the badges list for several).
     BADGE_EARN_TOAST_SHOWN: 'badge_earn_toast_shown',
     BADGE_EARN_TOAST_TAPPED: 'badge_earn_toast_tapped',
-    // Admin wave release (BE event, mirrored here so FE doesn't accidentally
-    // step on the namespace).
-    CARD_WAITLIST_RELEASED: 'card_waitlist_released',
     // Activation reward — $10 perk minted on first $100 spend (and same to referrer).
     CARD_ACTIVATION_THRESHOLD_REACHED: 'card_activation_threshold_reached',
     CARD_ACTIVATION_REWARD_CLAIMED: 'card_activation_reward_claimed',
@@ -389,7 +366,6 @@ export const MODAL_TYPES = {
     EARLY_USER: 'early_user',
     POST_SIGNUP: 'post_signup',
     BALANCE_WARNING: 'balance_warning',
-    CARD_PIONEER: 'card_pioneer',
     KYC_COMPLETED: 'kyc_completed',
     INVITE: 'invite',
     MIGRATION_DOWNLOAD: 'migration_download',

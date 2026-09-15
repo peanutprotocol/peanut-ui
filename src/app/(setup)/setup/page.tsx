@@ -17,7 +17,7 @@ import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal
 import { isLikelyWebview, isDeviceOsSupported } from '@/components/Setup/Setup.utils'
 import { isCapacitor } from '@/utils/capacitor'
 import { isPwaSunsetOn } from '@/utils/migration.utils'
-import { toInviteCode } from '@/utils/general.utils'
+import { getStoredRedirect, toInviteCode } from '@/utils/general.utils'
 import { useSearchParams } from 'next/navigation'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { useGeoLocation } from '@/hooks/useGeoLocation'
@@ -38,6 +38,7 @@ import {
 } from '@/components/Invites/badge-campaign-context'
 import { claimAndSettlePendingBadgeCampaigns } from '@/services/badge-campaigns'
 import { getDeepLinkGeneration, getDeepLinkTarget, subscribeToDeepLinkGeneration } from '@/utils/deep-link-state'
+import { resolveSignupEntryFlow } from '@/features/setup/signup-analytics'
 
 function setupTargetMatchesSearchParams(target: string | null, searchParamsString: string): boolean {
     if (!target) return false
@@ -61,7 +62,7 @@ function SetupPageContent() {
     const t = useTranslations('setup')
     const tCommon = useTranslations('common')
     const { setIsSupportModalOpen } = useModalsContext()
-    const { steps, resetSetupFlow, setNoBackLockScreenId } = useSetupFlowContext()
+    const { steps, resetSetupFlow, setNoBackLockScreenId, setSignupEntryFlow } = useSetupFlowContext()
     const { step, currentIndex: currentStepIndex, direction, handleNext, handleBack, setScreenId } = useSetupFlow()
     const { logoutUser, isLoggingOut, user, isFetchingUser, fetchUser } = useAuth()
     const { setShowIosPwaInstallScreen } = useIosPwaInstallGate()
@@ -93,6 +94,11 @@ function SetupPageContent() {
     const inviteCodeParam = searchParams.get('code')
     const legacyStepParam = searchParams.get('step')
     const searchParamsString = searchParams.toString()
+    const signupEntryFlow = useMemo(() => {
+        const explicitRedirect = new URLSearchParams(searchParamsString).get('redirect_uri')
+        return resolveSignupEntryFlow(explicitRedirect, explicitRedirect === null ? getStoredRedirect() : null)
+    }, [searchParamsString])
+    useEffect(() => setSignupEntryFlow(signupEntryFlow), [setSignupEntryFlow, signupEntryFlow])
     const urlBadgeCampaigns = useMemo(
         () => badgeCampaignsFromSearchParams(new URLSearchParams(searchParamsString)),
         [searchParamsString]
@@ -192,6 +198,7 @@ function SetupPageContent() {
         enabled: stepRendered,
         step,
         steps,
+        signupEntryFlow,
     })
     useSetupBackHandler({ step, canStepBack: stepRendered, onBack: handleBack })
 
@@ -381,6 +388,26 @@ function SetupPageContent() {
             }
 
             const localDeviceType = detectedDeviceType
+
+            // The web-signup sunset is a product-access decision, not a
+            // capability check. Resolve it before legacy passkey, OS, and
+            // webview gates so every browser can reach Landing's Log In and
+            // native-store actions, including devices that cannot onboard.
+            if (webSignupClosed) {
+                setDeviceType(localDeviceType)
+                const targetStep = resolveSetupEntryStep({
+                    ...entryInput,
+                    isCapacitor: false,
+                    deviceType: localDeviceType,
+                    // Sunset routing is invariant to install state; avoid
+                    // probing browser-only display mode before the early exit.
+                    isStandalonePWA: false,
+                })
+                if (!steps.some((s) => s.screenId === targetStep)) throw new Error('Setup entry step is missing')
+                setScreenIdRef.current(targetStep, { history: 'replace' })
+                setIsLoading(false)
+                return
+            }
 
             // in capacitor, passkeys are handled natively — skip all browser/webview/os/pwa checks
             // and go straight to the landing (signup) flow
