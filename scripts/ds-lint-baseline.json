@@ -3,7 +3,7 @@
     "rawHexFiles": 5,
     "inlineStyle": 22,
     "stockTextSize": 0,
-    "dsTextScale": 8,
+    "dsTextScale": 5,
     "nonDsClassesInViews": 6,
     "useSearchParamsFiles": 34,
     "nuqsFiles": 37,
@@ -11,17 +11,17 @@
     "offRampPalette": 0,
     "deadLegacyTokens": 0,
     "consumedUndefinedTokens": 0,
-    "classNameSitesInPages": 127,
-    "fontWeightOnTypeToken": 44,
+    "classNameSitesInPages": 129,
+    "fontWeightOnTypeToken": 40,
     "offScaleSpacing": 139,
-    "iconOffScale": 65,
-    "offScaleRadius": 25,
+    "iconOffScale": 57,
+    "offScaleRadius": 23,
     "rawDuration": 2,
-    "retypedCardLiteral": 16,
-    "hoverNoActiveFiles": 35,
+    "retypedCardLiteral": 15,
+    "hoverNoActiveFiles": 32,
     "arbitraryFontSize": 32,
-    "rawErrorText": 23,
-    "handRolledCloseGlyphFiles": 8,
+    "rawErrorText": 15,
+    "handRolledCloseGlyphFiles": 7,
     "_meta": [
         {
             "date": "2026-09-01",
@@ -67,6 +67,11 @@
             "date": "2026-09-15",
             "metrics": ["inlineStyle 21 -> 22"],
             "reason": "HoldToClaimButton clipped-white label: dynamic clipPath percent must be inline (same pattern as QrPaySuccessView), TASK-22452"
+        },
+        {
+            "date": "2026-09-15",
+            "metrics": ["classNameSitesInPages 127 -> 129"],
+            "reason": "classNameSitesInPages 127->129: inherited from origin/dev's receipts-v2 (#3159) receipt-shell wrappers via the dev merge — upstream code, not this branch's; TASK-22452"
         }
     ]
 }
