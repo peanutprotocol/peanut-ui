@@ -7,6 +7,7 @@ import Image from 'next/image'
 import countryCurrencyMappings, { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { SUPPORTED_EXCHANGE_CURRENCIES } from '@/constants/exchange-currencies.consts'
 import StatusBadge from '../Global/Badges/StatusBadge'
+import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 
 interface CurrencySelectProps {
     selectedCurrency: string
@@ -45,7 +46,7 @@ const CurrencySelect = ({
                     <PopoverButton as={React.Fragment}>{trigger}</PopoverButton>
                     <PopoverPanel
                         anchor="bottom end"
-                        className="z-50 mt-4 w-72 overflow-scroll rounded-sm border border-border-default bg-background-default shadow-lg sm:w-80 md:w-96"
+                        className={`z-50 mt-4 w-72 overflow-scroll ${CARD_SURFACE} shadow-lg sm:w-80 md:w-96`}
                         // usePullToRefresh listens on `document` and only bails on window.scrollY > 0,
                         // so scrolling this panel at page top reads as a pull. Same guard as Global/Drawer.
                         onTouchMove={(e: React.TouchEvent) => e.stopPropagation()}
