@@ -8,6 +8,7 @@ import { useEffect, useState, Suspense, useRef, useSyncExternalStore } from 'rea
 import { useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
 import { isLikelyWebview } from '@/components/Setup/Setup.utils'
+import { usePasskeySupportContext } from '@/context/passkeySupportContext'
 
 const subscribeToStaticBrowserDetection = (): (() => void) => () => {}
 const getServerBrowserDetectionSnapshot = (): boolean => false
@@ -32,6 +33,7 @@ const UnsupportedBrowserModalContent = ({
     const [hasDismissedDetection, setHasDismissedDetection] = useState(false)
     const [hasCopied, setHasCopied] = useState(false)
     const toast = useToast()
+    const { isSupported: isPasskeySupported, isLoading: isLoadingPasskeySupport } = usePasskeySupportContext()
     const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
     // Cleanup timeout on unmount to prevent memory leak
@@ -43,9 +45,10 @@ const UnsupportedBrowserModalContent = ({
         }
     }, [])
 
-    // This modal tells people to leave an in-app browser. Do not use optional
-    // passkey autofill support as a proxy for whether Chrome/Safari works.
-    if ((!isDetectedInAppBrowser || hasDismissedDetection) && !visible) {
+    const showBrowserMessage = visible || isDetectedInAppBrowser
+    const showPasskeyMessage = !showBrowserMessage && !isLoadingPasskeySupport && !isPasskeySupported
+
+    if ((!showBrowserMessage && !showPasskeyMessage) || (hasDismissedDetection && !visible)) {
         return null
     }
 
@@ -99,8 +102,12 @@ const UnsupportedBrowserModalContent = ({
         <ActionModal
             visible={true}
             onClose={handleModalClose}
-            title={t('unsupportedBrowserModal.title')}
-            description={t('unsupportedBrowserModal.description')}
+            title={t(showBrowserMessage ? 'unsupportedBrowserModal.title' : 'unsupportedBrowserModal.passkeyTitle')}
+            description={t(
+                showBrowserMessage
+                    ? 'unsupportedBrowserModal.description'
+                    : 'unsupportedBrowserModal.passkeyDescription'
+            )}
             icon={'alert' as IconName}
             iconContainerClassName="bg-action-primary"
             iconProps={{ className: 'text-black' }}

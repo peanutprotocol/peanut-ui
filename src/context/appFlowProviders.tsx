@@ -8,6 +8,7 @@ import { LoadingStateContextProvider } from './loadingStates.context'
 import { TokenContextProvider } from './tokenSelector.context'
 import { ClaimBankFlowContextProvider } from './ClaimBankFlowContext'
 import { RequestFulfilmentFlowContextProvider } from './RequestFulfillmentFlowContext'
+import { PasskeySupportProvider } from './passkeySupportContext'
 import { ModalsProvider } from './ModalsContext'
 import { RainCooldownProvider } from './RainCooldownContext'
 import { ConnectivityToast } from '@/components/Global/Banner/ConnectivityToast'
@@ -41,13 +42,15 @@ export const AppFlowProviders = ({ children }: { children: React.ReactNode }) =>
                             <ClaimBankFlowContextProvider>
                                 <RequestFulfilmentFlowContextProvider>
                                     <OnrampFlowContextProvider>
-                                        <ModalsProvider>
-                                            <RainCooldownProvider>
-                                                {/* connectivity state rides the toast surface (ruled 2026-09-03) */}
-                                                <ConnectivityToast />
-                                                {children}
-                                            </RainCooldownProvider>
-                                        </ModalsProvider>
+                                        <PasskeySupportProvider>
+                                            <ModalsProvider>
+                                                <RainCooldownProvider>
+                                                    {/* connectivity state rides the toast surface (ruled 2026-09-03) */}
+                                                    <ConnectivityToast />
+                                                    {children}
+                                                </RainCooldownProvider>
+                                            </ModalsProvider>
+                                        </PasskeySupportProvider>
                                     </OnrampFlowContextProvider>
                                 </RequestFulfilmentFlowContextProvider>
                             </ClaimBankFlowContextProvider>

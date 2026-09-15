@@ -4,9 +4,13 @@ import { renderWithIntl as render } from '@/test-utils/intl'
 import UnsupportedBrowserModal from './index'
 
 const mockIsLikelyWebview = jest.fn()
+let mockPasskeySupport = { isSupported: true, isLoading: false }
 
 jest.mock('@/components/Setup/Setup.utils', () => ({
     isLikelyWebview: () => mockIsLikelyWebview(),
+}))
+jest.mock('@/context/passkeySupportContext', () => ({
+    usePasskeySupportContext: () => mockPasskeySupport,
 }))
 jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
@@ -16,16 +20,22 @@ jest.mock('@/components/0_Bruddle/Toast', () => ({
 }))
 jest.mock('@/components/Global/ActionModal', () => ({
     __esModule: true,
-    default: ({ visible, title }: { visible: boolean; title: ReactNode }) =>
-        visible ? <div role="dialog">{title}</div> : null,
+    default: ({ visible, title, description }: { visible: boolean; title: ReactNode; description: ReactNode }) =>
+        visible ? (
+            <div role="dialog">
+                {title}
+                <p>{description}</p>
+            </div>
+        ) : null,
 }))
 
 describe('UnsupportedBrowserModal', () => {
     beforeEach(() => {
         mockIsLikelyWebview.mockReset()
+        mockPasskeySupport = { isSupported: true, isLoading: false }
     })
 
-    it('does not block a main browser', async () => {
+    it('does not block a main browser that can create a passkey', async () => {
         mockIsLikelyWebview.mockReturnValue(false)
 
         render(<UnsupportedBrowserModal allowClose={false} />)
@@ -34,8 +44,22 @@ describe('UnsupportedBrowserModal', () => {
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
+    it('explains the passkey requirement when a main browser cannot create one', async () => {
+        mockIsLikelyWebview.mockReturnValue(false)
+        mockPasskeySupport = { isSupported: false, isLoading: false }
+
+        render(<UnsupportedBrowserModal allowClose={false} />)
+
+        expect(await screen.findByRole('dialog')).toHaveTextContent("Passkeys aren't available")
+        expect(screen.getByRole('dialog')).toHaveTextContent(
+            'You can also try opening this link in a different browser, such as Chrome or Safari.'
+        )
+        expect(screen.queryByText('Open this link in your browser')).not.toBeInTheDocument()
+    })
+
     it('still blocks a detected in-app browser', async () => {
         mockIsLikelyWebview.mockReturnValue(true)
+        mockPasskeySupport = { isSupported: false, isLoading: false }
 
         render(<UnsupportedBrowserModal allowClose={false} />)
 
