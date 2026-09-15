@@ -58,7 +58,7 @@ describe('useWalletProvisioningLifecycle', () => {
         mockedIsIOS.mockReturnValue(true)
         mockedFlag.mockReturnValue(false)
         mockedFlagsLoaded.mockReturnValue(true)
-        mockedOverview.mockReturnValue({ overview: null })
+        mockedOverview.mockReturnValue({ overview: undefined })
         mockedCachedStepUpToken.mockReturnValue('cached-step-up')
     })
 
@@ -84,6 +84,22 @@ describe('useWalletProvisioningLifecycle', () => {
         await waitFor(() => expect(mockedClearLegacy).toHaveBeenCalled())
         expect(mockedClearAuthorization).not.toHaveBeenCalled()
         expect(mockedClearCard).not.toHaveBeenCalled()
+    })
+
+    it('clears Wallet state when the loaded overview has no active card', async () => {
+        mockedFlag.mockReturnValue(true)
+        mockedOverview.mockReturnValue({
+            overview: {
+                status: { hasApplication: true },
+                balance: null,
+                cards: [{ id: 'card-canceled', last4: '9999', status: 'CANCELED' }],
+            },
+        })
+
+        renderHook(() => useWalletProvisioningLifecycle())
+
+        await waitFor(() => expect(mockedClearAuthorization).toHaveBeenCalled())
+        expect(mockedClearCard).toHaveBeenCalledTimes(1)
     })
 
     it('does not clear a valid grant while the startup flag state is unknown', async () => {

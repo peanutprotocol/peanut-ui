@@ -371,7 +371,8 @@ jobs:
                       -exportOptionsPlist /tmp/ExportOptions.plist
 
             - name: Verify push entitlements + Sentry DSN in exported IPA
-              if: ${{ vars.IOS_WALLET_PROVISIONING_ENABLED == 'true' }}
+              env:
+                  WALLET_PROVISIONING_ENABLED: ${{ vars.IOS_WALLET_PROVISIONING_ENABLED == 'true' }}
               run: |
                   # Extract into a clean directory. `macos-15` is ephemeral so a stale
                   # /tmp/ipa-check cannot survive today, but unzip without -o prompts on
@@ -388,22 +389,26 @@ jobs:
                       echo "::error::exported ipa aps-environment is '${APS:-missing}', expected production — push would be dead in this build"
                       exit 1
                   fi
-                  for EXT in PushProvisioningExtension PushProvisioningExtensionUI; do
-                      EXT_PATH="/tmp/ipa-check/Payload/App.app/PlugIns/$EXT.appex"
-                      if [ ! -d "$EXT_PATH" ]; then
-                          echo "::error::exported ipa is missing $EXT.appex"
-                          exit 1
-                      fi
-                      PAYMENT=$(
-                          codesign -d --entitlements :- "$EXT_PATH" 2>/dev/null \
-                              | plutil -extract com.apple.developer.payment-pass-provisioning raw -o - - 2>/dev/null || true
-                      )
-                      if [ "$PAYMENT" != "true" ]; then
-                          echo "::error::$EXT.appex is missing the Apple payment-pass-provisioning entitlement"
-                          exit 1
-                      fi
-                  done
-                  echo "Wallet issuer extensions and payment-pass-provisioning entitlement present"
+                  if [ "$WALLET_PROVISIONING_ENABLED" = "true" ]; then
+                      for EXT in PushProvisioningExtension PushProvisioningExtensionUI; do
+                          EXT_PATH="/tmp/ipa-check/Payload/App.app/PlugIns/$EXT.appex"
+                          if [ ! -d "$EXT_PATH" ]; then
+                              echo "::error::exported ipa is missing $EXT.appex"
+                              exit 1
+                          fi
+                          PAYMENT=$(
+                              codesign -d --entitlements :- "$EXT_PATH" 2>/dev/null \
+                                  | plutil -extract com.apple.developer.payment-pass-provisioning raw -o - - 2>/dev/null || true
+                          )
+                          if [ "$PAYMENT" != "true" ]; then
+                              echo "::error::$EXT.appex is missing the Apple payment-pass-provisioning entitlement"
+                              exit 1
+                          fi
+                      done
+                      echo "Wallet issuer extensions and payment-pass-provisioning entitlement present"
+                  else
+                      echo "Wallet extension entitlement checks skipped; Wallet targets are omitted from this release"
+                  fi
                   # An empty, unexpanded, or malformed SentryDSN ships a build with native
                   # crash reporting silently off — sentry-cocoa disables itself on a DSN it
                   # cannot parse, and nothing downstream would tell us. Stricter than the

@@ -31,6 +31,7 @@ export function useWalletProvisioningLifecycle(): void {
     const activeCard = findActiveCard(overview)
     const activeCardId = activeCard?.id
     const activeCardLast4 = activeCard?.last4
+    const overviewLoaded = overview !== undefined
     const cachedStepUpToken = getCachedStepUpToken()
     const bootstrapGeneration = useRef(0)
 
@@ -47,10 +48,10 @@ export function useWalletProvisioningLifecycle(): void {
         if (!iosNative) return
         // `isFeatureEnabled` returns false before PostHog has answered. Do not
         // treat that unknown startup state as an explicit rollout kill.
-        if (flagsLoaded && !flagOn) {
+        if (flagsLoaded && (!flagOn || (overviewLoaded && !activeCardId))) {
             void Promise.all([clearWalletCardForWallet(), clearWalletAuthorizationToken()])
         }
-    }, [flagOn, flagsLoaded, iosNative])
+    }, [activeCardId, flagOn, flagsLoaded, iosNative, overviewLoaded])
 
     useEffect(() => {
         const generation = ++bootstrapGeneration.current

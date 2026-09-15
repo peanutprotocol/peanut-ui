@@ -17,4 +17,16 @@ describe('iOS release workflow', () => {
         expect(targetStripper).toContain('Embed App Extensions phase anchor not found')
         expect(targetStripper).toContain('App target dependency anchor not found')
     })
+
+    it('keeps app push and Sentry validation enabled for non-Wallet releases', () => {
+        const verifierStart = workflowSource.indexOf('- name: Verify push entitlements + Sentry DSN in exported IPA')
+        const verifierEnd = workflowSource.indexOf('- name: Upload dSYMs to Sentry', verifierStart)
+        const verifier = workflowSource.slice(verifierStart, verifierEnd)
+
+        expect(verifier).toContain('WALLET_PROVISIONING_ENABLED')
+        expect(verifier).toContain('if [ "$WALLET_PROVISIONING_ENABLED" = "true" ]; then')
+        expect(verifier).toContain('aps-environment')
+        expect(verifier).toContain('SentryDSN')
+        expect(verifier).not.toContain("if: ${{ vars.IOS_WALLET_PROVISIONING_ENABLED == 'true' }}")
+    })
 })
