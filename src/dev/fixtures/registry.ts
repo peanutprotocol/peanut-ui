@@ -133,6 +133,67 @@ const HUGE_HISTORY_ENTRY = {
     memo: 'Series B wire, split three ways with a memo long enough to wrap',
 }
 
+// Peers who have picked an avatar (TASK-22625). The demo cast has none, so the
+// baseline only ever shows the letter fallback; these restate the three lists a
+// peer appears in. Arrays replace on merge, so each list is given in full.
+const PEER = (username: string, fullName: string, avatarKey: string | null) => ({
+    identifier: username,
+    type: 'PEANUT_WALLET',
+    isUser: true,
+    username,
+    fullName,
+    showFullName: true,
+    avatarKey,
+})
+
+const PEER_HISTORY_ENTRY = (
+    uuid: string,
+    amount: string,
+    memo: string,
+    peer: ReturnType<typeof PEER>,
+    viewerIsRecipient: boolean
+) => ({
+    uuid,
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-08-01T10:00:00.000Z'),
+    amount,
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'COMPLETED',
+    userRole: viewerIsRecipient ? 'RECIPIENT' : 'SENDER',
+    senderAccount: viewerIsRecipient
+        ? peer
+        : { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
+    recipientAccount: viewerIsRecipient
+        ? { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' }
+        : peer,
+    extraData: { kind: 'DIRECT_TRANSFER', usdAmount: amount },
+    memo,
+})
+
+const AVATAR_PEERS = [
+    PEER('alice', 'Alice Nguyen', 'basic.frog'),
+    PEER('bob', 'Bob Carter', 'basic.avocado'),
+    PEER('carol', 'Carol Diaz', 'badge.BUG_WHISPERER.beetle'),
+    // No pick: the letter sticker of the USERNAME, beside a full name whose
+    // initials it deliberately no longer uses.
+    PEER('dave', 'Dave Patel', null),
+]
+
+const PEER_CONTACT = (peer: (typeof AVATAR_PEERS)[number], relationship: string) => ({
+    userId: `demo-${peer.username}`,
+    username: peer.username,
+    fullName: peer.fullName,
+    avatarKey: peer.avatarKey,
+    isVerified: true,
+    showFullName: true,
+    relationshipTypes: [relationship],
+    firstInteractionDate: '2026-01-01T00:00:00.000Z',
+    lastInteractionDate: '2026-01-01T00:00:00.000Z',
+    transactionCount: 1,
+})
+
 export const FIXTURES: Record<string, Fixture> = {
     'setup-pending': {
         route: '/setup',
@@ -241,6 +302,55 @@ export const FIXTURES: Record<string, Fixture> = {
     limits: { route: '/limits', about: 'Payment limits: the unlocked regions and the crypto note.' },
     // Masked state only ('****' — same span as the digits). Revealing needs a
     // passkey step-up, which no fixture can answer.
+    'card-application': {
+        route: '/card',
+        about: 'Public card application with unknown residence, no admission badge, and no card balance.',
+        responses: {
+            'GET /users/me': { user: { badges: [] }, identityVerification: { status: 'not_started' } },
+            'GET /card': { isEligible: false, geoProhibited: false },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+            'POST /rain/cards': { status: 'terms-required', isUsResident: false },
+        },
+    },
+    'card-holder': {
+        route: '/card',
+        about: 'Existing holder keeps card management even when new issuance is prohibited for their residence.',
+        responses: {
+            'GET /card': { isEligible: false, geoProhibited: true },
+            'GET /rain/cards': {
+                status: { hasApplication: true, railStatus: 'ENABLED' },
+                balance: null,
+                cards: [
+                    {
+                        id: 'fixture-card',
+                        rainCardId: 'fixture-rain',
+                        status: 'ACTIVE',
+                        last4: '0420',
+                        expiryMonth: 6,
+                        expiryYear: 2069,
+                        network: 'visa',
+                        issuedAt: '2026-01-01T00:00:00Z',
+                        hasWithdrawApproval: false,
+                    },
+                ],
+            },
+        },
+    },
+    'card-prohibited': {
+        route: '/card',
+        about: 'Known prohibited residence remains blocked from a new card application.',
+        responses: {
+            'GET /card': { isEligible: false, geoProhibited: true },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+        },
+    },
+    'card-pending': {
+        route: '/card',
+        about: 'Existing card application keeps its provider review status.',
+        responses: {
+            'GET /rain/cards': { status: { hasApplication: true, railStatus: 'PENDING' }, cards: [], balance: null },
+        },
+    },
     'card-pin': {
         route: '/card/pin',
         about: 'Card PIN screen, masked, with an active fake card behind the gate.',
@@ -466,6 +576,32 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Home top nav: the menu button that replaced the avatar chip — the picked sticker now shows on /profile.',
         responses: { 'GET /users/me': { user: { avatarKey: 'basic.frog' } } },
     },
+    'peer-avatars': {
+        route: '/history',
+        about: 'Peers who picked an avatar (TASK-22625): activity rows, Send → Contacts and a public profile. Dave picked nothing, so he wears his username letter.',
+        responses: {
+            'GET /users/history': {
+                entries: [
+                    PEER_HISTORY_ENTRY('fixture-peer-tx-1', '45.00', 'Lunch split', AVATAR_PEERS[0], true),
+                    PEER_HISTORY_ENTRY('fixture-peer-tx-2', '120.00', 'Rent share', AVATAR_PEERS[1], false),
+                    PEER_HISTORY_ENTRY('fixture-peer-tx-3', '8.50', 'Coffee', AVATAR_PEERS[2], false),
+                    PEER_HISTORY_ENTRY('fixture-peer-tx-4', '300.00', 'Invoice #1042', AVATAR_PEERS[3], true),
+                ],
+                hasMore: false,
+            },
+            'GET /users/contacts': {
+                contacts: [
+                    PEER_CONTACT(AVATAR_PEERS[0], 'received_money'),
+                    PEER_CONTACT(AVATAR_PEERS[1], 'sent_money'),
+                    PEER_CONTACT(AVATAR_PEERS[2], 'sent_money'),
+                    PEER_CONTACT(AVATAR_PEERS[3], 'received_money'),
+                ],
+                total: 4,
+                hasMore: false,
+            },
+            'GET /users/username/alice': { avatarKey: 'basic.frog' },
+        },
+    },
     'avatar-picker': {
         route: AVATAR_PICKER_PATH,
         about: 'Avatar picker open: a hand of eight with the initial first and a Bug Whisperer avatar guaranteed, beetle selected.',
@@ -492,8 +628,8 @@ export const FIXTURES: Record<string, Fixture> = {
 
     'card-access': {
         route: '/home',
-        about: 'Demo user with card access granted — the activation spend chooser can open.',
-        responses: { 'GET /card': { hasCardAccess: true } },
+        about: 'Card-eligible demo user — the activation spend chooser can open.',
+        responses: { 'GET /card': { isEligible: true, geoProhibited: false } },
     },
 
     'early-user': {

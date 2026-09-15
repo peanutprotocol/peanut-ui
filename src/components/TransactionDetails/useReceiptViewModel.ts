@@ -9,7 +9,6 @@ import {
 } from '@/components/TransactionDetails/transaction-details.utils'
 import {
     hasReceiptPage,
-    hasShareableReceipt,
     isCardPaymentEntry,
     isCardSpend as isCardSpendTransaction,
     isFxBearingFlow,
@@ -243,22 +242,20 @@ export function useReceiptViewModel(
         }
     }, [transaction, isPublic, isPendingBankRequest, isPeanutWalletToken, isSendLinkSenderCancelled])
 
-    // The share conditions without the isPublic suppression, so the PDF gate
-    // below can reuse them on the public receipt.
-    const meetsShareConditions = useMemo(() => {
-        if (!transaction || isPendingSentLink || isPendingRequester || isPendingRequestee) return false
-        if (transaction.txHash && transaction.direction !== 'receive' && transaction.direction !== 'request_sent') {
-            return true
-        }
-        return hasShareableReceipt(transaction)
-    }, [transaction, isPendingSentLink, isPendingRequester, isPendingRequestee])
+    // Every activity kind gets a receipt once it is no longer waiting for an
+    // interactive send/request action. Existing public receipt kinds share a
+    // capability URL; all other kinds share an authenticated PDF file.
+    const meetsShareConditions = useMemo(
+        () => !!transaction && !isPendingSentLink && !isPendingRequester && !isPendingRequestee,
+        [transaction, isPendingSentLink, isPendingRequester, isPendingRequestee]
+    )
 
     const shouldShowShareReceipt = !isPublic && meetsShareConditions
 
     const shouldShowDownloadPdf = useMemo(() => {
-        if (!transaction || !hasReceiptPage(transaction)) return false
+        if (!transaction) return false
         if (isPendingSentLink || isPendingRequester || isPendingRequestee) return false
-        return isPublic || meetsShareConditions
+        return isPublic ? hasReceiptPage(transaction) : meetsShareConditions
     }, [transaction, isPublic, isPendingSentLink, isPendingRequester, isPendingRequestee, meetsShareConditions])
 
     const requestPotContributors = useMemo(() => {

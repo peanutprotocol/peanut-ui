@@ -316,6 +316,11 @@ export interface IUserProfile {
         declared: string | null
         declaredSecond?: string | null
         verified: string | null
+        kycReported?: string | null
+        pending?: string | null
+        pendingSecond?: string | null
+        pendingStatus?: 'REQUESTED' | 'COLLECTING' | 'REVIEW_PENDING' | string | null
+        pendingRequestedAt?: string | null
         nextChangeAllowedAt?: string | null
     }
 }
@@ -330,6 +335,9 @@ export interface Contact {
     userId: string
     username: string
     fullName: string | null
+    /** Picked profile avatar; null (or absent, on an older API) means the
+     *  username-letter fallback. Same shape as `User.avatarKey`. */
+    avatarKey?: string | null
     /** Provider-agnostic verified badge (BE-computed `computeIsVerified`). */
     isVerified: boolean
     showFullName: boolean

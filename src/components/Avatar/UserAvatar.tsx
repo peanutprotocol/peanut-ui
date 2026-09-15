@@ -13,6 +13,13 @@ interface UserAvatarProps {
     avatarKey?: string | null
     size?: AvatarSize
     className?: string
+    /**
+     * Keeps `name` (the letter sticker is derived from it) but drops the avatar
+     * from the accessibility tree. Use wherever the same name is already on
+     * screen next to the avatar — a list row, a receipt header — so a screen
+     * reader announces the person once instead of twice.
+     */
+    decorative?: boolean
 }
 
 /**
@@ -22,14 +29,14 @@ interface UserAvatarProps {
  * a sticker. A name that does not start with a-z falls through to the
  * first-letter avatar, which stays the one place that renders a bare initial.
  */
-export function UserAvatar({ name, avatarKey, size = 'extra-small', className }: UserAvatarProps) {
+export function UserAvatar({ name, avatarKey, size = 'extra-small', className, decorative }: UserAvatarProps) {
     const t = useTranslations('common')
     const picked = avatarKey ? avatarSrc(avatarKey) : null
     const letter = picked ? null : letterAvatarSrc(name)
     const art = picked ?? letter
 
     if (!art) {
-        return name ? (
+        const initialsAvatar = name ? (
             <AvatarWithBadge size={size} name={name} firstLetterOnly className={className} />
         ) : (
             <AvatarWithBadge
@@ -42,11 +49,19 @@ export function UserAvatar({ name, avatarKey, size = 'extra-small', className }:
                 iconFillColor="var(--color-avatar-yellow-foreground)"
             />
         )
+        // `contents` so hiding the initials costs no box of its own.
+        return decorative ? (
+            <div className="contents" aria-hidden>
+                {initialsAvatar}
+            </div>
+        ) : (
+            initialsAvatar
+        )
     }
 
     return (
         <span
-            {...(name
+            {...(name && !decorative
                 ? { role: 'img', 'aria-label': t('userAvatarAlt', { username: name }) }
                 : { 'aria-hidden': true })}
             className={twMerge(

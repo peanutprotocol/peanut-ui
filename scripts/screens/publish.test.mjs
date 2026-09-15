@@ -32,9 +32,6 @@ function memoryStorage() {
         async read(pathname) {
             return objects.get(pathname)
         },
-        async preview(name) {
-            return `https://imagedelivery.net/hash/peanut-screen-${name.split('.')[0]}/screenpreview`
-        },
     }
 }
 
@@ -78,6 +75,9 @@ test('publication writes the entry commit marker before shared pointers', async 
                 DEV_SEQUENCE: '123',
                 RUN_ATTEMPT: '1',
                 CAPTURE_ATTEMPT: '1',
+                SOURCE_BRANCH: 'dev',
+                PR_NUMBER: '3166',
+                CHANGED_SCREENS: '4',
             },
             storage,
         })
@@ -85,7 +85,24 @@ test('publication writes the entry commit marker before shared pointers', async 
         assert.ok(entryIndex >= 0)
         assert.ok(storage.calls.indexOf('index.json') > entryIndex)
         assert.ok(storage.calls.indexOf('latest.json') > entryIndex)
-        assert.equal(JSON.parse(storage.objects.get(storage.calls[entryIndex]).toString()).captureAttempt, 1)
+        const entry = JSON.parse(storage.objects.get(storage.calls[entryIndex]).toString())
+        assert.deepEqual(
+            {
+                captureAttempt: entry.captureAttempt,
+                reportType: entry.reportType,
+                branch: entry.branch,
+                prNumber: entry.prNumber,
+                changedScreens: entry.changedScreens,
+            },
+            { captureAttempt: 1, reportType: 'capture', branch: 'dev', prNumber: 3166, changedScreens: 4 }
+        )
+        const manifest = JSON.parse(
+            storage.objects.get(`reports/2026-09-11/dev-${commit}/run-123-1/manifest.json`).toString()
+        )
+        assert.equal(manifest.previewUrls, undefined)
+        assert.equal(manifest.originalUrls, undefined)
+        assert.ok(storage.objects.has(`assets/${name}`))
+        assert.ok(storage.calls.indexOf(`assets/${name}`) < entryIndex)
         assert.equal(hash(PNG.sync.write(image)), name.split('.')[0])
     } finally {
         rmSync(dir, { recursive: true, force: true })
@@ -115,6 +132,74 @@ test('publication accepts locale-scoped dev paths and records the locale', async
         })
         const entryPath = storage.calls.find((pathname) => pathname.startsWith('entries/'))
         assert.equal(JSON.parse(storage.objects.get(entryPath).toString()).locale, 'pt-BR')
+    } finally {
+        rmSync(dir, { recursive: true, force: true })
+    }
+})
+
+test('publication accepts sanitized Nutcracker journeys without changing the synthetic latest pointer', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'screen-publish-nutcracker-test-'))
+    try {
+        const assets = join(dir, 'assets')
+        mkdirSync(assets)
+        // Nutcracker captures full pages. At the exporter's 197px thumbnail
+        // width, this produces a 197x1970 WebP: valid for journeys, but larger
+        // than the synthetic capture decoder ceiling.
+        const original = new PNG({ width: 240, height: 2400 })
+        original.data.fill(127)
+        const originalName = storeAsset(assets, PNG.sync.write(original))
+        const { default: sharp } = await import('sharp')
+        const thumbnailBytes = await sharp(PNG.sync.write(original)).resize({ width: 197 }).webp().toBuffer()
+        const thumbnailName = storeAsset(assets, thumbnailBytes, 'webp')
+        const report = {
+            schema: 1,
+            type: 'journeys',
+            source: 'nutcracker',
+            commit,
+            uiCommit: 'b'.repeat(40),
+            apiCommit: 'c'.repeat(40),
+            locale: 'en',
+            environment: 'sandbox',
+            capturedAt: '2026-09-14T00:00:00Z',
+            profile: 'en-iphone-14',
+            width: 390,
+            height: 664,
+            attemptedSteps: 1,
+            failedSteps: 0,
+            omittedFailedSteps: 0,
+            complete: true,
+            screens: [
+                {
+                    id: 'send-success',
+                    name: 'Send success',
+                    flow: 'e2e-send',
+                    kind: 'route',
+                    route: '/send/success',
+                    trustTier: 'full-e2e',
+                    status: 'passed',
+                    image: originalName,
+                    thumbnail: thumbnailName,
+                },
+            ],
+        }
+        writeFileSync(join(dir, 'manifest.json'), JSON.stringify(report))
+        const storage = memoryStorage()
+        await publishReport({
+            inputDir: dir,
+            reportPath: `2026-09-14/nutcracker/en/${commit}/run-123-1`,
+            env: {
+                SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.example',
+                EXPECTED_HEAD: commit,
+                DEV_SEQUENCE: '123',
+                RUN_ATTEMPT: '1',
+            },
+            storage,
+        })
+        const entryPath = storage.calls.find((pathname) => pathname.startsWith('entries/'))
+        const entry = JSON.parse(storage.objects.get(entryPath).toString())
+        assert.equal(entry.source, 'nutcracker')
+        assert.equal(entry.label, `Nutcracker · ${commit.slice(0, 8)}`)
+        assert.equal(storage.objects.has('latest.json'), false)
     } finally {
         rmSync(dir, { recursive: true, force: true })
     }

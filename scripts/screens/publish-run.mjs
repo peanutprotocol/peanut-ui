@@ -6,7 +6,7 @@ import { integrationBase } from './integration.mjs'
 import { reviewProvenance } from './review-provenance.mjs'
 import { verifyRunIdentity } from './run-identity.mjs'
 import { selectCaptureArtifact, selectCapturePairs } from './capture-artifacts.mjs'
-import { selectBaselineArtifacts } from './baseline-artifacts.mjs'
+import { filterRetainedBaselineArtifacts, selectBaselineArtifacts } from './baseline-artifacts.mjs'
 import { normalizePublicOrigin } from './public-origin.mjs'
 const LOCALES = {
     en: 'English',
@@ -14,6 +14,7 @@ const LOCALES = {
     'es-AR': 'Español (Argentina)',
     'pt-BR': 'Português (Brasil)',
 }
+const visualChangeStatuses = new Set(['changed', 'added', 'removed'])
 const localeSlug = (locale) => ({ en: 'en', 'es-419': 'es-419', 'es-AR': 'es-ar', 'pt-BR': 'pt-br' })[locale]
 const repo = process.env.REPOSITORY,
     runId = process.env.RUN_ID,
@@ -70,9 +71,9 @@ function verifyExternalBaseline(expected) {
     const defaultBranch = api('').default_branch
     const artifacts = api(`actions/runs/${baselineRunId}/artifacts?per_page=100`).artifacts ?? []
     const localeSuffix = '(?:en|es-419|es-AR|pt-BR)'
-    const dailyBaseline =
+    const baselineRun =
         source.path === '.github/workflows/screen-library-baseline.yml' &&
-        ['schedule', 'workflow_dispatch'].includes(source.event) &&
+        ['push', 'workflow_dispatch'].includes(source.event) &&
         source.head_branch === defaultBranch &&
         artifacts.some((artifact) =>
             new RegExp(`^screen-library-baseline-${expected}-(?:${localeSuffix}-)?[1-9]\\d*$`).test(artifact.name)
@@ -84,30 +85,18 @@ function verifyExternalBaseline(expected) {
             new RegExp(`^screen-library-after-(?:${localeSuffix}-)?[1-9]\\d*$`).test(artifact.name)
         )
     if (
-        (!dailyBaseline && !integrationBaseline) ||
+        (!baselineRun && !integrationBaseline) ||
         source.status !== 'completed' ||
         source.conclusion !== 'success' ||
         source.head_repository?.full_name !== repo ||
         (integrationBaseline && (source.head_branch !== 'dev' || source.head_sha !== expected))
     )
         throw new Error('External baseline run provenance mismatch')
-    const validArtifacts = artifacts.filter((artifact) => {
-        const dailyName = new RegExp(`^screen-library-baseline-${expected}-(?:${localeSuffix}-)?[1-9]\\d*$`).test(
-            artifact.name
-        )
-        const integrationName = new RegExp(`^screen-library-after-(?:${localeSuffix}-)?[1-9]\\d*$`).test(artifact.name)
-        const created = Date.parse(artifact.created_at ?? '')
-        return (
-            (dailyName || integrationName) &&
-            !artifact.expired &&
-            Number.isFinite(created) &&
-            Date.now() - created <= 30 * 60 * 60 * 1000
-        )
-    })
+    const validArtifacts = filterRetainedBaselineArtifacts(artifacts, expected)
     if (!validArtifacts.length) throw new Error('External baseline artifact is missing or expired')
     if (baselineArtifact && !validArtifacts.some((artifact) => artifact.name === baselineArtifact))
         throw new Error('External baseline artifact identity mismatch')
-    return { dir: baselineDir, kind: dailyBaseline ? 'daily' : 'integration', artifact: baselineArtifact }
+    return { dir: baselineDir, kind: baselineRun ? 'baseline' : 'integration', artifact: baselineArtifact }
 }
 
 const captureNames = readdirSync('incoming')
@@ -185,12 +174,17 @@ for (const capturePair of capturePairs) {
     const path = `${canonicalPath}/run-${runId}-${attempt}`
     const reportDir = `publication-${slug}`
     execFileSync('node', ['scripts/screens/report.mjs', ...dirs, reportDir], { stdio: 'inherit' })
+    const comparison = JSON.parse(readFileSync(join(reportDir, 'manifest.json'), 'utf8'))
+    const changedScreens = comparison.screens.filter((screen) => visualChangeStatuses.has(screen.status)).length
     const env = {
         ...process.env,
         EXPECTED_HEAD: after.commit,
         EXPECTED_BASE: before.commit,
         DEV_SEQUENCE: String(run.run_number),
         CAPTURE_ATTEMPT: String(captureAttempt),
+        SOURCE_BRANCH: pr?.head?.ref ?? run.head_branch,
+        PR_NUMBER: pr ? String(pr.number) : '',
+        CHANGED_SCREENS: String(changedScreens),
     }
     execFileSync('node', ['scripts/screens/publish.mjs', reportDir, path], { stdio: 'inherit', env })
     reports.push({ locale: after.locale, path, before, after })
@@ -228,6 +222,7 @@ for (const capturePair of capturePairs) {
                     EXPECTED_HEAD: capture.commit,
                     EXPECTED_BASE: '',
                     CAPTURE_ATTEMPT: String(captureAttempt),
+                    SOURCE_BRANCH: branch,
                 },
             }
         )

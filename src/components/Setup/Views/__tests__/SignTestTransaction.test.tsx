@@ -3,6 +3,10 @@ import { renderWithIntl } from '@/test-utils/intl'
 import { getRedirectUrl, saveToLocalStorage, setRedirectUrl } from '@/utils/general.utils'
 import SignTestTransaction from '../SignTestTransaction'
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { AccountSetupError } from '@/services/account-setup'
+import { AccountType } from '@/interfaces/interfaces'
 
 const WALLET = '0x1111111111111111111111111111111111111111'
 
@@ -11,7 +15,7 @@ const mockRouterReplace = jest.fn()
 const mockAddAccount = jest.fn()
 const mockSendUserOp = jest.fn()
 
-let accounts: Array<{ type: string }> = []
+let accounts: Array<{ type: AccountType }> = []
 
 // useAccountSetup is deliberately NOT mocked: the bug this locks down was a
 // router navigation inside finalizeAccountSetup, which no component-level mock
@@ -36,13 +40,19 @@ jest.mock('@/context/authContext', () => ({
 }))
 
 jest.mock('@/features/setup/SetupFlowContext', () => ({
-    useSetupFlowContext: () => ({ residenceCountry: '', secondResidenceCountry: '', setIsLoading: jest.fn() }),
+    useSetupFlowContext: () => ({
+        residenceCountry: '',
+        secondResidenceCountry: '',
+        setIsLoading: jest.fn(),
+        steps: [{ screenId: 'signup' }, { screenId: 'passkey-permission' }, { screenId: 'sign-test-transaction' }],
+        signupEntryFlow: 'default',
+    }),
 }))
 
 jest.mock('@/app/actions/users', () => ({ updateUserById: jest.fn() }))
 jest.mock('@/utils/passkeyDebug', () => ({ capturePasskeyDebugInfo: jest.fn() }))
 jest.mock('@/utils/auth.utils', () => ({ clearAuthState: jest.fn() }))
-jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
+jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), addBreadcrumb: jest.fn() }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn(), setPersonProperties: jest.fn() } }))
 
 describe('SignTestTransaction — the account-ready screen', () => {
@@ -54,7 +64,7 @@ describe('SignTestTransaction — the account-ready screen', () => {
         // addAccount refetches the user, so the account appears while this
         // screen is up — the pre-existing-account fast path must not fire.
         mockAddAccount.mockImplementation(async () => {
-            accounts = [{ type: 'peanut' }]
+            accounts = [{ type: AccountType.PEANUT_WALLET }]
         })
     })
 
@@ -68,6 +78,31 @@ describe('SignTestTransaction — the account-ready screen', () => {
         expect(mockAddAccount).not.toHaveBeenCalled()
     })
 
+    it('shows account-ready when Retry discovers an account from the ambiguous request', async () => {
+        mockAddAccount.mockRejectedValueOnce(
+            new AccountSetupError('Account creation could not be confirmed', {
+                kind: 'retryable',
+                requestAttempts: 2,
+                status: 503,
+            })
+        )
+        const { rerender } = renderWithIntl(<SignTestTransaction />)
+
+        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+        await waitFor(() => expect(screen.getByRole('button', { name: /retry account setup/i })).toBeEnabled())
+
+        // A later focus/profile refresh reveals that the first request did
+        // commit. The Retry action must consume the signup marker and finish.
+        accounts = [{ type: AccountType.PEANUT_WALLET }]
+        rerender(<SignTestTransaction />)
+        fireEvent.click(screen.getByRole('button', { name: /retry account setup/i }))
+
+        await screen.findByText(/works right now/i)
+        expect(mockAddAccount).toHaveBeenCalledTimes(1)
+        expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+    })
+
     it('never navigates on its own — the CTA is the only way off it', async () => {
         renderWithIntl(<SignTestTransaction />)
 
@@ -75,10 +110,22 @@ describe('SignTestTransaction — the account-ready screen', () => {
 
         await screen.findByText(/works right now/i)
         await waitFor(() => expect(mockAddAccount).toHaveBeenCalled())
+        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_STEP_VIEWED, {
+            screen_id: 'account-ready',
+            step_index: 4,
+            total_steps: 4,
+            nav_type: 'forward',
+            flow_version: 1,
+            signup_entry_flow: 'default',
+        })
         expect(mockRouterPush).not.toHaveBeenCalled()
         expect(mockRouterReplace).not.toHaveBeenCalled()
 
         fireEvent.click(screen.getByRole('button', { name: /go to my account/i }))
+        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_ACCOUNT_READY_CTA_CLICKED, {
+            flow_version: 1,
+            signup_entry_flow: 'default',
+        })
         expect(mockRouterReplace).toHaveBeenCalledWith('/home')
         expect(mockRouterPush).not.toHaveBeenCalled()
     })
@@ -97,6 +144,11 @@ describe('SignTestTransaction — the account-ready screen', () => {
         fireEvent.click(cta)
         fireEvent.click(cta)
 
+        expect(
+            jest
+                .mocked(posthog.capture)
+                .mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.SIGNUP_ACCOUNT_READY_CTA_CLICKED)
+        ).toHaveLength(1)
         expect(mockRouterReplace).toHaveBeenCalledTimes(1)
         expect(mockRouterReplace).toHaveBeenCalledWith('/receipt?id=abc')
     })

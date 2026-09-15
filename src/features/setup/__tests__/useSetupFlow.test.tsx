@@ -3,7 +3,7 @@ import { NuqsTestingAdapter, type OnUrlUpdateFunction } from 'nuqs/adapters/test
 import type { ReactNode } from 'react'
 import { SETUP_DEFAULT_SCREEN, useSetupFlow } from '@/hooks/useSetupFlow'
 import { SetupFlowProvider, useSetupFlowContext } from '../SetupFlowContext'
-import { setupSteps } from '@/components/Setup/Setup.consts'
+import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
 
 // native detection is mocked so the history-mode contract below can flip it
 let mockIsNativeBridge = false
@@ -31,7 +31,7 @@ const wrapperFor = (searchParams: Record<string, string>) =>
     function Wrapper({ children }: { children: ReactNode }) {
         return (
             <NuqsTestingAdapter searchParams={searchParams}>
-                <SetupFlowProvider>{children}</SetupFlowProvider>
+                <SetupFlowProvider masterScreenIds={setupScreenIds}>{children}</SetupFlowProvider>
             </NuqsTestingAdapter>
         )
     }
@@ -56,6 +56,14 @@ const seedSteps = async (
 }
 
 describe('useSetupFlow (URL stepper)', () => {
+    it('uses the registry-derived master order until runtime-filtered steps arrive', () => {
+        const { result } = renderFlow({ screen: 'signup' })
+
+        expect(result.current.context.steps).toEqual([])
+        expect(result.current.flow.currentIndex).toBe(setupScreenIds.indexOf('signup'))
+        expect(result.current.flow.step).toBeUndefined()
+    })
+
     it('reads a named screen id from the URL — never an index', async () => {
         const { result } = renderFlow({ screen: 'signup' })
         await seedSteps(result)
@@ -209,7 +217,7 @@ describe('useSetupFlow — history mode per platform', () => {
                         onUrlUpdate={onUrlUpdate}
                         rateLimitFactor={0}
                     >
-                        <SetupFlowProvider>{children}</SetupFlowProvider>
+                        <SetupFlowProvider masterScreenIds={setupScreenIds}>{children}</SetupFlowProvider>
                     </NuqsTestingAdapter>
                 ),
             }

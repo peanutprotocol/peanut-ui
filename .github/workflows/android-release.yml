@@ -387,6 +387,7 @@ jobs:
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   CAPGO_PRIVATE_KEY: ${{ secrets.CAPGO_PRIVATE_KEY }}
                   VERSION: ${{ steps.version.outputs.name }}
+                  IS_REBUILD: ${{ steps.version.outputs.rebuild }}
               run: bash scripts/publish-native-ota.sh
 
             - name: Upload AAB as build artifact

@@ -2,7 +2,7 @@ const LOCALES = ['en', 'es-419', 'es-AR', 'pt-BR']
 const localePattern = '(?:en|es-419|es-AR|pt-BR)'
 
 function parseArtifact(name, kind, expectedCommit) {
-    if (kind === 'daily') {
+    if (kind === 'baseline') {
         const match = new RegExp(`^screen-library-baseline-${expectedCommit}-(${localePattern})-([1-9]\\d*)$`).exec(
             name
         )
@@ -14,13 +14,23 @@ function parseArtifact(name, kind, expectedCommit) {
         : null
 }
 
+/** Keep exact-base baseline and integration artifacts for as long as GitHub retains them. */
+export function filterRetainedBaselineArtifacts(artifacts, expectedCommit) {
+    return artifacts.filter(
+        (artifact) =>
+            !artifact.expired &&
+            (parseArtifact(artifact.name, 'baseline', expectedCommit) ||
+                parseArtifact(artifact.name, 'integration', expectedCommit))
+    )
+}
+
 /**
  * Select one baseline artifact per locale from one trusted Actions run.
- * Daily runs contain baseline artifacts; integration runs contain after artifacts.
+ * Baseline runs contain baseline artifacts; integration runs contain after artifacts.
  * The explicit English artifact wins over the legacy English alias at the same attempt.
  */
 export function selectBaselineArtifacts(names, kind, expectedCommit) {
-    if (!['daily', 'integration'].includes(kind)) throw new Error(`Unsupported baseline kind: ${kind}`)
+    if (!['baseline', 'integration'].includes(kind)) throw new Error(`Unsupported baseline kind: ${kind}`)
     const selected = new Map()
     for (const name of names) {
         const candidate = parseArtifact(name, kind, expectedCommit)

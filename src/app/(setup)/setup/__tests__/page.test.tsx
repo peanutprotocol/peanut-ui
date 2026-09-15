@@ -34,10 +34,21 @@ const mockAuth = {
     fetchUser: jest.fn().mockResolvedValue(undefined),
 }
 let mockNative = true
+let mockPwaSunsetOn = false
 let mockSearchParams = new URLSearchParams()
+let mockStoredRedirect: {
+    destination: string
+    origin: 'deep-link' | 'session-end' | null
+    generationId: string | null
+} | null = null
 
 jest.mock('@/features/setup/SetupFlowContext', () => ({
-    useSetupFlowContext: () => ({ ...mockStore, resetSetupFlow: jest.fn(), setNoBackLockScreenId: jest.fn() }),
+    useSetupFlowContext: () => ({
+        ...mockStore,
+        resetSetupFlow: jest.fn(),
+        setNoBackLockScreenId: jest.fn(),
+        setSignupEntryFlow: jest.fn(),
+    }),
 }))
 jest.mock('@/hooks/useIosPwaInstallGate', () => ({
     useIosPwaInstallGate: () => ({ setShowIosPwaInstallScreen: jest.fn() }),
@@ -64,9 +75,10 @@ jest.mock('@/context/authContext', () => ({ useAuth: () => mockAuth }))
 jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSupportModalOpen: mockSupport }) }))
 jest.mock('next/navigation', () => ({ useSearchParams: () => mockSearchParams, useRouter: () => mockRouter }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => mockNative }))
-jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => false }))
+jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => mockPwaSunsetOn }))
 jest.mock('@/utils/general.utils', () => ({
     getFromCookie: jest.fn(),
+    getStoredRedirect: () => mockStoredRedirect,
     saveToCookie: jest.fn(),
     toInviteCode: jest.fn(),
 }))
@@ -121,7 +133,9 @@ beforeEach(() => {
     })
     resetDeepLinkStateForTests()
     mockNative = true
+    mockPwaSunsetOn = false
     mockSearchParams = new URLSearchParams()
+    mockStoredRedirect = null
 })
 afterEach(() => {
     jest.useRealTimers()
@@ -224,6 +238,31 @@ it('preserves the unsupported-device recovery on web', async () => {
     expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
 })
 
+it('routes sunset web guests to landing before unsupported-browser capability gates', async () => {
+    mockNative = false
+    mockPwaSunsetOn = true
+    Object.defineProperty(window, 'PublicKeyCredential', {
+        configurable: true,
+        value: { isUserVerifyingPlatformAuthenticatorAvailable: jest.fn().mockResolvedValue(false) },
+    })
+
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+
+    expect(screen.getByText('Landing step')).toBeInTheDocument()
+    expect(screen.queryByText('Unsupported device')).not.toBeInTheDocument()
+    expect(PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable).not.toHaveBeenCalled()
+    expect(mockResolve).toHaveBeenCalledWith(
+        expect.objectContaining({
+            deviceType: 'android',
+            isCapacitor: false,
+            isStandalonePWA: false,
+            webSignupClosed: true,
+        })
+    )
+    expect(mockFlow.setScreenId).toHaveBeenCalledWith('landing', { history: 'replace' })
+})
+
 it('bounds waiting for session hydration', async () => {
     mockAuth.isFetchingUser = true
     renderWithIntl(<SetupPage />)
@@ -259,6 +298,32 @@ it.each([true, false])('preserves the resolved entry flow (native=%s)', async (n
     await advance(100)
     expect(screen.getByText('Landing step')).toBeInTheDocument()
     expect(mockFlow.setScreenId).toHaveBeenCalledWith('landing', { history: 'replace' })
+})
+
+it('attributes bare setup to an unconsumed stored deep-link intent', async () => {
+    mockStoredRedirect = {
+        destination: '/card',
+        origin: 'deep-link',
+        generationId: 'card-entry',
+    }
+
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+
+    expect(useSetupStepAnalytics).toHaveBeenLastCalledWith(expect.objectContaining({ signupEntryFlow: 'card' }))
+})
+
+it('does not attribute a stored session-end page to a new signup', async () => {
+    mockStoredRedirect = {
+        destination: '/card',
+        origin: 'session-end',
+        generationId: 'previous-session',
+    }
+
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+
+    expect(useSetupStepAnalytics).toHaveBeenLastCalledWith(expect.objectContaining({ signupEntryFlow: 'default' }))
 })
 
 it('settles a native badge campaign before redirecting an authenticated user home', async () => {

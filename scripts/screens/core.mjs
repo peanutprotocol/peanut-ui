@@ -10,6 +10,7 @@ const digest = /^[a-f0-9]{64}$/
 const asset = /^[a-f0-9]{64}\.(png|webp)$/
 const id = /^[a-z0-9][a-z0-9-]{0,119}$/
 const supportedLocales = new Set(['en', 'es-419', 'es-AR', 'pt-BR'])
+const routeOrigin = 'https://screen-library.invalid'
 const assert = (ok, message) => {
     if (!ok) throw new Error(message)
 }
@@ -96,18 +97,121 @@ export function validateCapture(input) {
             screens.every((s) => ['captured', 'excluded', 'absent'].includes(s.status)),
     }
 }
+export function validateJourneys(input) {
+    assert(
+        input?.schema === 1 && input.type === 'journeys' && input.source === 'nutcracker',
+        'Unsupported journey schema'
+    )
+    assert(
+        sha.test(input.commit) && sha.test(input.uiCommit) && sha.test(input.apiCommit),
+        'Invalid journey provenance'
+    )
+    const captureLocale = input.locale ?? 'en'
+    assert(supportedLocales.has(captureLocale), 'Invalid journey locale')
+    assert(
+        typeof input.profile === 'string' &&
+            input.profile.startsWith(`${captureLocale}-`) &&
+            Number.isInteger(input.width) &&
+            input.width >= 240 &&
+            input.width <= 2000 &&
+            Number.isInteger(input.height) &&
+            input.height >= 240 &&
+            input.height <= 2000,
+        'Invalid journey capture profile'
+    )
+    assert(
+        Array.isArray(input.screens) && input.screens.length > 0 && input.screens.length <= 2000,
+        'Invalid journey catalogue'
+    )
+    const seen = new Set()
+    const screens = input.screens.map((s) => {
+        assert(id.test(s.id) && !seen.has(s.id), 'Invalid/duplicate journey ID')
+        seen.add(s.id)
+        assert(['passed', 'failed'].includes(s.status), 'Invalid journey status')
+        assert(
+            asset.test(s.image) && s.image.endsWith('.png') && asset.test(s.thumbnail) && s.thumbnail.endsWith('.webp'),
+            'Invalid journey image'
+        )
+        let route
+        try {
+            route = new URL(s.route, routeOrigin)
+        } catch {}
+        assert(
+            typeof s.route === 'string' &&
+                s.route.length <= 1000 &&
+                route?.origin === routeOrigin &&
+                route.pathname === s.route,
+            'Invalid journey route'
+        )
+        assert(['full-e2e', 'partial-e2e'].includes(s.trustTier), 'Invalid journey trust tier')
+        return {
+            id: s.id,
+            name: text(s.name),
+            flow: text(s.flow),
+            kind: 'route',
+            status: s.status,
+            image: s.image,
+            thumbnail: s.thumbnail,
+            route: s.route,
+            trustTier: s.trustTier,
+            ...(s.status === 'failed' ? { reason: text(s.reason || 'Journey assertion failed') } : {}),
+        }
+    })
+    const failedScreens = screens.filter((screen) => screen.status === 'failed').length
+    assert(
+        Number.isInteger(input.attemptedSteps) &&
+            input.attemptedSteps >= screens.length &&
+            input.attemptedSteps <= 10000 &&
+            Number.isInteger(input.failedSteps) &&
+            input.failedSteps >= failedScreens &&
+            input.failedSteps <= input.attemptedSteps &&
+            Number.isInteger(input.omittedFailedSteps) &&
+            input.omittedFailedSteps === input.failedSteps - failedScreens,
+        'Invalid journey run counts'
+    )
+    return {
+        schema: 1,
+        type: 'journeys',
+        source: 'nutcracker',
+        commit: input.commit,
+        uiCommit: input.uiCommit,
+        apiCommit: input.apiCommit,
+        locale: captureLocale,
+        environment: text(input.environment),
+        capturedAt: text(input.capturedAt),
+        profile: input.profile,
+        width: input.width,
+        height: input.height,
+        attemptedSteps: input.attemptedSteps,
+        failedSteps: input.failedSteps,
+        omittedFailedSteps: input.omittedFailedSteps,
+        screens,
+        complete:
+            input.complete === true &&
+            input.failedSteps === 0 &&
+            input.omittedFailedSteps === 0 &&
+            screens.every((screen) => screen.status === 'passed'),
+    }
+}
 export function sameEnvironment(a, b) {
     return ['harness', 'fixtures', 'environment', 'profile', 'locale', 'adapter', 'publicBase'].every(
         (k) => a[k] === b[k]
     )
 }
-export function verifyAsset(dir, name) {
+export function verifyAsset(dir, name, { variableDimensions = false } = {}) {
     assert(asset.test(name), 'Unsafe asset name')
     const data = readFileSync(join(dir, name))
     assert(data.length < 8 * 1024 * 1024 && hash(data) === name.split('.')[0], 'Asset integrity failure')
     if (name.endsWith('.png')) {
         assert(data.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])), 'Invalid PNG')
-        assert(data.readUInt32BE(16) === 393 && data.readUInt32BE(20) === 852, 'Unexpected PNG dimensions')
+        const width = data.readUInt32BE(16),
+            height = data.readUInt32BE(20)
+        assert(
+            variableDimensions
+                ? width >= 240 && width <= 2400 && height >= 240 && height <= 12000 && width * height <= 16_000_000
+                : width === 393 && height === 852,
+            'Unexpected PNG dimensions'
+        )
         PNG.sync.read(data)
     } else {
         assert(data.toString('ascii', 0, 4) === 'RIFF' && data.toString('ascii', 8, 12) === 'WEBP', 'Invalid WebP')
@@ -137,7 +241,13 @@ export function compare(beforeInput, afterInput, assetsDir) {
         if (a?.status === 'absent' && b?.status === 'captured') return { ...row, status: 'added' }
         if (b?.status === 'absent' && a?.status === 'captured') return { ...row, status: 'removed' }
         // Missing/failed capture is never proof of a product addition/removal.
-        if ((a && a.status !== 'captured') || (b && b.status !== 'captured')) return { ...row, status: 'unavailable' }
+        const gapStatuses = [a?.status, b?.status].filter((status) => status && status !== 'captured')
+        if (gapStatuses.length) {
+            const status = ['failed', 'unavailable', 'excluded', 'absent'].find((candidate) =>
+                gapStatuses.includes(candidate)
+            )
+            return { ...row, status: status ?? 'unavailable' }
+        }
         if (!a) return { ...row, status: before.complete ? 'added' : 'unavailable' }
         if (!b) return { ...row, status: after.complete ? 'removed' : 'unavailable' }
         const ad = verifyAsset(assetsDir, a.image),

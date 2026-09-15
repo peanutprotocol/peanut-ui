@@ -5,6 +5,7 @@ import {
     initiateSumsubKyc,
     initiateSelfHealResubmission,
     restartIdentityVerification,
+    startResidenceChangeVerification,
     startKycAction,
 } from '@/app/actions/sumsub'
 
@@ -24,6 +25,7 @@ jest.mock('@/app/actions/sumsub', () => ({
     initiateSumsubKyc: jest.fn(),
     initiateSelfHealResubmission: jest.fn(),
     restartIdentityVerification: jest.fn(),
+    startResidenceChangeVerification: jest.fn(),
     startKycAction: jest.fn(),
 }))
 jest.mock('@/hooks/useWebSocket', () => ({
@@ -39,10 +41,14 @@ const mockInitiate = initiateSumsubKyc as jest.MockedFunction<typeof initiateSum
 const mockResubmit = initiateSelfHealResubmission as jest.MockedFunction<typeof initiateSelfHealResubmission>
 const mockStartAction = startKycAction as jest.MockedFunction<typeof startKycAction>
 const mockRestart = restartIdentityVerification as jest.MockedFunction<typeof restartIdentityVerification>
+const mockResidenceChange = startResidenceChangeVerification as jest.MockedFunction<
+    typeof startResidenceChangeVerification
+>
 
 describe('useSumsubKycFlow — cross-region routing', () => {
     beforeEach(() => {
         mockInitiate.mockReset()
+        mockResidenceChange.mockReset()
         mockWs.handler = undefined
     })
 
@@ -382,10 +388,9 @@ describe('useSumsubKycFlow — multi-level workflows', () => {
         expect(result.current.isMultiLevel).toBe(true)
     })
 
-    // A residence change re-opens identity through restart-identity with the
-    // NEW residence's intent; the hook prop only catches up on the next render,
-    // so the intent travels with the call and the second level must still run.
-    it('a residence re-verification carries its intent into the restart and stays multi-level', async () => {
+    // Call-time overrides are still required for the destructive document
+    // replacement flow; residence changes now have a separate action below.
+    it('a document restart carries its intent and stays multi-level', async () => {
         mockRestart.mockResolvedValue({ data: { token: 'tok_restart', applicantId: 'app_1', levelName: 'general' } })
         const { result } = renderHook(() => useSumsubKycFlow({}))
 
@@ -396,6 +401,97 @@ describe('useSumsubKycFlow — multi-level workflows', () => {
         expect(mockRestart).toHaveBeenCalledWith('LATAM')
         expect(result.current.showWrapper).toBe(true)
         expect(result.current.isMultiLevel).toBe(true)
+    })
+
+    it('opens a residence Applicant Action as single-level and never calls restart-identity', async () => {
+        mockRestart.mockClear()
+        mockResidenceChange.mockResolvedValue({
+            data: {
+                token: 'tok_residence',
+                applicantId: 'app_1',
+                levelName: 'peanut-residence-change',
+                targetCountry: 'PT',
+            },
+        })
+        const onManualClose = jest.fn()
+        const { result } = renderHook(() => useSumsubKycFlow({ onManualClose }))
+
+        await act(async () => {
+            await result.current.handleResidenceChange('PT')
+        })
+
+        expect(mockResidenceChange).toHaveBeenCalledWith('PT')
+        expect(mockRestart).not.toHaveBeenCalled()
+        expect(result.current.showWrapper).toBe(true)
+        expect(result.current.isActionFlow).toBe(true)
+        expect(result.current.isMultiLevel).toBe(false)
+
+        act(() => result.current.handleSdkComplete())
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.isVerificationProgressModalOpen).toBe(false)
+        expect(onManualClose).toHaveBeenCalledTimes(1)
+    })
+
+    it('binds residence token refreshes to the country used to open the action', async () => {
+        mockResidenceChange
+            .mockResolvedValueOnce({
+                data: {
+                    token: 'tok_residence',
+                    applicantId: 'app_1',
+                    levelName: 'peanut-residence-change',
+                    targetCountry: 'PT',
+                },
+            })
+            .mockResolvedValueOnce({
+                data: {
+                    token: 'tok_refreshed',
+                    applicantId: 'app_1',
+                    levelName: 'peanut-residence-change',
+                    targetCountry: 'PT',
+                },
+            })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleResidenceChange('pt')
+        })
+        await act(async () => {
+            expect(await result.current.refreshToken()).toBe('tok_refreshed')
+        })
+
+        expect(mockResidenceChange).toHaveBeenNthCalledWith(1, 'PT')
+        expect(mockResidenceChange).toHaveBeenNthCalledWith(2, 'PT')
+    })
+
+    it('uses residence-specific fallback copy when its action cannot start', async () => {
+        mockResidenceChange.mockResolvedValue({
+            error: 'Failed to start residence change verification',
+            code: 'residence_change_failed',
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleResidenceChange('PT')
+        })
+
+        expect(result.current.error).toBe('Could not start residence verification. Please try again.')
+        expect(result.current.error).not.toMatch(/identity/i)
+    })
+
+    it('routes residence action budgets to the shared cooldown dialog', async () => {
+        mockResidenceChange.mockResolvedValue({
+            error: 'Wait a few minutes before starting another residence verification.',
+            cooldown: { retryAt: '2026-09-14T20:05:00.000Z' },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleResidenceChange('PT')
+        })
+
+        expect(result.current.error).toBeNull()
+        expect(result.current.errorCooldown).toEqual({ retryAt: '2026-09-14T20:05:00.000Z' })
+        expect(result.current.showWrapper).toBe(false)
     })
 
     // The backend derives the intent from the declared residence when the caller
@@ -858,6 +954,79 @@ describe('useSumsubKycFlow — handleFixableRejection routing', () => {
 
         await act(async () => {
             await result.current.handleFixableRejection({ provider: 'BRIDGE', actionKey: 'sumsub:proof_of_address' })
+        })
+
+        expect(mockResubmit).toHaveBeenCalledWith('BRIDGE', undefined)
+        expect(mockStartAction).not.toHaveBeenCalled()
+    })
+
+    it('BRIDGE residence_unresolved goes to start-action — resubmit would 404 for it', async () => {
+        // The residence gate parks the rail before Bridge ever sees the user, so
+        // there is no rejectType and no remediation for /kyc/resubmit to find. It
+        // answers 404 and the CTA errors under copy that just asked for an
+        // address. This is the one Bridge code that must not take resubmit.
+        mockStartAction.mockResolvedValue({ data: { token: 'tok-address' } } as never)
+        const { result } = renderHook(() => useSumsubKycFlow())
+
+        await act(async () => {
+            await result.current.handleFixableRejection({
+                provider: 'BRIDGE',
+                actionKey: 'sumsub:address_of_residence',
+                reasonCode: 'residence_unresolved',
+            })
+        })
+
+        expect(mockStartAction).toHaveBeenCalledWith('sumsub:address_of_residence')
+        expect(mockResubmit).not.toHaveBeenCalled()
+    })
+
+    it('the same BRIDGE action key WITHOUT that reason code still takes resubmit', async () => {
+        // A genuine Bridge rejection asking for an address goes on using the route
+        // that resolves the level and stamps the externalActionId its webhook keys
+        // on. The narrow reason code is the discriminator, not the action key.
+        mockResubmit.mockResolvedValue({ data: { token: 'tok-bridge-addr' } } as never)
+        const { result } = renderHook(() => useSumsubKycFlow())
+
+        await act(async () => {
+            await result.current.handleFixableRejection({
+                provider: 'BRIDGE',
+                actionKey: 'sumsub:address_of_residence',
+                reasonCode: 'address_of_residence',
+            })
+        })
+
+        expect(mockResubmit).toHaveBeenCalledWith('BRIDGE', undefined)
+        expect(mockStartAction).not.toHaveBeenCalled()
+    })
+
+    it('handleFixableGate pulls BOTH values off the gate — a dropped code means a 404', async () => {
+        // The four bank surfaces used to build this argument by hand. A site that
+        // passed `gate.reason` instead of `gate.reason.code`, or omitted it, would
+        // fall back to resubmit and 404 for a residence park with every test still
+        // green, because the mistake lives in the argument rather than the router.
+        mockStartAction.mockResolvedValue({ data: { token: 'tok-address' } } as never)
+        const { result } = renderHook(() => useSumsubKycFlow())
+
+        await act(async () => {
+            await result.current.handleFixableGate('BRIDGE', {
+                actionKey: 'sumsub:address_of_residence',
+                reason: { code: 'residence_unresolved' },
+            })
+        })
+
+        expect(mockStartAction).toHaveBeenCalledWith('sumsub:address_of_residence')
+        expect(mockResubmit).not.toHaveBeenCalled()
+    })
+
+    it('handleFixableGate on any other Bridge gate still takes resubmit', async () => {
+        mockResubmit.mockResolvedValue({ data: { token: 'tok-bridge' } } as never)
+        const { result } = renderHook(() => useSumsubKycFlow())
+
+        await act(async () => {
+            await result.current.handleFixableGate('BRIDGE', {
+                actionKey: 'sumsub:proof_of_address',
+                reason: { code: 'proof_of_address' },
+            })
         })
 
         expect(mockResubmit).toHaveBeenCalledWith('BRIDGE', undefined)

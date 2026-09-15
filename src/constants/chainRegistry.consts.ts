@@ -39,6 +39,13 @@ export interface ChainRegistryEntry {
     /** Display key on deposit surfaces (the legacy `ChainName`). */
     displayName?: string
     logoUrl?: string
+    /** Full transaction explorer prefix for chains that are not represented in
+     *  chain-details.json. Keep this beside the chain identity so receipts do
+     *  not grow a second network-name switch. */
+    transactionExplorerUrlPrefix?: string
+    /** Exact-id explorer prefixes for aliases that share a provider routing
+     *  bucket but belong to a different network (for example a testnet). */
+    aliasTransactionExplorerUrlPrefixes?: Readonly<Record<string, string>>
     /** Present = advertised DEPOSIT chain. `tokens` only when narrower than
      *  the family default (USDT/USDC/ETH for EVM) — drives the "USDT only"
      *  funds-safety annotations. */
@@ -67,6 +74,9 @@ const CHAIN_REGISTRY_LITERAL = [
         family: 'evm',
         displayName: 'ARBITRUM',
         logoUrl: 'https://assets.coingecko.com/asset_platforms/images/33/standard/AO_logomark.png?1706606717',
+        aliasTransactionExplorerUrlPrefixes: {
+            '421614': 'https://sepolia.arbiscan.io/tx/',
+        },
         deposit: {},
         withdraw: { tokens: ['ETH', 'USDC', 'USDT'] },
     },
@@ -239,6 +249,7 @@ const CHAIN_REGISTRY_LITERAL = [
         family: 'solana',
         displayName: 'SOLANA',
         logoUrl: 'https://assets.coingecko.com/asset_platforms/images/5/standard/solana.png?1706606708',
+        transactionExplorerUrlPrefix: 'https://solscan.io/tx/',
         deposit: {}, // SOL family default (USDT/USDC)
         withdraw: { tokens: ['USDC', 'USDT'] },
         nonEvmRecord: {
@@ -268,6 +279,7 @@ const CHAIN_REGISTRY_LITERAL = [
         family: 'tron',
         displayName: 'TRON',
         logoUrl: 'https://assets.coingecko.com/asset_platforms/images/1094/standard/TRON_LOGO.png?1706606652',
+        transactionExplorerUrlPrefix: 'https://tronscan.org/#/transaction/',
         deposit: {}, // TRON family default (USDT)
         withdraw: { tokens: ['USDT'] }, // no USDC on Tron
         nonEvmRecord: {
@@ -294,6 +306,17 @@ export type RegistryChainName = Extract<RegistryEntryLiteral, { displayName: str
 /** The registry, widened for iteration (optional props accessible on every
  *  entry). The literal source above keeps the name union type-safe. */
 export const CHAIN_REGISTRY: readonly ChainRegistryEntry[] = CHAIN_REGISTRY_LITERAL
+
+/** Resolve any chain identifier carried by our wire contracts: selector id,
+ *  alias id, Rhino name, or display name. */
+export function resolveChainRegistryEntry(identifier: string | number): ChainRegistryEntry | undefined {
+    const normalized = String(identifier).trim().toUpperCase()
+    return CHAIN_REGISTRY.find((entry) =>
+        [entry.id, ...(entry.aliasIds ?? []), entry.rhinoName, entry.displayName].some(
+            (candidate) => candidate?.toUpperCase() === normalized
+        )
+    )
+}
 
 // ─── Derived views ─────────────────────────────────────────────────────────
 // Everything below is COMPUTED from the registry — never hand-edit a chain

@@ -43,6 +43,9 @@ if (
         api_host: isNativeBuild ? posthogHost : '/relay',
         ui_host: posthogHost,
         person_profiles: 'identified_only',
+        // Capture the initial document here. PathnamePageviewTracker adds one
+        // event per later Next.js pathname transition and ignores query-only
+        // UI state, avoiding history-autocapture's extra event volume.
         capture_pageview: true,
         // Registered here, not from the async device-context effect: PostHog
         // captures the initial $pageview during init, and super properties are

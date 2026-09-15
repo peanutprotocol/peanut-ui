@@ -43,7 +43,7 @@ jobs:
                   pattern: screen-library-*
                   merge-multiple: false
                   path: incoming
-            - name: Resolve verified daily baseline when needed
+            - name: Resolve verified baseline when needed
               id: baseline
               env:
                   GH_TOKEN: ${{ github.token }}
@@ -57,7 +57,7 @@ jobs:
                       echo 'mode=external' >> "$GITHUB_OUTPUT"
                       node scripts/screens/resolve-baseline.mjs >> "$GITHUB_OUTPUT"
                   fi
-            - name: Download verified daily baseline
+            - name: Download verified baseline
               if: steps.baseline.outputs.mode == 'external'
               uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
               with:
@@ -75,8 +75,6 @@ jobs:
                   SCREEN_LIBRARY_R2_BUCKET: ${{ vars.SCREEN_LIBRARY_R2_BUCKET }}
                   SCREEN_LIBRARY_R2_JURISDICTION: ${{ vars.SCREEN_LIBRARY_R2_JURISDICTION }}
                   SCREEN_LIBRARY_PUBLIC_URL: ${{ vars.SCREEN_LIBRARY_PUBLIC_URL }}
-                  SCREEN_LIBRARY_IMAGES_HASH: ${{ vars.SCREEN_LIBRARY_IMAGES_HASH }}
-                  SCREEN_LIBRARY_IMAGES_VARIANT: ${{ vars.SCREEN_LIBRARY_IMAGES_VARIANT }}
                   RUN_ID: ${{ github.run_id }}
                   RUN_ATTEMPT: ${{ github.run_attempt }}
                   REPOSITORY: ${{ github.repository }}
@@ -84,3 +82,36 @@ jobs:
                   SCREEN_LIBRARY_BASELINE_RUN_ID: ${{ steps.baseline.outputs.run_id }}
                   SCREEN_LIBRARY_BASELINE_ARTIFACT: ${{ steps.baseline.outputs.artifact_name }}
               run: node scripts/screens/publish-run.mjs
+    deploy:
+        needs: publish
+        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+        environment: screen-library-deploy
+        runs-on: ubuntu-24.04
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  # Deploy the same trusted dev revision whose publication
+                  # completed, not a newer branch tip that raced this run.
+                  ref: ${{ github.sha }}
+                  persist-credentials: false
+            - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+              with:
+                  node-version: '22'
+            - name: Install isolated deployment tool from the committed lockfile
+              run: npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/screens/deploy
+            - name: Prepare migrated gallery and R2 binding
+              env:
+                  SCREEN_LIBRARY_R2_BUCKET: ${{ vars.SCREEN_LIBRARY_R2_BUCKET }}
+                  SCREEN_LIBRARY_R2_JURISDICTION: ${{ vars.SCREEN_LIBRARY_R2_JURISDICTION }}
+                  SCREEN_LIBRARY_PUBLIC_URL: ${{ vars.SCREEN_LIBRARY_PUBLIC_URL }}
+              run: node scripts/screens/worker/prepare.mjs /tmp/screen-gallery
+            - name: Deploy private gallery after publication
+              env:
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+                  CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+              run: |
+                  if [[ -z "$CLOUDFLARE_API_TOKEN" ]]; then
+                      echo 'CLOUDFLARE_API_TOKEN is missing from the screen-library-deploy environment.' >&2
+                      exit 1
+                  fi
+                  scripts/screens/deploy/node_modules/.bin/wrangler deploy --config /tmp/screen-gallery/wrangler.json

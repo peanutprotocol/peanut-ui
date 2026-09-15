@@ -9,7 +9,13 @@ on:
 
 permissions:
     contents: read
-# Keep every merge report; do not cancel an older integration when a new PR lands.
+
+# Supersede only older revisions of the same PR. Dev pushes and manual captures
+# keep a unique run-scoped group so integration reports are never cancelled.
+concurrency:
+    group: screen-library-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('run-{0}', github.run_id) }}
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
     refs:
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
@@ -66,8 +72,8 @@ jobs:
     capture_after:
         needs: refs
         # PR commits capture the changed revision. Product-only PRs reuse the
-        # verified daily baseline; harness-changing PRs also run capture_before.
-        runs-on: macos-26-intel
+        # verified baseline; harness-changing PRs also run capture_before.
+        runs-on: ubuntu-24.04
         timeout-minutes: 60
         strategy:
             fail-fast: false
@@ -130,9 +136,9 @@ jobs:
         needs: refs
         # Pushes and historical dispatch keep same-run pairs. A PR only needs
         # this expensive job when its harness/fixture identity can differ from
-        # the daily baseline; ordinary product-only PRs reuse that baseline.
+        # the verified baseline; ordinary product-only PRs reuse that baseline.
         if: github.event_name != 'pull_request' || needs.refs.outputs.capture_before == 'true'
-        runs-on: macos-26-intel
+        runs-on: ubuntu-24.04
         timeout-minutes: 60
         strategy:
             fail-fast: false
@@ -198,5 +204,5 @@ jobs:
         # Resolve the secret-bearing publisher only from trusted dev code.
         uses: peanutprotocol/peanut-ui/.github/workflows/screen-library-publish.yml@dev
         secrets:
-            # The repository secret itself is named CLOUDFLARE_API_TOKEN.
+            # Repository scope contains only the R2/Images publisher credential.
             CLOUDFLARE_PUBLISH_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

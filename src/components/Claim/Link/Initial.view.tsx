@@ -148,6 +148,7 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
                     transactionType="CLAIM_LINK"
                     recipientType="USERNAME"
                     recipientName={senderDisplay.displayName}
+                    avatarKey={claimLinkData.sender?.avatarKey}
                     amount={
                         isReward
                             ? formatTokenAmount(Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)))!

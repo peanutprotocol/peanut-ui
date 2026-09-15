@@ -19,7 +19,12 @@ import {
     EVM_DEPOSIT_TOKEN_EXCEPTIONS,
 } from '../rhino.consts'
 import { RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN } from '@/components/Global/TokenSelector/TokenSelector.consts'
-import { CHAIN_REGISTRY, CHAIN_ROLLOUT_FLAGS, NON_EVM_WITHDRAW_CHAINS } from '../chainRegistry.consts'
+import {
+    CHAIN_REGISTRY,
+    CHAIN_ROLLOUT_FLAGS,
+    NON_EVM_WITHDRAW_CHAINS,
+    resolveChainRegistryEntry,
+} from '../chainRegistry.consts'
 
 describe('CHAIN_REGISTRY derivations match the replaced literals', () => {
     it('EVM_CHAIN_ID_TO_RHINO_NAME', () => {
@@ -149,6 +154,16 @@ describe('CHAIN_REGISTRY derivations match the replaced literals', () => {
         expect(NON_EVM_WITHDRAW_CHAINS.solana.tokens[0].address).toBe('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v')
         expect(NON_EVM_WITHDRAW_CHAINS.tron.tokens.map((t) => t.symbol)).toEqual(['USDT'])
         expect(NON_EVM_WITHDRAW_CHAINS.tron.tokens[0].address).toBe('TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t')
+    })
+
+    it('resolves wire identifiers to the canonical explorer metadata', () => {
+        expect(resolveChainRegistryEntry('421614')?.id).toBe('42161')
+        expect(resolveChainRegistryEntry('MATIC_POS')?.id).toBe('137')
+        expect(resolveChainRegistryEntry(' solana ')?.transactionExplorerUrlPrefix).toBe('https://solscan.io/tx/')
+        expect(resolveChainRegistryEntry('TRON')?.transactionExplorerUrlPrefix).toBe(
+            'https://tronscan.org/#/transaction/'
+        )
+        expect(resolveChainRegistryEntry('unknown')).toBeUndefined()
     })
 
     it('registry invariants', () => {

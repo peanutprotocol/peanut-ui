@@ -25,7 +25,7 @@ const stepById = (screenId: string) => steps.find((s) => s.screenId === screenId
 const render = (initial: { enabled: boolean; step: ISetupStep | undefined }) =>
     renderHook(
         ({ enabled, step }: { enabled: boolean; step: ISetupStep | undefined }) =>
-            useSetupStepAnalytics({ enabled, step, steps }),
+            useSetupStepAnalytics({ enabled, step, steps, signupEntryFlow: 'card' }),
         { initialProps: initial }
     )
 
@@ -45,8 +45,10 @@ describe('useSetupStepAnalytics', () => {
         expect(mockedCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_STEP_VIEWED, {
             screen_id: 'landing',
             step_index: 1,
-            total_steps: steps.length,
+            total_steps: steps.length + 1,
             nav_type: 'initial',
+            flow_version: 1,
+            signup_entry_flow: 'card',
         })
     })
 
@@ -56,8 +58,10 @@ describe('useSetupStepAnalytics', () => {
         expect(mockedCapture).toHaveBeenLastCalledWith(ANALYTICS_EVENTS.SIGNUP_STEP_VIEWED, {
             screen_id: 'welcome',
             step_index: 2,
-            total_steps: steps.length,
+            total_steps: steps.length + 1,
             nav_type: 'forward',
+            flow_version: 1,
+            signup_entry_flow: 'card',
         })
     })
 
@@ -67,8 +71,10 @@ describe('useSetupStepAnalytics', () => {
         expect(mockedCapture).toHaveBeenLastCalledWith(ANALYTICS_EVENTS.SIGNUP_STEP_VIEWED, {
             screen_id: 'welcome',
             step_index: 2,
-            total_steps: steps.length,
+            total_steps: steps.length + 1,
             nav_type: 'back',
+            flow_version: 1,
+            signup_entry_flow: 'card',
         })
     })
 
@@ -78,8 +84,10 @@ describe('useSetupStepAnalytics', () => {
         expect(mockedCapture).toHaveBeenLastCalledWith(ANALYTICS_EVENTS.SIGNUP_STEP_VIEWED, {
             screen_id: 'signup',
             step_index: 3,
-            total_steps: steps.length,
+            total_steps: steps.length + 1,
             nav_type: 'jump',
+            flow_version: 1,
+            signup_entry_flow: 'card',
         })
     })
 
