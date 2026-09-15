@@ -21,6 +21,7 @@ type ValidatedInputProps = {
     className?: string
     autoComplete?: string
     name?: string
+    'aria-label'?: string
     infoText?: string
     formatDisplayValue?: (value: string) => string
     isSetupFlow?: boolean
@@ -44,6 +45,7 @@ const ValidatedInput = ({
     className,
     autoComplete,
     name,
+    'aria-label': ariaLabel,
     infoText,
     formatDisplayValue,
     isSetupFlow = false,
@@ -219,6 +221,7 @@ const ValidatedInput = ({
                         autoCorrect="off"
                         autoCapitalize="off"
                         name={name}
+                        aria-label={ariaLabel}
                         translate="no"
                         style={{
                             WebkitTapHighlightColor: 'transparent',

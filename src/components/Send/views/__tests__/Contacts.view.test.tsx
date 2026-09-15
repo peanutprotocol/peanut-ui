@@ -4,13 +4,13 @@
  * two-letter initials of a full name they may not even show.
  */
 import React from 'react'
-import { fireEvent, screen } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { type Contact } from '@/interfaces/interfaces'
 import ContactsView from '../Contacts.view'
 
 const mockUseContacts = jest.fn()
-const mockUseUserByUsername = jest.fn()
+const mockCheckUsername = jest.fn()
 const mockRouterPush = jest.fn()
 
 jest.mock('next/navigation', () => ({
@@ -18,8 +18,8 @@ jest.mock('next/navigation', () => ({
     usePathname: () => '/send',
 }))
 jest.mock('@/hooks/useContacts', () => ({ useContacts: () => mockUseContacts() }))
-jest.mock('@/hooks/useUserByUsername', () => ({
-    useUserByUsername: (username: string | null) => mockUseUserByUsername(username),
+jest.mock('@/services/users', () => ({
+    usersApi: { checkUsername: (...args: unknown[]) => mockCheckUsername(...args) },
 }))
 jest.mock('@/hooks/useDebounce', () => ({ useDebounce: (value: string) => value }))
 jest.mock('@/hooks/useInfiniteScroll', () => ({ useInfiniteScroll: () => ({ loaderRef: { current: null } }) }))
@@ -59,7 +59,7 @@ const renderContacts = (contacts: Contact[], error: Error | null = null) => {
 
 beforeEach(() => {
     jest.clearAllMocks()
-    mockUseUserByUsername.mockReturnValue({ user: null, isLoading: false, error: null })
+    mockCheckUsername.mockResolvedValue({ status: 'not-found' })
 })
 
 describe('ContactsView avatars', () => {
@@ -92,45 +92,38 @@ describe('ContactsView exact username entry', () => {
         expect(screen.getByRole('textbox', { name: 'Peanut username or contact' })).toBeInTheDocument()
     })
 
-    it('resolves a valid exact username outside the contact list and opens direct send', () => {
-        mockUseUserByUsername.mockImplementation((username: string | null) => ({
-            user:
-                username === 'globee'
-                    ? {
-                          userId: 'global-user',
-                          username: 'globee',
-                          accounts: [],
-                          fullName: 'Global User',
-                          firstName: 'Global',
-                          lastName: 'User',
-                          showFullName: true,
-                          totalUsdSentToCurrentUser: '0',
-                          totalUsdReceivedFromCurrentUser: '0',
-                          isVerified: false,
-                      }
-                    : null,
-            isLoading: false,
-            error: null,
-        }))
+    it('checks a valid exact username outside the contact list and opens direct send', async () => {
+        mockCheckUsername.mockResolvedValue({ status: 'found' })
         renderContacts([])
 
         fireEvent.change(screen.getByRole('textbox', { name: 'Peanut username or contact' }), {
             target: { value: '@GLOBEE' },
         })
 
-        expect(mockUseUserByUsername).toHaveBeenLastCalledWith('globee')
-        fireEvent.click(screen.getByRole('button', { name: /Global User/i }))
+        await waitFor(() => expect(mockCheckUsername).toHaveBeenLastCalledWith('globee'))
+        fireEvent.click(await screen.findByRole('button', { name: /@globee found/i }))
         expect(mockRouterPush).toHaveBeenCalledWith('/send/globee')
     })
 
-    it('does not look up input that cannot be a Peanut username', () => {
+    it('does not check input that cannot be a Peanut username', async () => {
         renderContacts([])
 
         fireEvent.change(screen.getByRole('textbox', { name: 'Peanut username or contact' }), {
             target: { value: 'not-valid!' },
         })
 
-        expect(mockUseUserByUsername).toHaveBeenLastCalledWith(null)
-        expect(screen.getByText('No username or contact found')).toBeInTheDocument()
+        await waitFor(() => expect(mockCheckUsername).not.toHaveBeenCalled())
+        expect(screen.getByText('Enter a valid Peanut username.')).toBeInTheDocument()
+    })
+
+    it('shows a specific message when the lookup quota is exhausted', async () => {
+        mockCheckUsername.mockResolvedValue({ status: 'rate-limited', retryAfterSeconds: 3600 })
+        renderContacts([])
+
+        fireEvent.change(screen.getByRole('textbox', { name: 'Peanut username or contact' }), {
+            target: { value: 'globee' },
+        })
+
+        expect(await screen.findByText('Too many username checks. Please try again later.')).toBeInTheDocument()
     })
 })

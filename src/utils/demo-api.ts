@@ -404,6 +404,16 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'POST', pattern: '/users/bridge-tos-confirm', handler: () => ({ accepted: true }) },
     { method: 'POST', pattern: '/users/initiate-kyc', handler: () => ({}) },
     { method: 'POST', pattern: '/users/interaction-status', handler: () => ({}) },
+    {
+        method: 'POST',
+        pattern: '/users/username/check',
+        handler: ({ options }) => {
+            const username = String(parseBody(options).username ?? '').toLowerCase()
+            const found =
+                username === DEMO_USER.user.username || DEMO_CONTACTS.some((contact) => contact.username === username)
+            return { found }
+        },
+    },
     { method: 'POST', pattern: '/users/accounts', handler: () => ({ id: 'demo-bank' }) },
     {
         method: 'GET',

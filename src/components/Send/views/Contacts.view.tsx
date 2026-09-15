@@ -9,15 +9,16 @@ import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import { useState } from 'react'
 import { UserAvatar } from '@/components/Avatar/UserAvatar'
 import { VerifiedUserLabel } from '@/components/UserHeader'
-import { SearchInput } from '@/components/SearchInput'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useDebounce } from '@/hooks/useDebounce'
 import { ContactsListSkeleton } from '@/components/Common/ContactsListSkeleton'
 import { useTranslations } from 'next-intl'
-import { useUserByUsername } from '@/hooks/useUserByUsername'
 import { isPlausibleUsername } from '@/constants/routes'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import ValidatedInput from '@/components/Global/ValidatedInput'
+import { FieldError } from '@/components/0_Bruddle/FieldError'
+import { usersApi } from '@/services/users'
 
 export default function ContactsView({ onPrev }: { onPrev: () => void }) {
     const t = useTranslations('send')
@@ -25,16 +26,16 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
     const tCommon = useTranslations('common')
     const router = useRouter()
     const [searchQuery, setSearchQuery] = useState('')
+    const [isExactUsernameFound, setIsExactUsernameFound] = useState(false)
+    const [isUsernameChanging, setIsUsernameChanging] = useState(false)
+    const [usernameCheckError, setUsernameCheckError] = useState('')
 
-    // debounce search query to avoid excessive API calls
+    // Relationship-scoped contact filtering can be faster than the protected
+    // global check, which ValidatedInput debounces separately below.
     const debouncedSearchQuery = useDebounce(searchQuery, 300)
     const normalizedSearchQuery = debouncedSearchQuery.trim().replace(/^@/, '').toLowerCase()
-    const exactUsername = isPlausibleUsername(normalizedSearchQuery) ? normalizedSearchQuery : null
-
-    // Contacts search is intentionally relationship-scoped. Resolve a valid,
-    // exact username separately so someone can pay any Peanut user, including a
-    // person they have never interacted with before.
-    const { user: exactUser, isLoading: isLookingUpExactUser } = useUserByUsername(exactUsername)
+    const normalizedInput = searchQuery.trim().replace(/^@/, '').toLowerCase()
+    const exactUsername = isPlausibleUsername(normalizedInput) ? normalizedInput : null
 
     // fetch contacts with server-side search
     const {
@@ -71,51 +72,76 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
         router.push(sendUrl(username))
     }
 
+    const validateExactUsername = async (value: string): Promise<boolean> => {
+        const username = value.trim().replace(/^@/, '').toLowerCase()
+        setUsernameCheckError('')
+        try {
+            const result = await usersApi.checkUsername(username)
+            if (result.status === 'found') return true
+            if (result.status === 'rate-limited') {
+                setUsernameCheckError(t('contacts.lookupLimitReached'))
+                return false
+            }
+            setUsernameCheckError(
+                result.status === 'invalid' ? t('contacts.invalidUsername') : t('contacts.usernameNotFound')
+            )
+            return false
+        } catch {
+            setUsernameCheckError(t('contacts.lookupError'))
+            return false
+        }
+    }
+
     const isSearching = !!normalizedSearchQuery
-    const exactUserMatchesQuery = exactUser?.username.toLowerCase() === normalizedSearchQuery
-    const exactUserIsContact = contacts.some((contact) => contact.userId === exactUser?.userId)
-    const showExactUser = exactUserMatchesQuery && !exactUserIsContact
-    const showSearchLoading = isFetchingContacts || (exactUsername !== null && isLookingUpExactUser)
+    const exactUsernameIsContact = contacts.some((contact) => contact.username.toLowerCase() === exactUsername)
+    const showExactUsername = !!exactUsername && isExactUsernameFound && !isUsernameChanging && !exactUsernameIsContact
 
     return (
         <div className="flex min-h-inherit flex-col gap-8">
             <NavHeader title={tNav('send')} onPrev={onPrev} />
 
             <div className="space-y-4">
-                {/* This field is also the global exact-username entry point, so it
-                    stays available even before the user has any contacts. */}
-                <SearchInput
-                    value={searchQuery}
-                    onChange={setSearchQuery}
-                    onClear={() => setSearchQuery('')}
-                    placeholder={t('contacts.searchPlaceholder')}
-                    aria-label={t('contacts.searchLabel')}
-                />
+                <div className="flex flex-col gap-1">
+                    <ValidatedInput
+                        value={searchQuery}
+                        debounceTime={750}
+                        validate={validateExactUsername}
+                        shouldValidate={(value) => isPlausibleUsername(value.trim().replace(/^@/, '').toLowerCase())}
+                        onUpdate={({ value, isValid, isChanging }) => {
+                            const username = value.trim().replace(/^@/, '').toLowerCase()
+                            setSearchQuery(value)
+                            setIsExactUsernameFound(isValid)
+                            setIsUsernameChanging(isChanging)
+                            if (isChanging) {
+                                setUsernameCheckError(
+                                    username.length >= 4 && !isPlausibleUsername(username)
+                                        ? t('contacts.invalidUsername')
+                                        : ''
+                                )
+                            }
+                        }}
+                        placeholder={t('contacts.searchPlaceholder')}
+                        aria-label={t('contacts.searchLabel')}
+                        isSetupFlow
+                        isInputChanging={isUsernameChanging}
+                    />
+                    {usernameCheckError && <FieldError>{usernameCheckError}</FieldError>}
+                </div>
 
-                {showSearchLoading ? (
+                {isFetchingContacts ? (
                     <ContactsListSkeleton count={5} />
                 ) : (
                     <>
-                        {showExactUser && exactUser && (
+                        {showExactUsername && exactUsername && (
                             <div className="space-y-2">
                                 <h2 className="text-body-m-semibold">{t('contacts.exactUsername')}</h2>
                                 <ListItem
                                     position="single"
-                                    title={
-                                        <VerifiedUserLabel
-                                            name={
-                                                exactUser.showFullName
-                                                    ? exactUser.fullName || exactUser.username
-                                                    : exactUser.username
-                                            }
-                                            username={exactUser.username}
-                                            isVerified={exactUser.isVerified}
-                                        />
-                                    }
-                                    body={`@${exactUser.username}`}
+                                    title={t('contacts.usernameFound', { username: exactUsername })}
+                                    body={t('contacts.continueToSend')}
                                     leading={<IconBubble icon="user" size="s" color="green" />}
                                     chevron
-                                    onClick={() => handleUserSelect(exactUser.username)}
+                                    onClick={() => handleUserSelect(exactUsername)}
                                 />
                             </div>
                         )}
@@ -176,7 +202,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                                     )}
                                 </div>
                             </div>
-                        ) : isError && !showExactUser ? (
+                        ) : isError && !showExactUsername ? (
                             <div className="flex flex-1 items-center justify-center">
                                 <EmptyState
                                     title={t('contacts.errorTitle')}
@@ -195,13 +221,13 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                                     }
                                 />
                             </div>
-                        ) : isSearching && !showExactUser ? (
+                        ) : isSearching && !showExactUsername && !isUsernameChanging ? (
                             <EmptyState
                                 title={t('contacts.noResultsTitle')}
                                 icon="search"
                                 description={t('contacts.noResultsDescription')}
                             />
-                        ) : !showExactUser ? (
+                        ) : !showExactUsername ? (
                             <div className="flex flex-1 items-center justify-center">
                                 <EmptyState
                                     title={t('contacts.emptyTitle')}
