@@ -54,8 +54,12 @@ export default function FieldColumnPage() {
                         </div>
                         <div>
                             <p className="mb-2 text-body-s text-foreground-secondary">With error</p>
-                            <FieldColumn error="Amount is required">
-                                <BaseInput placeholder="Amount" />
+                            <FieldColumn error="Amount is required" errorId="field-column-demo-error">
+                                <BaseInput
+                                    placeholder="Amount"
+                                    state="error"
+                                    aria-describedby="field-column-demo-error"
+                                />
                             </FieldColumn>
                         </div>
                     </div>
@@ -67,7 +71,7 @@ export default function FieldColumnPage() {
                     />
                     <CodeBlock
                         label="Usage"
-                        code={`<FieldColumn error={errors.amount?.message}>\n    <BaseInput placeholder="Amount" />\n</FieldColumn>`}
+                        code={`<FieldColumn error={errors.amount?.message} errorId="amount-error">\n    <BaseInput\n        placeholder="Amount"\n        state={errors.amount ? 'error' : 'default'}\n        aria-describedby={errors.amount ? 'amount-error' : undefined}\n    />\n</FieldColumn>`}
                     />
                 </DocSection.Code>
             </DocSection>
