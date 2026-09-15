@@ -49,6 +49,16 @@ export function useCardFlow() {
     // Sumsub card-application token — populated when POST /rain/cards reports
     // the user still needs to complete the rain-card-application level.
     const [sumsubToken, setSumsubToken] = useState<string | null>(null)
+    // Keep the freshly minted token here until the user has seen the Rain-only
+    // prep requirements. A generic card apply can skip KYC entirely, so the
+    // requirements drawer must be driven by an actual `incomplete` response,
+    // not by the card entry CTA itself.
+    const [pendingSumsubToken, setPendingSumsubToken] = useState<string | null>(null)
+    // Identity documents the next Rain session can still request. The usual
+    // card-action response follows an approved base KYC, so it only needs the
+    // Rain-specific data/challenges. A main-level response can represent either
+    // a new KYC (ID + selfie) or one missing document on a verified profile.
+    const [pendingSumsubDocuments, setPendingSumsubDocuments] = useState<Array<'id' | 'selfie'>>([])
     const [applyError, setApplyError] = useState<string | null>(null)
     // When backend returns status:'terms-required', we capture it here so
     // the dispatcher can render the terms screen between Sumsub and submit.
@@ -181,12 +191,17 @@ export function useCardFlow() {
     const advanceFromApplyResponse = useCallback(
         (res: ApplyForCardResponse) => {
             // Main applicant is missing a doc Rain requires (e.g. SELFIE
-            // after liveness was added to the level). Open WebSDK at the
-            // MAIN level — Sumsub asks only for the missing step. Same
-            // wrapper handles both action and main-level tokens.
+            // after liveness was added to the level). Stage the MAIN-level
+            // token behind the same Rain prep screen as an incomplete action:
+            // both tokens open the Rain verification level. Keep its phone,
+            // email, tax-ID, and questionnaire prep, then add only the identity
+            // documents this cohort can still be asked for.
             if (res.status === 'main-kyc-required' && 'sumsubAccessToken' in res) {
-                setSumsubToken(res.sumsubAccessToken)
-                posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+                const isVerified = user?.identityVerification?.status === 'verified'
+                setPendingSumsubDocuments(
+                    isVerified ? (res.missingDocTypes.includes('SELFIE') ? ['selfie'] : []) : ['id', 'selfie']
+                )
+                setPendingSumsubToken(res.sumsubAccessToken)
                 return
             }
             // Conflicting residence evidence — collect the user's pick before
@@ -221,7 +236,7 @@ export function useCardFlow() {
             setPendingCountryConfirmation(null)
             invalidateOverview()
         },
-        [invalidateOverview, refetchCardInfo]
+        [invalidateOverview, refetchCardInfo, user?.identityVerification?.status]
     )
 
     // The user picked their residence country on the confirmation screen.
@@ -241,8 +256,8 @@ export function useCardFlow() {
                 // screen via the default overview-invalidate arm.
                 if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
                     setPendingCountryConfirmation(null)
-                    setSumsubToken(res.sumsubAccessToken)
-                    posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+                    setPendingSumsubDocuments([])
+                    setPendingSumsubToken(res.sumsubAccessToken)
                     return
                 }
                 advanceFromApplyResponse(res)
@@ -272,8 +287,8 @@ export function useCardFlow() {
                 const res = await rainApi.applyForCard({ termsAccepted, serializedApproval, acceptedDocuments })
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
                 if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
-                    setSumsubToken(res.sumsubAccessToken)
-                    posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+                    setPendingSumsubDocuments([])
+                    setPendingSumsubToken(res.sumsubAccessToken)
                     return
                 }
                 advanceFromApplyResponse(res)
@@ -426,6 +441,19 @@ export function useCardFlow() {
         setSumsubToken(null)
     }, [])
 
+    const handleStartCardKyc = useCallback(() => {
+        if (!pendingSumsubToken) return
+        setSumsubToken(pendingSumsubToken)
+        setPendingSumsubToken(null)
+        setPendingSumsubDocuments([])
+        posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+    }, [pendingSumsubToken])
+
+    const handleCloseCardKycPrep = useCallback(() => {
+        setPendingSumsubToken(null)
+        setPendingSumsubDocuments([])
+    }, [])
+
     const handleSumsubRefreshToken = useCallback(async () => {
         const res = await rainApi.applyForCard({ termsAccepted: false })
         if ((res.status === 'incomplete' || res.status === 'main-kyc-required') && 'sumsubAccessToken' in res) {
@@ -501,6 +529,10 @@ export function useCardFlow() {
         onUploadIdentity,
         identityUploadError,
         // card-application sumsub
+        pendingSumsubToken,
+        pendingSumsubDocuments,
+        handleStartCardKyc,
+        handleCloseCardKycPrep,
         sumsubToken,
         handleSumsubComplete,
         handleSumsubClose,

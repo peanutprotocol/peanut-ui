@@ -2954,6 +2954,21 @@
                     "title": "Your face",
                     "body": "A short selfie in the app. Good light helps."
                 },
+                "sms": {
+                    "label": "Phone",
+                    "title": "A phone number that can receive SMS",
+                    "body": "You will receive a verification code by text message during the check."
+                },
+                "rainTaxId": {
+                    "label": "Tax ID",
+                    "title": "Your tax identification number",
+                    "body": "The tax number issued by your country. Have it ready to enter during the check."
+                },
+                "emailCode": {
+                    "label": "Email",
+                    "title": "Access to your email",
+                    "body": "You will receive a verification code by email during the check."
+                },
                 "taxId": {
                     "label": "Tax ID",
                     "title": "Your tax ID",
@@ -2972,9 +2987,10 @@
             },
             "howLongLabel": "How long",
             "howLong": {
-                "standard": "Under 2 minutes for most people. If a reviewer has to look at it, 1 to 3 business days.",
+                "standard": "A few minutes for most people. If a reviewer has to look at it, 1 to 3 business days.",
+                "rain": "A few minutes for most people. If a reviewer has to look at it, 1 to 3 business days.",
                 "extended": "Longer than the usual check. If a reviewer has to look at it, 1 to 3 business days.",
-                "hosted": "About 5 minutes with your documents in hand. If a reviewer has to look at it, 1 to 3 business days."
+                "hosted": "A few minutes with your documents in hand. If a reviewer has to look at it, 1 to 3 business days."
             },
             "extraDocNote": "Some people are asked for one more document, like a proof of address. If that is you, we will say so before the camera opens.",
             "startCta": "I have these, start",

@@ -6,6 +6,7 @@ import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { useTranslations } from 'next-intl'
 
 export type KycPrepPath = 'standard' | 'extended' | 'hosted'
+export type KycPrepProvider = 'rain'
 
 /**
  * The "before you start" prep content shown before the verification SDK
@@ -22,15 +23,33 @@ export type KycPrepPath = 'standard' | 'extended' | 'hosted'
  * AFTER the list so it reads as the consequence of not having those documents
  * rather than as a preamble to them.
  */
-const KycPrepChecklist = ({ path }: { path: KycPrepPath }) => {
+const KycPrepChecklist = ({
+    path,
+    provider,
+    rainDocuments,
+}: {
+    path: KycPrepPath
+    provider?: KycPrepProvider
+    rainDocuments?: ReadonlyArray<'id' | 'selfie'>
+}) => {
     const t = useTranslations('kyc.prep')
     const isHosted = path === 'hosted'
-    const items =
+    const baseItems =
         path === 'extended'
             ? (['id', 'selfie', 'taxId', 'questions'] as const)
             : isHosted
               ? (['id', 'selfie', 'proofOfAddress'] as const)
               : (['id', 'selfie'] as const)
+    // Rain reuses identity documents retained on the Sumsub profile, then adds
+    // applicant data, phone + email challenges, and a questionnaire. The caller
+    // supplies only the identity documents this session can still request: none
+    // for the normal approved-user action, selfie for a document gap, or ID +
+    // selfie for a new KYC. The separate tax-ID key avoids Manteca-only examples.
+    const items =
+        provider === 'rain'
+            ? ([...(rainDocuments ?? ['id', 'selfie']), 'rainTaxId', 'sms', 'emailCode', 'questions'] as const)
+            : baseItems
+    const howLongKey = provider === 'rain' ? 'rain' : path
 
     return (
         <div className="flex w-full flex-col gap-3 text-left" data-testid="kyc-prep-checklist">
@@ -67,7 +86,7 @@ const KycPrepChecklist = ({ path }: { path: KycPrepPath }) => {
                 requirement alongside the list above it, when it is only a note. */}
             <div className="flex flex-col gap-0.5">
                 <span className="text-label-m tracking-wide uppercase">{t('howLongLabel')}</span>
-                <span className="text-body-xs text-foreground-secondary">{t(`howLong.${path}`)}</span>
+                <span className="text-body-xs text-foreground-secondary">{t(`howLong.${howLongKey}`)}</span>
             </div>
         </div>
     )

@@ -8,6 +8,7 @@ import { useCardFlow } from '../useCardFlow'
 
 const mockCapture = jest.fn()
 let mockState = 'add-card'
+let mockUser: { user: { userId: string }; identityVerification?: { status: 'verified' } } | null = null
 
 jest.mock('next/navigation', () => ({
     notFound: jest.fn(),
@@ -33,7 +34,7 @@ jest.mock('@/services/consent', () => ({
     cardConsentDocuments: jest.fn(() => []),
 }))
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: null, fetchUser: jest.fn() }),
+    useAuth: () => ({ user: mockUser, fetchUser: jest.fn() }),
 }))
 jest.mock('@/hooks/useRainCardOverview', () => ({
     RAIN_CARD_OVERVIEW_QUERY_KEY: 'rain-card-overview',
@@ -78,17 +79,72 @@ describe('useCardFlow', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         mockState = 'add-card'
+        mockUser = null
         window.localStorage.clear()
     })
 
-    it('opens the sumsub sdk on an incomplete apply response', async () => {
+    it('shows Rain requirements before opening the sumsub sdk on an incomplete apply response', async () => {
         mockApplyForCard.mockResolvedValue({ status: 'incomplete', sumsubAccessToken: 'tok-1' })
         const { result } = renderHook(() => useCardFlow())
         await act(async () => {
             await result.current.handleApply()
         })
+        expect(result.current.pendingSumsubToken).toBe('tok-1')
+        expect(result.current.pendingSumsubDocuments).toEqual([])
+        expect(result.current.sumsubToken).toBeNull()
+        expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+
+        act(() => {
+            result.current.handleStartCardKyc()
+        })
+
+        expect(result.current.pendingSumsubToken).toBeNull()
         expect(result.current.sumsubToken).toBe('tok-1')
         expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+    })
+
+    it('shows Rain requirements before opening the sumsub sdk when main KYC is required', async () => {
+        mockApplyForCard.mockResolvedValue({
+            status: 'main-kyc-required',
+            missingDocTypes: ['SELFIE'],
+            sumsubAccessToken: 'main-tok-1',
+        })
+        const { result } = renderHook(() => useCardFlow())
+
+        await act(async () => {
+            await result.current.handleApply()
+        })
+
+        expect(result.current.pendingSumsubToken).toBe('main-tok-1')
+        expect(result.current.pendingSumsubDocuments).toEqual(['id', 'selfie'])
+        expect(result.current.sumsubToken).toBeNull()
+        expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+
+        act(() => {
+            result.current.handleStartCardKyc()
+        })
+
+        expect(result.current.pendingSumsubToken).toBeNull()
+        expect(result.current.sumsubToken).toBe('main-tok-1')
+        expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+    })
+
+    it('adds only the missing document to Rain prep for a verified main-KYC user', async () => {
+        mockUser = { user: { userId: 'user-1' }, identityVerification: { status: 'verified' } }
+        mockApplyForCard.mockResolvedValue({
+            status: 'main-kyc-required',
+            missingDocTypes: ['SELFIE'],
+            sumsubAccessToken: 'selfie-tok-1',
+        })
+        const { result } = renderHook(() => useCardFlow())
+
+        await act(async () => {
+            await result.current.handleApply()
+        })
+
+        expect(result.current.pendingSumsubToken).toBe('selfie-tok-1')
+        expect(result.current.pendingSumsubDocuments).toEqual(['selfie'])
+        expect(result.current.sumsubToken).toBeNull()
     })
 
     it('routes terms-required to the terms screen', async () => {
@@ -99,6 +155,23 @@ describe('useCardFlow', () => {
         })
         expect(result.current.pendingTerms).toEqual({ isUsResident: true })
         expect(result.current.pendingCountryConfirmation).toBeNull()
+    })
+
+    it('dismisses Rain prep without opening or abandoning the sumsub sdk', async () => {
+        mockApplyForCard.mockResolvedValue({ status: 'incomplete', sumsubAccessToken: 'tok-1' })
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+
+        act(() => {
+            result.current.handleCloseCardKycPrep()
+        })
+
+        expect(result.current.pendingSumsubToken).toBeNull()
+        expect(result.current.sumsubToken).toBeNull()
+        expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+        expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_CLOSED)
     })
 
     it('routes country-confirmation-required before terms', async () => {
@@ -128,6 +201,9 @@ describe('useCardFlow', () => {
         const { result } = renderHook(() => useCardFlow())
         await act(async () => {
             await result.current.handleApply()
+        })
+        act(() => {
+            result.current.handleStartCardKyc()
         })
         act(() => {
             result.current.handleSumsubClose()
