@@ -39,3 +39,22 @@ export function trustedScheduledBaselineRun(run, repository, defaultBranch) {
         run.conclusion === 'success'
     )
 }
+
+export function verifiedExternalBaselineSource({
+    run,
+    jobs = [],
+    artifacts,
+    repository,
+    expectedCommit,
+    defaultBranch,
+}) {
+    if (trustedIntegrationBaselineRun(run, jobs, repository, expectedCommit)) {
+        const complete = completeBaselineArtifacts(artifacts, 'integration', expectedCommit)
+        if (complete.length) return { kind: 'integration', artifacts: complete }
+    }
+    if (trustedScheduledBaselineRun(run, repository, defaultBranch)) {
+        const complete = completeBaselineArtifacts(artifacts, 'baseline', expectedCommit)
+        if (complete.length) return { kind: 'baseline', artifacts: complete }
+    }
+    return null
+}

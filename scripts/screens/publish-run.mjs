@@ -6,7 +6,8 @@ import { integrationBase } from './integration.mjs'
 import { reviewHeadRevision, reviewProvenance } from './review-provenance.mjs'
 import { verifyRunIdentity } from './run-identity.mjs'
 import { selectCaptureArtifact, selectCapturePairs } from './capture-artifacts.mjs'
-import { filterRetainedBaselineArtifacts, selectBaselineArtifacts } from './baseline-artifacts.mjs'
+import { selectBaselineArtifacts } from './baseline-artifacts.mjs'
+import { verifiedExternalBaselineSource } from './baseline-runs.mjs'
 import { normalizePublicOrigin } from './public-origin.mjs'
 import { repositoryApiPath } from './repository-api.mjs'
 const LOCALES = {
@@ -70,33 +71,23 @@ function verifyExternalBaseline(expected) {
     const source = api(`actions/runs/${baselineRunId}`)
     const defaultBranch = api('').default_branch
     const artifacts = api(`actions/runs/${baselineRunId}/artifacts?per_page=100`).artifacts ?? []
-    const localeSuffix = '(?:en|es-419|es-AR|pt-BR)'
-    const baselineRun =
-        source.path === '.github/workflows/screen-library-baseline.yml' &&
-        ['push', 'workflow_dispatch'].includes(source.event) &&
-        source.head_branch === defaultBranch &&
-        artifacts.some((artifact) =>
-            new RegExp(`^screen-library-baseline-${expected}-(?:${localeSuffix}-)?[1-9]\\d*$`).test(artifact.name)
-        )
-    const integrationBaseline =
-        source.path === '.github/workflows/screen-library.yml' &&
-        source.event === 'push' &&
-        artifacts.some((artifact) =>
-            new RegExp(`^screen-library-after-(?:${localeSuffix}-)?[1-9]\\d*$`).test(artifact.name)
-        )
-    if (
-        (!baselineRun && !integrationBaseline) ||
-        source.status !== 'completed' ||
-        source.conclusion !== 'success' ||
-        source.head_repository?.full_name !== repo ||
-        (integrationBaseline && (source.head_branch !== 'dev' || source.head_sha !== expected))
-    )
-        throw new Error('External baseline run provenance mismatch')
-    const validArtifacts = filterRetainedBaselineArtifacts(artifacts, expected)
-    if (!validArtifacts.length) throw new Error('External baseline artifact is missing or expired')
+    const jobs =
+        source.path === '.github/workflows/screen-library.yml'
+            ? (api(`actions/runs/${baselineRunId}/jobs?per_page=100`).jobs ?? [])
+            : []
+    const verified = verifiedExternalBaselineSource({
+        run: source,
+        jobs,
+        artifacts,
+        repository: repo,
+        expectedCommit: expected,
+        defaultBranch,
+    })
+    if (!verified) throw new Error('External baseline run provenance mismatch')
+    const validArtifacts = verified.artifacts
     if (baselineArtifact && !validArtifacts.some((artifact) => artifact.name === baselineArtifact))
         throw new Error('External baseline artifact identity mismatch')
-    return { dir: baselineDir, kind: baselineRun ? 'baseline' : 'integration', artifact: baselineArtifact }
+    return { dir: baselineDir, kind: verified.kind, artifact: baselineArtifact }
 }
 
 const captureNames = readdirSync('incoming')

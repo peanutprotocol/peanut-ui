@@ -1,11 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import { repositoryApiPath } from './repository-api.mjs'
 import { reviewHeadRevision, reviewProvenance } from './review-provenance.mjs'
-import {
-    completeBaselineArtifacts,
-    trustedIntegrationBaselineRun,
-    trustedScheduledBaselineRun,
-} from './baseline-runs.mjs'
+import { verifiedExternalBaselineSource } from './baseline-runs.mjs'
 
 const repo = process.env.REPOSITORY,
     runId = process.env.RUN_ID
@@ -45,9 +41,15 @@ const integrationRuns = (api(`actions/runs?head_sha=${expectedBase}&per_page=100
 for (const run of integrationRuns) {
     if (run.path !== '.github/workflows/screen-library.yml') continue
     const jobs = api(`actions/runs/${run.id}/jobs?per_page=100`).jobs ?? []
-    if (!trustedIntegrationBaselineRun(run, jobs, repo, expectedBase)) continue
-    const artifacts = completeBaselineArtifacts(artifactsFor(run), 'integration', expectedBase)
-    if (artifacts.length) publishSource(run, artifacts)
+    const verified = verifiedExternalBaselineSource({
+        run,
+        jobs,
+        artifacts: artifactsFor(run),
+        repository: repo,
+        expectedCommit: expectedBase,
+        defaultBranch,
+    })
+    if (verified?.kind === 'integration') publishSource(run, verified.artifacts)
 }
 
 // A main-triggered baseline can cover dev revisions whose integration capture
@@ -58,9 +60,15 @@ const baselineRuns = ['push', 'workflow_dispatch']
     .flatMap((event) => api(`actions/runs?branch=${branch}&event=${event}&per_page=100`).workflow_runs ?? [])
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
 for (const run of baselineRuns) {
-    if (!trustedScheduledBaselineRun(run, repo, defaultBranch)) continue
-    const artifacts = completeBaselineArtifacts(artifactsFor(run), 'baseline', expectedBase)
-    if (artifacts.length) publishSource(run, artifacts)
+    if (run.path !== '.github/workflows/screen-library-baseline.yml') continue
+    const verified = verifiedExternalBaselineSource({
+        run,
+        artifacts: artifactsFor(run),
+        repository: repo,
+        expectedCommit: expectedBase,
+        defaultBranch,
+    })
+    if (verified?.kind === 'baseline') publishSource(run, verified.artifacts)
 }
 
 throw new Error(`No trusted baseline capture for ${expectedBase} is available in retained artifacts`)
