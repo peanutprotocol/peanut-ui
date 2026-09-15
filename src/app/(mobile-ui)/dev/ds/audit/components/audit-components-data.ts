@@ -64,15 +64,6 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 verified: true,
             },
             {
-                name: 'modalPanelClassName="max-w-md mx-8" (copy-pasted width recipe)',
-                realUsages: 0,
-                status: 'live',
-                source: 'components/Global/ActionModal/index.tsx',
-                divergence:
-                    'RESOLVED 2026-09-15 (TASK-22452): the hand-copied width string became the component default and every call-site copy was deleted; fullscreen hosts opt out with mx-0 max-w-full. No size prop needed.',
-                verified: true,
-            },
-            {
                 name: 'GuestLoginModal',
                 realUsages: 2,
                 status: 'live',
@@ -119,7 +110,7 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 status: 'live',
                 source: 'components/Global/UnsupportedBrowserModal/index.tsx',
                 divergence:
-                    'ActionModal with modalPanelClassName="max-w-md" — a fourth width value next to max-w-sm, max-w-md mx-8 and max-w-full.',
+                    'ActionModal with modalPanelClassName="max-w-md" — matches the component default width since 2026-09-15 (TASK-22452); the override is now redundant and can drop at next touch.',
             },
             {
                 name: 'InviteFriendsDrawer',
