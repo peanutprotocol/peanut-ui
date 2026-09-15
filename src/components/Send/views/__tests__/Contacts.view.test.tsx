@@ -44,10 +44,10 @@ const contact = (overrides: Partial<Contact>): Contact => ({
     ...overrides,
 })
 
-const renderContacts = (contacts: Contact[], error: Error | null = null) => {
+const renderContacts = (contacts: Contact[], error: Error | null = null, isLoading = false) => {
     mockUseContacts.mockReturnValue({
         contacts,
-        isLoading: false,
+        isLoading,
         error,
         fetchNextPage: jest.fn(),
         hasNextPage: false,
@@ -103,6 +103,18 @@ describe('ContactsView exact username entry', () => {
         await waitFor(() => expect(mockCheckUsername).toHaveBeenLastCalledWith('globee'))
         fireEvent.click(await screen.findByRole('button', { name: /@globee found/i }))
         expect(mockRouterPush).toHaveBeenCalledWith('/send/globee')
+    })
+
+    it('keeps an exact username actionable while contacts are still loading', async () => {
+        mockCheckUsername.mockResolvedValue({ status: 'found' })
+        renderContacts([], null, true)
+
+        fireEvent.change(screen.getByRole('textbox', { name: 'Peanut username or contact' }), {
+            target: { value: 'globee' },
+        })
+
+        await waitFor(() => expect(mockCheckUsername).toHaveBeenCalledWith('globee'))
+        expect(await screen.findByRole('button', { name: /@globee found/i })).toBeInTheDocument()
     })
 
     it('does not check input that cannot be a Peanut username', async () => {

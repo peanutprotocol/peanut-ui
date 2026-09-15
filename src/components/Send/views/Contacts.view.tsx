@@ -169,24 +169,24 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                     )}
                 </div>
 
+                {showExactUsername && exactUsername && (
+                    <div className="space-y-2">
+                        <h2 className="text-body-m-semibold">{t('contacts.exactUsername')}</h2>
+                        <ListItem
+                            position="single"
+                            title={t('contacts.usernameFound', { username: exactUsername })}
+                            body={t('contacts.continueToSend')}
+                            leading={<IconBubble icon="user" size="s" color="green" />}
+                            chevron
+                            onClick={() => handleUserSelect(exactUsername)}
+                        />
+                    </div>
+                )}
+
                 {isFetchingContacts ? (
                     <ContactsListSkeleton count={5} />
                 ) : (
                     <>
-                        {showExactUsername && exactUsername && (
-                            <div className="space-y-2">
-                                <h2 className="text-body-m-semibold">{t('contacts.exactUsername')}</h2>
-                                <ListItem
-                                    position="single"
-                                    title={t('contacts.usernameFound', { username: exactUsername })}
-                                    body={t('contacts.continueToSend')}
-                                    leading={<IconBubble icon="user" size="s" color="green" />}
-                                    chevron
-                                    onClick={() => handleUserSelect(exactUsername)}
-                                />
-                            </div>
-                        )}
-
                         {contacts.length > 0 ? (
                             <div className="space-y-2">
                                 <h2 className="text-body-m-semibold">{t('contacts.yourContacts')}</h2>
