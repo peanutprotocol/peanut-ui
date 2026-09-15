@@ -78,7 +78,7 @@ const Card: React.FC<CardProps> = ({
     return (
         <div
             ref={ref}
-            className={twMerge('w-full bg-white px-4 py-2', getBorderRadius(), getBorder(), className)}
+            className={twMerge('w-full bg-background-default px-4 py-2', getBorderRadius(), getBorder(), className)}
             onClick={onClick}
             data-testid={dataTestId}
             role={role ?? (interactive ? 'button' : undefined)}

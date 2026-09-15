@@ -15,6 +15,7 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import AddressLink from '@/components/Global/AddressLink'
 import Card from '@/components/Global/Card'
 import CreateAccountButton from '@/components/Global/CreateAccountButton'
@@ -300,20 +301,18 @@ const PaymentSuccessView = ({
     useAppReviewNudge(authUser?.user.userId, 'payment_completed', type !== 'REQUEST')
 
     return (
-        <div className="flex min-h-inherit flex-col justify-between gap-8">
+        <PageStack>
             <SoundPlayer sound="success" />
             {(type === 'SEND' || type === 'DEPOSIT') && (
-                <div className="md:hidden">
-                    <NavHeader icon="cancel" title={headerTitle} onPrev={handleDone} />
-                </div>
+                <NavHeader icon="cancel" title={headerTitle} onPrev={handleDone} />
             )}
-            <div className="relative z-10 my-auto space-y-4 flex h-full flex-col justify-center">
+            <PageStack.Center className="relative z-10 gap-4">
                 <Image
                     src={PeanutCheering.src}
                     unoptimized
                     alt="Peanut Mascot"
-                    width={20}
-                    height={20}
+                    width={240}
+                    height={240}
                     className="absolute -top-32 left-1/2 -z-10 h-60 w-60 -translate-x-1/2"
                 />
                 <Card className="flex items-center gap-3 p-4">
@@ -322,14 +321,15 @@ const PaymentSuccessView = ({
                     </div>
 
                     <div className="space-y-1">
-                        <h1 className="text-body-s font-normal text-foreground-secondary">
+                        <h1 className="text-body-s text-foreground-secondary">
                             {getTitle()}
                             {!isExternalWalletFlow &&
                                 !isWithdrawFlow &&
                                 type !== 'DEPOSIT' &&
                                 (recipientType !== 'USERNAME' ? (
                                     <AddressLink
-                                        className="text-body-s font-normal text-foreground-secondary no-underline"
+                                        isLink={false}
+                                        className="text-body-s text-foreground-secondary"
                                         address={recipientName}
                                     />
                                 ) : (
@@ -347,7 +347,7 @@ const PaymentSuccessView = ({
 
                 {points && <PointsCard points={points} pointsDivRef={pointsDivRef} />}
 
-                <div className="space-y-4 w-full">
+                <div className="flex w-full flex-col gap-4">
                     {!!authUser?.user.userId ? (
                         <Button onClick={handleDone} shadowSize="4">
                             {t('success.backToHome')}
@@ -357,7 +357,7 @@ const PaymentSuccessView = ({
                     )}
                     {!isExternalWalletFlow && receiptTransaction && (
                         <Button
-                            variant="primary-soft"
+                            variant="stroke"
                             shadowSize="4"
                             onClick={() => {
                                 if (receiptTransaction) {
@@ -369,7 +369,7 @@ const PaymentSuccessView = ({
                         </Button>
                     )}
                 </div>
-            </div>
+            </PageStack.Center>
 
             {/* Transaction Details Drawer */}
             <TransactionDetailsDrawer
@@ -377,7 +377,7 @@ const PaymentSuccessView = ({
                 onClose={closeTransactionDetails}
                 transaction={receiptTransaction}
             />
-        </div>
+        </PageStack>
     )
 }
 export default PaymentSuccessView

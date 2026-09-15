@@ -3,9 +3,8 @@ import { normalizeEnsName } from '@/utils/ens-name.utils'
 import { usePrimaryNameServer } from '@/hooks/usePrimaryNameServer'
 import { isCapacitor } from '@/utils/capacitor'
 import { recipientPayUrl } from '@/utils/native-routes'
-import Link from 'next/link'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { useEffect, useState } from 'react'
-import { twMerge } from '@/utils/tw'
 import { isAddress } from 'viem'
 
 interface AddressLinkProps {
@@ -43,13 +42,9 @@ const AddressLink = ({ address, className = '', isLink = true }: AddressLinkProp
     const url = recipientPayUrl(urlAddress)
 
     return isLink ? (
-        <Link
-            className={twMerge('cursor-pointer text-body-xs text-foreground-secondary underline', className)}
-            href={url}
-            target={isCapacitor() ? undefined : '_blank'}
-        >
+        <LinkButton href={url} external={!isCapacitor()} className={className}>
             {displayAddress}
-        </Link>
+        </LinkButton>
     ) : (
         <span className={className}>{displayAddress}</span>
     )
