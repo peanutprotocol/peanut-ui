@@ -4,7 +4,7 @@
  * two-letter initials of a full name they may not even show.
  */
 import React from 'react'
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { type Contact } from '@/interfaces/interfaces'
 import ContactsView from '../Contacts.view'
@@ -125,5 +125,44 @@ describe('ContactsView exact username entry', () => {
         })
 
         expect(await screen.findByText('Too many username checks. Please try again later.')).toBeInTheDocument()
+    })
+
+    it('discards an older lookup that completes after the current username', async () => {
+        let resolveFirst: (value: { status: 'not-found' }) => void = () => undefined
+        let resolveSecond: (value: { status: 'found' }) => void = () => undefined
+        mockCheckUsername.mockImplementation(
+            (username: string) =>
+                new Promise((resolve) => {
+                    if (username === 'alice1') resolveFirst = resolve
+                    if (username === 'bob22') resolveSecond = resolve
+                })
+        )
+        renderContacts([])
+        const input = screen.getByRole('textbox', { name: 'Peanut username or contact' })
+
+        fireEvent.change(input, { target: { value: 'alice1' } })
+        await waitFor(() => expect(mockCheckUsername).toHaveBeenCalledWith('alice1'))
+        fireEvent.change(input, { target: { value: 'bob22' } })
+        await waitFor(() => expect(mockCheckUsername).toHaveBeenCalledWith('bob22'))
+
+        await act(async () => resolveSecond({ status: 'found' }))
+        expect(await screen.findByRole('button', { name: /@bob22 found/i })).toBeInTheDocument()
+        await act(async () => resolveFirst({ status: 'not-found' }))
+        expect(screen.getByRole('button', { name: /@bob22 found/i })).toBeInTheDocument()
+    })
+
+    it('retries an operational lookup failure without editing the input', async () => {
+        mockCheckUsername.mockRejectedValueOnce(new Error('timeout')).mockResolvedValueOnce({ status: 'found' })
+        renderContacts([])
+
+        fireEvent.change(screen.getByRole('textbox', { name: 'Peanut username or contact' }), {
+            target: { value: 'globee' },
+        })
+
+        expect(await screen.findByText("We couldn't check that username. Please try again.")).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+
+        await waitFor(() => expect(mockCheckUsername).toHaveBeenCalledTimes(2))
+        expect(await screen.findByRole('button', { name: /@globee found/i })).toBeInTheDocument()
     })
 })

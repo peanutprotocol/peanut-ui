@@ -15,6 +15,7 @@ type ValidatedInputProps = {
     value: string
     placeholder?: string
     debounceTime?: number
+    validationNonce?: number
     validate: (value: string) => Promise<boolean>
     shouldValidate?: (value: string) => boolean
     onUpdate: (update: InputUpdate) => void
@@ -39,6 +40,7 @@ const ValidatedInput = ({
     placeholder = '',
     value,
     debounceTime = 750,
+    validationNonce = 0,
     onUpdate,
     validate,
     shouldValidate,
@@ -154,7 +156,7 @@ const ValidatedInput = ({
         return () => {
             isStale = true
         }
-    }, [debouncedValue])
+    }, [debouncedValue, validationNonce])
 
     // Update currentValueRef when value changes
     useEffect(() => {

@@ -29,6 +29,8 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
     const [isExactUsernameFound, setIsExactUsernameFound] = useState(false)
     const [isUsernameChanging, setIsUsernameChanging] = useState(false)
     const [usernameCheckError, setUsernameCheckError] = useState('')
+    const [canRetryUsernameCheck, setCanRetryUsernameCheck] = useState(false)
+    const [usernameCheckRetry, setUsernameCheckRetry] = useState(0)
 
     // Relationship-scoped contact filtering can be faster than the protected
     // global check, which ValidatedInput debounces separately below.
@@ -75,6 +77,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
     const validateExactUsername = async (value: string): Promise<boolean> => {
         const username = value.trim().replace(/^@/, '').toLowerCase()
         setUsernameCheckError('')
+        setCanRetryUsernameCheck(false)
         try {
             const result = await usersApi.checkUsername(username)
             if (result.status === 'found') return true
@@ -88,6 +91,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
             return false
         } catch {
             setUsernameCheckError(t('contacts.lookupError'))
+            setCanRetryUsernameCheck(true)
             return false
         }
     }
@@ -105,6 +109,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                     <ValidatedInput
                         value={searchQuery}
                         debounceTime={750}
+                        validationNonce={usernameCheckRetry}
                         validate={validateExactUsername}
                         shouldValidate={(value) => isPlausibleUsername(value.trim().replace(/^@/, '').toLowerCase())}
                         onUpdate={({ value, isValid, isChanging }) => {
@@ -113,6 +118,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                             setIsExactUsernameFound(isValid)
                             setIsUsernameChanging(isChanging)
                             if (isChanging) {
+                                setCanRetryUsernameCheck(false)
                                 setUsernameCheckError(
                                     username.length >= 4 && !isPlausibleUsername(username)
                                         ? t('contacts.invalidUsername')
@@ -125,7 +131,20 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                         isSetupFlow
                         isInputChanging={isUsernameChanging}
                     />
-                    {usernameCheckError && <FieldError>{usernameCheckError}</FieldError>}
+                    {usernameCheckError && (
+                        <div className="flex items-center justify-between gap-2">
+                            <FieldError>{usernameCheckError}</FieldError>
+                            {canRetryUsernameCheck && (
+                                <Button
+                                    variant="transparent"
+                                    className="h-auto w-fit p-0 text-body-xs"
+                                    onClick={() => setUsernameCheckRetry((retry) => retry + 1)}
+                                >
+                                    {tCommon('retry')}
+                                </Button>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {isFetchingContacts ? (
