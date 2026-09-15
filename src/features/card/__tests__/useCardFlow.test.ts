@@ -111,6 +111,18 @@ describe('useCardFlow', () => {
         expect(result.current.pendingTerms).toBeNull()
     })
 
+    it('routes a pending-residence block to its recoverable screen instead of the terminal geo block', async () => {
+        mockApplyForCard.mockResolvedValue({ status: 'pending-residence-blocked', message: 'review residence' })
+        const { result } = renderHook(() => useCardFlow())
+
+        await act(async () => {
+            await result.current.handleApply()
+        })
+
+        expect(result.current.pendingResidenceBlocked).toBe(true)
+        expect(result.current.geoBlocked).toBe(false)
+    })
+
     it('surfaces an apply failure as applyError', async () => {
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
         mockApplyForCard.mockRejectedValue(new Error('boom'))

@@ -1439,7 +1439,10 @@
             "rejectedBody": "You can still use Peanut freely to deposit, withdraw, and pay with crypto.",
             "geoBlockedTitle": "Cards aren't available in your region yet",
             "geoBlockedBody": "Card availability depends on where you live. You can keep using the other features available to you in Peanut.",
-            "geoBlockedPolicyLink": "See which regions are restricted"
+            "geoBlockedPolicyLink": "See which regions are restricted",
+            "pendingResidenceBlockedTitle": "Review your residence change",
+            "pendingResidenceBlockedBody": "Your approved residence is still active, but card applications are paused while a residence change is pending. Review or cancel that change to continue.",
+            "pendingResidenceBlockedCta": "Review residence change"
         },
         "cancel": {
             "title": "Cancel your card?",

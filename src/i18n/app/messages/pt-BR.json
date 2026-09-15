@@ -1439,7 +1439,10 @@
             "rejectedBody": "Você pode continuar usando o Peanut normalmente para depositar, sacar e pagar com cripto.",
             "geoBlockedTitle": "Os cartões ainda não estão disponíveis na sua região",
             "geoBlockedBody": "A disponibilidade do cartão depende de onde você mora. Você pode continuar usando os outros recursos da Peanut disponíveis para você.",
-            "geoBlockedPolicyLink": "Veja quais regiões estão restritas"
+            "geoBlockedPolicyLink": "Veja quais regiões estão restritas",
+            "pendingResidenceBlockedTitle": "Revise sua mudança de residência",
+            "pendingResidenceBlockedBody": "Sua residência aprovada continua ativa, mas as solicitações de cartão ficam pausadas enquanto houver uma mudança de residência pendente. Revise ou cancele essa mudança para continuar.",
+            "pendingResidenceBlockedCta": "Revisar mudança de residência"
         },
         "cancel": {
             "title": "Cancelar seu cartão?",
