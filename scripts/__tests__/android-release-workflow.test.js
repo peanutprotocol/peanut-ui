@@ -21,6 +21,7 @@ describe('Android replacement release workflow', () => {
             'node scripts/check-native-change-scope.cjs "v$VERSION_NAME" android --legacy-compatible'
         )
         expect(workflow).toContain('echo "rebuild=$DIRECT_REBUILD" >> "$GITHUB_OUTPUT"')
+        expect(workflow).toContain('IS_REBUILD: ${{ steps.version.outputs.rebuild }}')
     })
 
     it('allows only a same-build OTA to sort above a replacement binary', () => {

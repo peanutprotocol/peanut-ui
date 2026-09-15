@@ -134,7 +134,9 @@ function isExpectedBehaviorError(event: ErrorEvent, searchTexts: string[]): bool
  * because notifyAppReady never landed. That last class is the reason this list
  * is not just the two it started with: an update that silently un-happens
  * leaves no other trace, and suppressing it made the whole population read as
- * one event in 90 days (PEANUT-UI-SVT).
+ * one event in 90 days (PEANUT-UI-SVT). A metadata-floor refusal is deliberately
+ * absent: it means the installed shell needs a store update and the delivery
+ * guard is working as designed (PEANUT-UI-T6R).
  */
 const CAPGO_LOG_PREFIXES = ['[CapgoUpdater]', 'CapgoUpdater :', '[capgo]']
 const CAPGO_ACTIONABLE = [

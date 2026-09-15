@@ -101,6 +101,23 @@ async function checkAndStageUpdate(callbacks: OtaUpdateCallbacks = {}): Promise<
     const { CapacitorUpdater } = await import('@capgo/capacitor-updater')
     try {
         const latest = await CapacitorUpdater.getLatest()
+        // Since 8.45.11 the plugin can resolve policy outcomes instead of
+        // rejecting. Classify them before the URL branch: blocked/failed
+        // responses deliberately have no download URL, and treating every
+        // no-URL response as up to date hides the store-update path.
+        if (latest.kind === 'up_to_date') {
+            removeStoredValue(FAILURE_STREAK_KEY)
+            return 'up-to-date'
+        }
+        if (latest.kind === 'blocked' || latest.kind === 'failed') {
+            const message = latest.error || latest.message || `update_check_${latest.kind}`
+            if (isNewerBinaryRejection(message)) {
+                removeStoredValue(FAILURE_STREAK_KEY)
+                callbacks.onStoreUpdateRequired?.()
+                return 'store-update-required'
+            }
+            throw new Error(message)
+        }
         // getLatest resolves with a url only when a genuinely newer bundle exists.
         if (latest.url && latest.version) {
             // Refused before the download, not after: a bundle built for a newer
@@ -167,8 +184,14 @@ async function checkAndStageUpdate(callbacks: OtaUpdateCallbacks = {}): Promise<
 }
 
 // The bundle Capgo serves was built for a newer native version than the one
-// installed (major/minor gate), so no OTA can land until the store binary does.
-const NEWER_BINARY_ERRORS = ['disable_auto_update_to_major', 'disable_auto_update_to_minor']
+// installed, so no OTA can land until the store binary does. The metadata case
+// is the explicit per-bundle min_update_version floor; it is an expected refusal,
+// not an updater failure worth escalating to Sentry.
+const NEWER_BINARY_ERRORS = [
+    'disable_auto_update_to_major',
+    'disable_auto_update_to_minor',
+    'disable_auto_update_to_metadata',
+]
 
 function isNewerBinaryRejection(message: string): boolean {
     return NEWER_BINARY_ERRORS.some((pattern) => message.includes(pattern))
