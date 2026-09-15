@@ -97,7 +97,7 @@ export function PerkClaimGiftBox({ perk, onHoldComplete, claimPhase }: PerkClaim
                         {/* Gift icon */}
                         <div className="absolute inset-0 flex items-center justify-center">
                             <div
-                                className={`rounded-full bg-action-primary p-3 shadow-lg transition-transform ${holdProgress > 30 ? 'animate-bounce' : ''}`}
+                                className={`rounded-full bg-action-primary p-3 shadow-lg transition-transform ${holdProgress > 30 ? 'motion-safe:animate-bounce' : ''}`}
                             >
                                 <Icon name="gift" size={24} className="text-white" />
                             </div>
@@ -141,20 +141,20 @@ export function PerkClaimGiftBox({ perk, onHoldComplete, claimPhase }: PerkClaim
                     {/* Particles flying out */}
                     {holdProgress > 30 && (
                         <>
-                            <div className="absolute top-2 -right-4 animate-ping text-body-l [animation-duration:1s]">
+                            <div className="absolute top-2 -right-4 text-body-l [animation-duration:1s] motion-safe:animate-ping">
                                 ✨
                             </div>
-                            <div className="absolute bottom-4 -left-4 animate-ping text-body-l [animation-delay:0.2s] [animation-duration:1.2s]">
+                            <div className="absolute bottom-4 -left-4 text-body-l [animation-delay:0.2s] [animation-duration:1.2s] motion-safe:animate-ping">
                                 ✨
                             </div>
                         </>
                     )}
                     {holdProgress > 60 && (
                         <>
-                            <div className="absolute -top-2 right-2 animate-ping text-body-s [animation-delay:0.3s] [animation-duration:0.8s]">
+                            <div className="absolute -top-2 right-2 text-body-s [animation-delay:0.3s] [animation-duration:0.8s] motion-safe:animate-ping">
                                 ⭐
                             </div>
-                            <div className="absolute -bottom-2 left-2 animate-ping text-body-s [animation-delay:0.1s] [animation-duration:1s]">
+                            <div className="absolute -bottom-2 left-2 text-body-s [animation-delay:0.1s] [animation-duration:1s] motion-safe:animate-ping">
                                 ⭐
                             </div>
                         </>
