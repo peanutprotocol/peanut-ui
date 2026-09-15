@@ -2988,9 +2988,9 @@
             "howLongLabel": "Quanto tempo leva",
             "howLong": {
                 "standard": "Alguns minutos para a maioria das pessoas. Se um revisor precisar analisar, de 1 a 3 dias úteis.",
-                "rain": "Cerca de 8 minutos para a maioria das pessoas. Se um revisor precisar analisar, de 1 a 3 dias úteis.",
+                "rain": "Alguns minutos para a maioria das pessoas. Se um revisor precisar analisar, de 1 a 3 dias úteis.",
                 "extended": "Mais do que a verificação comum. Se um revisor precisar analisar, de 1 a 3 dias úteis.",
-                "hosted": "Cerca de 5 minutos com seus documentos em mãos. Se um revisor precisar analisar, de 1 a 3 dias úteis."
+                "hosted": "Alguns minutos com seus documentos em mãos. Se um revisor precisar analisar, de 1 a 3 dias úteis."
             },
             "extraDocNote": "Algumas pessoas precisam enviar mais um documento, como um comprovante de residência. Se for o seu caso, avisaremos antes de abrir a câmera.",
             "startCta": "Tenho tudo, começar",
