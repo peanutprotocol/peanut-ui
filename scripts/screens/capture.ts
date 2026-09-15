@@ -10,6 +10,7 @@ import { answer, ADAPTER_VERSION } from './adapter'
 import { hash, storeAsset, validateCapture, materializeCatalogue } from './core.mjs'
 import { captureExitCode } from './capture-status.mjs'
 import { localizedCaptureText } from './capture-copy.mjs'
+import { isRemoteOptimizedImage, REMOTE_IMAGE_PLACEHOLDER } from './capture-images.mjs'
 
 import { routePatterns, routePatternFor } from './routes.mjs'
 import { inventory } from './inventory.mjs'
@@ -328,6 +329,16 @@ async function main() {
                                 })
                             }
                             return
+                        }
+                        if (isRemoteOptimizedImage(url.href, base.origin)) {
+                            // Next's same-origin optimizer otherwise reaches the public internet on behalf of
+                            // remote image URLs. Keep capture independent of third-party CDN latency/failures.
+                            return route.fulfill({
+                                status: 200,
+                                contentType: 'image/svg+xml',
+                                headers: { 'cache-control': 'public, max-age=31536000, immutable' },
+                                body: REMOTE_IMAGE_PLACEHOLDER,
+                            })
                         }
                         if (
                             url.origin === base.origin &&

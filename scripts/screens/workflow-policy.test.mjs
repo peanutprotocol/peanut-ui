@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 
 const screenLibrary = readFileSync('.github/workflows/screen-library.yml', 'utf8')
 const baseline = readFileSync('.github/workflows/screen-library-baseline.yml', 'utf8')
+const publisher = readFileSync('.github/workflows/screen-library-publish.yml', 'utf8')
 
 test('capture workflows run on the standard Ubuntu pool', () => {
     assert.equal((screenLibrary.match(/runs-on: ubuntu-24\.04/g) ?? []).length, 3)
@@ -17,4 +18,12 @@ test('only superseded pull-request captures are cancelled', () => {
     assert.match(screenLibrary, /format\('pr-\{0\}', github\.event\.pull_request\.number\)/)
     assert.match(screenLibrary, /format\('run-\{0\}', github\.run_id\)/)
     assert.match(screenLibrary, /cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \}\}/)
+})
+
+test('publisher and deploy Cloudflare credentials remain isolated by scope', () => {
+    assert.match(screenLibrary, /CLOUDFLARE_PUBLISH_TOKEN: \$\{\{ secrets\.CLOUDFLARE_API_TOKEN \}\}/)
+    assert.doesNotMatch(screenLibrary, /^\s+CLOUDFLARE_API_TOKEN:/m)
+    assert.match(publisher, /CLOUDFLARE_API_TOKEN:\n\s+required: false/)
+    assert.match(publisher, /environment: screen-library-deploy/)
+    assert.match(publisher, /CLOUDFLARE_API_TOKEN: \$\{\{ secrets\.CLOUDFLARE_API_TOKEN \}\}/)
 })
