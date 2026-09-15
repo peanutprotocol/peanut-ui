@@ -3,7 +3,7 @@ import MoreInfo from '@/components/Global/MoreInfo'
 import { createSmartPasteHandler, type PasteFieldKind } from '@/utils/clipboard-extract.utils'
 import { useClipboardSuggestion } from '@/hooks/useClipboardSuggestion'
 import { useDebounce } from '@/hooks/useDebounce'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import * as Sentry from '@sentry/nextjs'
 import { useTranslations } from 'next-intl'
 import { type ChangeEvent, useEffect, useRef, useState } from 'react'
@@ -57,6 +57,7 @@ const ValidatedInput = ({
     smartPasteKind,
 }: ValidatedInputProps) => {
     const t = useTranslations('global')
+    const reduceMotion = useReducedMotion()
     const [isValid, setIsValid] = useState(false)
     const [isValidating, setIsValidating] = useState(false)
     const debouncedValue = useDebounce(value, debounceTime)
@@ -183,9 +184,8 @@ const ValidatedInput = ({
                     // pass layout classes at most (input board has no valid state).
                     // The composed box owns the focus border so it encloses both
                     // the text field and the trailing clear (×) affordance.
-                    // Pointer focus is pink; InputModalityProvider applies the
-                    // shared 3px blue ring for keyboard focus.
-                    'relative w-full rounded-sm border border-border-default bg-background-default focus-within:border-action-primary',
+                    // The shared 3px blue ring replaces the border on every focus.
+                    'relative w-full rounded-sm border border-border-default bg-background-default outline-action-focus focus-within:border-transparent focus-within:outline-[3px] focus-within:outline-action-focus focus-within:outline-solid',
                     value && !isValidating && !isValid && !validationIsNeutral && debouncedValue === value
                         ? 'border-border-error'
                         : '',
@@ -262,7 +262,7 @@ const ValidatedInput = ({
                                         e.preventDefault()
                                         onUpdate({ value: '', isValid: false, isChanging: false })
                                     }}
-                                    className="relative flex h-full w-6 items-center justify-center pr-2 transition-opacity duration-instant after:absolute after:-inset-x-3 active:opacity-60 md:w-8 md:pr-0"
+                                    className="relative flex h-full w-6 items-center justify-center pr-2 transition-opacity duration-instant after:absolute after:-inset-x-3 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60 md:w-8 md:pr-0"
                                     data-input-clear="true"
                                 >
                                     <Icon className="h-6 w-6" name="cancel" />
@@ -275,10 +275,14 @@ const ValidatedInput = ({
             <AnimatePresence initial={false}>
                 {smartPasteKind && suggestion && !value && (
                     <motion.div
-                        initial={{ height: 0, opacity: 0, marginTop: 0 }}
                         animate={{ height: 'auto', opacity: 1, marginTop: 4 }}
-                        exit={{ height: 0, opacity: 0, marginTop: 0 }}
-                        transition={{ duration: 0.25, ease: 'easeOut' }}
+                        {...(reduceMotion
+                            ? {}
+                            : {
+                                  initial: { height: 0, opacity: 0, marginTop: 0 },
+                                  exit: { height: 0, opacity: 0, marginTop: 0 },
+                                  transition: { duration: 0.25, ease: 'easeOut' },
+                              })}
                         className="overflow-hidden"
                     >
                         <button

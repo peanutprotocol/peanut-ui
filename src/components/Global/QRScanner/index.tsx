@@ -311,7 +311,7 @@ export default function QRScanner({ onScan, onClose, onPermissionDenied, isOpen 
      * raises the "Allow Paste" alert, which raced the camera permission dialog
      * and blocked it (PEANUT-UI-PYW) — so only a prompt-free hasStrings check
      * runs here, and the actual read happens on the chip tap (a real gesture).
-     * Web/PWA: no pre-read at all; "Click to paste" remains.
+     * Web: no pre-read at all; "Click to paste" remains.
      */
     useEffect(() => {
         if (!isScanning) {

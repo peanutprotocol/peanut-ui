@@ -2,15 +2,15 @@
 
 import { type ReactNode } from 'react'
 import type { StaticImageData } from 'next/image'
+import { Notification } from '@/components/0_Bruddle/Notification'
+import { Section } from '@/components/0_Bruddle/Section'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import CarouselCTA from '@/components/Home/HomeCarouselCTA/CarouselCTA'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
 import { type ActivationStep } from '@/hooks/useActivationStatus'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import { PeanutWavingHello } from '@/assets/mascot'
-import DevNoteCard from '../_components/DevNoteCard'
 import DevPageShell from '../_components/DevPageShell'
-import DevSectionLabel from '../_components/DevSectionLabel'
 
 /**
  * /dev/home-ctas — force-renders every home-screen CTA in isolation so they can
@@ -134,15 +134,6 @@ const CAROUSEL_PREVIEWS: CarouselPreview[] = [
         title: 'Stay in the loop!',
         description: 'Turn on notifications and get alerts for all your wallet activity.',
     },
-    {
-        id: 'ios-pwa-install',
-        label: 'iOS PWA install',
-        icon: 'mobile-install',
-        iconContainerClassName: 'bg-action-secondary',
-        iconSize: 16,
-        title: 'Add Peanut to your home screen',
-        description: 'Follow a quick guide to add the app to your home screen, no download needed.',
-    },
 ]
 
 // Each activation-funnel step (one CTA shown at a time on the real home screen).
@@ -162,11 +153,10 @@ export default function HomeCTAsPreviewPage() {
         >
             <div className="flex flex-col gap-8">
                 {/* Carousel CTAs */}
-                <section className="flex flex-col gap-4">
-                    <DevSectionLabel>Carousel CTAs (CarouselCTA)</DevSectionLabel>
+                <Section title="Carousel CTAs (CarouselCTA)" className="gap-4">
                     {CAROUSEL_PREVIEWS.map((cta) => (
-                        <div key={cta.id} className="flex flex-col gap-1.5">
-                            <p className="text-[11px] text-foreground-secondary">{cta.label}</p>
+                        <div key={cta.id} className="flex flex-col gap-2">
+                            <p className="text-body-xs text-foreground-secondary">{cta.label}</p>
                             <CarouselCTA
                                 title={cta.title}
                                 description={cta.description}
@@ -181,28 +171,27 @@ export default function HomeCTAsPreviewPage() {
                             />
                         </div>
                     ))}
-                </section>
+                </Section>
 
                 {/* Activation funnel steps */}
-                <section className="flex flex-col gap-4">
-                    <DevSectionLabel>Activation funnel steps (ActivationCTAs)</DevSectionLabel>
+                <Section title="Activation funnel steps (ActivationCTAs)" className="gap-4">
                     {ACTIVATION_STEPS.map(({ step, label }) => (
-                        <div key={step} className="flex flex-col gap-1.5">
-                            <p className="text-[11px] text-foreground-secondary">{label}</p>
+                        <div key={step} className="flex flex-col gap-2">
+                            <p className="text-body-xs text-foreground-secondary">{label}</p>
                             <ActivationCTAs
                                 activationStep={step}
                                 onDismissCard={step === 'card' ? noop('dismiss card step') : undefined}
                             />
                         </div>
                     ))}
-                </section>
+                </Section>
 
-                <DevNoteCard>
+                <Notification priority="info" title="Preview behavior">
                     Activation steps read defensive hooks (useCapabilities / useIdentityVerification) that return empty
                     defaults when logged out, so every step renders here regardless of real KYC state — except the spend
                     step, which needs card access or a QR rail to have an activating spend to route to, and so stays
                     empty in a logged-out preview.
-                </DevNoteCard>
+                </Notification>
             </div>
         </DevPageShell>
     )

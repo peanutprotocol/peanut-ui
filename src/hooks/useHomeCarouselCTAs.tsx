@@ -12,7 +12,6 @@ import { useCapabilities } from './useCapabilities'
 import type { StaticImageData } from 'next/image'
 import { useModalsContext } from '@/context/ModalsContext'
 import { DeviceType, useDeviceType } from './useGetDeviceType'
-import { usePWAStatus } from './usePWAStatus'
 import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
 import { useGeoLocation } from './useGeoLocation'
 import { useCardInfo } from './useCardInfo'
@@ -93,14 +92,8 @@ export const useHomeCarouselCTAs = () => {
     const [carouselCTAs, setCarouselCTAs] = useState<CarouselCTA[]>([])
     const { user } = useAuth()
     const dismissedRef = useRef<Map<string, Date>>(new Map())
-    const {
-        requestPermission,
-        afterPermissionAttempt,
-        isPermissionDenied,
-        isPermissionGranted,
-        isPushOptedIn,
-        oneSignalInitialized,
-    } = useNotifications()
+    const { requestPermission, afterPermissionAttempt, isPermissionGranted, isPushOptedIn, oneSignalInitialized } =
+        useNotifications()
     const toast = useToast()
     const router = useRouter()
     const { canDo, rails, bankRails, channelOf } = useCapabilities()
@@ -110,10 +103,7 @@ export const useHomeCarouselCTAs = () => {
     // the user shouldn't be re-nudged regardless of channel.
     const isInFlight = rails.some((rail) => rail.status === 'pending' || rail.status === 'requires-info')
     const { deviceType } = useDeviceType()
-    const isPwa = usePWAStatus()
-    const { setIsIosPwaInstallDrawerOpen, openSupportWithMessage, setIsGetAppModalOpen } = useModalsContext()
-
-    const { setIsQRScannerOpen } = useModalsContext()
+    const { openSupportWithMessage, setIsGetAppModalOpen, setIsQRScannerOpen } = useModalsContext()
     const { countryCode: userCountryCode } = useGeoLocation()
     const { isEligible: isCardEligible, cardInfo } = useCardInfo()
     const { isActivated } = useActivationStatus()
@@ -176,9 +166,8 @@ export const useHomeCarouselCTAs = () => {
             })
         }
 
-        // pwa-sunset notice window: get-the-app nudge leads the carousel and
-        // supersedes the ios-pwa-install CTA below (TASK-20829). Mobile goes
-        // straight to the visitor's store; desktop opens the scan-to-download QR.
+        // During the native-app cutover, mobile opens the visitor's store and
+        // desktop opens the scan-to-download QR.
         if (migrationOn && !isCapacitor()) {
             _carouselCTAs.push({
                 id: 'app-install',
@@ -218,34 +207,15 @@ export const useHomeCarouselCTAs = () => {
         }
         // Brave Shields blocks the OneSignal SDK; requestPermission no-ops
         // until init succeeds, so don't render a click-to-no-op CTA.
-        if (oneSignalInitialized && !isPermissionGranted && !isPushOptedIn && (isPwa || isCapacitor())) {
+        if (oneSignalInitialized && !isPermissionGranted && !isPushOptedIn && isCapacitor()) {
             _carouselCTAs.push({
                 id: 'notification-prompt',
                 title: t('notifications.title'),
                 description: t('notifications.description'),
                 icon: 'bell',
                 onClick: async () => {
-                    // On the web PWA a denied browser permission can't be re-prompted —
-                    // the user must reinstall — so route to the install modal. On native
-                    // the OS prompt falls back to the Settings app (handled in requestPermission),
-                    // so let it through instead of showing a PWA-install dead end.
-                    // During the migration window the reinstall answer is the native
-                    // app, not the retiring PWA.
-                    if (isPermissionDenied && !isCapacitor()) {
-                        if (migrationOn) {
-                            if (deviceType === DeviceType.WEB) {
-                                setIsGetAppModalOpen(true)
-                            } else {
-                                openStore(
-                                    deviceType === DeviceType.ANDROID ? 'android' : 'ios',
-                                    MIGRATION_SURFACES.HOME_BANNER
-                                )
-                            }
-                        } else {
-                            setIsIosPwaInstallDrawerOpen(true)
-                        }
-                        return
-                    }
+                    // Native permission recovery opens the operating-system settings
+                    // when the user already denied the prompt.
                     const result = await requestPermission()
                     await afterPermissionAttempt()
                     // 'default' = browser suppressed prompt (policy/Shields) or
@@ -255,20 +225,6 @@ export const useHomeCarouselCTAs = () => {
                         dismissCTA('notification-prompt')
                     }
                 },
-            })
-        }
-
-        if (!migrationOn && deviceType === DeviceType.IOS && !isPwa && !isCapacitor()) {
-            _carouselCTAs.push({
-                id: 'ios-pwa-install',
-                title: t('iosPwa.title'),
-                description: t('iosPwa.description'),
-                iconContainerClassName: 'bg-action-secondary',
-                icon: 'mobile-install',
-                onClick: () => {
-                    setIsIosPwaInstallDrawerOpen(true)
-                },
-                iconSize: 16,
             })
         }
 
@@ -371,7 +327,6 @@ export const useHomeCarouselCTAs = () => {
     }, [
         t,
         isPermissionGranted,
-        isPermissionDenied,
         isPushOptedIn,
         canDo,
         bankRails,
@@ -381,7 +336,6 @@ export const useHomeCarouselCTAs = () => {
         afterPermissionAttempt,
         setIsQRScannerOpen,
         deviceType,
-        isPwa,
         userCountryCode,
         isCardEligible,
         cardInfo,
@@ -392,7 +346,6 @@ export const useHomeCarouselCTAs = () => {
         hasSentInvites,
         hasSupportSurvivorBadge,
         oneSignalInitialized,
-        setIsIosPwaInstallDrawerOpen,
         toast,
         dismissCTA,
         openSupportWithMessage,

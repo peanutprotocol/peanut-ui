@@ -1,52 +1,9 @@
-import {
-    PEANUTMAN_MOBILE,
-    PeanutPointing,
-    PeanutThinking,
-    PeanutTooCool,
-    PeanutWavingHello,
-    PeanutWhistling,
-} from '@/assets/mascot'
+import { PeanutPointing, PeanutThinking, PeanutTooCool, PeanutWavingHello, PeanutWhistling } from '@/assets/mascot'
 import type { ISetupStep } from '@/components/Setup/Setup.types'
-import {
-    InstallPWA,
-    SetupPasskey,
-    SignupStep,
-    LandingStep,
-    ResidenceStep,
-    SignTestTransaction,
-} from '@/components/Setup/Views'
+import { SetupPasskey, SignupStep, LandingStep, ResidenceStep, SignTestTransaction } from '@/components/Setup/Views'
 import JoinWaitlist from './Views/JoinWaitlist'
 
 export const setupSteps: ISetupStep[] = [
-    {
-        screenId: 'unsupported-browser',
-        layoutType: 'standard',
-        image: PEANUTMAN_MOBILE.src,
-        component: InstallPWA,
-        showBackButton: false,
-        showSkipButton: false,
-        imageClassName: 'w-[50%] md:w-[30%] h-auto mt-16 md:mt-0',
-    },
-    {
-        screenId: 'android-initial-pwa-install',
-        layoutType: 'android-initial-pwa-install',
-        image: PEANUTMAN_MOBILE.src,
-        component: InstallPWA,
-        showBackButton: false,
-        showSkipButton: false,
-        imageClassName: 'w-[50%] md:w-[30%] h-auto',
-        titleClassName: 'text-heading-s',
-        contentClassName: 'flex flex-col items-center justify-center gap-6',
-    },
-    {
-        screenId: 'pwa-install',
-        layoutType: 'standard',
-        image: PEANUTMAN_MOBILE.src,
-        component: InstallPWA,
-        showBackButton: false,
-        showSkipButton: true,
-        imageClassName: 'w-[50%] md:w-[30%] h-auto mt-16 md:mt-0',
-    },
     {
         screenId: 'landing',
         layoutType: 'signup',

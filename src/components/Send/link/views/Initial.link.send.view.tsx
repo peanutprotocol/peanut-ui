@@ -20,7 +20,7 @@ import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { parseUnits } from 'viem'
 import { Button } from '@/components/0_Bruddle/Button'
-import FileUploadInput from '../../../Global/FileUploadInput'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
 import AmountInput from '../../../Global/AmountInput'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import posthog from 'posthog-js'
@@ -265,7 +265,8 @@ const LinkSendInitialView = () => {
     const isFlowError = !!errorState?.showError && !isFieldError
 
     return (
-        <div className="space-y-4 w-full">
+        // ponytail: no wrapper — PageStack.Center's gap-4 owns the spacing
+        <>
             <PeanutActionCard type="send" />
 
             <FieldColumn error={isFieldError ? errorState?.errorMessage : undefined} errorTestId="error-alert">
@@ -277,11 +278,11 @@ const LinkSendInitialView = () => {
                 />
             </FieldColumn>
 
-            <FileUploadInput
-                className="h-11"
+            <BaseInput
                 placeholder={tCommon('comment')}
-                attachmentOptions={attachmentOptions}
-                setAttachmentOptions={setAttachmentOptions}
+                value={attachmentOptions.message}
+                maxLength={140}
+                onChange={(e) => setAttachmentOptions({ ...attachmentOptions, message: e.target.value })}
             />
 
             {isBelowFiatClaimMinimum && (
@@ -313,7 +314,7 @@ const LinkSendInitialView = () => {
                     </Notification>
                 )}
             </div>
-        </div>
+        </>
     )
 }
 

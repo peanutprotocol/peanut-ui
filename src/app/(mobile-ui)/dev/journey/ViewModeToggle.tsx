@@ -1,6 +1,6 @@
 'use client'
 
-import DevSegmented from '../_components/DevSegmented'
+import SegmentedControl from '@/components/0_Bruddle/SegmentedControl'
 import type { JourneyViewMode } from './journeyTypes'
 
 const OPTIONS: { value: JourneyViewMode; label: string; hint: string }[] = [
@@ -16,5 +16,12 @@ export default function ViewModeToggle({
     value: JourneyViewMode
     onChange: (next: JourneyViewMode) => void
 }) {
-    return <DevSegmented value={value} options={OPTIONS} onChange={onChange} />
+    return (
+        <SegmentedControl
+            value={value}
+            options={OPTIONS}
+            onChange={(next) => onChange(next as JourneyViewMode)}
+            aria-label="Journey view"
+        />
+    )
 }

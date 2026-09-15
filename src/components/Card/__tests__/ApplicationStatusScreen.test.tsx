@@ -91,6 +91,18 @@ describe('ApplicationStatusScreen — geo-blocked', () => {
     })
 })
 
+describe('ApplicationStatusScreen — pending residence block', () => {
+    it('explains the recoverable state and links directly to the residence drawer', () => {
+        render(<ApplicationStatusScreen variant="pending-residence-blocked" />)
+
+        expect(screen.getByText('Review your residence change')).toBeInTheDocument()
+        expect(screen.getByText(/approved residence is still active/i)).toBeInTheDocument()
+        const link = screen.getByRole('link', { name: 'Review residence change' })
+        expect(link).toHaveAttribute('href', '/profile/identity-verification?open=residence')
+        expect(screen.queryByText('See which regions are restricted')).not.toBeInTheDocument()
+    })
+})
+
 describe('ApplicationStatusScreen — proof-of-address upload CTA', () => {
     it('renders the upload CTA as primary when the rail carries a PoA action', () => {
         const onUpload = jest.fn()

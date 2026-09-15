@@ -118,7 +118,7 @@ const PeanutIcon = ({ className, label }: { className?: string; label: string })
 
 /**
  * full-page offline screen shown when user loses internet connection
- * displays peanut logo and helpful message about pwa cached content
+ * displays peanut logo and a retry action
  * when connection is restored, page automatically reloads
  */
 export default function OfflineScreen() {

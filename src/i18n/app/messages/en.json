@@ -219,10 +219,6 @@
                 "description": "Turn on notifications and get alerts for all your wallet activity.",
                 "blockedToast": "Notifications blocked by your browser. Enable them in site settings and reload."
             },
-            "iosPwa": {
-                "title": "Add Peanut to your home screen",
-                "description": "Follow a quick guide to add the app to your home screen, no download needed."
-            },
             "qrPay": {
                 "title": "Pay with <b>QR code payments</b>",
                 "description": "Get the best exchange rate, pay like a <b>local</b> and earn <b>rewards</b>."
@@ -706,18 +702,6 @@
     },
     "setup": {
         "steps": {
-            "unsupported-browser": {
-                "title": "Browser Not Supported",
-                "description": "Please open Peanut in your device's main browser (Safari, Chrome, Firefox) to continue setup. If you are already in your main browser your device may not support Peanut."
-            },
-            "android-initial-pwa-install": {
-                "title": "Get the full experience",
-                "description": "Keep your wallet one tap away. Safe, fast, and on your home screen."
-            },
-            "pwa-install": {
-                "title": "Install Peanut on your phone",
-                "description": "Please install Peanut on your phone for the best experience!"
-            },
             "landing": {
                 "title": "Peanut makes dollars easy.",
                 "description": "Create your account in seconds to save, send, or cash out dollars fast, wherever you are in the world."
@@ -757,22 +741,6 @@
         "wrapper": {
             "starAlt": "star",
             "illustrationAlt": "Section illustration"
-        },
-        "braveInstall": {
-            "title": "Success!",
-            "description": "Please open the Peanut app from your home screen to continue setup."
-        },
-        "installPwa": {
-            "openPeanutApp": "Open Peanut app",
-            "installing": "Installing",
-            "addToHomeScreen": "Add Peanut to Home Screen",
-            "installCancelled": "Installation cancelled. You can try adding to Home Screen again.",
-            "manualInstallHint": "To install the app, please add it to your Home Screen from your browser menu.",
-            "mobileFirstTitle": "Peanut is mobile first!",
-            "mobileFirstDescription": "For a better experience, use Peanut on your phone.",
-            "openInApp": "Open in the App",
-            "installApp": "Install App",
-            "gotIt": "Got it!"
         },
         "next": "Next",
         "logIn": "Log In",
@@ -1097,7 +1065,13 @@
         "validation": {
             "talkToSupport": "Talk to support",
             "learnHow": "Learn how to receive money through Peanut",
-            "sadPeanutAlt": "Sad peanut"
+            "sadPeanutAlt": "Sad peanut",
+            "unknownUser": {
+                "title": "We don't know any @{username}",
+                "message": "Are you sure you clicked on the right link?",
+                "cta": "Go back to home",
+                "supportTemplate": "I clicked on this link but got an error: '{url}'"
+            }
         },
         "errorPage": {
             "title": "Something went wrong!",
@@ -1473,10 +1447,14 @@
             "rejectedBody": "You can still use Peanut freely to deposit, withdraw, and pay with crypto.",
             "geoBlockedTitle": "Cards aren't available in your region yet",
             "geoBlockedBody": "Card availability depends on where you live. You can keep using the other features available to you in Peanut.",
-            "geoBlockedPolicyLink": "See which regions are restricted"
+            "geoBlockedPolicyLink": "See which regions are restricted",
+            "pendingResidenceBlockedTitle": "Review your residence change",
+            "pendingResidenceBlockedBody": "Your approved residence is still active, but card applications are paused while a residence change is pending. Review or cancel that change to continue.",
+            "pendingResidenceBlockedCta": "Review residence change"
         },
         "cancel": {
             "title": "Cancel your card?",
+            "keepCard": "Keep my card",
             "body": "You won't be able to use it again.",
             "canceling": "Canceling…",
             "slideToCancel": "Slide to Cancel",
@@ -1616,6 +1594,7 @@
         "page": {
             "loadFailed": "Failed to load card info. Please try again.",
             "applyFailed": "Failed to apply for card",
+            "issueFailed": "Your application was approved, but we couldn't create your card. Please try again.",
             "confirmCountryFailed": "Failed to confirm country",
             "setupCancelled": "Setup cancelled — please try again.",
             "setupFailed": "Could not complete setup — please try again.",
@@ -3287,13 +3266,6 @@
             "title": "Unlock this payment method",
             "getStartedCta": "Get started"
         },
-        "iosPwaInstallModal": {
-            "title": "Add Peanut to your Home Screen",
-            "description": "Follow a quick guide to add the app to your home screen, no download needed.",
-            "firefoxDescription": "Firefox on iOS does not support installing apps to the home screen. Please open this page in Safari to continue.",
-            "gotItCta": "Got it!",
-            "videoUnsupported": "Your browser does not support the video tag."
-        },
         "unsupportedBrowserModal": {
             "title": "Open this link in your browser",
             "description": "We're still working on making Peanut work on your browser. For now, please use Chrome or Safari.",
@@ -3482,15 +3454,6 @@
             "editFailed": "Could not update the address. Try again.",
             "nicknameRequired": "Add a nickname to save this address."
         },
-        "forceIosPwaInstall": {
-            "videoUnsupported": "Your browser does not support the video tag.",
-            "title": "Get the full experience",
-            "subtitle": "This is the final step!",
-            "description": "Add Peanut to your home screen to unlock your wallet and start using it.",
-            "tapShare": "Tap the <share>Share icon</share> on your browser",
-            "thenTapAddToHomeScreen": "and then on <bold>“Add To Home Screen”</bold>",
-            "continueInBrowser": "Continue in the browser"
-        },
         "pointsCard": {
             "earned": "You've earned {count, plural, one {# point} other {# points}}!"
         },
@@ -3574,6 +3537,8 @@
         "xchainWithdrawLimitRetry": "You reached the limit for withdrawals to other networks. Try again in about {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minute} other {# minutes}}} one {# hour} other {# hours}}} one {# day} other {# days}}. Withdrawals on Arbitrum have no limit, or contact support to raise yours.",
         "xchainPaymentLimit": "You made too many transfers to other networks recently. Contact support to raise your limit.",
         "xchainPaymentLimitRetry": "You made too many transfers to other networks recently. Try again in about {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minute} other {# minutes}}} one {# hour} other {# hours}}} one {# day} other {# days}}, or contact support to raise your limit.",
+        "xchainWithdrawDisabled": "Withdrawals to other networks are limited on your account. You can always withdraw on Arbitrum, or contact support for help.",
+        "xchainPaymentDisabled": "Transfers to other networks are limited on your account. Contact support for help.",
         "rainInsufficientCollateral": "Your card doesn’t have enough collateral for this withdrawal.",
         "staleCardApproval": "Your card needs to be re-enabled before you can withdraw. It only takes one passkey tap.",
         "cardRateLimited": "Too many card requests. Please wait a moment and try again.",

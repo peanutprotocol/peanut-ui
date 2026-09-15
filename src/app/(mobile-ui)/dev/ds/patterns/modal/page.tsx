@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
-import Modal from '@/components/Global/Modal'
 import ActionModal, { type ActionModalTone } from '@/components/Global/ActionModal'
 import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
@@ -11,13 +10,10 @@ import { DocSection } from '../../_components/DocSection'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
-import EasterEggDrawer from '@/components/Global/EasterEggDrawer'
 
 const TONES: ActionModalTone[] = ['error', 'warning', 'success', 'info']
 
 export default function ModalPage() {
-    const [showModal, setShowModal] = useState(false)
-    const [showEasterEgg, setShowEasterEgg] = useState(false)
     const [showActionModal, setShowActionModal] = useState(false)
     const [actionCheckbox, setActionCheckbox] = useState(false)
     const [toneModal, setToneModal] = useState<ActionModalTone | null>(null)
@@ -25,125 +21,16 @@ export default function ModalPage() {
     return (
         <DocPage>
             <DocHeader
-                title="Modal"
-                description="Base Modal for custom dialog content, and ActionModal for standardized confirmation/action dialogs with icon, title, description, CTAs, and optional checkbox."
+                title="ActionModal"
+                description="Standard confirmation and action dialog with an icon, title, description, CTAs, and optional checkbox."
                 status="production"
             />
-
-            {/* Base Modal */}
-            <DocSection title="Base Modal">
-                <DocSection.Content>
-                    <p className="text-body-s text-foreground-secondary">
-                        HeadlessUI Dialog wrapper with animated overlay and panel. Use for custom modal content.
-                    </p>
-
-                    <div>
-                        <Button variant="stroke" onClick={() => setShowModal(true)}>
-                            Open Base Modal
-                        </Button>
-                        <Modal visible={showModal} onClose={() => setShowModal(false)} title="Example Modal">
-                            <div className="p-5">
-                                <p className="text-body-s text-foreground-secondary">
-                                    This is the base Modal. It provides the overlay, panel animation, close button, and
-                                    optional title bar. You supply the children.
-                                </p>
-                                <div className="mt-4">
-                                    <Button
-                                        variant="purple"
-                                        shadowSize="4"
-                                        className="w-full"
-                                        onClick={() => setShowModal(false)}
-                                    >
-                                        Got it
-                                    </Button>
-                                </div>
-                            </div>
-                        </Modal>
-                    </div>
-
-                    <PropsTable
-                        rows={[
-                            {
-                                name: 'visible',
-                                type: 'boolean',
-                                default: '-',
-                                required: true,
-                                description: 'Controls modal visibility',
-                            },
-                            {
-                                name: 'onClose',
-                                type: '() => void',
-                                default: '-',
-                                required: true,
-                                description: 'Called when overlay or close button clicked',
-                            },
-                            {
-                                name: 'title',
-                                type: 'string',
-                                default: '(none)',
-                                description: 'Renders title bar with border',
-                            },
-                            {
-                                name: 'className',
-                                type: 'string',
-                                default: "''",
-                                description: 'Class for the Dialog root',
-                            },
-                            { name: 'classWrap', type: 'string', default: "''", description: 'Class for Dialog.Panel' },
-                            {
-                                name: 'classOverlay',
-                                type: 'string',
-                                default: "''",
-                                description: 'Class for the backdrop overlay',
-                            },
-                            {
-                                name: 'classButtonClose',
-                                type: 'string',
-                                default: "''",
-                                description: 'Class for the close button',
-                            },
-                            {
-                                name: 'preventClose',
-                                type: 'boolean',
-                                default: 'false',
-                                description: 'Disables closing via overlay click',
-                            },
-                            {
-                                name: 'hideOverlay',
-                                type: 'boolean',
-                                default: 'false',
-                                description: 'Hides close button and title, renders children directly',
-                            },
-                            {
-                                name: 'video',
-                                type: 'boolean',
-                                default: 'false',
-                                description: 'Aspect-ratio video mode',
-                            },
-                            { name: 'children', type: 'ReactNode', default: '-', required: true },
-                        ]}
-                    />
-                </DocSection.Content>
-                <DocSection.Code>
-                    <CodeBlock label="Import" code={`import Modal from '@/components/Global/Modal'`} />
-
-                    <CodeBlock
-                        label="Usage"
-                        code={`<Modal visible={visible} onClose={() => setVisible(false)} title="Example">
-  <div className="p-5">
-    {/* Your content */}
-  </div>
-</Modal>`}
-                    />
-                </DocSection.Code>
-            </DocSection>
 
             {/* ActionModal */}
             <DocSection title="ActionModal">
                 <DocSection.Content>
                     <p className="text-body-s text-foreground-secondary">
-                        Pre-composed modal with icon, title, description, CTA buttons, and optional checkbox. Built on
-                        top of Base Modal.
+                        Pre-composed modal with icon, title, description, CTA buttons, and optional checkbox.
                     </p>
 
                     <div>
@@ -308,89 +195,13 @@ export default function ModalPage() {
             {/* Design Notes */}
             <DocSection title="Design Rules">
                 <DesignNote type="info">
-                    ActionModal is the preferred pattern for confirmations and simple actions. Use Base Modal only when
-                    you need fully custom content.
+                    Use ActionModal for confirmations and simple actions. Flag a custom-dialog need before using an
+                    undocumented modal shell.
                 </DesignNote>
                 <DesignNote type="warning">
                     Prefer <code>tone</code> over iconContainerClassName: yellow is for warnings only, red for errors,
                     green for success, blue for plain information. Without a tone the bubble is pink (primary-1).
                 </DesignNote>
-            </DocSection>
-
-            {/* Specialized Modals Reference */}
-            <DocSection title="Specialized Modals (14)">
-                <p className="text-body-s text-foreground-secondary">
-                    These are pre-built modals for specific flows. They compose ActionModal or Modal internally.
-                </p>
-                <div className="overflow-x-auto rounded-sm border border-border-default text-body-xs">
-                    <table className="w-full">
-                        <thead>
-                            <tr className="border-b border-border-default bg-background-badge-accent/20">
-                                <th className="px-3 py-1.5 text-left font-bold">Component</th>
-                                <th className="px-3 py-1.5 text-left font-bold">Purpose</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {[
-                                ['InviteFriendsDrawer', 'Share referral link with copy + social buttons'],
-                                ['ConfirmInviteModal', 'Confirm invitation before sending'],
-                                ['GuestLoginModal', 'Prompt guest users to log in or register'],
-                                ['BalanceWarningDrawer', 'Warn about insufficient balance'],
-                                ['TokenAndNetworkConfirmationDrawer', 'Confirm token + chain before transfer'],
-                                ['TokenSelectorModal', 'Pick token from a list'],
-                                ['ChainSelectorModal', 'Pick blockchain network'],
-                                ['RecipientSelectorModal', 'Pick or enter recipient address'],
-                                ['QRCodeModal', 'Display QR code for sharing'],
-                                ['TransactionStatusModal', 'Show tx pending/success/failed state'],
-                                ['WalletConnectModal', 'Wallet connection flow'],
-                                ['ExportPrivateKeyModal', 'Reveal and copy private key'],
-                                ['ConfirmTransactionModal', 'Final review before transaction submit'],
-                            ].map(([name, purpose]) => (
-                                <tr key={name} className="border-b border-border-default last:border-0">
-                                    <td className="px-3 py-1.5 font-mono font-bold">{name}</td>
-                                    <td className="px-3 py-1.5">{purpose}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </DocSection>
-
-            <SectionDivider />
-
-            {/* Easter Egg Modal */}
-            <DocSection title="Easter Egg Modal">
-                <DocSection.Content>
-                    <p className="text-body-s text-foreground-secondary">
-                        Fun modal shown when users tap uninhabited/weird countries (Antarctica, Bouvet Island, etc.) in
-                        the country selector. Uses base Modal with an image and humorous caption.
-                    </p>
-
-                    <div>
-                        <Button variant="stroke" onClick={() => setShowEasterEgg(true)}>
-                            Open Easter Egg (Antarctica)
-                        </Button>
-                        <EasterEggDrawer
-                            visible={showEasterEgg}
-                            onClose={() => setShowEasterEgg(false)}
-                            countryCode="AQ"
-                        />
-                    </div>
-                </DocSection.Content>
-                <DocSection.Code>
-                    <CodeBlock
-                        label="Import"
-                        code={`import EasterEggDrawer from '@/components/Global/EasterEggDrawer'`}
-                    />
-                    <CodeBlock
-                        label="Usage"
-                        code={`<EasterEggDrawer
-  visible={showEasterEgg}
-  onClose={() => setShowEasterEgg(false)}
-  countryCode="AQ"
-/>`}
-                    />
-                </DocSection.Code>
             </DocSection>
         </DocPage>
     )

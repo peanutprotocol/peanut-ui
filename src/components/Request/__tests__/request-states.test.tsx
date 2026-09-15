@@ -203,25 +203,6 @@ jest.mock('@/components/Global/ShareButton', () => ({
     ),
 }))
 
-jest.mock('@/components/Global/FileUploadInput', () => ({
-    __esModule: true,
-    default: (props: any) => (
-        <div data-testid="file-upload-input">
-            <input
-                data-testid="comment-field"
-                value={props.attachmentOptions?.message ?? ''}
-                onChange={(e) =>
-                    props.setAttachmentOptions?.({
-                        ...props.attachmentOptions,
-                        message: e.target.value,
-                    })
-                }
-                placeholder={props.placeholder}
-            />
-        </div>
-    ),
-}))
-
 jest.mock('@/components/Global/Loading', () => ({
     __esModule: true,
     default: (props: any) =>
@@ -556,7 +537,6 @@ describe('GROUP 1: Initial Form States', () => {
     test('comment input is available', () => {
         renderCreateRequest()
 
-        expect(screen.getByTestId('file-upload-input')).toBeInTheDocument()
         expect(screen.getByPlaceholderText('Comment')).toBeInTheDocument()
     })
 
@@ -874,7 +854,7 @@ describe('GROUP 5: Merchant / Bill Split Flow', () => {
     test('merchant param populates comment with bill split message', () => {
         renderCreateRequest({ merchant: 'CoolCafe' })
 
-        const commentField = screen.getByTestId('comment-field')
+        const commentField = screen.getByPlaceholderText('Comment')
         expect(commentField).toHaveValue('Bill split for CoolCafe')
     })
 

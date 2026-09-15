@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
-import Card from '@/components/Global/Card'
-import NavHeader from '@/components/Global/NavHeader'
+import { Card } from '@/components/0_Bruddle/Card'
+import { DataRow } from '@/components/0_Bruddle/DataRow'
+import { Section } from '@/components/0_Bruddle/Section'
 import { getPlatform } from '@/utils/capacitor'
+import DevPageShell from '../_components/DevPageShell'
 
 const EDGES = ['top', 'right', 'bottom', 'left'] as const
 type Edge = (typeof EDGES)[number]
@@ -57,12 +59,7 @@ function read(): Reading {
 }
 
 function Row({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
-    return (
-        <div className="flex items-baseline justify-between gap-4 border-b border-border-default/10 py-1.5 last:border-b-0">
-            <span className={`text-body-xs ${muted ? 'text-foreground-secondary' : ''}`}>{label}</span>
-            <span className="font-mono text-label-m">{value}</span>
-        </div>
-    )
+    return <DataRow label={label} value={<span className={muted ? 'text-foreground-secondary' : ''}>{value}</span>} />
 }
 
 export default function DevSafeAreaPage() {
@@ -83,26 +80,19 @@ export default function DevSafeAreaPage() {
     }, [refresh])
 
     return (
-        <div className="flex w-full flex-col gap-6">
-            <div className="px-4 pt-4">
-                <NavHeader title="Safe Area" />
-            </div>
+        <DevPageShell
+            title="Safe area"
+            description="What the app reserves for status and system bars. A gap between the env and variable values is the bug."
+            width="prose"
+        >
+            <Button variant="stroke" size="small" onClick={refresh}>
+                Refresh
+            </Button>
 
-            <div className="space-y-4 flex h-full flex-col px-4 pb-8">
-                <p className="text-body-s text-foreground-secondary">
-                    What the app actually reserves for the status bar and system bars on this device. On Android 15+
-                    Capacitor measures the insets natively — max(system bars, display cutout) — and overwrites the
-                    variables; everywhere else they fall back to env(). A gap between the two columns is the bug.
-                </p>
-
-                <Button variant="stroke" size="small" onClick={refresh}>
-                    Refresh
-                </Button>
-
-                {reading && (
-                    <>
-                        <Card className="p-4">
-                            <h2 className="mb-2 text-label-l">Insets</h2>
+            {reading && (
+                <>
+                    <Section title="Insets">
+                        <Card className="divide-y divide-dashed divide-border-default px-4">
                             {EDGES.map((edge) => (
                                 <Row
                                     key={edge}
@@ -111,9 +101,10 @@ export default function DevSafeAreaPage() {
                                 />
                             ))}
                         </Card>
+                    </Section>
 
-                        <Card className="p-4">
-                            <h2 className="mb-2 text-label-l">Source</h2>
+                    <Section title="Source">
+                        <Card className="divide-y divide-dashed divide-border-default px-4">
                             <Row
                                 label="natively injected"
                                 value={reading.injected ? 'yes' : 'no (env fallback)'}
@@ -126,9 +117,10 @@ export default function DevSafeAreaPage() {
                             <Row label="innerHeight" value={`${reading.innerHeight}px`} muted />
                             <Row label="visualViewport" value={reading.visualViewportHeight} muted />
                         </Card>
+                    </Section>
 
+                    <Section title="Top inset, drawn">
                         <Card className="p-4">
-                            <h2 className="mb-2 text-label-l">Top inset, drawn</h2>
                             <div className="space-y-2">
                                 <div>
                                     <span className="text-body-xs text-foreground-secondary">env()</span>
@@ -139,13 +131,13 @@ export default function DevSafeAreaPage() {
                                 </div>
                                 <div>
                                     <span className="text-body-xs text-foreground-secondary">var(--safe-top)</span>
-                                    <div className="h-safe-top w-full bg-blue-300" />
+                                    <div className="h-safe-top w-full bg-background-icon-bubble-blue" />
                                 </div>
                             </div>
                         </Card>
-                    </>
-                )}
-            </div>
-        </div>
+                    </Section>
+                </>
+            )}
+        </DevPageShell>
     )
 }

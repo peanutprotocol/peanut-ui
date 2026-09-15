@@ -132,7 +132,7 @@ export default function DrawerPage() {
                             name: 'DrawerContent',
                             type: 'Content',
                             default: '-',
-                            description: 'Panel with overlay, drag handle, max-h-[80vh]',
+                            description: 'Panel with overlay, drag handle, and an 80% viewport-height cap',
                         },
                         {
                             name: 'DrawerHeader',
@@ -168,8 +168,7 @@ export default function DrawerPage() {
                     rounded bar at the top.
                 </DesignNote>
                 <DesignNote type="warning">
-                    Content is capped at max-h-[80vh] with overflow-auto. For long lists, scrolling works inside the
-                    drawer.
+                    Content is capped at 80% of the viewport height. For long lists, scrolling works inside the drawer.
                 </DesignNote>
             </DocSection>
         </DocPage>

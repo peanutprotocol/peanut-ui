@@ -5,7 +5,9 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
-import Card from '@/components/Global/Card'
+import GlobalCard from '@/components/Global/Card'
+import { Card } from '@/components/0_Bruddle/Card'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
@@ -68,10 +70,10 @@ export function QrPaySuccessView() {
     const rewardClaimable = !!qrPayment?.perk?.eligible && !perkClaimed && !qrPayment.perk.claimed
 
     return (
-        <div className={`flex min-h-inherit flex-col gap-8 ${getShakeClass(isShaking, shakeIntensity)}`}>
+        <PageStack className={getShakeClass(isShaking, shakeIntensity)}>
             <SoundPlayer sound="success" />
             <NavHeader title={tNav('pay')} />
-            <div className="my-auto space-y-4 flex h-full flex-col justify-center">
+            <PageStack.Center className="gap-4">
                 {/* Only show payment card if reward was not claimed */}
                 {!perkClaimed && !qrPayment?.perk?.claimed && (
                     <Card className="flex flex-row items-center gap-3 p-4">
@@ -79,7 +81,7 @@ export function QrPaySuccessView() {
                             <IconBubble icon="check" color="green" />
                         </div>
 
-                        <div className="space-y-1">
+                        <div className="flex flex-col gap-1">
                             <h1 className="text-body-s font-normal text-foreground-secondary">
                                 {t('success.youPaid', {
                                     merchant:
@@ -106,7 +108,7 @@ export function QrPaySuccessView() {
 
                 {/* Reward Eligibility Card - Show before claiming */}
                 {rewardClaimable && (
-                    <Card ref={pointsDivRef} className="flex items-start gap-3 bg-white p-4">
+                    <GlobalCard ref={pointsDivRef} className="flex items-start gap-3 bg-background-default p-4">
                         <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full">
                             <Image src={STAR_STRAIGHT_ICON} alt="star" width={24} height={24} />
                         </div>
@@ -125,12 +127,12 @@ export function QrPaySuccessView() {
                                 })()}
                             </p>
                         </div>
-                    </Card>
+                    </GlobalCard>
                 )}
 
                 {/* Reward Success Banner - Show after claiming */}
                 {(perkClaimed || qrPayment?.perk?.claimed) && (
-                    <Card className="flex items-start gap-3 bg-white p-4">
+                    <GlobalCard className="flex items-start gap-3 bg-background-default p-4">
                         <div className="flex max-w-[15%] flex-shrink-0 items-center justify-center rounded-full p-2">
                             <Image src={STAR_STRAIGHT_ICON} alt="star" width={28} height={28} />
                         </div>
@@ -150,7 +152,7 @@ export function QrPaySuccessView() {
                                 })()}
                             </p>
                         </div>
-                    </Card>
+                    </GlobalCard>
                 )}
 
                 {/* Points Display - ref used for confetti origin point */}
@@ -158,7 +160,7 @@ export function QrPaySuccessView() {
                     <PointsCard points={pointsData.estimatedPoints} pointsDivRef={pointsDivRef} />
                 )}
 
-                <div className="space-y-4 w-full">
+                <div className="flex w-full flex-col gap-4">
                     {/* Show Claim Reward button if eligible and not claimed yet */}
                     {rewardClaimable ? (
                         <Button
@@ -237,7 +239,7 @@ export function QrPaySuccessView() {
                                 </Button>
                             )}
                             <Button
-                                variant="primary-soft"
+                                variant="stroke"
                                 shadowSize="4"
                                 disabled={false}
                                 onClick={() => {
@@ -265,7 +267,7 @@ export function QrPaySuccessView() {
                         </button>
                     )}
                 </div>
-            </div>
+            </PageStack.Center>
             <TransactionDetailsDrawer
                 isOpen={isTransactionSelected(receiptTransaction?.id)}
                 onClose={closeTransactionDetails}
@@ -283,6 +285,6 @@ export function QrPaySuccessView() {
                     source={REFERRAL_SOURCES.QR_PAY_SUCCESS}
                 />
             )}
-        </div>
+        </PageStack>
     )
 }

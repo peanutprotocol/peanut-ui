@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import ActionModal from '@/components/Global/ActionModal'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { rainApi } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
@@ -42,6 +43,7 @@ const COPY_KEYS = {
 
 const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
     const t = useTranslations('card')
+    const tCommon = useTranslations('common')
     const [phase, setPhase] = useState<Phase>('prompt')
     const [error, setError] = useState<string | null>(null)
     const queryClient = useQueryClient()
@@ -129,7 +131,7 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
     const hasBody = !isSuccess && (showError || showSlide)
     const bodyContent = (
         <>
-            {showError && <p className="text-body-s text-foreground-error">{error}</p>}
+            {showError && <Notification priority="error">{error}</Notification>}
             {showSlide && (
                 <SlideToConfirm
                     label={phase === 'loading' ? t('lockModal.locking') : t('lockModal.slideToLock')}
@@ -156,18 +158,43 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
                an empty wrapper for nothing. */
             content={hasBody ? bodyContent : undefined}
             ctas={
-                !isSuccess && mode === 'unlock'
+                isSuccess
                     ? [
                           {
-                              text: t('lockModal.unlockCta'),
+                              text: tCommon('close'),
                               variant: 'purple',
                               shadowSize: '4',
-                              onClick: run,
-                              loading: phase === 'loading',
-                              disabled: phase === 'loading',
+                              className: 'w-full',
+                              onClick: onClose,
                           },
                       ]
-                    : undefined
+                    : mode === 'unlock'
+                      ? [
+                            {
+                                text: t('lockModal.unlockCta'),
+                                variant: 'purple',
+                                shadowSize: '4',
+                                onClick: run,
+                                loading: phase === 'loading',
+                                disabled: phase === 'loading',
+                            },
+                            {
+                                text: tCommon('cancel'),
+                                variant: 'stroke',
+                                className: 'w-full',
+                                onClick: onClose,
+                                disabled: phase === 'loading',
+                            },
+                        ]
+                      : [
+                            {
+                                text: tCommon('cancel'),
+                                variant: 'stroke',
+                                className: 'w-full',
+                                onClick: onClose,
+                                disabled: phase === 'loading',
+                            },
+                        ]
             }
         />
     )

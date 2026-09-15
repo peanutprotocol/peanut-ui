@@ -29,7 +29,7 @@ interface Navigator {
     brave?: {
         isBrave: () => Promise<boolean>
     }
-    // Non-standard, iOS Safari only: true when running as an installed PWA.
+    // non-standard, iOS Safari only: true for an installed PWA
     standalone?: boolean
     // User-Agent Client Hints. Chromium only, and the only way to read a device
     // model or OS version through Chrome's UA reduction, which otherwise

@@ -147,7 +147,7 @@ const ReConsentModal = () => {
                 <div className="space-y-3 w-full">
                     {/* the updated documents on one centered line, separator-joined
                         (wraps when it must) — inline-link treatment per the Signup
-                        consent line; DocsLink handles web/PWA/native targets */}
+                        consent line; DocsLink handles browser and native targets */}
                     <p className="text-body-s">
                         {outdatedDocs.map((doc, index) => {
                             const policy = legalPolicyForSlug(doc.slug)

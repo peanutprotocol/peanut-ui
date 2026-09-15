@@ -34,6 +34,20 @@ describe('rainApi.applyForCard — geo-blocked normalization', () => {
         })
     })
 
+    it("maps 403 code 'pending-residence-blocked' into the recoverable union variant", async () => {
+        mockFetchWithSentry.mockResolvedValue(
+            jsonResponse(403, {
+                status: 'error',
+                code: 'pending-residence-blocked',
+                message: 'Review your pending residence change.',
+            })
+        )
+        await expect(rainApi.applyForCard()).resolves.toEqual({
+            status: 'pending-residence-blocked',
+            message: 'Review your pending residence change.',
+        })
+    })
+
     it('still throws for a 403 without the code (old backend / other denial)', async () => {
         mockFetchWithSentry.mockResolvedValue(jsonResponse(403, { status: 'error', message: 'nope' }))
         await expect(rainApi.applyForCard()).rejects.toThrow(ApiError)

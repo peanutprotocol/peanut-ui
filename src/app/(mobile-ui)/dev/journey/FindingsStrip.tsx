@@ -1,5 +1,6 @@
 'use client'
 
+import { Accordion } from '@/components/0_Bruddle/Accordion'
 import { FINDINGS } from './journeyData'
 
 /**
@@ -8,22 +9,22 @@ import { FINDINGS } from './journeyData'
  */
 export default function FindingsStrip({ showDev }: { showDev: boolean }) {
     return (
-        <div className="flex flex-col gap-2">
+        <Accordion type="multiple">
             {FINDINGS.map((finding) => (
-                <details key={finding.id} className="rounded-sm border border-border-default bg-action-secondary/40">
-                    <summary className="cursor-pointer px-3 py-2 text-sm font-bold select-none">
-                        ⚠️ {finding.id}. {finding.title}
-                    </summary>
-                    <div className="border-t border-border-default bg-white px-3 py-2">
-                        <p className="text-sm">{finding.detail}</p>
+                <Accordion.Item key={finding.id} value={String(finding.id)}>
+                    <Accordion.Trigger>
+                        {finding.id}. {finding.title}
+                    </Accordion.Trigger>
+                    <Accordion.Content>
+                        <p>{finding.detail}</p>
                         {showDev && (
-                            <p className="mt-1.5 font-mono text-[10px] leading-relaxed break-all text-foreground-secondary">
+                            <p className="mt-2 font-mono text-body-xs leading-relaxed break-all text-foreground-secondary">
                                 {finding.sourceFiles.join(' · ')}
                             </p>
                         )}
-                    </div>
-                </details>
+                    </Accordion.Content>
+                </Accordion.Item>
             ))}
-        </div>
+        </Accordion>
     )
 }

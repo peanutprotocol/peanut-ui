@@ -148,7 +148,7 @@ const CardFace: FC<Props> = ({
                                         type="button"
                                         aria-label={t('copyCardNumber')}
                                         onClick={() => handleCopy(revealed.pan, 'pan')}
-                                        className="relative p-1 transition-opacity duration-instant after:absolute after:-inset-2 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
+                                        className="relative p-1 transition-opacity duration-instant after:absolute after:-inset-3 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                                     >
                                         <Icon name={copiedField === 'pan' ? 'check' : 'copy'} size={16} />
                                     </button>
@@ -242,7 +242,7 @@ const CardFace: FC<Props> = ({
                                         type="button"
                                         aria-label={t('retryDetails')}
                                         onClick={onToggleReveal}
-                                        className="shrink-0 p-1"
+                                        className="relative shrink-0 p-1 transition-opacity duration-instant after:absolute after:-inset-2 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                                     >
                                         <Icon name="eye" size={22} />
                                     </button>
@@ -268,7 +268,7 @@ const CardFace: FC<Props> = ({
                                         type="button"
                                         aria-label={t('showDetails')}
                                         onClick={onToggleReveal}
-                                        className="p-1"
+                                        className="relative p-1 transition-opacity duration-instant after:absolute after:-inset-2 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60"
                                     >
                                         <Icon name="eye" size={22} />
                                     </button>

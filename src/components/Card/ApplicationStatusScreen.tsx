@@ -10,7 +10,14 @@ import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 
-type Variant = 'pending' | 'manual-review' | 'requires-info' | 'requires-support' | 'rejected' | 'geo-blocked'
+type Variant =
+    | 'pending'
+    | 'manual-review'
+    | 'requires-info'
+    | 'requires-support'
+    | 'rejected'
+    | 'geo-blocked'
+    | 'pending-residence-blocked'
 
 interface Props {
     variant: Variant
@@ -49,6 +56,10 @@ const COPY_KEYS = {
     'requires-support': { title: 'status.requiresSupportTitle', body: 'status.requiresSupportBody' },
     rejected: { title: 'status.rejectedTitle', body: 'status.rejectedBody' },
     'geo-blocked': { title: 'status.geoBlockedTitle', body: 'status.geoBlockedBody' },
+    'pending-residence-blocked': {
+        title: 'status.pendingResidenceBlockedTitle',
+        body: 'status.pendingResidenceBlockedBody',
+    },
 } as const satisfies Record<Variant, { title: string; body: string }>
 
 /** Variants where support is the only path forward — these render the CTA. */
@@ -62,6 +73,7 @@ const SUPPORT_VARIANTS: ReadonlySet<Variant> = new Set(['requires-info', 'requir
  * the full list is published. Mirrors CardTermsScreen's absolute-URL pattern.
  */
 const PROHIBITED_ACTIVITIES_POLICY_URL = 'https://peanut.me/en/card-prohibited-activities'
+const RESIDENCE_CHANGE_URL = '/profile/identity-verification?open=residence'
 
 const ApplicationStatusScreen: FC<Props> = ({
     variant,
@@ -104,6 +116,9 @@ const ApplicationStatusScreen: FC<Props> = ({
                     <LinkButton href={PROHIBITED_ACTIVITIES_POLICY_URL} external>
                         {t('status.geoBlockedPolicyLink')}
                     </LinkButton>
+                )}
+                {variant === 'pending-residence-blocked' && (
+                    <LinkButton href={RESIDENCE_CHANGE_URL}>{t('status.pendingResidenceBlockedCta')}</LinkButton>
                 )}
                 {SUPPORT_VARIANTS.has(variant) && onUploadProofOfAddress && (
                     <div className="flex w-full flex-col gap-2">

@@ -58,6 +58,7 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import { useRouter } from 'next/navigation'
+import { parseAsString, useQueryState } from 'nuqs'
 
 type ModalVariant = 'start' | 'processing' | 'action_required' | 'rejected'
 
@@ -136,6 +137,7 @@ const UnlockPayments = () => {
     const locale = useLocale()
     const onBack = useSafeBack('/profile', { replace: true })
     const router = useRouter()
+    const [openView, setOpenView] = useQueryState('open', parseAsString)
     const { user, fetchUser } = useAuth()
     const { rails, isKycApproved, railsForProvider, nextActionsForRail } = useCapabilities()
     const restrictions = useResidenceRestrictions()
@@ -244,7 +246,16 @@ const UnlockPayments = () => {
     // ── modal machinery (carried over from the retired UnlockedRegions view) ──
     const [selectedRegion, setSelectedRegion] = useState<Region | null>(null)
     const [selectedMethodLabel, setSelectedMethodLabel] = useState<string | null>(null)
+    // Card recovery deep-links here when only a pending residence change is
+    // blocking issuance. Keep the deep link live rather than snapshotting it,
+    // and clear it when the drawer closes so refresh/native restore cannot
+    // reopen a completed recovery flow.
     const [isChangeModalOpen, setIsChangeModalOpen] = useState(false)
+    const isResidenceChangeVisible = isChangeModalOpen || openView === 'residence'
+    const closeResidenceChange = useCallback(() => {
+        setIsChangeModalOpen(false)
+        void setOpenView(null, { history: 'replace' })
+    }, [setOpenView])
     const [activeRegionIntent, setActiveRegionIntent] = useState<KYCRegionIntent | undefined>(undefined)
     const [errorAcknowledged, setErrorAcknowledged] = useState(false)
     const [reverifyTarget, setReverifyTarget] = useState<string | null>(null)
@@ -469,8 +480,8 @@ const UnlockPayments = () => {
             )}
 
             <ResidenceChangeDrawer
-                visible={isChangeModalOpen}
-                onClose={() => setIsChangeModalOpen(false)}
+                visible={isResidenceChangeVisible}
+                onClose={closeResidenceChange}
                 userId={user?.user?.userId}
                 declared={residence?.declared ?? null}
                 declaredSecond={declaredSecondIso2}

@@ -92,7 +92,7 @@ export default function ExchangeRatePage() {
         <PageContainer>
             <PageStack gap="6">
                 <NavHeader title={t('title')} onPrev={onBack} />
-                <PageStack.Center className="gap-3">
+                <div className="flex flex-col gap-3">
                     {/* The pair the widget shows is a conversion, not a wallet:
                         people read "EUR" here as "my balance is in euros". */}
                     <p className="text-center text-body-s text-foreground-secondary">{t('balanceNote')}</p>
@@ -115,7 +115,7 @@ export default function ExchangeRatePage() {
                             arrivesMinutes: t('widget.arrivesMinutes'),
                         }}
                     />
-                </PageStack.Center>
+                </div>
             </PageStack>
         </PageContainer>
     )

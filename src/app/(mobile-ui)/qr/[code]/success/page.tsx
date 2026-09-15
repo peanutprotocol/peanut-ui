@@ -84,7 +84,7 @@ export default function RedirectQrSuccessPage() {
                         {tCommon('goToHome')}
                     </Button>
                     <Button
-                        variant="primary-soft"
+                        variant="stroke"
                         shadowSize="4"
                         onClick={async () => {
                             try {

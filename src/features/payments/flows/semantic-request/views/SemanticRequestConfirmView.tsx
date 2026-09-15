@@ -15,6 +15,7 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { Notification } from '@/components/0_Bruddle/Notification'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import NetworkFeeRow from '@/components/Global/NetworkFeeRow'
@@ -142,17 +143,17 @@ export function SemanticRequestConfirmView() {
     // show loading if we don't have charge details yet or fetching
     if (!charge || isFetchingCharge) {
         return (
-            <div className="flex min-h-inherit flex-col items-center justify-center">
+            <PageStack className="items-center justify-center">
                 <Loading variant="mascot" />
-            </div>
+            </PageStack>
         )
     }
 
     return (
-        <div className="flex min-h-inherit flex-col justify-between gap-8">
+        <PageStack>
             <NavHeader onPrev={goBackToInitial} title={t('headers.confirmPayment')} />
 
-            <div className="my-auto space-y-4 flex h-full flex-col justify-center pb-4">
+            <PageStack.Center className="gap-4 pb-4">
                 {recipient && recipient.recipientType && (
                     <PeanutActionDetailsCard
                         avatarSize="small"
@@ -244,13 +245,13 @@ export function SemanticRequestConfirmView() {
                         </Button>
                     )}
                     {errorMessage && (
-                        <div className="space-y-2">
+                        <div className="flex flex-col gap-2">
                             <Notification priority="error">{errorMessage}</Notification>
                         </div>
                     )}
                 </div>
-            </div>
-        </div>
+            </PageStack.Center>
+        </PageStack>
     )
 }
 
@@ -295,7 +296,7 @@ function TokenChainInfoDisplay({
                                 altText={`${chainName} chain`}
                                 fallbackName={chainName.charAt(0) || 'C'}
                                 sizeClass="h-3.5 w-3.5"
-                                className="rounded-full border-2 border-white dark:border-gray-100"
+                                className="rounded-full border-2 border-background-default"
                             />
                         </div>
                     )}

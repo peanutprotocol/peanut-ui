@@ -11,11 +11,11 @@ interface HomeTopNavProps {
     showRewards: boolean
 }
 
-// Keep the raw Link on the same recipe as Button. The merge removes Button's
-// base w-full so the navigation control stays a 40px circle like NavHeader's
-// back button instead of expanding to the whole header row.
+// Raw Link styled with the btn recipe classes — the navigation control stays
+// a 40px circle like NavHeader's back button. Deliberately not a nested
+// Button (a11y: no interactive-in-interactive; the test asserts this).
 const menuButton = twMerge(
-    'btn btn-stroke flex w-full items-center gap-2 transition-all duration-instant active:translate-x-1 active:translate-y-1 active:shadow-none',
+    'btn btn-stroke gap-2',
     'relative size-10 w-10 p-0 shadow-none after:absolute after:-inset-0.5'
 )
 

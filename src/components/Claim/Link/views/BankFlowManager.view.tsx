@@ -26,6 +26,7 @@ import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { ConfirmBankClaimView } from './Confirm.bank-claim.view'
 import { CountryListRouter } from '@/components/Common/CountryListRouter'
 import NavHeader from '@/components/Global/NavHeader'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { sendLinksApi } from '@/services/sendLinks'
 import { useSearchParams } from 'next/navigation'
@@ -606,19 +607,17 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
             return <CountryListRouter claimLinkData={claimLinkData} inputTitle={t('bank.selectCountry')} />
         case ClaimBankFlowStep.BankDetailsForm:
             return (
-                <div className="flex min-h-inherit flex-col justify-between gap-8 md:min-h-fit">
-                    <div>
-                        <NavHeader
-                            title={t('receive')}
-                            onPrev={() => {
-                                if (savedAccounts.length > 0) {
-                                    setClaimBankFlowStep(ClaimBankFlowStep.SavedAccountsList)
-                                } else {
-                                    setClaimBankFlowStep(ClaimBankFlowStep.BankCountryList)
-                                }
-                            }}
-                        />
-                    </div>
+                <PageStack className="justify-between md:min-h-fit">
+                    <NavHeader
+                        title={t('receive')}
+                        onPrev={() => {
+                            if (savedAccounts.length > 0) {
+                                setClaimBankFlowStep(ClaimBankFlowStep.SavedAccountsList)
+                            } else {
+                                setClaimBankFlowStep(ClaimBankFlowStep.BankCountryList)
+                            }
+                        }}
+                    />
                     <DynamicBankAccountForm
                         ref={formRef}
                         key={selectedCountry?.id}
@@ -639,7 +638,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                         error={error}
                     />
                     {kycModal}
-                </div>
+                </PageStack>
             )
         case ClaimBankFlowStep.BankConfirmClaim:
             if (localBankDetails) {

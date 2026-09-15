@@ -69,9 +69,7 @@ export function ConfirmBankClaimView({
 
     return (
         <PageStack className="justify-between md:min-h-fit">
-            <div>
-                <NavHeader title={t('receive')} onPrev={onBack} />
-            </div>
+            <NavHeader title={t('receive')} onPrev={onBack} />
             <PageStack.Center className="gap-4">
                 <PeanutActionDetailsCard
                     countryCodeForFlag={countryCodeForFlag.toLowerCase()}

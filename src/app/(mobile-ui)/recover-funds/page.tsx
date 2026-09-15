@@ -176,6 +176,7 @@ export default function RecoverFundsPage() {
                             <h1 className="text-body-s font-normal text-foreground-secondary">
                                 {t('youWillReceiveTo')}{' '}
                                 <AddressLink
+                                    inline
                                     address={recipient.address}
                                     className="text-body-s font-normal text-foreground-secondary"
                                 />
@@ -231,6 +232,7 @@ export default function RecoverFundsPage() {
                             <h1 className="text-body-s font-normal text-foreground-secondary">
                                 {t('sentTo')}{' '}
                                 <AddressLink
+                                    inline
                                     address={recipient.address}
                                     className="text-body-s font-normal text-foreground-secondary"
                                 />

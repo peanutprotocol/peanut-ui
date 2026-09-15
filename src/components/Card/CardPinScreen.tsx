@@ -8,6 +8,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { Icon } from '@/components/Global/Icons/Icon'
 import ProfileMenuItem from '@/components/Profile/components/ProfileMenuItem'
 import CardPinSetupFlow from '@/components/Card/CardPinSetupFlow'
@@ -160,7 +161,7 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
                         <Icon name={pin ? 'eye' : 'eye-slash'} size={24} />
                     </button>
                 </div>
-                {error && <p className="text-body-s text-foreground-error">{error}</p>}
+                {error && <Notification priority="error">{error}</Notification>}
                 <ProfileMenuItem
                     icon="more-horizontal"
                     label={t('changePin')}

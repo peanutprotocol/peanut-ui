@@ -67,6 +67,10 @@ export function useCardFlow() {
     // time). Per-mount — the cardInfo refetch it triggers makes the state
     // machine's geoProhibited path own the block durably.
     const [geoBlocked, setGeoBlocked] = useState(false)
+    // Unlike geoBlocked, this is not a terminal issuer denial: the approved
+    // KYC residence is eligible and only an open residence-change request is
+    // restricting issuance. The recovery screen links to that exact request.
+    const [pendingResidenceBlocked, setPendingResidenceBlocked] = useState(false)
 
     const state = computeCardState({
         overview,
@@ -212,17 +216,49 @@ export function useCardFlow() {
             if (res.status === 'geo-blocked') {
                 setPendingTerms(null)
                 setPendingCountryConfirmation(null)
+                setPendingResidenceBlocked(false)
                 setGeoBlocked(true)
                 void refetchCardInfo()
+                return
+            }
+            if (res.status === 'pending-residence-blocked') {
+                setPendingTerms(null)
+                setPendingCountryConfirmation(null)
+                setGeoBlocked(false)
+                setPendingResidenceBlocked(true)
                 return
             }
             // pending / already-applied → state machine routes based on overview.
             setPendingTerms(null)
             setPendingCountryConfirmation(null)
+            // 'pending' promises a card. If the follow-up card-create fails
+            // (e.g. Rain 400 on virtualCardArt during the inline auto-issue)
+            // the backend still answers 'pending', the rail lands ENABLED with
+            // no card, and the state machine routes back to add-card — which
+            // read as a silent reset. Remember the promise so that landing
+            // surfaces a retryable error instead (effect below).
+            if (res.status === 'pending') awaitingIssuanceRef.current = true
             invalidateOverview()
         },
         [invalidateOverview, refetchCardInfo]
     )
+
+    // Card-create-after-apply failure detector (see advanceFromApplyResponse).
+    // Waits for the refetched overview to reflect the application, then: back
+    // on the entry screen means the promised card never got created — show the
+    // same retryable notification the entry screen uses for apply errors.
+    // Stays armed through pending/manual-review: an asynchronous approval can
+    // fail auto-issuance too, landing ENABLED-without-card later in the mount.
+    // Disarms only once a card exists or a terminal state (incl. the surfaced
+    // add-card error) is reached.
+    const awaitingIssuanceRef = useRef(false)
+    useEffect(() => {
+        if (!awaitingIssuanceRef.current) return
+        if (!overview?.status?.hasApplication) return
+        if (state === 'loading' || state === 'pending' || state === 'manual-review') return
+        awaitingIssuanceRef.current = false
+        if (state === 'add-card') setApplyError(t('page.issueFailed'))
+    }, [overview, state, t])
 
     // The user picked their residence country on the confirmation screen.
     // Re-apply with the pick — the backend validates it against its own
@@ -439,27 +475,27 @@ export function useCardFlow() {
         } else if (res.status === 'country-confirmation-required' && 'candidates' in res) {
             setPendingCountryConfirmation({ candidates: res.candidates })
         } else if (res.status === 'geo-blocked') {
+            setPendingResidenceBlocked(false)
             setGeoBlocked(true)
             void refetchCardInfo()
+        } else if (res.status === 'pending-residence-blocked') {
+            setGeoBlocked(false)
+            setPendingResidenceBlocked(true)
         } else {
             invalidateOverview()
         }
         return ''
     }, [invalidateOverview, refetchCardInfo])
 
-    // PWA-reload resume (see useSumsubReloadResume). On a reload mid-Sumsub,
-    // re-apply to mint a fresh token for the same in-progress applicant and
-    // reopen the SDK — same idempotent call the token-refresh path uses. The
-    // card flow takes no initiate arguments, so the persisted state is empty.
+    // Preserve an interrupted Sumsub session for installed Android PWAs that
+    // remain reachable until the native migration cutoff.
     useSumsubReloadResume(sumsubToken !== null ? {} : null, async () => {
         const res = await rainApi.applyForCard({ termsAccepted: false })
         if ((res.status === 'incomplete' || res.status === 'main-kyc-required') && 'sumsubAccessToken' in res) {
             setSumsubToken(res.sumsubAccessToken)
-            // tagged so a resume doesn't read as a fresh open in the card funnel
             posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED, { resumed: true })
             return true
         }
-        // user advanced past Sumsub while backgrounded — route normally
         advanceFromApplyResponse(res)
         return false
     })
@@ -486,6 +522,7 @@ export function useCardFlow() {
         setPendingCountryConfirmation,
         isIssuing,
         geoBlocked,
+        pendingResidenceBlocked,
         handleApply,
         handleConfirmCountry,
         handleAcceptTerms,

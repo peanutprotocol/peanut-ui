@@ -27,8 +27,6 @@ describe('useSumsubReloadResume', () => {
         expect(onResume).not.toHaveBeenCalled()
     })
 
-    // The regression this hook exists for: replaying a LATAM cross-region
-    // initiate with no arguments mints a token for the wrong verification level.
     it('replays the persisted initiate arguments verbatim', async () => {
         const onResume = jest.fn().mockResolvedValue(true)
         const persisted: KycResumeState = { intent: 'LATAM', crossRegion: true, targetCountry: 'AR' }
@@ -98,10 +96,9 @@ describe('useSumsubReloadResume', () => {
         })
     })
 
-    it('does not rewrite the URL while the open state is unchanged by value', async () => {
+    it('does not rewrite the URL while the open state is unchanged by value', () => {
         const onUrlUpdate = jest.fn()
         const onResume = jest.fn().mockResolvedValue(true)
-        // a fresh object each render, as the real call sites build it
         const { rerender } = renderHook(() => useSumsubReloadResume({ intent: 'LATAM' }, onResume), {
             wrapper: wrapperFor(encode({ intent: 'LATAM' }), onUrlUpdate),
         })
@@ -111,7 +108,6 @@ describe('useSumsubReloadResume', () => {
         expect(onUrlUpdate).not.toHaveBeenCalled()
     })
 
-    // the param is user-editable, so a hostile value must not reach the replay
     it('drops fields that fail validation', async () => {
         const onResume = jest.fn().mockResolvedValue(true)
         renderHook(() => useSumsubReloadResume(null, onResume), {
