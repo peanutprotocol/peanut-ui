@@ -53,7 +53,7 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 status: 'canonical',
                 source: 'components/Global/ActionModal/index.tsx',
                 divergence:
-                    "The standard modal, 65 app call sites. Wraps BaseModal and overrides its look to rounded-sm + border-border-default + bg-background-default + max-w-[85%], centred on every breakpoint. Owns the icon-in-circle + title + description + CTA-array layout, typed with text-heading-xs and text-body-s. Still diverges from BaseModal's own rounded-md / max-w-[26rem] defaults. Default panel width is mx-8 max-w-md since 2026-09-15 (TASK-22452) — the old 8-site copy-pasted width string is gone.",
+                    "The standard modal, 65 app call sites. Wraps BaseModal and overrides its look to rounded-sm + border-border-default + bg-background-default + mx-8 max-w-md (the default panel width since 2026-09-15, TASK-22452 — previously max-w-[85%] with an 8-site copy-pasted max-w-md mx-8 override), centred on every breakpoint. Owns the icon-in-circle + title + description + CTA-array layout, typed with text-heading-xs and text-body-s. Still diverges from BaseModal's own rounded-md / max-w-[26rem] defaults. Fullscreen hosts (SumsubHelpModal, IframeWrapper) opt back out with mx-0 max-w-full.",
                 usedIn: [
                     'components/Kyc/InitiateKycModal.tsx',
                     'components/Global/ReConsentModal/index.tsx',
@@ -65,18 +65,11 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
             },
             {
                 name: 'modalPanelClassName="max-w-md mx-8" (copy-pasted width recipe)',
-                realUsages: 8,
-                status: 'adhoc',
+                realUsages: 0,
+                status: 'live',
                 source: 'components/Global/ActionModal/index.tsx',
                 divergence:
-                    'Eight modals set the same panel width by hand because ActionModal exposes no size prop. A `size` prop with sm/md/lg would delete all eight strings.',
-                usedIn: [
-                    'components/AddMoney/components/OnrampConfirmationModal.tsx',
-                    'components/Global/GuestVerificationModal/index.tsx',
-                    'components/Global/QRScanner/CameraPermissionDrawer.tsx',
-                    'components/Setup/Views/PasskeySetupHelpDrawer.tsx',
-                    'components/Claim/Link/SendLinkActionList.tsx',
-                ],
+                    'RESOLVED 2026-09-15 (TASK-22452): the hand-copied width string became the component default and every call-site copy was deleted; fullscreen hosts opt out with mx-0 max-w-full. No size prop needed.',
                 verified: true,
             },
             {
@@ -155,7 +148,8 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 realUsages: 1,
                 status: 'live',
                 source: 'components/Global/GuestVerificationModal/index.tsx',
-                divergence: 'ActionModal + the copy-pasted "max-w-md mx-8" width string.',
+                divergence:
+                    'ActionModal on the default panel width (the max-w-md mx-8 copy resolved into the component default 2026-09-15, TASK-22452).',
             },
             {
                 name: 'ReConsentModal',
@@ -183,7 +177,8 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 realUsages: 1,
                 status: 'live',
                 source: 'components/AddMoney/components/OnrampConfirmationModal.tsx',
-                divergence: 'ActionModal + the copy-pasted "max-w-md mx-8" width string.',
+                divergence:
+                    'ActionModal on the default panel width (the max-w-md mx-8 copy resolved into the component default 2026-09-15, TASK-22452).',
             },
             {
                 name: 'SupportedNetworksDrawer',
@@ -335,7 +330,8 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 realUsages: 1,
                 status: 'live',
                 source: 'components/Global/QRScanner/CameraPermissionDrawer.tsx',
-                divergence: 'ActionModal + the copy-pasted "max-w-md mx-8" width string.',
+                divergence:
+                    'ActionModal on the default panel width (the max-w-md mx-8 copy resolved into the component default 2026-09-15, TASK-22452).',
             },
             {
                 name: 'RainCooldownIntroModal',
@@ -349,7 +345,8 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 realUsages: 1,
                 status: 'live',
                 source: 'components/Setup/Views/PasskeySetupHelpDrawer.tsx',
-                divergence: 'ActionModal + the copy-pasted "max-w-md mx-8" width string.',
+                divergence:
+                    'ActionModal on the default panel width (the max-w-md mx-8 copy resolved into the component default 2026-09-15, TASK-22452).',
             },
             {
                 name: 'MigrationDownloadModal',
@@ -772,7 +769,7 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 status: 'live',
                 source: 'components/Claim/Link/SendLinkActionList.tsx',
                 divergence:
-                    'New since the last sweep. Second ActionListCard replacement, on ListItem. Also opens an ActionModal with the copy-pasted "max-w-md mx-8" width string.',
+                    'New since the last sweep. Second ActionListCard replacement, on ListItem. Also opens an ActionModal (its old copy-pasted width string resolved into the component default 2026-09-15, TASK-22452).',
             },
             {
                 name: 'RequestPotActionList',
@@ -780,7 +777,7 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 status: 'live',
                 source: 'features/payments/flows/contribute-pot/components/RequestPotActionList.tsx',
                 divergence:
-                    'New since the last sweep. Third ActionListCard replacement, on ListItem. Two ActionModals inside it repeat the "max-w-md mx-8" string.',
+                    'New since the last sweep. Third ActionListCard replacement, on ListItem. Its two ActionModals ride the component default width since 2026-09-15 (TASK-22452).',
             },
             {
                 name: 'BadgesRow',
