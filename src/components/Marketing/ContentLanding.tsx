@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Fuse from 'fuse.js'
 import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { Icon } from '@/components/Global/Icons/Icon'
+import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import type { ContentItem, ContentItemType } from '@/lib/content'
 import type { Locale } from '@/i18n/types'
 
@@ -155,7 +156,7 @@ export default function ContentLanding({ items, strings }: Props) {
                         placeholder={strings.searchPlaceholder}
                         value={q ?? ''}
                         onChange={(e) => setFilters({ q: e.target.value || null })}
-                        className="h-12 w-full rounded-sm border border-border-default bg-background-default pr-4 pl-10 text-base caret-action-primary focus:ring-1 focus:ring-border-default focus:outline-none"
+                        className={`${CARD_SURFACE} h-12 w-full pr-4 pl-10 text-base caret-action-primary focus:ring-1 focus:ring-border-default focus:outline-none`}
                     />
                 </div>
             </div>

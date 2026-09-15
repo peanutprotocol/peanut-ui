@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Icon } from '@/components/Global/Icons/Icon'
+import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 
 interface HelpArticle {
     slug: string
@@ -74,7 +75,7 @@ export default function HelpLanding({ articles, categories, strings }: HelpLandi
                         placeholder={strings?.searchPlaceholder ?? 'Search help articles...'}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="h-12 w-full rounded-sm border border-border-default bg-background-default pr-4 pl-10 text-base caret-action-primary focus:ring-1 focus:ring-border-default focus:outline-none"
+                        className={`${CARD_SURFACE} h-12 w-full pr-4 pl-10 text-base caret-action-primary focus:ring-1 focus:ring-border-default focus:outline-none`}
                     />
                 </div>
             </div>
