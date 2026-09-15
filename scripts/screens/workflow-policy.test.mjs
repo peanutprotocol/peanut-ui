@@ -20,13 +20,20 @@ test('only superseded pull-request captures are cancelled', () => {
     assert.match(screenLibrary, /cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \}\}/)
 })
 
-test('publisher and deploy reuse one declared Cloudflare API token', () => {
+test('publisher and deploy reuse one Cloudflare API token during input migration', () => {
     const declaredInputs = publisher.slice(0, publisher.indexOf('permissions:'))
-    assert.match(screenLibrary, /CLOUDFLARE_API_TOKEN: \$\{\{ secrets\.CLOUDFLARE_API_TOKEN \}\}/)
-    assert.doesNotMatch(screenLibrary, /CLOUDFLARE_PUBLISH_TOKEN/)
-    assert.match(declaredInputs, /CLOUDFLARE_API_TOKEN:\n\s+required: true/)
-    assert.doesNotMatch(publisher, /CLOUDFLARE_PUBLISH_TOKEN/)
+    assert.match(screenLibrary, /CLOUDFLARE_PUBLISH_TOKEN: \$\{\{ secrets\.CLOUDFLARE_API_TOKEN \}\}/)
+    assert.doesNotMatch(screenLibrary, /^\s+CLOUDFLARE_API_TOKEN:/m)
+    assert.match(declaredInputs, /CLOUDFLARE_PUBLISH_TOKEN:\n\s+required: false/)
+    assert.match(declaredInputs, /CLOUDFLARE_API_TOKEN:\n\s+required: false/)
     assert.match(publisher, /environment: screen-library-deploy/)
-    assert.equal((publisher.match(/CLOUDFLARE_API_TOKEN: \$\{\{ secrets\.CLOUDFLARE_API_TOKEN \}\}/g) ?? []).length, 2)
+    assert.equal(
+        (
+            publisher.match(
+                /CLOUDFLARE_API_TOKEN: \$\{\{ secrets\.CLOUDFLARE_API_TOKEN \|\| secrets\.CLOUDFLARE_PUBLISH_TOKEN \}\}/g
+            ) ?? []
+        ).length,
+        2
+    )
     assert.match(publisher, /CLOUDFLARE_API_TOKEN is missing from the reusable screen-library publisher/)
 })
