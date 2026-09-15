@@ -62,16 +62,16 @@ export function LocaleSwitcher({ locale, label }: { locale: Locale; label: strin
                 aria-expanded={open}
                 aria-label={`${label}: ${LOCALE_META[locale].shortLabel}`}
                 onClick={() => setOpen((v) => !v)}
-                className={`${TRIGGER_WIDTH} inline-flex items-center justify-between rounded-sm border border-n-1 bg-white px-3 py-1.5 text-sm font-semibold text-n-1 transition-colors hover:border-white hover:bg-black hover:text-white`}
+                className={`${TRIGGER_WIDTH} inline-flex items-center justify-between rounded-sm border border-border-default bg-background-default px-3 py-1.5 text-sm font-semibold text-foreground-primary transition-colors hover:border-gray-0 hover:bg-gray-950 hover:text-foreground-inverse`}
             >
                 {LOCALE_META[locale].shortLabel}
-                <span aria-hidden className="text-grey-1">
+                <span aria-hidden className="text-foreground-secondary">
                     ▾
                 </span>
             </button>
             {open && (
                 <ul
-                    className={`${TRIGGER_WIDTH} absolute top-full right-0 z-30 mt-1 flex flex-col overflow-hidden rounded-sm border border-n-1 bg-white shadow-[2px_2px_0_0_#000]`}
+                    className={`${TRIGGER_WIDTH} shadow-2 absolute top-full right-0 z-30 mt-1 flex flex-col overflow-hidden rounded-sm border border-border-default bg-background-default`}
                 >
                     {SUPPORTED_LOCALES.map((loc) => {
                         const isCurrent = loc === locale
@@ -86,8 +86,10 @@ export function LocaleSwitcher({ locale, label }: { locale: Locale; label: strin
                                         persistLocale(toAppLocale(loc))
                                         setOpen(false)
                                     }}
-                                    className={`block px-3 py-2 text-sm whitespace-nowrap transition-colors hover:bg-black hover:text-white ${
-                                        isCurrent ? 'bg-primary-1/20 font-bold text-n-1' : 'text-n-1'
+                                    className={`block px-3 py-2 text-sm whitespace-nowrap transition-colors hover:bg-gray-950 hover:text-foreground-inverse ${
+                                        isCurrent
+                                            ? 'bg-action-primary/20 font-bold text-foreground-primary'
+                                            : 'text-foreground-primary'
                                     }`}
                                 >
                                     {LOCALE_META[loc].shortLabel}

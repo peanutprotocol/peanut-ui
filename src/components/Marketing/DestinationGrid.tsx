@@ -51,7 +51,7 @@ export function DestinationGrid({ countries, exclude, title, locale = DEFAULT_LO
                                 )}
                                 <div>
                                     <span className="font-semibold">{countryName}</span>
-                                    <span className="ml-1 text-sm text-black/50">&rarr;</span>
+                                    <span className="ml-1 text-sm text-foreground-primary/50">&rarr;</span>
                                 </div>
                             </Card>
                         </Link>

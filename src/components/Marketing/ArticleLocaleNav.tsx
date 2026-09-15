@@ -47,18 +47,18 @@ export function ArticleLocaleNav({ currentLocale, localizedHrefs }: Props) {
                     aria-expanded={open}
                     aria-label={`Language: ${current.label}`}
                     onClick={() => setOpen((v) => !v)}
-                    className="inline-flex items-center gap-1.5 rounded-sm border border-n-1 bg-white px-2 py-1 text-xs font-semibold transition-colors hover:bg-primary-3/30"
+                    className="inline-flex items-center gap-1 rounded-sm border border-border-default bg-background-default px-2 py-1 text-xs font-semibold transition-colors hover:bg-primary-3/30"
                 >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={current.flag} alt="" width={18} height={18} className="rounded-full" />
-                    <span aria-hidden className="text-grey-1">
+                    <span aria-hidden className="text-foreground-secondary">
                         ▾
                     </span>
                 </button>
                 {open && (
                     <ul
                         role="listbox"
-                        className="absolute right-0 z-20 mt-1 flex flex-col overflow-hidden rounded-sm border border-n-1 bg-white shadow-[2px_2px_0_0_#000]"
+                        className="shadow-2 absolute right-0 z-20 mt-1 flex flex-col overflow-hidden rounded-sm border border-border-default bg-background-default"
                     >
                         {SUPPORTED_LOCALES.map((loc) => {
                             const meta = LOCALE_META[loc]
@@ -71,7 +71,7 @@ export function ArticleLocaleNav({ currentLocale, localizedHrefs }: Props) {
                                         aria-label={meta.label}
                                         title={meta.label}
                                         className={`flex items-center justify-center px-3 py-2 transition-colors ${
-                                            isCurrent ? 'bg-primary-1/20' : 'hover:bg-primary-3/30'
+                                            isCurrent ? 'bg-action-primary/20' : 'hover:bg-primary-3/30'
                                         }`}
                                     >
                                         {/* eslint-disable-next-line @next/next/no-img-element */}
