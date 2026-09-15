@@ -54,13 +54,13 @@ export function RelatedPages({ title, children, locale = DEFAULT_LOCALE }: Relat
 
     return (
         <nav className={`mx-auto ${PROSE_WIDTH} px-6 py-10 md:px-4 md:py-14`}>
-            <h2 className="mb-5 text-xl font-bold text-n-1 md:text-2xl">{heading}</h2>
+            <h2 className="mb-5 text-xl font-bold text-foreground-primary md:text-2xl">{heading}</h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {links.map((link) => (
                     <Link key={link.href} href={resolveContentHref(link.href, locale)} className="flex">
                         <Card shadowSize="4" className={`flex-1 flex-row items-center gap-3 p-4 ${CARD_HOVER}`}>
                             <span className="font-semibold">{link.text}</span>
-                            <span className="ml-auto text-sm text-black/50">&rarr;</span>
+                            <span className="ml-auto text-sm text-foreground-primary/50">&rarr;</span>
                         </Card>
                     </Link>
                 ))}
