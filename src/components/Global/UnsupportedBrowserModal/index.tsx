@@ -1,29 +1,18 @@
 'use client'
 
-import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
-import { useToast } from '@/components/0_Bruddle/Toast'
+import ActionModal from '@/components/Global/ActionModal'
 import { type IconName } from '@/components/Global/Icons/Icon'
-import { copyTextToClipboard } from '@/utils/clipboard.utils'
-import { useEffect, useState, Suspense, useRef, useSyncExternalStore } from 'react'
+import { useState, Suspense, useSyncExternalStore } from 'react'
 import { useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
 import { isLikelyWebview } from '@/components/Setup/Setup.utils'
 import { usePasskeySupportContext } from '@/context/passkeySupportContext'
-import { BrowserType, useGetBrowserType } from '@/hooks/useGetBrowserType'
+import { useGetBrowserType } from '@/hooks/useGetBrowserType'
+import { getCompatibilityModalCopy } from './UnsupportedBrowserModal.utils'
+import { useCopyLinkActions } from './useCopyLinkActions'
 
 const subscribeToStaticBrowserDetection = (): (() => void) => () => {}
 const getServerBrowserDetectionSnapshot = (): boolean => false
-
-const getPasskeyDescriptionKey = (
-    browserType: BrowserType | null
-):
-    | 'unsupportedBrowserModal.passkeyDescription'
-    | 'unsupportedBrowserModal.passkeyDescriptionInChrome'
-    | 'unsupportedBrowserModal.passkeyDescriptionInSafari' => {
-    if (browserType === BrowserType.CHROME) return 'unsupportedBrowserModal.passkeyDescriptionInChrome'
-    if (browserType === BrowserType.SAFARI) return 'unsupportedBrowserModal.passkeyDescriptionInSafari'
-    return 'unsupportedBrowserModal.passkeyDescription'
-}
 
 const UnsupportedBrowserModalContent = ({
     allowClose = true,
@@ -43,28 +32,18 @@ const UnsupportedBrowserModalContent = ({
         getServerBrowserDetectionSnapshot
     )
     const [hasDismissedDetection, setHasDismissedDetection] = useState(false)
-    const [hasCopied, setHasCopied] = useState(false)
-    const toast = useToast()
     const { isSupported: isPasskeySupported, isLoading: isLoadingPasskeySupport } = usePasskeySupportContext()
     const { browserType, isLoading: isLoadingBrowserType } = useGetBrowserType()
-    const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+    const copyLinkActions = useCopyLinkActions(searchParams)
+    const modalCopy = getCompatibilityModalCopy({
+        showBrowserWarning: visible || isDetectedInAppBrowser,
+        passkeySupported: isPasskeySupported,
+        passkeyLoading: isLoadingPasskeySupport,
+        browserType,
+        browserTypeLoading: isLoadingBrowserType,
+    })
 
-    // Cleanup timeout on unmount to prevent memory leak
-    useEffect(() => {
-        return () => {
-            if (copyTimeoutRef.current) {
-                clearTimeout(copyTimeoutRef.current)
-            }
-        }
-    }, [])
-
-    const showBrowserMessage = visible || isDetectedInAppBrowser
-    const showPasskeyMessage =
-        !showBrowserMessage && !isLoadingPasskeySupport && !isLoadingBrowserType && !isPasskeySupported
-
-    if ((!showBrowserMessage && !showPasskeyMessage) || (hasDismissedDetection && !visible)) {
-        return null
-    }
+    if (!modalCopy || (hasDismissedDetection && !visible)) return null
 
     const handleModalClose = () => {
         if (allowClose) {
@@ -72,58 +51,16 @@ const UnsupportedBrowserModalContent = ({
         }
     }
 
-    const copyLinkAction: ActionModalButtonProps[] = [
-        {
-            text: hasCopied ? t('unsupportedBrowserModal.copied') : t('unsupportedBrowserModal.copyLinkCta'),
-            icon: 'copy' as IconName,
-            iconPosition: 'left',
-            onClick: async () => {
-                try {
-                    // Clear any existing timeout to prevent multiple resets
-                    if (copyTimeoutRef.current) {
-                        clearTimeout(copyTimeoutRef.current)
-                    }
-
-                    // copy the redirect uri if it exists, otherwise copy the current url
-                    const redirectUri = searchParams.get('redirect_uri')
-                    const urlToCopy = redirectUri
-                        ? `${window.location.origin}${decodeURIComponent(redirectUri)}`
-                        : window.location.href
-                    if (!(await copyTextToClipboard(urlToCopy))) {
-                        toast.error(t('unsupportedBrowserModal.copyErrorToast'))
-                        return
-                    }
-                    setHasCopied(true)
-                    toast.success(t('unsupportedBrowserModal.copySuccessToast'))
-                    copyTimeoutRef.current = setTimeout(() => setHasCopied(false), 2000)
-                } catch (err) {
-                    console.error('Failed to copy: ', err)
-                    toast.error(t('unsupportedBrowserModal.copyErrorToast'))
-                }
-            },
-            className: 'bg-action-primary hover:bg-action-primary-hover text-black sm:py-3',
-            shadowSize: '4',
-        },
-        {
-            variant: 'transparent-dark',
-            className:
-                'text-foreground-secondary text-body-xs font-medium h-2 mt-1 hover:text-foreground-secondary active:text-foreground-secondary',
-            text: t('unsupportedBrowserModal.pasteHint'),
-        },
-    ]
-
     return (
         <ActionModal
             visible={true}
             onClose={handleModalClose}
-            title={t(showBrowserMessage ? 'unsupportedBrowserModal.title' : 'unsupportedBrowserModal.passkeyTitle')}
-            description={t(
-                showBrowserMessage ? 'unsupportedBrowserModal.description' : getPasskeyDescriptionKey(browserType)
-            )}
+            title={t(modalCopy.titleKey)}
+            description={t(modalCopy.descriptionKey)}
             icon={'alert' as IconName}
             iconContainerClassName="bg-action-primary"
             iconProps={{ className: 'text-black' }}
-            ctas={copyLinkAction}
+            ctas={copyLinkActions}
             hideModalCloseButton={!allowClose}
             modalPanelClassName="max-w-md"
             contentContainerClassName="text-center"
