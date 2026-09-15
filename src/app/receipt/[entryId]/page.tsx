@@ -156,7 +156,7 @@ export default async function ReceiptPage({
 function ReceiptShell({ state, children }: { state?: 'gone' | 'loadFailed'; children?: React.ReactNode }) {
     return (
         <PageContainer className="receipt-page flex min-h-dvh flex-col items-center justify-center p-4">
-            <div className="md:hidden print:hidden">
+            <div className="print:hidden">
                 <NavHeader titleKey="receipt" />
             </div>
             <div className="flex flex-1 flex-col items-center justify-center">

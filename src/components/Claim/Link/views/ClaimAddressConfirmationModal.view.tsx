@@ -36,8 +36,7 @@ export const ClaimAddressConfirmationModal = ({
                     <p className="font-bold">{t('addressCompatible.line2')}</p>
                 </div>
             }
-            icon="alert"
-            iconContainerClassName="bg-action-secondary"
+            tone="warning"
             footer={
                 <div className="space-y-3 w-full">
                     <SlideToConfirm
@@ -66,7 +65,6 @@ export const ClaimAddressConfirmationModal = ({
                 </div>
             }
             preventClose={false}
-            modalPanelClassName="max-w-md mx-8"
         />
     )
 }
