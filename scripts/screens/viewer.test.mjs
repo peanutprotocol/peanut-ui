@@ -352,8 +352,26 @@ test('date navigator pages without exposing a native scrollbar', async () => {
     assert.equal(elements.get('date-next').hidden, false)
 })
 
-test('comparison reports ignore legacy public image URLs and can switch to the full catalogue', async () => {
+test('changed mode shows only visual changes and can switch to the full catalogue', async () => {
     const image = 'a'.repeat(64) + '.png'
+    const visualChange = (id, status) => ({
+        id,
+        name: `${status} screen`,
+        flow: 'Home',
+        kind: 'route',
+        status,
+        before: status === 'added' ? { status: 'absent', reason: 'Not in baseline' } : { status: 'captured', image },
+        after: status === 'removed' ? { status: 'absent', reason: 'Not in revision' } : { status: 'captured', image },
+    })
+    const captureGap = (id, status) => ({
+        id,
+        name: `${status} screen`,
+        flow: 'Home',
+        kind: 'route',
+        status,
+        before: { status, reason: 'No comparable screenshot' },
+        after: { status, reason: 'No comparable screenshot' },
+    })
     const report = {
         schema: 1,
         type: 'comparison',
@@ -394,6 +412,12 @@ test('comparison reports ignore legacy public image URLs and can switch to the f
                 before: { status: 'captured', image, thumbnail: image },
                 after: { status: 'captured', image, thumbnail: image },
             },
+            visualChange('added', 'added'),
+            visualChange('removed', 'removed'),
+            captureGap('failed', 'failed'),
+            captureGap('unavailable', 'unavailable'),
+            captureGap('excluded', 'excluded'),
+            captureGap('absent', 'absent'),
         ],
         previewUrls: {
             [image]: `https://imagedelivery.net/3RfIxQn88kFXdTrxhfIMXw/ps-${'a'.repeat(29)}/screenpreview`,
@@ -406,12 +430,15 @@ test('comparison reports ignore legacy public image URLs and can switch to the f
         report,
     })
     assert.equal(elements.get('view-mode').checked, false)
-    assert.equal(elements.get('screens').children.length, 1)
+    assert.deepEqual(
+        elements.get('screens').children.map(({ id }) => id),
+        ['changed', 'added', 'removed']
+    )
     elements.get('screens').children[0].children[1].children[0].children[1].onclick()
     assert.equal(elements.get('zoom-images').children[0].src, `/screen-data/assets/${image}`)
     elements.get('view-mode').checked = true
     elements.get('view-mode').dispatch('change')
-    assert.equal(elements.get('screens').children.length, 2)
+    assert.equal(elements.get('screens').children.length, 8)
     assert.equal(elements.get('screens').children[0].children[1].className, 'pair single')
 })
 

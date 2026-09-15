@@ -24,6 +24,7 @@ const LOCALE_CODES = {
 const localeLabel = (locale) => LOCALE_LABELS[locale] ?? locale ?? 'English'
 const localeCode = (locale) => LOCALE_CODES[locale] ?? locale ?? 'EN'
 const SOURCE_LABELS = { synthetic: 'App states', nutcracker: 'Real journeys' }
+const VISUAL_CHANGE_STATUSES = new Set(['changed', 'added', 'removed'])
 const entrySource = (entry) => entry?.source ?? 'synthetic'
 const localeSlugs = new Set(['en', 'es-419', 'es-ar', 'pt-br'])
 const withoutLocale = (path) =>
@@ -171,8 +172,8 @@ function filteredScreenRows() {
         (r) =>
             (!q || `${r.name} ${r.id} ${r.flow}`.toLowerCase().includes(q)) &&
             (!flow || flow === r.flow) &&
-            (!changedMode || r.status !== 'unchanged') &&
-            (!status || (status === 'differences' ? r.status !== 'unchanged' : status === r.status))
+            (!changedMode || VISUAL_CHANGE_STATUSES.has(r.status)) &&
+            (!status || (status === 'differences' ? VISUAL_CHANGE_STATUSES.has(r.status) : status === r.status))
     )
 }
 function renderTile(row) {
@@ -232,7 +233,9 @@ function render() {
         report?.type === 'journeys' ? 'all-screens journey-screens' : changedMode ? 'changed-screens' : 'all-screens'
     $('screens').replaceChildren()
     if (!filteredRows.length) {
-        $('screens').append(el('p', 'No screens match these filters.'))
+        $('screens').append(
+            el('p', changedMode ? 'No visual changes match these filters.' : 'No screens match these filters.')
+        )
         $('screen-load-more').hidden = true
         return
     }
