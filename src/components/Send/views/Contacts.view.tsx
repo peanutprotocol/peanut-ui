@@ -115,6 +115,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
     // neutral when relationship-scoped matches are available.
     const contactSearchCanStillSucceed = isFetchingContacts || contacts.length > 0
     const validationIsNeutral = (isExactUsernameMiss || isUsernameSyntaxInvalid) && contactSearchCanStillSucceed
+    const hasDefinitiveSearchMiss = isUsernameSyntaxInvalid || (isExactUsernameMiss && !isUsernameChanging)
 
     return (
         <div className="flex min-h-inherit flex-col gap-8">
@@ -261,13 +262,13 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                                     }
                                 />
                             </div>
-                        ) : isSearching && !showExactUsername && !isUsernameChanging ? (
+                        ) : isSearching && !showExactUsername && hasDefinitiveSearchMiss ? (
                             <EmptyState
                                 title={t('contacts.noResultsTitle')}
                                 icon="search"
                                 description={t('contacts.noResultsDescription')}
                             />
-                        ) : !showExactUsername ? (
+                        ) : !isSearching && !showExactUsername ? (
                             <div className="flex flex-1 items-center justify-center">
                                 <EmptyState
                                     title={t('contacts.emptyTitle')}

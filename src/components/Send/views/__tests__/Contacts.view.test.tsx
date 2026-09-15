@@ -160,6 +160,8 @@ describe('ContactsView exact username entry', () => {
         })
 
         expect(await screen.findByText('Too many username checks. Please try again later.')).toBeInTheDocument()
+        expect(screen.queryByText('No username or contact found')).not.toBeInTheDocument()
+        expect(screen.queryByText('No contacts yet')).not.toBeInTheDocument()
     })
 
     it('discards an older lookup that completes after the current username', async () => {
@@ -196,6 +198,8 @@ describe('ContactsView exact username entry', () => {
         })
 
         expect(await screen.findByText("We couldn't check that username. Please try again.")).toBeInTheDocument()
+        expect(screen.queryByText('No username or contact found')).not.toBeInTheDocument()
+        expect(screen.queryByText('No contacts yet')).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
 
         await waitFor(() => expect(mockCheckUsername).toHaveBeenCalledTimes(2))
