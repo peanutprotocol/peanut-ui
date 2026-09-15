@@ -14,12 +14,17 @@ import { useAuth } from '@/context/authContext'
 import { AccountType, type Account } from '@/interfaces/interfaces'
 import { isMantecaCountry } from '@/constants/manteca.consts'
 import { getFromLocalStorage } from '@/utils/general.utils'
-import { withdrawCountryUrl } from '@/utils/native-routes'
-import { mantecaWithdrawUrl } from '@/features/withdraw/routes'
+import { rewriteMethodPath, withdrawCountryUrl } from '@/utils/native-routes'
+import { mantecaWithdrawUrl, withdrawCountryFormUrl } from '@/features/withdraw/routes'
+import { soleLiveRailForCountry } from '@/features/destinations/country-rails'
 import { clearScannedDestination, withdrawTokenForChain } from '@/features/withdraw/destination'
 import { useWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
 import { useSavedAddresses } from '@/hooks/useSavedAddresses'
-import SavedAddressEditDrawer from '@/features/withdraw/components/AddressBook/SavedAddressEditDrawer'
+import DestinationEditDrawer, { type EditableDestination } from '@/features/destinations/DestinationEditDrawer'
+import { useRenameAccount } from '@/features/destinations/useRenameAccount'
+import { ACCOUNT_LABEL_MAX } from '@/features/destinations/consts'
+import { SAVED_ADDRESS_NICKNAME_MAX, shortSavedAddress } from '@/utils/saved-address.utils'
+import { maskAccountIdentifier } from '@/utils/account-mask.utils'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import type { SavedAddress } from '@/interfaces/interfaces'
 import { useRouter } from 'next/navigation'
@@ -50,6 +55,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
     const router = useRouter()
     const { user } = useAuth()
     const t = useTranslations('withdraw')
+    const tGlobal = useTranslations('global')
     const { setSelectedBankAccount, setSelectedMethod, setRecipient, setIsValidRecipient } = useWithdrawFlow()
     // crypto address book — its rows render beside the saved bank accounts
     const {
@@ -59,7 +65,8 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
         remove: removeSavedAddress,
     } = useSavedAddresses()
     const { setSelectedChainID, setSelectedTokenAddress, supportedChainsAndTokens } = useContext(tokenSelectorContext)
-    const [editingSavedAddress, setEditingSavedAddress] = useState<SavedAddress | null>(null)
+    const [editing, setEditing] = useState<EditableDestination | null>(null)
+    const renameAccount = useRenameAccount()
     const [, startTransition] = useTransition()
     const [showAllParam, setShowAll] = useQueryState('showAll', parseAsBoolean.withDefault(false))
 
@@ -169,12 +176,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
     if (!showAll && (savedAccounts.length > 0 || savedAddresses.length > 0)) {
         return (
             <>
-                <SavedAddressEditDrawer
-                    saved={editingSavedAddress}
-                    onClose={() => setEditingSavedAddress(null)}
-                    onRename={(id, nickname) => renameSavedAddress.mutateAsync({ id, nickname })}
-                    onDelete={(id) => removeSavedAddress.mutateAsync(id)}
-                />
+                <DestinationEditDrawer destination={editing} onClose={() => setEditing(null)} />
                 <SavedAccountsView
                     pageTitle={pageTitle}
                     onPrev={onExit}
@@ -206,7 +208,26 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                     onSelectNewMethodClick={() => setShowAll(true)}
                     savedAddresses={savedAddresses}
                     onSavedAddressClick={handleSavedAddressClick}
-                    onSavedAddressEdit={setEditingSavedAddress}
+                    onSavedAddressEdit={(saved) =>
+                        setEditing({
+                            id: saved.id,
+                            name: saved.nickname,
+                            identifier: shortSavedAddress(saved.address),
+                            maxLength: SAVED_ADDRESS_NICKNAME_MAX,
+                            rename: (id, name) => renameSavedAddress.mutateAsync({ id, nickname: name }),
+                            remove: (id) => removeSavedAddress.mutateAsync(id),
+                            removeLabel: tGlobal('savedAddresses.deleteCta'),
+                        })
+                    }
+                    onAccountEdit={(account) =>
+                        setEditing({
+                            id: account.id,
+                            name: account.label ?? '',
+                            identifier: maskAccountIdentifier(account.identifier, account.type),
+                            maxLength: ACCOUNT_LABEL_MAX,
+                            rename: renameAccount,
+                        })
+                    }
                     onCryptoClick={handleCryptoTileClick}
                     onMercadoPagoClick={
                         isMercadoPagoAvailable
@@ -249,38 +270,45 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                 viewMode="add-withdraw"
                 enforceSupportedCountries={isBankFromSend}
                 onCountryClick={(country) => {
+                    const isManteca = isMantecaCountry(country.path)
                     posthog.capture(ANALYTICS_EVENTS.WITHDRAW_METHOD_SELECTED, {
-                        method_type: isMantecaCountry(country.path) ? 'manteca' : 'bridge',
+                        method_type: isManteca ? 'manteca' : 'bridge',
                         country: country.path,
                     })
 
-                    // from send flow (bank): set method in context and stay on /withdraw?method=bank
-                    if (isBankFromSend) {
-                        if (isMantecaCountry(country.path)) {
-                            startTransition(() => {
-                                router.push(
-                                    mantecaWithdrawUrl({
-                                        method: country.path === 'brazil' ? 'pix' : 'bank-transfer',
-                                        country: country.path,
-                                    })
-                                )
-                            })
-                            return
-                        }
-                        setSelectedMethod({
-                            type: 'bridge',
-                            countryPath: country.path,
-                            currency: country.currency,
-                            title: country.title,
+                    // A country with one live rail has nothing to choose — the
+                    // per-country list would be a one-row screen, so skip it and
+                    // go straight to the destination (mirrors useAddMoneyFlow).
+                    // Countries with several live rails still show them, once.
+                    const rail = soleLiveRailForCountry(country.id, 'withdraw')
+                    if (!rail) {
+                        startTransition(() => {
+                            router.push(withdrawCountryUrl(country.path))
                         })
-                        onMethodChosen()
                         return
                     }
 
-                    // default behaviour: navigate to country page
-                    // use transition for smoother navigation, keeps ui responsive during route change
+                    if (isManteca) {
+                        // the manteca flow collects the amount in local currency
+                        startTransition(() => {
+                            router.push(
+                                rewriteMethodPath(
+                                    rail.path ?? '',
+                                    isBankFromSend && methodParam ? `method=${methodParam}` : undefined
+                                )
+                            )
+                        })
+                        return
+                    }
+
+                    setSelectedMethod({
+                        type: 'bridge',
+                        countryPath: country.path,
+                        currency: country.currency,
+                        title: rail.title,
+                    })
                     startTransition(() => {
-                        router.push(withdrawCountryUrl(country.path))
+                        router.push(withdrawCountryFormUrl(country.path, isBankFromSend ? methodParam : null))
                     })
                 }}
                 onCryptoClick={

@@ -2706,33 +2706,13 @@ countryData.forEach((country) => {
             })
         }
 
-        // 2. add SEPA for EUR countries if not already present from specifics
-        if (country.currency === 'EUR' && countrySpecificWithdrawMethods['Germany']) {
-            // Germany as proxy for SEPA availability
-            const sepaExists = withdrawList.some((m) => m.id.endsWith('-sepa-instant-withdraw'))
-            if (!sepaExists) {
-                withdrawList.push({
-                    id: `${countryCode.toLowerCase()}-sepa-instant-withdraw`,
-                    icon: 'bank' as IconName,
-                    title: 'Euro bank transfers',
-                    description: 'Usually arrives within 20 minutes, up to 1 business day.',
-                    isSoon: false,
-                })
-            }
-        }
-
-        // 3. add DEFAULT_BANK_WITHDRAW_METHOD if an identical method (by title and icon) is not already present
-        // AND if SEPA was added, don't add default bank
+        // 2. add DEFAULT_BANK_WITHDRAW_METHOD if an identical method (by title and icon) is not already present
         const defaultBankTitle = DEFAULT_BANK_WITHDRAW_METHOD.title
         const defaultBankIcon = DEFAULT_BANK_WITHDRAW_METHOD.icon
 
-        const sepaWasAdded = withdrawList.some((m) => m.id.endsWith('-sepa-instant-withdraw'))
-
         const genericBankExists = withdrawList.some((m) => m.title === defaultBankTitle && m.icon === defaultBankIcon)
 
-        // only add default bank if it doesn't already exist AND (SEPA was not added OR it's not considered redundant by SEPA)
-        // for now, we simplify: if SEPA was added, we assume default bank is redundant.
-        if (!genericBankExists && !sepaWasAdded) {
+        if (!genericBankExists) {
             const isMantecaSupportedCountry = isMantecaCountry(country.path)
 
             withdrawList.push({

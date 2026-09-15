@@ -1083,7 +1083,8 @@
             "missingRecipientMessage": "Nenhum nome de usuário informado na URL. Verifique o link e tente de novo.",
             "goToHome": "Ir para o início",
             "createWallet": "Crie sua Peanut Wallet"
-        }
+        },
+        "bankDetailsAlternative": "Ou receba nos seus dados bancários"
     },
     "payment": {
         "validation": {
@@ -1678,7 +1679,8 @@
             "crypto": "Cripto",
             "cryptoDescription": "Deposite de uma carteira ou corretora",
             "bankTransfer": "Transferência bancária",
-            "kycRequired": "Precisa de KYC"
+            "kycRequired": "Precisa de KYC",
+            "bankTransferDescription": "Dados bancários reutilizáveis para receber"
         },
         "networkDrawer": {
             "title": "Escolher rede",
@@ -1838,9 +1840,7 @@
         "methods": {
             "mercadopago": "MercadoPago",
             "pix": "Pix",
-            "bankTransfer": "Transferência bancária",
-            "euroBankTransfers": "Transferências bancárias em euros",
-            "euroBankTransfersDescription": "Geralmente chega em 20 minutos, mas pode levar até 1 dia útil."
+            "bankTransfer": "Transferência bancária"
         },
         "initial": {
             "placeholderEns": "Endereço ou ENS",
@@ -2015,6 +2015,7 @@
             "bank_claim": "Resgate",
             "bank_withdraw": "Saque",
             "bank_deposit": "Depósito",
+            "beingReturned": "Voltando para quem pagou",
             "bank_request_fulfillment": "Cobrança paga por banco",
             "card_pay": "Pagamento",
             "refund": "Reembolso",
@@ -3465,14 +3466,18 @@
         "savedAddresses": {
             "title": "Agenda de endereços cripto",
             "lastUsed": "{days, plural, =0 {Usado hoje} =1 {Usado ontem} other {Usado há # dias}}",
-            "editTitle": "Editar endereço",
-            "editAria": "Editar {nickname}",
-            "nicknameLabel": "Apelido",
             "nicknamePlaceholder": "ex.: Binance",
             "deleteCta": "Excluir endereço",
             "savePrompt": "Salvar na agenda",
-            "editFailed": "Não foi possível atualizar o endereço. Tente de novo.",
             "nicknameRequired": "Adicione um apelido para salvar este endereço."
+        },
+        "savedDestinations": {
+            "editTitle": "Editar nome",
+            "nameLabel": "Nome",
+            "namePlaceholder": "ex.: Salário",
+            "deleteCta": "Excluir",
+            "editFailed": "Não foi possível salvar o nome. Tente de novo.",
+            "editAria": "Editar {name}"
         },
         "forceIosPwaInstall": {
             "videoUnsupported": "Seu navegador não suporta a tag de vídeo.",
@@ -3857,6 +3862,234 @@
             "sun": {
                 "name": "Ganso mandão",
                 "line": "Junta a turma"
+            }
+        }
+    },
+    "depositAccounts": {
+        "title": "Receber",
+        "list": {
+            "heading": "Receba na sua moeda local",
+            "subheading": "Tenha dados bancários onde uma empresa, um cliente ou uma plataforma pode pagar você. O dinheiro cai no seu saldo da Peanut.",
+            "sectionTitle": "Seus dados",
+            "badgeReady": "Pronta",
+            "rowBlocked": "Verifique sua identidade para abrir esta conta",
+            "badgeActive": "Ativo",
+            "badgeNotSetUp": "Não configurada",
+            "badgeUnavailable": "Indisponível",
+            "badgeRevoked": "Revogada",
+            "emptyTitle": "Ainda não há contas para a sua região",
+            "emptyBody": "Abrimos dados bancários nas moedas que a sua região verificada aceita. Ainda não há nenhuma para você. Volte aqui quando adicionar outro país ou moeda.",
+            "errorTitle": "Não conseguimos carregar suas contas",
+            "errorBody": "Suas contas estão bem: só não conseguimos lê-las. Verifique sua conexão e tente de novo.",
+            "errorRetry": "Tentar de novo",
+            "rowRevoked": "Fechada: o que for enviado para estes dados volta"
+        },
+        "claim": {
+            "heading": "Dados bancários em {currency}",
+            "subheading": "Dados bancários reais que seu empregador, cliente ou plataforma já sabe usar.",
+            "previewTitle": "Como seus dados vão aparecer",
+            "previewCaption": "Só um exemplo — seus números reais aparecem quando a conta for aberta.",
+            "conditionTerms": "Quem pode te pagar depende dos termos de {currency}. Você vai ver assim que a conta for aberta.",
+            "statePending": "As regras do seu estado são confirmadas quando você abre a conta.",
+            "benefitStable": "Envie esses dados uma vez — eles continuam os mesmos em cada pagamento depois.",
+            "benefitBalance": "O dinheiro chega no seu saldo da Peanut em USD.",
+            "conditionNoReference": "Sem referência nem código para lembrar.",
+            "cta": "Abrir conta em {currency}",
+            "errorTitle": "Não conseguimos abrir a conta"
+        },
+        "details": {
+            "heading": "{currency} · {rail}",
+            "provisioning": "Preparando sua conta em {currency}, geralmente em menos de um minuto.",
+            "sectionTitle": "Dados bancários",
+            "shareCta": "Compartilhar dados",
+            "unavailableTitle": "Você ainda não tem dados em {currency}",
+            "unavailableBody": "Verificamos isso antes de mostrar os dados, então nenhum pagamento se perde.",
+            "unavailableCta": "Escolher outra moeda",
+            "timedOutTitle": "Não conseguimos abrir sua conta em {currency}",
+            "timedOutBody": "Nada foi cobrado. Tente de novo daqui a pouco ou escolha outra moeda.",
+            "timedOutRetry": "Tentar de novo",
+            "revokedTitle": "Seus dados em {currency} não funcionam mais",
+            "revokedBody": "O que for enviado para eles volta para quem enviou. Avise quem paga você para parar de usá-los e fale com o suporte para substituí-los.",
+            "revokedCta": "Falar com o suporte",
+            "topUpCta": "Depositar {currency} de outro jeito",
+            "exactAmountCta": "Depositar um valor definido",
+            "whoCanPay": "Quem pode te pagar"
+        },
+        "share": {
+            "heading": "O que quem paga vê",
+            "subheading": "Envie isto para quem vai pagar você. É o mesmo para todo pagamento.",
+            "sectionTitle": "Pagar {user} em {currency}",
+            "shareCta": "Compartilhar",
+            "copyCta": "Copiar como texto",
+            "copied": "Dados copiados",
+            "copyFailed": "Não foi possível copiar os dados",
+            "textIntroOwn": "Estes são meus dados bancários para receber em {currency}:",
+            "textIntroPooled": "Dados bancários para pagar {user} em {currency}:",
+            "textOutro": "Enviado pela Peanut · peanut.me",
+            "sheetTitleOwn": "Meus dados bancários",
+            "sheetTitlePooled": "Dados bancários para pagar {user}",
+            "calloutTitle": "Conte isso a quem vai pagar"
+        },
+        "rows": {
+            "accountHolder": "Titular da conta",
+            "bank": "Banco",
+            "iban": "IBAN",
+            "bic": "BIC",
+            "sortCode": "Sort Code",
+            "accountNumber": "Número da conta",
+            "routingNumber": "Routing Number",
+            "clabe": "CLABE",
+            "bankAddress": "Endereço do banco",
+            "accepts": "Aceita",
+            "beneficiaryAddress": "Endereço do destinatário",
+            "rails": {
+                "ach_push": "ACH",
+                "fednow": "FedNow",
+                "wire": "Transferência internacional",
+                "sepa": "SEPA",
+                "faster_payments": "Faster Payments",
+                "spei": "SPEI",
+                "pix": "Pix",
+                "transfer_ar": "Transferência bancária",
+                "fallback": "Transferência bancária"
+            }
+        },
+        "corridors": {
+            "SEPA_EU": {
+                "arrival": "No mesmo dia útil",
+                "arrivalDetail": "As transferências SEPA costumam chegar no mesmo dia útil, no máximo em dois.",
+                "railName": "SEPA"
+            },
+            "FASTER_PAYMENTS_GB": {
+                "arrival": "Em minutos",
+                "arrivalDetail": "Os Faster Payments costumam chegar em minutos.",
+                "railName": "Faster Payments"
+            },
+            "ACH_US": {
+                "arrival": "1 a 3 dias úteis",
+                "arrivalDetail": "O ACH chega em um a três dias úteis. Uma transferência wire chega no mesmo dia.",
+                "railName": "ACH ou wire"
+            },
+            "SPEI_MX": {
+                "arrival": "Em minutos",
+                "arrivalDetail": "As transferências SPEI costumam chegar em minutos.",
+                "railName": "SPEI"
+            },
+            "PIX_BR": {
+                "arrival": "Em minutos",
+                "arrivalDetail": "As transferências Pix costumam chegar em minutos.",
+                "unclaimable": {
+                    "line": "No Brasil o depósito é um código Pix para um pagamento, da sua própria conta.",
+                    "why": "Nosso parceiro bancário vincula sua conta ao país do seu documento legal, um país por vez. Uma pessoa com nacionalidade americana não pode usar transferências bancárias aqui, onde quer que more."
+                },
+                "railName": "Pix"
+            },
+            "BANK_TRANSFER_AR": {
+                "arrival": "Em minutos",
+                "arrivalDetail": "As transferências na Argentina costumam chegar em minutos.",
+                "unclaimable": {
+                    "line": "Na Argentina o depósito precisa vir de uma conta no seu nome.",
+                    "why": "Nosso parceiro bancário vincula sua conta ao país do seu documento legal, um país por vez. Uma pessoa com nacionalidade americana não pode usar transferências bancárias aqui, onde quer que more."
+                },
+                "railName": "Transferência bancária"
+            }
+        },
+        "gate": {
+            "verifyTitle": "Primeiro verifique sua identidade",
+            "verifyBody": "Só abrimos uma conta no seu nome depois de saber quem você é.",
+            "verifyCta": "Verificar identidade",
+            "tosTitle": "Falta aceitar um documento",
+            "tosCta": "Ler e aceitar",
+            "waitTitle": "Estamos preparando isso",
+            "waitBody": "Você não precisa fazer nada. Esta tela se atualiza sozinha.",
+            "blockedTitle": "Não conseguimos abrir uma conta para você",
+            "supportCta": "Falar com o suporte",
+            "emailTitle": "Precisamos de um e-mail",
+            "emailBody": "Sua identidade está verificada. Nunca recebemos um e-mail para repassar ao nosso parceiro, então a conta não pode ser aberta até você adicionar um.",
+            "emailCta": "Adicione seu e-mail",
+            "notYetTitle": "Ainda não está disponível para você",
+            "notYetBody": "Estamos abrindo aos poucos."
+        },
+        "rules": {
+            "providerHeld": {
+                "line": "A conta é mantida pelo nosso parceiro bancário em seu nome.",
+                "payer": "A conta é mantida pelo nosso parceiro bancário em nome de {user}.",
+                "why": "O dinheiro que entra continua chegando ao seu saldo na Peanut. O nome na conta é o do parceiro, não o seu, então um formulário de folha de pagamento que confere o nome precisa do titular mostrado acima."
+            },
+            "ownAccount": {
+                "line": "Da sua própria conta: sim.",
+                "payer": "Da conta do próprio titular: sim.",
+                "why": "Você pode transferir da sua própria conta bancária. Fale com o suporte antes de enviar um valor alto."
+            },
+            "ownAccountMax": {
+                "line": "Da sua própria conta: até {max}.",
+                "payer": "Da conta do próprio titular: até {max}.",
+                "why": "O dinheiro que você envia para si mesmo é um depósito seu, não um pagamento de outra pessoa. Nosso parceiro bancário aceita até {max} da sua própria conta nesta moeda. Se uma transferência maior sua voltar, fale com o suporte."
+            },
+            "ownAccountNo": {
+                "line": "Da sua própria conta: ainda não.",
+                "payer": "Da conta do próprio titular: ainda não.",
+                "why": "Nosso parceiro bancário não aceita uma transferência da sua própria conta bancária nesta moeda. Vamos avisar aqui no dia em que aceitar."
+            },
+            "businessAny": {
+                "line": "De uma empresa: qualquer valor.",
+                "payer": "De uma empresa: qualquer valor.",
+                "why": "Um banco lê a transferência de uma empresa como pagamento comercial, então nosso parceiro bancário não coloca limite. Salário e faturas passam sem mudança."
+            },
+            "businessNotYet": {
+                "line": "De uma empresa: ainda não.",
+                "payer": "De uma empresa: ainda não.",
+                "why": "Nosso parceiro bancário ainda não liberou pagamentos de empresas nesta moeda. Vamos avisar aqui no dia em que liberar."
+            },
+            "businessUnconfirmed": {
+                "line": "De uma empresa: não confirmado.",
+                "payer": "De uma empresa: não confirmado. A transferência pode ser devolvida.",
+                "why": "Nosso parceiro bancário não confirmou pagamentos de empresas nesta moeda. Os dados funcionam; se algum pagamento voltar, nos avise e a gente resolve."
+            },
+            "individualAny": {
+                "line": "De outra pessoa: qualquer valor.",
+                "payer": "De outra pessoa: qualquer valor.",
+                "why": "Nosso parceiro bancário aceita pagamentos de outras pessoas nesta moeda, então você pode passar estes dados a quem for te pagar."
+            },
+            "individualCap": {
+                "line": "De outra pessoa: menos de {cap} por pagamento.",
+                "payer": "De outra pessoa: menos de {cap} por pagamento.",
+                "why": "Nosso parceiro bancário limita a {cap} um pagamento único de uma pessoa física. Uma empresa não tem esse limite. Se alguém precisar te pagar mais de {cap} em um único pagamento, fale com o suporte."
+            },
+            "individualCapFamily": {
+                "line": "De outra pessoa: menos de {cap} por pagamento. Familiares com o seu sobrenome: qualquer valor.",
+                "payer": "De outra pessoa: menos de {cap} por pagamento. Familiares com o sobrenome do titular: qualquer valor.",
+                "why": "Nosso parceiro bancário limita a {cap} um pagamento único de uma pessoa física. Uma empresa não tem esse limite, e familiares com o seu sobrenome também não. Se alguém precisar te pagar mais de {cap} em um único pagamento, fale com o suporte."
+            },
+            "individualVolume": {
+                "line": "De outra pessoa: até {limit} no total. Pergunte ao suporte sobre o período.",
+                "payer": "De outra pessoa: até {limit} no total. Peça ao titular para confirmar o período com o suporte.",
+                "why": "Nosso parceiro bancário limita a {limit} o total que outras pessoas físicas podem pagar nesta conta. Ele não publica o período que esse total cobre, então fale com o suporte antes de um pagamento grande. Uma empresa não tem esse limite."
+            },
+            "individualNotYet": {
+                "line": "De outra pessoa: ainda não.",
+                "payer": "De outra pessoa: ainda não.",
+                "why": "Nosso parceiro bancário ainda não acertou um valor para pagamentos de pessoas físicas nesta moeda. Vamos avisar aqui no dia em que acertar."
+            },
+            "individualUnconfirmed": {
+                "line": "De outra pessoa: não confirmado.",
+                "payer": "De outra pessoa: não confirmado. A transferência pode ser devolvida.",
+                "why": "Só informamos o que nosso parceiro bancário confirmou para esta moeda, e ele não falou nada sobre pagamentos de outras pessoas. Os dados funcionam; se algum pagamento voltar, nos avise e a gente resolve."
+            },
+            "minimum": {
+                "line": "O menor pagamento é {min}.",
+                "payer": "O menor pagamento é {min}.",
+                "why": "Abaixo de {min} o trilho bancário recusa a transferência, então um pagamento de teste de alguns centavos nunca chega."
+            },
+            "stateRestricted": {
+                "line": "Só você pode depositar, de uma conta bancária no seu nome.",
+                "payer": "Só o titular pode pagar nesta conta.",
+                "why": "O estado do seu endereço não permite que mais ninguém pague em uma conta como esta. Suas próprias transferências funcionam normalmente e os dados continuam válidos."
+            },
+            "ownName": {
+                "line": "Deposite de uma conta bancária no seu nome.",
+                "payer": "Só o titular pode pagar nesta conta.",
+                "why": "Nosso parceiro bancário só credita uma transferência que venha de uma conta no seu nome. Um pagamento de qualquer outra pessoa volta para quem enviou."
             }
         }
     }

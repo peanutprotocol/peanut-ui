@@ -23,7 +23,10 @@ import { twMerge } from '@/utils/tw'
 import { PEANUTMAN } from '@/assets/mascot'
 import { profileUrl } from '@/utils/native-routes'
 
+import type { TransactionDetails } from './transactionTransformer'
+
 interface TransactionDetailsHeaderCardProps {
+    actionLabelKey?: TransactionDetails['actionLabelKey']
     direction: TransactionDirection
     userName: string
     /** Catalog key when `userName` is an FE-generated label — localized here;
@@ -206,6 +209,7 @@ const amountStateClasses = (status?: StatusType, isOpenRequest?: boolean) => {
 export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCardProps> = ({
     direction,
     userName,
+    actionLabelKey,
     nameKey,
     nameParams,
     amountDisplay,
@@ -321,21 +325,23 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                             <VerifiedUserLabel
                                 username={userName}
                                 name={
-                                    isRequestPotTransaction
-                                        ? // The pot rollup row only ever renders for the request's
-                                          // owner — the generic "Request" label reads as their own
-                                          // ask: "You requested". Named pots keep their name.
-                                          nameKey === TRANSACTION_NAME_KEYS.request
-                                            ? t('title.youRequested')
-                                            : localizedUserName
-                                        : (getTitle(
-                                              t,
-                                              direction,
-                                              resolvedUserName,
-                                              isLinkTransaction,
-                                              status,
-                                              nameKey
-                                          ) as string)
+                                    actionLabelKey
+                                        ? t(actionLabelKey)
+                                        : isRequestPotTransaction
+                                          ? // The pot rollup row only ever renders for the request's
+                                            // owner — the generic "Request" label reads as their own
+                                            // ask: "You requested". Named pots keep their name.
+                                            nameKey === TRANSACTION_NAME_KEYS.request
+                                              ? t('title.youRequested')
+                                              : localizedUserName
+                                          : (getTitle(
+                                                t,
+                                                direction,
+                                                resolvedUserName,
+                                                isLinkTransaction,
+                                                status,
+                                                nameKey
+                                            ) as string)
                                 }
                                 isVerified={isVerified}
                                 className="flex items-center justify-center gap-1"

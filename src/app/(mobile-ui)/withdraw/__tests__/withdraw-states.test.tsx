@@ -951,6 +951,33 @@ describe('GROUP 6: Continue never dead-buttons', () => {
 })
 
 // ============================================================
+// GROUP 6b: links written before the amount moved last (TASK-22589)
+// ============================================================
+describe('GROUP 6b: old deep links never dead-end', () => {
+    test('?step=amount with nothing chosen falls back to the pick screen', () => {
+        mockWithdrawFlow.selectedMethod = null
+        renderWithdraw({ step: 'amount', amount: '50' })
+
+        expect(screen.getByTestId('withdraw-method-view')).toBeInTheDocument()
+    })
+
+    test('?step=amount for a bank country with no account yet goes to that country form', () => {
+        // the amount was typed first under the old order — keep it in the URL
+        // and send the user to the destination the flow still needs
+        mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'germany' }
+        mockWithdrawFlow.selectedBankAccount = null
+
+        renderWithdraw({ step: 'amount', amount: '50' })
+        fireEvent.click(screen.getByText('Continue'))
+
+        const pushed = mockRouterPush.mock.calls.at(-1)?.[0] as string
+        expect(pushed).toContain('/withdraw/germany')
+        expect(pushed).toContain('step=form')
+        expect(pushed).toContain('amount=50')
+    })
+})
+
+// ============================================================
 // GROUP 7: Native sub-views (?country=…) must stay on screen
 // ============================================================
 describe('GROUP 7: Native sub-view mounting', () => {

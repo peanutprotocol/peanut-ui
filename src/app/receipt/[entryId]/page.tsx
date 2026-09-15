@@ -8,7 +8,7 @@ import {
     type TransactionDetails,
 } from '@/components/TransactionDetails/transactionTransformer'
 import { resolveReceiptKind } from '@/components/TransactionDetails/strategies/registry'
-import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
+import { OwnerReceiptView } from './OwnerReceiptView'
 import { ReceiptUnavailable } from '@/components/TransactionDetails/ReceiptUnavailable'
 import NavHeader from '@/components/Global/NavHeader'
 import { generateMetadata as generateBaseMetadata } from '@/app/metadata'
@@ -151,7 +151,7 @@ export default async function ReceiptPage({
     }
     return (
         <ReceiptShell>
-            <TransactionDetailsReceipt className="w-full" transaction={transactionDetails} isPublic />
+            <OwnerReceiptView entryId={entryId} kind={kind} serverDetails={transactionDetails} />
         </ReceiptShell>
     )
 }

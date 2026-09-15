@@ -214,8 +214,10 @@ export function useBridgeOfframpFlow() {
             // If no amount, go back to main page
             router.replace(`/withdraw${recoveryQuery}`)
         } else if (!bankAccount && amountToWithdraw) {
-            // If amount is set but no bank account, go to country method selection
-            router.replace(withdrawCountryUrl(country, recoveryQuery))
+            // An amount with no destination — send the user to the country's
+            // bank form, named in the URL, with the amount still on it
+            recovery.set('step', 'form')
+            router.replace(withdrawCountryUrl(country, `?${recovery.toString()}`))
         }
     }, [bankAccount, router, amountToWithdraw, country, step, fromSendFlow])
 

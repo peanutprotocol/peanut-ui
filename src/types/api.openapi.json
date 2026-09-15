@@ -15440,24 +15440,6 @@
 												"code"
 											],
 											"type": "object"
-										},
-										{
-											"properties": {
-												"code": {
-													"enum": [
-														"RESIDENCE_CHANGE_UNAVAILABLE"
-													],
-													"type": "string"
-												},
-												"error": {
-													"type": "string"
-												}
-											},
-											"required": [
-												"error",
-												"code"
-											],
-											"type": "object"
 										}
 									]
 								}
@@ -15681,6 +15663,298 @@
 				},
 				"responses": {
 					"200": {
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/users/accounts/{id}": {
+			"patch": {
+				"parameters": [
+					{
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"format": "uuid",
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"label": {
+										"anyOf": [
+											{
+												"maxLength": 15,
+												"type": "string"
+											},
+											{
+												"type": "null"
+											}
+										]
+									}
+								},
+								"required": [
+									"label"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"account": {
+											"properties": {
+												"bic": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"bridgeAccountId": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"chainId": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"connector": {
+													"anyOf": [
+														{
+															"properties": {
+																"iconUrl": {
+																	"type": "string"
+																},
+																"name": {
+																	"type": "string"
+																}
+															},
+															"required": [
+																"name",
+																"iconUrl"
+															],
+															"type": "object"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"createdAt": {
+													"type": "string"
+												},
+												"deactivationReason": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"details": {
+													"anyOf": [
+														{
+															"properties": {
+																"accountOwnerName": {
+																	"type": "string"
+																},
+																"bankName": {
+																	"anyOf": [
+																		{
+																			"type": "string"
+																		},
+																		{
+																			"type": "null"
+																		}
+																	]
+																},
+																"countryCode": {
+																	"type": "string"
+																},
+																"countryName": {
+																	"type": "string"
+																}
+															},
+															"required": [
+																"bankName",
+																"accountOwnerName",
+																"countryCode",
+																"countryName"
+															],
+															"type": "object"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"id": {
+													"type": "string"
+												},
+												"identifier": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"isActive": {
+													"type": "boolean"
+												},
+												"label": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"lastUsedAt": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"routingNumber": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"sortCode": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"type": {
+													"type": "string"
+												},
+												"updatedAt": {
+													"type": "string"
+												},
+												"userId": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												}
+											},
+											"required": [
+												"id",
+												"userId",
+												"bridgeAccountId",
+												"type",
+												"identifier",
+												"details",
+												"label",
+												"lastUsedAt",
+												"createdAt",
+												"updatedAt",
+												"chainId",
+												"connector",
+												"bic",
+												"routingNumber",
+												"sortCode",
+												"isActive",
+												"deactivationReason"
+											],
+											"type": "object"
+										}
+									},
+									"required": [
+										"account"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
 						"description": "Default Response"
 					}
 				}
@@ -16501,6 +16775,1011 @@
 				}
 			}
 		},
+		"/users/deposit-accounts": {
+			"get": {
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"claimable": {
+											"items": {
+												"properties": {
+													"country": {
+														"type": "string"
+													},
+													"currency": {
+														"type": "string"
+													},
+													"matching": {
+														"properties": {
+															"sender": {
+																"anyOf": [
+																	{
+																		"enum": [
+																			"anyone"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"business-only"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"own-name-only"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"unknown"
+																		],
+																		"type": "string"
+																	}
+																]
+															}
+														},
+														"required": [
+															"sender"
+														],
+														"type": "object"
+													},
+													"method": {
+														"type": "string"
+													},
+													"preview": {
+														"enum": [
+															true
+														],
+														"type": "boolean"
+													},
+													"railId": {
+														"type": "string"
+													},
+													"rules": {
+														"properties": {
+															"min": {
+																"properties": {
+																	"amount": {
+																		"type": "string"
+																	},
+																	"currency": {
+																		"type": "string"
+																	}
+																},
+																"required": [
+																	"amount",
+																	"currency"
+																],
+																"type": "object"
+															},
+															"ownAccount": {
+																"properties": {
+																	"allowed": {
+																		"type": "boolean"
+																	},
+																	"max": {
+																		"properties": {
+																			"amount": {
+																				"type": "string"
+																			},
+																			"currency": {
+																				"type": "string"
+																			}
+																		},
+																		"required": [
+																			"amount",
+																			"currency"
+																		],
+																		"type": "object"
+																	}
+																},
+																"required": [
+																	"allowed"
+																],
+																"type": "object"
+															},
+															"reason": {
+																"enum": [
+																	"state-restricted"
+																],
+																"type": "string"
+															},
+															"thirdPartyBusiness": {
+																"anyOf": [
+																	{
+																		"enum": [
+																			"unlimited"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"unavailable"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"unknown"
+																		],
+																		"type": "string"
+																	}
+																]
+															},
+															"thirdPartyIndividual": {
+																"properties": {
+																	"capBelow": {
+																		"properties": {
+																			"amount": {
+																				"type": "string"
+																			},
+																			"currency": {
+																				"type": "string"
+																			}
+																		},
+																		"required": [
+																			"amount",
+																			"currency"
+																		],
+																		"type": "object"
+																	},
+																	"familySameSurnameExempt": {
+																		"type": "boolean"
+																	},
+																	"policy": {
+																		"anyOf": [
+																			{
+																				"enum": [
+																					"allowed"
+																				],
+																				"type": "string"
+																			},
+																			{
+																				"enum": [
+																					"capped"
+																				],
+																				"type": "string"
+																			},
+																			{
+																				"enum": [
+																					"unavailable"
+																				],
+																				"type": "string"
+																			},
+																			{
+																				"enum": [
+																					"unknown"
+																				],
+																				"type": "string"
+																			}
+																		]
+																	},
+																	"volumeLimit": {
+																		"properties": {
+																			"amount": {
+																				"type": "string"
+																			},
+																			"currency": {
+																				"type": "string"
+																			}
+																		},
+																		"required": [
+																			"amount",
+																			"currency"
+																		],
+																		"type": "object"
+																	}
+																},
+																"required": [
+																	"policy"
+																],
+																"type": "object"
+															}
+														},
+														"required": [
+															"ownAccount",
+															"thirdPartyBusiness",
+															"thirdPartyIndividual"
+														],
+														"type": "object"
+													}
+												},
+												"required": [
+													"railId",
+													"method",
+													"country",
+													"currency",
+													"matching"
+												],
+												"type": "object"
+											},
+											"type": "array"
+										},
+										"depositAccounts": {
+											"items": {
+												"properties": {
+													"country": {
+														"type": "string"
+													},
+													"currency": {
+														"type": "string"
+													},
+													"id": {
+														"type": "string"
+													},
+													"instructions": {
+														"properties": {
+															"accountHolderName": {
+																"type": "string"
+															},
+															"accountNumber": {
+																"type": "string"
+															},
+															"bankAddress": {
+																"type": "string"
+															},
+															"bankName": {
+																"type": "string"
+															},
+															"beneficiaryAddress": {
+																"type": "string"
+															},
+															"beneficiaryName": {
+																"type": "string"
+															},
+															"bic": {
+																"type": "string"
+															},
+															"clabe": {
+																"type": "string"
+															},
+															"iban": {
+																"type": "string"
+															},
+															"paymentRails": {
+																"items": {
+																	"type": "string"
+																},
+																"type": "array"
+															},
+															"routingNumber": {
+																"type": "string"
+															},
+															"sortCode": {
+																"type": "string"
+															}
+														},
+														"required": [
+															"accountHolderName",
+															"paymentRails"
+														],
+														"type": "object"
+													},
+													"isPrimary": {
+														"type": "boolean"
+													},
+													"matching": {
+														"properties": {
+															"nameOnAccount": {
+																"anyOf": [
+																	{
+																		"enum": [
+																			"user"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"provider"
+																		],
+																		"type": "string"
+																	}
+																]
+															},
+															"sender": {
+																"anyOf": [
+																	{
+																		"enum": [
+																			"anyone"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"business-only"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"own-name-only"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"unknown"
+																		],
+																		"type": "string"
+																	}
+																]
+															}
+														},
+														"required": [
+															"nameOnAccount",
+															"sender"
+														],
+														"type": "object"
+													},
+													"railId": {
+														"type": "string"
+													},
+													"rules": {
+														"properties": {
+															"min": {
+																"properties": {
+																	"amount": {
+																		"type": "string"
+																	},
+																	"currency": {
+																		"type": "string"
+																	}
+																},
+																"required": [
+																	"amount",
+																	"currency"
+																],
+																"type": "object"
+															},
+															"ownAccount": {
+																"properties": {
+																	"allowed": {
+																		"type": "boolean"
+																	},
+																	"max": {
+																		"properties": {
+																			"amount": {
+																				"type": "string"
+																			},
+																			"currency": {
+																				"type": "string"
+																			}
+																		},
+																		"required": [
+																			"amount",
+																			"currency"
+																		],
+																		"type": "object"
+																	}
+																},
+																"required": [
+																	"allowed"
+																],
+																"type": "object"
+															},
+															"reason": {
+																"enum": [
+																	"state-restricted"
+																],
+																"type": "string"
+															},
+															"thirdPartyBusiness": {
+																"anyOf": [
+																	{
+																		"enum": [
+																			"unlimited"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"unavailable"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"unknown"
+																		],
+																		"type": "string"
+																	}
+																]
+															},
+															"thirdPartyIndividual": {
+																"properties": {
+																	"capBelow": {
+																		"properties": {
+																			"amount": {
+																				"type": "string"
+																			},
+																			"currency": {
+																				"type": "string"
+																			}
+																		},
+																		"required": [
+																			"amount",
+																			"currency"
+																		],
+																		"type": "object"
+																	},
+																	"familySameSurnameExempt": {
+																		"type": "boolean"
+																	},
+																	"policy": {
+																		"anyOf": [
+																			{
+																				"enum": [
+																					"allowed"
+																				],
+																				"type": "string"
+																			},
+																			{
+																				"enum": [
+																					"capped"
+																				],
+																				"type": "string"
+																			},
+																			{
+																				"enum": [
+																					"unavailable"
+																				],
+																				"type": "string"
+																			},
+																			{
+																				"enum": [
+																					"unknown"
+																				],
+																				"type": "string"
+																			}
+																		]
+																	},
+																	"volumeLimit": {
+																		"properties": {
+																			"amount": {
+																				"type": "string"
+																			},
+																			"currency": {
+																				"type": "string"
+																			}
+																		},
+																		"required": [
+																			"amount",
+																			"currency"
+																		],
+																		"type": "object"
+																	}
+																},
+																"required": [
+																	"policy"
+																],
+																"type": "object"
+															}
+														},
+														"required": [
+															"ownAccount",
+															"thirdPartyBusiness",
+															"thirdPartyIndividual"
+														],
+														"type": "object"
+													},
+													"status": {
+														"anyOf": [
+															{
+																"enum": [
+																	"provisioning"
+																],
+																"type": "string"
+															},
+															{
+																"enum": [
+																	"active"
+																],
+																"type": "string"
+															},
+															{
+																"enum": [
+																	"retiring"
+																],
+																"type": "string"
+															},
+															{
+																"enum": [
+																	"revoked"
+																],
+																"type": "string"
+															}
+														]
+													}
+												},
+												"required": [
+													"id",
+													"railId",
+													"country",
+													"currency",
+													"status",
+													"isPrimary",
+													"matching"
+												],
+												"type": "object"
+											},
+											"type": "array"
+										}
+									},
+									"required": [
+										"depositAccounts",
+										"claimable"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			},
+			"post": {
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"method": {
+										"maxLength": 64,
+										"minLength": 1,
+										"type": "string"
+									}
+								},
+								"required": [
+									"method"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"depositAccount": {
+											"properties": {
+												"country": {
+													"type": "string"
+												},
+												"currency": {
+													"type": "string"
+												},
+												"id": {
+													"type": "string"
+												},
+												"instructions": {
+													"properties": {
+														"accountHolderName": {
+															"type": "string"
+														},
+														"accountNumber": {
+															"type": "string"
+														},
+														"bankAddress": {
+															"type": "string"
+														},
+														"bankName": {
+															"type": "string"
+														},
+														"beneficiaryAddress": {
+															"type": "string"
+														},
+														"beneficiaryName": {
+															"type": "string"
+														},
+														"bic": {
+															"type": "string"
+														},
+														"clabe": {
+															"type": "string"
+														},
+														"iban": {
+															"type": "string"
+														},
+														"paymentRails": {
+															"items": {
+																"type": "string"
+															},
+															"type": "array"
+														},
+														"routingNumber": {
+															"type": "string"
+														},
+														"sortCode": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"accountHolderName",
+														"paymentRails"
+													],
+													"type": "object"
+												},
+												"isPrimary": {
+													"type": "boolean"
+												},
+												"matching": {
+													"properties": {
+														"nameOnAccount": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"user"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"provider"
+																	],
+																	"type": "string"
+																}
+															]
+														},
+														"sender": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"anyone"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"business-only"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"own-name-only"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"unknown"
+																	],
+																	"type": "string"
+																}
+															]
+														}
+													},
+													"required": [
+														"nameOnAccount",
+														"sender"
+													],
+													"type": "object"
+												},
+												"railId": {
+													"type": "string"
+												},
+												"rules": {
+													"properties": {
+														"min": {
+															"properties": {
+																"amount": {
+																	"type": "string"
+																},
+																"currency": {
+																	"type": "string"
+																}
+															},
+															"required": [
+																"amount",
+																"currency"
+															],
+															"type": "object"
+														},
+														"ownAccount": {
+															"properties": {
+																"allowed": {
+																	"type": "boolean"
+																},
+																"max": {
+																	"properties": {
+																		"amount": {
+																			"type": "string"
+																		},
+																		"currency": {
+																			"type": "string"
+																		}
+																	},
+																	"required": [
+																		"amount",
+																		"currency"
+																	],
+																	"type": "object"
+																}
+															},
+															"required": [
+																"allowed"
+															],
+															"type": "object"
+														},
+														"reason": {
+															"enum": [
+																"state-restricted"
+															],
+															"type": "string"
+														},
+														"thirdPartyBusiness": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"unlimited"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"unavailable"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"unknown"
+																	],
+																	"type": "string"
+																}
+															]
+														},
+														"thirdPartyIndividual": {
+															"properties": {
+																"capBelow": {
+																	"properties": {
+																		"amount": {
+																			"type": "string"
+																		},
+																		"currency": {
+																			"type": "string"
+																		}
+																	},
+																	"required": [
+																		"amount",
+																		"currency"
+																	],
+																	"type": "object"
+																},
+																"familySameSurnameExempt": {
+																	"type": "boolean"
+																},
+																"policy": {
+																	"anyOf": [
+																		{
+																			"enum": [
+																				"allowed"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"capped"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"unavailable"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"unknown"
+																			],
+																			"type": "string"
+																		}
+																	]
+																},
+																"volumeLimit": {
+																	"properties": {
+																		"amount": {
+																			"type": "string"
+																		},
+																		"currency": {
+																			"type": "string"
+																		}
+																	},
+																	"required": [
+																		"amount",
+																		"currency"
+																	],
+																	"type": "object"
+																}
+															},
+															"required": [
+																"policy"
+															],
+															"type": "object"
+														}
+													},
+													"required": [
+														"ownAccount",
+														"thirdPartyBusiness",
+														"thirdPartyIndividual"
+													],
+													"type": "object"
+												},
+												"status": {
+													"anyOf": [
+														{
+															"enum": [
+																"provisioning"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"active"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"retiring"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"revoked"
+															],
+															"type": "string"
+														}
+													]
+												}
+											},
+											"required": [
+												"id",
+												"railId",
+												"country",
+												"currency",
+												"status",
+												"isPrimary",
+												"matching"
+											],
+											"type": "object"
+										}
+									},
+									"required": [
+										"depositAccount"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error",
+										"code"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			}
+		},
 		"/users/email-change": {
 			"post": {
 				"parameters": [
@@ -16715,7 +17994,7 @@
 		},
 		"/users/identity/restart": {
 			"post": {
-				"description": "Reset the Sumsub IDENTITY step for an authorised document-replacement flow and mint a fresh SDK token. Residence changes use a non-destructive Applicant Action.",
+				"description": "Reset the Sumsub IDENTITY step after a residence change and mint a fresh SDK token. Allowed only while the declared residence differs from the verified one.",
 				"requestBody": {
 					"content": {
 						"application/json": {
@@ -17694,47 +18973,6 @@
 														}
 													]
 												},
-												"pending": {
-													"anyOf": [
-														{
-															"type": "string"
-														},
-														{
-															"type": "null"
-														}
-													]
-												},
-												"pendingRequestedAt": {
-													"anyOf": [
-														{
-															"format": "date-time",
-															"type": "string"
-														},
-														{
-															"type": "null"
-														}
-													]
-												},
-												"pendingSecond": {
-													"anyOf": [
-														{
-															"type": "string"
-														},
-														{
-															"type": "null"
-														}
-													]
-												},
-												"pendingStatus": {
-													"anyOf": [
-														{
-															"type": "string"
-														},
-														{
-															"type": "null"
-														}
-													]
-												},
 												"verified": {
 													"anyOf": [
 														{
@@ -17751,10 +18989,6 @@
 												"declaredSecond",
 												"verified",
 												"kycReported",
-												"pending",
-												"pendingSecond",
-												"pendingStatus",
-												"pendingRequestedAt",
 												"nextChangeAllowedAt"
 											],
 											"type": "object"
@@ -17821,151 +19055,6 @@
 			"post": {
 				"responses": {
 					"200": {
-						"description": "Default Response"
-					}
-				}
-			}
-		},
-		"/users/residence-change/start": {
-			"post": {
-				"parameters": [
-					{
-						"in": "header",
-						"name": "Authorization",
-						"required": true,
-						"schema": {
-							"type": "string"
-						}
-					},
-					{
-						"in": "header",
-						"name": "api-key",
-						"required": false,
-						"schema": {
-							"type": "string"
-						}
-					}
-				],
-				"requestBody": {
-					"content": {
-						"application/json": {
-							"schema": {
-								"properties": {
-									"targetCountry": {
-										"pattern": "^[A-Za-z]{2}$",
-										"type": "string"
-									}
-								},
-								"required": [
-									"targetCountry"
-								],
-								"type": "object"
-							}
-						}
-					},
-					"required": true
-				},
-				"responses": {
-					"200": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"applicantId": {
-											"type": "string"
-										},
-										"levelName": {
-											"type": "string"
-										},
-										"targetCountry": {
-											"type": "string"
-										},
-										"token": {
-											"type": "string"
-										}
-									},
-									"required": [
-										"token",
-										"levelName",
-										"applicantId",
-										"targetCountry"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					},
-					"409": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"code": {
-											"type": "string"
-										},
-										"error": {
-											"type": "string"
-										},
-										"retryAfterSeconds": {
-											"type": "number"
-										}
-									},
-									"required": [
-										"error"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					},
-					"500": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"code": {
-											"type": "string"
-										},
-										"error": {
-											"type": "string"
-										},
-										"retryAfterSeconds": {
-											"type": "number"
-										}
-									},
-									"required": [
-										"error"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					},
-					"502": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"code": {
-											"type": "string"
-										},
-										"error": {
-											"type": "string"
-										},
-										"retryAfterSeconds": {
-											"type": "number"
-										}
-									},
-									"required": [
-										"error"
-									],
-									"type": "object"
-								}
-							}
-						},
 						"description": "Default Response"
 					}
 				}

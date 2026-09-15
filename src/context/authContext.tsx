@@ -430,3 +430,10 @@ export const useAuth = (): AuthContextType => {
     }
     return context
 }
+
+/**
+ * For components that also render on signed-out surfaces — the claim pages
+ * mount the country list with no provider above them. Returns null there, so
+ * the caller has to say what it does without a user.
+ */
+export const useOptionalAuth = (): AuthContextType | null => useContext(AuthContext) ?? null

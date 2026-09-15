@@ -160,7 +160,7 @@ PAGE_CAPTURES.push(
         route: '/withdraw/spain/bank',
         entryRoute: '/withdraw?amount=50',
         actions: [
-            { click: 'ES27' },
+            { click: '0802' },
             { fill: { selector: 'input[inputmode=decimal]', value: '50' } },
             { click: 'Continue' },
         ],

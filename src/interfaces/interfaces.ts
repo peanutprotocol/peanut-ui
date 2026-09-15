@@ -238,6 +238,10 @@ export interface Account {
     bridgeAccountId: string
     type: AccountType
     identifier: string
+    /** The name the user gave this account, or null — see destinationLabel. */
+    label?: string | null
+    /** ISO 8601 of the newest withdrawal to this account; null means never used. */
+    lastUsedAt?: string | null
     details: {
         bankName: string | null
         accountOwnerName: string

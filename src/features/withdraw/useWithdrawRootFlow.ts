@@ -348,9 +348,10 @@ export function useWithdrawRootFlow() {
                 setError({ showError: true, errorMessage: t('errors.countryUnresolved') })
             }
         } else if (selectedMethod.countryPath) {
-            // Bridge (and any other) countries go to the country page for the
-            // bank-account form
-            router.push(withdrawCountryUrl(selectedMethod.countryPath, downstreamQuery()))
+            // A bridge method with no account yet — an old `?step=amount` link,
+            // or flow memory lost to a refresh. The form comes first now, so
+            // send them there with the amount they typed still in the URL.
+            router.push(withdrawCountryUrl(selectedMethod.countryPath, downstreamQuery({ step: 'form' })))
         } else {
             // No branch matched the selected method — surface an error rather
             // than leaving the user with a silently-dead Continue button.

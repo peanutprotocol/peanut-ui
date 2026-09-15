@@ -192,6 +192,7 @@ export const TransactionDetailsReceipt = ({
             {/* head (board 17490:115877): centered bubble → type line → amount → badge */}
             <TransactionDetailsHeaderCard
                 direction={transaction.direction}
+                actionLabelKey={transaction.actionLabelKey}
                 userName={transaction.userName}
                 nameKey={transaction.nameKey}
                 nameParams={transaction.nameParams}

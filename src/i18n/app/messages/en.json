@@ -1083,7 +1083,8 @@
             "missingRecipientMessage": "No username provided in the URL. Please check the link and try again.",
             "goToHome": "Go to home",
             "createWallet": "Create your Peanut Wallet"
-        }
+        },
+        "bankDetailsAlternative": "Or get paid to your bank details"
     },
     "payment": {
         "validation": {
@@ -1678,7 +1679,8 @@
             "crypto": "Crypto",
             "cryptoDescription": "Deposit from a wallet or exchange",
             "bankTransfer": "Bank transfer",
-            "kycRequired": "KYC required"
+            "kycRequired": "KYC required",
+            "bankTransferDescription": "Reusable bank details to get paid"
         },
         "networkDrawer": {
             "title": "Choose Network",
@@ -1838,9 +1840,7 @@
         "methods": {
             "mercadopago": "MercadoPago",
             "pix": "Pix",
-            "bankTransfer": "Bank Transfer",
-            "euroBankTransfers": "Euro bank transfers",
-            "euroBankTransfersDescription": "Usually arrives within 20 minutes, up to 1 business day."
+            "bankTransfer": "Bank Transfer"
         },
         "initial": {
             "placeholderEns": "Address or ENS",
@@ -2015,6 +2015,7 @@
             "bank_claim": "Claim",
             "bank_withdraw": "Withdraw",
             "bank_deposit": "Add",
+            "beingReturned": "Being returned to the payer",
             "bank_request_fulfillment": "Request paid via bank",
             "card_pay": "Pay",
             "refund": "Refund",
@@ -3465,14 +3466,18 @@
         "savedAddresses": {
             "title": "Crypto address book",
             "lastUsed": "{days, plural, =0 {Used today} =1 {Used yesterday} other {Used # days ago}}",
-            "editTitle": "Edit address",
-            "editAria": "Edit {nickname}",
-            "nicknameLabel": "Nickname",
             "nicknamePlaceholder": "e.g. Binance",
             "deleteCta": "Delete address",
             "savePrompt": "Save to address book",
-            "editFailed": "Could not update the address. Try again.",
             "nicknameRequired": "Add a nickname to save this address."
+        },
+        "savedDestinations": {
+            "editTitle": "Edit name",
+            "nameLabel": "Name",
+            "namePlaceholder": "e.g. Payroll",
+            "deleteCta": "Delete",
+            "editFailed": "Could not save the name. Try again.",
+            "editAria": "Edit {name}"
         },
         "forceIosPwaInstall": {
             "videoUnsupported": "Your browser does not support the video tag.",
@@ -3857,6 +3862,234 @@
             "sun": {
                 "name": "Bossy Goose",
                 "line": "Herds the group"
+            }
+        }
+    },
+    "depositAccounts": {
+        "title": "Get paid",
+        "list": {
+            "heading": "Get paid in your local currency",
+            "subheading": "Hold bank details an employer, a client or a platform can pay into. The money lands in your Peanut balance.",
+            "sectionTitle": "Your details",
+            "badgeReady": "Ready",
+            "rowBlocked": "Verify your identity to open this account",
+            "badgeActive": "Active",
+            "badgeNotSetUp": "Not set up",
+            "badgeUnavailable": "Unavailable",
+            "badgeRevoked": "Revoked",
+            "emptyTitle": "No accounts for your region yet",
+            "emptyBody": "We open bank details in the currencies your verified region supports. None are open to you yet — check back after you add a new country or currency.",
+            "errorTitle": "We could not load your accounts",
+            "errorBody": "Your accounts are fine — we just could not read them. Check your connection and try again.",
+            "errorRetry": "Try again",
+            "rowRevoked": "Closed — anything sent to these details is returned"
+        },
+        "claim": {
+            "heading": "Bank details in {currency}",
+            "subheading": "Real bank details your employer, client or platform already knows how to use.",
+            "previewTitle": "What your details will look like",
+            "previewCaption": "An example only — your real numbers appear once the account is open.",
+            "conditionTerms": "Who can pay you depends on the rules for {currency}. You will see them as soon as the account is open.",
+            "statePending": "State rules are confirmed when you open the account.",
+            "benefitStable": "Hand these details over once — they stay the same for every payment after.",
+            "benefitBalance": "Money arrives in your Peanut balance as USD.",
+            "conditionNoReference": "No reference or memo to remember.",
+            "cta": "Open {currency} account",
+            "errorTitle": "We could not open the account"
+        },
+        "details": {
+            "heading": "{currency} · {rail}",
+            "provisioning": "Setting up your {currency} account, usually under a minute.",
+            "sectionTitle": "Bank details",
+            "shareCta": "Share details",
+            "unavailableTitle": "{currency} details are not available to you yet",
+            "unavailableBody": "We check this before showing details, so no payment can go missing.",
+            "unavailableCta": "Choose another currency",
+            "timedOutTitle": "We could not open your {currency} account",
+            "timedOutBody": "Nothing was charged. Try again in a moment, or choose another currency.",
+            "timedOutRetry": "Try again",
+            "revokedTitle": "Your {currency} details no longer work",
+            "revokedBody": "Anything sent to them is returned to the sender. Tell anyone who pays you to stop using them, then contact support to have them replaced.",
+            "revokedCta": "Contact support",
+            "topUpCta": "Add {currency} instead",
+            "exactAmountCta": "Deposit a set amount instead",
+            "whoCanPay": "Who can pay you"
+        },
+        "share": {
+            "heading": "What the payer sees",
+            "subheading": "Send this to whoever is paying you. It stays the same for every payment.",
+            "sectionTitle": "Pay {user} in {currency}",
+            "shareCta": "Share",
+            "copyCta": "Copy as text",
+            "copied": "Details copied",
+            "copyFailed": "Could not copy the details",
+            "textIntroOwn": "Here are my bank details to get paid in {currency}:",
+            "textIntroPooled": "Bank details to pay {user} in {currency}:",
+            "textOutro": "Sent from Peanut · peanut.me",
+            "sheetTitleOwn": "My bank details",
+            "sheetTitlePooled": "Bank details to pay {user}",
+            "calloutTitle": "Tell them this"
+        },
+        "rows": {
+            "accountHolder": "Account holder",
+            "bank": "Bank",
+            "iban": "IBAN",
+            "bic": "BIC",
+            "sortCode": "Sort code",
+            "accountNumber": "Account number",
+            "routingNumber": "Routing number",
+            "clabe": "CLABE",
+            "bankAddress": "Bank address",
+            "accepts": "Accepts",
+            "beneficiaryAddress": "Recipient address",
+            "rails": {
+                "ach_push": "ACH",
+                "fednow": "FedNow",
+                "wire": "Wire",
+                "sepa": "SEPA",
+                "faster_payments": "Faster Payments",
+                "spei": "SPEI",
+                "pix": "Pix",
+                "transfer_ar": "Bank transfer",
+                "fallback": "Bank transfer"
+            }
+        },
+        "corridors": {
+            "SEPA_EU": {
+                "arrival": "Same business day",
+                "arrivalDetail": "SEPA transfers usually arrive the same business day, at most in two.",
+                "railName": "SEPA"
+            },
+            "FASTER_PAYMENTS_GB": {
+                "arrival": "Within minutes",
+                "arrivalDetail": "Faster Payments usually arrive within minutes.",
+                "railName": "Faster Payments"
+            },
+            "ACH_US": {
+                "arrival": "1–3 business days",
+                "arrivalDetail": "ACH arrives in one to three business days. A wire arrives the same day.",
+                "railName": "ACH or wire"
+            },
+            "SPEI_MX": {
+                "arrival": "Within minutes",
+                "arrivalDetail": "SPEI transfers usually arrive within minutes.",
+                "railName": "SPEI"
+            },
+            "PIX_BR": {
+                "arrival": "Within minutes",
+                "arrivalDetail": "Pix transfers usually arrive within minutes.",
+                "unclaimable": {
+                    "line": "Brazilian deposits are a Pix code for one payment, from your own account.",
+                    "why": "Our banking partner ties your account to the country on your legal ID, one country at a time. A US national cannot use bank transfers here, wherever they live."
+                },
+                "railName": "Pix"
+            },
+            "BANK_TRANSFER_AR": {
+                "arrival": "Within minutes",
+                "arrivalDetail": "Argentine transfers usually arrive within minutes.",
+                "unclaimable": {
+                    "line": "Argentine deposits must come from an account in your own name.",
+                    "why": "Our banking partner ties your account to the country on your legal ID, one country at a time. A US national cannot use bank transfers here, wherever they live."
+                },
+                "railName": "Bank transfer"
+            }
+        },
+        "gate": {
+            "verifyTitle": "Verify your identity first",
+            "verifyBody": "We can only open an account in your name once we know who you are.",
+            "verifyCta": "Verify identity",
+            "tosTitle": "One document to agree to",
+            "tosCta": "Read and agree",
+            "waitTitle": "We are setting this up",
+            "waitBody": "Nothing for you to do. This page updates by itself.",
+            "blockedTitle": "We cannot open an account for you",
+            "supportCta": "Contact support",
+            "emailTitle": "We need an email address",
+            "emailBody": "Your identity is verified. We never got an email address to pass on, so the account cannot be opened until you add one.",
+            "emailCta": "Add your email",
+            "notYetTitle": "Not available to you yet",
+            "notYetBody": "We are opening this gradually."
+        },
+        "rules": {
+            "providerHeld": {
+                "line": "The account is held by our banking partner on your behalf.",
+                "payer": "The account is held by our banking partner on behalf of {user}.",
+                "why": "Money paid in still lands in your Peanut balance. The name on the account is the partner, not you, so a payroll form that checks the name needs the account holder shown above."
+            },
+            "ownAccount": {
+                "line": "From your own account: yes.",
+                "payer": "From the account holder's own account: yes.",
+                "why": "Transfers from your own bank account are supported. Contact support before sending a large amount."
+            },
+            "ownAccountMax": {
+                "line": "From your own account: up to {max}.",
+                "payer": "From the account holder's own account: up to {max}.",
+                "why": "Money you send yourself is a top-up, not a payment from someone else. Our banking partner accepts up to {max} from your own account on this currency. If a larger transfer of your own comes back, contact support."
+            },
+            "ownAccountNo": {
+                "line": "From your own account: not yet.",
+                "payer": "From the account holder's own account: not yet.",
+                "why": "Our banking partner does not accept a transfer from your own bank account on this currency. We will say so here the day it does."
+            },
+            "businessAny": {
+                "line": "From a business: any amount.",
+                "payer": "From a business: any amount.",
+                "why": "A bank reads a company transfer as a business payment, so our banking partner sets no limit on it. Salary and invoices go through unchanged."
+            },
+            "businessNotYet": {
+                "line": "From a business: not yet.",
+                "payer": "From a business: not yet.",
+                "why": "Our banking partner has not opened company payments on this currency. We will say so here the day it does."
+            },
+            "businessUnconfirmed": {
+                "line": "From a business: not confirmed.",
+                "payer": "From a business: not confirmed. The transfer may be returned.",
+                "why": "Our banking partner has not confirmed payments from a business on this currency. The details work; if a payment ever comes back, tell us and we will sort it out."
+            },
+            "individualAny": {
+                "line": "From another person: any amount.",
+                "payer": "From another person: any amount.",
+                "why": "Our banking partner accepts payments from other people on this currency, so you can hand these details to whoever is paying you."
+            },
+            "individualCap": {
+                "line": "From another person: less than {cap} each time.",
+                "payer": "From another person: less than {cap} each time.",
+                "why": "Our banking partner caps a single payment from a private person at {cap}. A business is not capped. If someone needs to pay you more than {cap} in one payment, contact support."
+            },
+            "individualCapFamily": {
+                "line": "From another person: less than {cap} each time. Family who share your surname: any amount.",
+                "payer": "From another person: less than {cap} each time. Family who share the account holder surname: any amount.",
+                "why": "Our banking partner caps a single payment from a private person at {cap}. A business is not capped, and neither is family who share your surname. If someone needs to pay you more than {cap} in one payment, contact support."
+            },
+            "individualVolume": {
+                "line": "From another person: up to {limit} in total. Ask support about the period.",
+                "payer": "From another person: up to {limit} in total. Ask the account holder to check the period with support.",
+                "why": "Our banking partner caps the total other private people may pay into this account at {limit}. It does not publish the period that total covers, so contact support before a large payment. A business is not capped."
+            },
+            "individualNotYet": {
+                "line": "From another person: not yet.",
+                "payer": "From another person: not yet.",
+                "why": "Our banking partner has not yet agreed an amount for payments from private people on this currency. We will say so here the day it does."
+            },
+            "individualUnconfirmed": {
+                "line": "From another person: not confirmed.",
+                "payer": "From another person: not confirmed. The transfer may be returned.",
+                "why": "We only state what our banking partner has confirmed for this currency, and it has said nothing about payments from other people. The details work; if a payment ever comes back, tell us and we will sort it out."
+            },
+            "minimum": {
+                "line": "The smallest payment is {min}.",
+                "payer": "The smallest payment is {min}.",
+                "why": "Below {min} the bank rail refuses the transfer, so a test payment of a few cents never arrives."
+            },
+            "stateRestricted": {
+                "line": "Only you can pay in, from a bank account in your own name.",
+                "payer": "Only the account holder can pay into this account.",
+                "why": "The state on your address does not allow anyone but you to pay into an account like this one. Your own transfers work as normal, and the details stay valid."
+            },
+            "ownName": {
+                "line": "Top up from a bank account in your own name.",
+                "payer": "Only the account holder can pay into this account.",
+                "why": "Our banking partner only credits a transfer that comes from an account in your own name. A payment from anyone else is returned to them."
             }
         }
     }

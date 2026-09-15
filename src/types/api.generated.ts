@@ -9674,10 +9674,6 @@ export interface paths {
                             /** @enum {string} */
                             code: "EMAIL_IN_USE";
                             error: string;
-                        } | {
-                            /** @enum {string} */
-                            code: "RESIDENCE_CHANGE_UNAVAILABLE";
-                            error: string;
                         };
                     };
                 };
@@ -9809,6 +9805,99 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/users/accounts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        label: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            account: {
+                                bic: string | null;
+                                bridgeAccountId: string | null;
+                                chainId: string | null;
+                                connector: {
+                                    iconUrl: string;
+                                    name: string;
+                                } | null;
+                                createdAt: string;
+                                deactivationReason: string | null;
+                                details: {
+                                    accountOwnerName: string;
+                                    bankName: string | null;
+                                    countryCode: string;
+                                    countryName: string;
+                                } | null;
+                                id: string;
+                                identifier: string | null;
+                                isActive: boolean;
+                                label: string | null;
+                                lastUsedAt: string | null;
+                                routingNumber: string | null;
+                                sortCode: string | null;
+                                type: string;
+                                updatedAt: string;
+                                userId: string | null;
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
         trace?: never;
     };
     "/users/bridge-tos-confirm": {
@@ -10148,6 +10237,282 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/deposit-accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            claimable: {
+                                country: string;
+                                currency: string;
+                                matching: {
+                                    sender: "anyone" | "business-only" | "own-name-only" | "unknown";
+                                };
+                                method: string;
+                                /** @enum {boolean} */
+                                preview?: true;
+                                railId: string;
+                                rules?: {
+                                    min?: {
+                                        amount: string;
+                                        currency: string;
+                                    };
+                                    ownAccount: {
+                                        allowed: boolean;
+                                        max?: {
+                                            amount: string;
+                                            currency: string;
+                                        };
+                                    };
+                                    /** @enum {string} */
+                                    reason?: "state-restricted";
+                                    thirdPartyBusiness: "unlimited" | "unavailable" | "unknown";
+                                    thirdPartyIndividual: {
+                                        capBelow?: {
+                                            amount: string;
+                                            currency: string;
+                                        };
+                                        familySameSurnameExempt?: boolean;
+                                        policy: "allowed" | "capped" | "unavailable" | "unknown";
+                                        volumeLimit?: {
+                                            amount: string;
+                                            currency: string;
+                                        };
+                                    };
+                                };
+                            }[];
+                            depositAccounts: {
+                                country: string;
+                                currency: string;
+                                id: string;
+                                instructions?: {
+                                    accountHolderName: string;
+                                    accountNumber?: string;
+                                    bankAddress?: string;
+                                    bankName?: string;
+                                    beneficiaryAddress?: string;
+                                    beneficiaryName?: string;
+                                    bic?: string;
+                                    clabe?: string;
+                                    iban?: string;
+                                    paymentRails: string[];
+                                    routingNumber?: string;
+                                    sortCode?: string;
+                                };
+                                isPrimary: boolean;
+                                matching: {
+                                    nameOnAccount: "user" | "provider";
+                                    sender: "anyone" | "business-only" | "own-name-only" | "unknown";
+                                };
+                                railId: string;
+                                rules?: {
+                                    min?: {
+                                        amount: string;
+                                        currency: string;
+                                    };
+                                    ownAccount: {
+                                        allowed: boolean;
+                                        max?: {
+                                            amount: string;
+                                            currency: string;
+                                        };
+                                    };
+                                    /** @enum {string} */
+                                    reason?: "state-restricted";
+                                    thirdPartyBusiness: "unlimited" | "unavailable" | "unknown";
+                                    thirdPartyIndividual: {
+                                        capBelow?: {
+                                            amount: string;
+                                            currency: string;
+                                        };
+                                        familySameSurnameExempt?: boolean;
+                                        policy: "allowed" | "capped" | "unavailable" | "unknown";
+                                        volumeLimit?: {
+                                            amount: string;
+                                            currency: string;
+                                        };
+                                    };
+                                };
+                                status: "provisioning" | "active" | "retiring" | "revoked";
+                            }[];
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        method: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            depositAccount: {
+                                country: string;
+                                currency: string;
+                                id: string;
+                                instructions?: {
+                                    accountHolderName: string;
+                                    accountNumber?: string;
+                                    bankAddress?: string;
+                                    bankName?: string;
+                                    beneficiaryAddress?: string;
+                                    beneficiaryName?: string;
+                                    bic?: string;
+                                    clabe?: string;
+                                    iban?: string;
+                                    paymentRails: string[];
+                                    routingNumber?: string;
+                                    sortCode?: string;
+                                };
+                                isPrimary: boolean;
+                                matching: {
+                                    nameOnAccount: "user" | "provider";
+                                    sender: "anyone" | "business-only" | "own-name-only" | "unknown";
+                                };
+                                railId: string;
+                                rules?: {
+                                    min?: {
+                                        amount: string;
+                                        currency: string;
+                                    };
+                                    ownAccount: {
+                                        allowed: boolean;
+                                        max?: {
+                                            amount: string;
+                                            currency: string;
+                                        };
+                                    };
+                                    /** @enum {string} */
+                                    reason?: "state-restricted";
+                                    thirdPartyBusiness: "unlimited" | "unavailable" | "unknown";
+                                    thirdPartyIndividual: {
+                                        capBelow?: {
+                                            amount: string;
+                                            currency: string;
+                                        };
+                                        familySameSurnameExempt?: boolean;
+                                        policy: "allowed" | "capped" | "unavailable" | "unknown";
+                                        volumeLimit?: {
+                                            amount: string;
+                                            currency: string;
+                                        };
+                                    };
+                                };
+                                status: "provisioning" | "active" | "retiring" | "revoked";
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/email-change": {
         parameters: {
             query?: never;
@@ -10331,7 +10696,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Reset the Sumsub IDENTITY step for an authorised document-replacement flow and mint a fresh SDK token. Residence changes use a non-destructive Applicant Action. */
+        /** @description Reset the Sumsub IDENTITY step after a residence change and mint a fresh SDK token. Allowed only while the declared residence differs from the verified one. */
         post: {
             parameters: {
                 query?: never;
@@ -10788,10 +11153,6 @@ export interface paths {
                                 declaredSecond: string | null;
                                 kycReported: string | null;
                                 nextChangeAllowedAt: string | null;
-                                pending: string | null;
-                                pendingRequestedAt: string | null;
-                                pendingSecond: string | null;
-                                pendingStatus: string | null;
                                 verified: string | null;
                             };
                             residenceRestrictions: {
@@ -10889,94 +11250,6 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content?: never;
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/users/residence-change/start": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header: {
-                    Authorization: string;
-                    "api-key"?: string;
-                };
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        targetCountry: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            applicantId: string;
-                            levelName: string;
-                            targetCountry: string;
-                            token: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                            retryAfterSeconds?: number;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                            retryAfterSeconds?: number;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                502: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                            retryAfterSeconds?: number;
-                        };
-                    };
                 };
             };
         };

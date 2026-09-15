@@ -11,6 +11,8 @@ import {
 } from '@/constants/zerodev.consts'
 import { DEMO_ADDRESS, DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_LIMITS, DEMO_USER } from '@/constants/demo-data'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import { CLAIMABLE_USD_PREVIEW, DEPOSIT_RAIL_POLICY } from '@/features/deposit-accounts/__fixtures__/railPolicy'
+import type { DepositAccount } from '@/features/deposit-accounts/types'
 
 const CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
 const CREATED_AT = '2026-01-01T00:00:00.000Z'
@@ -374,6 +376,37 @@ let demoCardApplied = false
 
 // ---- routes (ordered: literal paths before :param paths) ----
 
+/**
+ * The euro account the demo user holds, shaped like sandbox output with
+ * documentation coordinates instead of real ones.
+ *
+ * Sandbox opens the account in the user's own name, so `nameOnAccount` is
+ * `user` and the holder is the demo user. Who may pay in, and on what terms,
+ * is NOT written here: it comes from the one fixture table that mirrors the
+ * backend's rail rules, so demo and the design harness cannot disagree about
+ * what a euro account promises.
+ */
+const DEMO_DEPOSIT_ACCOUNT_EUR = {
+    id: 'demo-deposit-account-eur',
+    railId: 'bridge.sepa_eu',
+    country: 'DEU',
+    currency: 'EUR',
+    status: 'active',
+    isPrimary: true,
+    matching: { nameOnAccount: 'user', sender: DEPOSIT_RAIL_POLICY.SEPA_EU.sender },
+    rules: DEPOSIT_RAIL_POLICY.SEPA_EU.rules,
+    instructions: {
+        accountHolderName: 'Demo User',
+        bankName: 'Modern Treasury Bank',
+        bankAddress: 'Rue du Commerce 4, 1000 Brussels, Belgium',
+        iban: 'DE89 3704 0044 0532 0130 00',
+        bic: 'MTBEBEBB',
+        beneficiaryName: 'Demo User',
+        beneficiaryAddress: 'Prinsengracht 263, 1016 GV Amsterdam, Netherlands',
+        paymentRails: ['sepa'],
+    },
+} satisfies DepositAccount
+
 const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     // user
     {
@@ -405,6 +438,23 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'POST', pattern: '/users/initiate-kyc', handler: () => ({}) },
     { method: 'POST', pattern: '/users/interaction-status', handler: () => ({}) },
     { method: 'POST', pattern: '/users/accounts', handler: () => ({ id: 'demo-bank' }) },
+    // Standing deposit accounts. The baseline user holds the EUR one and
+    // nothing else, so the list shows one held corridor and the rest open to
+    // claim — the state most users are in. Fixtures override this to reach the
+    // others.
+    {
+        method: 'GET',
+        pattern: '/users/deposit-accounts',
+        // The dollar corridor is the one the demo user can still open, so it
+        // comes back with the terms it would carry. Held corridors are never
+        // in `claimable` — their terms are confirmed and travel on the account.
+        handler: () => ({ depositAccounts: [DEMO_DEPOSIT_ACCOUNT_EUR], claimable: [CLAIMABLE_USD_PREVIEW] }),
+    },
+    {
+        method: 'POST',
+        pattern: '/users/deposit-accounts',
+        handler: () => ({ depositAccount: DEMO_DEPOSIT_ACCOUNT_EUR }),
+    },
     {
         method: 'GET',
         pattern: '/users/username/:username',
