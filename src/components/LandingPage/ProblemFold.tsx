@@ -3,8 +3,6 @@ import HandPeace from '@/assets/illustrations/hand-peace.svg'
 import StackCoin from '@/assets/illustrations/stack-coin.svg'
 import type { LandingStrings } from './landingStrings'
 
-const bgColor = '#F9F4F0'
-
 // One height for all three marks so the card tops line up. The glyph needs a
 // bigger type size than the drawings to reach the same optical weight — a
 // Knerd "%" only fills about two thirds of its em box.
@@ -49,25 +47,24 @@ export function ProblemFold({ strings }: { strings: LandingStrings }) {
     return (
         <section
             id="the-problem"
-            className="relative overflow-hidden px-4 py-20 text-n-1 md:py-28"
-            style={{ backgroundColor: bgColor }}
+            className="relative overflow-hidden bg-background-page px-4 py-20 text-foreground-primary md:py-28"
         >
             <div className="mx-auto max-w-6xl">
                 <h2 className="font-roboto-flex-extrabold text-4xl leading-none font-extraBlack uppercase md:text-6xl lg:text-heading">
                     {problem.heading}
                 </h2>
 
-                <div className="mt-9 grid grid-cols-1 gap-4.5 md:grid-cols-3 md:gap-6">
+                <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
                     {cards.map((card, i) => (
                         <div
                             key={card.id}
-                            className={`rounded-sm border-2 border-n-1 bg-white px-5 py-6 shadow-4 md:px-7 md:py-7 ${tilts[i]}`}
+                            className={`rounded-sm border-2 border-border-default bg-white p-6 shadow-4 ${tilts[i]}`}
                         >
                             <div className="flex h-11 items-center">{card.icon}</div>
                             <h3 className="font-roboto-flex-extrabold mt-4 text-xl leading-tight font-extraBlack uppercase md:text-2xl">
                                 {card.title}
                             </h3>
-                            <p className="font-roboto-flex mt-2.5 text-lg leading-relaxed">{card.body}</p>
+                            <p className="font-roboto-flex mt-2 text-lg leading-relaxed">{card.body}</p>
                         </div>
                     ))}
                 </div>

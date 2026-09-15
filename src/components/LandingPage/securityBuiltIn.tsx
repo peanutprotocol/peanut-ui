@@ -58,7 +58,7 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
     const features = buildFeatures(i18n, contentHrefsFor(locale))
 
     return (
-        <section id="security" className="bg-primary-1 px-4 py-16 text-n-1 md:py-40">
+        <section id="security" className="bg-background-brand px-4 py-16 text-foreground-primary md:py-40">
             <div className="mx-auto max-w-7xl">
                 <div className="mb-12 text-center md:mb-16 md:text-left">
                     {/* h2, not h1: this h1 sat directly above the h3 feature
@@ -103,7 +103,7 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                                     <p className="mt-4 w-full max-w-[360px] text-right">
                                         <a
                                             href={feature.learnMoreHref}
-                                            className="font-roboto-flex text-base text-n-1 underline hover:no-underline md:text-lg"
+                                            className="font-roboto-flex text-base text-foreground-primary underline hover:no-underline md:text-lg"
                                         >
                                             {i18n.landingLearnMore} →
                                         </a>
@@ -114,7 +114,7 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                                         <Link prefetch={false} href="/support">
                                             <Button
                                                 shadowSize="4"
-                                                className="bg-white px-6 py-3 text-base font-extrabold text-n-1 hover:bg-white/90"
+                                                className="bg-white px-6 py-3 text-base font-extrabold text-foreground-primary hover:bg-white/90"
                                             >
                                                 {i18n.landingTalkToSupport}
                                             </Button>
