@@ -384,7 +384,7 @@ jobs:
                           codesign -d --entitlements :- "$EXT_PATH" 2>/dev/null \
                               | plutil -extract com.apple.developer.payment-pass-provisioning raw -o - - 2>/dev/null || true
                       )
-                      if [ "$PAYMENT" != "1" ]; then
+                      if [ "$PAYMENT" != "true" ]; then
                           echo "::error::$EXT.appex is missing the Apple payment-pass-provisioning entitlement"
                           exit 1
                       fi

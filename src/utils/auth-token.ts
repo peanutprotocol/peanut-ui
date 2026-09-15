@@ -67,9 +67,7 @@ let readyGate: { promise: Promise<void>; resolve: () => void } | null = null
 // methods. Keep the bridge lazy so auth hydration and logout remain compatible
 // with every shipped Capacitor binary.
 function syncWalletSessionForExtension(token: string): void {
-    void import('./push-provisioning')
-        .then(({ syncWalletSession }) => syncWalletSession(token))
-        .catch(() => {})
+    void import('./push-provisioning').then(({ syncWalletSession }) => syncWalletSession(token)).catch(() => {})
 }
 
 function armReadyGate(): void {

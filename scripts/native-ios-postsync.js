@@ -221,9 +221,9 @@ if (pkg.includes('IdensicMobileSDK')) {
     if (hasMppTarget && hasMppProduct && hasMppDependency) {
         console.log('[postsync] CapApp-SPM Package.swift already patched for MPP')
     } else {
-    // Each anchor is validated on its own — a half-applied patch would leave
-    // the binary target undeclared (or unused), and the Swift plugin would
-    // silently compile its canImport stub instead of failing the build.
+        // Each anchor is validated on its own — a half-applied patch would leave
+        // the binary target undeclared (or unused), and the Swift plugin would
+        // silently compile its canImport stub instead of failing the build.
         if (!hasMppTarget) {
             const afterTarget = capPkg.replace(
                 'targets: [\n',
@@ -234,7 +234,9 @@ if (pkg.includes('IdensicMobileSDK')) {
                     '        ),\n'
             )
             if (afterTarget === capPkg) {
-                console.error('[postsync] ERROR: CapApp-SPM Package.swift `targets: [` anchor not found — MPP patch stale')
+                console.error(
+                    '[postsync] ERROR: CapApp-SPM Package.swift `targets: [` anchor not found — MPP patch stale'
+                )
                 process.exit(1)
             }
             capPkg = afterTarget
@@ -263,7 +265,9 @@ if (pkg.includes('IdensicMobileSDK')) {
                     '                "MeaPushProvisioning"\n'
             )
             if (afterDependency === capPkg) {
-                console.error('[postsync] ERROR: CapApp-SPM Package.swift dependencies anchor not found — MPP patch stale')
+                console.error(
+                    '[postsync] ERROR: CapApp-SPM Package.swift dependencies anchor not found — MPP patch stale'
+                )
                 process.exit(1)
             }
             capPkg = afterDependency
@@ -287,11 +291,15 @@ if (pkg.includes('IdensicMobileSDK')) {
         )
         pbx = pbx.replace(
             'AA0000000000000000000301 /* PushProvisioningExtension Frameworks */ = {\n\t\t\tisa = PBXFrameworksBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n\t\t\t);',
-            'AA0000000000000000000301 /* PushProvisioningExtension Frameworks */ = {\n\t\t\tisa = PBXFrameworksBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n\t\t\t\t' + pbxBuildFileId + ' /* MeaPushProvisioning in PushProvisioningExtension Frameworks */,\n\t\t\t);'
+            'AA0000000000000000000301 /* PushProvisioningExtension Frameworks */ = {\n\t\t\tisa = PBXFrameworksBuildPhase;\n\t\t\tbuildActionMask = 2147483647;\n\t\t\tfiles = (\n\t\t\t\t' +
+                pbxBuildFileId +
+                ' /* MeaPushProvisioning in PushProvisioningExtension Frameworks */,\n\t\t\t);'
         )
         pbx = pbx.replace(
             'name = PushProvisioningExtension;\n\t\t\tproductName = PushProvisioningExtension;',
-            'name = PushProvisioningExtension;\n\t\t\tpackageProductDependencies = (\n\t\t\t\t' + pbxProductId + ' /* MeaPushProvisioning */,\n\t\t\t);\n\t\t\tproductName = PushProvisioningExtension;'
+            'name = PushProvisioningExtension;\n\t\t\tpackageProductDependencies = (\n\t\t\t\t' +
+                pbxProductId +
+                ' /* MeaPushProvisioning */,\n\t\t\t);\n\t\t\tproductName = PushProvisioningExtension;'
         )
         pbx = pbx.replace(
             '/* End XCSwiftPackageProductDependency section */',
