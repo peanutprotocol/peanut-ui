@@ -140,14 +140,17 @@ export const Notification = ({
               // old text-body-xs (12px) checklist step is gone (TASK-22121:
               // one body size everywhere). The 16px check sits in the 20px
               // Body/S line box with a 2px nudge, pinned to the first line.
-              <div className="flex flex-col gap-1">
+              // a real list, so screen readers announce it as one — preflight
+              // already strips markers, and role="list" keeps the semantics
+              // Safari drops from unstyled lists
+              <ul role="list" className="flex flex-col gap-1">
                   {items.map((item, index) => (
-                      <div key={index} className="flex items-start gap-2">
+                      <li key={index} className="flex items-start gap-2">
                           <Icon name="check" size={16} className="mt-0.5 shrink-0" />
                           <div className="min-w-0 flex-1">{item}</div>
-                      </div>
+                      </li>
                   ))}
-              </div>
+              </ul>
           )
         : children
     // a checklist carries its own check marks — no leading priority icon
