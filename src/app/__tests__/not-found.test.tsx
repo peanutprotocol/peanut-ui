@@ -30,7 +30,13 @@ describe('global not-found page', () => {
         expect(screen.getByRole('heading', { name: "Hmm, we can't find that page." })).toBeInTheDocument()
         expect(screen.queryByTestId('support-drawer')).not.toBeInTheDocument()
         expect(screen.getByRole('link', { name: 'let support know' })).toHaveAttribute('href', 'mailto:help@peanut.me')
-        expect(screen.getByRole('link', { name: 'Contact support' })).toHaveAttribute('href', 'mailto:help@peanut.me')
+        // contact support is a Button that assigns the mailto href on click
+        Object.defineProperty(window, 'location', {
+            configurable: true,
+            value: { href: 'https://peanut.me/x', pathname: '/x' },
+        })
+        fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
+        expect(window.location.href).toBe('mailto:help@peanut.me')
     })
 
     it('keeps the provider-backed support drawer and prefilled action', () => {

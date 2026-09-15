@@ -40,11 +40,9 @@ function Shell({ children, footer }: { children: React.ReactNode; footer?: React
         <ActionModal
             visible
             onClose={() => {}}
-            icon="alert"
-            iconContainerClassName="bg-action-secondary"
+            tone="warning"
             iconProps={{ className: 'text-foreground-primary' }}
             title={title}
-            modalPanelClassName="max-w-md mx-8"
             content={children}
             footer={
                 footer ?? (

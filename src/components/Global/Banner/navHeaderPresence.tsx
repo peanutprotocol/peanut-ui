@@ -30,7 +30,7 @@ export function NavHeaderPresenceProvider({ children }: { children: React.ReactN
 /**
  * NavHeader calls this with a ref to its root. No-op outside a provider
  * (marketing routes). Registration follows VISUAL presence, not mount: a
- * header inside a responsive-hidden wrapper (`md:hidden` on receipt pages,
+ * header inside a responsive-hidden wrapper (`md:hidden` on
  * DevPageShell, PaymentSuccessView) must not suppress the shell fallback at
  * the breakpoint where it is display:none — its own banner is hidden with it.
  * `checkVisibility()` sees ancestor display:none; where the API is missing
