@@ -33,6 +33,7 @@ import {
     isSendLinkEntry,
 } from './transaction-predicates'
 import { useReceiptViewModel } from './useReceiptViewModel'
+import { RECEIPT_COMPANY } from './receipt-company'
 
 export const TransactionDetailsReceipt = ({
     transaction,
@@ -151,6 +152,19 @@ export const TransactionDetailsReceipt = ({
                 amountDisplay={amountDisplay}
                 contentRef={contentRef}
                 className={className}
+                actions={
+                    <ReceiptActions
+                        transaction={transaction}
+                        vm={vm}
+                        isPublic={isPublic}
+                        amountDisplay={amountDisplay}
+                        shouldShowQrShare={shouldShowQrShare}
+                        isLoading={isLoading}
+                        setIsLoading={setIsLoading}
+                        onClose={onClose}
+                        setIsModalOpen={setIsModalOpen}
+                    />
+                }
             />
         )
     }
@@ -257,6 +271,12 @@ export const TransactionDetailsReceipt = ({
                         }
                     />
                     <DataRow label={t('officialReceipt.issuedOn')} value={formatDate(issuedAt)} />
+                    <div className="py-3 text-center text-body-xs text-foreground-secondary">
+                        <p className="text-label-m text-foreground-primary">{RECEIPT_COMPANY.name}</p>
+                        {RECEIPT_COMPANY.addressLines.map((line) => (
+                            <p key={line}>{line}</p>
+                        ))}
+                    </div>
                 </Card>
             )}
 
