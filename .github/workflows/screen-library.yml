@@ -204,5 +204,4 @@ jobs:
         # Resolve the secret-bearing publisher only from trusted dev code.
         uses: peanutprotocol/peanut-ui/.github/workflows/screen-library-publish.yml@dev
         secrets:
-            # Repository scope contains only the R2/Images publisher credential.
-            CLOUDFLARE_PUBLISH_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+            CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
