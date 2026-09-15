@@ -7,7 +7,6 @@ import { useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
 import { isLikelyWebview } from '@/components/Setup/Setup.utils'
 import { usePasskeySupportContext } from '@/context/passkeySupportContext'
-import { useGetBrowserType } from '@/hooks/useGetBrowserType'
 import { getCompatibilityModalCopy } from './UnsupportedBrowserModal.utils'
 import { useCopyLinkActions } from './useCopyLinkActions'
 
@@ -33,20 +32,20 @@ const UnsupportedBrowserModalContent = ({
     )
     const [hasDismissedDetection, setHasDismissedDetection] = useState(false)
     const { isSupported: isPasskeySupported, isLoading: isLoadingPasskeySupport } = usePasskeySupportContext()
-    const { browserType, isLoading: isLoadingBrowserType } = useGetBrowserType()
     const copyLinkActions = useCopyLinkActions(searchParams)
     const modalCopy = getCompatibilityModalCopy({
         showBrowserWarning: visible || isDetectedInAppBrowser,
         passkeySupported: isPasskeySupported,
         passkeyLoading: isLoadingPasskeySupport,
-        browserType,
-        browserTypeLoading: isLoadingBrowserType,
     })
 
     if (!modalCopy || (hasDismissedDetection && !visible)) return null
 
     const handleModalClose = () => {
-        if (allowClose) {
+        // A missing platform authenticator must not trap existing users who can
+        // still log in with a roaming authenticator such as a security key.
+        // Registration remains gated by the setup flow's capability check.
+        if (allowClose || modalCopy.kind === 'passkey') {
             setHasDismissedDetection(true)
         }
     }
@@ -60,8 +59,8 @@ const UnsupportedBrowserModalContent = ({
             icon={'alert' as IconName}
             iconContainerClassName="bg-action-primary"
             iconProps={{ className: 'text-black' }}
-            ctas={copyLinkActions}
-            hideModalCloseButton={!allowClose}
+            ctas={modalCopy.kind === 'browser' ? copyLinkActions : undefined}
+            hideModalCloseButton={modalCopy.kind === 'browser' && !allowClose}
             modalPanelClassName="max-w-md"
             contentContainerClassName="text-center"
             descriptionClassName="mb-0"
