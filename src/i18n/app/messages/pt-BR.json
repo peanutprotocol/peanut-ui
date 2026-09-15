@@ -1608,6 +1608,7 @@
         "page": {
             "loadFailed": "Não foi possível carregar as informações do cartão. Tente de novo.",
             "applyFailed": "Não foi possível pedir o cartão",
+            "issueFailed": "Seu pedido foi aprovado, mas não conseguimos criar seu cartão. Tente de novo.",
             "confirmCountryFailed": "Não foi possível confirmar o país",
             "setupCancelled": "Configuração cancelada — tente de novo.",
             "setupFailed": "Não foi possível concluir a configuração — tente de novo.",

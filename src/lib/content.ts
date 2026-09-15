@@ -178,7 +178,10 @@ function contentOwnerForPath(encodedSegments: string[], locale: Locale): string 
 // App-level routes the valid-links list offers to content authors. They have
 // no locale variants — a forced /{locale}/ prefix lands in the [country]
 // catch-all and 404s (`/es-ar/card`), so they must pass through bare.
-const LOCALE_NEUTRAL_APP_ROUTES = new Set(['card', 'shhhhh', 'careers'])
+// Exported so scripts/generate-valid-links.ts (what content may link) and
+// scripts/verify-content.ts (what links pass validation) stay in sync with
+// this resolver — /card drifted out of the verifier once already.
+export const LOCALE_NEUTRAL_APP_ROUTES = new Set(['card', 'shhhhh', 'careers'])
 
 function contentPathSegments(pathname: string): { segments: string[]; strippedLocale: string | null } {
     const segments = pathname.split('/').filter(Boolean)
