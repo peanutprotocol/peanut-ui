@@ -48,8 +48,10 @@ function release({ dir, git }, tag) {
     git('tag', '-a', tag, '-m', `Native release ${tag.slice(1)}`)
 }
 
-function floors(dir, ref = 'HEAD') {
-    const out = execFileSync('node', [SCRIPT, '--root', dir, '--ref', ref], { cwd: dir, encoding: 'utf8' })
+function floors(dir, ref = 'HEAD', prospectiveVersion) {
+    const args = [SCRIPT, '--root', dir, '--ref', ref]
+    if (prospectiveVersion) args.push('--prospective-version', prospectiveVersion)
+    const out = execFileSync('node', args, { cwd: dir, encoding: 'utf8' })
     return Object.fromEntries(
         out
             .trim()
@@ -60,6 +62,12 @@ function floors(dir, ref = 'HEAD') {
 
 function lowest(dir) {
     return execFileSync('node', [SCRIPT, '--root', dir, '--lowest'], { cwd: dir, encoding: 'utf8' }).trim()
+}
+
+function shared(dir, prospectiveVersion) {
+    const args = [SCRIPT, '--root', dir, '--shared']
+    if (prospectiveVersion) args.push('--prospective-version', prospectiveVersion)
+    return execFileSync('node', args, { cwd: dir, encoding: 'utf8' }).trim()
 }
 
 function floorsFail(dir, platform) {
@@ -150,6 +158,46 @@ it('raises only the iOS floor for an iOS-only change', () => {
     })
 })
 
+describe('prospective native release', () => {
+    it('keeps the previous binary eligible for the exact .0 bundle when neither native surface changed', () => {
+        const repo = makeRepo()
+        release(repo, 'v1.7.0')
+
+        expect(floors(repo.dir, 'HEAD', '1.8.0')).toEqual({
+            NEXT_PUBLIC_OTA_FLOOR_ANDROID: '1.7.0',
+            NEXT_PUBLIC_OTA_FLOOR_IOS: '1.7.0',
+        })
+        expect(shared(repo.dir, '1.8.0')).toBe('1.7.0')
+    })
+
+    it('uses the stricter platform floor for the shared .0 record', () => {
+        const repo = makeRepo()
+        release(repo, 'v1.7.0')
+        write(repo.dir, 'android/app/src/main/AndroidManifest.xml', 'android v2\n')
+        repo.git('add', '-A')
+        repo.git('commit', '-q', '-m', 'prospective 1.8.0')
+
+        expect(floors(repo.dir, 'HEAD', '1.8.0')).toEqual({
+            NEXT_PUBLIC_OTA_FLOOR_ANDROID: '1.8.0',
+            NEXT_PUBLIC_OTA_FLOOR_IOS: '1.7.0',
+        })
+        expect(shared(repo.dir, '1.8.0')).toBe('1.8.0')
+    })
+
+    it('rejects a prospective version behind an attested native release', () => {
+        const repo = makeRepo()
+        release(repo, 'v1.8.0')
+
+        const result = require('node:child_process').spawnSync(
+            'node',
+            [SCRIPT, '--root', repo.dir, '--shared', '--prospective-version', '1.7.0'],
+            { cwd: repo.dir, encoding: 'utf8' }
+        )
+        expect(result.status).toBe(1)
+        expect(result.stderr).toContain('is older than native release 1.8.0')
+    })
+})
+
 // A native change made and then reverted does not make the binaries in between
 // able to run this JS — they are exactly the binaries the change was made for.
 it('stops at the first mismatch instead of reaching past it', () => {
@@ -200,13 +248,9 @@ it('rejects an unknown platform', () => {
     expect(stderr).toContain('platform must be android or ios')
 })
 
-/*
- * --lowest is the single number Capgo gets, because one bundle serves both
- * platforms and a channel carries one min_update_version. Every install's
- * eligibility goes through it, and the per-platform cases above would stay green
- * if it picked the wrong side.
- */
-describe('--lowest, the shared server floor', () => {
+/* Diagnostic only: using this lower floor on a shared server record would hand
+ * the bundle to the platform whose stricter native contract cannot run it. */
+describe('--lowest, the diagnostic lower bound', () => {
     it('takes the iOS side when iOS is lower', () => {
         const repo = makeRepo()
         release(repo, 'v1.4.0')

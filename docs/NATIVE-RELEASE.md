@@ -424,9 +424,17 @@ on the launch after three incomplete boots. Network access is not part of this r
 condition, so offline launches can still complete normally.
 
 Native release workflows check and publish only their platform channel. Their plain `.0`
-record carries both floors equal to the binary version; it may be reused by the other
-native job only after exact source, floor and artifact verification. OTA `.1+` records
-use platform suffixes because their server floors can differ.
+record carries the compatibility-derived floor for each platform and uses the stricter
+(higher) one as its single shared server floor; it may be reused by the other native job
+only after exact source, floor and artifact verification. OTA `.1+` records use platform
+suffixes because their server floors can differ without sharing one record.
+
+The native version and delivery floor are deliberately independent. If weekly `1.8.0`
+binaries change only the embedded web assets, both native fingerprints still match
+`1.7.0`, so the shared `1.8.0` record uses `min_update_version=1.7.0` and existing `1.7.0`
+installs can receive that exact bundle. If either platform's native contract changes, the
+shared record takes that platform's stricter `1.8.0` floor; a later platform-specific
+`.1+` OTA can still retain the older floor for the untouched platform.
 
 ### Per-platform delivery floors
 
@@ -610,8 +618,9 @@ happened to match would have passed the fingerprint diff entirely.
 Native releases also publish the matching `.0` bundle to their own platform channel when
 needed. The channel version is read through structured Capgo APIs before the native build;
 `builtin` requires a matching upload. After store upload, `publish-native-ota.sh` prepares
-an inactive candidate and verifies the exact source, both binary-equal floors and artifact
-before promotion. An existing `.0` record with incomplete metadata fails closed.
+an inactive candidate and verifies the exact source, both compatibility-derived platform
+floors, the stricter shared server floor and artifact before promotion. An existing `.0`
+record with incomplete metadata fails closed.
 
 - **Channel configuration is checked by CI.** Both platform defaults must satisfy the
   policies above. Public API artifact reads are combined with the same authenticated
@@ -620,8 +629,10 @@ before promotion. An existing `.0` record with incomplete metadata fails closed.
 - **Manual dispatch publishes after checks.** The workflow uses the `Production` GitHub
   environment; adding required reviewers there is a separate repository policy decision.
 - **Native-version gating:** every record has an explicit `--min-update-version`, enforced
-  by the channel's Metadata strategy. Each OTA uses its own platform floor; native `.0`
-  records use their binary version. Never use the lower platform floor for a shared record.
+  by the channel's Metadata strategy. Each `.1+` OTA uses its own platform floor; a shared
+  native `.0` record uses the higher of its two compatibility-derived floors. Never use
+  the lower platform floor for a shared record: an older updater would download it on the
+  platform whose native contract is stricter before the client-side gate could intervene.
   New native/plugin contracts require a native release before an OTA can use them.
 
 - **Native-version gating, on the device:** `src/utils/ota-native-gate.ts` re-derives the

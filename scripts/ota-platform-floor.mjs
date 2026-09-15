@@ -2,9 +2,10 @@
 
 // Resolves, per platform, the OLDEST native release a bundle may be delivered to.
 //
-// Capgo carries one min_update_version per bundle record. Production uploads
-// separate iOS/Android records so each server floor protects legacy clients
-// before their first floor-aware OTA. A lower shared floor is unsafe.
+// Capgo carries one min_update_version per bundle record. Production OTA .1+
+// uploads separate iOS/Android records so each server floor protects legacy
+// clients before their first floor-aware OTA. The native .0 record is shared,
+// so it uses the stricter (higher) of the two compatible platform floors.
 //
 // So the floor is computed here, per platform, from the surface rather than the
 // number: walk the native releases newest-first and keep going while that
@@ -21,6 +22,8 @@
 // Usage:
 //   node scripts/ota-platform-floor.mjs                 # both, as KEY=value lines
 //   node scripts/ota-platform-floor.mjs --platform ios   # one, as a bare version
+//   node scripts/ota-platform-floor.mjs --shared         # safe floor for one shared record
+//   node scripts/ota-platform-floor.mjs --prospective-version 1.8.0
 //   node scripts/ota-platform-floor.mjs --ref <git-ref>
 
 import { dirname, resolve } from 'node:path'
@@ -31,6 +34,7 @@ import { allNativeReleases, setRepoRoot as setVersionRepoRoot } from './release-
 const defaultRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
 export const PLATFORMS = ['android', 'ios']
+const NATIVE_VERSION = /^(0|[1-9]\d*)\.([1-9]\d*)\.0$/
 
 /**
  * The oldest native release of `platform` whose native surface still matches
@@ -52,12 +56,47 @@ export const PLATFORMS = ['android', 'ios']
  * binary in the field that carries this tree's contract, which is the state
  * check-native-ota-surface fails the publish on.
  */
-export function platformFloor({ platform, headRef = 'HEAD', root = defaultRoot }) {
+export function platformFloor({ platform, headRef = 'HEAD', root = defaultRoot, prospectiveVersion } = {}) {
     if (!PLATFORMS.includes(platform)) throw new Error(`platform must be android or ios, got "${platform}"`)
     setRepoRoot(root)
     setVersionRepoRoot(root)
 
     const releases = allNativeReleases()
+    if (prospectiveVersion) {
+        const match = NATIVE_VERSION.exec(prospectiveVersion)
+        if (!match) throw new Error(`prospective version must be a native X.Y.0 version, got "${prospectiveVersion}"`)
+        const prospective = { major: Number(match[1]), build: Number(match[2]) }
+        const newer = releases.find(
+            (release) =>
+                release.major > prospective.major ||
+                (release.major === prospective.major && release.build > prospective.build)
+        )
+        if (newer) {
+            throw new Error(
+                `prospective version ${prospectiveVersion} is older than native release ${newer.major}.${newer.build}.0`
+            )
+        }
+
+        // The native workflow calls this before its success tag exists. Treat
+        // the binary being built from headRef as the newest compatible shell,
+        // then walk older attested releases exactly as the normal OTA path does.
+        let floor = prospectiveVersion
+        for (const { major, build } of releases) {
+            if (major !== prospective.major || build > prospective.build) continue
+            const tag = `v${major}.${build}.0`
+            const changed = platformDiff(platform, tag, headRef)
+            if (build === prospective.build) {
+                if (changed.length > 0) {
+                    throw new Error(`${tag} already exists but its ${platform} native surface differs from ${headRef}`)
+                }
+                continue
+            }
+            if (changed.length > 0) break
+            floor = `${major}.${build}.0`
+        }
+        return floor
+    }
+
     if (releases.length === 0) throw new Error('no v<major>.<build>.0 tag exists in this repository')
 
     const currentMajor = releases[0].major
@@ -81,8 +120,17 @@ export function platformFloor({ platform, headRef = 'HEAD', root = defaultRoot }
     return floor
 }
 
-export function platformFloors({ headRef = 'HEAD', root = defaultRoot } = {}) {
-    return Object.fromEntries(PLATFORMS.map((platform) => [platform, platformFloor({ platform, headRef, root })]))
+export function platformFloors({ headRef = 'HEAD', root = defaultRoot, prospectiveVersion } = {}) {
+    return Object.fromEntries(
+        PLATFORMS.map((platform) => [platform, platformFloor({ platform, headRef, root, prospectiveVersion })])
+    )
+}
+
+export function sharedFloor(options = {}) {
+    const floors = platformFloors(options)
+    return PLATFORMS.map((platform) => floors[platform])
+        .sort(compareVersions)
+        .at(-1)
 }
 
 // Numeric on (major, build); the ota segment of a floor is always 0.
@@ -103,19 +151,24 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import
         const root = flag(argv, '--root') ?? defaultRoot
         const headRef = flag(argv, '--ref') ?? 'HEAD'
         const platform = flag(argv, '--platform')
-        for (const name of ['--root', '--ref', '--platform']) {
+        const prospectiveVersion = flag(argv, '--prospective-version')
+        for (const name of ['--root', '--ref', '--platform', '--prospective-version']) {
             if (argv.includes(name) && !flag(argv, name)) throw new Error(`${name} needs a value`)
         }
+        if (platform && argv.includes('--shared')) throw new Error('--platform and --shared are mutually exclusive')
+        const options = { headRef, root, prospectiveVersion }
         if (argv.includes('--lowest')) {
             // Diagnostic only. Never use this value as a shared server floor:
             // legacy updaters cannot enforce the stricter platform requirement.
-            const floors = platformFloors({ headRef, root })
+            const floors = platformFloors(options)
             const lowest = PLATFORMS.map((name) => floors[name]).sort(compareVersions)[0]
             process.stdout.write(`${lowest}\n`)
+        } else if (argv.includes('--shared')) {
+            process.stdout.write(`${sharedFloor(options)}\n`)
         } else if (platform) {
-            process.stdout.write(`${platformFloor({ platform, headRef, root })}\n`)
+            process.stdout.write(`${platformFloor({ platform, ...options })}\n`)
         } else {
-            const floors = platformFloors({ headRef, root })
+            const floors = platformFloors(options)
             process.stdout.write(
                 `NEXT_PUBLIC_OTA_FLOOR_ANDROID=${floors.android}\nNEXT_PUBLIC_OTA_FLOOR_IOS=${floors.ios}\n`
             )

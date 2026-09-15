@@ -128,6 +128,46 @@ it.each([
     expect(window.localStorage.getItem('capgoUpdateFailureStreak')).toBeNull()
 })
 
+it.each(['disable_auto_update_to_major', 'disable_auto_update_to_minor', 'disable_auto_update_to_metadata'])(
+    'treats a resolved blocked %s response as requiring a store update',
+    async (message) => {
+        const onStoreUpdateRequired = jest.fn()
+        const onUpdateFailed = jest.fn()
+        mockUpdater.getLatest.mockResolvedValue({ kind: 'blocked', error: message })
+
+        await initCapgoUpdater({ onStoreUpdateRequired, onUpdateFailed })
+        await jest.advanceTimersByTimeAsync(5_000)
+
+        expect(onStoreUpdateRequired).toHaveBeenCalledTimes(1)
+        expect(onUpdateFailed).not.toHaveBeenCalled()
+        expect(mockUpdater.download).not.toHaveBeenCalled()
+        expect(info).not.toHaveBeenCalled()
+        expect(error).not.toHaveBeenCalled()
+        expect(window.localStorage.getItem('capgoUpdateFailureStreak')).toBeNull()
+    }
+)
+
+it('treats a resolved up-to-date response as successful', async () => {
+    mockUpdater.getLatest.mockResolvedValue({ kind: 'up_to_date', error: 'no_new_version_available' })
+    await launch()
+    expect(mockUpdater.download).not.toHaveBeenCalled()
+    expect(info).not.toHaveBeenCalled()
+    expect(error).not.toHaveBeenCalled()
+})
+
+it('retains a resolved failed response as an updater failure', async () => {
+    const onUpdateFailed = jest.fn()
+    mockUpdater.getLatest.mockResolvedValue({ kind: 'failed', error: 'update_endpoint_unavailable' })
+
+    await initCapgoUpdater({ onUpdateFailed })
+    await jest.advanceTimersByTimeAsync(5_000)
+
+    expect(onUpdateFailed).toHaveBeenCalledWith('update_endpoint_unavailable')
+    expect(mockUpdater.download).not.toHaveBeenCalled()
+    expect(info).toHaveBeenCalledWith('[capgo] update check failed:', 'update_endpoint_unavailable')
+    expect(error).not.toHaveBeenCalled()
+})
+
 it('resets the streak after a successful check', async () => {
     mockUpdater.getLatest.mockRejectedValue(new Error('Failed to fetch'))
     await launch()
