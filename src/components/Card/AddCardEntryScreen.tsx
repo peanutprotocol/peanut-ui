@@ -6,7 +6,6 @@ import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
 import { ScaledPixelatedCardFace } from '@/components/Card/share-asset/ScaledPixelatedCardFace'
-import { Icon } from '@/components/Global/Icons/Icon'
 
 interface Props {
     onApply: () => void | Promise<void>
@@ -39,14 +38,11 @@ const AddCardEntryScreen: FC<Props> = ({ onApply, onPrev, applyError }) => {
                 <p className="text-foreground-secondary">{t('entry.description')}</p>
             </div>
 
-            <ul className="flex flex-col gap-2 rounded-sm bg-purple-200 p-4 text-foreground-primary">
-                {FEATURE_KEYS.map((featureKey) => (
-                    <li key={featureKey} className="flex items-center gap-2">
-                        <Icon name="check-circle" size={16} />
-                        <span>{t(featureKey)}</span>
-                    </li>
-                ))}
-            </ul>
+            {/* The DS checklist body — Notification's `items` slot exists
+             * because hand-rolled tinted check-lists kept getting the icon
+             * alignment wrong (components.md: "don't: hand-rolled tinted
+             * boxes"). This was the fifth hand-roll. */}
+            <Notification priority="info" items={FEATURE_KEYS.map((featureKey) => t(featureKey))} />
 
             {/* Error above the CTA, not below: the (mobile-ui) layout pins a
              * QR FAB at the bottom-center that pokes ~27px UP into the page,

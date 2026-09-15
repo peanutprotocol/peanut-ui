@@ -34,6 +34,7 @@ import { clearStepUpToken } from '@/services/step-up'
 import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
 import { clearPendingBadgeCampaigns, getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { clearInvite } from '@/utils/invite-stash'
+import { completeAccountSetup, type AccountSetupOutcome } from '@/services/account-setup'
 
 interface AuthContextType {
     user: IUserProfile | null
@@ -56,7 +57,7 @@ interface AuthContextType {
             iconUrl: string
             name: string
         }
-    }) => Promise<void>
+    }) => Promise<AccountSetupOutcome>
     isFetchingUser: boolean
     userFetchError: Error | null
     logoutUser: (options?: { skipBackendCall?: boolean }) => Promise<void>
@@ -221,47 +222,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         telegramHandle?: string
     }) => {
-        console.log('[addAccount] Starting account addition', { userId, accountType })
-
-        const response = await apiFetch('/add-account', {
-            method: 'POST',
-            body: JSON.stringify({
-                userId,
-                accountIdentifier,
-                bridgeAccountId,
-                accountType,
-                connector,
-                telegramHandle,
-            }),
-        })
-
-        if (!response.ok) {
-            console.error('[addAccount] Failed to add account', {
-                status: response.status,
-                statusText: response.statusText,
-            })
-
-            if (response.status === 409) {
-                throw new Error('Account already exists')
-            }
-            console.error('Unexpected error adding account', response)
-            throw new Error('Unexpected error adding account')
-        }
-
-        console.log('[addAccount] Account added successfully, fetching user data')
-
-        // CRITICAL FIX: Wait for user data to be fetched before continuing
-        // This ensures JWT cookie is set and user data is available before redirect
-        const { data: updatedUser } = await fetchUser()
-
-        if (!updatedUser) {
-            console.error('[addAccount] Failed to fetch user after account creation')
-            throw new Error('Failed to load user data after account creation')
-        }
-
-        console.log('[addAccount] User data fetched successfully', {
-            userId: updatedUser.user.userId,
-            accountCount: updatedUser.accounts.length,
+        return completeAccountSetup({
+            accountIdentifier,
+            accountType,
+            fetchProfile: legacy_fetchUser,
+            request: () =>
+                apiFetch('/add-account', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        userId,
+                        accountIdentifier,
+                        bridgeAccountId,
+                        accountType,
+                        connector,
+                        telegramHandle,
+                    }),
+                }),
         })
     }
 

@@ -1,11 +1,10 @@
 'use client'
 
-import { type RefObject } from 'react'
+import { type ReactNode, type RefObject } from 'react'
 import { twMerge } from '@/utils/tw'
 import Card from '@/components/Global/Card'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { PerkIcon } from '@/components/TransactionDetails/PerkIcon'
-import { ReceiptSupportLink } from '@/components/TransactionDetails/ReceiptSupportLink'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { type HistoryEntryPerkReward } from '@/services/services.types'
 import { STATUS_LABEL_KEYS } from '@/components/Global/Badges/StatusBadge'
@@ -25,12 +24,14 @@ export function PerkRewardReceipt({
     amountDisplay,
     contentRef,
     className,
+    actions,
 }: {
     transaction: TransactionDetails
     perkRewardData: HistoryEntryPerkReward
     amountDisplay: string
     contentRef?: RefObject<HTMLDivElement>
     className?: string
+    actions: ReactNode
 }) {
     const t = useTranslations('transaction')
     const tCommon = useTranslations('common')
@@ -40,12 +41,12 @@ export function PerkRewardReceipt({
         <div ref={contentRef} className={twMerge('flex flex-col gap-4', className)}>
             {/* head (board composition): centered icon → type line → amount →
                 badge. Completed = base state, no badge (states board). */}
-            <div className="flex flex-col items-center gap-4 text-center">
+            <div className="flex flex-col items-center gap-3 text-center">
                 <PerkIcon size="medium" />
                 <div className="flex w-full flex-col items-center gap-2">
                     <div className="flex w-full flex-col items-center gap-1">
-                        <h2 className="text-body-s text-foreground-secondary">{t('perk.title')}</h2>
-                        <p className="text-heading-l text-foreground-primary">{amountDisplay}</p>
+                        <h2 className="text-body-xs text-foreground-secondary">{t('perk.title')}</h2>
+                        <p className="text-heading-m text-foreground-primary">{amountDisplay}</p>
                     </div>
                     {transaction.status !== 'completed' &&
                         (transaction.status === 'pending' || transaction.status === 'processing' ? (
@@ -67,7 +68,10 @@ export function PerkRewardReceipt({
                 stripped because PerkUsage uses it for idempotency (purchase-
                 listener.ts) and shouldn't surface to users. Backend follow-up:
                 add requestPaymentUuid column so reason can be clean. */}
-            <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">
+            <Card
+                position="single"
+                className="divide-y divide-dashed divide-border-default px-4 py-0 [&_.ds-data-row]:py-2 [&_.ds-data-row-label]:text-body-xs [&_.ds-data-row-value]:text-label-m"
+            >
                 <DataRow label={t('perk.received')} value={formatDate(new Date(transaction.date))} />
                 <DataRow
                     label={t('rows.reason')}
@@ -75,7 +79,7 @@ export function PerkRewardReceipt({
                 />
             </Card>
 
-            <ReceiptSupportLink />
+            {actions}
         </div>
     )
 }

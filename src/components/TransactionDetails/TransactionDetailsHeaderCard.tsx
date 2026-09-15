@@ -262,7 +262,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     const showBadge = !!status && status !== 'completed' && !(isOpenRequest && isPendingFamily)
 
     return (
-        <div className="flex flex-col items-center gap-4 text-center">
+        <div className="flex flex-col items-center gap-3 text-center">
             {isTest ? (
                 <Image src={PEANUTMAN} alt="Peanut Logo" width={64} height={64} className="size-12" />
             ) : (
@@ -314,7 +314,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
             )}
             <div className="flex w-full flex-col items-center gap-2">
                 <div className="flex w-full flex-col items-center gap-1">
-                    <h2 className="flex items-center justify-center text-body-s text-foreground-secondary">
+                    <h2 className="flex items-center justify-center text-body-xs text-foreground-secondary">
                         {isTest ? (
                             t('enjoyPeanut')
                         ) : (
@@ -348,7 +348,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                     {!isTest && (
                         <h1
                             className={twMerge(
-                                'text-heading-l text-foreground-primary',
+                                'text-heading-m text-foreground-primary',
                                 amountStateClasses(status, isOpenRequest)
                             )}
                         >

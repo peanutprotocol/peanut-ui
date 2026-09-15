@@ -89,6 +89,14 @@ describe('shouldIgnoreError — Capgo updater noise', () => {
         expect(shouldIgnoreError(eventWith({ message }))).toBe(true)
     })
 
+    it.each([
+        '[CapgoUpdater] 🔴 getLatest failed with error: disable_auto_update_to_metadata, message: Cannot upgrade version, min update version > current version',
+        '[capgo] update check failed: disable_auto_update_to_metadata, message: Cannot upgrade version, min update version > current version',
+    ])('ignores an expected metadata-floor refusal: %s', (message) => {
+        expect(shouldIgnoreError(eventWith({ message }))).toBe(true)
+        expect(isTransientCapgoNoise(getEventSearchTexts(eventWith({ message })))).toBe(true)
+    })
+
     it('keeps disable_auto_update_under_native — OTA is dead for that binary', () => {
         expect(
             shouldIgnoreError(eventWith({ message: '[capgo] update check failed: disable_auto_update_under_native' }))

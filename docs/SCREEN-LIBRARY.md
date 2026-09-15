@@ -44,7 +44,7 @@ The shared registry is `src/dev/screens/catalogue.ts`. It imports named API
 fixtures, route checkpoints and surface metadata. Add stable IDs, concrete
 synthetic data, and explicit interactions for new states. An exclusion needs a
 reason. Never substitute a loading mascot, redirected page or harness placard
-for the requested screen. Animated GIF/WebP assets are frozen at their first frame; tutorial videos use a paused 0.5-second checkpoint. Original PNGs drive pixel comparison; WebP thumbnails
+for the requested screen. Animated GIF/WebP assets are frozen at their first frame; tutorial videos use a paused 0.5-second checkpoint. Remote images hidden behind Next.js image optimization use a deterministic neutral placeholder so third-party CDN availability cannot change or fail a capture. Original PNGs drive pixel comparison; WebP thumbnails
 are presentation only. Experimental design options are not product states.
 
 Run `node --import tsx scripts/screens/inventory.ts` to audit app routes against
@@ -99,22 +99,20 @@ DevOps setup:
 
 1. Create a dedicated private R2 bucket. Retain objects
    indefinitely; respect object Cache-Control (index/latest use 60 seconds).
-2. Create two Cloudflare API tokens with separate values:
-   - a publisher token with Workers R2 Storage Edit scoped to this gallery's
-     R2 bucket. Until the first private publication has migrated every retained
-     report, also keep Images Edit on this token so it can remove the old public
-     Hosted Images objects. Save it as the repository
-     `CLOUDFLARE_API_TOKEN` secret. The reusable workflow keeps its historical
-     `CLOUDFLARE_PUBLISH_TOKEN` input for compatibility while exposing the
-     value to the publisher process as `CLOUDFLARE_API_TOKEN`; this token never
-     receives Workers Scripts Edit.
+2. Create two Cloudflare API tokens with separate values, both stored under the
+   standard `CLOUDFLARE_API_TOKEN` name at different GitHub scopes:
+   - a publisher token with Workers R2 Storage Edit scoped to this gallery's R2
+     bucket. Until the first private publication has migrated every retained
+     report, also keep Images Edit so it can remove the old public Hosted Images
+     objects. Save it as the repository `CLOUDFLARE_API_TOKEN` secret. The
+     reusable workflow retains its historical `CLOUDFLARE_PUBLISH_TOKEN` input
+     only at the workflow boundary; the publisher process receives the standard
+     variable name and never receives Workers Scripts Edit.
    - a deployment token with Workers Scripts Edit scoped to this gallery's
      Worker. Save it as the `CLOUDFLARE_API_TOKEN` secret in the
-     `screen-library-deploy` environment. For a custom domain it also needs
-     Zone Read and DNS Edit, as described below. The deployment job exposes
-     this separate value under the same `CLOUDFLARE_API_TOKEN` runtime name.
-     The publisher verifies its token ID and derives the S3 secret from its
-     SHA-256 hash at runtime; no separate R2 keys are stored.
+     `screen-library-deploy` environment. The publisher token is not passed to
+     this job. The publisher verifies its token ID and derives the S3 secret from
+     its SHA-256 hash at runtime; no separate R2 keys are stored.
 3. In GitHub Actions repository variables set `CLOUDFLARE_ACCOUNT_ID`,
    `SCREEN_LIBRARY_R2_BUCKET`, `SCREEN_LIBRARY_R2_JURISDICTION` (`eu` for screenshots-library),
    `SCREEN_LIBRARY_PUBLIC_URL` (gallery HTTPS origin,
@@ -150,11 +148,12 @@ place so the next run can retry; publication fails instead of declaring the
 migration complete. After one successful run reports that all retained reports
 were migrated, Images Edit can be removed from the publisher token.
 
-Only the separate trusted publisher receives the write credentials. The
-publisher accepts hashes and validated JSON/PNG/WebP; no downloaded code or
-HTML is executed. It reconstructs the comparison itself and generates offline
-HTML from its own trusted viewer. Artifacts expire after 14 days; published
-objects have no automatic expiry. Assets are deduplicated by SHA-256.
+Only the separate trusted publisher receives the storage write credential. The
+publisher accepts hashes and validated JSON/PNG/WebP; no downloaded code or HTML
+is executed. It reconstructs the comparison itself and generates offline HTML
+from its own trusted viewer. The Worker deployment credential is isolated in its
+protected GitHub environment. Artifacts expire after 14 days; published objects
+have no automatic expiry. Assets are deduplicated by SHA-256.
 
 ```sh
 node scripts/screens/publish.mjs /tmp/screens-comparison 2026-09-10/compare-main-2026-08-27/85f95e42fc25e09f1df6724b8dfb4b8afbfb6a00

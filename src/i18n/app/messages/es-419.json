@@ -1957,11 +1957,12 @@
     "transaction": {
         "drawerTitle": "Detalles de la transacción",
         "officialReceipt": {
-            "issuedBy": "Emitido por Peanut",
-            "reference": "Referencia del recibo",
+            "issuedBy": "Emitido por Squirrel Labs Ltd",
+            "reference": "Referencia",
             "issuedOn": "Fecha de emisión",
             "pdf": {
-                "title": "Comprobante de pago",
+                "title": "Comprobante de la transacción",
+                "date": "Fecha",
                 "type": "Tipo",
                 "status": "Estado",
                 "from": "De"
@@ -2099,7 +2100,9 @@
             "rejectRequest": "Rechazar solicitud",
             "splitBill": "Dividir esta cuenta",
             "shareReceipt": "Compartir comprobante",
-            "downloadPdf": "Descargar PDF",
+            "downloadPdf": "Descargar comprobante (PDF)",
+            "pdfDownloadedInstead": "Este navegador descargó el comprobante porque no permite compartir archivos.",
+            "receiptPdfUnavailable": "El comprobante en PDF no está disponible. Inténtalo de nuevo.",
             "inviteFriends": "Invita amigos y gana más recompensas",
             "reportIssue": "¿Problemas con esta transacción?",
             "cancelDeposit": "Cancelar depósito",

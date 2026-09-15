@@ -48,6 +48,34 @@ const formatCaptureDate = (value) => {
               timeZone: 'UTC',
           }).format(date)
 }
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const parseIsoDate = (value) => {
+    if (!ISO_DATE.test(value ?? '')) return null
+    const date = new Date(`${value}T00:00:00Z`)
+    return Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value ? null : date
+}
+const isoDate = (date) => date.toISOString().slice(0, 10)
+const shortDateParts = (value) => {
+    const date = parseIsoDate(value)
+    return date ? { day: String(date.getUTCDate()), month: MONTHS[date.getUTCMonth()] } : { day: value, month: '' }
+}
+const versionDetails = (entry) => {
+    const channel = entry.path.split('/')[1] ?? ''
+    const pathPr = /^pr-([1-9][0-9]*)$/.exec(channel)
+    const prNumber =
+        Number.isSafeInteger(entry.prNumber) && entry.prNumber > 0 ? entry.prNumber : Number(pathPr?.[1]) || null
+    const branch = entry.branch || (channel.startsWith('dev') ? 'dev' : channel.startsWith('main') ? 'main' : channel)
+    const changedScreens =
+        Number.isSafeInteger(entry.changedScreens) && entry.changedScreens >= 0 ? entry.changedScreens : null
+    const kind =
+        entrySource(entry) === 'nutcracker'
+            ? 'Real journey'
+            : entry.reportType === 'capture' || channel === 'dev' || channel === 'main'
+              ? 'Full library'
+              : 'Changed screens'
+    return { branch, prNumber, changedScreens, kind }
+}
 const asset = (name) => {
     if (!/^[a-f0-9]{64}\.(png|webp)$/.test(name || '')) return null
     return assetBase + name
@@ -78,6 +106,10 @@ function shareableParams(overrides = {}) {
     const locale = overrides.locale ?? $('locale').value
     if (source) params.set('source', source)
     if (locale) params.set('locale', locale)
+    if (!report) {
+        const date = overrides.date ?? $('date-strip').dataset.selectedDate
+        if (parseIsoDate(date)) params.set('date', date)
+    }
     if (report) {
         const query = overrides.q ?? $('search').value.trim()
         const flow = overrides.flow ?? $('flow').value
@@ -226,6 +258,7 @@ function showAuthGate() {
     $('auth-gate').hidden = false
     $('coverage').textContent = 'Private product library'
     $('filters-row').hidden = true
+    $('date-filter').hidden = true
     $('view-mode-row').hidden = true
     $('versions').hidden = true
     $('screens').hidden = true
@@ -256,6 +289,7 @@ function showEmptyState(kind = 'unpublished') {
           : 'Temporary loading issue'
     $('coverage').hidden = true
     $('filters-row').hidden = true
+    $('date-filter').hidden = true
     $('view-mode-row').hidden = true
     $('dashboard-filters').hidden = true
     $('screen-filters').hidden = true
@@ -275,6 +309,7 @@ function populateSource(entries, selected) {
         if (b === 'synthetic') return 1
         return a.localeCompare(b)
     })
+    $('source-control').hidden = sources.length <= 1
     $('source').replaceChildren(
         ...sources.map((value) => {
             const option = el('option', SOURCE_LABELS[value] ?? value)
@@ -299,25 +334,107 @@ function populateLocale(entries, selected) {
     $('locale').value = value ?? ''
     return value
 }
+function renderDateStrip(availableEntries) {
+    const availableDates = new Set(availableEntries.map((entry) => entry.date).filter((date) => parseIsoDate(date)))
+    const catalogueDates = indexEntries.map((entry) => entry.date).filter((date) => parseIsoDate(date))
+    const latest = catalogueDates.sort().at(-1)
+    let selected =
+        'selectedDate' in $('date-strip').dataset ? $('date-strip').dataset.selectedDate : requestedFilter('date')
+    if (!availableDates.has(selected)) selected = ''
+    $('date-strip').dataset.selectedDate = selected
+
+    const all = el('button', 'All', `date-tile date-tile-all${selected ? '' : ' active'}`)
+    all.type = 'button'
+    all.setAttribute('aria-pressed', String(!selected))
+    all.onclick = () => {
+        $('date-strip').dataset.selectedDate = ''
+        renderLanding()
+    }
+    const buttons = [all]
+    const end = parseIsoDate(latest)
+    if (end) {
+        const earliest = parseIsoDate(catalogueDates[0])
+        const thirtyDaysAgo = new Date(end)
+        thirtyDaysAgo.setUTCDate(thirtyDaysAgo.getUTCDate() - 29)
+        const start = earliest && earliest < thirtyDaysAgo ? earliest : thirtyDaysAgo
+        for (let cursor = new Date(end); cursor >= start; cursor.setUTCDate(cursor.getUTCDate() - 1)) {
+            const date = isoDate(cursor)
+            const available = availableDates.has(date)
+            const button = el(
+                'button',
+                undefined,
+                `date-tile${available ? '' : ' unavailable'}${selected === date ? ' active' : ''}`
+            )
+            const label = shortDateParts(date)
+            button.append(el('strong', label.day), el('span', label.month))
+            button.type = 'button'
+            button.disabled = !available
+            button.setAttribute(
+                'aria-label',
+                available ? `Show captures from ${formatCaptureDate(date)}` : `${formatCaptureDate(date)} — no captures`
+            )
+            button.setAttribute('aria-pressed', String(selected === date))
+            if (available)
+                button.onclick = () => {
+                    $('date-strip').dataset.selectedDate = date
+                    renderLanding()
+                }
+            buttons.push(button)
+        }
+    }
+    $('date-strip').replaceChildren(...buttons)
+    return selected
+}
 function renderLanding() {
     const selectedSource = populateSource(indexEntries, $('source').value || requestedFilter('source'))
     const sourceEntries = indexEntries.filter((entry) => entrySource(entry) === selectedSource)
     const current = $('locale').value
     const selected = populateLocale(sourceEntries, current || requestedFilter('locale'))
-    const visible = sourceEntries.filter((entry) => entry.locale === selected)
+    const localeEntries = sourceEntries.filter((entry) => entry.locale === selected)
+    const selectedDate = renderDateStrip(localeEntries)
+    const visible = localeEntries.filter((entry) => !selectedDate || entry.date === selectedDate)
     const real = selectedSource === 'nutcracker'
     $('title').textContent = real ? 'Real backend journeys.' : 'Every screen. Every change.'
     $('description').textContent = real
         ? 'Screens captured while Nutcracker drives the real Peanut backend and provider sandboxes.'
         : 'Browse app states and compare versions of Peanut.'
     $('coverage').textContent =
-        `${visible.length} published ${localeLabel(selected)} ${real ? 'Nutcracker' : 'app-state'} ${visible.length === 1 ? 'run' : 'runs'}`
+        `${visible.length} published ${localeLabel(selected)} ${real ? 'Nutcracker' : 'app-state'} ${visible.length === 1 ? 'run' : 'runs'}${selectedDate ? ` on ${formatCaptureDate(selectedDate)}` : ''}`
     $('versions').replaceChildren()
-    for (const v of visible) {
-        if (!/^[a-z0-9/-]+$/.test(v.path)) continue
-        const a = el('a', `${v.date} · ${v.label}${v.complete ? '' : ' · Incomplete'}`, 'version')
-        a.href = shareableHref(`/screens/${v.path}/`, { source: selectedSource, locale: selected }, '')
-        $('versions').append(a)
+    const grouped = new Map()
+    for (const entry of visible) {
+        if (!parseIsoDate(entry.date) || !/^[a-z0-9/-]+$/.test(entry.path)) continue
+        if (!grouped.has(entry.date)) grouped.set(entry.date, [])
+        grouped.get(entry.date).push(entry)
+    }
+    for (const date of [...grouped.keys()].sort().reverse()) {
+        const group = el('section', undefined, 'version-group')
+        const heading = el('h2', formatCaptureDate(date), 'version-date')
+        const grid = el('div', undefined, 'version-grid')
+        for (const v of grouped.get(date)) {
+            const details = versionDetails(v)
+            const a = el('a', undefined, 'version')
+            a.href = shareableHref(`/screens/${v.path}/`, { source: selectedSource, locale: selected, date: '' }, '')
+            const top = el('div', undefined, 'version-top')
+            top.append(
+                el('span', formatCaptureDate(v.date), 'version-card-date'),
+                el('span', details.kind, 'version-kind')
+            )
+            const branch = el('strong', details.branch || 'Unknown branch', 'version-branch')
+            const meta = el('div', undefined, 'version-meta')
+            if (details.prNumber) meta.append(el('span', `PR #${details.prNumber}`, 'version-pr'))
+            if (!v.complete) meta.append(el('span', 'Incomplete', 'version-incomplete'))
+            const count = el('div', undefined, 'version-count')
+            count.append(
+                el('strong', details.changedScreens === null ? '—' : String(details.changedScreens)),
+                el('span', details.changedScreens === 1 ? 'screen changed' : 'screens changed')
+            )
+            const arrow = el('span', 'Open →', 'version-open')
+            a.append(top, branch, meta, count, arrow)
+            grid.append(a)
+        }
+        group.append(heading, grid)
+        $('versions').append(group)
     }
     syncShareableUrl()
 }
@@ -326,6 +443,7 @@ async function configureReportLocales(reportPath) {
         reportLocaleEntries = []
         reportSourceEntries = []
         $('dashboard-filters').hidden = true
+        $('date-filter').hidden = true
         return
     }
     try {
@@ -345,6 +463,7 @@ async function configureReportLocales(reportPath) {
         reportLocaleEntries.push({ path: reportPath, locale: currentLocale })
     populateLocale(reportLocaleEntries, currentLocale)
     $('dashboard-filters').hidden = reportLocaleEntries.length === 0
+    $('date-filter').hidden = true
 }
 async function start() {
     if (offline) document.querySelector('.brand').href = './index.html'
@@ -369,6 +488,7 @@ async function start() {
             return
         }
         $('dashboard-filters').hidden = false
+        $('date-filter').hidden = false
         $('screen-filters').hidden = true
         $('filters-row').hidden = false
         $('view-mode-row').hidden = true
@@ -382,6 +502,7 @@ async function start() {
     if (!report || report.schema !== 1 || !['capture', 'comparison', 'journeys'].includes(report.type))
         throw new Error('Unsupported report')
     $('dashboard-filters').hidden = true
+    $('date-filter').hidden = true
     $('filters-row').hidden = false
     $('view-mode-row').hidden = report.type !== 'comparison'
     rows =

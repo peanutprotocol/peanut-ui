@@ -234,6 +234,73 @@ h1 {
     z-index: 1;
     background: var(--paper);
 }
+.date-filter {
+    padding: 0 0 28px;
+}
+.date-filter-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 9px;
+}
+.date-filter-head h2 {
+    margin: 0;
+    font-size: 12px;
+}
+.date-strip {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 3px 2px 9px;
+    scrollbar-width: thin;
+    scroll-snap-type: x proximity;
+}
+.date-tile {
+    width: 62px;
+    height: 62px;
+    flex: 0 0 62px;
+    scroll-snap-align: start;
+    border: 1px solid #aaa2ac;
+    border-radius: 12px;
+    background: white;
+    font-size: 12px;
+    font-weight: 750;
+}
+.date-tile strong,
+.date-tile span {
+    display: block;
+}
+.date-tile strong {
+    font-size: 18px;
+    line-height: 1;
+}
+.date-tile span {
+    margin-top: 5px;
+    font-size: 11px;
+    line-height: 1;
+}
+.date-tile:hover:not(:disabled),
+.date-tile:focus-visible {
+    border-color: var(--ink);
+}
+.date-tile:focus-visible {
+    outline: 3px solid rgb(255 144 232 / 65%);
+    outline-offset: 2px;
+}
+.date-tile.active {
+    border-color: var(--ink);
+    background: var(--ink);
+    color: white;
+}
+.date-tile.unavailable {
+    border-color: #e1dce2;
+    background: #eeebee;
+    color: #aaa4ac;
+    cursor: not-allowed;
+}
+.date-tile-all {
+    border-style: dashed;
+}
 .mode-row {
     padding: 20px 0 10px;
 }
@@ -333,6 +400,15 @@ select {
     background: white;
     padding: 11px 13px;
     min-width: 0;
+}
+select {
+    -webkit-appearance: none;
+    appearance: none;
+    padding-right: 42px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpath d='m1 1 6 6 6-6' fill='none' stroke='%2317151a' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 14px 9px;
 }
 input[type='search'] {
     width: 100%;
@@ -469,14 +545,116 @@ figcaption {
 }
 #versions {
     display: grid;
-    gap: 12px;
+    gap: 34px;
     margin-bottom: 25px;
 }
+.version-group {
+    display: grid;
+    gap: 12px;
+}
+.version-date {
+    margin: 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--rule);
+    font-size: 18px;
+    letter-spacing: -0.015em;
+}
+.version-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+}
 .version {
-    padding: 18px;
+    position: relative;
+    display: flex;
+    min-height: 230px;
+    flex-direction: column;
+    min-width: 0;
+    padding: 20px;
     background: #fff;
     border: 1px solid var(--rule);
-    border-radius: 10px;
+    border-radius: 16px;
+    overflow-wrap: anywhere;
+    text-decoration: none;
+    box-shadow: 0 8px 26px rgb(47 35 49 / 4%);
+    transition:
+        transform 160ms ease,
+        border-color 160ms ease,
+        box-shadow 160ms ease;
+}
+.version:hover {
+    transform: translateY(-2px);
+    border-color: #c7bdc9;
+    box-shadow: 0 14px 34px rgb(47 35 49 / 9%);
+}
+.version:focus-visible {
+    outline: 3px solid rgb(255 144 232 / 65%);
+    outline-offset: 3px;
+}
+.version-top,
+.version-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.version-top {
+    justify-content: space-between;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+}
+.version-kind {
+    color: #7b627e;
+}
+.version-branch {
+    margin-top: 22px;
+    font-size: clamp(19px, 2vw, 25px);
+    line-height: 1.08;
+    letter-spacing: -0.035em;
+}
+.version-meta {
+    min-height: 27px;
+    margin-top: 12px;
+}
+.version-pr,
+.version-incomplete {
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #f1edf2;
+    color: #554c57;
+    font-size: 11px;
+    font-weight: 750;
+}
+.version-incomplete {
+    background: #fff0dc;
+}
+.version-count {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    margin-top: auto;
+    padding-top: 24px;
+    padding-right: 72px;
+}
+.version-count strong {
+    font-size: 32px;
+    line-height: 1;
+    letter-spacing: -0.045em;
+}
+.version-count span {
+    color: var(--muted);
+    font-size: 12px;
+}
+.version-open {
+    position: absolute;
+    right: 20px;
+    bottom: 21px;
+    color: #7b627e;
+    font-size: 11px;
+    font-weight: 750;
 }
 dialog {
     border: 0;

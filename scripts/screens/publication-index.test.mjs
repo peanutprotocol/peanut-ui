@@ -9,14 +9,20 @@ const entries = [
     { path: `2026-09-10/dev-${sha('d')}`, complete: true, sequence: 6, attempt: 1 },
 ]
 
-function memoryStorage({ failLatest = false } = {}) {
+function memoryStorage({ failLatest = false, sourceEntries = entries, reports = {} } = {}) {
     const objects = new Map(
-        entries.map((entry) => [`entries/${entry.path.replaceAll('/', '_')}.json`, Buffer.from(JSON.stringify(entry))])
+        sourceEntries.map((entry) => [
+            `entries/${entry.path.replaceAll('/', '_')}.json`,
+            Buffer.from(JSON.stringify(entry)),
+        ])
     )
+    for (const [path, report] of Object.entries(reports))
+        objects.set(`reports/${path}/manifest.json`, Buffer.from(JSON.stringify(report)))
     const calls = []
     let shouldFail = failLatest
     return {
         calls,
+        objects,
         async list({ prefix }) {
             return {
                 blobs: [...objects.keys()]
@@ -38,6 +44,44 @@ function memoryStorage({ failLatest = false } = {}) {
         },
     }
 }
+
+test('index backfills card metadata and shares comparison counts with its full dev library', async () => {
+    const commit = sha('a')
+    const run = 'run-42-1'
+    const prPath = `2026-09-15/pr-3166/en/${commit}/${run}`
+    const devLibraryPath = `2026-09-15/dev/en/${commit}/${run}`
+    const sourceEntries = [
+        { path: prPath, date: '2026-09-15', locale: 'en', complete: true, sequence: 42 },
+        { path: devLibraryPath, date: '2026-09-15', locale: 'en', complete: true, sequence: 42 },
+    ]
+    const storage = memoryStorage({
+        sourceEntries,
+        reports: {
+            [prPath]: {
+                schema: 1,
+                type: 'comparison',
+                screens: [
+                    { status: 'changed' },
+                    { status: 'added' },
+                    { status: 'removed' },
+                    { status: 'unchanged' },
+                    { status: 'absent' },
+                ],
+            },
+        },
+    })
+    const { entries: indexed } = await updateIndexes(storage)
+    const prEntry = indexed.find((entry) => entry.path === prPath)
+    const devEntry = indexed.find((entry) => entry.path === devLibraryPath)
+    assert.deepEqual(
+        { branch: prEntry.branch, prNumber: prEntry.prNumber, changedScreens: prEntry.changedScreens },
+        { branch: 'pr-3166', prNumber: 3166, changedScreens: 3 }
+    )
+    assert.deepEqual(
+        { branch: devEntry.branch, prNumber: devEntry.prNumber, changedScreens: devEntry.changedScreens },
+        { branch: 'dev', prNumber: 3166, changedScreens: 3 }
+    )
+})
 
 test('latest ignores newer PR entries and incomplete dev entries', () => {
     assert.equal(selectLatest(entries).path, entries[2].path)

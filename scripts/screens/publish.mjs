@@ -18,6 +18,34 @@ const localeInfo = {
     'es-AR': { slug: 'es-ar', label: 'Español (Argentina)' },
     'pt-BR': { slug: 'pt-br', label: 'Português (Brasil)' },
 }
+const visualChangeStatuses = new Set(['changed', 'added', 'removed'])
+
+function optionalInteger(value, label, { positive = false } = {}) {
+    if (value === undefined || value === null || value === '') return undefined
+    const parsed = Number(value)
+    if (!Number.isSafeInteger(parsed) || (positive ? parsed < 1 : parsed < 0)) throw new Error(`Invalid ${label}`)
+    return parsed
+}
+
+function entryMetadata(report, reportPath, env) {
+    const channel = reportPath.split('/')[1] ?? ''
+    const fallbackBranch = channel.startsWith('dev') ? 'dev' : channel.startsWith('main') ? 'main' : channel
+    const configuredBranch = env.SOURCE_BRANCH?.trim()
+    if (configuredBranch && (configuredBranch.length > 255 || /[\u0000-\u001f\u007f]/.test(configuredBranch)))
+        throw new Error('Invalid source branch')
+    const pathPr = /^pr-([1-9][0-9]*)$/.exec(channel)
+    const prNumber = optionalInteger(env.PR_NUMBER ?? pathPr?.[1], 'PR number', { positive: true })
+    const changedScreens =
+        report.type === 'comparison'
+            ? report.screens.filter((screen) => visualChangeStatuses.has(screen.status)).length
+            : optionalInteger(env.CHANGED_SCREENS, 'changed screen count')
+    return {
+        reportType: report.type,
+        branch: configuredBranch || fallbackBranch,
+        ...(prNumber === undefined ? {} : { prNumber }),
+        ...(changedScreens === undefined ? {} : { changedScreens }),
+    }
+}
 
 export async function publishReport({ inputDir, reportPath, env = process.env, storage } = {}) {
     if (!immutableReportPath.test(reportPath ?? '')) throw new Error('Invalid immutable report path')
@@ -132,6 +160,7 @@ export async function publishReport({ inputDir, reportPath, env = process.env, s
                 sequence: Number(env.DEV_SEQUENCE ?? 0),
                 attempt: Number(env.RUN_ATTEMPT ?? 0),
                 captureAttempt: Number(env.CAPTURE_ATTEMPT ?? 0),
+                ...entryMetadata(report, reportPath, env),
             }),
             'application/json'
         )

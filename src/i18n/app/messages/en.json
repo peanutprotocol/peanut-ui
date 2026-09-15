@@ -1957,11 +1957,12 @@
     "transaction": {
         "drawerTitle": "Transaction Details",
         "officialReceipt": {
-            "issuedBy": "Issued by Peanut",
-            "reference": "Receipt reference",
+            "issuedBy": "Issued by Squirrel Labs Ltd",
+            "reference": "Reference",
             "issuedOn": "Issued on",
             "pdf": {
-                "title": "Payment Receipt",
+                "title": "Transaction Receipt",
+                "date": "Date",
                 "type": "Type",
                 "status": "Status",
                 "from": "From"
@@ -2099,7 +2100,9 @@
             "rejectRequest": "Reject request",
             "splitBill": "Split this bill",
             "shareReceipt": "Share Receipt",
-            "downloadPdf": "Download PDF",
+            "downloadPdf": "Download Receipt (PDF)",
+            "pdfDownloadedInstead": "This browser downloaded the receipt because file sharing is unavailable.",
+            "receiptPdfUnavailable": "Receipt PDF is unavailable. Please try again.",
             "inviteFriends": "Invite friends to earn more rewards",
             "reportIssue": "Issues with this transaction?",
             "cancelDeposit": "Cancel deposit",

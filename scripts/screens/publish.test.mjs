@@ -75,6 +75,9 @@ test('publication writes the entry commit marker before shared pointers', async 
                 DEV_SEQUENCE: '123',
                 RUN_ATTEMPT: '1',
                 CAPTURE_ATTEMPT: '1',
+                SOURCE_BRANCH: 'dev',
+                PR_NUMBER: '3166',
+                CHANGED_SCREENS: '4',
             },
             storage,
         })
@@ -82,7 +85,17 @@ test('publication writes the entry commit marker before shared pointers', async 
         assert.ok(entryIndex >= 0)
         assert.ok(storage.calls.indexOf('index.json') > entryIndex)
         assert.ok(storage.calls.indexOf('latest.json') > entryIndex)
-        assert.equal(JSON.parse(storage.objects.get(storage.calls[entryIndex]).toString()).captureAttempt, 1)
+        const entry = JSON.parse(storage.objects.get(storage.calls[entryIndex]).toString())
+        assert.deepEqual(
+            {
+                captureAttempt: entry.captureAttempt,
+                reportType: entry.reportType,
+                branch: entry.branch,
+                prNumber: entry.prNumber,
+                changedScreens: entry.changedScreens,
+            },
+            { captureAttempt: 1, reportType: 'capture', branch: 'dev', prNumber: 3166, changedScreens: 4 }
+        )
         const manifest = JSON.parse(
             storage.objects.get(`reports/2026-09-11/dev-${commit}/run-123-1/manifest.json`).toString()
         )
