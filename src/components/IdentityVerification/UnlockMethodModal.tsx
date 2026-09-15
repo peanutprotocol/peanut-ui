@@ -17,6 +17,8 @@ interface UnlockMethodModalProps {
     path?: KycPrepPath
     /** Provider-specific requirements layered onto the verification path. */
     provider?: KycPrepProvider
+    /** Identity documents this Rain session can still request. */
+    rainDocuments?: ReadonlyArray<'id' | 'selfie'>
     isLoading?: boolean
 }
 
@@ -34,6 +36,7 @@ const UnlockMethodModal = ({
     methodLabel,
     path = 'standard',
     provider,
+    rainDocuments,
     isLoading,
 }: UnlockMethodModalProps) => {
     const t = useTranslations('profile.unlockPayments.unlockModal')
@@ -62,7 +65,7 @@ const UnlockMethodModal = ({
                     <div className="flex w-full flex-col items-center gap-4">
                         {/* the checklist is the body — left-aligned like the modal's descriptionClassName override */}
                         <div className="w-full text-left">
-                            <KycPrepChecklist path={path} provider={provider} />
+                            <KycPrepChecklist path={path} provider={provider} rainDocuments={rainDocuments} />
                         </div>
                         <Button
                             icon="check-circle"

@@ -48,7 +48,7 @@ export const CardPage: FC = () => {
         onUploadIdentity,
         identityUploadError,
         pendingSumsubToken,
-        pendingSumsubProvider,
+        pendingSumsubDocuments,
         handleStartCardKyc,
         handleCloseCardKycPrep,
         sumsubToken,
@@ -253,7 +253,8 @@ export const CardPage: FC = () => {
                 onUnlock={handleStartCardKyc}
                 methodLabel={t('entry.navTitle')}
                 path="standard"
-                provider={pendingSumsubProvider}
+                provider="rain"
+                rainDocuments={pendingSumsubDocuments}
             />
         </PageContainer>
     )

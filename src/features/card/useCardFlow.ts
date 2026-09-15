@@ -54,10 +54,11 @@ export function useCardFlow() {
     // requirements drawer must be driven by an actual `incomplete` response,
     // not by the card entry CTA itself.
     const [pendingSumsubToken, setPendingSumsubToken] = useState<string | null>(null)
-    // Existing verified users can be sent back to the main level for one
-    // missing document. They still see prep before the SDK, but not the full
-    // Rain checklist or its eight-minute estimate when only that step remains.
-    const [pendingSumsubProvider, setPendingSumsubProvider] = useState<'rain' | undefined>()
+    // Identity documents the next Rain session can still request. The usual
+    // card-action response follows an approved base KYC, so it only needs the
+    // Rain-specific data/challenges. A main-level response can represent either
+    // a new KYC (ID + selfie) or one missing document on a verified profile.
+    const [pendingSumsubDocuments, setPendingSumsubDocuments] = useState<Array<'id' | 'selfie'>>([])
     const [applyError, setApplyError] = useState<string | null>(null)
     // When backend returns status:'terms-required', we capture it here so
     // the dispatcher can render the terms screen between Sumsub and submit.
@@ -192,11 +193,14 @@ export function useCardFlow() {
             // Main applicant is missing a doc Rain requires (e.g. SELFIE
             // after liveness was added to the level). Stage the MAIN-level
             // token behind the same Rain prep screen as an incomplete action:
-            // both tokens open the Rain verification level, which can ask for
-            // phone verification. An already-verified user is only completing
-            // the missing document, so use the short standard prep for them.
+            // both tokens open the Rain verification level. Keep its phone,
+            // email, tax-ID, and questionnaire prep, then add only the identity
+            // documents this cohort can still be asked for.
             if (res.status === 'main-kyc-required' && 'sumsubAccessToken' in res) {
-                setPendingSumsubProvider(user?.identityVerification?.status === 'verified' ? undefined : 'rain')
+                const isVerified = user?.identityVerification?.status === 'verified'
+                setPendingSumsubDocuments(
+                    isVerified ? (res.missingDocTypes.includes('SELFIE') ? ['selfie'] : []) : ['id', 'selfie']
+                )
                 setPendingSumsubToken(res.sumsubAccessToken)
                 return
             }
@@ -252,7 +256,7 @@ export function useCardFlow() {
                 // screen via the default overview-invalidate arm.
                 if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
                     setPendingCountryConfirmation(null)
-                    setPendingSumsubProvider('rain')
+                    setPendingSumsubDocuments([])
                     setPendingSumsubToken(res.sumsubAccessToken)
                     return
                 }
@@ -283,7 +287,7 @@ export function useCardFlow() {
                 const res = await rainApi.applyForCard({ termsAccepted, serializedApproval, acceptedDocuments })
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
                 if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
-                    setPendingSumsubProvider('rain')
+                    setPendingSumsubDocuments([])
                     setPendingSumsubToken(res.sumsubAccessToken)
                     return
                 }
@@ -441,13 +445,13 @@ export function useCardFlow() {
         if (!pendingSumsubToken) return
         setSumsubToken(pendingSumsubToken)
         setPendingSumsubToken(null)
-        setPendingSumsubProvider(undefined)
+        setPendingSumsubDocuments([])
         posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
     }, [pendingSumsubToken])
 
     const handleCloseCardKycPrep = useCallback(() => {
         setPendingSumsubToken(null)
-        setPendingSumsubProvider(undefined)
+        setPendingSumsubDocuments([])
     }, [])
 
     const handleSumsubRefreshToken = useCallback(async () => {
@@ -526,7 +530,7 @@ export function useCardFlow() {
         identityUploadError,
         // card-application sumsub
         pendingSumsubToken,
-        pendingSumsubProvider,
+        pendingSumsubDocuments,
         handleStartCardKyc,
         handleCloseCardKycPrep,
         sumsubToken,

@@ -2987,7 +2987,7 @@
             },
             "howLongLabel": "How long",
             "howLong": {
-                "standard": "Under 2 minutes for most people. If a reviewer has to look at it, 1 to 3 business days.",
+                "standard": "A few minutes for most people. If a reviewer has to look at it, 1 to 3 business days.",
                 "rain": "About 8 minutes for most people. If a reviewer has to look at it, 1 to 3 business days.",
                 "extended": "Longer than the usual check. If a reviewer has to look at it, 1 to 3 business days.",
                 "hosted": "About 5 minutes with your documents in hand. If a reviewer has to look at it, 1 to 3 business days."

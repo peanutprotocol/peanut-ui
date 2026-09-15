@@ -23,7 +23,15 @@ export type KycPrepProvider = 'rain'
  * AFTER the list so it reads as the consequence of not having those documents
  * rather than as a preamble to them.
  */
-const KycPrepChecklist = ({ path, provider }: { path: KycPrepPath; provider?: KycPrepProvider }) => {
+const KycPrepChecklist = ({
+    path,
+    provider,
+    rainDocuments,
+}: {
+    path: KycPrepPath
+    provider?: KycPrepProvider
+    rainDocuments?: ReadonlyArray<'id' | 'selfie'>
+}) => {
     const t = useTranslations('kyc.prep')
     const isHosted = path === 'hosted'
     const baseItems =
@@ -32,14 +40,15 @@ const KycPrepChecklist = ({ path, provider }: { path: KycPrepPath; provider?: Ky
             : isHosted
               ? (['id', 'selfie', 'proofOfAddress'] as const)
               : (['id', 'selfie'] as const)
-    // Rain's card level adds applicant data, phone + email challenges, and a
-    // questionnaire. Keep these as a provider add-on rather than a fourth
-    // path: standard/extended/hosted describe the verification shell, while
-    // these requirements are specific to the rail that requested it. A
-    // separate tax-ID key avoids showing Rain users the Manteca-only CPF/CUIT
-    // examples. Bridge and Manteca entry points remain unchanged.
+    // Rain reuses identity documents retained on the Sumsub profile, then adds
+    // applicant data, phone + email challenges, and a questionnaire. The caller
+    // supplies only the identity documents this session can still request: none
+    // for the normal approved-user action, selfie for a document gap, or ID +
+    // selfie for a new KYC. The separate tax-ID key avoids Manteca-only examples.
     const items =
-        provider === 'rain' ? (['id', 'selfie', 'rainTaxId', 'sms', 'emailCode', 'questions'] as const) : baseItems
+        provider === 'rain'
+            ? ([...(rainDocuments ?? ['id', 'selfie']), 'rainTaxId', 'sms', 'emailCode', 'questions'] as const)
+            : baseItems
     const howLongKey = provider === 'rain' ? 'rain' : path
 
     return (

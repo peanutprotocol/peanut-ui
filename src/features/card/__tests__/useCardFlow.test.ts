@@ -90,7 +90,7 @@ describe('useCardFlow', () => {
             await result.current.handleApply()
         })
         expect(result.current.pendingSumsubToken).toBe('tok-1')
-        expect(result.current.pendingSumsubProvider).toBe('rain')
+        expect(result.current.pendingSumsubDocuments).toEqual([])
         expect(result.current.sumsubToken).toBeNull()
         expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
 
@@ -116,7 +116,7 @@ describe('useCardFlow', () => {
         })
 
         expect(result.current.pendingSumsubToken).toBe('main-tok-1')
-        expect(result.current.pendingSumsubProvider).toBe('rain')
+        expect(result.current.pendingSumsubDocuments).toEqual(['id', 'selfie'])
         expect(result.current.sumsubToken).toBeNull()
         expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
 
@@ -129,7 +129,7 @@ describe('useCardFlow', () => {
         expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
     })
 
-    it('uses the short prep when a verified user only needs a missing main-KYC document', async () => {
+    it('adds only the missing document to Rain prep for a verified main-KYC user', async () => {
         mockUser = { user: { userId: 'user-1' }, identityVerification: { status: 'verified' } }
         mockApplyForCard.mockResolvedValue({
             status: 'main-kyc-required',
@@ -143,7 +143,7 @@ describe('useCardFlow', () => {
         })
 
         expect(result.current.pendingSumsubToken).toBe('selfie-tok-1')
-        expect(result.current.pendingSumsubProvider).toBeUndefined()
+        expect(result.current.pendingSumsubDocuments).toEqual(['selfie'])
         expect(result.current.sumsubToken).toBeNull()
     })
 

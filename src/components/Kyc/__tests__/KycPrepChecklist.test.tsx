@@ -50,4 +50,24 @@ describe('KycPrepChecklist', () => {
         expect(screen.getByText('howLong.rain')).toBeInTheDocument()
         expect(screen.queryByText('howLong.standard')).not.toBeInTheDocument()
     })
+
+    it('reuses retained identity documents for the normal Rain card action', () => {
+        render(<KycPrepChecklist path="standard" provider="rain" rainDocuments={[]} />)
+
+        expect(screen.queryByText('items.id.title')).not.toBeInTheDocument()
+        expect(screen.queryByText('items.selfie.title')).not.toBeInTheDocument()
+        expect(screen.getByText('items.rainTaxId.title')).toBeInTheDocument()
+        expect(screen.getByText('items.sms.title')).toBeInTheDocument()
+        expect(screen.getByText('items.emailCode.title')).toBeInTheDocument()
+        expect(screen.getByText('items.questions.title')).toBeInTheDocument()
+        expect(screen.getByText('howLong.rain')).toBeInTheDocument()
+    })
+
+    it('adds only a missing selfie to the Rain-specific requirements', () => {
+        render(<KycPrepChecklist path="standard" provider="rain" rainDocuments={['selfie']} />)
+
+        expect(screen.queryByText('items.id.title')).not.toBeInTheDocument()
+        expect(screen.getByText('items.selfie.title')).toBeInTheDocument()
+        expect(screen.getByText('items.sms.title')).toBeInTheDocument()
+    })
 })
