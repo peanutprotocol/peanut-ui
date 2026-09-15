@@ -18,6 +18,7 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { parsePaymentURL, type ParseUrlError } from '@/lib/url-parser/parser'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useEffect, useState } from 'react'
@@ -114,19 +115,19 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
     // isLoading only clears on the paid branch.
     if (isLoading) {
         return (
-            <div className="flex min-h-inherit w-full flex-col gap-4">
+            <PageStack>
                 <NavHeader title={t('headers.pay')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col items-center justify-center gap-4 py-8">
                     <Loading variant="mascot" />
                 </div>
-            </div>
+            </PageStack>
         )
     }
 
     // error state — centered card (ruled 2026-09-03: no more lone top banner)
     if (error || !parsedUrl) {
         return (
-            <div className="flex min-h-inherit w-full flex-col gap-4">
+            <PageStack>
                 <NavHeader title={t('headers.pay')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col justify-center py-8">
                     <EmptyState
@@ -135,7 +136,7 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
                         description={error?.message || t('errors.invalidPaymentUrlDescription')}
                     />
                 </div>
-            </div>
+            </PageStack>
         )
     }
 

@@ -87,7 +87,7 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                 status: 'canonical',
                 source: 'src/components/0_Bruddle/ListItem.tsx',
                 divergence:
-                    'New primitive, 38 product call-sites across 25 files. It is the row primitive the old Global/Card stacked-list variant used to cover, but Global/Card is still imported by 44 product files — so the two row idioms now coexist and the migration is roughly half done.',
+                    'New primitive, 38 product call-sites across 25 files. It is the row primitive the old Global/Card stacked-list variant used to cover, but Global/Card is still imported by 43 product files (recounted 2026-09-15, TASK-22452) — so the two row idioms now coexist and the migration is roughly half done.',
                 usedIn: [
                     'app/(mobile-ui)/profile/backup/page.tsx',
                     'features/home/components/HomeActionDrawers.tsx',
@@ -97,12 +97,12 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
             },
             {
                 name: 'Card (0_Bruddle/Card)',
-                realUsages: 21,
+                realUsages: 34,
                 devUsages: 12,
                 status: 'variant',
                 source: 'src/components/0_Bruddle/Card.tsx',
                 divergence:
-                    'Counted as importing product files (21), because a bare `<Card` grep cannot separate this from Global/Card — and that is exactly the divergence. Two different components named Card still ship: 0_Bruddle/Card (named export, standalone container) in 21 product files, Global/Card (default export, stacked list item) in 44. The naming collision the June audit flagged is unresolved, and the new ListItem primitive now overlaps the Global/Card job as well.',
+                    'Counted as importing product files (34, recounted 2026-09-15 at the TASK-22452 sweep head — the sweep itself moved seven standalone consumers on), because a bare `<Card` grep cannot separate this from Global/Card — and that is exactly the divergence. Two different components named Card still ship: 0_Bruddle/Card (named export, standalone container) in 34 product files, Global/Card (default export, stacked list item) in 43. The naming collision the June audit flagged is unresolved, and the new ListItem primitive now overlaps the Global/Card job as well.',
                 usedIn: [
                     'app/[locale]/(marketing)/press/page.tsx',
                     'app/(mobile-ui)/withdraw/manteca/page.tsx',
