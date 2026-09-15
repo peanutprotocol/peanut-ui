@@ -54,6 +54,10 @@ export function useCardFlow() {
     // requirements drawer must be driven by an actual `incomplete` response,
     // not by the card entry CTA itself.
     const [pendingSumsubToken, setPendingSumsubToken] = useState<string | null>(null)
+    // Existing verified users can be sent back to the main level for one
+    // missing document. They still see prep before the SDK, but not the full
+    // Rain checklist or its eight-minute estimate when only that step remains.
+    const [pendingSumsubProvider, setPendingSumsubProvider] = useState<'rain' | undefined>()
     const [applyError, setApplyError] = useState<string | null>(null)
     // When backend returns status:'terms-required', we capture it here so
     // the dispatcher can render the terms screen between Sumsub and submit.
@@ -189,9 +193,10 @@ export function useCardFlow() {
             // after liveness was added to the level). Stage the MAIN-level
             // token behind the same Rain prep screen as an incomplete action:
             // both tokens open the Rain verification level, which can ask for
-            // phone verification. Sumsub itself still asks only for the
-            // missing step once the user continues.
+            // phone verification. An already-verified user is only completing
+            // the missing document, so use the short standard prep for them.
             if (res.status === 'main-kyc-required' && 'sumsubAccessToken' in res) {
+                setPendingSumsubProvider(user?.identityVerification?.status === 'verified' ? undefined : 'rain')
                 setPendingSumsubToken(res.sumsubAccessToken)
                 return
             }
@@ -227,7 +232,7 @@ export function useCardFlow() {
             setPendingCountryConfirmation(null)
             invalidateOverview()
         },
-        [invalidateOverview, refetchCardInfo]
+        [invalidateOverview, refetchCardInfo, user?.identityVerification?.status]
     )
 
     // The user picked their residence country on the confirmation screen.
@@ -247,6 +252,7 @@ export function useCardFlow() {
                 // screen via the default overview-invalidate arm.
                 if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
                     setPendingCountryConfirmation(null)
+                    setPendingSumsubProvider('rain')
                     setPendingSumsubToken(res.sumsubAccessToken)
                     return
                 }
@@ -277,6 +283,7 @@ export function useCardFlow() {
                 const res = await rainApi.applyForCard({ termsAccepted, serializedApproval, acceptedDocuments })
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
                 if (res.status === 'incomplete' && 'sumsubAccessToken' in res) {
+                    setPendingSumsubProvider('rain')
                     setPendingSumsubToken(res.sumsubAccessToken)
                     return
                 }
@@ -434,11 +441,13 @@ export function useCardFlow() {
         if (!pendingSumsubToken) return
         setSumsubToken(pendingSumsubToken)
         setPendingSumsubToken(null)
+        setPendingSumsubProvider(undefined)
         posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
     }, [pendingSumsubToken])
 
     const handleCloseCardKycPrep = useCallback(() => {
         setPendingSumsubToken(null)
+        setPendingSumsubProvider(undefined)
     }, [])
 
     const handleSumsubRefreshToken = useCallback(async () => {
@@ -517,6 +526,7 @@ export function useCardFlow() {
         identityUploadError,
         // card-application sumsub
         pendingSumsubToken,
+        pendingSumsubProvider,
         handleStartCardKyc,
         handleCloseCardKycPrep,
         sumsubToken,

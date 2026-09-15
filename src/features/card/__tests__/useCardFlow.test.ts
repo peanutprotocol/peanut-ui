@@ -8,6 +8,7 @@ import { useCardFlow } from '../useCardFlow'
 
 const mockCapture = jest.fn()
 let mockState = 'add-card'
+let mockUser: { user: { userId: string }; identityVerification?: { status: 'verified' } } | null = null
 
 jest.mock('next/navigation', () => ({
     notFound: jest.fn(),
@@ -33,7 +34,7 @@ jest.mock('@/services/consent', () => ({
     cardConsentDocuments: jest.fn(() => []),
 }))
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: null, fetchUser: jest.fn() }),
+    useAuth: () => ({ user: mockUser, fetchUser: jest.fn() }),
 }))
 jest.mock('@/hooks/useRainCardOverview', () => ({
     RAIN_CARD_OVERVIEW_QUERY_KEY: 'rain-card-overview',
@@ -78,6 +79,7 @@ describe('useCardFlow', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         mockState = 'add-card'
+        mockUser = null
         window.localStorage.clear()
     })
 
@@ -88,6 +90,7 @@ describe('useCardFlow', () => {
             await result.current.handleApply()
         })
         expect(result.current.pendingSumsubToken).toBe('tok-1')
+        expect(result.current.pendingSumsubProvider).toBe('rain')
         expect(result.current.sumsubToken).toBeNull()
         expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
 
@@ -113,6 +116,7 @@ describe('useCardFlow', () => {
         })
 
         expect(result.current.pendingSumsubToken).toBe('main-tok-1')
+        expect(result.current.pendingSumsubProvider).toBe('rain')
         expect(result.current.sumsubToken).toBeNull()
         expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
 
@@ -123,6 +127,24 @@ describe('useCardFlow', () => {
         expect(result.current.pendingSumsubToken).toBeNull()
         expect(result.current.sumsubToken).toBe('main-tok-1')
         expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+    })
+
+    it('uses the short prep when a verified user only needs a missing main-KYC document', async () => {
+        mockUser = { user: { userId: 'user-1' }, identityVerification: { status: 'verified' } }
+        mockApplyForCard.mockResolvedValue({
+            status: 'main-kyc-required',
+            missingDocTypes: ['SELFIE'],
+            sumsubAccessToken: 'selfie-tok-1',
+        })
+        const { result } = renderHook(() => useCardFlow())
+
+        await act(async () => {
+            await result.current.handleApply()
+        })
+
+        expect(result.current.pendingSumsubToken).toBe('selfie-tok-1')
+        expect(result.current.pendingSumsubProvider).toBeUndefined()
+        expect(result.current.sumsubToken).toBeNull()
     })
 
     it('routes terms-required to the terms screen', async () => {
