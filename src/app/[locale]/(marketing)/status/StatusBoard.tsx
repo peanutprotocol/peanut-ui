@@ -17,9 +17,9 @@ import {
    and the outage bars render transparent. */
 const BAR_COLORS: Record<BucketState, string> = {
     operational: 'bg-success-1',
-    degraded: 'bg-secondary-1',
+    degraded: 'bg-yellow-500',
     down: 'bg-red-400',
-    unknown: 'bg-grey-2',
+    unknown: 'bg-gray-200',
 }
 
 const DOT_COLORS = BAR_COLORS
@@ -33,9 +33,9 @@ const SHOW_SUMMARY_CARD: boolean = false
 
 const RING_STROKES: Record<BucketState, string> = {
     operational: 'stroke-success-1',
-    degraded: 'stroke-secondary-1',
+    degraded: 'stroke-yellow-500',
     down: 'stroke-red-400',
-    unknown: 'stroke-grey-2',
+    unknown: 'stroke-gray-200',
 }
 
 /**
@@ -112,7 +112,7 @@ export function OperationalDonut({
                 y="20"
                 textAnchor="middle"
                 dominantBaseline="central"
-                className="fill-n-1 font-bold"
+                className="fill-foreground-primary font-bold"
                 fontSize="9"
             >
                 {percent}%
@@ -134,10 +134,10 @@ export function OperationalDonut({
  * it into grey is the reason this page read green through 2026-09-03.
  */
 const BANNER_STYLES: Record<BucketState, string> = {
-    operational: 'border-success-1 bg-white text-n-1',
-    degraded: 'border-secondary-1 bg-secondary-4 text-n-1',
-    down: 'border-border-error bg-error-1 text-n-1',
-    unknown: 'border-border-error bg-error-1 text-n-1',
+    operational: 'border-success-1 bg-white text-foreground-primary',
+    degraded: 'border-yellow-500 bg-secondary-4 text-foreground-primary',
+    down: 'border-border-error bg-error-1 text-foreground-primary',
+    unknown: 'border-border-error bg-error-1 text-foreground-primary',
 }
 
 export function StatusBanner({ state, title, detail }: { state: BucketState; title: string; detail?: string }) {
@@ -149,7 +149,7 @@ export function StatusBanner({ state, title, detail }: { state: BucketState; tit
                     same result as stacking a weight utility onto a body token,
                     without minting an off-ramp style to get there. */}
                 <p className="text-heading-card">{title}</p>
-                {detail && <p className="mt-1 text-body-s text-grey-1">{detail}</p>}
+                {detail && <p className="mt-1 text-body-s text-foreground-secondary">{detail}</p>}
             </div>
         </div>
     )
@@ -199,11 +199,11 @@ function bucketDetail(bucket: StatusBucket, i18n: Translations): string {
  */
 function UptimeBars({ provider, locale, i18n }: { provider: StatusProvider; locale: string; i18n: Translations }) {
     return (
-        <div className="flex h-8 items-stretch gap-[2px]" role="img" aria-label={i18n.statusWindowLabel}>
+        <div className="flex h-8 items-stretch gap-0.5" role="img" aria-label={i18n.statusWindowLabel}>
             {provider.buckets.map((bucket) => (
                 <span
                     key={bucket.hourStart}
-                    className={`flex-1 rounded-[1px] ${BAR_COLORS[bucket.state]}`}
+                    className={`flex-1 rounded-1 ${BAR_COLORS[bucket.state]}`}
                     title={`${formatTime(bucket.hourStart, locale)} — ${bucketDetail(bucket, i18n)}`}
                 />
             ))}
@@ -224,25 +224,27 @@ function IncidentList({
 }) {
     if (incidents.length === 0) return null
     return (
-        <ul className="space-y-2 mt-3 border-l-2 border-grey-2 pl-3">
+        <ul className="space-y-2 mt-3 border-l-2 border-gray-200 pl-3">
             {incidents.map((incident) => (
                 <li key={incident.id} className="text-body-xs">
                     <div className="flex flex-wrap items-center gap-2">
                         <span
-                            className={`rounded px-1.5 py-0.5 font-bold tracking-wide uppercase ${
-                                incident.resolvedAt ? 'bg-grey-4 text-grey-1' : 'bg-error-1 text-foreground-error'
+                            className={`rounded px-1.5 py-0.5 text-label-m tracking-wide uppercase ${
+                                incident.resolvedAt
+                                    ? 'bg-gray-100 text-foreground-secondary'
+                                    : 'bg-error-1 text-foreground-error'
                             }`}
                         >
                             {incident.resolvedAt ? i18n.statusIncidentResolved : i18n.statusIncidentOngoing}
                         </span>
-                        <time dateTime={incident.startedAt} className="text-grey-1">
+                        <time dateTime={incident.startedAt} className="text-foreground-secondary">
                             {formatTime(incident.startedAt, locale)}
                             {incident.resolvedAt ? ` → ${formatTime(incident.resolvedAt, locale)}` : ''}
                         </time>
                     </div>
-                    <p className="mt-1 break-words text-n-1">
+                    <p className="mt-1 break-words text-foreground-primary">
                         {incidentImpact(serviceKey, i18n)}{' '}
-                        <span className="text-grey-1">{incidentReasonLabel(incident.reason, i18n)}</span>
+                        <span className="text-foreground-secondary">{incidentReasonLabel(incident.reason, i18n)}</span>
                     </p>
                 </li>
             ))}
@@ -260,7 +262,7 @@ export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary;
     })
 
     return (
-        <div className="bg-background">
+        <div className="bg-background-page">
             {/* The same Hero every marketing page uses (privacy, pricing, help),
                 so the pink band, its height, and the yellow marquee below it
                 match exactly. Subtitle is the window label rather than the
@@ -288,7 +290,7 @@ export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary;
                 )}
 
                 {SHOW_SUMMARY_CARD && (
-                    <div className="flex items-center gap-4 rounded-md border border-grey-2 bg-white p-4">
+                    <div className="flex items-center gap-4 rounded-md border border-gray-200 bg-white p-4">
                         <OperationalDonut
                             operational={operationalCount}
                             total={summary.providers.length}
@@ -297,8 +299,8 @@ export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary;
                             label={ratioLabel}
                         />
                         <div>
-                            <p className="text-body-l font-bold">{headline(summary.state, i18n)}</p>
-                            <p className="mt-1 text-body-s text-grey-1">
+                            <p className="text-heading-card">{headline(summary.state, i18n)}</p>
+                            <p className="mt-1 text-body-s text-foreground-secondary">
                                 {t(i18n.statusServicesOperationalCount, {
                                     operational: String(operationalCount),
                                     total: String(summary.providers.length),
@@ -310,7 +312,7 @@ export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary;
 
                 {STATUS_GROUPS.map((group) => (
                     <section key={group.label(i18n)} className="mt-10 first:mt-0">
-                        <h2 className="text-body-xs font-bold tracking-wide text-grey-1 uppercase">
+                        <h2 className="text-label-m tracking-wide text-foreground-secondary uppercase">
                             {group.label(i18n)}
                         </h2>
                         <div className="space-y-6 mt-3">
@@ -320,21 +322,21 @@ export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary;
                                 return (
                                     <div key={service.key}>
                                         <div className="flex items-baseline justify-between gap-4">
-                                            <span className="flex items-center gap-2 text-body-s font-bold">
+                                            <span className="flex items-center gap-2 text-label-l">
                                                 <span
                                                     className={`h-2 w-2 shrink-0 rounded-full ${DOT_COLORS[provider.state]}`}
                                                 />
                                                 {service.label(i18n)}
                                             </span>
                                             {provider.uptimePct !== null && (
-                                                <span className="text-body-xs text-grey-1">
+                                                <span className="text-body-xs text-foreground-secondary">
                                                     {provider.uptimePct.toFixed(2)}% {i18n.statusUptimeLabel}
                                                 </span>
                                             )}
                                         </div>
                                         <div className="mt-2">
                                             <UptimeBars provider={provider} locale={locale} i18n={i18n} />
-                                            <div className="mt-1 flex justify-between text-[10px] text-grey-1">
+                                            <div className="mt-1 flex justify-between text-[10px] text-foreground-secondary">
                                                 <span>{i18n.statusWindowStart}</span>
                                                 <span>{i18n.statusNow}</span>
                                             </div>
@@ -352,7 +354,7 @@ export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary;
                     </section>
                 ))}
 
-                <div className="mt-10 flex flex-wrap items-center gap-4 border-t border-grey-2 pt-4 text-[11px] text-grey-1">
+                <div className="mt-10 flex flex-wrap items-center gap-4 border-t border-gray-200 pt-4 text-[11px] text-foreground-secondary">
                     {(
                         [
                             ['operational', i18n.statusLegendOperational],
@@ -362,7 +364,7 @@ export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary;
                         ] as Array<[BucketState, string]>
                     ).map(([state, label]) => (
                         <span key={state} className="flex items-center gap-1.5">
-                            <span className={`h-2 w-4 rounded-[1px] ${BAR_COLORS[state]}`} />
+                            <span className={`h-2 w-4 rounded-1 ${BAR_COLORS[state]}`} />
                             {label}
                         </span>
                     ))}
