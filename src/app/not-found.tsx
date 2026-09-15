@@ -59,31 +59,23 @@ export default function NotFound() {
                             </p>
                         </div>
                         <div className="flex flex-col gap-3">
-                            {/* window.location.assign instead of <Link>: forces a full page load
-                                when leaving the 404, avoiding the historical React error 310 from
+                            {/* real <a> (btn classes, the sanctioned anchor recipe), not a
+                                Button+onClick: a 404 must recover even when the client bundle
+                                never hydrates, and the plain href also forces the full page
+                                load that avoids the historical React error 310 from
                                 hook-count mismatch between this route and the (mobile-ui) tree. */}
-                            <Button
-                                variant="purple"
-                                shadowSize="4"
-                                className="w-full"
-                                onClick={() => window.location.assign('/')}
-                            >
+                            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                            <a href="/" className="btn btn-purple w-full shadow-4">
                                 Take me home
-                            </Button>
+                            </a>
                             {modals ? (
                                 <Button variant="stroke" className="w-full" onClick={openSupport}>
                                     Contact support
                                 </Button>
                             ) : (
-                                <Button
-                                    variant="stroke"
-                                    className="w-full"
-                                    onClick={() => {
-                                        window.location.href = supportHref
-                                    }}
-                                >
+                                <a href={supportHref} className="btn btn-stroke w-full">
                                     Contact support
-                                </Button>
+                                </a>
                             )}
                         </div>
                     </div>

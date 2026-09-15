@@ -27,7 +27,7 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
         category: 'Modals',
         layer: 'components',
         summary:
-            'Three overlay primitives are still in the tree, but the balance changed. Global/ActionModal is now the standard: 65 app call sites against 6 for the raw base. Global/Modal (BaseModal, @headlessui/react Dialog+Transition) survives as a low-level escape hatch with 5 direct consumers — SumsubKycWrapper, SumsubNativeSdk, IframeWrapper, QRScannerOverlay and the Typeform host in Global/Layout — plus ActionModal itself. Global/Drawer (vaul) is the third family; it is covered in the next category. Radius still splits at the base. BaseModal paints rounded-md, max-w-[26rem], bg-white, and a bg-n-1/85 overlay with click-to-close wired by hand around a headlessui v2 regression. ActionModal overrides all of it to rounded-sm, border border-border-default, bg-background-default and max-w-[85%], per figma board 17800:57216. So a \'BaseModal\' modal and an \'ActionModal\' modal still do not match by default. Two modals then fight the new border back off: ConfirmInviteModal and NoMoreJailDrawer both pass modalPanelClassName="rounded-none border-0". Eight more copy-paste the same width recipe, modalPanelClassName="max-w-md mx-8", instead of it being a size prop. The header pattern consolidated. ActionModal owns icon + title + description as one nested stack (icon and head 16px apart, title and description 4px apart, head and CTAs 24px apart). BaseModal\'s own border-b title bar has no app consumer left. The close button is still hard-fixed at top-2 right-2 on the panel; 16 call sites hide it with hideModalCloseButton, and 13 suppress the backdrop with hideOverlay. One hand-rolled centring recipe remains: QRScannerOverlay still passes the old classWrap "sm:m-auto sm:self-center self-center m-4 bg-background rounded-none border-0" — the same string ActionModal absorbed as its default. The two other copies of it are gone. Mount points are centralised: AppGlobals hosts the always-on modals and features/home/components/HomeModals hosts the home-screen stack behind Suspense.',
+            'Three overlay primitives are still in the tree, but the balance changed. Global/ActionModal is now the standard: 65 app call sites against 6 for the raw base. Global/Modal (BaseModal, @headlessui/react Dialog+Transition) survives as a low-level escape hatch with 5 direct consumers — SumsubKycWrapper, SumsubNativeSdk, IframeWrapper, QRScannerOverlay and the Typeform host in Global/Layout — plus ActionModal itself. Global/Drawer (vaul) is the third family; it is covered in the next category. Radius still splits at the base. BaseModal paints rounded-md, max-w-[26rem], bg-white, and a bg-n-1/85 overlay with click-to-close wired by hand around a headlessui v2 regression. ActionModal overrides all of it to rounded-sm, border border-border-default, bg-background-default and (since 2026-09-15, TASK-22452) mx-8 max-w-md, per figma board 17800:57216. So a \'BaseModal\' modal and an \'ActionModal\' modal still do not match by default. Two modals then fight the new border back off: ConfirmInviteModal and NoMoreJailDrawer both pass modalPanelClassName="rounded-none border-0". RESOLVED 2026-09-15 (TASK-22452): the copy-pasted modalPanelClassName="max-w-md mx-8" recipe became the component default and its call-site copies were deleted; fullscreen hosts opt out with mx-0 max-w-full. The header pattern consolidated. ActionModal owns icon + title + description as one nested stack (icon and head 16px apart, title and description 4px apart, head and CTAs 24px apart). BaseModal\'s own border-b title bar has no app consumer left. The close button is still hard-fixed at top-2 right-2 on the panel; 16 call sites hide it with hideModalCloseButton, and 13 suppress the backdrop with hideOverlay. One hand-rolled centring recipe remains: QRScannerOverlay still passes the old classWrap "sm:m-auto sm:self-center self-center m-4 bg-background rounded-none border-0" — the same string ActionModal absorbed as its default. The two other copies of it are gone. Mount points are centralised: AppGlobals hosts the always-on modals and features/home/components/HomeModals hosts the home-screen stack behind Suspense.',
         items: [
             {
                 name: 'Modal (BaseModal, Global/Modal)',
@@ -53,7 +53,7 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 status: 'canonical',
                 source: 'components/Global/ActionModal/index.tsx',
                 divergence:
-                    'The standard modal, 65 app call sites. Wraps BaseModal and overrides its look to rounded-sm + border-border-default + bg-background-default + max-w-[85%], centred on every breakpoint. Owns the icon-in-circle + title + description + CTA-array layout, typed with text-heading-xs and text-body-s. Still diverges from BaseModal\'s own rounded-md / max-w-[26rem] defaults. Width is not a prop, so 8 call sites copy modalPanelClassName="max-w-md mx-8".',
+                    "The standard modal, 65 app call sites. Wraps BaseModal and overrides its look to rounded-sm + border-border-default + bg-background-default + max-w-[85%], centred on every breakpoint. Owns the icon-in-circle + title + description + CTA-array layout, typed with text-heading-xs and text-body-s. Still diverges from BaseModal's own rounded-md / max-w-[26rem] defaults. Default panel width is mx-8 max-w-md since 2026-09-15 (TASK-22452) — the old 8-site copy-pasted width string is gone.",
                 usedIn: [
                     'components/Kyc/InitiateKycModal.tsx',
                     'components/Global/ReConsentModal/index.tsx',
@@ -877,7 +877,7 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 status: 'live',
                 source: 'components/User/UserCard.tsx',
                 divergence:
-                    'Global/Card with "flex flex-col items-center gap-4 p-4" — overrides the card\'s px-4 py-2 to p-4. Body text uses the text-body-xs / foreground-secondary tokens.',
+                    '0_Bruddle/Card (moved off Global/Card 2026-09-15, TASK-22452) with "w-full flex-col items-center gap-4 p-4". Body text uses the text-body-xs / foreground-secondary tokens.',
             },
             {
                 name: 'PeanutActionDetailsCard',
@@ -885,7 +885,7 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                 status: 'live',
                 source: 'components/Global/PeanutActionDetailsCard/index.tsx',
                 divergence:
-                    'Busiest composite card at 11 call sites. Wraps Global/Card and hand-builds an avatar cluster with rounded-full sizing rather than using 0_Bruddle/IconBubble.',
+                    'Busiest composite card at 11 call sites. Wraps 0_Bruddle/Card (moved off Global/Card 2026-09-15, TASK-22452) and still hand-builds an avatar cluster with rounded-full sizing rather than using 0_Bruddle/IconBubble — that composite is a flagged open decision.',
             },
             {
                 name: 'PeanutActionCard',
