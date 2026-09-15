@@ -17,6 +17,7 @@ import { useAuth } from '@/context/authContext'
 import { IS_DEV } from '@/constants/general.consts'
 import InvitesGraph from '@/components/Global/InvitesGraph'
 import { DEFAULT_FORCE_CONFIG } from '@/components/Global/InvitesGraph/types'
+import { parseBoundedNumber } from './number-input'
 
 // Allowed users for full graph access (frontend check - backend also validates)
 const ALLOWED_USERNAMES = ['squirrel', 'kkonrad', 'hugo']
@@ -176,17 +177,19 @@ export default function FullGraphPage() {
                                             value={Math.log10(
                                                 forceConfig.charge.strength / DEFAULT_FORCE_CONFIG.charge.strength
                                             )}
-                                            onChange={(e) =>
+                                            onChange={(e) => {
+                                                const exponent = parseBoundedNumber(e.target.value, -1, 1)
+                                                if (exponent === null) return
                                                 setForceConfig({
                                                     ...forceConfig,
                                                     charge: {
                                                         ...forceConfig.charge,
                                                         strength:
                                                             DEFAULT_FORCE_CONFIG.charge.strength *
-                                                            Math.pow(10, parseFloat(e.target.value)),
+                                                            Math.pow(10, exponent),
                                                     },
                                                 })
-                                            }
+                                            }}
                                         />
                                     )}
                                 </div>
@@ -232,17 +235,19 @@ export default function FullGraphPage() {
                                                 forceConfig.inviteLinks.strength /
                                                     DEFAULT_FORCE_CONFIG.inviteLinks.strength
                                             )}
-                                            onChange={(e) =>
+                                            onChange={(e) => {
+                                                const exponent = parseBoundedNumber(e.target.value, -1, 1)
+                                                if (exponent === null) return
                                                 setForceConfig({
                                                     ...forceConfig,
                                                     inviteLinks: {
                                                         ...forceConfig.inviteLinks,
                                                         strength:
                                                             DEFAULT_FORCE_CONFIG.inviteLinks.strength *
-                                                            Math.pow(10, parseFloat(e.target.value)),
+                                                            Math.pow(10, exponent),
                                                     },
                                                 })
-                                            }
+                                            }}
                                         />
                                     )}
                                 </div>
@@ -287,17 +292,19 @@ export default function FullGraphPage() {
                                             value={Math.log10(
                                                 forceConfig.p2pLinks.strength / DEFAULT_FORCE_CONFIG.p2pLinks.strength
                                             )}
-                                            onChange={(e) =>
+                                            onChange={(e) => {
+                                                const exponent = parseBoundedNumber(e.target.value, -1, 1)
+                                                if (exponent === null) return
                                                 setForceConfig({
                                                     ...forceConfig,
                                                     p2pLinks: {
                                                         ...forceConfig.p2pLinks,
                                                         strength:
                                                             DEFAULT_FORCE_CONFIG.p2pLinks.strength *
-                                                            Math.pow(10, parseFloat(e.target.value)),
+                                                            Math.pow(10, exponent),
                                                     },
                                                 })
-                                            }
+                                            }}
                                         />
                                     )}
                                 </div>
@@ -331,7 +338,7 @@ export default function FullGraphPage() {
                                     </div>
                                     {(forceConfig.center?.enabled ?? DEFAULT_FORCE_CONFIG.center.enabled) && (
                                         <>
-                                            {/* Strength slider */}
+                                            {/* strength control */}
                                             <div className="space-y-0.5 pl-4">
                                                 <div className="flex justify-between text-label-m text-foreground-secondary">
                                                     <span>Strength</span>
@@ -347,20 +354,22 @@ export default function FullGraphPage() {
                                                             DEFAULT_FORCE_CONFIG.center.strength) /
                                                             DEFAULT_FORCE_CONFIG.center.strength
                                                     )}
-                                                    onChange={(e) =>
+                                                    onChange={(e) => {
+                                                        const exponent = parseBoundedNumber(e.target.value, -1, 1)
+                                                        if (exponent === null) return
                                                         setForceConfig({
                                                             ...forceConfig,
                                                             center: {
                                                                 ...(forceConfig.center || DEFAULT_FORCE_CONFIG.center),
                                                                 strength:
                                                                     DEFAULT_FORCE_CONFIG.center.strength *
-                                                                    Math.pow(10, parseFloat(e.target.value)),
+                                                                    Math.pow(10, exponent),
                                                             },
                                                         })
-                                                    }
+                                                    }}
                                                 />
                                             </div>
-                                            {/* Size bias slider: 0=uniform, 9=big nodes get 10x pull */}
+                                            {/* size bias: 0=uniform, 9=big nodes get 10x pull */}
                                             <div className="space-y-0.5 pl-4">
                                                 <div className="flex justify-between text-label-m text-foreground-secondary">
                                                     <span>Size Bias</span>
@@ -383,15 +392,17 @@ export default function FullGraphPage() {
                                                         forceConfig.center?.sizeBias ??
                                                         DEFAULT_FORCE_CONFIG.center.sizeBias
                                                     }
-                                                    onChange={(e) =>
+                                                    onChange={(e) => {
+                                                        const sizeBias = parseBoundedNumber(e.target.value, 0, 9)
+                                                        if (sizeBias === null) return
                                                         setForceConfig({
                                                             ...forceConfig,
                                                             center: {
                                                                 ...(forceConfig.center || DEFAULT_FORCE_CONFIG.center),
-                                                                sizeBias: parseFloat(e.target.value),
+                                                                sizeBias,
                                                             },
                                                         })
-                                                    }
+                                                    }}
                                                 />
                                                 <div className="flex justify-between text-label-m text-foreground-secondary">
                                                     <span>1x uniform</span>
@@ -537,7 +548,9 @@ export default function FullGraphPage() {
                                                                 DEFAULT_FORCE_CONFIG.externalLinks.strength) /
                                                                 DEFAULT_FORCE_CONFIG.externalLinks.strength
                                                         )}
-                                                        onChange={(e) =>
+                                                        onChange={(e) => {
+                                                            const exponent = parseBoundedNumber(e.target.value, -1, 1)
+                                                            if (exponent === null) return
                                                             setForceConfig({
                                                                 ...forceConfig,
                                                                 externalLinks: {
@@ -545,10 +558,10 @@ export default function FullGraphPage() {
                                                                         DEFAULT_FORCE_CONFIG.externalLinks),
                                                                     strength:
                                                                         DEFAULT_FORCE_CONFIG.externalLinks.strength *
-                                                                        Math.pow(10, parseFloat(e.target.value)),
+                                                                        Math.pow(10, exponent),
                                                                 },
                                                             })
-                                                        }
+                                                        }}
                                                     />
                                                 )}
                                             </div>
@@ -590,7 +603,7 @@ export default function FullGraphPage() {
                                     onChange={(event) => setShowUsernames(event.target.checked)}
                                 />
 
-                                {/* Top nodes slider */}
+                                {/* top nodes control */}
                                 <div className="space-y-0.5">
                                     <div className="flex items-center justify-between">
                                         <span className="text-body-xs">Top nodes:</span>
@@ -605,7 +618,10 @@ export default function FullGraphPage() {
                                         max="10000"
                                         step="500"
                                         value={topNodes}
-                                        onChange={(e) => setTopNodes(parseInt(e.target.value))}
+                                        onChange={(e) => {
+                                            const value = parseBoundedNumber(e.target.value, 0, 10000)
+                                            if (value !== null) setTopNodes(Math.round(value))
+                                        }}
                                     />
                                     <div className="flex justify-between text-label-m text-foreground-secondary">
                                         <span>All</span>
