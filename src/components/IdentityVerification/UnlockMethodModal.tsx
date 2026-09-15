@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
-import KycPrepChecklist, { type KycPrepPath } from '@/components/Kyc/KycPrepChecklist'
+import KycPrepChecklist, { type KycPrepPath, type KycPrepProvider } from '@/components/Kyc/KycPrepChecklist'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 
 interface UnlockMethodModalProps {
@@ -15,6 +15,8 @@ interface UnlockMethodModalProps {
     methodLabel: string | null
     /** Which prep checklist applies: extended for Manteca (BR/AR), standard elsewhere. */
     path?: KycPrepPath
+    /** Provider-specific requirements layered onto the verification path. */
+    provider?: KycPrepProvider
     isLoading?: boolean
 }
 
@@ -31,6 +33,7 @@ const UnlockMethodModal = ({
     onUnlock,
     methodLabel,
     path = 'standard',
+    provider,
     isLoading,
 }: UnlockMethodModalProps) => {
     const t = useTranslations('profile.unlockPayments.unlockModal')
@@ -59,7 +62,7 @@ const UnlockMethodModal = ({
                     <div className="flex w-full flex-col items-center gap-4">
                         {/* the checklist is the body — left-aligned like the modal's descriptionClassName override */}
                         <div className="w-full text-left">
-                            <KycPrepChecklist path={path} />
+                            <KycPrepChecklist path={path} provider={provider} />
                         </div>
                         <Button
                             icon="check-circle"

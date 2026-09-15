@@ -81,12 +81,21 @@ describe('useCardFlow', () => {
         window.localStorage.clear()
     })
 
-    it('opens the sumsub sdk on an incomplete apply response', async () => {
+    it('shows Rain requirements before opening the sumsub sdk on an incomplete apply response', async () => {
         mockApplyForCard.mockResolvedValue({ status: 'incomplete', sumsubAccessToken: 'tok-1' })
         const { result } = renderHook(() => useCardFlow())
         await act(async () => {
             await result.current.handleApply()
         })
+        expect(result.current.pendingSumsubToken).toBe('tok-1')
+        expect(result.current.sumsubToken).toBeNull()
+        expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+
+        act(() => {
+            result.current.handleStartCardKyc()
+        })
+
+        expect(result.current.pendingSumsubToken).toBeNull()
         expect(result.current.sumsubToken).toBe('tok-1')
         expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
     })
@@ -99,6 +108,23 @@ describe('useCardFlow', () => {
         })
         expect(result.current.pendingTerms).toEqual({ isUsResident: true })
         expect(result.current.pendingCountryConfirmation).toBeNull()
+    })
+
+    it('dismisses Rain prep without opening or abandoning the sumsub sdk', async () => {
+        mockApplyForCard.mockResolvedValue({ status: 'incomplete', sumsubAccessToken: 'tok-1' })
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+
+        act(() => {
+            result.current.handleCloseCardKycPrep()
+        })
+
+        expect(result.current.pendingSumsubToken).toBeNull()
+        expect(result.current.sumsubToken).toBeNull()
+        expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED)
+        expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_SUMSUB_CLOSED)
     })
 
     it('routes country-confirmation-required before terms', async () => {
@@ -128,6 +154,9 @@ describe('useCardFlow', () => {
         const { result } = renderHook(() => useCardFlow())
         await act(async () => {
             await result.current.handleApply()
+        })
+        act(() => {
+            result.current.handleStartCardKyc()
         })
         act(() => {
             result.current.handleSumsubClose()

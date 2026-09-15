@@ -2954,6 +2954,11 @@
                     "title": "Your face",
                     "body": "A short selfie in the app. Good light helps."
                 },
+                "sms": {
+                    "label": "Phone",
+                    "title": "A phone number that can receive SMS",
+                    "body": "You will receive a verification code by text message during the check."
+                },
                 "taxId": {
                     "label": "Tax ID",
                     "title": "Your tax ID",

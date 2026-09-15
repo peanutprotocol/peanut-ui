@@ -2954,6 +2954,11 @@
                     "title": "Tu rostro",
                     "body": "Una selfie corta en la app. Con buena luz es más fácil."
                 },
+                "sms": {
+                    "label": "Teléfono",
+                    "title": "Un número de teléfono que pueda recibir SMS",
+                    "body": "Recibirás un código de verificación por mensaje de texto durante la verificación."
+                },
                 "taxId": {
                     "label": "ID fiscal",
                     "title": "Tu identificación fiscal",

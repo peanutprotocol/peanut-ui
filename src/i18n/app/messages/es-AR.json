@@ -1312,6 +1312,10 @@
                     "title": "Tu rostro",
                     "body": "Una selfie corta en la app. Con buena luz es más fácil."
                 },
+                "sms": {
+                    "title": "Un número de teléfono que pueda recibir SMS",
+                    "body": "Vas a recibir un código de verificación por mensaje de texto durante la verificación."
+                },
                 "taxId": {
                     "title": "Tu identificación fiscal",
                     "body": "CPF en Brasil, CUIT o CUIL en Argentina. Se necesita para enviar y recibir por los rieles bancarios locales."

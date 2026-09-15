@@ -31,4 +31,13 @@ describe('KycPrepChecklist', () => {
         expect(screen.queryByText('extraDocNote')).not.toBeInTheDocument()
         expect(screen.getByText('howLongLabel')).toBeInTheDocument()
     })
+
+    it('shows SMS verification only for Rain-backed payment methods', () => {
+        const { rerender } = render(<KycPrepChecklist path="standard" />)
+        expect(screen.queryByText('items.sms.title')).not.toBeInTheDocument()
+
+        rerender(<KycPrepChecklist path="standard" provider="rain" />)
+        expect(screen.getByText('items.sms.title')).toBeInTheDocument()
+        expect(screen.getByText('items.sms.body')).toBeInTheDocument()
+    })
 })

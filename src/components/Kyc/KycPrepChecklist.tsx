@@ -6,6 +6,7 @@ import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { useTranslations } from 'next-intl'
 
 export type KycPrepPath = 'standard' | 'extended' | 'hosted'
+export type KycPrepProvider = 'rain'
 
 /**
  * The "before you start" prep content shown before the verification SDK
@@ -22,15 +23,20 @@ export type KycPrepPath = 'standard' | 'extended' | 'hosted'
  * AFTER the list so it reads as the consequence of not having those documents
  * rather than as a preamble to them.
  */
-const KycPrepChecklist = ({ path }: { path: KycPrepPath }) => {
+const KycPrepChecklist = ({ path, provider }: { path: KycPrepPath; provider?: KycPrepProvider }) => {
     const t = useTranslations('kyc.prep')
     const isHosted = path === 'hosted'
-    const items =
+    const baseItems =
         path === 'extended'
             ? (['id', 'selfie', 'taxId', 'questions'] as const)
             : isHosted
               ? (['id', 'selfie', 'proofOfAddress'] as const)
               : (['id', 'selfie'] as const)
+    // Rain requires a phone-number challenge during card KYC. Keep this as a
+    // provider add-on rather than a fourth path: standard/extended/hosted
+    // describe the verification flow, while SMS is specific to the rail that
+    // requested it. That keeps Bridge and Manteca entry points unchanged.
+    const items = provider === 'rain' ? ([...baseItems, 'sms'] as const) : baseItems
 
     return (
         <div className="flex w-full flex-col gap-3 text-left" data-testid="kyc-prep-checklist">

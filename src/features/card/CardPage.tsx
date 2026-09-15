@@ -11,6 +11,7 @@ import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
+import UnlockMethodModal from '@/components/IdentityVerification/UnlockMethodModal'
 import { initiateSelfHealResubmission } from '@/app/actions/sumsub'
 import { useCardFlow } from './useCardFlow'
 
@@ -46,6 +47,9 @@ export const CardPage: FC = () => {
         onUploadProofOfAddress,
         onUploadIdentity,
         identityUploadError,
+        pendingSumsubToken,
+        handleStartCardKyc,
+        handleCloseCardKycPrep,
         sumsubToken,
         handleSumsubComplete,
         handleSumsubClose,
@@ -241,6 +245,14 @@ export const CardPage: FC = () => {
                 onClose={handleSumsubClose}
                 onComplete={handleSumsubComplete}
                 onRefreshToken={handleSumsubRefreshToken}
+            />
+            <UnlockMethodModal
+                visible={pendingSumsubToken !== null}
+                onClose={handleCloseCardKycPrep}
+                onUnlock={handleStartCardKyc}
+                methodLabel={t('entry.navTitle')}
+                path="standard"
+                provider="rain"
             />
         </PageContainer>
     )
