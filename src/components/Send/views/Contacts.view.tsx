@@ -130,10 +130,14 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                         shouldValidate={(value) => isPlausibleUsername(value.trim().replace(/^@/, '').toLowerCase())}
                         onUpdate={({ value, isValid, isChanging }) => {
                             const username = value.trim().replace(/^@/, '').toLowerCase()
+                            const valueChanged = value !== searchQuery
                             setSearchQuery(value)
                             setIsExactUsernameFound(isValid)
                             setIsUsernameChanging(isChanging)
-                            if (isChanging) {
+                            // The clear button reports isChanging=false. Invalidate
+                            // by value instead so a late lookup cannot repopulate an
+                            // error after the field has been emptied.
+                            if (valueChanged) {
                                 usernameCheckGeneration.current += 1
                                 setIsExactUsernameMiss(false)
                                 const syntaxInvalid = username.length >= 4 && !isPlausibleUsername(username)
