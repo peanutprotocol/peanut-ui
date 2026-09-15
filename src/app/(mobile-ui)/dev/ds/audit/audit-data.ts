@@ -5075,10 +5075,10 @@ export const AUDIT_ITEMS: AuditItem[] = [
         catLabel: 'Avatars / icons',
         layer: 'components',
         role: '<Icon> sized through a Tailwind className instead of the documented size= prop.',
-        usages: 14,
+        usages: 13,
         status: 'adhoc',
         source: '13 sites incl. src/components/Global/ActionModal/index.tsx, SearchInput, MoreInfo, ValidatedInput (FileUploadInput retired 2026-09-15)',
-        notes: "Down from 18 to 14 but not eliminated. Directly contradicts Icon.tsx's own note ('Don't reintroduce Tailwind h-X w-X to size icons — pass size'). The !important in the icon-NN utilities means these className sizes can silently fight the wrapper.",
+        notes: "Down from 18 to 13 (FileUploadInput's site left with the component) but not eliminated. Directly contradicts Icon.tsx's own note ('Don't reintroduce Tailwind h-X w-X to size icons — pass size'). The !important in the icon-NN utilities means these className sizes can silently fight the wrapper.",
     },
     {
         name: 'InvitesIcon (Home/InvitesIcon.tsx)',
