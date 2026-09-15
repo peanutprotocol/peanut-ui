@@ -8,7 +8,10 @@ jest.mock('next/image', () => ({
     default: (props: Record<string, unknown>) => React.createElement('img', props as Record<string, string>),
 }))
 
-jest.mock('@/assets/logos/peanut-logo.svg', () => 'peanut-logo.svg')
+jest.mock('@/assets/logos/peanut-logo-dark.svg', () => 'peanut-logo-dark.svg')
+
+const mockPush = jest.fn()
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
 
 const renderVariant = (variant?: 'gone' | 'loadFailed', onRetry?: () => void) =>
     render(
@@ -18,11 +21,14 @@ const renderVariant = (variant?: 'gone' | 'loadFailed', onRetry?: () => void) =>
     )
 
 describe('ReceiptUnavailable', () => {
+    beforeEach(() => mockPush.mockClear())
+
     test('defaults to the gone copy with branding and a home CTA — and no retry', () => {
         renderVariant()
         expect(screen.getByText('This receipt link is no longer available')).toBeInTheDocument()
         expect(screen.getByAltText('Peanut Logo')).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: /go to home/i })).toHaveAttribute('href', '/home')
+        fireEvent.click(screen.getByRole('button', { name: /go to home/i }))
+        expect(mockPush).toHaveBeenCalledWith('/home')
         expect(screen.queryByRole('button', { name: /retry/i })).not.toBeInTheDocument()
     })
 

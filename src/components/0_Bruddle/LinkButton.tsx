@@ -10,12 +10,14 @@ interface LinkButtonProps {
     children: React.ReactNode
     /** Renders a Next.js <Link>. Omit to render a <button> with onClick. */
     href?: string
-    onClick?: () => void
+    onClick?: (e: React.MouseEvent<HTMLElement>) => void
     /** Shows the trailing arrow-up-right icon. */
     icon?: boolean
     disabled?: boolean
     /** Opens href in a new tab. */
     external?: boolean
+    /** Renders a plain anchor with the download attribute. */
+    download?: boolean
     className?: string
     'data-testid'?: string
 }
@@ -35,6 +37,7 @@ export const LinkButton = ({
     icon,
     disabled,
     external,
+    download,
     className,
     ...props
 }: LinkButtonProps) => {
@@ -53,14 +56,24 @@ export const LinkButton = ({
         </>
     )
     if (href && !disabled) {
+        // next/link prefetches and client-routes — wrong for new-tab and
+        // download hrefs, so those render a plain anchor.
+        if (external || download) {
+            return (
+                <a
+                    href={href}
+                    onClick={onClick}
+                    className={classes}
+                    {...(external && { target: '_blank', rel: 'noopener noreferrer' })}
+                    {...(download && { download: true })}
+                    {...props}
+                >
+                    {content}
+                </a>
+            )
+        }
         return (
-            <Link
-                href={href}
-                onClick={onClick}
-                className={classes}
-                {...(external && { target: '_blank', rel: 'noopener noreferrer' })}
-                {...props}
-            >
+            <Link href={href} onClick={onClick} className={classes} {...props}>
                 {content}
             </Link>
         )
