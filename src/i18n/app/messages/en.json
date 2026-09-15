@@ -1437,6 +1437,7 @@
         },
         "cancel": {
             "title": "Cancel your card?",
+            "keepCard": "Keep my card",
             "body": "You won't be able to use it again.",
             "canceling": "Canceling…",
             "slideToCancel": "Slide to Cancel",

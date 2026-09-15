@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { CountryCombobox } from '@/components/Common/CountryCombobox'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
@@ -162,7 +163,7 @@ const ResidenceChangeDrawer = ({
                                       : t('bankingRestrictionNote')}
                             </p>
                         )}
-                        {error && <p className="text-body-xs text-foreground-error">{error}</p>}
+                        {error && <Notification priority="error">{error}</Notification>}
                         <Button
                             variant="purple"
                             shadowSize="4"

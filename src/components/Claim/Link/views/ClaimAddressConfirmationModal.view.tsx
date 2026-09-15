@@ -1,7 +1,7 @@
 'use client'
 
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { Button } from '@/components/0_Bruddle/Button'
 import ActionModal from '@/components/Global/ActionModal'
 import { useTranslations } from 'next-intl'
 
@@ -53,15 +53,16 @@ export const ClaimAddressConfirmationModal = ({
                             }
                         }}
                     />
-                    <LinkButton
-                        className="self-center"
+                    <Button
+                        variant="stroke"
+                        className="w-full"
                         onClick={() => {
                             setShowConfirmationModal(false)
                             setClaimToExternalWallet(false)
                         }}
                     >
                         {t('addressCompatible.claimToPeanut')}
-                    </LinkButton>
+                    </Button>
                 </div>
             }
             preventClose={false}

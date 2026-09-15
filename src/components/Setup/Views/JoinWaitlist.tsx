@@ -3,6 +3,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { Divider } from '@/components/0_Bruddle/Divider'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { useEffect, useState } from 'react'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
@@ -29,6 +30,9 @@ const JoinWaitlist = () => {
     const [isChanging, setIsChanging] = useState(false)
     const [isLoading, setisLoading] = useState(false)
     const [error, setError] = useState('')
+    // flow/api failure — not attributable to the input, so it renders as a
+    // notification banner instead of a field error (design.md error display)
+    const [flowError, setFlowError] = useState('')
 
     const { handleNext } = useSetupFlow()
     const router = useRouter()
@@ -48,6 +52,7 @@ const JoinWaitlist = () => {
         }
         try {
             setError('')
+            setFlowError('')
             setisLoading(true)
             const res = await invitesApi.validateInviteCode(inviteCode)
             const isValid = res.success && res.onboardingResolved
@@ -66,7 +71,7 @@ const JoinWaitlist = () => {
                 source: 'setup',
                 invite_code: inviteCode,
             })
-            setError(t('waitlist.inviterNotFound'))
+            setFlowError(tCommon('genericError'))
             return false
         } finally {
             setisLoading(false)
@@ -87,7 +92,10 @@ const JoinWaitlist = () => {
                         setIsValid(isValid)
                         setIsChanging(isChanging)
                         setInviteCode(value)
-                        if (isChanging) setError('')
+                        if (isChanging) {
+                            setError('')
+                            setFlowError('')
+                        }
                     }}
                     isSetupFlow
                     isInputChanging={isChanging}
@@ -95,6 +103,8 @@ const JoinWaitlist = () => {
                 />
                 {error && <FieldError>{error}</FieldError>}
             </div>
+
+            {flowError && <Notification priority="error">{flowError}</Notification>}
 
             <Button
                 variant="purple"
