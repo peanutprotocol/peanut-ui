@@ -117,10 +117,6 @@ export default function BaseInputPage() {
                         label="GeneralRecipientInput — multi-type recipient input (address, username, ...)"
                         code={`import GeneralRecipientInput from '@/components/Global/GeneralRecipientInput'`}
                     />
-                    <CodeBlock
-                        label="FileUploadInput — file upload with drag-and-drop"
-                        code={`import FileUploadInput from '@/components/Global/FileUploadInput'`}
-                    />
                 </DocSection.Code>
             </DocSection>
         </DocPage>

@@ -267,7 +267,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
         >
             <div className="w-full">
                 <h2 className="text-left text-body-s">{l.youSend}</h2>
-                <div className="mt-2 flex w-full items-center justify-center gap-4 rounded-sm border border-border-default bg-background-default p-4">
+                <div className="mt-2 flex w-full items-center justify-center gap-4 rounded-sm border border-border-default bg-background-default p-4 outline-action-focus focus-within:border-transparent focus-within:outline-[3px] focus-within:outline-action-focus focus-within:outline-solid">
                     {showLoading ? (
                         <div className="flex w-full items-center">
                             <div className="h-5 w-40 animate-pulse rounded-full bg-background-disabled" />
@@ -324,7 +324,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
 
             <div className="w-full">
                 <h2 className="text-left text-body-s">{l.recipientGets}</h2>
-                <div className="mt-2 flex w-full items-center justify-center gap-4 rounded-sm border border-border-default bg-background-default p-4">
+                <div className="mt-2 flex w-full items-center justify-center gap-4 rounded-sm border border-border-default bg-background-default p-4 outline-action-focus focus-within:border-transparent focus-within:outline-[3px] focus-within:outline-action-focus focus-within:outline-solid">
                     {showLoading ? (
                         <div className="flex w-full items-center">
                             <div className="h-5 w-40 animate-pulse rounded-full bg-background-disabled" />

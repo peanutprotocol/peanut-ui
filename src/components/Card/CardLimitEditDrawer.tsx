@@ -4,7 +4,9 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useFormatter, useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Field } from '@/components/0_Bruddle/Field'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { rainApi, type RainCardLimit, type RainLimitFrequency } from '@/services/rain'
@@ -135,27 +137,20 @@ const CardLimitEditDrawer: FC<Props> = ({ cardId, frequency, label, initialAmoun
                         </DrawerHeader>
                     </div>
                     <div className="flex w-full flex-col gap-4">
-                        <div className="flex w-full flex-col gap-2 text-left">
-                            <label htmlFor="card-limit-input" className="text-label-l">
-                                {label}
-                            </label>
-                            <div className="flex items-center gap-2 rounded-sm border border-border-default bg-background-default px-3 py-2">
-                                <span className="text-foreground-secondary">$</span>
-                                <input
-                                    id="card-limit-input"
-                                    type="number"
-                                    inputMode="decimal"
-                                    value={value}
-                                    onChange={(e) => setValue(e.target.value)}
-                                    className="w-full bg-transparent text-body-m focus:outline-none"
-                                    min={0.01}
-                                    max={MAX_CARD_LIMIT_CENTS / 100}
-                                    step="0.01"
-                                    disabled={saving}
-                                />
-                            </div>
-                            {error && <p className="text-body-s text-foreground-error">{error}</p>}
-                        </div>
+                        <Field label={label} htmlFor="card-limit-input" error={error} className="text-left">
+                            <BaseInput
+                                id="card-limit-input"
+                                type="number"
+                                inputMode="decimal"
+                                value={value}
+                                onChange={(e) => setValue(e.target.value)}
+                                leftContent={<span className="text-foreground-secondary">$</span>}
+                                min={0.01}
+                                max={MAX_CARD_LIMIT_CENTS / 100}
+                                step="0.01"
+                                disabled={saving}
+                            />
+                        </Field>
                         <Button
                             variant="purple"
                             shadowSize="4"

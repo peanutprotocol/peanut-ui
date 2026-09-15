@@ -1,5 +1,5 @@
 'use client'
-import FileUploadInput from '@/components/Global/FileUploadInput'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
@@ -61,11 +61,11 @@ export const CreateRequestLinkView = () => {
                     isLoading={isCreatingLink || isUpdatingRequest}
                 />
 
-                <FileUploadInput
-                    className="h-11"
+                <BaseInput
                     placeholder={tCommon('comment')}
-                    attachmentOptions={attachmentOptions}
-                    setAttachmentOptions={handleAttachmentOptionsChange}
+                    value={attachmentOptions.message}
+                    maxLength={140}
+                    onChange={(e) => handleAttachmentOptionsChange({ ...attachmentOptions, message: e.target.value })}
                 />
 
                 <CreateRequestLinkCta
