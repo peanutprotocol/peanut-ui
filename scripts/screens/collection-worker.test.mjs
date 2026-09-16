@@ -105,11 +105,7 @@ test('collection API searches screens and creates an ordered reusable collection
         SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.peanut.me',
         SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access',
     }
-    const search = await worker.fetch(
-        new Request('https://api.example/v1/screens?q=prof'),
-        env,
-        accessContext
-    )
+    const search = await worker.fetch(new Request('https://api.example/v1/screens?q=prof'), env, accessContext)
     const searchBody = await search.json()
     assert.equal(searchBody.screens[0].id, 'profile')
     assert.match(searchBody.source, /\/dev\//)

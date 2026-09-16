@@ -140,6 +140,7 @@ jobs:
               if: vars.SCREEN_LIBRARY_MCP_URL != ''
               env:
                   SCREEN_LIBRARY_MCP_URL: ${{ vars.SCREEN_LIBRARY_MCP_URL }}
+                  SCREEN_LIBRARY_ACCESS_AUD: ${{ vars.SCREEN_LIBRARY_ACCESS_AUD }}
               run: |
                   node scripts/screens/mcp/prepare.mjs /tmp/screen-library-mcp
                   ln -s "$GITHUB_WORKSPACE/scripts/screens/mcp/node_modules" /tmp/screen-library-mcp/node_modules

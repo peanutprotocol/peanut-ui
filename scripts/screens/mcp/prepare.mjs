@@ -12,6 +12,7 @@ export function mcpWorkerConfiguration(env = process.env) {
         origin.hostname.endsWith('.workers.dev')
     )
         throw new Error('Configure SCREEN_LIBRARY_MCP_URL as a custom HTTPS origin')
+    if (!env.SCREEN_LIBRARY_ACCESS_AUD) throw new Error('Configure SCREEN_LIBRARY_ACCESS_AUD')
     return {
         name: 'peanut-screen-library-mcp',
         main: 'index.mjs',
@@ -20,7 +21,10 @@ export function mcpWorkerConfiguration(env = process.env) {
         workers_dev: false,
         preview_urls: false,
         routes: [{ pattern: origin.hostname, custom_domain: true }],
-        vars: { SCREEN_LIBRARY_MCP_URL: origin.origin },
+        vars: {
+            SCREEN_LIBRARY_MCP_URL: origin.origin,
+            SCREEN_LIBRARY_ACCESS_AUD: env.SCREEN_LIBRARY_ACCESS_AUD,
+        },
         services: [{ binding: 'COLLECTIONS', service: 'peanut-screen-library-collections' }],
     }
 }

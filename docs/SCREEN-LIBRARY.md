@@ -77,7 +77,7 @@ Browser Rendering possible without changing the collection API.
 Required repository variables are `SCREEN_LIBRARY_COLLECTION_API_URL`,
 `SCREEN_LIBRARY_ACCESS_AUD`, and `SCREEN_LIBRARY_MCP_URL`; the two URL variables
 are custom HTTPS origins and the audience is the expected Cloudflare Access
-application audience for the collection Worker. Both generated Workers set
+application audience for both control-plane Workers. Both generated Workers set
 `workers_dev = false` and disable preview URLs. Configure Cloudflare Access with
 Google and an `@peanut.me` allow rule for the collection origin and the MCP
 origin. Configure the MCP Access application as the OAuth provider for remote

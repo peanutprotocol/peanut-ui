@@ -6,6 +6,7 @@ import {
     normalizeCollectionSpec,
     validateCollection,
 } from '../collection-core.mjs'
+import { constantTimeEqual, verifiedAccessIdentity } from '../access.mjs'
 
 const responseHeaders = {
     'Cache-Control': 'no-store',
@@ -19,16 +20,12 @@ const safeRepository = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/
 
 async function actor(request, env, ctx) {
     const internal = request.headers.get('authorization')
-    if (env.COLLECTION_SERVICE_TOKEN && internal === `Bearer ${env.COLLECTION_SERVICE_TOKEN}`) return 'mcp@internal'
-    const access = ctx?.access
-    if (!access || access.aud !== env.SCREEN_LIBRARY_ACCESS_AUD) return null
-    try {
-        const email = (await access.getIdentity())?.email?.toLowerCase()
-        if (email?.endsWith('@peanut.me')) return email
-    } catch {
-        return null
-    }
-    return null
+    if (
+        env.COLLECTION_SERVICE_TOKEN &&
+        (await constantTimeEqual(internal ?? '', `Bearer ${env.COLLECTION_SERVICE_TOKEN}`))
+    )
+        return 'mcp@internal'
+    return (await verifiedAccessIdentity(ctx, env.SCREEN_LIBRARY_ACCESS_AUD)) ?? null
 }
 
 async function readJson(bucket, key) {

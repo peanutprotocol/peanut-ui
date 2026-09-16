@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/server'
 import { createMcpHandler } from 'agents/mcp/server'
 import { z } from 'zod'
+import { verifiedAccessIdentity } from '../access.mjs'
 import { collectionRequest, textResult } from './client.mjs'
 
 function serverFor(env) {
@@ -80,6 +81,8 @@ function serverFor(env) {
 
 export default {
     async fetch(request, env, context) {
+        if (!await verifiedAccessIdentity(context, env.SCREEN_LIBRARY_ACCESS_AUD))
+            return new Response('Unauthorized', { status: 401, headers: { 'Cache-Control': 'no-store' } })
         const handler = createMcpHandler(() => serverFor(env), {
             route: '/mcp',
             allowedHostnames: [new URL(env.SCREEN_LIBRARY_MCP_URL).hostname],
