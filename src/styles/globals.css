@@ -1202,6 +1202,8 @@ Firefox input[type='number'] {
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .cloud-ltr,
+    .cloud-rtl,
     .cloud-drift {
         animation: none;
     }

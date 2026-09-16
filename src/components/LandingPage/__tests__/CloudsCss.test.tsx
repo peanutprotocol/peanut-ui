@@ -34,7 +34,7 @@ describe('CloudsCss', () => {
             /@keyframes cloud-drift-rtl\s*{[\s\S]*?from\s*{[^}]*translateX\(100vw\)[\s\S]*?to\s*{[^}]*translateX\(-300px\)/
         )
         expect(globalsCss).toMatch(
-            /@media \(prefers-reduced-motion: reduce\)\s*{[\s\S]*?\.cloud-ltr,[\s\S]*?\.cloud-rtl\s*{[^}]*animation:\s*none/
+            /@media \(prefers-reduced-motion: reduce\)\s*{[\s\S]*?\.cloud-ltr,\s*\.cloud-rtl,\s*\.cloud-drift\s*{[^}]*animation:\s*none/
         )
     })
 })
