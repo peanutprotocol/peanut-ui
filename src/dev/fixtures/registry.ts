@@ -375,6 +375,8 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'card-limit': {
         route: '/card/limit',
+        // the $500 per-transaction limit itself comes from the demo api's
+        // /rain/cards/:cardId/limits handler; this only unlocks the gate.
         about: 'Card limit screen with a $500 per-transaction limit behind the gate.',
         responses: {
             'GET /rain/cards': {
@@ -393,7 +395,6 @@ export const FIXTURES: Record<string, Fixture> = {
                     },
                 ],
             },
-            'GET /rain/cards/demo-card/limits': { limits: [{ amount: 50000, frequency: 'perAuthorization' }] },
         },
     },
     send: { route: '/send', about: 'Send: the method picker — link, contacts, bank or Mercado Pago.' },

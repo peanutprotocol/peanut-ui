@@ -93,10 +93,11 @@ const CardFace: FC<Props> = ({
     return (
         <div
             className={twMerge(
-                // iso/iec 7810 id-1 card ratio. rounded-xl is physical-card
-                // geometry, intentionally off the ds radius scale — same
-                // exemption class as the aspect ratio (visual-qa verdict).
-                'relative aspect-[1.586/1] w-full overflow-hidden rounded-xl bg-action-primary text-foreground-primary',
+                // iso/iec 7810 id-1 card ratio. rounded-card is the
+                // physical-card geometry token (12px), intentionally off the
+                // ds radius scale — same exemption class as the aspect ratio
+                // (visual-qa verdict ui#3201).
+                'relative aspect-[1.586/1] w-full overflow-hidden rounded-card bg-action-primary text-foreground-primary',
                 isLocked && 'grayscale',
                 className
             )}
