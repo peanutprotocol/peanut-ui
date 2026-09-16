@@ -1156,7 +1156,7 @@ Firefox input[type='number'] {
     -moz-appearance: textfield;
 }
 
-/* ── Landing page: CSS cloud drift animations ── */
+/* landing page cloud drift animations */
 @keyframes cloud-drift-ltr {
     from {
         transform: translateX(-300px);
