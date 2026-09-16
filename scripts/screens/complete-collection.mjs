@@ -27,10 +27,13 @@ export async function completeCollection({ collectionId, inputDir, storage, shar
     )
     const sharp = sharpFactory ?? (await import('sharp')).default
     const captures = capturesIn(resolve(inputDir))
+    const failedLocales = []
     for (const [locale, ids] of Object.entries(request.screens)) {
         const capture = captures.find((candidate) => candidate.report.locale === locale)
-        if (!capture || capture.report.commit !== request.targetCommit)
-            throw new Error(`Missing trusted ${locale} capture`)
+        if (!capture || capture.report.commit !== request.targetCommit) {
+            failedLocales.push(locale)
+            continue
+        }
         const byId = new Map(capture.report.screens.map((screen) => [screen.id, screen]))
         for (const id of ids) {
             const screen = byId.get(id)
@@ -60,10 +63,13 @@ export async function completeCollection({ collectionId, inputDir, storage, shar
         }
     }
     const updated = validateCollection(collection)
+    const capture = { ...collection.capture }
+    delete capture.failedLocales
     updated.capture = {
-        ...collection.capture,
+        ...capture,
         status: updated.complete ? 'complete' : 'partial',
         finishedAt: new Date().toISOString(),
+        ...(failedLocales.length ? { failedLocales } : {}),
     }
     await storage.put(collectionKey, JSON.stringify(updated), {
         allowOverwrite: true,

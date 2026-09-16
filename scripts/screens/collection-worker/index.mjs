@@ -46,7 +46,7 @@ function bestEntry(entries, locale) {
                 entry.locale === locale &&
                 (entry.source ?? 'synthetic') === 'synthetic' &&
                 entry.reportType === 'capture' &&
-                ['dev', 'main'].includes(entry.branch)
+                entry.branch === 'dev'
         )
         .sort(
             (a, b) =>
@@ -73,16 +73,19 @@ async function sources(bucket, locales) {
 async function github(requestPath, env, options = {}) {
     if (!safeRepository.test(env.GITHUB_REPOSITORY ?? '') || !env.GITHUB_ACTIONS_TOKEN)
         throw new Error('GitHub dispatch is not configured')
-    const response = await fetch(`https://api.github.com/repos/${env.GITHUB_REPOSITORY}${requestPath}`, {
-        ...options,
-        headers: {
-            Accept: 'application/vnd.github+json',
-            Authorization: `Bearer ${env.GITHUB_ACTIONS_TOKEN}`,
-            'User-Agent': 'peanut-screen-library-collections',
-            'X-GitHub-Api-Version': '2022-11-28',
-            ...options.headers,
-        },
-    })
+    const response = await (env.GITHUB_FETCH ?? fetch)(
+        `https://api.github.com/repos/${env.GITHUB_REPOSITORY}${requestPath}`,
+        {
+            ...options,
+            headers: {
+                Accept: 'application/vnd.github+json',
+                Authorization: `Bearer ${env.GITHUB_ACTIONS_TOKEN}`,
+                'User-Agent': 'peanut-screen-library-collections',
+                'X-GitHub-Api-Version': '2022-11-28',
+                ...options.headers,
+            },
+        }
+    )
     if (!response.ok) throw new Error(`GitHub request failed (${response.status})`)
     return response.status === 204 ? null : response.json()
 }
@@ -99,18 +102,34 @@ async function queueCapture(collection, env) {
         requestedAt: new Date().toISOString(),
         screens: missingByLocale(collection),
     }
-    await env.REPORTS.put(`collection-requests/${collection.id}.json`, JSON.stringify(request), {
-        httpMetadata: { contentType: 'application/json', cacheControl: 'no-store' },
-    })
+    const previousCapture = collection.capture
     collection.capture = { status: 'queued', targetCommit, requestedAt: request.requestedAt }
-    await env.REPORTS.put(`collections/${collection.id}/manifest.json`, JSON.stringify(collection), {
-        httpMetadata: { contentType: 'application/json', cacheControl: 'private, max-age=10' },
-    })
-    await github('/actions/workflows/screen-library-collection.yml/dispatches', env, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ref: 'dev', inputs: { collection_id: collection.id } }),
-    })
+    try {
+        await env.REPORTS.put(`collection-requests/${collection.id}.json`, JSON.stringify(request), {
+            httpMetadata: { contentType: 'application/json', cacheControl: 'no-store' },
+        })
+        await env.REPORTS.put(`collections/${collection.id}/manifest.json`, JSON.stringify(collection), {
+            httpMetadata: { contentType: 'application/json', cacheControl: 'private, max-age=10' },
+        })
+        await github('/actions/workflows/screen-library-collection.yml/dispatches', env, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ref: 'dev', inputs: { collection_id: collection.id } }),
+        })
+    } catch (cause) {
+        collection.capture = {
+            ...previousCapture,
+            status: 'failed',
+            targetCommit,
+            requestedAt: request.requestedAt,
+            failedAt: new Date().toISOString(),
+            reason: 'The capture workflow could not be dispatched.',
+        }
+        await env.REPORTS.put(`collections/${collection.id}/manifest.json`, JSON.stringify(collection), {
+            httpMetadata: { contentType: 'application/json', cacheControl: 'private, max-age=10' },
+        })
+        throw cause
+    }
     return collection
 }
 

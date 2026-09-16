@@ -111,3 +111,54 @@ test('focused completion publishes WebP only and fills the requested collection 
         rmSync(root, { recursive: true, force: true })
     }
 })
+
+test('focused completion persists a retriable partial collection when a locale artifact is missing', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'partial-screen-collection-'))
+    try {
+        const collection = composeCollection({
+            id: collectionId,
+            spec: { title: 'Choice overload', items: [{ id: 'profile' }] },
+            reports: {
+                en: {
+                    schema: 1,
+                    type: 'capture',
+                    locale: 'en',
+                    commit: oldCommit,
+                    screens: [
+                        {
+                            id: 'profile',
+                            name: 'Profile',
+                            flow: 'Profile',
+                            kind: 'route',
+                            status: 'unavailable',
+                            reason: 'Pending',
+                        },
+                    ],
+                },
+            },
+            createdAt: '2026-09-16T10:00:00Z',
+        })
+        collection.capture = { status: 'running', targetCommit }
+        const storage = memoryStorage({
+            [`collections/${collectionId}/manifest.json`]: JSON.stringify(collection),
+            [`collection-requests/${collectionId}.json`]: JSON.stringify({
+                schema: 1,
+                collectionId,
+                targetCommit,
+                screens: { en: ['profile'] },
+            }),
+        })
+        await assert.rejects(
+            () => completeCollection({ collectionId, inputDir: root, storage }),
+            /1 collection variants could not be captured/
+        )
+        const stored = JSON.parse(storage.objects.get(`collections/${collectionId}/manifest.json`))
+        assert.equal(stored.capture.status, 'partial')
+        assert.deepEqual(stored.capture.failedLocales, ['en'])
+        assert.match(stored.capture.finishedAt, /^2026-/)
+        assert.equal(stored.missing.length, 1)
+        assert.equal(JSON.parse(storage.objects.get(`collection-entries/${collectionId}.json`)).complete, false)
+    } finally {
+        rmSync(root, { recursive: true, force: true })
+    }
+})
