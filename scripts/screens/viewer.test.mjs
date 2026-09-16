@@ -468,6 +468,40 @@ test('changed mode shows only visual changes and can switch to the full catalogu
     assert.equal(elements.location.search, '?source=synthetic&locale=en&status=failed&view=all')
 })
 
+test('report cards follow explicit journey order instead of manifest or ID order', async () => {
+    const image = 'a'.repeat(64) + '.webp'
+    const makeScreen = (id, order) => ({
+        id,
+        name: id,
+        flow: 'Setup and login',
+        journey: 'Account setup',
+        order,
+        kind: 'component',
+        status: 'captured',
+        image,
+        thumbnail: image,
+    })
+    const report = {
+        schema: 1,
+        type: 'capture',
+        locale: 'en',
+        complete: true,
+        capturedAt: '2026-09-16T08:00:00Z',
+        screens: [makeScreen('signup', 30), makeScreen('landing', 10), makeScreen('residence', 40)],
+    }
+    const elements = await loadLanding('/screens/2026-09-16/dev/en/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/', {
+        report,
+    })
+    assert.deepEqual(
+        elements.get('screens').children.map(({ id }) => id),
+        ['landing', 'signup', 'residence']
+    )
+    assert.equal(
+        elements.get('screens').children[0].children[0].children[2].textContent,
+        'Setup and login · Account setup · Isolated component'
+    )
+})
+
 test('a restored nonvisual status opens the full catalogue instead of an empty changed view', async () => {
     const image = 'a'.repeat(64) + '.webp'
     const report = {
