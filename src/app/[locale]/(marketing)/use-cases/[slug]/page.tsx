@@ -4,7 +4,6 @@ import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import { getTranslations } from '@/i18n'
 import { ContentPage } from '@/components/Marketing/ContentPage'
-import { ArticleLocaleNav } from '@/components/Marketing/ArticleLocaleNav'
 import {
     readPageContentLocalized,
     listPublishedSlugs,
@@ -12,7 +11,6 @@ import {
     contentLocaleFor,
     availableContentLocales,
 } from '@/lib/content'
-import type { Locale } from '@/i18n/types'
 import { renderContent } from '@/lib/mdx'
 
 interface PageProps {
@@ -63,11 +61,6 @@ export default async function UseCasePage({ params }: PageProps) {
     const url = `/${locale}/use-cases/${slug}`
     const hubHref = `/${locale}/content?type=use-cases`
 
-    const localizedHrefs = Object.fromEntries(SUPPORTED_LOCALES.map((l) => [l, `/${l}/use-cases/${slug}`])) as Record<
-        Locale,
-        string
-    >
-
     return (
         <ContentPage
             locale={locale}
@@ -87,9 +80,6 @@ export default async function UseCasePage({ params }: PageProps) {
                     : undefined
             }
         >
-            <div className="mx-auto max-w-160 px-6 pt-4 md:px-4">
-                <ArticleLocaleNav currentLocale={locale as Locale} localizedHrefs={localizedHrefs} />
-            </div>
             {content}
         </ContentPage>
     )

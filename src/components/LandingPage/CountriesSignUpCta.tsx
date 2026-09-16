@@ -25,7 +25,7 @@ export function CountriesSignUpCta({ label }: { label: string }) {
                 if (interceptAppCta(MIGRATION_SURFACES.LANDING_COUNTRIES)) event.preventDefault()
             }}
         >
-            <Button shadowSize="4" className={BUTTON_CLASS}>
+            <Button size="large" shadowSize="4" className={BUTTON_CLASS}>
                 {label}
             </Button>
         </a>

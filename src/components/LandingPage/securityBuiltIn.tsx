@@ -64,8 +64,10 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                     {/* h2, not h1: this h1 sat directly above the h3 feature
                         titles, and that h1 → h3 skip failed Lighthouse's
                         heading-order audit. */}
-                    {/* headingSmall on mobile: "SEGURANÇA." at text-heading (60px)
-                        needs 403px and clips at 320px (TASK-22366) */}
+                    {/* headingSmall on mobile: tried text-heading (60px) per the
+                        preview ask, but "SEGURANÇA." measures 387px at 60px and
+                        clips a 320px viewport (TASK-22366) — fell back one
+                        display-ramp step */}
                     <h2 className="font-roboto-flex-extrabold text-left text-headingSmall font-extraBlack md:text-6xl lg:text-heading">
                         {i18n.landingSecurityHeading}
                     </h2>
@@ -93,7 +95,8 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                                         {feature.title}
                                     </h3>
                                 </div>
-                                <p className="font-roboto-flex w-full max-w-[360px] text-left text-body-l">
+                                {/* no 20px/400 body token in the DS ramp (tops out at body-l 18) — raw md:text-xl keeps the pre-preview desktop size */}
+                                <p className="font-roboto-flex w-full max-w-[360px] text-left text-body-l md:text-xl">
                                     {feature.description}
                                 </p>
                                 {feature.learnMoreHref && (

@@ -2,23 +2,26 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { SUPPORTED_LOCALES, type Locale } from '@/i18n/types'
 import { LOCALE_META } from '@/i18n/localeMeta'
 import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
+import { localeHref } from './LocaleSwitcher'
 
 interface Props {
     /** Current URL locale. */
     currentLocale: Locale
-    /** Map of every supported locale → this article's URL at that locale. */
-    localizedHrefs: Record<Locale, string>
 }
 
 /**
- * Article-top language switcher. Back navigation is NOT here — that is
- * HeroBackNav, mounted once in the (marketing) layout for every content
- * page (was ArticleBackNav until the two affordances were unified).
+ * Top-bar language switcher for every marketing/content page — mounted once
+ * in the (marketing) layout, next to HeroBackNav. Hrefs are the current
+ * pathname with its locale segment swapped (marketing routes are all
+ * `/{locale}/rest`), which is exactly what the per-article maps used to
+ * hardcode before this moved into the layout.
  */
-export function ArticleLocaleNav({ currentLocale, localizedHrefs }: Props) {
+export function ArticleLocaleNav({ currentLocale }: Props) {
+    const pathname = usePathname() ?? '/'
     const [open, setOpen] = useState(false)
     const wrapperRef = useRef<HTMLDivElement | null>(null)
     const current = LOCALE_META[currentLocale]
@@ -40,7 +43,7 @@ export function ArticleLocaleNav({ currentLocale, localizedHrefs }: Props) {
     }, [open])
 
     return (
-        <nav aria-label="Language" className="mb-6 flex items-center justify-end">
+        <nav aria-label="Language" className="flex items-center justify-end">
             <div ref={wrapperRef} className="relative">
                 <button
                     type="button"
@@ -67,7 +70,7 @@ export function ArticleLocaleNav({ currentLocale, localizedHrefs }: Props) {
                             return (
                                 <li key={loc} role="option" aria-selected={isCurrent}>
                                     <Link
-                                        href={localizedHrefs[loc]}
+                                        href={localeHref(pathname, loc)}
                                         onClick={() => setOpen(false)}
                                         aria-label={meta.label}
                                         title={meta.label}
