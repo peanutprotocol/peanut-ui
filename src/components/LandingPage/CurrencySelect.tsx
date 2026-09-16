@@ -137,7 +137,9 @@ const CurrencySelect = ({
                   'aria-controls': open ? listId : undefined,
                   onClick: (event: React.MouseEvent<HTMLElement>) => {
                       ;(trigger as React.ReactElement<React.HTMLAttributes<HTMLElement>>).props.onClick?.(event)
-                      if (open) closeList()
+                      // refocus on toggle-close: the mousedown preventDefault below stops the
+                      // browser from focusing the trigger, so without this focus drops to body
+                      if (open) closeList(true)
                       else openList()
                   },
                   // while the list holds focus, a trigger mousedown would blur → close →
