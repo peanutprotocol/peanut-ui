@@ -263,7 +263,6 @@ export default function ButtonPage() {
                             default: '(none)',
                             description: "'4' is standard (160+ usages)",
                         },
-                        { name: 'shadowType', type: "'primary' | 'secondary'", default: "'primary'" },
                         {
                             name: 'loading',
                             type: 'boolean',

@@ -151,7 +151,7 @@ describe('StatusBoard', () => {
     // knowing whether Peanut is up should convey.
     it('treats an unknown overall state as an outage, not as a neutral notice', () => {
         const { container } = render(<StatusBanner state="unknown" title="Status unavailable" />)
-        expect(container.firstElementChild?.className).toContain('bg-error-1')
+        expect(container.firstElementChild?.className).toContain('bg-background-badge-error')
     })
 
     it('says a bar with no checks was unmonitored rather than showing 0/0', () => {

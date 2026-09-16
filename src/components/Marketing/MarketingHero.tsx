@@ -1,6 +1,6 @@
+import { Button } from '@/components/0_Bruddle/Button'
 import Title from '@/components/0_Bruddle/Title'
 import Image from 'next/image'
-import Link from 'next/link'
 import { CloudsCss } from '@/components/LandingPage/CloudsCss'
 import { MarqueeComp } from '@/components/Global/MarqueeWrapper'
 import HandThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
@@ -57,12 +57,9 @@ export function MarketingHero({
                     <p className="mt-6 text-3xl font-bold text-foreground-primary md:text-5xl">{subtitle}</p>
                     {ctaText && (
                         <div className="mt-8">
-                            <Link
-                                href={ctaHref}
-                                className="btn btn-purple btn-shadow-primary-4 inline-flex w-auto px-8 active:translate-x-[3px] active:translate-y-[4px] active:shadow-none"
-                            >
+                            <Button href={ctaHref} shadowSize="4" className="inline-flex w-auto px-8">
                                 {ctaText}
-                            </Link>
+                            </Button>
                         </div>
                     )}
                 </div>

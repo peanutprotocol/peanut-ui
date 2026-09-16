@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import { Button } from '@/components/0_Bruddle/Button'
 import { CloudsCss } from '@/components/LandingPage/CloudsCss'
 import { MarqueeComp } from '@/components/Global/MarqueeWrapper'
 import HandThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
@@ -41,12 +41,18 @@ export function Hero({ title, subtitle, cta, ctaHref }: HeroProps) {
                     )}
                     {cta && ctaHref && (
                         <div className="mt-8">
-                            <Link
+                            {/* white-on-pink CTA: stroke is the closest board
+                                variant, and the two overrides keep it looking
+                                exactly as it does today — the unconditional
+                                white bg cancels stroke's press-to-pink, and the
+                                hover shadow cancels stroke's hover flatten. */}
+                            <Button
+                                variant="stroke"
                                 href={ctaHref}
-                                className="btn btn-shadow-primary-4 inline-flex w-auto bg-background-default px-8 font-extrabold hover:bg-background-default/90 active:translate-x-1 active:translate-y-1 active:shadow-none"
+                                className="inline-flex w-auto bg-background-default px-8 font-extrabold hover:bg-background-default/90 hover:shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)]"
                             >
                                 {cta}
-                            </Link>
+                            </Button>
                         </div>
                     )}
                 </div>

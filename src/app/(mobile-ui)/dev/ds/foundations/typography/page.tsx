@@ -1,6 +1,5 @@
 'use client'
 
-import Title from '@/components/0_Bruddle/Title'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
 import { DocPage } from '../../_components/DocPage'
@@ -46,20 +45,10 @@ export default function TypographyPage() {
                                 system.
                             </p>
                         </div>
-                        <div className="rounded-sm bg-action-primary p-3">
-                            <Title text="KNERD FONT" />
-                            <p className="mt-1 text-body-s text-foreground-primary">
-                                Display font with filled+outline double-render effect.
-                            </p>
-                        </div>
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
                     <CodeBlock label="Font Display" code='className="font-display"' />
-                    <CodeBlock
-                        label="Title Component"
-                        code={`import Title from '@/components/0_Bruddle/Title'\n<Title text="PEANUT" />`}
-                    />
                 </DocSection.Code>
             </DocSection>
 

@@ -48,7 +48,7 @@ export function ArticleLocaleNav({ currentLocale, localizedHrefs }: Props) {
                     aria-expanded={open}
                     aria-label={`Language: ${current.label}`}
                     onClick={() => setOpen((v) => !v)}
-                    className={`${CARD_SURFACE} inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold transition-colors hover:bg-primary-3/30`}
+                    className={`${CARD_SURFACE} inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold transition-colors hover:bg-purple-200/30`}
                 >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={current.flag} alt="" width={18} height={18} className="rounded-full" />
@@ -72,7 +72,7 @@ export function ArticleLocaleNav({ currentLocale, localizedHrefs }: Props) {
                                         aria-label={meta.label}
                                         title={meta.label}
                                         className={`flex items-center justify-center px-3 py-2 transition-colors ${
-                                            isCurrent ? 'bg-action-primary/20' : 'hover:bg-primary-3/30'
+                                            isCurrent ? 'bg-action-primary/20' : 'hover:bg-purple-200/30'
                                         }`}
                                     >
                                         {/* eslint-disable-next-line @next/next/no-img-element */}
