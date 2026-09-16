@@ -572,13 +572,24 @@
             "title": "Enviá dinero con un enlace"
         },
         "methods": {
-            "contactsDescription": "Peanuts con los que interactuaste"
+            "contactsTitle": "Nombre de usuario de Peanut",
+            "contactsDescription": "Ingresá un @usuario exacto o elegí un contacto"
         },
         "contacts": {
+            "searchPlaceholder": "Ingresá el usuario exacto o buscá contactos...",
+            "searchLabel": "Nombre de usuario de Peanut o contacto",
+            "exactUsername": "Nombre de usuario exacto",
+            "usernameFound": "Encontramos a @{username}",
+            "continueToSend": "Continuar para enviar dinero",
+            "usernameNotFound": "No encontramos ese nombre de usuario exacto.",
+            "invalidUsername": "Ingresá un nombre de usuario de Peanut válido.",
+            "lookupLimitReached": "Demasiadas verificaciones de usuario. Intentá de nuevo más tarde.",
+            "lookupError": "No pudimos verificar ese nombre de usuario. Intentá de nuevo.",
             "errorDescription": "No pudimos cargar tus contactos. Intentalo de nuevo.",
-            "noResultsDescription": "Intentá buscar otro contacto.",
+            "noResultsTitle": "No encontramos el usuario ni el contacto",
+            "noResultsDescription": "Revisá el nombre de usuario exacto de Peanut e intentalo de nuevo.",
             "emptyTitle": "Aún no tenés contactos",
-            "emptyDescription": "Los contactos aparecen cuando enviás, solicitás o invitás a alguien"
+            "emptyDescription": "Ingresá arriba un nombre de usuario exacto de Peanut o enviá mediante un enlace"
         },
         "link": {
             "cancelSuccessRefresh": "¡Enlace cancelado! Actualizá para ver tu saldo al día.",
@@ -805,6 +816,7 @@
         },
         "limits": {
             "subtitle": "Definí tu límite de gasto por transacción.",
+            "explainer": "El límite aplica a cada transacción. Podés cambiarlo cuando quieras.",
             "invalidAmount": "Ingresá un monto entre {minimum} y {maximum}, con un máximo de dos decimales.",
             "noActiveCard": "No tenés una tarjeta activa para gestionar límites."
         },
@@ -1449,6 +1461,8 @@
         "unsupportedBrowserModal": {
             "title": "Abrí este enlace en tu navegador",
             "description": "Todavía estamos trabajando para que Peanut funcione en tu navegador. Por ahora, usá Chrome o Safari.",
+            "passkeyTitle": "Las llaves de acceso no están disponibles",
+            "passkeyDescription": "Peanut necesita una llave de acceso para crear tu cuenta. Asegurate de que tu dispositivo tenga bloqueo de pantalla y las llaves de acceso activadas, y volvé a intentarlo. Si todavía no funciona, probá una vez desde otro teléfono o computadora.",
             "pasteHint": "Luego pegalo en tu navegador preferido."
         },
         "tokenAndNetworkConfirmationModal": {
@@ -1548,6 +1562,8 @@
         "xchainWithdrawLimitRetry": "Alcanzaste el límite de retiros a otras redes. Volvé a intentarlo en aproximadamente {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# día} other {# días}}. Los retiros en Arbitrum no tienen límite, o contactá a soporte para ampliar el tuyo.",
         "xchainPaymentLimit": "Hiciste demasiadas transferencias a otras redes recientemente. Contactá a soporte para ampliar tu límite.",
         "xchainPaymentLimitRetry": "Hiciste demasiadas transferencias a otras redes recientemente. Volvé a intentarlo en aproximadamente {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# día} other {# días}}, o contactá a soporte para ampliar tu límite.",
+        "xchainWithdrawDisabled": "Los retiros a otras redes están limitados en tu cuenta. Siempre podés retirar en Arbitrum, o contactá a soporte para recibir ayuda.",
+        "xchainPaymentDisabled": "Las transferencias a otras redes están limitadas en tu cuenta. Contactá a soporte para recibir ayuda.",
         "staleCardApproval": "Necesitás volver a habilitar tu tarjeta antes de retirar. Solo toma un toque con tu passkey.",
         "cardRateLimited": "Demasiadas solicitudes con la tarjeta. Esperá un momento e intentalo de nuevo.",
         "linkTransactionHashFetch": "No pudimos cargar la transacción de este enlace. Actualizá la página e intentalo de nuevo.",

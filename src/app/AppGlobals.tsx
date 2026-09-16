@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { whenIdle } from '@/utils/defer-analytics'
 import { initSentry } from '@/utils/sentry-init'
+import { useWalletProvisioningLifecycle } from '@/hooks/useWalletProvisioningLifecycle'
 
 /**
  * App-only global surfaces. Split out of `ClientProviders` because these depend
@@ -19,6 +20,7 @@ import { initSentry } from '@/utils/sentry-init'
  */
 export function AppGlobals({ children }: { children: React.ReactNode }) {
     const router = useRouter()
+    useWalletProvisioningLifecycle()
 
     // App routes want Sentry; the marketing site does not pay for it. Doing it
     // here rather than in sentry.client.config means a client-side navigation

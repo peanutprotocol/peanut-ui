@@ -256,10 +256,10 @@ describe('GROUP 1: Initial State', () => {
         expect(screen.getByTestId('divider')).toBeInTheDocument()
     })
 
-    test('Shows Peanut contacts option at top of methods list', () => {
+    test('Shows Peanut username option at top of methods list', () => {
         renderSend()
 
-        const contactsCard = screen.getByTestId('action-card-Peanut contacts')
+        const contactsCard = screen.getByTestId('action-card-Peanut username')
         expect(contactsCard).toBeInTheDocument()
     })
 
@@ -290,7 +290,7 @@ describe('GROUP 1: Initial State', () => {
         renderSend()
 
         // Should still render without errors
-        expect(screen.getByTestId('action-card-Peanut contacts')).toBeInTheDocument()
+        expect(screen.getByTestId('action-card-Peanut username')).toBeInTheDocument()
     })
 })
 
@@ -408,10 +408,10 @@ describe('GROUP 4: Method Selection', () => {
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
     })
 
-    test('Clicking Peanut contacts navigates to /send?view=contacts', () => {
+    test('Clicking Peanut username navigates to /send?view=contacts', () => {
         renderSend()
 
-        fireEvent.click(screen.getByTestId('action-card-Peanut contacts'))
+        fireEvent.click(screen.getByTestId('action-card-Peanut username'))
         expect(mockRouterPush).toHaveBeenCalledWith('/send?view=contacts')
     })
 

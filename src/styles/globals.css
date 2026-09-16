@@ -277,6 +277,9 @@
        emit .border-s/.border-l width utilities that hijack the core logical
        border-inline-start/left utilities (tooltip arrows use bare border-l). */
     --radius-round: 999px;
+    /* physical-card geometry (CardFace) — deliberately off the ui radius
+       scale, like the id-1 aspect ratio. visual-qa verdict ui#3201. */
+    --radius-card: 0.75rem;
 
     /* motion tokens — durations from real app usage, spring from the gift
        arrival curve. respect prefers-reduced-motion in consumers.

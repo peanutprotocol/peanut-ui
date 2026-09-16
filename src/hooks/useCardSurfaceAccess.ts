@@ -15,6 +15,9 @@ export interface CardSurfaceAccess {
      * still obtain one. A prohibited residence with only a pending
      * application shows the surface (to watch its status) but must not be
      * promised card spending — that application cannot become a card.
+     * While cardInfo is still loading this collapses to false (unless a
+     * card is already issued) — never tease the spend arm to a user whose
+     * residence may come back prohibited.
      */
     canSpendPathViaCard: boolean
     cardHref: '/card'
@@ -33,7 +36,10 @@ export const useCardSurfaceAccess = (): CardSurfaceAccess => {
         hasIssuedCard,
         hasCardRelationship,
         showCardSurface: hasCardRelationship || canApply,
-        canSpendPathViaCard: hasIssuedCard || canApply,
+        // spend needs a loaded cardInfo: undefined (loading/error) must not
+        // read as "not prohibited" and flash the card arm before the
+        // geo answer lands
+        canSpendPathViaCard: hasIssuedCard || (cardInfo !== undefined && canApply),
         cardHref: '/card',
     }
 }

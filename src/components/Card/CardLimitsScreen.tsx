@@ -1,14 +1,12 @@
 'use client'
-import { ScreenMark } from '@/components/0_Bruddle/ScreenMark'
 import { type FC, useState } from 'react'
 import { Section } from '@/components/0_Bruddle/Section'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import NavHeader from '@/components/Global/NavHeader'
-import { Button } from '@/components/0_Bruddle/Button'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import Loading from '@/components/Global/Loading'
 import CardLimitEditDrawer, { CARD_LIMITS_QUERY_KEY } from '@/components/Card/CardLimitEditDrawer'
 import { rainApi, type RainCardLimit } from '@/services/rain'
 
@@ -46,31 +44,38 @@ const CardLimitsScreen: FC<Props> = ({ cardId, onPrev }) => {
     return (
         <PageStack gap="6">
             <NavHeader title={t('navTitle')} onPrev={onPrev} />
-            <ScreenMark icon="credit-card" color="brand" />
-            <Section title={t('subtitle')} className="gap-3">
+            <Section title={t('subtitle')}>
                 {isLoading ? (
-                    <div className="flex justify-center py-8">
-                        <Loading />
-                    </div>
+                    <ListItem
+                        position="single"
+                        title={<span className="h-5 w-32 animate-pulse rounded bg-foreground-primary/10" />}
+                        trailing={<span className="h-5 w-16 animate-pulse rounded bg-foreground-primary/10" />}
+                        chevron
+                    />
                 ) : error ? (
-                    <div className="flex flex-col items-center gap-3 py-8 text-center">
-                        <p className="text-body-s text-foreground-secondary">{t('loadFailed')}</p>
-                        <Button variant="stroke" onClick={() => refetch()}>
-                            {tCommon('retry')}
-                        </Button>
-                    </div>
+                    <Notification priority="error" ctas={[{ label: tCommon('retry'), onClick: () => void refetch() }]}>
+                        {t('loadFailed')}
+                    </Notification>
                 ) : (
-                    <div className="flex items-center justify-between rounded-sm border border-border-default bg-background-default px-4 py-3">
-                        <div>
-                            <div className="text-body-s text-foreground-secondary">{label}</div>
-                            <div className="text-body-m-semibold">
+                    <ListItem
+                        position="single"
+                        title={label}
+                        trailing={
+                            <span className="text-body-m-semibold">
                                 {amount != null ? formatDollars(amount) : t('noLimitSet')}
-                            </div>
-                        </div>
-                        <LinkButton onClick={() => setIsEditing(true)}>{t('edit')}</LinkButton>
-                    </div>
+                            </span>
+                        }
+                        chevron
+                        onClick={() => setIsEditing(true)}
+                    />
                 )}
             </Section>
+
+            {/* visual-qa verdict: the explainer lives at the bottom as an info
+             * notification. no utilization bar — rain's limits endpoint returns
+             * only {amount, frequency}, and our program is per-authorization
+             * only, so there is no period spend to display. */}
+            <Notification priority="info">{t('explainer')}</Notification>
 
             <CardLimitEditDrawer
                 cardId={cardId}

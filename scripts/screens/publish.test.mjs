@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, rmSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { PNG } from 'pngjs'
@@ -35,11 +35,11 @@ function memoryStorage() {
     }
 }
 
-function capture(image, locale = 'en') {
+function capture(image, locale = 'en', captureCommit = commit) {
     return {
         schema: 1,
         type: 'capture',
-        commit,
+        commit: captureCommit,
         locale,
         contentCommit: 'b'.repeat(40),
         harness: 'c'.repeat(64),
@@ -64,7 +64,8 @@ test('publication writes the entry commit marker before shared pointers', async 
         mkdirSync(assets)
         const image = new PNG({ width: 393, height: 852 })
         image.data.fill(127)
-        const name = storeAsset(assets, PNG.sync.write(image))
+        const sourceBytes = PNG.sync.write(image)
+        const name = storeAsset(assets, sourceBytes)
         writeFileSync(join(dir, 'manifest.json'), JSON.stringify(capture(name)))
         const storage = memoryStorage()
         await publishReport({
@@ -101,9 +102,81 @@ test('publication writes the entry commit marker before shared pointers', async 
         )
         assert.equal(manifest.previewUrls, undefined)
         assert.equal(manifest.originalUrls, undefined)
-        assert.ok(storage.objects.has(`assets/${name}`))
-        assert.ok(storage.calls.indexOf(`assets/${name}`) < entryIndex)
-        assert.equal(hash(PNG.sync.write(image)), name.split('.')[0])
+        assert.match(manifest.screens[0].image, /^[a-f0-9]{64}\.webp$/)
+        assert.equal(manifest.screens[0].thumbnail, manifest.screens[0].image)
+        assert.equal(storage.objects.has(`assets/${name}`), false)
+        assert.ok(storage.calls.indexOf(`assets/${manifest.screens[0].image}`) < entryIndex)
+        assert.deepEqual(readFileSync(join(assets, name)), sourceBytes)
+        assert.equal(JSON.parse(readFileSync(join(dir, 'manifest.json'))).screens[0].image, name)
+        const { default: sharp } = await import('sharp')
+        const metadata = await sharp(storage.objects.get(`assets/${manifest.screens[0].image}`)).metadata()
+        assert.deepEqual(
+            { width: metadata.width, height: metadata.height, format: metadata.format },
+            {
+                width: 393,
+                height: 852,
+                format: 'webp',
+            }
+        )
+        assert.equal(hash(sourceBytes), name.split('.')[0])
+    } finally {
+        rmSync(dir, { recursive: true, force: true })
+    }
+})
+
+test('publication compares exact PNGs before rewriting only the public report to WebP', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'screen-publish-comparison-test-'))
+    try {
+        const assets = join(dir, 'assets')
+        mkdirSync(assets)
+        const beforeImage = new PNG({ width: 393, height: 852 })
+        beforeImage.data.fill(0)
+        const afterImage = new PNG({ width: 393, height: 852 })
+        afterImage.data.fill(255)
+        const beforeBytes = PNG.sync.write(beforeImage)
+        const afterBytes = PNG.sync.write(afterImage)
+        const beforeName = storeAsset(assets, beforeBytes)
+        const afterName = storeAsset(assets, afterBytes)
+        const headCommit = 'e'.repeat(40)
+        const input = {
+            schema: 1,
+            type: 'comparison',
+            before: capture(beforeName),
+            after: capture(afterName, 'en', headCommit),
+        }
+        const inputJson = JSON.stringify(input)
+        writeFileSync(join(dir, 'manifest.json'), inputJson)
+        const storage = memoryStorage()
+        await publishReport({
+            inputDir: dir,
+            reportPath: `2026-09-11/pr-3193/en/${headCommit}/run-123-1`,
+            env: {
+                SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.example',
+                EXPECTED_HEAD: headCommit,
+                EXPECTED_BASE: commit,
+                DEV_SEQUENCE: '123',
+                RUN_ATTEMPT: '1',
+                CAPTURE_ATTEMPT: '1',
+            },
+            storage,
+        })
+        const manifest = JSON.parse(
+            storage.objects.get(`reports/2026-09-11/pr-3193/en/${headCommit}/run-123-1/manifest.json`).toString()
+        )
+        assert.equal(manifest.screens[0].status, 'changed')
+        assert.match(manifest.screens[0].diff, /^[a-f0-9]{64}\.webp$/)
+        assert.equal(manifest.before.screens[0].thumbnail, manifest.before.screens[0].image)
+        assert.equal(manifest.after.screens[0].thumbnail, manifest.after.screens[0].image)
+        assert.doesNotMatch(JSON.stringify(manifest), /\.png/)
+        assert.equal(
+            [...storage.objects.keys()]
+                .filter((pathname) => pathname.startsWith('assets/'))
+                .every((pathname) => pathname.endsWith('.webp')),
+            true
+        )
+        assert.equal(readFileSync(join(dir, 'manifest.json'), 'utf8'), inputJson)
+        assert.deepEqual(readFileSync(join(assets, beforeName)), beforeBytes)
+        assert.deepEqual(readFileSync(join(assets, afterName)), afterBytes)
     } finally {
         rmSync(dir, { recursive: true, force: true })
     }
@@ -200,6 +273,15 @@ test('publication accepts sanitized Nutcracker journeys without changing the syn
         assert.equal(entry.source, 'nutcracker')
         assert.equal(entry.label, `Nutcracker · ${commit.slice(0, 8)}`)
         assert.equal(storage.objects.has('latest.json'), false)
+        const manifest = JSON.parse(
+            storage.objects.get(`reports/2026-09-14/nutcracker/en/${commit}/run-123-1/manifest.json`).toString()
+        )
+        assert.match(manifest.screens[0].image, /^[a-f0-9]{64}\.webp$/)
+        assert.equal(manifest.screens[0].thumbnail, manifest.screens[0].image)
+        assert.equal(storage.objects.has(`assets/${originalName}`), false)
+        assert.equal(storage.objects.has(`assets/${thumbnailName}`), false)
+        const metadata = await sharp(storage.objects.get(`assets/${manifest.screens[0].image}`)).metadata()
+        assert.deepEqual({ width: metadata.width, height: metadata.height }, { width: 240, height: 2400 })
     } finally {
         rmSync(dir, { recursive: true, force: true })
     }

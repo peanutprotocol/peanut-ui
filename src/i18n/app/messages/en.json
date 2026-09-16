@@ -994,8 +994,8 @@
             "cta": "Send via link"
         },
         "methods": {
-            "contactsTitle": "Peanut contacts",
-            "contactsDescription": "Peanuts you've interacted with",
+            "contactsTitle": "Peanut username",
+            "contactsDescription": "Enter an exact @username or choose a contact",
             "bankTitle": "Bank",
             "bankDescription": "EUR, USD, MXN, ARS & more",
             "instantTransfers": "Instant transfers",
@@ -1003,15 +1003,23 @@
             "exchangeOrWalletDescription": "Binance, Metamask and more"
         },
         "contacts": {
-            "searchPlaceholder": "Search contacts...",
+            "searchPlaceholder": "Enter exact username or search contacts...",
+            "searchLabel": "Peanut username or contact",
+            "exactUsername": "Exact username",
+            "usernameFound": "@{username} found",
+            "continueToSend": "Continue to send money",
+            "usernameNotFound": "We couldn't find that exact username.",
+            "invalidUsername": "Enter a valid Peanut username.",
+            "lookupLimitReached": "Too many username checks. Please try again later.",
+            "lookupError": "We couldn't check that username. Please try again.",
             "yourContacts": "Your contacts",
             "loadingMore": "Loading more...",
             "errorTitle": "Failed to load contacts",
             "errorDescription": "We couldn't load your contacts. Please try again.",
-            "noResultsTitle": "No contacts found",
-            "noResultsDescription": "Try searching for a different contact.",
+            "noResultsTitle": "No username or contact found",
+            "noResultsDescription": "Check the exact Peanut username and try again.",
             "emptyTitle": "No contacts yet",
-            "emptyDescription": "Contacts appear when you send, request, or invite someone"
+            "emptyDescription": "Enter an exact Peanut username above, or send via link"
         },
         "link": {
             "createLink": "Create link",
@@ -1501,6 +1509,7 @@
         "limits": {
             "navTitle": "Card limit",
             "subtitle": "Set your per-transaction spending limit.",
+            "explainer": "The limit applies to each transaction. You can change it anytime.",
             "perTransaction": "Per transaction",
             "loadFailed": "Failed to load card limit.",
             "noLimitSet": "No limit set",
@@ -1518,6 +1527,7 @@
             "noPinBody": "You need to set a pin before using your card for in-store purchases.",
             "setPin": "Set pin",
             "hiddenNote": "Your pin is hidden for security reasons.",
+            "rowLabel": "PIN",
             "hidePin": "Hide pin",
             "showPin": "Show pin",
             "changePin": "Change pin",
@@ -1586,6 +1596,7 @@
         "page": {
             "loadFailed": "Failed to load card info. Please try again.",
             "applyFailed": "Failed to apply for card",
+            "issueFailed": "Your application was approved, but we couldn't create your card. Please try again.",
             "confirmCountryFailed": "Failed to confirm country",
             "setupCancelled": "Setup cancelled — please try again.",
             "setupFailed": "Could not complete setup — please try again.",
@@ -3260,6 +3271,8 @@
         "unsupportedBrowserModal": {
             "title": "Open this link in your browser",
             "description": "We're still working on making Peanut work on your browser. For now, please use Chrome or Safari.",
+            "passkeyTitle": "Passkeys aren't available",
+            "passkeyDescription": "Peanut needs a passkey to create your account. Make sure your device has a screen lock and passkeys enabled, then try again. If it still doesn't work, try once from another phone or computer.",
             "copyLinkCta": "Copy Link",
             "copied": "Copied!",
             "copySuccessToast": "Link copied to clipboard!",
@@ -3528,6 +3541,8 @@
         "xchainWithdrawLimitRetry": "You reached the limit for withdrawals to other networks. Try again in about {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minute} other {# minutes}}} one {# hour} other {# hours}}} one {# day} other {# days}}. Withdrawals on Arbitrum have no limit, or contact support to raise yours.",
         "xchainPaymentLimit": "You made too many transfers to other networks recently. Contact support to raise your limit.",
         "xchainPaymentLimitRetry": "You made too many transfers to other networks recently. Try again in about {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minute} other {# minutes}}} one {# hour} other {# hours}}} one {# day} other {# days}}, or contact support to raise your limit.",
+        "xchainWithdrawDisabled": "Withdrawals to other networks are limited on your account. You can always withdraw on Arbitrum, or contact support for help.",
+        "xchainPaymentDisabled": "Transfers to other networks are limited on your account. Contact support for help.",
         "rainInsufficientCollateral": "Your card doesn’t have enough collateral for this withdrawal.",
         "staleCardApproval": "Your card needs to be re-enabled before you can withdraw. It only takes one passkey tap.",
         "cardRateLimited": "Too many card requests. Please wait a moment and try again.",

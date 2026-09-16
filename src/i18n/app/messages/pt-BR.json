@@ -994,8 +994,8 @@
             "cta": "Enviar por link"
         },
         "methods": {
-            "contactsTitle": "Contatos do Peanut",
-            "contactsDescription": "Peanuts com quem você já interagiu",
+            "contactsTitle": "Usuário do Peanut",
+            "contactsDescription": "Digite um @usuário exato ou escolha um contato",
             "bankTitle": "Banco",
             "bankDescription": "EUR, USD, MXN, ARS e mais",
             "instantTransfers": "Transferências instantâneas",
@@ -1003,15 +1003,23 @@
             "exchangeOrWalletDescription": "Binance, Metamask e mais"
         },
         "contacts": {
-            "searchPlaceholder": "Buscar contatos...",
+            "searchPlaceholder": "Digite o usuário exato ou busque contatos...",
+            "searchLabel": "Usuário do Peanut ou contato",
+            "exactUsername": "Usuário exato",
+            "usernameFound": "@{username} encontrado",
+            "continueToSend": "Continuar para enviar dinheiro",
+            "usernameNotFound": "Não encontramos esse usuário exato.",
+            "invalidUsername": "Insira um usuário do Peanut válido.",
+            "lookupLimitReached": "Muitas verificações de usuário. Tente novamente mais tarde.",
+            "lookupError": "Não foi possível verificar esse usuário. Tente novamente.",
             "yourContacts": "Seus contatos",
             "loadingMore": "Carregando mais...",
             "errorTitle": "Não foi possível carregar os contatos",
             "errorDescription": "Não conseguimos carregar seus contatos. Tente de novo.",
-            "noResultsTitle": "Nenhum contato encontrado",
-            "noResultsDescription": "Tente buscar outro contato.",
+            "noResultsTitle": "Usuário ou contato não encontrado",
+            "noResultsDescription": "Confira o usuário exato do Peanut e tente de novo.",
             "emptyTitle": "Nenhum contato ainda",
-            "emptyDescription": "Os contatos aparecem quando você envia, cobra ou convida alguém"
+            "emptyDescription": "Digite acima um usuário exato do Peanut ou envie por link"
         },
         "link": {
             "createLink": "Criar link",
@@ -1501,6 +1509,7 @@
         "limits": {
             "navTitle": "Limite do cartão",
             "subtitle": "Defina seu limite de gasto por transação.",
+            "explainer": "O limite se aplica a cada transação. Você pode alterá-lo quando quiser.",
             "perTransaction": "Por transação",
             "loadFailed": "Não foi possível carregar o limite do cartão.",
             "noLimitSet": "Nenhum limite definido",
@@ -1518,6 +1527,7 @@
             "noPinBody": "Você precisa definir um pin antes de usar seu cartão em compras na loja.",
             "setPin": "Definir pin",
             "hiddenNote": "Seu pin fica oculto por segurança.",
+            "rowLabel": "PIN",
             "hidePin": "Ocultar pin",
             "showPin": "Mostrar pin",
             "changePin": "Alterar pin",
@@ -1586,6 +1596,7 @@
         "page": {
             "loadFailed": "Não foi possível carregar as informações do cartão. Tente de novo.",
             "applyFailed": "Não foi possível pedir o cartão",
+            "issueFailed": "Seu pedido foi aprovado, mas não conseguimos criar seu cartão. Tente de novo.",
             "confirmCountryFailed": "Não foi possível confirmar o país",
             "setupCancelled": "Configuração cancelada — tente de novo.",
             "setupFailed": "Não foi possível concluir a configuração — tente de novo.",
@@ -3260,6 +3271,8 @@
         "unsupportedBrowserModal": {
             "title": "Abra este link no seu navegador",
             "description": "Ainda estamos trabalhando para a Peanut funcionar no seu navegador. Por enquanto, use o Chrome ou o Safari.",
+            "passkeyTitle": "As chaves de acesso não estão disponíveis",
+            "passkeyDescription": "A Peanut precisa de uma chave de acesso para criar sua conta. Verifique se o dispositivo tem bloqueio de tela e chaves de acesso ativadas e tente novamente. Se ainda não funcionar, tente uma vez em outro celular ou computador.",
             "copyLinkCta": "Copiar link",
             "copied": "Copiado!",
             "copySuccessToast": "Link copiado para a área de transferência!",
@@ -3528,6 +3541,8 @@
         "xchainWithdrawLimitRetry": "Você atingiu o limite de saques para outras redes. Tente novamente em cerca de {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# dia} other {# dias}}. Saques na Arbitrum não têm limite, ou fale com o suporte para ampliar o seu.",
         "xchainPaymentLimit": "Você fez muitas transferências para outras redes recentemente. Fale com o suporte para ampliar o seu limite.",
         "xchainPaymentLimitRetry": "Você fez muitas transferências para outras redes recentemente. Tente novamente em cerca de {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# dia} other {# dias}}, ou fale com o suporte para ampliar o seu limite.",
+        "xchainWithdrawDisabled": "Saques para outras redes estão limitados na sua conta. Você sempre pode sacar na Arbitrum, ou fale com o suporte para receber ajuda.",
+        "xchainPaymentDisabled": "Transferências para outras redes estão limitadas na sua conta. Fale com o suporte para receber ajuda.",
         "rainInsufficientCollateral": "Seu cartão não tem colateral suficiente para este saque.",
         "staleCardApproval": "Seu cartão precisa ser reativado antes de você sacar. Leva só um toque com a passkey.",
         "cardRateLimited": "Muitas solicitações com o cartão. Aguarde um momento e tente novamente.",

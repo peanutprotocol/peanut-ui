@@ -4,21 +4,32 @@ import { usePushProvisioning } from '@/hooks/usePushProvisioning'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { rainApi, RainCardRateLimitError, type RainProvisioningDataResponse } from '@/services/rain'
 import { isAndroidNative, isIOSNative } from '@/utils/capacitor'
-import { addCardToWallet, getPushProvisioningAvailability } from '@/utils/push-provisioning'
+import {
+    addCardToWallet,
+    getPushProvisioningAvailability,
+    syncWalletAuthorizationToken,
+} from '@/utils/push-provisioning'
 
 jest.mock('@/services/rain', () => {
     const actual = jest.requireActual('@/services/rain')
-    return { ...actual, rainApi: { ...actual.rainApi, getProvisioningData: jest.fn() } }
+    return {
+        ...actual,
+        rainApi: { ...actual.rainApi, getProvisioningData: jest.fn() },
+    }
 })
 jest.mock('@/utils/push-provisioning', () => {
     const actual = jest.requireActual('@/utils/push-provisioning')
-    return { ...actual, getPushProvisioningAvailability: jest.fn(), addCardToWallet: jest.fn() }
+    return {
+        ...actual,
+        getPushProvisioningAvailability: jest.fn(),
+        addCardToWallet: jest.fn(),
+        syncWalletAuthorizationToken: jest.fn(),
+    }
 })
 jest.mock('@/utils/capacitor', () => {
     const actual = jest.requireActual('@/utils/capacitor')
     return { ...actual, isIOSNative: jest.fn(), isAndroidNative: jest.fn() }
 })
-
 const mockedFlag = jest.fn()
 jest.mock('@/hooks/useFeatureFlag', () => ({ useFeatureFlags: () => mockedFlag }))
 
@@ -27,6 +38,9 @@ const mockedAvailability = getPushProvisioningAvailability as jest.MockedFunctio
     typeof getPushProvisioningAvailability
 >
 const mockedAddCard = addCardToWallet as jest.MockedFunction<typeof addCardToWallet>
+const mockedSyncWalletAuthorizationToken = syncWalletAuthorizationToken as jest.MockedFunction<
+    typeof syncWalletAuthorizationToken
+>
 const mockedIsIOS = isIOSNative as jest.MockedFunction<typeof isIOSNative>
 const mockedIsAndroid = isAndroidNative as jest.MockedFunction<typeof isAndroidNative>
 
@@ -38,6 +52,8 @@ const provisioningData: RainProvisioningDataResponse = {
     last4: '0420',
     network: 'visa',
     cardholderName: 'Ada Lovelace',
+    walletAuthorizationToken: 'wallet-grant',
+    walletAuthorizationExpiresIn: 2_592_000,
     billingAddress: {
         line1: '1 Main St',
         city: 'Lisbon',
@@ -71,7 +87,7 @@ describe('usePushProvisioning', () => {
         expect(result.current.nativeAvailable).toBe(false)
     })
 
-    it('never touches the plugin on web or behind the flag', async () => {
+    it('does not query the plugin on web or behind the flag', async () => {
         mockedIsIOS.mockReturnValue(false)
         const { result } = renderHook(() => usePushProvisioning(card))
         await waitFor(() => expect(result.current.nativeAvailable).toBe(false))
@@ -84,6 +100,16 @@ describe('usePushProvisioning', () => {
         expect(mockedAvailability).not.toHaveBeenCalled()
     })
 
+    it('removes the native card mirror when the rollout flag changes from on to off', async () => {
+        const { result, rerender } = renderHook(() => usePushProvisioning(card))
+        await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+
+        mockedFlag.mockReturnValue(false)
+        rerender()
+
+        expect(result.current.nativeAvailable).toBe(false)
+    })
+
     it('flips the row back to the carousel after a successful add', async () => {
         mockedAddCard.mockResolvedValue({ added: true, last4: '0420' })
         const { result } = renderHook(() => usePushProvisioning(card))
@@ -94,7 +120,9 @@ describe('usePushProvisioning', () => {
         })
 
         expect(mockedGetProvisioningData).toHaveBeenCalledWith('card-1', 'apple')
+        expect(mockedSyncWalletAuthorizationToken).toHaveBeenCalledWith('wallet-grant', 2_592_000)
         expect(mockedAddCard).toHaveBeenCalledWith({
+            peanutCardId: 'card-1',
             cardId: 'mea-card-1',
             cardSecret: 'secret',
             cardholderName: 'Ada Lovelace',

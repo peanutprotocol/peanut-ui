@@ -404,6 +404,16 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'POST', pattern: '/users/bridge-tos-confirm', handler: () => ({ accepted: true }) },
     { method: 'POST', pattern: '/users/initiate-kyc', handler: () => ({}) },
     { method: 'POST', pattern: '/users/interaction-status', handler: () => ({}) },
+    {
+        method: 'POST',
+        pattern: '/users/username/check',
+        handler: ({ options }) => {
+            const username = String(parseBody(options).username ?? '').toLowerCase()
+            const found =
+                username === DEMO_USER.user.username || DEMO_CONTACTS.some((contact) => contact.username === username)
+            return { found }
+        },
+    },
     { method: 'POST', pattern: '/users/accounts', handler: () => ({ id: 'demo-bank' }) },
     {
         method: 'GET',
@@ -711,6 +721,13 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             demoCardApplied
                 ? { status: { hasApplication: true, railStatus: 'PENDING' }, balance: null, cards: [] }
                 : { status: { hasApplication: false }, balance: null, cards: [] },
+    },
+    // per-card limits read — without this the card-limit fixture (and any
+    // demo/capture render of /card/limit) 404s into the error state.
+    {
+        method: 'GET',
+        pattern: '/rain/cards/:cardId/limits',
+        handler: () => ({ limits: [{ amount: 50000, frequency: 'perAuthorization' }] }),
     },
     // Demo apply mirrors the real two-step contract: first call asks for
     // terms, the accepting call submits and the overview flips to PENDING —

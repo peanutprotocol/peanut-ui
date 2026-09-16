@@ -1161,6 +1161,11 @@ export const TOKEN_GROUPS: Record<string, ThemeToken[]> = {
             "section": "semantic"
         },
         {
+            "name": "card",
+            "value": "0.75rem",
+            "section": "semantic"
+        },
+        {
             "name": "sm",
             "value": "0.125rem",
             "section": "parity"

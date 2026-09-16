@@ -1,41 +1,17 @@
 'use client'
 
-import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
-import { useToast } from '@/components/0_Bruddle/Toast'
+import ActionModal from '@/components/Global/ActionModal'
 import { type IconName } from '@/components/Global/Icons/Icon'
-import { copyTextToClipboard } from '@/utils/clipboard.utils'
-import { useEffect, useState, Suspense, useRef } from 'react'
+import { useState, Suspense, useSyncExternalStore } from 'react'
 import { useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
+import { isLikelyWebview } from '@/components/Setup/Setup.utils'
 import { usePasskeySupportContext } from '@/context/passkeySupportContext'
+import { getCompatibilityModalCopy } from './UnsupportedBrowserModal.utils'
+import { useCopyLinkActions } from './useCopyLinkActions'
 
-export const inAppSignatures = [
-    // removed 'WebView' and 'Android.*wv' — too broad, matches capacitor's webview
-    // specific app signatures below catch the actual problem apps
-    '(iPhone|iPod|iPad)(?!.*Safari\\/)', // iOS WebView (non-safari)
-    'FBAN', // Facebook App
-    'FBAV', // Facebook App
-    'Instagram', // Instagram App
-    'Twitter', // Twitter App
-    'Snapchat', // Snapchat App
-    'Line', // LINE App
-    'WhatsApp', // WhatsApp
-    'WeChat', // WeChat
-    'TelegramBot', // Telegram bot WebView
-    'Telegram', // Telegram in-app
-    'TelegramWebApp', // Telegram Web App
-    'Puffin', // Puffin browser (non-standard)
-    'Discord', // Discord in-app browser
-    'TikTok', // TikTok App
-    'Messenger', // Facebook Messenger
-    'Viber', // Viber App
-    'Reddit', // Reddit App
-    'Pinterest', // Pinterest App
-    'LinkedInApp', // LinkedIn in-app
-    'SnapKit', // Snapchat Kit
-    'Instagram 100.', // Instagram WebView variant
-    'Electron', // Electron App
-]
+const subscribeToStaticBrowserDetection = (): (() => void) => () => {}
+const getServerBrowserDetectionSnapshot = (): boolean => false
 
 const UnsupportedBrowserModalContent = ({
     allowClose = true,
@@ -46,88 +22,45 @@ const UnsupportedBrowserModalContent = ({
 }) => {
     const t = useTranslations('global')
     const searchParams = useSearchParams()
-    const [showInAppBrowserModalViaDetection, setShowInAppBrowserModalViaDetection] = useState(false)
-    const [hasCopied, setHasCopied] = useState(false)
-    const toast = useToast()
+    // The UA/display-mode inputs are static for the lifetime of a page. A
+    // server snapshot keeps hydration deterministic, then React reads the real
+    // browser snapshot after hydration.
+    const isDetectedInAppBrowser = useSyncExternalStore(
+        subscribeToStaticBrowserDetection,
+        isLikelyWebview,
+        getServerBrowserDetectionSnapshot
+    )
+    const [hasDismissedDetection, setHasDismissedDetection] = useState(false)
     const { isSupported: isPasskeySupported, isLoading: isLoadingPasskeySupport } = usePasskeySupportContext()
-    const copyTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+    const copyLinkActions = useCopyLinkActions(searchParams)
+    const modalCopy = getCompatibilityModalCopy({
+        showBrowserWarning: visible || isDetectedInAppBrowser,
+        passkeySupported: isPasskeySupported,
+        passkeyLoading: isLoadingPasskeySupport,
+    })
 
-    useEffect(() => {
-        if (!isPasskeySupported && !isLoadingPasskeySupport) {
-            setShowInAppBrowserModalViaDetection(true)
-        }
-    }, [isPasskeySupported, isLoadingPasskeySupport])
-
-    // Cleanup timeout on unmount to prevent memory leak
-    useEffect(() => {
-        return () => {
-            if (copyTimeoutRef.current) {
-                clearTimeout(copyTimeoutRef.current)
-            }
-        }
-    }, [])
-
-    if (!showInAppBrowserModalViaDetection && !visible) {
-        return null
-    }
+    if (!modalCopy || (hasDismissedDetection && !visible)) return null
 
     const handleModalClose = () => {
-        if (allowClose) {
-            setShowInAppBrowserModalViaDetection(false)
+        // A missing platform authenticator must not trap existing users who can
+        // still log in with a roaming authenticator such as a security key.
+        // Registration remains gated by the setup flow's capability check.
+        if (allowClose || modalCopy.kind === 'passkey') {
+            setHasDismissedDetection(true)
         }
     }
-
-    const copyLinkAction: ActionModalButtonProps[] = [
-        {
-            text: hasCopied ? t('unsupportedBrowserModal.copied') : t('unsupportedBrowserModal.copyLinkCta'),
-            icon: 'copy' as IconName,
-            iconPosition: 'left',
-            onClick: async () => {
-                try {
-                    // Clear any existing timeout to prevent multiple resets
-                    if (copyTimeoutRef.current) {
-                        clearTimeout(copyTimeoutRef.current)
-                    }
-
-                    // copy the redirect uri if it exists, otherwise copy the current url
-                    const redirectUri = searchParams.get('redirect_uri')
-                    const urlToCopy = redirectUri
-                        ? `${window.location.origin}${decodeURIComponent(redirectUri)}`
-                        : window.location.href
-                    if (!(await copyTextToClipboard(urlToCopy))) {
-                        toast.error(t('unsupportedBrowserModal.copyErrorToast'))
-                        return
-                    }
-                    setHasCopied(true)
-                    toast.success(t('unsupportedBrowserModal.copySuccessToast'))
-                    copyTimeoutRef.current = setTimeout(() => setHasCopied(false), 2000)
-                } catch (err) {
-                    console.error('Failed to copy: ', err)
-                    toast.error(t('unsupportedBrowserModal.copyErrorToast'))
-                }
-            },
-            className: 'bg-action-primary hover:bg-action-primary-hover text-black sm:py-3',
-            shadowSize: '4',
-        },
-        {
-            variant: 'transparent-dark',
-            className:
-                'text-foreground-secondary text-body-xs font-medium h-2 mt-1 hover:text-foreground-secondary active:text-foreground-secondary',
-            text: t('unsupportedBrowserModal.pasteHint'),
-        },
-    ]
 
     return (
         <ActionModal
             visible={true}
             onClose={handleModalClose}
-            title={t('unsupportedBrowserModal.title')}
-            description={t('unsupportedBrowserModal.description')}
+            title={t(modalCopy.titleKey)}
+            description={t(modalCopy.descriptionKey)}
             icon={'alert' as IconName}
             iconContainerClassName="bg-action-primary"
             iconProps={{ className: 'text-black' }}
-            ctas={copyLinkAction}
-            hideModalCloseButton={!allowClose}
+            ctas={modalCopy.kind === 'browser' ? copyLinkActions : undefined}
+            hideModalCloseButton={modalCopy.kind === 'browser' && !allowClose}
             modalPanelClassName="max-w-md"
             contentContainerClassName="text-center"
             descriptionClassName="mb-0"

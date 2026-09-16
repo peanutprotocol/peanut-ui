@@ -532,12 +532,9 @@ async function main() {
                     throw new Error(`Local build transport failed: ${[...transportFailures].join(', ')}`)
                 if (unknown.size) throw new Error(`Missing synthetic responses: ${[...unknown].join(', ')}`)
                 const image = storeAsset(assets, previous)
-                const thumbnail = storeAsset(
-                    assets,
-                    await sharp(previous).resize({ width: 197 }).webp({ quality: 80 }).toBuffer(),
-                    'webp'
-                )
-                results.push({ ...metadata, status: 'captured', image, thumbnail })
+                // Keep the exact PNG as the only CI capture source. The trusted
+                // publisher converts it to a full-resolution WebP after diffing.
+                results.push({ ...metadata, status: 'captured', image, thumbnail: image })
                 console.log(`CAPTURED ${screen.id}`)
             } catch (e) {
                 mkdirSync(join(out, 'diagnostics'), { recursive: true })
