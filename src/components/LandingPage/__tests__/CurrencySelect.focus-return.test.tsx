@@ -27,3 +27,31 @@ describe('CurrencySelect focus return on toggle-close', () => {
         expect(document.activeElement).toBe(trigger)
     })
 })
+
+// The selection path threads through the hand-rolled machinery (list
+// onMouseDown preventDefault + wrapper blur-close) — a regression there
+// silently kills currency switching.
+describe('CurrencySelect selection', () => {
+    it('clicking a row reports the currency once and closes the list', () => {
+        const setSelectedCurrency = jest.fn()
+        render(
+            <CurrencySelect
+                selectedCurrency="USD"
+                setSelectedCurrency={setSelectedCurrency}
+                trigger={<button>pick</button>}
+            />
+        )
+
+        fireEvent.click(screen.getByText('pick'))
+        fireEvent.click(screen.getByRole('option', { name: /EUR/ }))
+
+        expect(setSelectedCurrency).toHaveBeenCalledTimes(1)
+        expect(setSelectedCurrency).toHaveBeenCalledWith('EUR')
+        expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+    })
+
+    // ponytail: no coming-soon click test — comingSoon comes from module-level
+    // constant data (SUPPORTED_EXCHANGE_CURRENCIES x countryCurrencyMappings),
+    // not from any prop, and no supported currency is coming-soon today; add one
+    // by jest-mocking the constants module if a coming-soon entry ever ships.
+})
