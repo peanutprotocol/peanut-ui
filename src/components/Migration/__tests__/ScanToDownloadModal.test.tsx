@@ -2,7 +2,16 @@ import { render, screen } from '@testing-library/react'
 import ScanToDownloadModal from '../ScanToDownloadModal'
 
 const mockActionModal = jest.fn(
-    ({ title, content, ctas }: { title: string; content: React.ReactNode; ctas?: Array<{ text: string }> }) => (
+    ({
+        title,
+        content,
+        ctas,
+    }: {
+        title: string
+        content: React.ReactNode
+        onClose: () => void
+        ctas?: Array<{ text: string }>
+    }) => (
         <div role="dialog">
             <h1>{title}</h1>
             {content}
@@ -34,7 +43,7 @@ describe('ScanToDownloadModal', () => {
         const onClose = jest.fn()
         render(<ScanToDownloadModal visible onClose={onClose} surface="landing_hero" />)
 
-        const props = mockActionModal.mock.calls[0][0] as { onClose: () => void; ctas?: unknown }
+        const props = mockActionModal.mock.calls[0][0]
         expect(props.onClose).toBe(onClose)
         expect(props).not.toHaveProperty('ctas')
         expect(screen.queryByRole('button', { name: 'close' })).not.toBeInTheDocument()
