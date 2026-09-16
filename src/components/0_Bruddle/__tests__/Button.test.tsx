@@ -119,6 +119,31 @@ describe('Button link mode', () => {
         expect(link.className).toContain('opacity-40')
     })
 
+    test('ref lands on the element the mode renders', () => {
+        const buttonRef = React.createRef<HTMLButtonElement>()
+        const anchorRef = React.createRef<HTMLAnchorElement>()
+        render(<Button ref={buttonRef}>AsButton</Button>)
+        render(
+            <Button href="/home" ref={anchorRef}>
+                AsLink
+            </Button>
+        )
+        expect(buttonRef.current).toBeInstanceOf(HTMLButtonElement)
+        expect(anchorRef.current).toBeInstanceOf(HTMLAnchorElement)
+
+        // compile-time: the wrong pairing is a type error (runtime no-ops)
+        // @ts-expect-error button mode rejects an anchor ref
+        void (<Button ref={anchorRef}>Wrong</Button>)
+        void (
+            (
+                // @ts-expect-error link mode rejects a button ref
+                <Button href="/home" ref={buttonRef}>
+                    Wrong
+                </Button>
+            )
+        )
+    })
+
     test('link mode carries the exact button classes (plus no-underline)', () => {
         render(<Button variant="stroke">AsButton</Button>)
         render(

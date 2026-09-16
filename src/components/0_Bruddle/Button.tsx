@@ -126,7 +126,7 @@ const buttonShadows: Record<ShadowType, Record<ShadowSize, string>> = {
     },
 }
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps | ButtonLinkProps>(
+const ButtonImpl = forwardRef<HTMLButtonElement, ButtonProps | ButtonLinkProps>(
     (
         {
             children,
@@ -336,4 +336,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps | ButtonLinkProp
     }
 )
 
-Button.displayName = 'Button'
+ButtonImpl.displayName = 'Button'
+
+// mode-sensitive ref typing: the impl forwards one ref either way (typed
+// loosely inside); this overload cast is what makes `ref` follow the mode —
+// button mode takes Ref<HTMLButtonElement>, link mode (href) takes
+// Ref<HTMLAnchorElement> — and rejects the wrong pairing at the call site.
+export const Button = ButtonImpl as unknown as {
+    (props: ButtonProps & React.RefAttributes<HTMLButtonElement>): React.ReactElement | null
+    (props: ButtonLinkProps & React.RefAttributes<HTMLAnchorElement>): React.ReactElement | null
+    displayName?: string
+}
