@@ -44,6 +44,22 @@ describe('release-ota.yml ships from main only', () => {
         expect(workflow).toMatch(/push:\n\s+branches: \[main\]/)
         expect(workflow).not.toContain('workflow_dispatch')
     })
+
+    it('rechecks main after the build and immediately before promotion', () => {
+        const workflow = fs.readFileSync(path.join(workflowsDir, 'release-ota.yml'), 'utf8')
+        const afterBuild = workflow.indexOf('- name: Guard current main after build')
+        const beforePromotion = workflow.indexOf('- name: Guard current main before production mutation')
+        const build = workflow.indexOf('- name: Build native static export')
+        const verifyBundles = workflow.indexOf('- name: Verify the floors reached the bundles')
+        const promotion = workflow.indexOf('- name: Promote verified bundles to platform production')
+
+        expect(build).toBeLessThan(afterBuild)
+        expect(afterBuild).toBeLessThan(verifyBundles)
+        expect(verifyBundles).toBeLessThan(beforePromotion)
+        expect(beforePromotion).toBeLessThan(promotion)
+        expect(workflow.match(/git ls-remote origin refs\/heads\/main/g)).toHaveLength(2)
+        expect(workflow).toContain('EXPECTED_MAIN_SHA: ${{ github.sha }}')
+    })
 })
 
 // The native lanes still cut releases from dev; unchanged, and deliberately so.

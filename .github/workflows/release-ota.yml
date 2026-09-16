@@ -167,6 +167,20 @@ jobs:
             - name: Build native static export
               run: node scripts/native-build.js
 
+            # A queued run can finish building after a newer commit lands on
+            # main. Re-read the remote ref after the expensive build so a stale
+            # bundle cannot advance into the candidate/promotion sequence.
+            - name: Guard current main after build
+              env:
+                  EXPECTED_MAIN_SHA: ${{ github.sha }}
+              run: |
+                  LATEST_MAIN_SHA="$(git ls-remote origin refs/heads/main | cut -f1)"
+                  if [ "$LATEST_MAIN_SHA" != "$EXPECTED_MAIN_SHA" ]; then
+                      echo "::error::main advanced during the build ($EXPECTED_MAIN_SHA -> $LATEST_MAIN_SHA); refusing to publish a stale OTA" >&2
+                      exit 1
+                  fi
+                  echo "main is still ${EXPECTED_MAIN_SHA:0:7} after the build"
+
             - name: Verify build output
               run: |
                   test -d out && test -f out/index.html || (echo "ERROR: out/ directory missing or incomplete" && exit 1)
@@ -257,6 +271,20 @@ jobs:
                     if [ "$PLATFORM" = ios ]; then export NATIVE_FLOOR="$FLOOR_IOS"; else export NATIVE_FLOOR="$FLOOR_ANDROID"; fi
                     node scripts/capgo-release-guard.mjs verify-bundle
                   done
+
+            # This guard is deliberately the last step before the first
+            # production mutation. Candidate uploads above are disposable, but
+            # promotion must never race a newer main commit.
+            - name: Guard current main before production mutation
+              env:
+                  EXPECTED_MAIN_SHA: ${{ github.sha }}
+              run: |
+                  LATEST_MAIN_SHA="$(git ls-remote origin refs/heads/main | cut -f1)"
+                  if [ "$LATEST_MAIN_SHA" != "$EXPECTED_MAIN_SHA" ]; then
+                      echo "::error::main advanced before production promotion ($EXPECTED_MAIN_SHA -> $LATEST_MAIN_SHA); refusing to promote a stale OTA" >&2
+                      exit 1
+                  fi
+                  echo "main is still ${EXPECTED_MAIN_SHA:0:7} before production promotion"
 
             - name: Promote verified bundles to platform production
               env:
