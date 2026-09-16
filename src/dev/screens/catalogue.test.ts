@@ -33,4 +33,22 @@ describe('screen catalogue', () => {
             ].filter((id) => !ids.has(id))
         ).toEqual([])
     })
+
+    it('orders setup screens by their product journey and keeps rewards invites in Rewards', () => {
+        const setupIds = SCREENS.filter(({ flow }) => flow === 'Setup and login').map(({ id }) => id)
+        expect(setupIds.slice(0, 10)).toEqual([
+            '01-a-landing',
+            '02-a-joinwaitlist',
+            '06-a-signup',
+            '03-a-residence-select',
+            '07-a-setuppasskey',
+            '08-a-passkeysetuphelpmodal',
+            '09-a-passkeyinfomodal',
+            '05-a-signtesttransaction',
+            '20-a-setupnotificationsmodal',
+            'p51-setup-finish',
+        ])
+        expect(SCREENS.find(({ id }) => id === 'fixture-rewards-invites')?.flow).toBe('Rewards')
+        expect(SCREENS.every((screen, index) => index === 0 || SCREENS[index - 1].order < screen.order)).toBe(true)
+    })
 })

@@ -103,6 +103,12 @@ let rows = [],
 const PAGE_SIZE = 24
 const unavailable = (s) => !s || !s.image
 const availableScreen = (row) => [row?.after, row?.before].find((screen) => !unavailable(screen))
+const orderRows = (values) =>
+    [...values].sort((left, right) => {
+        const leftOrder = Number.isSafeInteger(left.order) ? left.order : Number.MAX_SAFE_INTEGER
+        const rightOrder = Number.isSafeInteger(right.order) ? right.order : Number.MAX_SAFE_INTEGER
+        return leftOrder - rightOrder
+    })
 const requestedFilter = (name) => new URLSearchParams(location.search ?? '').get(name) ?? ''
 function shareableParams(overrides = {}) {
     const params = new URLSearchParams()
@@ -187,7 +193,9 @@ function renderTile(row) {
     const detail =
         report.type === 'journeys'
             ? `${row.flow} · ${row.route} · ${row.trustTier}`
-            : `${row.flow} · ${row.kind === 'component' ? 'Isolated component' : 'App route'}`
+            : [row.flow, row.journey, row.kind === 'component' ? 'Isolated component' : 'App route']
+                  .filter(Boolean)
+                  .join(' · ')
     head.append(el('span', row.status, `tag ${row.status}`), el('h2', row.name), el('div', detail, 'meta'))
     tile.append(head)
     const showSingle = report.type !== 'comparison' || viewMode === 'all'
@@ -531,7 +539,7 @@ async function start() {
     $('date-filter').hidden = true
     $('filters-row').hidden = false
     $('view-mode-row').hidden = report.type !== 'comparison'
-    rows =
+    rows = orderRows(
         report.type !== 'comparison'
             ? report.screens.map((s) => ({
                   ...s,
@@ -539,6 +547,7 @@ async function start() {
                   status: s.status,
               }))
             : report.screens
+    )
     const before = report.before,
         after = report.type === 'comparison' ? report.after : report
     viewMode = report.type === 'comparison' ? 'changed' : 'all'
