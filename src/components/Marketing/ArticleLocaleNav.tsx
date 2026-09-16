@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { SUPPORTED_LOCALES, type Locale } from '@/i18n/types'
 import { LOCALE_META } from '@/i18n/localeMeta'
 import { toAppLocale } from '@/i18n/localeBridge'
@@ -21,9 +21,15 @@ interface Props {
  * pathname with its locale segment swapped (marketing routes are all
  * `/{locale}/rest`), which is exactly what the per-article maps used to
  * hardcode before this moved into the layout.
+ *
+ * The query string rides along: /content and the help landing keep their
+ * filters there (`?type=blog&q=fees`), so dropping it would silently reset
+ * the list the reader is looking at.
  */
 export function ArticleLocaleNav({ currentLocale }: Props) {
     const pathname = usePathname() ?? '/'
+    const query = useSearchParams()?.toString() ?? ''
+    const suffix = query ? `?${query}` : ''
     const [open, setOpen] = useState(false)
     const wrapperRef = useRef<HTMLDivElement | null>(null)
     const current = LOCALE_META[currentLocale]
@@ -72,7 +78,7 @@ export function ArticleLocaleNav({ currentLocale }: Props) {
                             return (
                                 <li key={loc} role="option" aria-selected={isCurrent}>
                                     <Link
-                                        href={localeHref(pathname, loc)}
+                                        href={`${localeHref(pathname, loc)}${suffix}`}
                                         // Same cookie the product UI reads, so a choice made
                                         // here carries into the app and back. Without it the
                                         // next visit to `/` redirects to the old locale.
