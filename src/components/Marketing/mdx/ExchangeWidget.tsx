@@ -35,7 +35,7 @@ function ExchangeWidgetInner({ destinationCurrency, sourceCurrency = 'USD' }: Ex
     }, [destinationCurrency, sourceCurrency, to, from, setQuery])
 
     return (
-        <section className="relative my-8 w-full pt-10 pb-14 md:pt-14 md:pb-18" style={{ backgroundColor: '#90A8ED' }}>
+        <section className="relative my-8 w-full bg-blue-300 pt-10 pb-14 md:pt-14 md:pb-18">
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
                 <CloudsCss clouds={widgetClouds} />
                 <Image
@@ -77,12 +77,9 @@ export function ExchangeWidget({ destinationCurrency, sourceCurrency }: Exchange
     return (
         <Suspense
             fallback={
-                <section
-                    className="relative my-8 w-full overflow-hidden pt-10 pb-14 md:pt-14 md:pb-18"
-                    style={{ backgroundColor: '#90A8ED' }}
-                >
+                <section className="relative my-8 w-full overflow-hidden bg-blue-300 pt-10 pb-14 md:pt-14 md:pb-18">
                     <div className="mx-auto flex max-w-[640px] justify-center px-6 md:px-4">
-                        <div className="btn btn-shadow-primary-4 h-[300px] w-full animate-pulse bg-white md:w-[420px]" />
+                        <div className="btn btn-shadow-primary-4 h-[300px] w-full animate-pulse bg-background-default md:w-[420px]" />
                     </div>
                 </section>
             }

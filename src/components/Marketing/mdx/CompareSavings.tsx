@@ -113,7 +113,11 @@ export function CompareSavings(props: CompareSavingsProps) {
     const source = sourceUrl ? (
         <>
             {' '}
-            <a href={sourceUrl} rel="nofollow noopener" className="underline decoration-n-1/30 underline-offset-2">
+            <a
+                href={sourceUrl}
+                rel="nofollow noopener"
+                className="underline decoration-foreground-primary/30 underline-offset-2"
+            >
                 Source
             </a>
             .
@@ -161,7 +165,7 @@ export function CompareSavings(props: CompareSavingsProps) {
 function Frame({ children }: { children: React.ReactNode }) {
     return (
         <div className={`mx-auto ${PROSE_WIDTH} px-6 md:px-4`}>
-            <p className="my-6 border-l-4 border-primary-1 py-1 pl-5 text-base leading-[1.75] text-grey-1">
+            <p className="my-6 border-l-4 border-action-primary py-1 pl-4 text-base leading-[1.75] text-foreground-secondary">
                 {children}
             </p>
         </div>

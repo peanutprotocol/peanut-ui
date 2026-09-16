@@ -19,7 +19,7 @@ import { resolveContentHref } from '@/lib/content'
  * These components are available in .md/.mdx files without imports.
  *
  * Prose column: PROSE_WIDTH (~Wise's 600px content width)
- * Text color: text-grey-1 (#5F646D) for body, text-n-1 for headings
+ * Text color: text-foreground-secondary (#5F646D) for body, text-foreground-primary for headings
  * Line-height: leading-[1.75] for generous readability
  * Paragraph spacing: mb-6 (24px) matching Wise
  */
@@ -45,7 +45,7 @@ export function createMdxComponents(locale: Locale = DEFAULT_LOCALE): MdxCompone
         a: ({ href = '', ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
             <Link
                 href={resolveContentHref(href, locale)}
-                className="text-n-1 underline decoration-n-1/30 underline-offset-2 hover:decoration-n-1"
+                className="text-foreground-primary underline decoration-foreground-primary/30 underline-offset-2 hover:decoration-foreground-primary"
                 {...props}
             />
         ),
@@ -72,7 +72,7 @@ export const mdxComponents: MdxComponentMap = {
     // Element overrides — prose styling
     h1: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
         <h1
-            className={`mx-auto mt-10 mb-5 ${PROSE_WIDTH} px-6 text-2xl font-extrabold text-n-1 md:mt-12 md:px-4 md:text-3xl`}
+            className={`mx-auto mt-10 mb-5 ${PROSE_WIDTH} px-6 text-heading-s text-foreground-primary md:mt-12 md:px-4 md:text-heading-m`}
             {...props}
         />
     ),
@@ -80,24 +80,27 @@ export const mdxComponents: MdxComponentMap = {
         <div className="relative">
             <ProseStars />
             <h2
-                className={`mx-auto mt-14 mb-5 ${PROSE_WIDTH} px-6 text-2xl font-extrabold text-n-1 md:mt-16 md:px-4 md:text-3xl`}
+                className={`mx-auto mt-14 mb-5 ${PROSE_WIDTH} px-6 text-heading-s text-foreground-primary md:mt-16 md:px-4 md:text-heading-m`}
                 {...props}
             />
         </div>
     ),
     h3: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
         <h3
-            className={`mx-auto mt-10 mb-3 ${PROSE_WIDTH} px-6 text-xl font-bold text-n-1 md:px-4 md:text-2xl`}
+            className={`mx-auto mt-10 mb-3 ${PROSE_WIDTH} px-6 text-xl font-bold text-foreground-primary md:px-4 md:text-2xl`}
             {...props}
         />
     ),
     p: (props: React.HTMLAttributes<HTMLParagraphElement>) => (
-        <p className={`mx-auto mb-6 ${PROSE_WIDTH} px-6 text-base leading-[1.75] text-grey-1 md:px-4`} {...props} />
+        <p
+            className={`mx-auto mb-6 ${PROSE_WIDTH} px-6 text-base leading-[1.75] text-foreground-secondary md:px-4`}
+            {...props}
+        />
     ),
     a: ({ href = '', ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
         <Link
             href={href}
-            className="text-n-1 underline decoration-n-1/30 underline-offset-2 hover:decoration-n-1"
+            className="text-foreground-primary underline decoration-foreground-primary/30 underline-offset-2 hover:decoration-foreground-primary"
             {...props}
         />
     ),
@@ -108,34 +111,36 @@ export const mdxComponents: MdxComponentMap = {
         <ol className={`mx-auto my-5 ${PROSE_WIDTH} space-y-3 list-decimal pr-6 pl-12 md:pr-4 md:pl-10`} {...props} />
     ),
     li: (props: React.HTMLAttributes<HTMLLIElement>) => (
-        <li className="text-base leading-[1.75] text-grey-1" {...props} />
+        <li className="text-base leading-[1.75] text-foreground-secondary" {...props} />
     ),
-    strong: (props: React.HTMLAttributes<HTMLElement>) => <strong className="font-semibold text-n-1" {...props} />,
+    strong: (props: React.HTMLAttributes<HTMLElement>) => (
+        <strong className="font-semibold text-foreground-primary" {...props} />
+    ),
     table: (props: React.HTMLAttributes<HTMLTableElement>) => (
         <div className={`mx-auto my-8 ${PROSE_WIDTH} overflow-x-auto px-6 md:px-4`}>
             {/* x-auto, not hidden: a table wider than the phone must scroll
                 inside the border, never clip its columns (TASK-22366) */}
-            <div className="overflow-x-auto rounded-sm border border-n-1">
+            <div className="overflow-x-auto rounded-sm border border-border-default">
                 <table className="w-full border-collapse text-left text-sm" {...props} />
             </div>
         </div>
     ),
     th: (props: React.HTMLAttributes<HTMLTableCellElement>) => (
         <th
-            className="border-b border-n-1 bg-primary-1/15 px-4 py-3 text-xs font-bold tracking-wide text-n-1 uppercase"
+            className="border-b border-border-default bg-action-primary/15 px-4 py-3 text-xs font-bold tracking-wide text-foreground-primary uppercase"
             {...props}
         />
     ),
     td: (props: React.HTMLAttributes<HTMLTableCellElement>) => (
-        <td className="border-b border-n-1/10 px-4 py-3 text-grey-1" {...props} />
+        <td className="border-b border-border-default/10 px-4 py-3 text-foreground-secondary" {...props} />
     ),
     blockquote: (props: React.HTMLAttributes<HTMLQuoteElement>) => (
         <blockquote
-            className={`mx-auto my-8 ${PROSE_WIDTH} border-l-4 border-primary-1 py-1 pr-6 pl-6 md:pr-4`}
+            className={`mx-auto my-8 ${PROSE_WIDTH} border-l-4 border-action-primary py-1 pr-6 pl-6 md:pr-4`}
             {...props}
         />
     ),
     hr: (props: React.HTMLAttributes<HTMLHRElement>) => (
-        <hr className={`mx-auto my-12 ${PROSE_WIDTH} border-n-1/10`} {...props} />
+        <hr className={`mx-auto my-12 ${PROSE_WIDTH} border-border-default/10`} {...props} />
     ),
 }

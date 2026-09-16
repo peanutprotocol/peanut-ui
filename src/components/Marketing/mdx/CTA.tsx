@@ -25,7 +25,7 @@ interface CTAProps {
 export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
     if (variant === 'secondary') {
         const linkClass =
-            'inline-flex items-center gap-1 font-semibold text-n-1 underline decoration-n-1/30 underline-offset-2 hover:decoration-n-1'
+            'inline-flex items-center gap-1 font-semibold text-foreground-primary underline decoration-foreground-primary/30 underline-offset-2 hover:decoration-foreground-primary'
         return (
             <div className={`mx-auto ${PROSE_WIDTH} px-6 py-4 md:px-4`}>
                 {href.startsWith('#') ? (
@@ -63,7 +63,7 @@ export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
                                 {text}
                             </Button>
                         </a>
-                        {subtitle && <p className="mt-3 text-sm text-grey-1">{subtitle}</p>}
+                        {subtitle && <p className="mt-3 text-sm text-foreground-secondary">{subtitle}</p>}
                     </Card>
                 </div>
             </div>

@@ -42,22 +42,22 @@ export function ContentPage({ children, breadcrumbs, article, locale = DEFAULT_L
             <JsonLd data={breadcrumbSchema} />
             {article && <JsonLd data={articleSchema({ inLanguage: locale, ...article })} />}
             <MarketingErrorBoundary strings={{ title: i18n.errorContentUnavailable, body: i18n.errorTryRefreshing }}>
-                <article className="content-page bg-background select-text">
+                <article className="content-page bg-background-page select-text">
                     {children}
                     <nav aria-label="Breadcrumb" className="mx-auto max-w-[640px] px-6 pt-4 pb-8 md:px-4">
-                        <ol className="flex flex-wrap items-center gap-1 text-xs text-grey-1">
+                        <ol className="flex flex-wrap items-center gap-1 text-xs text-foreground-secondary">
                             {breadcrumbs.map((crumb, i) => (
                                 <li key={crumb.href} className="flex items-center gap-1">
                                     {i > 0 && <span aria-hidden>/</span>}
                                     {i < breadcrumbs.length - 1 ? (
                                         <Link
                                             href={crumb.href}
-                                            className="underline decoration-n-1/30 underline-offset-2 hover:text-n-1"
+                                            className="underline decoration-foreground-primary/30 underline-offset-2 hover:text-foreground-primary"
                                         >
                                             {crumb.name}
                                         </Link>
                                     ) : (
-                                        <span className="font-medium text-n-1">{crumb.name}</span>
+                                        <span className="font-medium text-foreground-primary">{crumb.name}</span>
                                     )}
                                 </li>
                             ))}
