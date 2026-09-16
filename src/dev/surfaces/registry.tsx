@@ -74,7 +74,7 @@ import { ClaimErrorView } from '@/components/Claim/Generic/ClaimError.view'
 import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
 import ResidenceStep from '@/components/Setup/Views/Residence'
 import PublicProfile from '@/components/Profile/components/PublicProfile'
-import NotFound from '@/app/not-found'
+import NotFoundScreen from '@/components/Global/NotFoundScreen'
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
 import { RequestPotActionList } from '@/features/payments/flows/contribute-pot/components/RequestPotActionList'
 
@@ -751,7 +751,7 @@ export const SURFACES: Record<string, Surface> = {
     },
     '86-f-choice-not-found': {
         ...SURFACE_META['86-f-choice-not-found'],
-        render: () => <NotFound />,
+        render: () => <NotFoundScreen />,
     },
     '69-d-perkclaimsuccess': {
         name: 'PerkClaimSuccessDrawer',
