@@ -24,7 +24,7 @@ export function SupportedRailsFaqAnswer({ strings }: { strings: LandingSupported
                         otherList: OTHER_SUPPORTED_CHAINS.map(chainDisplayName).join(` ${strings.joinAnd} `),
                     })}
                 </p>
-                <div className="flex flex-wrap gap-1 rounded-sm border border-n-1 bg-white p-2">
+                <div className="flex flex-wrap gap-1 rounded-sm border border-border-default bg-white p-2">
                     {[...SUPPORTED_EVM_CHAINS, ...OTHER_SUPPORTED_CHAINS].map((chain) => (
                         <ChainChip key={chain} chainName={chainDisplayName(chain)} chainSymbol={CHAIN_LOGOS[chain]} />
                     ))}
@@ -32,12 +32,12 @@ export function SupportedRailsFaqAnswer({ strings }: { strings: LandingSupported
             </div>
             <div>
                 <p className="mb-2">{strings.tokens}</p>
-                <div className="flex flex-wrap gap-1 rounded-sm border border-n-1 bg-white p-2">
+                <div className="flex flex-wrap gap-1 rounded-sm border border-border-default bg-white p-2">
                     {getSupportedTokens('EVM').map((token) => (
                         <ChainChip key={token.name} chainName={token.name} chainSymbol={token.logoUrl} />
                     ))}
                 </div>
-                <p className="mt-2 text-base text-grey-1">{strings.tokenNote}</p>
+                <p className="mt-2 text-body-m text-foreground-secondary">{strings.tokenNote}</p>
             </div>
             <div>
                 <p className="mb-2">{strings.banks}</p>
@@ -46,14 +46,14 @@ export function SupportedRailsFaqAnswer({ strings }: { strings: LandingSupported
                         <li key={rail.name} className="flex items-baseline gap-2">
                             <span>{rail.flag}</span>
                             <span>{rail.name}</span>
-                            <span className="text-base text-grey-1">
+                            <span className="text-body-m text-foreground-secondary">
                                 {rail.currency} · {rail.region}
                             </span>
                         </li>
                     ))}
                 </ul>
             </div>
-            <p className="text-base text-grey-1">{strings.free}</p>
+            <p className="text-body-m text-foreground-secondary">{strings.free}</p>
         </div>
     )
 }

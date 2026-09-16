@@ -13,7 +13,7 @@ import { LocaleSwitcher } from '@/components/Marketing/LocaleSwitcher'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
-const NAV_LINK = 'text-xl font-bold text-white'
+const NAV_LINK = 'text-heading-xs text-white'
 
 const SOCIALS = [
     { href: 'https://t.me/clubpeanut', label: 'Join us on Telegram', icon: TELEGRAM_ICON, alt: 'Telegram' },
@@ -78,13 +78,13 @@ export const FooterChrome = ({
                     <Link prefetch={false} href={locale === DEFAULT_LOCALE ? '/lp' : `/${locale}`} className="flex">
                         <Image src={PEANUT_LOGO} alt="Peanut Logo" width={110} height={40} />
                     </Link>
-                    <p className="text-xs text-white">
+                    <p className="text-body-xs text-white">
                         {i18n.footerMadeWithLove}{' '}
                         <a className="underline" href="https://squirrellabs.dev/" target="_blank" rel="noreferrer">
                             Squirrel Labs
                         </a>
                     </p>
-                    <p className="text-xs text-white/70">{i18n.footerLegalEntity}</p>
+                    <p className="text-body-xs text-white/70">{i18n.footerLegalEntity}</p>
                 </section>
 
                 <div className="hidden md:block">
