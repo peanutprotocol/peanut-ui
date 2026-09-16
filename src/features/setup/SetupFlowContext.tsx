@@ -6,7 +6,7 @@ import { type SignupEntryFlow } from '@/features/setup/signup-analytics'
 
 /**
  * Setup flow memory that cannot live in the URL: the filtered step list (a
- * runtime decision — PostHog sunset flag + PWA state), the typed username and
+ * runtime decision), the typed username and
  * residence answers, and transient loading/animation state. Mounted at the
  * (setup) layout — flow-scoped, like the withdraw provider (TASK-21816). The
  * step CURSOR is not here: it is a named screen id in the URL (?screen=,

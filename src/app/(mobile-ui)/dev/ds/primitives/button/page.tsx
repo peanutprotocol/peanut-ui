@@ -9,7 +9,6 @@ import { SectionDivider } from '../../_components/SectionDivider'
 import { Playground } from '../../_components/Playground'
 import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
-import { StatusTag } from '../../_components/StatusTag'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
 
@@ -27,11 +26,12 @@ export default function ButtonPage() {
                 use={[
                     'Primary and secondary CTAs in flows',
                     'Actions that submit, confirm, or navigate forward',
+                    'Button-looking navigation — pass href (link mode, renders one anchor)',
                     'Icon + label combinations for contextual actions (share, copy)',
                 ]}
                 dontUse={[
-                    'Navigation links — use Next.js Link instead',
-                    'Toggle states — use Checkbox or Switch',
+                    'Underlined text links — use LinkButton',
+                    'Toggle states — use Checkbox or Toggle',
                     'Inline text actions — use underlined text links',
                 ]}
             />
@@ -68,7 +68,6 @@ export default function ButtonPage() {
                                 'stroke',
                                 'primary-soft',
                                 'transparent',
-                                'dark',
                                 'transparent-dark',
                                 'transparent-light',
                             ],
@@ -128,7 +127,6 @@ export default function ButtonPage() {
                                 ['stroke', '27 usages', 'production'],
                                 ['primary-soft', '18 usages', 'production'],
                                 ['transparent', '12 usages', 'production'],
-                                ['dark', '2 usages', 'limited'],
                                 ['transparent-dark', '3 usages', 'limited'],
                             ] as const
                         ).map(([variant, count, status]) => (
@@ -136,7 +134,7 @@ export default function ButtonPage() {
                                 <div className="mb-2 flex items-center gap-2">
                                     <span className="text-label-l">{variant}</span>
                                     <span className="text-body-xs text-foreground-secondary">{count}</span>
-                                    <StatusTag status={status} />
+                                    <span className="text-label-m text-foreground-secondary">{status}</span>
                                 </div>
                                 <Button variant={variant}>{variant}</Button>
                             </div>
@@ -145,7 +143,7 @@ export default function ButtonPage() {
                             <div className="mb-2 flex items-center gap-2">
                                 <span className="text-label-l">transparent-light</span>
                                 <span className="text-body-xs text-foreground-secondary">2 usages</span>
-                                <StatusTag status="limited" />
+                                <span className="text-label-m text-foreground-secondary">limited</span>
                             </div>
                             <div className="rounded-sm bg-foreground-primary p-3">
                                 <Button variant="transparent-light">transparent-light</Button>
@@ -207,6 +205,47 @@ export default function ButtonPage() {
 
             <SectionDivider />
 
+            <DocSection
+                title="Link Mode"
+                description="Pass href and the Button renders ONE anchor with the exact button classes — next/link for internal routes, a plain <a> for external/scheme hrefs and downloads. Never wrap a Button in a Link (nested interactive) and never hand-roll .btn classes on an anchor."
+            >
+                <DocSection.Content>
+                    <div className="space-y-3">
+                        <Button href="/home" className="w-full">
+                            Internal route (next/link)
+                        </Button>
+                        <Button variant="stroke" href="https://peanut.me" external className="w-full">
+                            External (new tab, plain anchor)
+                        </Button>
+                        <Button href="/home" disabled className="w-full">
+                            Disabled link (no href, aria-disabled)
+                        </Button>
+                    </div>
+                    <DesignNote type="info">
+                        The split: underlined text link → LinkButton. Button-looking navigation → Button with href.
+                    </DesignNote>
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock
+                        label="Link mode"
+                        code={`{/* internal route — next/link client nav */}
+<Button href="/home">Go home</Button>
+
+{/* external — plain <a>, new tab */}
+<Button variant="stroke" href="https://peanut.me" external>
+  Visit site
+</Button>
+
+{/* download — plain <a> with the attribute */}
+<Button variant="stroke" href="/receipt/1/pdf" download icon="download">
+  Download PDF
+</Button>`}
+                    />
+                </DocSection.Code>
+            </DocSection>
+
+            <SectionDivider />
+
             <DocSection title="Props">
                 <PropsTable
                     rows={[
@@ -224,7 +263,6 @@ export default function ButtonPage() {
                             default: '(none)',
                             description: "'4' is standard (160+ usages)",
                         },
-                        { name: 'shadowType', type: "'primary' | 'secondary'", default: "'primary'" },
                         {
                             name: 'loading',
                             type: 'boolean',
@@ -241,6 +279,24 @@ export default function ButtonPage() {
                             description: 'Hold-to-confirm with progress bar',
                         },
                         { name: 'disableHaptics', type: 'boolean', default: 'false' },
+                        {
+                            name: 'href',
+                            type: 'string',
+                            default: '(none)',
+                            description: 'Link mode: renders one anchor instead of a button',
+                        },
+                        {
+                            name: 'external',
+                            type: 'boolean',
+                            default: 'false',
+                            description: 'Link mode: plain <a>, target="_blank" rel="noopener noreferrer"',
+                        },
+                        {
+                            name: 'plainAnchor',
+                            type: 'boolean',
+                            default: 'false',
+                            description: 'Link mode: force plain <a> for an internal route (full page load)',
+                        },
                     ]}
                 />
             </DocSection>

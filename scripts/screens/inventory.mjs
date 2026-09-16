@@ -1,4 +1,14 @@
 import { routePatterns, routePatternFor } from './routes.mjs'
+
+const ROUTE_EXCLUSIONS = new Map([
+    ['/qr', 'Routing alias for QR scanner and claim destinations; those destination screens are catalogued separately'],
+    ['/points', 'Routing alias for the Rewards destination, which is catalogued separately'],
+    ['/points/invites', 'Routing alias for the Rewards invites destination, which is catalogued separately'],
+    ['/card-payment', 'Routing alias for the card payment destination, which is catalogued separately'],
+    ['/request/pay', 'Routing alias for the request payment destination, which is catalogued separately'],
+    ['/pay/[...recipient]', 'Routing alias for the send destination, which is catalogued separately'],
+])
+
 // Reviewed v1 boundaries. Product routes without a scenario stay visible as gaps.
 export function inventory(root, catalogue) {
     const patterns = [...new Set(routePatterns(root))].sort()
@@ -11,7 +21,8 @@ export function inventory(root, catalogue) {
     return patterns.map((route) => {
         const screens = byRoute.get(route) ?? []
         const reason =
-            route === '/add-money/us/bank'
+            ROUTE_EXCLUSIONS.get(route) ??
+            (route === '/add-money/us/bank'
                 ? 'Legacy standalone bank-details entry with no in-app navigation entry; current bank journeys use /add-money/[country]/bank'
                 : route.startsWith('/dev') || route === '/shhhhh'
                   ? 'Developer tooling, outside the app catalogue'
@@ -24,7 +35,7 @@ export function inventory(root, catalogue) {
                       ? 'Platform download redirect; destination is outside app-owned UI'
                       : route === '/crisp-proxy'
                         ? 'Third-party support iframe; app-owned support drawer is catalogued separately'
-                        : undefined
+                        : undefined)
         return {
             route,
             status: reason ? 'excluded' : screens.length ? 'catalogued' : 'missing',

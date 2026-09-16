@@ -24,6 +24,9 @@ const LOCALE_CODES = {
 const localeLabel = (locale) => LOCALE_LABELS[locale] ?? locale ?? 'English'
 const localeCode = (locale) => LOCALE_CODES[locale] ?? locale ?? 'EN'
 const SOURCE_LABELS = { synthetic: 'App states', nutcracker: 'Real journeys' }
+const VISUAL_CHANGE_STATUSES = new Set(['changed', 'added', 'removed'])
+const explicitNonvisualStatus = (status) =>
+    Boolean(status) && status !== 'differences' && !VISUAL_CHANGE_STATUSES.has(status)
 const entrySource = (entry) => entry?.source ?? 'synthetic'
 const localeSlugs = new Set(['en', 'es-419', 'es-ar', 'pt-br'])
 const withoutLocale = (path) =>
@@ -99,6 +102,7 @@ let rows = [],
     renderedCount = 0
 const PAGE_SIZE = 24
 const unavailable = (s) => !s || !s.image
+const availableScreen = (row) => [row?.after, row?.before].find((screen) => !unavailable(screen))
 const requestedFilter = (name) => new URLSearchParams(location.search ?? '').get(name) ?? ''
 function shareableParams(overrides = {}) {
     const params = new URLSearchParams()
@@ -142,7 +146,7 @@ function zoom(row, mode = 'side') {
     const before = row.before,
         after = row.after
     if (mode === 'screen') {
-        const screen = after ?? before
+        const screen = availableScreen(row)
         if (screen?.image) $('zoom-images').append(image(screen.image, row.name, { preview: false }))
         else $('zoom-images').append(el('p', screen?.reason ?? 'No screenshot available.'))
     } else if (mode === 'difference') {
@@ -166,13 +170,14 @@ function filteredScreenRows() {
     const q = $('search').value.toLowerCase(),
         flow = $('flow').value,
         status = $('status').value,
-        changedMode = report?.type === 'comparison' && viewMode === 'changed'
+        changedMode = report?.type === 'comparison' && viewMode === 'changed' && !explicitNonvisualStatus(status)
     return rows.filter(
         (r) =>
+            availableScreen(r) &&
             (!q || `${r.name} ${r.id} ${r.flow}`.toLowerCase().includes(q)) &&
             (!flow || flow === r.flow) &&
-            (!changedMode || r.status !== 'unchanged') &&
-            (!status || (status === 'differences' ? r.status !== 'unchanged' : status === r.status))
+            (!changedMode || VISUAL_CHANGE_STATUSES.has(r.status)) &&
+            (!status || (status === 'differences' ? VISUAL_CHANGE_STATUSES.has(r.status) : status === r.status))
     )
 }
 function renderTile(row) {
@@ -188,7 +193,7 @@ function renderTile(row) {
     const showSingle = report.type !== 'comparison' || viewMode === 'all'
     const pair = el('div', undefined, `pair${showSingle ? ' single' : ''}`)
     for (const [label, s] of showSingle
-        ? [['Screen', row.after ?? row.before]]
+        ? [['Screen', availableScreen(row)]]
         : [
               ['Before', row.before],
               ['After', row.after],
@@ -198,7 +203,7 @@ function renderTile(row) {
         if (!unavailable(s)) {
             const b = el('button')
             b.setAttribute('aria-label', `Enlarge ${row.name}, ${label}`)
-            b.append(image(s.thumbnail || s.image, row.name))
+            b.append(image(s.image, row.name))
             b.onclick = () => zoom(row, showSingle ? 'screen' : 'side')
             fig.append(b)
         } else fig.append(el('div', s?.reason ?? 'Not in this version', 'missing'))
@@ -232,7 +237,9 @@ function render() {
         report?.type === 'journeys' ? 'all-screens journey-screens' : changedMode ? 'changed-screens' : 'all-screens'
     $('screens').replaceChildren()
     if (!filteredRows.length) {
-        $('screens').append(el('p', 'No screens match these filters.'))
+        $('screens').append(
+            el('p', changedMode ? 'No visual changes match these filters.' : 'No screens match these filters.')
+        )
         $('screen-load-more').hidden = true
         return
     }
@@ -334,6 +341,24 @@ function populateLocale(entries, selected) {
     $('locale').value = value ?? ''
     return value
 }
+function updateDateNavigation() {
+    const strip = $('date-strip')
+    const scrollLeft = Number(strip.scrollLeft) || 0
+    const maxScroll = Math.max(0, (Number(strip.scrollWidth) || 0) - (Number(strip.clientWidth) || 0))
+    $('date-prev').hidden = scrollLeft <= 1
+    $('date-next').hidden = maxScroll <= 1 || scrollLeft >= maxScroll - 1
+}
+function scheduleDateNavigationUpdate() {
+    if (typeof window.requestAnimationFrame === 'function') window.requestAnimationFrame(updateDateNavigation)
+    else updateDateNavigation()
+}
+function scrollDateStrip(direction) {
+    const strip = $('date-strip')
+    const distance = Math.max(70, (Number(strip.clientWidth) || 0) - 70)
+    if (typeof strip.scrollBy === 'function') strip.scrollBy({ left: direction * distance })
+    else strip.scrollLeft = Math.max(0, (Number(strip.scrollLeft) || 0) + direction * distance)
+    scheduleDateNavigationUpdate()
+}
 function renderDateStrip(availableEntries) {
     const availableDates = new Set(availableEntries.map((entry) => entry.date).filter((date) => parseIsoDate(date)))
     const catalogueDates = indexEntries.map((entry) => entry.date).filter((date) => parseIsoDate(date))
@@ -356,7 +381,7 @@ function renderDateStrip(availableEntries) {
         const earliest = parseIsoDate(catalogueDates[0])
         const thirtyDaysAgo = new Date(end)
         thirtyDaysAgo.setUTCDate(thirtyDaysAgo.getUTCDate() - 29)
-        const start = earliest && earliest < thirtyDaysAgo ? earliest : thirtyDaysAgo
+        const start = earliest && earliest > thirtyDaysAgo ? earliest : thirtyDaysAgo
         for (let cursor = new Date(end); cursor >= start; cursor.setUTCDate(cursor.getUTCDate() - 1)) {
             const date = isoDate(cursor)
             const available = availableDates.has(date)
@@ -383,6 +408,7 @@ function renderDateStrip(availableEntries) {
         }
     }
     $('date-strip').replaceChildren(...buttons)
+    scheduleDateNavigationUpdate()
     return selected
 }
 function renderLanding() {
@@ -592,6 +618,10 @@ async function start() {
         : report.type === 'comparison' && viewMode === 'changed'
           ? 'differences'
           : ''
+    if (report.type === 'comparison' && viewMode === 'changed' && explicitNonvisualStatus($('status').value)) {
+        viewMode = 'all'
+        $('view-mode').checked = true
+    }
     render()
     if (location.hash) {
         viewMode = 'all'
@@ -603,11 +633,19 @@ async function start() {
     }
     syncShareableUrl()
 }
-for (const name of ['search', 'flow', 'status'])
+for (const name of ['search', 'flow'])
     $(name).addEventListener('input', () => {
         render()
         syncShareableUrl()
     })
+$('status').addEventListener('input', () => {
+    if (report?.type === 'comparison' && viewMode === 'changed' && explicitNonvisualStatus($('status').value)) {
+        viewMode = 'all'
+        $('view-mode').checked = true
+    }
+    render()
+    syncShareableUrl()
+})
 $('locale').addEventListener('change', () => {
     if (report && reportLocaleEntries.length) {
         const entry = reportLocaleEntries.find((candidate) => candidate.locale === $('locale').value)
@@ -647,6 +685,10 @@ $('close').onclick = () => $('zoom').close()
 $('side').onclick = () => zoom(active, 'side')
 $('overlay').onclick = () => zoom(active, 'overlay')
 $('difference').onclick = () => zoom(active, 'difference')
+$('date-prev').onclick = () => scrollDateStrip(-1)
+$('date-next').onclick = () => scrollDateStrip(1)
+$('date-strip').addEventListener('scroll', updateDateNavigation)
+if (typeof window.addEventListener === 'function') window.addEventListener('resize', scheduleDateNavigationUpdate)
 $('slider').oninput = () => {
     const n = $('zoom-images').querySelector('.overlay img+img')
     if (n) n.style.clipPath = `inset(0 ${100 - Number($('slider').value)}% 0 0)`

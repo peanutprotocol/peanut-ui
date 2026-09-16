@@ -3,7 +3,6 @@
 import StatusBadge, { type StatusType } from '@/components/Global/Badges/StatusBadge'
 import StatusPill, { type StatusPillType } from '@/components/Global/StatusPill'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
-import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { PropsTable } from '../../_components/PropsTable'
@@ -30,7 +29,7 @@ export default function FeedbackPage() {
         <DocPage>
             <DocHeader
                 title="Feedback"
-                description="Status indicators (StatusBadge, StatusPill), inline errors (Notification priority=error), and empty states (EmptyState, NoDataEmptyState)."
+                description="Status indicators, inline errors, and the documented EmptyState pattern."
                 status="production"
             />
 
@@ -115,7 +114,7 @@ export default function FeedbackPage() {
                             {allStatuses
                                 .filter((s): s is StatusPillType => s !== 'custom')
                                 .map((status) => (
-                                    <div key={status} className="flex items-center gap-1.5">
+                                    <div key={status} className="flex items-center gap-1">
                                         <StatusPill status={status} />
                                         <span className="text-body-xs">{status}</span>
                                     </div>
@@ -234,46 +233,6 @@ export default function FeedbackPage() {
                 </DocSection.Code>
             </DocSection>
 
-            {/* NoDataEmptyState */}
-            <DocSection title="NoDataEmptyState">
-                <DocSection.Content>
-                    <p className="text-body-s text-foreground-secondary">
-                        Branded empty state with crying Peanutman GIF animation. For &quot;no data&quot; scenarios.
-                    </p>
-
-                    <div className="rounded-sm border border-border-default p-4">
-                        <NoDataEmptyState message="Nothing to show here" />
-                    </div>
-
-                    <PropsTable
-                        rows={[
-                            {
-                                name: 'message',
-                                type: 'string',
-                                default: '-',
-                                required: true,
-                                description: 'Text below the animation',
-                            },
-                            { name: 'cta', type: 'ReactNode', default: '(none)', description: 'Action below message' },
-                            {
-                                name: 'animSize',
-                                type: "'sm' | 'md' | 'lg' | 'xl'",
-                                default: "'sm'",
-                                description: '96 / 128 / 192 / 256 px',
-                            },
-                        ]}
-                    />
-                </DocSection.Content>
-                <DocSection.Code>
-                    <CodeBlock
-                        label="Import"
-                        code={`import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'`}
-                    />
-
-                    <CodeBlock label="Usage" code={`<NoDataEmptyState message="No links found" animSize="md" />`} />
-                </DocSection.Code>
-            </DocSection>
-
             <SectionDivider />
 
             {/* Design Notes */}
@@ -283,8 +242,8 @@ export default function FeedbackPage() {
                     items.
                 </DesignNote>
                 <DesignNote type="info">
-                    Use EmptyState (card-based, icon) for structured empty states inside content areas. Use
-                    NoDataEmptyState (Peanutman GIF) for full-section &quot;no data&quot; states.
+                    Use EmptyState for structured empty states inside content areas. Flag a different empty-state need
+                    before adding an undocumented component.
                 </DesignNote>
             </DocSection>
         </DocPage>

@@ -53,10 +53,11 @@ test.each([
     await waitFor(() => expect(mockReturnExcess).toHaveBeenCalledWith(cents))
 })
 
-test('refreshes provider limits after an ambiguous failure and never returns collateral', async () => {
+test('renders an ambiguous provider failure as a flow notification and refreshes limits', async () => {
     mockUpdate.mockRejectedValue(new Error('Some card limits may have changed'))
     edit('50')
     await waitFor(() => expect(mockInvalidate).toHaveBeenCalledWith({ queryKey: ['rain-card-limits', 'card-test'] }))
     expect(mockReturnExcess).not.toHaveBeenCalled()
-    expect(await screen.findByText('Some card limits may have changed')).toBeInTheDocument()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Some card limits may have changed')
+    expect(screen.getByRole('alert')).toHaveClass('bg-background-badge-error')
 })

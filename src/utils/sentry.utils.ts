@@ -18,6 +18,10 @@ import { canUseNativeHttp, nativeHttpRequest } from './native-http'
 const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[]; errorCodes?: string[] }> = [
     // /get-user is the auth-status probe — 401/404 mean stale JWT, expected, not a server bug.
     { pattern: /\/get-user(?:\b|$)/, statuses: [400, 401, 403, 404] },
+    // Exact username checks are deliberately quota-limited. The service maps
+    // 429 into normal retry-later UI, so it is product state rather than an
+    // incident signal. Keep this endpoint-specific; other /users 429s report.
+    { pattern: /\/users\/username\/check(?:[/?#]|$)/, statuses: [429] },
     { pattern: /users/, statuses: [400, 401, 403, 404] },
     { pattern: /perks/, statuses: [400, 401, 403, 404] },
     // /invites/validate 400 = "Invalid Invite": the user mistyped an invite code.

@@ -314,11 +314,11 @@ const CardHand: FC<{ pixelated: boolean; onReady?: () => void }> = ({ pixelated,
         }}
         className="pointer-events-none absolute select-none"
         style={{
-            top: -40,
+            top: 5,
             right: -20,
             width: 560,
             height: 471,
-            transform: 'rotate(-15deg)',
+            transform: 'rotate(-1deg)',
             transformOrigin: 'center',
             imageRendering: pixelated ? 'pixelated' : undefined,
         }}

@@ -4,7 +4,7 @@ import { useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import AddressLink from '../Global/AddressLink'
 import Attachment from '../Global/Attachment'
-import Card from '../Global/Card'
+import { Card } from '../0_Bruddle/Card'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 import AvatarWithBadge, { type AvatarSize } from '../Profile/AvatarWithBadge'
 import { UserAvatar } from '../Avatar/UserAvatar'
@@ -67,7 +67,7 @@ const UserCard = ({
         if (type === 'request_fulfilment') title = t('userCard.sendingTo', { name: fullName ?? username })
         return (
             <div className="flex items-center gap-2 text-body-xs text-foreground-secondary">
-                {icon && <Icon name={icon} size={8} />} {title}
+                {icon && <Icon name={icon} size={16} />} {title}
             </div>
         )
     }, [type, fullName, username, t])
@@ -80,7 +80,7 @@ const UserCard = ({
     }
 
     return (
-        <Card className="flex flex-col items-center gap-4 p-4">
+        <Card className="w-full flex-col items-center gap-4 p-4">
             <div className="flex w-full items-center gap-2">
                 {recipientType === 'USERNAME' ? (
                     // A Peanut handle is a person: their picked avatar, with the
@@ -123,7 +123,7 @@ const UserCard = ({
                                     // as colors) — keep stock classes there.
                                     className={
                                         type === 'request_pay'
-                                            ? 'text-heading-s font-medium text-foreground-primary md:text-heading-m'
+                                            ? 'text-heading-s text-foreground-primary md:text-heading-m'
                                             : 'text-body-m'
                                     }
                                     isLink={type !== 'request_pay'}

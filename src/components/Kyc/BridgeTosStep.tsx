@@ -134,8 +134,8 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip, reasonCode }: Bridg
                     {
                         text: t('bridgeTos.notNow'),
                         onClick: onSkip,
-                        variant: 'transparent' as const,
-                        className: 'underline text-body-s w-full h-fit mt-3',
+                        variant: 'stroke' as const,
+                        className: 'w-full',
                     },
                 ]}
             />

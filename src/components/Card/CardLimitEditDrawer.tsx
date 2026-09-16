@@ -4,8 +4,10 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useFormatter, useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Button } from '@/components/0_Bruddle/Button'
-import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { Field } from '@/components/0_Bruddle/Field'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { rainApi, type RainCardLimit, type RainLimitFrequency } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
@@ -30,12 +32,14 @@ const CardLimitEditDrawer: FC<Props> = ({ cardId, frequency, label, initialAmoun
     const { returnExcess } = useReturnExcessCollateral()
     const [value, setValue] = useState<string>(initialAmountCents != null ? (initialAmountCents / 100).toFixed(2) : '')
     const [saving, setSaving] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+    const [validationError, setValidationError] = useState<string | null>(null)
+    const [apiError, setApiError] = useState<string | null>(null)
 
     useEffect(() => {
         if (isOpen) {
             setValue(initialAmountCents != null ? (initialAmountCents / 100).toFixed(2) : '')
-            setError(null)
+            setValidationError(null)
+            setApiError(null)
             posthog.capture(ANALYTICS_EVENTS.CARD_LIMIT_CHANGE_OPENED, {
                 frequency,
                 initial_cents: initialAmountCents ?? null,
@@ -46,13 +50,14 @@ const CardLimitEditDrawer: FC<Props> = ({ cardId, frequency, label, initialAmoun
     const save = async () => {
         const dollars = Number(value)
         const amountCents = Math.round(dollars * 100)
+        setApiError(null)
         if (
             !Number.isFinite(dollars) ||
             amountCents < 1 ||
             amountCents > MAX_CARD_LIMIT_CENTS ||
             Math.abs(dollars * 100 - amountCents) > 0.000001
         ) {
-            setError(
+            setValidationError(
                 t('invalidAmount', {
                     minimum: format.number(0.01, { style: 'currency', currency: 'USD' }),
                     maximum: format.number(MAX_CARD_LIMIT_CENTS / 100, { style: 'currency', currency: 'USD' }),
@@ -61,7 +66,7 @@ const CardLimitEditDrawer: FC<Props> = ({ cardId, frequency, label, initialAmoun
             return
         }
         setSaving(true)
-        setError(null)
+        setValidationError(null)
         try {
             const payload: RainCardLimit[] = [{ amount: amountCents, frequency }]
             await rainApi.updateCardLimits(cardId, payload)
@@ -108,7 +113,7 @@ const CardLimitEditDrawer: FC<Props> = ({ cardId, frequency, label, initialAmoun
                 queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] }),
             ])
             const message = e instanceof Error ? e.message : t('saveFailed')
-            setError(message)
+            setApiError(message)
             posthog.capture(ANALYTICS_EVENTS.CARD_LIMIT_CHANGE_FAILED, { frequency, error_message: message })
         } finally {
             setSaving(false)
@@ -127,38 +132,30 @@ const CardLimitEditDrawer: FC<Props> = ({ cardId, frequency, label, initialAmoun
             <DrawerContent>
                 <div className="flex flex-col items-center pt-1 pb-6 text-center">
                     {/* the head owns the M/12 beneath it; everything after it
-                        keeps the drawer's L/16 rhythm */}
+                        keeps the drawer's L/16 rhythm. no icon bubble — visual-qa verdict. */}
                     <div className="mb-3 flex w-full flex-col items-center gap-4">
-                        <IconBubble icon="credit-card" className="bg-action-primary" />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>{t('editTitle')}</DrawerTitle>
                         </DrawerHeader>
                     </div>
                     <div className="flex w-full flex-col gap-4">
-                        <div className="flex w-full flex-col gap-2 text-left">
-                            <label htmlFor="card-limit-input" className="text-label-l">
-                                {label}
-                            </label>
-                            <div className="flex items-center gap-2 rounded-sm border border-border-default bg-background-default px-3 py-2">
-                                <span className="text-foreground-secondary">$</span>
-                                <input
-                                    id="card-limit-input"
-                                    type="number"
-                                    inputMode="decimal"
-                                    value={value}
-                                    onChange={(e) => setValue(e.target.value)}
-                                    className="w-full bg-transparent text-body-m focus:outline-none"
-                                    min={0.01}
-                                    max={MAX_CARD_LIMIT_CENTS / 100}
-                                    step="0.01"
-                                    disabled={saving}
-                                />
-                            </div>
-                            {error && <p className="text-body-s text-foreground-error">{error}</p>}
-                        </div>
+                        {apiError && <Notification priority="error">{apiError}</Notification>}
+                        <Field label={label} htmlFor="card-limit-input" error={validationError} className="text-left">
+                            <BaseInput
+                                id="card-limit-input"
+                                type="number"
+                                inputMode="decimal"
+                                value={value}
+                                onChange={(e) => setValue(e.target.value)}
+                                leftContent={<span className="text-foreground-secondary">$</span>}
+                                min={0.01}
+                                max={MAX_CARD_LIMIT_CENTS / 100}
+                                step="0.01"
+                                disabled={saving}
+                            />
+                        </Field>
                         <Button
                             variant="purple"
-                            shadowSize="4"
                             className="w-full justify-center"
                             onClick={save}
                             loading={saving}

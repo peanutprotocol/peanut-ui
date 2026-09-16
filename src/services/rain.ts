@@ -206,6 +206,9 @@ export interface RainProvisioningDataResponse {
     last4: string
     network: string
     cardholderName?: string
+    /** Revocable, wallet-scoped credential for Apple Wallet's direct launch. */
+    walletAuthorizationToken?: string
+    walletAuthorizationExpiresIn?: number
     billingAddress: {
         line1: string
         line2?: string
@@ -214,6 +217,11 @@ export interface RainProvisioningDataResponse {
         postalCode: string
         countryCode: string
     }
+}
+
+export interface RainProvisioningAuthorizationResponse {
+    walletAuthorizationToken: string
+    walletAuthorizationExpiresIn: number
 }
 
 export type RainLimitFrequency = 'perAuthorization' | 'per24HourPeriod' | 'per30DayPeriod' | 'perAllTime'
@@ -355,6 +363,12 @@ export type ApplyForCardResponse =
           message: string
       }
     | {
+          // Approved residence is eligible, but a restricted residence change
+          // is still pending. Recoverable by reviewing/cancelling that request.
+          status: 'pending-residence-blocked'
+          message: string
+      }
+    | {
           status: string
           rainUserId?: string
           message: string
@@ -377,6 +391,8 @@ interface RequestOpts {
      * ID unless a proof from the last few minutes is still good.
      */
     stepUp?: boolean
+    /** Use an already-cached proof without opening a new ceremony. */
+    stepUpToken?: string
 }
 
 async function rainRequest<T>(opts: RequestOpts): Promise<T> {
@@ -387,7 +403,7 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
 
     const headers: Record<string, string> = { 'api-key': PEANUT_API_KEY }
     if (opts.noStore) headers['Cache-Control'] = 'no-store'
-    if (opts.stepUp) headers[STEP_UP_HEADER] = await getStepUpToken()
+    if (opts.stepUp) headers[STEP_UP_HEADER] = opts.stepUpToken ?? (await getStepUpToken())
 
     const response = await apiFetch(opts.path, {
         method: opts.method,
@@ -653,13 +669,12 @@ export const rainApi = {
                 timeoutMs: 60_000,
             })
         } catch (e) {
-            // The backend answers a prohibited residence with HTTP 403 +
-            // code 'geo-blocked'. Normalize it into the union here so every
-            // caller's existing `status === 'geo-blocked'` branch renders the
-            // terminal screen instead of a retryable applyError — mid-funnel
-            // unknown-residence users only learn their block from this call.
-            if (e instanceof ApiError && e.code === 'geo-blocked') {
-                return { status: 'geo-blocked', message: e.message }
+            // Residence denials are HTTP 403s, so normalize both stable codes
+            // into the success union. Keep a prohibited ACTIVE residence
+            // terminal while routing a prohibited PENDING change to its
+            // recoverable residence-management screen.
+            if (e instanceof ApiError && (e.code === 'geo-blocked' || e.code === 'pending-residence-blocked')) {
+                return { status: e.code, message: e.message }
             }
             throw e
         }
@@ -776,6 +791,23 @@ export const rainApi = {
             path: `/rain/cards/${cardId}/provisioning-data`,
             body: { wallet },
             stepUp: true,
+            rateLimitSensitive: true,
+            noStore: true,
+        })
+    },
+
+    /** Mint the card-scoped Wallet credential without returning card secrets. */
+    getProvisioningAuthorization: async (
+        cardId: string,
+        wallet: 'apple' | 'google',
+        options?: { stepUpToken?: string }
+    ): Promise<RainProvisioningAuthorizationResponse> => {
+        return rainRequest<RainProvisioningAuthorizationResponse>({
+            method: 'POST',
+            path: `/rain/cards/${cardId}/provisioning-authorization`,
+            body: { wallet },
+            stepUp: true,
+            stepUpToken: options?.stepUpToken,
             rateLimitSensitive: true,
             noStore: true,
         })

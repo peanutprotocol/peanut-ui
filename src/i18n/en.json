@@ -219,6 +219,7 @@
     "exchangeFree": "Free!",
     "exchangeArrivesHours": "Should arrive in hours.",
     "exchangeArrivesMinutes": "Should arrive in minutes.",
+    "exchangeSelectCurrency": "Select currency",
     "legalHeroSubtitlePrivacy": "How we handle your data",
     "legalHeroSubtitleTerms": "The agreement between you and Peanut"
 }

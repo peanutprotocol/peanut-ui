@@ -1,9 +1,22 @@
 #!/usr/bin/env bash
-# The .0 artifact can be shared only after verifying the exact source and equal
-# native floors. OTA .1+ records instead have separate -ios/-android identities.
+# The .0 artifact is shared by iOS and Android. Resolve the oldest compatible
+# shell for each platform against the binary being built, then use the stricter
+# floor on the shared server record. When neither native surface changed, this
+# lets (for example) native 1.7.0 receive the exact 1.8.0 web bundle. OTA .1+
+# records keep separate -ios/-android identities and can use each floor fully.
 set -euo pipefail
 case "$PLATFORM" in ios|android) ;; *) echo 'Invalid platform' >&2; exit 1;; esac
-export FLOOR_ANDROID="$VERSION" FLOOR_IOS="$VERSION" NATIVE_FLOOR="$VERSION"
+resolve_floor() {
+  if [ "${IS_REBUILD:-false}" = true ]; then
+    node scripts/ota-platform-floor.mjs "$@" --prospective-version "$VERSION" --replacement-platform "$PLATFORM"
+  else
+    node scripts/ota-platform-floor.mjs "$@" --prospective-version "$VERSION"
+  fi
+}
+FLOOR_ANDROID="$(resolve_floor --platform android)"
+FLOOR_IOS="$(resolve_floor --platform ios)"
+NATIVE_FLOOR="$(resolve_floor --shared)"
+export FLOOR_ANDROID FLOOR_IOS NATIVE_FLOOR
 test -f out/index.html
 node scripts/capgo-release-guard.mjs verify-promotion
 node scripts/capgo-release-guard.mjs prepare-candidate
@@ -11,8 +24,8 @@ EXISTING="$(node scripts/capgo-release-guard.mjs existing-native)"
 if [ "$EXISTING" = missing ]; then
   npx @capgo/cli@8.42.4 bundle upload \
     --channel ota-candidate --apikey "$CAPGO_API_KEY" --key-data-v2 "$CAPGO_PRIVATE_KEY" \
-    --path ./out --bundle "$VERSION" --min-update-version "$VERSION" \
-    --comment "${GITHUB_SHA:0:7} — native release $VERSION [ota-floors: android=$VERSION ios=$VERSION]" \
+    --path ./out --bundle "$VERSION" --min-update-version "$NATIVE_FLOOR" \
+    --comment "${GITHUB_SHA:0:7} — native release $VERSION [ota-floors: android=$FLOOR_ANDROID ios=$FLOOR_IOS]" \
     --link "https://github.com/peanutprotocol/peanut-ui/commit/$GITHUB_SHA"
 fi
 node scripts/capgo-release-guard.mjs verify-bundle

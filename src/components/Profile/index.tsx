@@ -1,7 +1,6 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { Icon } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
 import NavHeader from '../Global/NavHeader'
 import ProfileHeader from './components/ProfileHeader'
@@ -64,7 +63,7 @@ export const Profile = () => {
     const displayName = user?.user.showFullName && user?.user.fullName ? user.user.fullName : ''
 
     return (
-        <div className="h-full w-full bg-background">
+        <div className="h-full w-full bg-background-page">
             <NavHeader hideLabel showLogoutBtn onPrev={onBack} />
             <div className="space-y-8">
                 {/* the share pill is the profile's one share affordance — the
@@ -163,9 +162,9 @@ export const Profile = () => {
                             shadowSize="4"
                             className="w-full"
                             onClick={logout}
+                            icon="logout"
                         >
-                            <Icon name="logout" size={20} fill="black" />
-                            <span className="font-bold">{t('logOut')}</span>
+                            <span>{t('logOut')}</span>
                         </Button>
                     </div>
                 </div>

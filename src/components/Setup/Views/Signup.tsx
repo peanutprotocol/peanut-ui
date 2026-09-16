@@ -133,7 +133,8 @@ const SignupStep = () => {
                             className="rounded-sm"
                         />
                         <Button
-                            className="h-12 w-4/12"
+                            size="large"
+                            className="w-4/12"
                             loading={isLoading}
                             shadowSize="4"
                             onClick={() => handleNext(async () => isValid)}

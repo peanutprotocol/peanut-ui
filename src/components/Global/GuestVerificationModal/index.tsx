@@ -31,8 +31,7 @@ export const GuestVerificationModal = ({
             onClose={onClose}
             title={t('guestVerificationModal.title')}
             description={description}
-            icon="alert"
-            iconContainerClassName="bg-action-secondary"
+            tone="warning"
             ctaClassName="md:flex-col gap-4"
             ctas={[
                 {
@@ -62,7 +61,6 @@ export const GuestVerificationModal = ({
                 },
             ]}
             preventClose={false}
-            modalPanelClassName="max-w-md mx-8"
         />
     )
 }

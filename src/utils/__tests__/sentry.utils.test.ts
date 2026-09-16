@@ -76,6 +76,29 @@ describe('fetchWithSentry — expected-response suppression', () => {
         )
     })
 
+    it('does not report an expected exact-username quota response', async () => {
+        global.fetch = jest
+            .fn()
+            .mockResolvedValue(mockResponse(429, { error: 'Too many username checks', retryAfterSeconds: 60 }))
+
+        const response = await fetchWithSentry('https://api.peanut.me/users/username/check', {
+            method: 'POST',
+            body: JSON.stringify({ username: 'alice' }),
+        })
+
+        expect(response.status).toBe(429)
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+        expect(warnSpy).not.toHaveBeenCalled()
+    })
+
+    it('still reports unrelated /users rate limits', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(429, { error: 'RATE_LIMITED' }))
+
+        await fetchWithSentry('https://api.peanut.me/users/interaction-status', { method: 'POST', body: '{}' })
+
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
+    })
+
     it('does not report an unknown public FX pair, but still returns the 404', async () => {
         global.fetch = jest.fn().mockResolvedValue(mockResponse(404, { error: 'FX_RATE_UNAVAILABLE' }))
 

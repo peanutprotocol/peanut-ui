@@ -24,10 +24,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '01-a-landing': { name: 'Landing', path: 'Setup/Views/Landing.tsx' },
     '02-a-joinwaitlist': { name: 'JoinWaitlist', path: 'Setup/Views/JoinWaitlist.tsx' },
     '03-a-residence-select': { name: 'Residence — select', path: 'Setup/Views/Residence.tsx' },
-    '04-a-installpwa': {
-        name: 'InstallPWA',
-        path: 'Setup/Views/InstallPWA.tsx',
-    },
     '05-a-signtesttransaction': {
         name: 'SignTestTransaction — account ready',
         path: 'Setup/Views/SignTestTransaction.tsx',
@@ -46,7 +42,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '13-a-guestloginmodal': { name: 'GuestLoginModal', path: 'Global/GuestLoginModal/index.tsx' },
     '14-a-guestverificationmodal': { name: 'GuestVerificationModal', path: 'Global/GuestVerificationModal/index.tsx' },
     '15-a-invitefriendsmodal': { name: 'InviteFriendsDrawer', path: 'Global/InviteFriendsDrawer/index.tsx' },
-    '16-a-iospwainstallmodal': { name: 'IosPwaInstallDrawer', path: 'Global/IosPwaInstallDrawer/index.tsx' },
     '17-a-nomorejailmodal': { name: 'NoMoreJailDrawer', path: 'Global/NoMoreJailDrawer/index.tsx' },
     '18-a-reconsentmodal': {
         name: 'ReConsentModal',

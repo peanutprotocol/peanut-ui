@@ -13,11 +13,12 @@ export default function ShadowsPage() {
         <DocPage>
             <DocHeader
                 title="Shadows"
-                description="Shadow tokens for buttons and cards. All shadows are solid black (#000)."
+                description="Shadow tokens for buttons and cards. All shadows use solid black."
             />
 
             <DesignNote type="info">
-                shadowSize=&quot;4&quot; has 160+ usages. It is the standard. All others are negligible.
+                Purple and stroke buttons include the standard 4px shadow. Pass shadowSize only for an intentional
+                override.
             </DesignNote>
 
             {/* Button shadows */}
@@ -43,7 +44,7 @@ export default function ShadowsPage() {
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
-                    <CodeBlock label="Button Shadows" code={`<Button variant="purple" shadowSize="4">Label</Button>`} />
+                    <CodeBlock label="Button shadow" code={`<Button variant="purple">Label</Button>`} />
                 </DocSection.Code>
             </DocSection>
 
@@ -61,20 +62,6 @@ export default function ShadowsPage() {
                 <DocSection.Code>
                     <CodeBlock label="Card Shadows" code={`<Card shadowSize="4" className="p-4">content</Card>`} />
                 </DocSection.Code>
-            </DocSection>
-
-            {/* Tailwind shadow classes */}
-            <DocSection title="Tailwind Shadow Classes">
-                <div className="flex flex-wrap gap-3">
-                    {['shadow-2', 'shadow-4', 'shadow-sm', 'shadow-lg'].map((cls) => (
-                        <div
-                            key={cls}
-                            className={`${cls} rounded-sm border border-border-default px-3 py-2 text-label-m`}
-                        >
-                            .{cls}
-                        </div>
-                    ))}
-                </div>
             </DocSection>
         </DocPage>
     )

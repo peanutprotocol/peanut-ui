@@ -271,6 +271,13 @@ leaves no tag, so a re-run resolves the same number instead of burning one. CI t
 the tag records the release without re-triggering the build. **A PAT there would
 double-build.**
 
+If that replacement must restore a missing native `.0` Capgo record, the publisher passes
+an explicit replacement-platform flag and revalidates the complete diff against the same
+legacy-compatible allowlist before deriving its floors. The shared record remains gated at
+the existing native version when the replacement surface differs, so the post-store OTA
+step cannot fail merely because the original release tag correctly describes the original
+binary.
+
 Both build workflows still accept a `v*` tag push as break-glass, and validate the
 version against the scheme before starting. That check is what a glob cannot do: `v*`
 cannot reject `v2026.02.26` (a real tag on `main`) because it is `X.Y.Z` shaped — only
@@ -424,9 +431,17 @@ on the launch after three incomplete boots. Network access is not part of this r
 condition, so offline launches can still complete normally.
 
 Native release workflows check and publish only their platform channel. Their plain `.0`
-record carries both floors equal to the binary version; it may be reused by the other
-native job only after exact source, floor and artifact verification. OTA `.1+` records
-use platform suffixes because their server floors can differ.
+record carries the compatibility-derived floor for each platform and uses the stricter
+(higher) one as its single shared server floor; it may be reused by the other native job
+only after exact source, floor and artifact verification. OTA `.1+` records use platform
+suffixes because their server floors can differ without sharing one record.
+
+The native version and delivery floor are deliberately independent. If weekly `1.8.0`
+binaries change only the embedded web assets, both native fingerprints still match
+`1.7.0`, so the shared `1.8.0` record uses `min_update_version=1.7.0` and existing `1.7.0`
+installs can receive that exact bundle. If either platform's native contract changes, the
+shared record takes that platform's stricter `1.8.0` floor; a later platform-specific
+`.1+` OTA can still retain the older floor for the untouched platform.
 
 ### Per-platform delivery floors
 
@@ -610,8 +625,9 @@ happened to match would have passed the fingerprint diff entirely.
 Native releases also publish the matching `.0` bundle to their own platform channel when
 needed. The channel version is read through structured Capgo APIs before the native build;
 `builtin` requires a matching upload. After store upload, `publish-native-ota.sh` prepares
-an inactive candidate and verifies the exact source, both binary-equal floors and artifact
-before promotion. An existing `.0` record with incomplete metadata fails closed.
+an inactive candidate and verifies the exact source, both compatibility-derived platform
+floors, the stricter shared server floor and artifact before promotion. An existing `.0`
+record with incomplete metadata fails closed.
 
 - **Channel configuration is checked by CI.** Both platform defaults must satisfy the
   policies above. Public API artifact reads are combined with the same authenticated
@@ -620,8 +636,10 @@ before promotion. An existing `.0` record with incomplete metadata fails closed.
 - **Manual dispatch publishes after checks.** The workflow uses the `Production` GitHub
   environment; adding required reviewers there is a separate repository policy decision.
 - **Native-version gating:** every record has an explicit `--min-update-version`, enforced
-  by the channel's Metadata strategy. Each OTA uses its own platform floor; native `.0`
-  records use their binary version. Never use the lower platform floor for a shared record.
+  by the channel's Metadata strategy. Each `.1+` OTA uses its own platform floor; a shared
+  native `.0` record uses the higher of its two compatibility-derived floors. Never use
+  the lower platform floor for a shared record: an older updater would download it on the
+  platform whose native contract is stricter before the client-side gate could intervene.
   New native/plugin contracts require a native release before an OTA can use them.
 
 - **Native-version gating, on the device:** `src/utils/ota-native-gate.ts` re-derives the
@@ -817,14 +835,30 @@ one-time signing-material setup, secrets table, and manual App Store promotion.
 ### Compiled capability gate (TASK-22282)
 
 Production Android releases require both MeaWallet Nexus credentials and the
-MeaWallet config. Production iOS archives compile with
-`PEANUT_REQUIRE_PUSH_PROVISIONING`; compilation fails if the SDK cannot be imported.
-The iOS sync step uses `MEAWALLET_NEXUS_USER_IOS` and
-`MEAWALLET_NEXUS_PASSWORD_IOS`. The archive also requires the iOS encrypted
-config in `MEAWALLET_CONFIG_BASE64_IOS`; the Xcode build phase refuses a missing
-or empty config and copies it into the app bundle. Both provisioning Swift files
-are app target sources and the bridge registers the plugin. Local builds can still
-use the stub.
+MeaWallet config. Production iOS releases require those credentials and config
+only when `IOS_WALLET_PROVISIONING_ENABLED=true`. Enabled archives compile with
+`PEANUT_REQUIRE_PUSH_PROVISIONING`; compilation fails if the SDK cannot be
+imported. Before Apple approval, the workflow passes no MeaWallet credentials,
+skips the config/profile requirements, removes the Wallet extension
+dependencies and embed phase from the release project, switches the App target
+to `AppReleaseBaseline.entitlements` without Wallet-only capabilities, and
+ships the ordinary app. Local builds can still use the stub.
+
+### Apple Pay issuer-provisioning gate
+
+Apple must approve `com.apple.developer.payment-pass-provisioning` for the app,
+the issuer extension, and the authorization UI extension. The entitlement is
+committed in all three source targets, but is omitted from release builds while
+`IOS_WALLET_PROVISIONING_ENABLED` is false. After approval, set that variable
+and provide these additional secrets:
+
+- `IOS_WALLET_EXTENSION_PROVISIONING_PROFILE_BASE64`
+- `IOS_WALLET_EXTENSION_UI_PROVISIONING_PROFILE_BASE64`
+
+The workflow decodes both profiles, verifies the entitlement, embeds both
+extensions, and checks the exported IPA before TestFlight upload. Until those
+profiles exist, the PostHog `push-provisioning` flag must remain off; a merged
+PR alone cannot make Apple Wallet accept a card.
 
 After both store builds succeed, App Release Android & iOS writes a compiled-capability
 attestation into the annotated release tag. OTA checks that attestation in
@@ -832,6 +866,5 @@ addition to the source fingerprint. Older tags and manually created tags lack
 this evidence and cannot serve as OTA floors. Run App Release Android & iOS to establish
 a compatible floor; do not add an attestation to an unverified old tag.
 
-This gate intentionally blocks new native releases until the MeaWallet SDK
-setup is complete. It proves SDK compilation, not vendor activation or Apple
-entitlements. Those remain separate launch checks.
+The enabled archive gate proves SDK compilation and profile entitlements, not
+vendor activation or Apple launch readiness. Those remain separate launch checks.

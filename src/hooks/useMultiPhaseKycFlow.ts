@@ -400,18 +400,10 @@ export const useMultiPhaseKycFlow = ({
         verificationSession,
     ])
 
-    // true only while a PWA-reload resume drives handleInitiateKyc, so the
-    // analytics event can distinguish a resume from a genuine new initiation
-    // (a resume otherwise looks identical and inflates "initiated" counts).
+    // Existing Android PWAs can cold-reload after opening the camera or gallery.
+    // Keep the exact initiate arguments so the same applicant flow can reopen
+    // until installed PWAs are blocked at the native migration cutoff.
     const resumingRef = useRef(false)
-
-    // Arguments of the initiate that opened the SDK, replayed on resume. The
-    // LATAM surfaces build the flow as `useMultiPhaseKycFlow({})` and pass the
-    // intent at call time, so a resume that re-initiates with hook defaults
-    // there mints a token for the wrong verification level — and still opens the
-    // SDK, so the flag is not cleared and the user never sees what went wrong.
-    // The resolved intent is stored rather than the raw override so the replay
-    // pins the exact intent used.
     const lastInitiateArgsRef = useRef<KycResumeState>({})
 
     // wrap handleInitiateKyc to reset state for new attempts
@@ -441,17 +433,7 @@ export const useMultiPhaseKycFlow = ({
         [originalHandleInitiateKyc, clearPreparingTimer, regionIntent, acquisitionSource]
     )
 
-    // PWA-reload resume (see useSumsubReloadResume). On mount, if the state is
-    // in the URL but the SDK is closed, re-initiate with the same arguments:
-    // mint a fresh token for the existing applicant and reopen the SDK. The SDK
-    // now launches straight into Sumsub on open (the StartVerificationView intro
-    // was removed with the native-SDK refactor), so no extra auto-start step is
-    // needed.
     useSumsubReloadResume(showWrapper ? lastInitiateArgsRef.current : null, async (state) => {
-        // Returns whether the SDK actually opened — a resume that resolves
-        // without opening (already-approved user, or a remediation flow the
-        // replay can't reconstruct) clears the state instead of retrying on
-        // every future reload.
         resumingRef.current = true
         const opened = await handleInitiateKyc(state.intent, state.levelName, state.crossRegion, state.targetCountry)
         resumingRef.current = false

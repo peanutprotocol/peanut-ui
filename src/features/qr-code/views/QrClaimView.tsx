@@ -2,7 +2,7 @@
 
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import Card from '@/components/Global/Card'
+import { Card } from '@/components/0_Bruddle/Card'
 import { HoldToClaimButton } from '@/components/Global/HoldToClaimButton'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
@@ -25,11 +25,10 @@ export function QrClaimView({ shakeClass, isLoading, error, onClaim, onShakeChan
             <NavHeader title={t('claim.inviteQrTitle')} />
             <PageStack.Center className="gap-4">
                 {/* QR Code Visual */}
-                <Card className="space-y-4 p-6">
+                <Card className="gap-4 p-6">
                     <div className="flex items-center justify-center">
-                        <div className="flex h-24 w-24 items-center justify-center rounded-full">
-                            <Icon name="qr-code" size={64} />
-                        </div>
+                        {/* hero illustration — the one off-scale icon size the icon law allows */}
+                        <Icon name="qr-code" size={64} />
                     </div>
                     <div className="space-y-2 text-center">
                         <h1 className="text-heading-s">{t('claim.inviteQrTitle')}</h1>
@@ -38,13 +37,9 @@ export function QrClaimView({ shakeClass, isLoading, error, onClaim, onShakeChan
                 </Card>
 
                 {/* Important note */}
-                <Card className="border-2 border-action-secondary bg-action-secondary/10 p-4">
-                    <div className="flex gap-3">
-                        <p className="text-body-s">
-                            {t.rich('claim.permanentNote', { strong: (chunks) => <strong>{chunks}</strong> })}
-                        </p>
-                    </div>
-                </Card>
+                <Notification priority="attention">
+                    {t.rich('claim.permanentNote', { strong: (chunks) => <strong>{chunks}</strong> })}
+                </Notification>
 
                 {/* Claim button — DRY with /card eligibility-check via
                     <HoldToClaimButton />. */}

@@ -26,6 +26,7 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
         { label: 'Shadows', icon: 'docs', href: '/dev/ds/foundations/shadows' },
         { label: 'Icons', icon: 'search', href: '/dev/ds/foundations/icons' },
         { label: 'Borders', icon: 'docs', href: '/dev/ds/foundations/borders' },
+        { label: 'Motion & haptics', icon: 'meter', href: '/dev/ds/foundations/motion-haptics' },
     ],
     primitives: [
         {
@@ -99,6 +100,14 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             status: 'production',
         },
         {
+            label: 'FieldColumn',
+            icon: 'alert',
+            href: '/dev/ds/primitives/field-column',
+            description:
+                'Input + FieldError stacked 4px apart, from the form-field board — whether it folds into Field is an open question',
+            status: 'production',
+        },
+        {
             label: 'BaseSelect',
             icon: 'clip',
             href: '/dev/ds/primitives/base-select',
@@ -134,6 +143,20 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             status: 'production',
         },
         {
+            label: 'PinInput',
+            icon: 'lock',
+            href: '/dev/ds/primitives/pin-input',
+            description: 'Filled-dot PIN entry (card flows). Code-only — no figma board yet',
+            status: 'limited',
+        },
+        {
+            label: 'Tabs',
+            icon: 'docs',
+            href: '/dev/ds/primitives/tabs',
+            description: 'The one content-tab component: contained card-top triggers joined to a bordered panel',
+            status: 'production',
+        },
+        {
             label: 'ProgressBar',
             icon: 'meter',
             href: '/dev/ds/primitives/progress-bar',
@@ -153,6 +176,13 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             href: '/dev/ds/primitives/toast',
             description:
                 'Floating transient feedback over Notification. Four tones, reading-time auto-dismiss, persistent and custom-content options',
+            status: 'production',
+        },
+        {
+            label: 'ToastStack',
+            icon: 'bell',
+            href: '/dev/ds/primitives/toast-stack',
+            description: "The toast provider's render surface — product code fires toasts via useToast()",
             status: 'production',
         },
         {
@@ -220,12 +250,25 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             status: 'production',
         },
         {
-            label: 'Title',
+            label: 'MiniHeader',
             icon: 'docs',
-            href: '/dev/ds/primitives/title',
-            description:
-                'Knerd display font with filled/outline double-render effect. DEAD IN PRODUCT — only rendered by MarketingHero (marketing pages); the wallet app never uses it.',
-            status: 'unused',
+            href: '/dev/ds/primitives/mini-header',
+            description: 'Grey uppercase mini-header labelling a block of plain prose. Code-only, ruling pending',
+            status: 'limited',
+        },
+        {
+            label: 'ScreenMark',
+            icon: 'plus-circle',
+            href: '/dev/ds/primitives/screen-mark',
+            description: "Centered IconBubble size l above a screen's content. Code-only, ruling pending",
+            status: 'limited',
+        },
+        {
+            label: 'CloudsBackground',
+            icon: 'bulb',
+            href: '/dev/ds/primitives/clouds-background',
+            description: 'Decorative drifting-clouds backdrop for success and marketing moments. Code-only (brand)',
+            status: 'production',
         },
     ],
     patterns: [

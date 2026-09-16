@@ -68,6 +68,9 @@ const Card: React.FC<CardProps> = ({
     const interactive = !!onClick
     const defaultKeyDown: React.KeyboardEventHandler<HTMLDivElement> | undefined = interactive
         ? (e) => {
+              // only act on keys pressed on the card itself — nested interactive
+              // children (buttons, links) keep their own enter/space behavior
+              if (e.target !== e.currentTarget) return
               if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault()
                   onClick()
@@ -78,7 +81,7 @@ const Card: React.FC<CardProps> = ({
     return (
         <div
             ref={ref}
-            className={twMerge('w-full bg-white px-4 py-2', getBorderRadius(), getBorder(), className)}
+            className={twMerge('w-full bg-background-default px-4 py-2', getBorderRadius(), getBorder(), className)}
             onClick={onClick}
             data-testid={dataTestId}
             role={role ?? (interactive ? 'button' : undefined)}

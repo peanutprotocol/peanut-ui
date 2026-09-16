@@ -37,7 +37,9 @@ const elementIds = [
     'dashboard-filters',
     'filters-row',
     'date-filter',
+    'date-prev',
     'date-strip',
+    'date-next',
     'versions',
     'screens',
     'screen-load-more',
@@ -59,6 +61,10 @@ class Element {
         this.className = ''
         this.dataset = {}
         this.listeners = new Map()
+        this.clientWidth = 280
+        this.scrollWidth = 0
+        this.scrollLeft = 0
+        this.lastScrollOptions = null
     }
 
     addEventListener(type, listener) {
@@ -72,6 +78,7 @@ class Element {
     }
     replaceChildren(...children) {
         this.children = children
+        if (this.id === 'date-strip') this.scrollWidth = children.length * 70
     }
     setAttribute(name, value) {
         this[name] = value
@@ -82,10 +89,17 @@ class Element {
     close() {
         this.open = false
     }
+    scrollBy(options) {
+        this.lastScrollOptions = options
+        const { left } = options
+        this.scrollLeft = Math.max(0, Math.min(this.scrollLeft + left, this.scrollWidth - this.clientWidth))
+        this.dispatch('scroll')
+    }
 }
 
 const versionGroups = (elements) => elements.get('versions').children
 const versionLinks = (elements) => versionGroups(elements).flatMap((group) => group.children[1]?.children ?? [])
+const imageSources = (element) => [element?.src, ...(element?.children ?? []).flatMap(imageSources)].filter(Boolean)
 
 async function loadLanding(pathname, { ok = true, index = [], report, search = '', hash = '' } = {}) {
     const elements = new Map(elementIds.map((id) => [id, new Element(id)]))
@@ -297,6 +311,10 @@ test('landing groups versions by date and exposes a shareable horizontal date fi
     const dateButtons = elements.get('date-strip').children
     const latestButton = dateButtons.find((button) => button['aria-label'] === 'Show captures from September 14, 2026')
     const gapButton = dateButtons.find((button) => button['aria-label'] === 'September 13, 2026 — no captures')
+    assert.equal(
+        dateButtons.some((button) => button['aria-label'] === 'September 11, 2026 — no captures'),
+        false
+    )
     assert.deepEqual(
         latestButton.children.map((child) => child.textContent),
         ['14', 'Sep']
@@ -320,8 +338,46 @@ test('landing groups versions by date and exposes a shareable horizontal date fi
     assert.equal(restored.location.search, '?source=synthetic&locale=en')
 })
 
-test('comparison reports ignore legacy public image URLs and can switch to the full catalogue', async () => {
+test('date navigator pages without exposing a native scrollbar', async () => {
+    const elements = await loadLanding('/', {
+        index: [
+            { path: `2026-09-15/dev/en/${'a'.repeat(40)}`, date: '2026-09-15', locale: 'en' },
+            { path: `2026-09-12/dev/en/${'b'.repeat(40)}`, date: '2026-09-12', locale: 'en' },
+        ],
+    })
+    assert.equal(elements.get('date-strip').children.length, 5)
+    assert.equal(elements.get('date-prev').hidden, true)
+    assert.equal(elements.get('date-next').hidden, false)
+    elements.get('date-next').onclick()
+    assert.equal(elements.get('date-strip').lastScrollOptions.left, 210)
+    assert.equal('behavior' in elements.get('date-strip').lastScrollOptions, false)
+    assert.equal(elements.get('date-prev').hidden, false)
+    assert.equal(elements.get('date-next').hidden, true)
+    elements.get('date-prev').onclick()
+    assert.equal(elements.get('date-prev').hidden, true)
+    assert.equal(elements.get('date-next').hidden, false)
+})
+
+test('changed mode shows only visual changes and can switch to the full catalogue', async () => {
     const image = 'a'.repeat(64) + '.png'
+    const visualChange = (id, status) => ({
+        id,
+        name: `${status} screen`,
+        flow: 'Home',
+        kind: 'route',
+        status,
+        before: status === 'added' ? { status: 'absent', reason: 'Not in baseline' } : { status: 'captured', image },
+        after: status === 'removed' ? { status: 'absent', reason: 'Not in revision' } : { status: 'captured', image },
+    })
+    const captureGap = (id, status) => ({
+        id,
+        name: `${status} screen`,
+        flow: 'Home',
+        kind: 'route',
+        status,
+        before: { status: 'captured', image },
+        after: { status, reason: 'No comparable screenshot' },
+    })
     const report = {
         schema: 1,
         type: 'comparison',
@@ -362,6 +418,12 @@ test('comparison reports ignore legacy public image URLs and can switch to the f
                 before: { status: 'captured', image, thumbnail: image },
                 after: { status: 'captured', image, thumbnail: image },
             },
+            visualChange('added', 'added'),
+            visualChange('removed', 'removed'),
+            captureGap('failed', 'failed'),
+            captureGap('unavailable', 'unavailable'),
+            captureGap('excluded', 'excluded'),
+            captureGap('absent', 'absent'),
         ],
         previewUrls: {
             [image]: `https://imagedelivery.net/3RfIxQn88kFXdTrxhfIMXw/ps-${'a'.repeat(29)}/screenpreview`,
@@ -374,13 +436,68 @@ test('comparison reports ignore legacy public image URLs and can switch to the f
         report,
     })
     assert.equal(elements.get('view-mode').checked, false)
-    assert.equal(elements.get('screens').children.length, 1)
+    assert.deepEqual(
+        elements.get('screens').children.map(({ id }) => id),
+        ['changed', 'added', 'removed']
+    )
+    assert.equal(
+        elements.get('screens').children.every((tile) => imageSources(tile).length > 0),
+        true
+    )
     elements.get('screens').children[0].children[1].children[0].children[1].onclick()
     assert.equal(elements.get('zoom-images').children[0].src, `/screen-data/assets/${image}`)
     elements.get('view-mode').checked = true
     elements.get('view-mode').dispatch('change')
-    assert.equal(elements.get('screens').children.length, 2)
+    assert.deepEqual(
+        elements.get('screens').children.map(({ id }) => id),
+        ['changed', 'unchanged', 'added', 'removed', 'failed', 'unavailable', 'excluded', 'absent']
+    )
+    assert.equal(
+        elements.get('screens').children.every((tile) => imageSources(tile).length === 1),
+        true
+    )
     assert.equal(elements.get('screens').children[0].children[1].className, 'pair single')
+
+    elements.get('view-mode').checked = false
+    elements.get('view-mode').dispatch('change')
+    elements.get('status').value = 'failed'
+    elements.get('status').dispatch('input')
+    assert.equal(elements.get('view-mode').checked, true)
+    assert.equal(elements.get('screens').children.length, 1)
+    assert.equal(elements.get('screens').children[0].id, 'failed')
+    assert.equal(elements.location.search, '?source=synthetic&locale=en&status=failed&view=all')
+})
+
+test('a restored nonvisual status opens the full catalogue instead of an empty changed view', async () => {
+    const image = 'a'.repeat(64) + '.webp'
+    const report = {
+        schema: 1,
+        type: 'comparison',
+        locale: 'en',
+        complete: false,
+        before: { commit: 'a'.repeat(40), capturedAt: 'now', environment: 'test' },
+        after: { commit: 'b'.repeat(40), capturedAt: 'now', environment: 'test' },
+        screens: [
+            {
+                id: 'failed',
+                name: 'Failed screen',
+                flow: 'Home',
+                kind: 'route',
+                status: 'failed',
+                before: { status: 'captured', image },
+                after: { status: 'failed', reason: 'Capture failed' },
+            },
+        ],
+    }
+    const elements = await loadLanding('/screens/2026-09-15/pr-1/en/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/', {
+        report,
+        search: '?status=failed&view=changed',
+    })
+    assert.equal(elements.get('view-mode').checked, true)
+    assert.equal(elements.get('status').value, 'failed')
+    assert.equal(elements.get('screens').children.length, 1)
+    assert.equal(elements.get('screens').children[0].id, 'failed')
+    assert.equal(elements.location.search, '?source=synthetic&locale=en&status=failed&view=all')
 })
 
 test('report filters restore from and continuously update the shareable URL', async () => {
@@ -604,7 +721,9 @@ test('Nutcracker reports show real-backend provenance and retain a screenshot wh
     assert.match(elements.get('footer').textContent, /Nutcracker sandbox backend/)
     assert.match(elements.get('provenance').children[0].children[0].textContent, /Nutcracker/)
     const screenshot = elements.get('screens').children[0].children[1].children[0].children[1].children[0]
-    assert.equal(screenshot.src, `/screen-data/assets/${thumbnail}`)
+    assert.equal(screenshot.src, `/screen-data/assets/${original}`)
+    elements.get('screens').children[0].children[1].children[0].children[1].onclick()
+    assert.equal(elements.get('zoom-images').children[0].src, screenshot.src)
 })
 
 test('report pages expose the locale selector and use a long-form capture date', async () => {

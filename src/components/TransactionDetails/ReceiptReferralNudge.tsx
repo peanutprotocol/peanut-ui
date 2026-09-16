@@ -4,6 +4,8 @@ import { useEffect, useRef } from 'react'
 import posthog from 'posthog-js'
 import { Icon } from '@/components/Global/Icons/Icon'
 import ShareButton from '@/components/Global/ShareButton'
+import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
+import { twMerge } from '@/utils/tw'
 import { ANALYTICS_EVENTS, REFERRAL_SOURCES } from '@/constants/analytics.consts'
 
 // One wire shape for all three legs of the referral nudge. Module-level so the
@@ -57,17 +59,17 @@ export function ReceiptReferralNudge({
     }
 
     return (
-        // Plain utilities beat the `.btn*` component classes (Tailwind emits
-        // components before utilities), so no `!important` needed.
+        // ShareButton stays for its behavior (web share + clipboard + toasts);
+        // the chrome is LinkButton's, imported so it cannot drift.
         <ShareButton
             url={inviteLink}
             title=""
             variant="transparent"
             showIcon={false}
             onSuccess={captureInviteShared}
-            className="relative h-auto gap-2 p-0 text-body-s text-foreground-secondary underline shadow-none after:absolute after:inset-x-0 after:-inset-y-3.5 hover:text-foreground-primary active:translate-x-0 active:translate-y-0 active:text-foreground-primary"
+            className={twMerge(LINK_BUTTON_CLASSES, 'h-auto p-0 shadow-none')}
         >
-            <Icon name="invite-heart" size={16} className="text-foreground-secondary" />
+            <Icon name="invite-heart" size={16} className="shrink-0" />
             {label}
         </ShareButton>
     )

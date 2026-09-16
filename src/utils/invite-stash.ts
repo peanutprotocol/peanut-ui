@@ -9,8 +9,8 @@ import { getFromCookie, saveToCookie } from '@/utils/cookie-url.utils'
  * Invite hand-off between surfaces: a payment/claim/invite page stashes the
  * code before pushing the visitor into /setup, and registration (useZeroDev)
  * consumes it. Cookies, not app state — the hand-off must survive the
- * PWA-install hop and app restarts, which is why the invite code already
- * lived in a cookie alongside its old redux mirror (the mirror is gone,
+ * store hand-off and app restarts, which is why the invite code already lived
+ * in a cookie alongside its old redux mirror (the mirror is gone,
  * TASK-21460/TASK-21462).
  *
  * The code and its type are ONE value on ONE lifecycle (Chip review round 1):

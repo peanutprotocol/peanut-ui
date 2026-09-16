@@ -18,17 +18,23 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Card } from '@/components/0_Bruddle/Card'
+import { Field } from '@/components/0_Bruddle/Field'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { Notification } from '@/components/0_Bruddle/Notification'
+import { Section } from '@/components/0_Bruddle/Section'
+import ActionModal from '@/components/Global/ActionModal'
 import { useAuth } from '@/context/authContext'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { debugLog } from '@/utils/debug-console'
 import DevPageShell from '../_components/DevPageShell'
-import DevSectionLabel from '../_components/DevSectionLabel'
 
 type ActionResult = { ok: boolean; raw: any; ms: number }
 
 const DEBUG_DESCRIPTION =
-    'Sandbox-only cheats: one-click full setup, fund USDC, fast-forward KYC, complete pending intents. Every action also logs to the console in pink.'
+    'Sandbox-only cheats: one-click full setup, fund USDC, fast-forward KYC, and complete pending intents. Every action also logs to the console.'
 
 interface DebugAction {
     key: string
@@ -42,11 +48,25 @@ interface DebugSection {
     actions: DebugAction[]
 }
 
+interface DebugPromptRequest {
+    key: string
+    title: string
+    label: string
+    endpoint: string
+    bodyKey: 'code' | 'intentOrTransferId'
+    defaultValue?: string
+    asksForReason?: boolean
+}
+
 export default function DebugPage() {
     const { user, isFetchingUser } = useAuth()
     const [busy, setBusy] = useState<string | null>(null)
     const [results, setResults] = useState<Record<string, ActionResult>>({})
     const [whoami, setWhoami] = useState<any>(null)
+    const [isResetOpen, setIsResetOpen] = useState(false)
+    const [promptRequest, setPromptRequest] = useState<DebugPromptRequest | null>(null)
+    const [promptValue, setPromptValue] = useState('')
+    const [promptReason, setPromptReason] = useState('manual debug failure')
     // Single-flight guard for non-idempotent endpoints (fund-sa, simulate-
     // deposit, reset-user). Button disabling alone doesn't survive a fast
     // double-tap before the next paint — the synchronous ref check does.
@@ -109,6 +129,22 @@ export default function DebugPage() {
         if (r.ok) setWhoami(r.raw)
     }, [userId, call])
 
+    const openPrompt = (request: DebugPromptRequest) => {
+        setPromptValue(request.defaultValue ?? '')
+        setPromptReason('manual debug failure')
+        setPromptRequest(request)
+    }
+
+    const submitPrompt = async () => {
+        if (!promptRequest || !promptValue.trim() || !userId) return
+        const body: Record<string, string> = { [promptRequest.bodyKey]: promptValue.trim() }
+        if (promptRequest.bodyKey === 'code') body.userId = userId
+        if (promptRequest.asksForReason) body.reason = promptReason.trim() || 'manual debug failure'
+        const request = promptRequest
+        setPromptRequest(null)
+        await call(request.key, request.endpoint, body)
+    }
+
     useEffect(() => {
         if (userId) refreshWhoami()
     }, [userId, refreshWhoami])
@@ -124,7 +160,7 @@ export default function DebugPage() {
             <DevPageShell title="Debug" description={DEBUG_DESCRIPTION} width="prose">
                 <p className="font-mono text-body-s">
                     Not signed in. Sign up via{' '}
-                    <Link className="text-black underline" href="/setup">
+                    <Link className="text-foreground-primary underline" href="/setup">
                         /setup
                     </Link>{' '}
                     first, then come back.
@@ -135,7 +171,7 @@ export default function DebugPage() {
 
     const sections: DebugSection[] = [
         {
-            title: '🚀 Presets — one click, full chain',
+            title: 'Presets — one click, full chain',
             actions: [
                 {
                     key: 'fullSetup',
@@ -184,7 +220,7 @@ export default function DebugPage() {
             ],
         },
         {
-            title: '💰 Funding',
+            title: 'Funding',
             actions: [
                 {
                     key: 'fund10',
@@ -215,7 +251,7 @@ export default function DebugPage() {
             ],
         },
         {
-            title: '🪪 KYC (per-provider)',
+            title: 'KYC (per-provider)',
             actions: [
                 {
                     key: 'kycBridge',
@@ -249,7 +285,7 @@ export default function DebugPage() {
             ],
         },
         {
-            title: '💳 Card',
+            title: 'Card',
             actions: [
                 {
                     key: 'fundRainCollateral',
@@ -275,7 +311,7 @@ export default function DebugPage() {
             ],
         },
         {
-            title: '🎖️ Badges',
+            title: 'Badges — waitlist gate testing',
             actions: [
                 {
                     key: 'promptGrantBadge',
@@ -283,15 +319,20 @@ export default function DebugPage() {
                     description:
                         'Type any code from BADGE_CODES (BETA_TESTER, CARD_PIONEER, FOUNDER_HOUSE, SUPPORT_SURVIVOR, …). Useful for testing the badge-modal styling without restarting the user.',
                     run: async () => {
-                        const code = window.prompt('badge code', 'CARD_PIONEER')
-                        if (!code) return
-                        return call('promptGrantBadge', '/dev/cheats/grant-badge', { userId, code })
+                        openPrompt({
+                            key: 'promptGrantBadge',
+                            title: 'Grant a badge',
+                            label: 'Badge code',
+                            endpoint: '/dev/cheats/grant-badge',
+                            bodyKey: 'code',
+                            defaultValue: 'CARD_PIONEER',
+                        })
                     },
                 },
             ],
         },
         {
-            title: '🌉 Bridge — granular impersonator',
+            title: 'Bridge — granular impersonator',
             actions: [
                 {
                     key: 'completeBridgeOnramp',
@@ -299,10 +340,12 @@ export default function DebugPage() {
                     description:
                         'Pastes intent or transfer id. Use the Auto-complete preset instead unless targeting one transfer.',
                     run: async () => {
-                        const id = window.prompt('intent or transfer id')
-                        if (!id) return
-                        return call('completeBridgeOnramp', '/dev/cheats/complete-bridge-onramp', {
-                            intentOrTransferId: id,
+                        openPrompt({
+                            key: 'completeBridgeOnramp',
+                            title: 'Complete Bridge onramp',
+                            label: 'Intent or transfer ID',
+                            endpoint: '/dev/cheats/complete-bridge-onramp',
+                            bodyKey: 'intentOrTransferId',
                         })
                     },
                 },
@@ -311,10 +354,12 @@ export default function DebugPage() {
                     label: 'Prompt: complete a specific Bridge OFFRAMP',
                     description: 'Same as above but for offramps.',
                     run: async () => {
-                        const id = window.prompt('intent or transfer id')
-                        if (!id) return
-                        return call('completeBridgeOfframp', '/dev/cheats/complete-bridge-offramp', {
-                            intentOrTransferId: id,
+                        openPrompt({
+                            key: 'completeBridgeOfframp',
+                            title: 'Complete Bridge offramp',
+                            label: 'Intent or transfer ID',
+                            endpoint: '/dev/cheats/complete-bridge-offramp',
+                            bodyKey: 'intentOrTransferId',
                         })
                     },
                 },
@@ -323,19 +368,20 @@ export default function DebugPage() {
                     label: 'Prompt: fail a Bridge transfer',
                     description: 'Drives a transfer to terminal error. Pasting intent or transfer id.',
                     run: async () => {
-                        const id = window.prompt('intent or transfer id')
-                        if (!id) return
-                        const reason = window.prompt('reason', 'manual debug failure') ?? 'manual debug failure'
-                        return call('failBridge', '/dev/cheats/fail-bridge-transfer', {
-                            intentOrTransferId: id,
-                            reason,
+                        openPrompt({
+                            key: 'failBridge',
+                            title: 'Fail Bridge transfer',
+                            label: 'Intent or transfer ID',
+                            endpoint: '/dev/cheats/fail-bridge-transfer',
+                            bodyKey: 'intentOrTransferId',
+                            asksForReason: true,
                         })
                     },
                 },
             ],
         },
         {
-            title: '🔧 State',
+            title: 'State',
             actions: [
                 {
                     key: 'refreshWhoami',
@@ -347,13 +393,11 @@ export default function DebugPage() {
                 },
                 {
                     key: 'reset',
-                    label: '⚠ Reset my provider state',
+                    label: 'Reset my provider state',
                     description:
                         'Wipes my Bridge/Manteca customer ids, KYC verifications, and ledger intents. Keeps passkey + user row. Useful when a previous run left bad state.',
                     run: async () => {
-                        if (!window.confirm('reset all your provider state? (passkey + user row stay)')) return
-                        await call('reset', '/dev/cheats/reset-user', { userId })
-                        await refreshWhoami()
+                        setIsResetOpen(true)
                     },
                 },
             ],
@@ -363,8 +407,8 @@ export default function DebugPage() {
     return (
         <DevPageShell title="Debug" description={DEBUG_DESCRIPTION} width="prose">
             <div className="space-y-4">
-                <section className="border border-border-default bg-purple-200 p-3 font-mono text-body-xs">
-                    <div className="mb-2 font-bold">User</div>
+                <Card className="p-3 font-mono text-body-xs">
+                    <Card.Title>User</Card.Title>
                     <div>
                         <b>user_id:</b> <code>{userId}</code>
                     </div>
@@ -376,13 +420,13 @@ export default function DebugPage() {
                     </div>
                     {whoami && (
                         <>
-                            <div className="mt-2 font-bold">Live state (whoami)</div>
+                            <div className="mt-2 text-label-l">Live state (whoami)</div>
                             <div>
                                 <b>bridgeKyc:</b> <code>{whoami.bridgeKycStatus ?? '(none)'}</code>{' '}
-                                {whoami.hasBridgeCustomerId ? '✓ customer' : '✗ no customer'}
+                                {whoami.hasBridgeCustomerId ? 'customer: yes' : 'customer: no'}
                             </div>
                             <div>
-                                <b>manteca:</b> {whoami.hasMantecaUserId ? '✓ user_id bound' : '✗ no user_id'}
+                                <b>manteca:</b> {whoami.hasMantecaUserId ? 'user_id bound' : 'no user_id'}
                             </div>
                             <div>
                                 <b>kycVerifications:</b>{' '}
@@ -402,17 +446,16 @@ export default function DebugPage() {
                             </div>
                         </>
                     )}
-                </section>
+                </Card>
 
                 {sections.map((section) => (
-                    <section key={section.title}>
-                        <DevSectionLabel className="mb-2">{section.title}</DevSectionLabel>
+                    <Section key={section.title} title={section.title}>
                         <div className="space-y-2">
                             {section.actions.map((a) => {
                                 const r = results[a.key]
                                 const isBusy = busy === a.key
                                 return (
-                                    <div key={a.key} className="border border-border-default bg-white p-3">
+                                    <Card key={a.key} className="p-3">
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="flex-1">
                                                 <div className="font-mono text-label-l">{a.label}</div>
@@ -422,7 +465,6 @@ export default function DebugPage() {
                                             </div>
                                             <Button
                                                 variant="purple"
-                                                shadowSize="4"
                                                 size="small"
                                                 onClick={a.run}
                                                 disabled={busy !== null}
@@ -431,59 +473,105 @@ export default function DebugPage() {
                                             </Button>
                                         </div>
                                         {r && (
-                                            <pre
-                                                className={`mt-2 max-h-48 overflow-auto border border-border-default p-2 text-[10px] leading-tight ${
-                                                    r.ok ? 'bg-green-400/30' : 'bg-error-1/20'
-                                                }`}
+                                            <Notification
+                                                className="mt-2"
+                                                priority={r.ok ? 'success' : 'error'}
+                                                title={r.ok ? `Completed in ${r.ms}ms` : `Failed after ${r.ms}ms`}
                                             >
-                                                {`(${r.ms}ms) `}
-                                                {JSON.stringify(r.raw, null, 2)}
-                                            </pre>
+                                                <pre className="max-h-48 overflow-auto font-mono text-body-xs leading-tight break-words whitespace-pre-wrap">
+                                                    {JSON.stringify(r.raw, null, 2)}
+                                                </pre>
+                                            </Notification>
                                         )}
-                                    </div>
+                                    </Card>
                                 )
                             })}
                         </div>
-                    </section>
+                    </Section>
                 ))}
 
-                <section className="pt-4">
-                    <DevSectionLabel className="mb-2">Shortcuts</DevSectionLabel>
-                    <div className="space-y-1 font-mono text-body-xs">
+                <Section title="Shortcuts" className="pt-4">
+                    <div className="flex flex-col gap-4 font-mono text-body-xs">
                         <div>
-                            <Link className="underline" href="/home">
-                                /home
-                            </Link>{' '}
-                            — check balance + activity
+                            <LinkButton href="/home">/home</LinkButton> — check balance + activity
                         </div>
                         <div>
-                            <Link className="underline" href="/history">
-                                /history
-                            </Link>{' '}
-                            — full activity feed
+                            <LinkButton href="/history">/history</LinkButton> — full activity feed
                         </div>
                         <div>
-                            <Link className="underline" href="/add-money">
-                                /add-money
-                            </Link>{' '}
-                            — Bridge onramp instructions (after KYC)
+                            <LinkButton href="/add-money">/add-money</LinkButton> — Bridge onramp instructions (after
+                            KYC)
                         </div>
                         <div>
-                            <a
-                                className="underline"
-                                href={`${PEANUT_API_URL}/dev/ledger/history?userId=${userId}`}
-                                target="_blank"
-                                rel="noreferrer"
-                            >
+                            <LinkButton href={`${PEANUT_API_URL}/dev/ledger/history?userId=${userId}`} external icon>
                                 ledger history (raw JSON)
-                            </a>
+                            </LinkButton>
                         </div>
                         <div className="pt-2 text-foreground-secondary">
-                            All actions also fire <code>console.log</code> in pink. Pop open DevTools to follow along.
+                            All actions also fire <code>console.log</code>. Open DevTools to follow along.
                         </div>
                     </div>
-                </section>
+                </Section>
             </div>
+
+            <ActionModal
+                visible={Boolean(promptRequest)}
+                onClose={() => setPromptRequest(null)}
+                tone="info"
+                title={promptRequest?.title ?? 'Enter debug value'}
+                content={
+                    <div className="flex flex-col gap-3">
+                        <Field label={promptRequest?.label}>
+                            <BaseInput value={promptValue} onChange={(event) => setPromptValue(event.target.value)} />
+                        </Field>
+                        {promptRequest?.asksForReason && (
+                            <Field label="Reason">
+                                <BaseInput
+                                    value={promptReason}
+                                    onChange={(event) => setPromptReason(event.target.value)}
+                                />
+                            </Field>
+                        )}
+                    </div>
+                }
+                ctas={[
+                    {
+                        text: 'Run action',
+                        variant: 'purple',
+                        disabled: !promptValue.trim(),
+                        onClick: submitPrompt,
+                    },
+                    {
+                        text: 'Cancel',
+                        variant: 'stroke',
+                        onClick: () => setPromptRequest(null),
+                    },
+                ]}
+            />
+
+            <ActionModal
+                visible={isResetOpen}
+                onClose={() => setIsResetOpen(false)}
+                tone="warning"
+                title="Reset provider state?"
+                description="This removes your provider IDs, KYC verifications, and ledger intents. Your passkey and user account stay."
+                ctas={[
+                    {
+                        text: 'Reset state',
+                        variant: 'purple',
+                        onClick: async () => {
+                            setIsResetOpen(false)
+                            await call('reset', '/dev/cheats/reset-user', { userId })
+                            await refreshWhoami()
+                        },
+                    },
+                    {
+                        text: 'Cancel',
+                        variant: 'stroke',
+                        onClick: () => setIsResetOpen(false),
+                    },
+                ]}
+            />
         </DevPageShell>
     )
 }

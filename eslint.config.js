@@ -419,6 +419,11 @@ module.exports = [
             'src/components/Global/QRScannerOverlay/index.tsx',
             'src/components/Global/UnsupportedBrowserModal/index.tsx',
             'src/components/Invites/InvitesPage.tsx',
+            // ArticleLocaleNav is a sanctioned exception, not migration debt:
+            // it passes the WHOLE query string through verbatim when switching
+            // locale (unknown keys included). nuqs reads typed, named params —
+            // it has no all-params passthrough, so useSearchParams is the tool.
+            'src/components/Marketing/ArticleLocaleNav.tsx',
             'src/components/Marketing/HelpLanding.tsx',
             'src/components/Request/Pay/Pay.tsx',
             'src/components/Request/link/views/Create.request.link.view.tsx',

@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Icon } from '@/components/Global/Icons/Icon'
+import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 
 interface HelpArticle {
     slug: string
@@ -65,7 +66,7 @@ export default function HelpLanding({ articles, categories, strings }: HelpLandi
             {/* Search */}
             <div className={`mx-auto mt-10 mb-8 ${PROSE_WIDTH} px-6 md:mt-12 md:px-4`}>
                 <div className="relative">
-                    <div className="absolute top-1/2 left-3 -translate-y-1/2 text-grey-1">
+                    <div className="absolute top-1/2 left-3 -translate-y-1/2 text-foreground-secondary">
                         <Icon name="search" size={18} />
                     </div>
                     <input
@@ -74,7 +75,7 @@ export default function HelpLanding({ articles, categories, strings }: HelpLandi
                         placeholder={strings?.searchPlaceholder ?? 'Search help articles...'}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="h-12 w-full rounded-sm border border-n-1 bg-white pr-4 pl-10 text-base caret-primary-1 focus:ring-1 focus:ring-n-1 focus:outline-none"
+                        className={`${CARD_SURFACE} h-12 w-full pr-4 pl-10 text-base caret-action-primary focus:ring-1 focus:ring-border-default focus:outline-none`}
                     />
                 </div>
             </div>
@@ -85,30 +86,30 @@ export default function HelpLanding({ articles, categories, strings }: HelpLandi
                     <div className="flex flex-col gap-10">
                         {filteredCategories.map((category) => (
                             <section key={category}>
-                                <h2 className="mb-4 text-xs font-bold tracking-widest text-grey-1 uppercase">
+                                <h2 className="mb-4 text-label-m tracking-widest text-foreground-secondary uppercase">
                                     {category}
                                 </h2>
-                                <div className="flex flex-col gap-px overflow-hidden rounded-sm border border-n-1">
+                                <div className="flex flex-col gap-px overflow-hidden rounded-sm border border-border-default">
                                     {filteredArticles
                                         .filter((a) => a.category === category)
                                         .map((article) => (
                                             <Link
                                                 key={article.slug}
                                                 href={article.href}
-                                                className="group flex items-center justify-between border-b border-n-1/10 bg-white px-5 py-4 transition-colors last:border-b-0 hover:bg-primary-3/20"
+                                                className="group flex items-center justify-between border-b border-border-default/10 bg-background-default px-4 py-4 transition-colors last:border-b-0 hover:bg-purple-200/20"
                                             >
                                                 <div className="flex flex-col gap-0.5">
-                                                    <h3 className="text-base font-semibold text-n-1 group-hover:underline">
+                                                    <h3 className="text-body-m-semibold text-foreground-primary group-hover:underline">
                                                         {article.title}
                                                     </h3>
-                                                    <p className="line-clamp-1 text-sm leading-[1.75] text-grey-1">
+                                                    <p className="line-clamp-1 text-body-s text-foreground-secondary">
                                                         {article.description}
                                                     </p>
                                                 </div>
                                                 <Icon
                                                     name="arrow-up-right"
                                                     size={16}
-                                                    className="shrink-0 text-grey-1"
+                                                    className="shrink-0 text-foreground-secondary"
                                                 />
                                             </Link>
                                         ))}
@@ -117,15 +118,17 @@ export default function HelpLanding({ articles, categories, strings }: HelpLandi
                         ))}
                     </div>
                 ) : (
-                    <div className="py-12 text-center text-grey-1">
+                    <div className="py-12 text-center text-foreground-secondary">
                         <p className="text-base">No articles match your search.</p>
                     </div>
                 )}
 
                 {/* Contact CTA */}
-                <div className="my-8 border-l-4 border-primary-1 py-1 pl-6">
-                    <p className="font-semibold text-n-1">{strings?.cantFind ?? "Can't find what you need?"}</p>
-                    <p className="mt-1 text-base leading-[1.75] text-grey-1">
+                <div className="my-8 border-l-4 border-action-primary py-1 pl-6">
+                    <p className="font-semibold text-foreground-primary">
+                        {strings?.cantFind ?? "Can't find what you need?"}
+                    </p>
+                    <p className="mt-1 text-base leading-[1.75] text-foreground-secondary">
                         {strings?.cantFindDesc ??
                             'Click the chat bubble in the bottom-right corner to talk to our support team. We typically reply within minutes.'}
                     </p>

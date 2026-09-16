@@ -13,11 +13,8 @@ export const SETUP_SCREEN_PARAM = 'screen'
 
 /*
  * The cursor a clean /setup URL means, pinned to a screen the runtime filter
- * never removes. NOT steps[0]: that moves as the filtered list arrives (the
- * master list starts at 'unsupported-browser', a sunset/PWA-filtered list at
- * 'landing'), so a clean URL could resolve to a screen absent from the list
- * in force — indexOf -1, no step, and the page's recovery screen instead of
- * the flow (PEANUT-UI-T3A).
+ * never removes. Do not derive this from steps[0]: that value can move as a
+ * filtered list arrives and leave the cursor outside the active flow.
  */
 export const SETUP_DEFAULT_SCREEN: ScreenId = 'landing'
 

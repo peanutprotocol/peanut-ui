@@ -88,7 +88,7 @@ describe('CHUNK_ERROR_RECOVERY_SCRIPT', () => {
         expect(reload).not.toHaveBeenCalled()
     })
 
-    it('does not auto-reload in standalone PWA mode (Android redirect-loop hazard)', () => {
+    it('does not reload an installed PWA', () => {
         const { reload, emitRejection } = bootScript({ standalone: true })
         emitRejection(chunkError())
         expect(reload).not.toHaveBeenCalled()
@@ -130,6 +130,10 @@ describe('recoverFromChunkError', () => {
         sessionStorage.clear()
         reload = jest.fn()
         Object.defineProperty(window, 'location', { value: { ...originalLocation, reload }, writable: true })
+        Object.defineProperty(window, 'matchMedia', {
+            writable: true,
+            value: jest.fn(() => ({ matches: false })),
+        })
     })
 
     afterEach(() => {
@@ -143,6 +147,15 @@ describe('recoverFromChunkError', () => {
 
     it('returns false and skips reload for non-chunk errors', () => {
         expect(recoverFromChunkError(new Error('Failed to fetch'))).toBe(false)
+        expect(reload).not.toHaveBeenCalled()
+    })
+
+    it('returns false and skips reload for an installed PWA', () => {
+        Object.defineProperty(window, 'matchMedia', {
+            writable: true,
+            value: jest.fn(() => ({ matches: true })),
+        })
+        expect(recoverFromChunkError(chunkError())).toBe(false)
         expect(reload).not.toHaveBeenCalled()
     })
 

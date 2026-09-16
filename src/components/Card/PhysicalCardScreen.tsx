@@ -8,7 +8,8 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import Image from 'next/image'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
-import Loading from '@/components/Global/Loading'
+import { Notification } from '@/components/0_Bruddle/Notification'
+import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import CardFace from '@/components/Card/CardFace'
 import { rainApi } from '@/services/rain'
 import { PeanutWalking } from '@/assets/mascot'
@@ -23,6 +24,7 @@ interface Props {
 
 const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
     const t = useTranslations('card.physical')
+    const tCommon = useTranslations('common')
     const queryClient = useQueryClient()
     const [joining, setJoining] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -71,36 +73,39 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
             <CardFace last4={last4} isVirtual={false} />
 
             {isLoading ? (
-                <div className="flex justify-center py-6">
-                    <Loading />
+                <div className="flex flex-col items-center gap-6 text-center" role="status">
+                    <span className="sr-only">{tCommon('loading')}</span>
+                    <div className="flex w-full flex-col items-center gap-1">
+                        <div className="h-8 w-40 animate-pulse rounded bg-foreground-primary/10" />
+                        <div className="h-5 w-64 animate-pulse rounded bg-foreground-primary/10" />
+                    </div>
+                    <div className="h-11 w-full animate-pulse rounded-round bg-foreground-primary/10" />
                 </div>
             ) : data?.joinedAt ? (
                 <div className="flex flex-col items-center gap-3 text-center">
                     <Image src={PeanutWalking} unoptimized alt="" aria-hidden className="h-32 w-auto" />
-                    <h1 className="text-heading-xs">{t('onListTitle')}</h1>
-                    <p className="text-body-s text-foreground-secondary">
-                        {/* position is nullable — without the branch a user with no
-                            queue position is told they are "#null" on the list. */}
-                        {data.position === null
-                            ? t('onListBodyPending')
-                            : t('onListBody', { position: data.position.toLocaleString() })}
-                    </p>
+                    {/* position is nullable, so do not render it until rain assigns one. */}
+                    <TitleBlock
+                        title={<h1>{t('onListTitle')}</h1>}
+                        description={
+                            data.position === null
+                                ? t('onListBodyPending')
+                                : t('onListBody', { position: data.position.toLocaleString() })
+                        }
+                        align="center"
+                        size="s"
+                    />
                 </div>
             ) : (
                 <div className="flex flex-col items-center gap-6 text-center">
-                    <div className="flex flex-col gap-2">
-                        <h1 className="text-heading-xs">{t('comingSoonTitle')}</h1>
-                        <p className="text-body-s text-foreground-secondary">{t('comingSoonBody')}</p>
-                    </div>
-                    {error && <p className="text-body-s text-foreground-error">{error}</p>}
-                    <Button
-                        variant="purple"
-                        shadowSize="4"
-                        className="w-full"
-                        onClick={onJoin}
-                        loading={joining}
-                        disabled={joining}
-                    >
+                    <TitleBlock
+                        title={<h1>{t('comingSoonTitle')}</h1>}
+                        description={t('comingSoonBody')}
+                        align="center"
+                        size="s"
+                    />
+                    {error && <Notification priority="error">{error}</Notification>}
+                    <Button variant="purple" className="w-full" onClick={onJoin} loading={joining} disabled={joining}>
                         {t('joinCta')}
                     </Button>
                 </div>

@@ -25,7 +25,7 @@ export function DestinationGrid({ countries, exclude, title, locale = DEFAULT_LO
 
     return (
         <section className="py-10 md:py-14">
-            {heading && <h2 className="mb-6 text-h2 font-bold md:text-h1">{heading}</h2>}
+            {heading && <h2 className="mb-6 text-heading-l md:text-h1">{heading}</h2>}
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
                 {slugs.map((slug) => {
                     const seo = COUNTRIES_SEO[slug]
@@ -51,7 +51,7 @@ export function DestinationGrid({ countries, exclude, title, locale = DEFAULT_LO
                                 )}
                                 <div>
                                     <span className="font-semibold">{countryName}</span>
-                                    <span className="ml-1 text-sm text-black/50">&rarr;</span>
+                                    <span className="ml-1 text-sm text-foreground-primary/50">&rarr;</span>
                                 </div>
                             </Card>
                         </Link>

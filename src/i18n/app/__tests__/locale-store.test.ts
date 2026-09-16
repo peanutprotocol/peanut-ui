@@ -321,8 +321,8 @@ describe('localeReady', () => {
     })
 
     // A locale derived from the browser language used to live only in memory:
-    // a full document load (a PWA relaunching at start_url after a new-tab
-    // detour) re-derived it and the proxy never saw an app-locale cookie.
+    // a full document load after a new-tab detour re-derived the locale, and
+    // the proxy never saw an app-locale cookie.
     it('persists the startup locale so a full document load finds the cookie', async () => {
         setNavigatorLanguage('pt-BR')
         const store = freshStore()

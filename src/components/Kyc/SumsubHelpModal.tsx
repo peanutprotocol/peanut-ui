@@ -83,7 +83,7 @@ export function SumsubHelpModal({ visible, variant, onDismiss, onExit }: SumsubH
             description={modalDetails.description}
             icon={modalDetails.icon}
             iconContainerClassName={modalDetails.iconContainerClassName}
-            modalPanelClassName="max-w-full"
+            modalPanelClassName="mx-0 max-w-full"
             ctaClassName="grid grid-cols-1 gap-3"
             contentContainerClassName="px-6 py-6"
             modalClassName="!z-[10001]"

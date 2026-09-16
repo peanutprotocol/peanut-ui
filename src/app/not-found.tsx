@@ -36,43 +36,45 @@ export default function NotFound() {
                     {PeanutRagdoll && <PeanutRagdoll />}
                 </div>
 
-                <div className="flex flex-grow flex-col justify-center overflow-y-auto bg-white px-6 py-8 md:px-12">
-                    <div className="mx-auto space-y-8 w-full max-w-md">
-                        <div className="space-y-3">
+                <div className="flex flex-grow flex-col justify-center overflow-y-auto bg-background-default px-6 py-8 md:px-12">
+                    <div className="mx-auto flex w-full max-w-md flex-col gap-8">
+                        <div className="flex flex-col gap-3">
                             <h1 className="text-heading-m">Hmm, we can&apos;t find that page.</h1>
                             <p className="text-body-m text-foreground-secondary">
                                 If we&apos;ve sent you here, please{' '}
                                 {modals ? (
-                                    <button type="button" onClick={openSupport} className="text-black underline">
+                                    <button
+                                        type="button"
+                                        onClick={openSupport}
+                                        className="text-foreground-primary underline"
+                                    >
                                         let support know
                                     </button>
                                 ) : (
-                                    <a href={supportHref} className="text-black underline">
+                                    <a href={supportHref} className="text-foreground-primary underline">
                                         let support know
                                     </a>
                                 )}{' '}
                                 so we can fix it.
                             </p>
                         </div>
-                        <div className="space-y-3">
-                            {/* Raw <a> instead of <Link>: forces a full page load when leaving the
-                                404, avoiding the historical React error 310 from hook-count
-                                mismatch between this route and the (mobile-ui) tree. */}
-                            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-                            <a href="/" className="btn btn-purple flex w-full text-center shadow-4">
+                        <div className="flex flex-col gap-3">
+                            {/* link-mode Button with plainAnchor: server-renders a real
+                                <a href="/">, so a 404 recovers even when the client bundle
+                                never hydrates, and the plain href also forces the full page
+                                load that avoids the historical React error 310 from
+                                hook-count mismatch between this route and the (mobile-ui) tree. */}
+                            <Button href="/" plainAnchor className="w-full">
                                 Take me home
-                            </a>
+                            </Button>
                             {modals ? (
                                 <Button variant="stroke" className="w-full" onClick={openSupport}>
                                     Contact support
                                 </Button>
                             ) : (
-                                <a
-                                    href={supportHref}
-                                    className="btn btn-stroke flex w-full items-center justify-center text-center"
-                                >
+                                <Button variant="stroke" href={supportHref} className="w-full">
                                     Contact support
-                                </a>
+                                </Button>
                             )}
                         </div>
                     </div>

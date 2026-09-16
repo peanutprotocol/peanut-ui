@@ -120,7 +120,7 @@ describe('resolveDeviceIdentity', () => {
         )
     })
 
-    it('reports the screen so iOS PWAs are separable without a model', async () => {
+    it('reports the screen so web devices are separable without a model', async () => {
         Object.defineProperty(window, 'devicePixelRatio', { value: 3, configurable: true })
         Object.defineProperty(window.screen, 'width', { value: 390, configurable: true })
         Object.defineProperty(window.screen, 'height', { value: 844, configurable: true })

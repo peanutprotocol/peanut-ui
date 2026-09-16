@@ -1,7 +1,11 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Script from 'next/script'
+import DevPageShell from '@/app/(mobile-ui)/dev/_components/DevPageShell'
+import { Card } from '@/components/0_Bruddle/Card'
+import { Notification } from '@/components/0_Bruddle/Notification'
+import { Section } from '@/components/0_Bruddle/Section'
 
 interface Props {
     diagrams: Array<{ title: string; code: string }>
@@ -10,6 +14,7 @@ interface Props {
 
 export function MermaidRenderer({ diagrams, source }: Props) {
     const containerRef = useRef<HTMLDivElement>(null)
+    const [errors, setErrors] = useState<Record<number, string>>({})
 
     useEffect(() => {
         const init = async () => {
@@ -37,13 +42,8 @@ export function MermaidRenderer({ diagrams, source }: Props) {
                     const { svg } = await mermaid.render(`mermaid-${i}`, code)
                     node.innerHTML = svg
                 } catch (e) {
-                    // Render the error as text, not HTML — `e` can contain the
-                    // (untrusted) diagram source, so interpolating it into
-                    // innerHTML would be a reflected-XSS sink.
-                    const pre = document.createElement('pre')
-                    pre.style.color = 'red'
-                    pre.textContent = String(e)
-                    node.replaceChildren(pre)
+                    node.replaceChildren()
+                    setErrors((current) => ({ ...current, [i]: String(e) }))
                 }
             }
         }
@@ -62,50 +62,33 @@ export function MermaidRenderer({ diagrams, source }: Props) {
     return (
         <>
             <Script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js" strategy="afterInteractive" />
-            <div
-                ref={containerRef}
-                style={{
-                    maxWidth: 1200,
-                    margin: '0 auto',
-                    padding: '40px 20px',
-                    fontFamily: 'system-ui, sans-serif',
-                }}
+            <DevPageShell
+                title="KYC state machines"
+                description={`${diagrams.length} diagrams loaded from the Mono repository.`}
             >
-                <h1 style={{ fontSize: 28, marginBottom: 8 }}>KYC Flows — State Machine Reference</h1>
-                <p style={{ color: '#666', marginBottom: 16 }}>
-                    {diagrams.length} diagrams loaded from mono repo. Source:{' '}
-                    <code style={{ fontSize: 12 }}>{source}</code>
-                </p>
-                <p style={{ color: '#999', marginBottom: 40, fontSize: 13 }}>
-                    edit the markdown in mono, refresh this page to see changes.
-                </p>
+                <div ref={containerRef} className="flex min-w-0 flex-col gap-8">
+                    <Notification priority="info" title="Source">
+                        <code className="font-mono text-body-xs break-all">{source}</code>
+                    </Notification>
 
-                {diagrams.map((d, i) => (
-                    <section key={i} style={{ marginBottom: 60 }}>
-                        <h2
-                            style={{ fontSize: 20, marginBottom: 16, borderBottom: '1px solid #eee', paddingBottom: 8 }}
-                        >
-                            {d.title}
-                        </h2>
-                        <div
-                            className="mermaid-diagram"
-                            data-code={d.code}
-                            style={{
-                                background: '#fafafa',
-                                border: '1px solid #eee',
-                                borderRadius: 4,
-                                padding: 20,
-                                minHeight: 200,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                            }}
-                        >
-                            <span style={{ color: '#999' }}>Loading diagram...</span>
-                        </div>
-                    </section>
-                ))}
-            </div>
+                    {diagrams.map((d, i) => (
+                        <Section key={i} title={d.title}>
+                            {errors[i] ? (
+                                <Notification priority="error" title="Diagram render failed">
+                                    <pre className="font-mono text-body-xs whitespace-pre-wrap">{errors[i]}</pre>
+                                </Notification>
+                            ) : (
+                                <Card
+                                    className="mermaid-diagram min-h-50 items-center justify-center overflow-auto p-4 text-body-s text-foreground-secondary"
+                                    data-code={d.code}
+                                >
+                                    Loading diagram…
+                                </Card>
+                            )}
+                        </Section>
+                    ))}
+                </div>
+            </DevPageShell>
         </>
     )
 }

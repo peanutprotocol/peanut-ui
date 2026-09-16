@@ -12,7 +12,7 @@ import fs from 'fs'
 import path from 'path'
 import { EXCHANGES } from '../src/data/seo/exchanges'
 import { DEPOSIT_RAILS } from '../src/data/seo/deposit-rails'
-import { listPublishedSlugs } from '../src/lib/content'
+import { listPublishedSlugs, LOCALE_NEUTRAL_APP_ROUTES } from '../src/lib/content'
 
 const ROOT = path.join(process.cwd(), 'src/content')
 const CONTENT_DIR = path.join(ROOT, 'content')
@@ -66,7 +66,9 @@ function main() {
     lines.push('')
     // /lp/card and /exchange are permanent redirects (redirects.json) — content
     // links only to canonical destinations, never to redirect hops.
-    for (const p of ['/', '/careers', '/privacy', '/terms', '/shhhhh', '/card']) {
+    // Locale-neutral app routes come from the resolver's list so what we
+    // advertise here always passes scripts/verify-content.ts validation.
+    for (const p of ['/', '/privacy', '/terms', ...[...LOCALE_NEUTRAL_APP_ROUTES].map((r) => `/${r}`)]) {
         lines.push(`- \`${p}\``)
     }
     lines.push('')

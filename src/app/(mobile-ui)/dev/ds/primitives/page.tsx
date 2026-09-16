@@ -6,7 +6,7 @@ export default function PrimitivesPage() {
     return (
         <DocPage>
             <div>
-                <h1 className="text-h3">Primitives</h1>
+                <h1 className="text-heading-m">Primitives</h1>
                 <p className="mt-1 text-body-s text-foreground-secondary">
                     Bruddle base components. The lowest-level building blocks of the UI.
                 </p>

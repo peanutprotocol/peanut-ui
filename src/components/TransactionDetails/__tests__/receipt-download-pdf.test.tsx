@@ -43,6 +43,8 @@ describe('DownloadReceiptPdfLink', () => {
         expect(link).toHaveAttribute('href', '/receipt/entry-1/pdf?kind=OFFRAMP&locale=en')
         expect(link).toHaveAttribute('download')
         expect(link).toHaveAttribute('target', '_blank')
+        expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+        // the button look now comes from Button's link mode, not hand-rolled classes
         expect(link).toHaveClass('btn', 'btn-stroke')
         fireEvent.click(link)
         expect(mockOpenExternalUrl).not.toHaveBeenCalled()

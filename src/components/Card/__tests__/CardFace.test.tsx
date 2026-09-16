@@ -7,11 +7,18 @@
  * degraded the Rain lookup).
  */
 import React from 'react'
-import { fireEvent, render as rtlRender, screen } from '@testing-library/react'
+import { fireEvent, render as rtlRender, screen, waitFor } from '@testing-library/react'
+import { ToastProvider } from '@/components/0_Bruddle/Toast'
 import { IntlWrapper } from '@/test-utils/intl'
 import CardFace, { type RevealedCardDetails } from '@/components/Card/CardFace'
 
-const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
+const TestWrapper = ({ children }: { children: React.ReactNode }) => (
+    <IntlWrapper>
+        <ToastProvider>{children}</ToastProvider>
+    </IntlWrapper>
+)
+
+const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: TestWrapper })
 
 const revealed: RevealedCardDetails = {
     pan: '4111111111111234',
@@ -22,13 +29,28 @@ const revealed: RevealedCardDetails = {
 }
 
 describe('CardFace copy buttons', () => {
-    it('copies the expiry as MM/YY with its own button', () => {
+    let writeText: jest.Mock
+
+    beforeEach(() => {
+        writeText = jest.fn().mockResolvedValue(undefined)
+        Object.defineProperty(window, 'isSecureContext', { configurable: true, value: true })
+        Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } })
+    })
+
+    it('copies the expiry as MM/YY and the CVV', async () => {
         const onCopy = jest.fn()
         render(<CardFace last4="1234" revealed={revealed} onCopy={onCopy} />)
-        fireEvent.click(screen.getByRole('button', { name: 'Copy expiry date' }))
-        expect(onCopy).toHaveBeenCalledWith('12/30', 'expiry')
-        fireEvent.click(screen.getByRole('button', { name: 'Copy CVV' }))
-        expect(onCopy).toHaveBeenCalledWith('123', 'cvv')
+        expect(screen.getByRole('button', { name: 'Copy card number' })).toBeInTheDocument()
+        const copyExpiry = screen.getByRole('button', { name: 'Copy expiry date' })
+        const copyCvv = screen.getByRole('button', { name: 'Copy CVV' })
+
+        fireEvent.click(copyExpiry)
+        await waitFor(() => expect(onCopy).toHaveBeenCalledWith('12/30', 'expiry'))
+        expect(writeText).toHaveBeenCalledWith('12/30')
+
+        fireEvent.click(copyCvv)
+        await waitFor(() => expect(onCopy).toHaveBeenCalledWith('123', 'cvv'))
+        expect(writeText).toHaveBeenCalledWith('123')
     })
 })
 

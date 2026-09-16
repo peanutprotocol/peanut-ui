@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { BaseInput } from '@/components/0_Bruddle/BaseInput'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Field } from '@/components/0_Bruddle/Field'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'

@@ -219,10 +219,6 @@
                 "description": "Activa las notificaciones y recibe alertas de toda la actividad de tu billetera.",
                 "blockedToast": "Tu navegador bloqueó las notificaciones. Actívalas en la configuración del sitio y recarga."
             },
-            "iosPwa": {
-                "title": "Agrega Peanut a tu pantalla de inicio",
-                "description": "Sigue una guía rápida para agregar la app a tu pantalla de inicio, sin descargar nada."
-            },
             "qrPay": {
                 "title": "Paga con <b>códigos QR</b>",
                 "description": "Obtén el mejor tipo de cambio, paga como un <b>local</b> y gana <b>recompensas</b>."
@@ -696,7 +692,8 @@
             "bankFee": "Comisión bancaria",
             "free": "¡Gratis!",
             "arrivesHours": "Suele llegar en horas.",
-            "arrivesMinutes": "Suele llegar en minutos."
+            "arrivesMinutes": "Suele llegar en minutos.",
+            "selectCurrency": "Seleccionar moneda"
         },
         "row": {
             "approximate": "Este es un valor aproximado. El monto que recibas puede variar según el tipo de cambio de tu banco.",
@@ -706,18 +703,6 @@
     },
     "setup": {
         "steps": {
-            "unsupported-browser": {
-                "title": "Navegador no compatible",
-                "description": "Abre Peanut en el navegador principal de tu dispositivo (Safari, Chrome, Firefox) para continuar con la configuración. Si ya estás en tu navegador principal, puede que tu dispositivo no sea compatible con Peanut."
-            },
-            "android-initial-pwa-install": {
-                "title": "Vive la experiencia completa",
-                "description": "Tu billetera a un toque de distancia. Segura, rápida y en tu pantalla de inicio."
-            },
-            "pwa-install": {
-                "title": "Instala Peanut en tu teléfono",
-                "description": "¡Instala Peanut en tu teléfono para una mejor experiencia!"
-            },
             "landing": {
                 "title": "Peanut hace que los dólares sean fáciles.",
                 "description": "Crea tu cuenta en segundos para guardar, enviar o retirar dólares rápido, estés donde estés en el mundo."
@@ -757,22 +742,6 @@
         "wrapper": {
             "starAlt": "estrella",
             "illustrationAlt": "Ilustración de la sección"
-        },
-        "braveInstall": {
-            "title": "¡Listo!",
-            "description": "Abre la app de Peanut desde tu pantalla de inicio para continuar con la configuración."
-        },
-        "installPwa": {
-            "openPeanutApp": "Abrir la app de Peanut",
-            "installing": "Instalando",
-            "addToHomeScreen": "Agregar a la pantalla de inicio",
-            "installCancelled": "Instalación cancelada. Puedes intentar agregarlo a la pantalla de inicio de nuevo.",
-            "manualInstallHint": "Para instalar la app, agrégala a tu pantalla de inicio desde el menú de tu navegador.",
-            "mobileFirstTitle": "¡Peanut está hecho para el celular!",
-            "mobileFirstDescription": "Para una mejor experiencia, usa Peanut en tu teléfono.",
-            "openInApp": "Abrir en la app",
-            "installApp": "Instalar la app",
-            "gotIt": "¡Entendido!"
         },
         "next": "Siguiente",
         "logIn": "Iniciar sesión",
@@ -1026,8 +995,8 @@
             "cta": "Enviar por enlace"
         },
         "methods": {
-            "contactsTitle": "Contactos de Peanut",
-            "contactsDescription": "Peanuts con los que has interactuado",
+            "contactsTitle": "Nombre de usuario de Peanut",
+            "contactsDescription": "Ingresa un @usuario exacto o elige un contacto",
             "bankTitle": "Banco",
             "bankDescription": "EUR, USD, MXN, ARS y más",
             "instantTransfers": "Transferencias instantáneas",
@@ -1035,15 +1004,23 @@
             "exchangeOrWalletDescription": "Binance, Metamask y más"
         },
         "contacts": {
-            "searchPlaceholder": "Buscar contactos...",
+            "searchPlaceholder": "Ingresa el usuario exacto o busca contactos...",
+            "searchLabel": "Nombre de usuario de Peanut o contacto",
+            "exactUsername": "Nombre de usuario exacto",
+            "usernameFound": "Se encontró @{username}",
+            "continueToSend": "Continuar para enviar dinero",
+            "usernameNotFound": "No encontramos ese nombre de usuario exacto.",
+            "invalidUsername": "Ingresa un nombre de usuario de Peanut válido.",
+            "lookupLimitReached": "Demasiadas verificaciones de usuario. Inténtalo de nuevo más tarde.",
+            "lookupError": "No pudimos verificar ese nombre de usuario. Inténtalo de nuevo.",
             "yourContacts": "Tus contactos",
             "loadingMore": "Cargando más...",
             "errorTitle": "No se pudieron cargar los contactos",
             "errorDescription": "No pudimos cargar tus contactos. Inténtalo de nuevo.",
-            "noResultsTitle": "No se encontraron contactos",
-            "noResultsDescription": "Intenta buscar otro contacto.",
+            "noResultsTitle": "No se encontró el usuario ni el contacto",
+            "noResultsDescription": "Revisa el nombre de usuario exacto de Peanut e inténtalo de nuevo.",
             "emptyTitle": "Aún no tienes contactos",
-            "emptyDescription": "Los contactos aparecen cuando envías, solicitas o invitas a alguien"
+            "emptyDescription": "Ingresa arriba un nombre de usuario exacto de Peanut o envía mediante un enlace"
         },
         "link": {
             "createLink": "Crear enlace",
@@ -1090,7 +1067,13 @@
         "validation": {
             "talkToSupport": "Hablar con soporte",
             "learnHow": "Aprende cómo recibir dinero a través de Peanut",
-            "sadPeanutAlt": "Peanut triste"
+            "sadPeanutAlt": "Peanut triste",
+            "unknownUser": {
+                "title": "No conocemos a ningún @{username}",
+                "message": "¿Seguro que hiciste clic en el enlace correcto?",
+                "cta": "Volver al inicio",
+                "supportTemplate": "Hice clic en este enlace pero recibí un error: '{url}'"
+            }
         },
         "errorPage": {
             "title": "¡Algo salió mal!",
@@ -1466,10 +1449,14 @@
             "rejectedBody": "Puedes seguir usando Peanut sin problema para depositar, retirar y pagar con cripto.",
             "geoBlockedTitle": "Las tarjetas aún no están disponibles en tu región",
             "geoBlockedBody": "La disponibilidad de la tarjeta depende de dónde vives. Puedes seguir usando las otras funciones de Peanut disponibles para ti.",
-            "geoBlockedPolicyLink": "Ver qué regiones están restringidas"
+            "geoBlockedPolicyLink": "Ver qué regiones están restringidas",
+            "pendingResidenceBlockedTitle": "Revisa tu cambio de residencia",
+            "pendingResidenceBlockedBody": "Tu residencia aprobada sigue activa, pero las solicitudes de tarjeta están pausadas mientras haya un cambio de residencia pendiente. Revisa o cancela ese cambio para continuar.",
+            "pendingResidenceBlockedCta": "Revisar cambio de residencia"
         },
         "cancel": {
             "title": "¿Cancelar tu tarjeta?",
+            "keepCard": "Conservar mi tarjeta",
             "body": "No vas a poder volver a usarla.",
             "canceling": "Cancelando…",
             "slideToCancel": "Desliza para cancelar",
@@ -1524,6 +1511,7 @@
         "limits": {
             "navTitle": "Límite de la tarjeta",
             "subtitle": "Define tu límite de gasto por transacción.",
+            "explainer": "El límite aplica a cada transacción. Puedes cambiarlo cuando quieras.",
             "perTransaction": "Por transacción",
             "loadFailed": "No se pudo cargar el límite de la tarjeta.",
             "noLimitSet": "Sin límite definido",
@@ -1541,6 +1529,7 @@
             "noPinBody": "Tienes que definir un pin antes de usar tu tarjeta en compras en tienda.",
             "setPin": "Definir pin",
             "hiddenNote": "Tu pin está oculto por seguridad.",
+            "rowLabel": "PIN",
             "hidePin": "Ocultar pin",
             "showPin": "Mostrar pin",
             "changePin": "Cambiar pin",
@@ -1609,6 +1598,7 @@
         "page": {
             "loadFailed": "No se pudo cargar la información de la tarjeta. Inténtalo de nuevo.",
             "applyFailed": "No se pudo solicitar la tarjeta",
+            "issueFailed": "Tu solicitud fue aprobada, pero no pudimos crear tu tarjeta. Inténtalo de nuevo.",
             "confirmCountryFailed": "No se pudo confirmar el país",
             "setupCancelled": "Configuración cancelada — inténtalo de nuevo.",
             "setupFailed": "No se pudo completar la configuración — inténtalo de nuevo.",
@@ -3280,16 +3270,11 @@
             "title": "Desbloquea este método de pago",
             "getStartedCta": "Empezar"
         },
-        "iosPwaInstallModal": {
-            "title": "Agrega Peanut a tu pantalla de inicio",
-            "description": "Sigue una guía rápida para agregar la app a tu pantalla de inicio, sin descargar nada.",
-            "firefoxDescription": "Firefox en iOS no permite instalar apps en la pantalla de inicio. Abre esta página en Safari para continuar.",
-            "gotItCta": "¡Entendido!",
-            "videoUnsupported": "Tu navegador no admite la etiqueta de video."
-        },
         "unsupportedBrowserModal": {
             "title": "Abre este enlace en tu navegador",
             "description": "Todavía estamos trabajando para que Peanut funcione en tu navegador. Por ahora, usa Chrome o Safari.",
+            "passkeyTitle": "Las llaves de acceso no están disponibles",
+            "passkeyDescription": "Peanut necesita una llave de acceso para crear tu cuenta. Asegúrate de que tu dispositivo tenga bloqueo de pantalla y las llaves de acceso activadas, y vuelve a intentarlo. Si aún no funciona, inténtalo una vez desde otro teléfono o computadora.",
             "copyLinkCta": "Copiar enlace",
             "copied": "¡Copiado!",
             "copySuccessToast": "¡Enlace copiado al portapapeles!",
@@ -3479,15 +3464,6 @@
             "editFailed": "No pudimos guardar el nombre. Intentá de nuevo.",
             "editAria": "Editar {name}"
         },
-        "forceIosPwaInstall": {
-            "videoUnsupported": "Tu navegador no admite la etiqueta de video.",
-            "title": "Vive la experiencia completa",
-            "subtitle": "¡Este es el último paso!",
-            "description": "Agrega Peanut a tu pantalla de inicio para desbloquear tu billetera y empezar a usarla.",
-            "tapShare": "Toca el <share>ícono Compartir</share> en tu navegador",
-            "thenTapAddToHomeScreen": "y luego <bold>“Agregar a inicio”</bold>",
-            "continueInBrowser": "Continuar en el navegador"
-        },
         "pointsCard": {
             "earned": "¡Ganaste {count, plural, one {# punto} other {# puntos}}!"
         },
@@ -3571,6 +3547,8 @@
         "xchainWithdrawLimitRetry": "Alcanzaste el límite de retiros a otras redes. Vuelve a intentarlo en aproximadamente {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# día} other {# días}}. Los retiros en Arbitrum no tienen límite, o contacta a soporte para ampliar el tuyo.",
         "xchainPaymentLimit": "Hiciste demasiadas transferencias a otras redes recientemente. Contacta a soporte para ampliar tu límite.",
         "xchainPaymentLimitRetry": "Hiciste demasiadas transferencias a otras redes recientemente. Vuelve a intentarlo en aproximadamente {days, plural, =0 {{hours, plural, =0 {{minutes, plural, one {# minuto} other {# minutos}}} one {# hora} other {# horas}}} one {# día} other {# días}}, o contacta a soporte para ampliar tu límite.",
+        "xchainWithdrawDisabled": "Los retiros a otras redes están limitados en tu cuenta. Siempre puedes retirar en Arbitrum, o contacta a soporte para recibir ayuda.",
+        "xchainPaymentDisabled": "Las transferencias a otras redes están limitadas en tu cuenta. Contacta a soporte para recibir ayuda.",
         "rainInsufficientCollateral": "Tu tarjeta no tiene suficiente colateral para este retiro.",
         "staleCardApproval": "Tu tarjeta debe reactivarse antes de que puedas retirar. Solo toma un toque con tu passkey.",
         "cardRateLimited": "Demasiadas solicitudes con la tarjeta. Espera un momento e inténtalo de nuevo.",

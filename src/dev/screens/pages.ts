@@ -8,7 +8,6 @@ export type PageCapture = {
     entryRoute?: string
     actions?: Array<{ click: string } | { fill: { selector: string; value: string } }>
     routePattern?: string
-    exclusion?: string
     /** Accessible names clicked in order before the shot. */
     clicks?: string[]
     /** Scroll to the bottom first — some notifications sit below the fold. */
@@ -60,12 +59,6 @@ export const PAGE_CAPTURES: PageCapture[] = [
     { id: 'p19-add-money-us-bank', name: 'Add money — US bank', route: '/add-money/usa/bank' },
 
     { id: 'p20-qr-pay', name: 'QR Pay', route: '/qr-pay' },
-    {
-        id: 'p21-qr',
-        exclusion: 'Native query-route stub; app-owned QR drawer is captured separately, native shell routing is v2',
-        name: 'QR',
-        route: '/qr',
-    },
     { id: 'p22-card', name: 'Card', route: '/card' },
     { id: 'p23-card-limit', name: 'Card — limit', route: '/card/limit' },
     { id: 'p24-card-pin', name: 'Card — PIN', route: '/card/pin' },
@@ -75,12 +68,6 @@ export const PAGE_CAPTURES: PageCapture[] = [
     { id: 'p27-recover-wallet', name: 'Recover wallet', route: '/recover-wallet' },
     { id: 'p28-history', name: 'History', route: '/history' },
     { id: 'p29-badges', name: 'Badges', route: '/badges' },
-    {
-        id: 'p30-points',
-        exclusion: 'Legacy entry redirects to Rewards; the Rewards fixtures cover this UI',
-        name: 'Points',
-        route: '/points',
-    },
     { id: 'p31-send', name: 'Send', route: '/send' },
     { id: 'p32-request', name: 'Request', route: '/request' },
     { id: 'p33-claim', name: 'Claim', route: '/claim' },
@@ -115,36 +102,12 @@ export const PAGE_CAPTURES: PageCapture[] = [
 PAGE_CAPTURES.push(
     { id: 'p43-card-physical', name: 'Physical card', route: '/card/physical' },
     { id: 'p44-card-add-to-wallet', name: 'Add card to wallet', route: '/card/add-to-wallet' },
-    {
-        id: 'p45-card-payment',
-        exclusion: 'Routing-only card payment handoff; no standalone product screen',
-        name: 'Card payment',
-        route: '/card-payment',
-    },
     { id: 'p46-card-signature', name: 'Repair card signature', route: '/fix-card-signature' },
     { id: 'p47-pay-request', name: 'Pay a request', route: '/pay-request?id=synthetic-request' },
-    {
-        id: 'p48-points-invites',
-        exclusion: 'Legacy entry redirects to Rewards invites; covered by the Rewards invites fixture',
-        name: 'Points and invites',
-        route: '/points/invites',
-    },
-    {
-        id: 'p49-request-pay',
-        exclusion: 'Routing-only request link resolver; request and payment screens are captured separately',
-        name: 'Request payment',
-        route: '/request/pay',
-    },
     { id: 'p50-setup-session', name: 'Setup — existing session', route: '/setup', fixture: 'setup-pending' },
     { id: 'p51-setup-finish', name: 'Setup completion', route: '/setup/finish', fixture: 'setup-pending' },
     { id: 'p52-kyc-success', name: 'Verification success', route: '/kyc/success' },
     { id: 'p53-maintenance', name: 'Maintenance', route: '/maintenance' },
-    {
-        id: 'p54-pay-recipient',
-        exclusion: 'Legacy pay URL redirects to the send-recipient screen captured by p55',
-        name: 'Pay a recipient',
-        route: '/pay/demo',
-    },
     { id: 'p55-send-recipient', name: 'Send to a recipient', route: '/send/demo' },
     { id: 'p56-request-recipient', name: 'Request from a recipient', route: '/request/demo' },
     { id: 'p57-qr-code', name: 'QR payment — invalid code', route: '/qr/synthetic-invalid' },
@@ -167,13 +130,6 @@ PAGE_CAPTURES.push(
         fixture: 'withdraw',
     },
     { id: 'p65-withdraw-argentina', name: 'Withdraw — Argentina', route: '/withdraw/argentina', fixture: 'withdraw' },
-    {
-        id: 'p66-bank-local',
-        exclusion: 'Argentina bank deposits use the regional Manteca route captured by p69',
-        name: 'Add money — local bank',
-        route: '/add-money/argentina/bank',
-        fixture: 'add-money',
-    },
     { id: 'p67-recipient', name: 'Recipient profile', route: '/demo' },
     {
         id: 'p68-invite',
@@ -187,14 +143,4 @@ PAGE_CAPTURES.push(
         route: '/add-money/argentina/manteca',
         fixture: 'add-money',
     }
-)
-
-PAGE_CAPTURES.push(
-    {
-        id: 'h01-notifications',
-        name: 'Notifications — empty inbox',
-        route: '/notifications',
-        routePattern: '/notifications',
-    },
-    { id: 'h02-settings', name: 'Settings — logout', route: '/settings', routePattern: '/settings' }
 )
