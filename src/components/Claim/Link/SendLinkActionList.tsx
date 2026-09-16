@@ -379,7 +379,7 @@ const MethodCard = ({
     return (
         <ListItem
             position="single"
-            body={<div className="text-[12px]">{method.description}</div>}
+            body={<div className="text-body-xs">{method.description}</div>}
             title={
                 <div className="flex items-center gap-2">
                     {method.title}
