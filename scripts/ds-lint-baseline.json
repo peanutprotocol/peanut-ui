@@ -7,20 +7,20 @@
     "nonDsClassesInViews": 6,
     "useSearchParamsFiles": 34,
     "nuqsFiles": 37,
-    "legacyColorClasses": 0,
+    "legacyColorClasses": 4,
     "offRampPalette": 0,
     "deadLegacyTokens": 0,
     "consumedUndefinedTokens": 0,
-    "classNameSitesInPages": 129,
-    "fontWeightOnTypeToken": 40,
-    "offScaleSpacing": 139,
-    "iconOffScale": 57,
-    "offScaleRadius": 23,
-    "rawDuration": 2,
-    "retypedCardLiteral": 15,
+    "classNameSitesInPages": 128,
+    "fontWeightOnTypeToken": 31,
+    "offScaleSpacing": 102,
+    "iconOffScale": 54,
+    "offScaleRadius": 20,
+    "rawDuration": 1,
+    "retypedCardLiteral": 13,
     "hoverNoActiveFiles": 32,
-    "arbitraryFontSize": 32,
-    "rawErrorText": 15,
+    "arbitraryFontSize": 31,
+    "rawErrorText": 14,
     "handRolledCloseGlyphFiles": 7,
     "_meta": [
         {
@@ -72,6 +72,11 @@
             "date": "2026-09-15",
             "metrics": ["classNameSitesInPages 127 -> 129"],
             "reason": "classNameSitesInPages 127->129: inherited from origin/dev's receipts-v2 (#3159) receipt-shell wrappers via the dev merge — upstream code, not this branch's; TASK-22452"
+        },
+        {
+            "date": "2026-09-16",
+            "metrics": ["legacyColorClasses 0 -> 4"],
+            "reason": "legacyColorClasses 0 -> 4: the palette metrics now scan .ts modules too (they were .tsx-only), which reaches features/limits/utils.ts — bg-success-3 / text-success-1 / bg-error-4 / text-error-4. Real legacy classes, migrating in #3208 along with the three tokens held in globals.css."
         }
     ]
 }

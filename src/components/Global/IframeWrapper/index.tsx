@@ -227,7 +227,6 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                                 setModalVariant('stop-verification')
                                 setIsHelpModalOpen(true)
                             }}
-                            shadowType="primary"
                         >
                             {t('iframeWrapper.stopVerification')}
                         </Button>

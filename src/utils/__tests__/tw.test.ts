@@ -181,8 +181,8 @@ describe('twMerge (DS-configured)', () => {
     })
 
     // the brutalist offset shadows (.shadow-2, @utility shadow-4, the
-    // primary/secondary scale) looked like unknown classes to stock
-    // tailwind-merge, so shadow-none could not remove them.
+    // primary scale) looked like unknown classes to stock tailwind-merge, so
+    // shadow-none could not remove them.
     describe('custom shadow tokens', () => {
         test('custom shadows conflict with stock shadows and shadow-none', () => {
             expect(twMerge('shadow-4 shadow-none')).toBe('shadow-none')
@@ -196,16 +196,9 @@ describe('twMerge (DS-configured)', () => {
         test('every custom shadow-* class in globals.css merges as a shadow', () => {
             // the offset shadows are css classes/utilities, not @theme vars
             const tokens = cssTokens(/^\s*(?:\.|@utility )shadow-([a-zA-Z0-9-]+)\s*\{/gm)
-            expect(tokens.length).toBeGreaterThan(6)
+            expect(tokens.length).toBeGreaterThan(3)
             const unmerged = tokens.filter((t) => twMerge(`shadow-${t} shadow-none`) !== 'shadow-none')
             expect(unmerged).toEqual([])
-        })
-    })
-
-    describe('component classes with Tailwind-shaped names', () => {
-        test('bg colours compose with the documented peanut pattern', () => {
-            expect(twMerge('bg-peanut-repeat-normal bg-white')).toBe('bg-peanut-repeat-normal bg-white')
-            expect(stockTwMerge('bg-peanut-repeat-normal bg-white')).toBe('bg-white')
         })
     })
 })

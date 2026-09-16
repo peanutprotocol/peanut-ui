@@ -263,14 +263,6 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             description: 'Decorative drifting-clouds backdrop for success and marketing moments. Code-only (brand)',
             status: 'production',
         },
-        {
-            label: 'Title',
-            icon: 'docs',
-            href: '/dev/ds/primitives/title',
-            description:
-                'Knerd display font with filled/outline double-render effect. DEAD IN PRODUCT — only rendered by MarketingHero (marketing pages); the wallet app never uses it.',
-            status: 'unused',
-        },
     ],
     patterns: [
         { label: 'Modal', icon: 'link', href: '/dev/ds/patterns/modal' },
