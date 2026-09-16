@@ -26,7 +26,7 @@ test('local CLI emits a self-contained collection viewer from selected capture a
                 screens: [
                     { id: 'profile', name: 'Profile', flow: 'Profile', kind: 'route', status: 'captured', image },
                 ],
-            }),
+            })
         )
         const spec = join(root, 'spec.json')
         writeFileSync(spec, JSON.stringify({ title: 'Review', items: [{ id: 'profile', note: 'Flat menu' }] }))

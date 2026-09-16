@@ -42,6 +42,6 @@ test('collection API refuses an alternate public workers.dev origin', () => {
                 SCREEN_LIBRARY_COLLECTION_API_URL: 'https://collections.example.workers.dev',
                 SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access',
             }),
-        /custom HTTPS origin/,
+        /custom HTTPS origin/
     )
 })

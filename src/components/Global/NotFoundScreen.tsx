@@ -23,7 +23,7 @@ export default function NotFoundScreen() {
     // landing in Crisp chat logs.
     const openSupport = () =>
         modals?.openSupportWithMessage(
-            `Hey! I hit a 404 — can you help?${typeof window !== 'undefined' ? `\n\nPath: ${window.location.pathname}` : ''}`,
+            `Hey! I hit a 404 — can you help?${typeof window !== 'undefined' ? `\n\nPath: ${window.location.pathname}` : ''}`
         )
 
     return (

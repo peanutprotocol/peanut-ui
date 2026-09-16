@@ -38,6 +38,6 @@ test('MCP Worker refuses a public workers.dev alternate origin', () => {
                 SCREEN_LIBRARY_MCP_URL: 'https://screen-library-mcp.example.workers.dev',
                 SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access',
             }),
-        /custom HTTPS origin/,
+        /custom HTTPS origin/
     )
 })

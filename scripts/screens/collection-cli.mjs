@@ -64,13 +64,13 @@ export async function createLocalCollection({ specPath, outDir, id, reportArgs }
         `window.SCREEN_REPORT=${JSON.stringify(collection)
             .replace(/</g, '\\u003c')
             .replace(/\u2028/g, '\\u2028')
-            .replace(/\u2029/g, '\\u2029')};`,
+            .replace(/\u2029/g, '\\u2029')};`
     )
     const html = readFileSync('public/screen-library/index.html', 'utf8')
         .replaceAll('/screen-library/', './')
         .replace(
             '<script defer src="./viewer.js">',
-            '<script src="./report.js"></script><script defer src="./viewer.js">',
+            '<script src="./report.js"></script><script defer src="./viewer.js">'
         )
     writeFileSync(join(output, 'index.html'), html)
     for (const name of ['viewer.js', 'viewer.css']) copyFileSync(`public/screen-library/${name}`, join(output, name))

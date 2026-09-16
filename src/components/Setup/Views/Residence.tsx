@@ -61,7 +61,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
         return true
     }, view !== 'select')
     const [partialRestriction, setPartialRestriction] = useState<PartialRestriction>(() =>
-        restrictionSets.bankingOnly.has(residenceCountry) ? 'banking' : 'card',
+        restrictionSets.bankingOnly.has(residenceCountry) ? 'banking' : 'card'
     )
     const [showSecondCountry, setShowSecondCountry] = useState(!!secondResidenceCountry)
     const [email, setEmail] = useState('')
@@ -460,7 +460,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                                             size="xs"
                                             items={[
                                                 ...summary.available.map((item) =>
-                                                    t(`residenceStep.compare.items.${item}`),
+                                                    t(`residenceStep.compare.items.${item}`)
                                                 ),
                                                 ...summary.unavailable.map((item) => (
                                                     <span key={item} className="line-through">
