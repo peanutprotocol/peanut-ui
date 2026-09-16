@@ -76,7 +76,7 @@ export function LocaleSuggestion({ locale }: { locale: Locale }) {
         // button, so long copy can't run underneath it.
         <div
             lang={suggested}
-            className="relative border-b border-n-1 bg-primary-1/20 px-10 py-2 text-center text-sm text-n-1"
+            className="relative border-b border-border-default bg-action-primary/20 px-10 py-2 text-center text-sm text-foreground-primary"
         >
             <span>
                 {i18n.text}{' '}

@@ -34,7 +34,7 @@ export function MarketingHero({
     ctaText = ctaText ?? i18n.getStarted
     return (
         <>
-            <section className="relative overflow-hidden bg-primary-1 px-4 py-16 text-center md:px-8 md:py-20">
+            <section className="relative overflow-hidden bg-action-primary px-4 py-16 text-center md:px-8 md:py-20">
                 <CloudsCss clouds={marketingClouds} />
                 <div className="relative z-10 mx-auto max-w-3xl">
                     {image && (
@@ -54,7 +54,7 @@ export function MarketingHero({
                             with text-7xl (TASK-22366 sweep) */}
                         <Title text={title} className="text-5xl md:text-9xl" />
                     </h1>
-                    <p className="mt-6 text-3xl font-bold text-black md:text-5xl">{subtitle}</p>
+                    <p className="mt-6 text-3xl font-bold text-foreground-primary md:text-5xl">{subtitle}</p>
                     {ctaText && (
                         <div className="mt-8">
                             <Link
@@ -76,7 +76,7 @@ export function MarketingHero({
                     'USDT/USDC',
                 ]}
                 imageSrc={HandThumbsUp.src}
-                backgroundColor="bg-secondary-1"
+                backgroundColor="bg-action-secondary"
             />
         </>
     )

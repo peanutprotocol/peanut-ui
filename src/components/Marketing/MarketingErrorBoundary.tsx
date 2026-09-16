@@ -36,8 +36,8 @@ export class MarketingErrorBoundary extends Component<Props, State> {
             return (
                 this.props.fallback || (
                     <div className="mx-auto max-w-2xl px-6 py-16 text-center">
-                        <h2 className="text-2xl font-bold text-n-1">{this.props.strings?.title}</h2>
-                        <p className="mt-4 text-grey-1">{this.props.strings?.body}</p>
+                        <h2 className="text-2xl font-bold text-foreground-primary">{this.props.strings?.title}</h2>
+                        <p className="mt-4 text-foreground-secondary">{this.props.strings?.body}</p>
                     </div>
                 )
             )

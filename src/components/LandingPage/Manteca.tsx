@@ -35,7 +35,7 @@ const Manteca = ({
     return (
         <section
             id="qr-pay"
-            className="relative overflow-hidden py-20 text-n-1 md:min-h-[850px] lg:min-h-[750px]"
+            className="relative overflow-hidden py-20 text-foreground-primary md:min-h-[850px] lg:min-h-[750px]"
             style={{ backgroundColor }}
         >
             <div className="hidden md:block">
