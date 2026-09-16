@@ -1,5 +1,4 @@
 'use client'
-import { ScreenMark } from '@/components/0_Bruddle/ScreenMark'
 import { type FC, useState } from 'react'
 import { Section } from '@/components/0_Bruddle/Section'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -45,7 +44,6 @@ const CardLimitsScreen: FC<Props> = ({ cardId, onPrev }) => {
     return (
         <PageStack gap="6">
             <NavHeader title={t('navTitle')} onPrev={onPrev} />
-            <ScreenMark icon="credit-card" color="brand" />
             <Section title={t('subtitle')}>
                 {isLoading ? (
                     <ListItem
@@ -72,6 +70,12 @@ const CardLimitsScreen: FC<Props> = ({ cardId, onPrev }) => {
                     />
                 )}
             </Section>
+
+            {/* visual-qa verdict: the explainer lives at the bottom as an info
+             * notification. no utilization bar — rain's limits endpoint returns
+             * only {amount, frequency}, and our program is per-authorization
+             * only, so there is no period spend to display. */}
+            <Notification priority="info">{t('explainer')}</Notification>
 
             <CardLimitEditDrawer
                 cardId={cardId}

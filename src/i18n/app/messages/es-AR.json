@@ -816,6 +816,7 @@
         },
         "limits": {
             "subtitle": "Definí tu límite de gasto por transacción.",
+            "explainer": "El límite aplica a cada transacción. Podés cambiarlo cuando quieras.",
             "invalidAmount": "Ingresá un monto entre {minimum} y {maximum}, con un máximo de dos decimales.",
             "noActiveCard": "No tenés una tarjeta activa para gestionar límites."
         },

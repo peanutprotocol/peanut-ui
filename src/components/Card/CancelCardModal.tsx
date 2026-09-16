@@ -7,6 +7,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { Field } from '@/components/0_Bruddle/Field'
 import ActionModal from '@/components/Global/ActionModal'
 import { Notification } from '@/components/0_Bruddle/Notification'
+import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { rainApi } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
@@ -151,8 +152,17 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
             title={t(isConfirm ? 'cancel.title' : isFeedback ? 'cancel.canceledTitle' : 'cancel.thanksTitle')}
             description={t(isConfirm ? 'cancel.body' : isFeedback ? 'cancel.canceledBody' : 'cancel.thanksBody')}
             content={
-                isConfirm && error ? (
-                    <Notification priority="error">{error}</Notification>
+                isConfirm ? (
+                    // visual-qa verdict: cancel keeps the slide friction — a
+                    // terminal money action commits only at full travel.
+                    <>
+                        {error && <Notification priority="error">{error}</Notification>}
+                        <SlideToConfirm
+                            label={phase === 'canceling' ? t('cancel.canceling') : t('cancel.slideToCancel')}
+                            onConfirm={runCancel}
+                            disabled={phase === 'canceling'}
+                        />
+                    </>
                 ) : isFeedback ? (
                     <Field label={t('cancel.feedbackLabel')} htmlFor="cancel-feedback">
                         <textarea
@@ -188,13 +198,6 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                             },
                         ]
                       : [
-                            {
-                                text: t('yourCard.cancelCard'),
-                                variant: 'purple',
-                                onClick: runCancel,
-                                loading: phase === 'canceling',
-                                disabled: phase === 'canceling',
-                            },
                             {
                                 text: t('cancel.keepCard'),
                                 variant: 'stroke',

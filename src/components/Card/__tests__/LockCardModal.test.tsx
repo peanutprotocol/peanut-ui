@@ -158,7 +158,7 @@ describe('CancelCardModal', () => {
     it('forces collateral-only routing and delivers the withdrawal to the cancel call', async () => {
         setup(OVERVIEW)
         renderCancel()
-        fireEvent.click(screen.getByRole('button', { name: 'Cancel card' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Slide to Cancel' }))
         expect(await screen.findByText('Card canceled')).toBeInTheDocument()
         expect(mockSignSpend).toHaveBeenCalledWith(FORCED_SIGN_ARGS)
         expect(mockCancelCard).toHaveBeenCalledWith('card-1', { verifiedWithdrawal: RAIN_WITHDRAWAL })
@@ -167,7 +167,7 @@ describe('CancelCardModal', () => {
     it('fails closed before signing when the overview has not loaded', async () => {
         setup(undefined)
         renderCancel()
-        fireEvent.click(screen.getByRole('button', { name: 'Cancel card' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Slide to Cancel' }))
         expect(await screen.findByText(/still loading/)).toBeInTheDocument()
         expect(mockSignSpend).not.toHaveBeenCalled()
         expect(mockCancelCard).not.toHaveBeenCalled()
@@ -176,7 +176,7 @@ describe('CancelCardModal', () => {
     it('cancels without signing when there is no spending power to return', async () => {
         setup({ balance: { spendingPower: 0 } })
         renderCancel()
-        fireEvent.click(screen.getByRole('button', { name: 'Cancel card' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Slide to Cancel' }))
         expect(await screen.findByText('Card canceled')).toBeInTheDocument()
         expect(mockSignSpend).not.toHaveBeenCalled()
         expect(mockCancelCard).toHaveBeenCalledWith('card-1', { verifiedWithdrawal: undefined })

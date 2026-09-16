@@ -7,7 +7,6 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Field } from '@/components/0_Bruddle/Field'
-import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { rainApi, type RainCardLimit, type RainLimitFrequency } from '@/services/rain'
@@ -133,9 +132,8 @@ const CardLimitEditDrawer: FC<Props> = ({ cardId, frequency, label, initialAmoun
             <DrawerContent>
                 <div className="flex flex-col items-center pt-1 pb-6 text-center">
                     {/* the head owns the M/12 beneath it; everything after it
-                        keeps the drawer's L/16 rhythm */}
+                        keeps the drawer's L/16 rhythm. no icon bubble — visual-qa verdict. */}
                     <div className="mb-3 flex w-full flex-col items-center gap-4">
-                        <IconBubble icon="credit-card" color="brand" />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>{t('editTitle')}</DrawerTitle>
                         </DrawerHeader>

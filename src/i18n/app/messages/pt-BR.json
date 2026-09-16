@@ -1509,6 +1509,7 @@
         "limits": {
             "navTitle": "Limite do cartão",
             "subtitle": "Defina seu limite de gasto por transação.",
+            "explainer": "O limite se aplica a cada transação. Você pode alterá-lo quando quiser.",
             "perTransaction": "Por transação",
             "loadFailed": "Não foi possível carregar o limite do cartão.",
             "noLimitSet": "Nenhum limite definido",
@@ -1526,6 +1527,7 @@
             "noPinBody": "Você precisa definir um pin antes de usar seu cartão em compras na loja.",
             "setPin": "Definir pin",
             "hiddenNote": "Seu pin fica oculto por segurança.",
+            "rowLabel": "PIN",
             "hidePin": "Ocultar pin",
             "showPin": "Mostrar pin",
             "changePin": "Alterar pin",
