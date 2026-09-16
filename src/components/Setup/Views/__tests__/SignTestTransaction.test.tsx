@@ -112,10 +112,14 @@ describe('SignTestTransaction — setup completion', () => {
     it('redirects immediately after account finalization', async () => {
         renderWithIntl(<SignTestTransaction />)
 
-        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+        const confirmButton = screen.getByRole('button', { name: /confirm/i })
+        fireEvent.click(confirmButton)
 
         await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith('/home'))
         expect(mockRouterReplace).toHaveBeenCalledTimes(1)
+        expect(confirmButton).toBeDisabled()
+        fireEvent.click(confirmButton)
+        expect(mockSendUserOp).toHaveBeenCalledTimes(1)
         expect(screen.queryByText(/works right now/i)).not.toBeInTheDocument()
         expect(posthog.capture).toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SIGNUP_COMPLETED,

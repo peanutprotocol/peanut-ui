@@ -128,8 +128,9 @@ const SignTestTransaction = () => {
             }
         }
 
-        setIsSigning(false)
-        setSetupLoading(false)
+        // Completion is terminal for this screen. Keep both loading states
+        // active until navigation unmounts it so a slow route transition
+        // cannot expose a second completion attempt.
         redirectToAccount()
     }
 
@@ -176,6 +177,8 @@ const SignTestTransaction = () => {
     }, [accountExists])
 
     const handleTestTransaction = async () => {
+        if (redirectingRef.current) return
+
         if (!address) {
             setError(t('testTransaction.errors.noWalletAddress'))
             return
