@@ -69,8 +69,11 @@ export function FAQ({ title, children, locale = DEFAULT_LOCALE }: FAQProps) {
 
     return (
         <section
-            className="overflow-x-hidden bg-purple-600"
+            className="overflow-x-hidden"
             style={{
+                // #6340df has no DS token (purple-600 #9333ea is a visible hue
+                // shift) — parity kept; mapping is a needs-decision item
+                backgroundColor: '#6340df',
                 backgroundImage: `url(${PeanutsBG.src})`,
                 backgroundSize: '10rem auto',
                 backgroundRepeat: 'repeat',
