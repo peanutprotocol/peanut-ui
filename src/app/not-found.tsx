@@ -59,23 +59,22 @@ export default function NotFound() {
                             </p>
                         </div>
                         <div className="flex flex-col gap-3">
-                            {/* real <a> (btn classes, the sanctioned anchor recipe), not a
-                                Button+onClick: a 404 must recover even when the client bundle
+                            {/* link-mode Button with plainAnchor: server-renders a real
+                                <a href="/">, so a 404 recovers even when the client bundle
                                 never hydrates, and the plain href also forces the full page
                                 load that avoids the historical React error 310 from
                                 hook-count mismatch between this route and the (mobile-ui) tree. */}
-                            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-                            <a href="/" className="btn btn-purple w-full shadow-4">
+                            <Button href="/" plainAnchor className="w-full">
                                 Take me home
-                            </a>
+                            </Button>
                             {modals ? (
                                 <Button variant="stroke" className="w-full" onClick={openSupport}>
                                     Contact support
                                 </Button>
                             ) : (
-                                <a href={supportHref} className="btn btn-stroke w-full">
+                                <Button variant="stroke" href={supportHref} className="w-full">
                                     Contact support
-                                </a>
+                                </Button>
                             )}
                         </div>
                     </div>

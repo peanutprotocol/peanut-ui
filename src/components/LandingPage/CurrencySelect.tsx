@@ -7,6 +7,7 @@ import Image from 'next/image'
 import countryCurrencyMappings, { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { SUPPORTED_EXCHANGE_CURRENCIES } from '@/constants/exchange-currencies.consts'
 import StatusBadge from '../Global/Badges/StatusBadge'
+import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 
 interface CurrencySelectProps {
     selectedCurrency: string
@@ -45,7 +46,7 @@ const CurrencySelect = ({
                     <PopoverButton as={React.Fragment}>{trigger}</PopoverButton>
                     <PopoverPanel
                         anchor="bottom end"
-                        className="z-50 mt-4 w-72 overflow-scroll rounded-sm border border-black bg-white shadow-lg sm:w-80 md:w-96"
+                        className={`z-50 mt-4 w-72 overflow-scroll ${CARD_SURFACE} shadow-lg sm:w-80 md:w-96`}
                         // usePullToRefresh listens on `document` and only bails on window.scrollY > 0,
                         // so scrolling this panel at page top reads as a pull. Same guard as Global/Drawer.
                         onTouchMove={(e: React.TouchEvent) => e.stopPropagation()}
@@ -101,8 +102,11 @@ const CurrencyBox = ({
             className={twMerge(
                 'flex w-full justify-between px-4 py-2',
                 !comingSoon && 'cursor-pointer',
-                comingSoon && 'cursor-not-allowed bg-grey-4 opacity-75',
-                selected && !comingSoon && 'rounded-sm border border-gray-1'
+                comingSoon && 'cursor-not-allowed bg-background-disabled opacity-75',
+                // border-foreground-secondary: no border-* token carries this
+                // hex (#5f646d); the color token resolves and keeps the
+                // rendered color exact
+                selected && !comingSoon && 'rounded-sm border border-foreground-secondary'
             )}
         >
             <div className="flex items-center gap-2">
@@ -118,15 +122,19 @@ const CurrencyBox = ({
                 />
                 <div className="flex flex-col">
                     <div className="flex items-center gap-2">
-                        <h3 className={twMerge('text-base font-bold', comingSoon && 'text-gray-1')}>{currency}</h3>
-                        <span className="text-xs font-medium text-gray-1">{currencyName}</span>
+                        <h3 className={twMerge('text-body-m-semibold', comingSoon && 'text-foreground-secondary')}>
+                            {currency}
+                        </h3>
+                        <span className="text-body-xs text-foreground-secondary">{currencyName}</span>
                     </div>
                 </div>
             </div>
 
             <div className="flex items-center gap-2">
                 {comingSoon && <StatusBadge status="soon" size="small" />}
-                {selected && !comingSoon && <Icon size={14} name="success" className="font-light text-gray-1" />}
+                {selected && !comingSoon && (
+                    <Icon size={14} name="success" className="font-light text-foreground-secondary" />
+                )}
             </div>
         </div>
     )

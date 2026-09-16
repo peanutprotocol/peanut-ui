@@ -1509,6 +1509,7 @@
         "limits": {
             "navTitle": "Limite do cartão",
             "subtitle": "Defina seu limite de gasto por transação.",
+            "explainer": "O limite se aplica a cada transação. Você pode alterá-lo quando quiser.",
             "perTransaction": "Por transação",
             "loadFailed": "Não foi possível carregar o limite do cartão.",
             "noLimitSet": "Nenhum limite definido",
@@ -1526,6 +1527,7 @@
             "noPinBody": "Você precisa definir um pin antes de usar seu cartão em compras na loja.",
             "setPin": "Definir pin",
             "hiddenNote": "Seu pin fica oculto por segurança.",
+            "rowLabel": "PIN",
             "hidePin": "Ocultar pin",
             "showPin": "Mostrar pin",
             "changePin": "Alterar pin",
@@ -3269,6 +3271,8 @@
         "unsupportedBrowserModal": {
             "title": "Abra este link no seu navegador",
             "description": "Ainda estamos trabalhando para a Peanut funcionar no seu navegador. Por enquanto, use o Chrome ou o Safari.",
+            "passkeyTitle": "As chaves de acesso não estão disponíveis",
+            "passkeyDescription": "A Peanut precisa de uma chave de acesso para criar sua conta. Verifique se o dispositivo tem bloqueio de tela e chaves de acesso ativadas e tente novamente. Se ainda não funcionar, tente uma vez em outro celular ou computador.",
             "copyLinkCta": "Copiar link",
             "copied": "Copiado!",
             "copySuccessToast": "Link copiado para a área de transferência!",

@@ -25,17 +25,17 @@ interface HeroProps {
 export function Hero({ title, subtitle, cta, ctaHref }: HeroProps) {
     return (
         <>
-            <section className="relative overflow-hidden bg-primary-1 px-4 py-16 text-center md:px-8 md:py-24">
+            <section className="relative overflow-hidden bg-action-primary px-4 py-16 text-center md:px-8 md:py-24">
                 <CloudsCss clouds={marketingClouds} />
                 <div className="relative z-10 mx-auto max-w-4xl">
                     {/* break-words + hyphens: one long word ("COMMUNICATIONS",
                         "INSTANTANEAMENTE") must wrap, not clip, at 320px
                         (TASK-22366 sweep) */}
-                    <h1 className="font-roboto-flex-extrabold text-[2.5rem] leading-[0.95] font-extraBlack break-words hyphens-auto text-black uppercase md:text-[4.5rem]">
+                    <h1 className="font-roboto-flex-extrabold text-[2.5rem] leading-[0.95] font-extraBlack break-words hyphens-auto text-foreground-primary uppercase md:text-[4.5rem]">
                         {title}
                     </h1>
                     {subtitle && (
-                        <p className="font-roboto-flex-extrabold mt-6 text-[1.25rem] text-black uppercase md:mt-8 md:text-[2rem]">
+                        <p className="font-roboto-flex-extrabold mt-6 text-[1.25rem] text-foreground-primary uppercase md:mt-8 md:text-[2rem]">
                             {subtitle}
                         </p>
                     )}
@@ -43,7 +43,7 @@ export function Hero({ title, subtitle, cta, ctaHref }: HeroProps) {
                         <div className="mt-8">
                             <Link
                                 href={ctaHref}
-                                className="btn btn-shadow-primary-4 inline-flex w-auto bg-white px-8 font-extrabold hover:bg-white/90 active:translate-x-[3px] active:translate-y-[4px] active:shadow-none"
+                                className="btn btn-shadow-primary-4 inline-flex w-auto bg-background-default px-8 font-extrabold hover:bg-background-default/90 active:translate-x-1 active:translate-y-1 active:shadow-none"
                             >
                                 {cta}
                             </Link>
@@ -54,7 +54,7 @@ export function Hero({ title, subtitle, cta, ctaHref }: HeroProps) {
             <MarqueeComp
                 message={['No fees', 'Instant', '24/7', 'Dollars', 'USDT/USDC']}
                 imageSrc={HandThumbsUp.src}
-                backgroundColor="bg-secondary-1"
+                backgroundColor="bg-action-secondary"
             />
             {/* Spacer ensures consistent gap between Hero block and prose content */}
             <div className="h-10 md:h-14" />

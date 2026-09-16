@@ -1509,6 +1509,7 @@
         "limits": {
             "navTitle": "Card limit",
             "subtitle": "Set your per-transaction spending limit.",
+            "explainer": "The limit applies to each transaction. You can change it anytime.",
             "perTransaction": "Per transaction",
             "loadFailed": "Failed to load card limit.",
             "noLimitSet": "No limit set",
@@ -1526,6 +1527,7 @@
             "noPinBody": "You need to set a pin before using your card for in-store purchases.",
             "setPin": "Set pin",
             "hiddenNote": "Your pin is hidden for security reasons.",
+            "rowLabel": "PIN",
             "hidePin": "Hide pin",
             "showPin": "Show pin",
             "changePin": "Change pin",
@@ -3269,6 +3271,8 @@
         "unsupportedBrowserModal": {
             "title": "Open this link in your browser",
             "description": "We're still working on making Peanut work on your browser. For now, please use Chrome or Safari.",
+            "passkeyTitle": "Passkeys aren't available",
+            "passkeyDescription": "Peanut needs a passkey to create your account. Make sure your device has a screen lock and passkeys enabled, then try again. If it still doesn't work, try once from another phone or computer.",
             "copyLinkCta": "Copy Link",
             "copied": "Copied!",
             "copySuccessToast": "Link copied to clipboard!",

@@ -722,6 +722,13 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
                 ? { status: { hasApplication: true, railStatus: 'PENDING' }, balance: null, cards: [] }
                 : { status: { hasApplication: false }, balance: null, cards: [] },
     },
+    // per-card limits read — without this the card-limit fixture (and any
+    // demo/capture render of /card/limit) 404s into the error state.
+    {
+        method: 'GET',
+        pattern: '/rain/cards/:cardId/limits',
+        handler: () => ({ limits: [{ amount: 50000, frequency: 'perAuthorization' }] }),
+    },
     // Demo apply mirrors the real two-step contract: first call asks for
     // terms, the accepting call submits and the overview flips to PENDING —
     // without this, Get your card fell through to the {} fallback and the

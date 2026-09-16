@@ -222,7 +222,9 @@ const RADIUS_RE = new RegExp(
     `\\brounded(?:-${RADIUS_SIDES})?(?:-(\\[[^\\]]+\\]|\\(--[^)]+\\)|[a-z0-9.]+))?(?![a-z0-9-])`,
     'g'
 )
-const RADIUS_ALLOWED = new Set([undefined, 'none', 'sm', 'round', 'full'])
+// 'card' = the CardFace physical-card geometry token (--radius-card, 12px),
+// visual-qa approved ui#3201.
+const RADIUS_ALLOWED = new Set([undefined, 'none', 'sm', 'round', 'full', 'card'])
 
 function countOffScaleRadius(text) {
     let n = 0

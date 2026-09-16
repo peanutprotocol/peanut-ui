@@ -929,6 +929,8 @@ describe('offScaleRadius (countOffScaleRadius)', () => {
             'rounded',
             'rounded-t-sm',
             'rounded-e-full',
+            // card-face geometry token, visual-qa approved ui#3201
+            'rounded-card',
         ]) {
             expect(countOffScaleRadius(`className="${cls}"`)).toBe(0)
         }

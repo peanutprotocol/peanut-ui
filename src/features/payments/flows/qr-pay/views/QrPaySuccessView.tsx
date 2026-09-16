@@ -9,6 +9,7 @@ import GlobalCard from '@/components/Global/Card'
 import { Card } from '@/components/0_Bruddle/Card'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import NavHeader from '@/components/Global/NavHeader'
@@ -258,13 +259,10 @@ export function QrPaySuccessView() {
                         QR pay that flag is still false server-side. Hidden while a reward
                         is claimable so it cannot compete with the hold-to-claim gesture. */}
                     {user?.user.username && !rewardClaimable && (
-                        <button
-                            onClick={() => setShowInviteFriendsDrawer(true)}
-                            className="flex w-full items-center justify-center gap-2 text-body-s text-foreground-secondary underline transition-colors hover:text-black active:text-black"
-                        >
-                            <Icon name="invite-heart" size={16} className="text-foreground-secondary" />
+                        <LinkButton onClick={() => setShowInviteFriendsDrawer(true)} className="w-full justify-center">
+                            <Icon name="invite-heart" size={16} className="shrink-0" />
                             {t('success.inviteFriendsCta')}
-                        </button>
+                        </LinkButton>
                     )}
                 </div>
             </PageStack.Center>

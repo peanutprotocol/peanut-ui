@@ -18,8 +18,6 @@ import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 import type { LandingContentHrefKey } from './landingContentHrefs'
 import { contentHrefsFor } from './landingContentHrefs.server'
 
-const bgColor = '#F9F4F0'
-
 /**
  * `hrefKey` selects the server-resolved page that honestly explains what this
  * partner does with Peanut. A logo with nothing truthful to point at stays
@@ -48,7 +46,7 @@ const logos: Array<{
 // my-2, not mb-2: react-fast-marquee's container is overflow-x:hidden, which
 // makes the Y axis compute to auto — it clips. Without top margin the tile sits
 // flush against that edge and the hover lift shaves its top border off.
-const tileClass = 'btn btn-purple btn-shadow-primary-4 mx-7 my-2 flex h-26 w-48 items-center gap-2'
+const tileClass = 'btn btn-purple btn-shadow-primary-4 mx-6 my-2 flex h-26 w-48 items-center gap-2'
 const linkedTileClass = `${tileClass} transition-transform hover:-translate-y-0.5 hover:opacity-90`
 
 const regulatedRailsClouds = [
@@ -63,8 +61,7 @@ export function RegulatedRails({ locale = DEFAULT_LOCALE }: { locale?: Locale })
     return (
         <section
             id="regulated-rails"
-            className="relative overflow-hidden py-20 text-n-1"
-            style={{ backgroundColor: bgColor }}
+            className="relative overflow-hidden bg-background-page py-20 text-foreground-primary"
         >
             <CloudsCss clouds={regulatedRailsClouds} />
 
@@ -91,7 +88,7 @@ export function RegulatedRails({ locale = DEFAULT_LOCALE }: { locale?: Locale })
                         href={contentHrefs.supportedGeographies}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-n-1 underline"
+                        className="text-foreground-primary underline"
                     >
                         {i18n.landingLearnMore}
                         <span className="sr-only"> — {i18n.landingRailsHeading}</span>
@@ -100,7 +97,7 @@ export function RegulatedRails({ locale = DEFAULT_LOCALE }: { locale?: Locale })
             </div>
 
             <div className="w-full">
-                <p className="mb-4 text-center text-sm font-medium tracking-widest text-n-1 uppercase opacity-60">
+                <p className="mb-4 text-center text-body-s tracking-widest text-foreground-primary uppercase opacity-60">
                     {i18n.landingWorksWith}
                 </p>
                 <MarqueeWrapper backgroundColor="#FFFFFF" direction="right" className="border-none">
@@ -111,7 +108,9 @@ export function RegulatedRails({ locale = DEFAULT_LOCALE }: { locale?: Locale })
                                 alt={logo.alt}
                                 width={101}
                                 height={32}
-                                className={logo.onWhite ? 'rounded-sm border border-n-1 bg-white px-3 py-2' : ''}
+                                className={
+                                    logo.onWhite ? 'rounded-sm border border-border-default bg-white px-3 py-2' : ''
+                                }
                             />
                         )
                         return logo.hrefKey ? (

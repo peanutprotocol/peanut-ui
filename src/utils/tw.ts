@@ -36,7 +36,7 @@ const DS_TYPE_TOKEN =
 // is the same silent-loss family as the type tokens, just in the other
 // direction (nothing is deleted, the override is ignored instead). Registering
 // them makes the caller win, which is the whole point of merging.
-const DS_RADIUS_TOKEN = /^(?:round|1)$/
+const DS_RADIUS_TOKEN = /^(?:round|1|card)$/
 
 // The remaining custom-token families from globals.css. tw.test.ts parses
 // globals.css and asserts every declared token is covered here, so these lists

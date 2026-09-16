@@ -34,7 +34,7 @@ export default function ExplorerHeader({ view, searching, searchError, onViewCha
                     aria-label="Explorer view"
                 />
                 {/* /home, not /dev: the /dev index is notFound() on peanut.me. */}
-                <LinkButton onClick={() => window.location.assign('/home')}>Close</LinkButton>
+                <LinkButton href="/home">Close</LinkButton>
             </div>
         </header>
     )

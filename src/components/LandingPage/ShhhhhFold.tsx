@@ -24,7 +24,7 @@ export function ShhhhhFold() {
     const t = useTranslations('shhhhh.hero')
 
     return (
-        <section id="peanut-card" className="relative overflow-hidden bg-n-1 px-4 py-20 text-white md:py-28">
+        <section id="peanut-card" className="relative overflow-hidden bg-gray-950 px-4 py-20 text-white md:py-28">
             <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-9 md:grid-cols-[1.1fr_0.9fr] md:gap-13">
                 <div className="min-w-0">
                     <Link
@@ -44,7 +44,7 @@ export function ShhhhhFold() {
                             {/* no shadowSize: that prop only paints black. The pink
                                 shadow is an arbitrary class so the base
                                 `active:shadow-none` still flattens it on press. */}
-                            <Button className="!w-auto bg-white px-7 py-3 text-base font-extrabold shadow-[0.25rem_0.25rem_0_#FF90E8] hover:bg-white/90 active:translate-y-[4px] md:px-9 md:text-lg">
+                            <Button className="!w-auto bg-white px-6 py-3 text-base font-extrabold shadow-[0.25rem_0.25rem_0_var(--color-action-primary)] hover:bg-white/90 active:translate-y-[4px] md:px-8 md:text-lg">
                                 {t('cta')}
                             </Button>
                         </Link>
