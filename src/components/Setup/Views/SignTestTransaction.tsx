@@ -32,6 +32,8 @@ export function AccountReadyView({
     const t = useTranslations('setup')
     return (
         <div className="flex w-full flex-col gap-4 text-left">
+            {/* Neither block is a warning or caveat, so keep them as plain
+                text under grey mini-headers rather than tinted notifications. */}
             <div className="flex flex-col gap-1">
                 <MiniHeader>{t('accountReady.worksNowTitle')}</MiniHeader>
                 <p className="text-body-s text-foreground-primary">{t('accountReady.worksNowBody')}</p>
