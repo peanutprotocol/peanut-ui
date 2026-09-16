@@ -113,6 +113,7 @@ export default function ExchangeRatePage() {
                             free: t('widget.free'),
                             arrivesHours: t('widget.arrivesHours'),
                             arrivesMinutes: t('widget.arrivesMinutes'),
+                            selectCurrency: t('widget.selectCurrency'),
                         }}
                     />
                 </div>

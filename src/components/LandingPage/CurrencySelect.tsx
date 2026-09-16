@@ -13,6 +13,12 @@ interface CurrencySelectProps {
     setSelectedCurrency: (currency: string) => void
     trigger: React.ReactNode
     excludeCurrencies?: string[]
+    /**
+     * Accessible name of the listbox. The component renders under two different
+     * i18n providers (marketing landing and the app), so the translated string
+     * comes down as a prop — same reason ExchangeRateWidget takes `labels`.
+     */
+    label?: string
 }
 
 // Transform the currency mappings into the format expected by the component
@@ -42,6 +48,7 @@ const CurrencySelect = ({
     setSelectedCurrency,
     trigger,
     excludeCurrencies = [],
+    label = 'Select currency',
 }: CurrencySelectProps) => {
     const id = useId()
     const listId = `${id}-listbox`
@@ -167,7 +174,7 @@ const CurrencySelect = ({
                     id={listId}
                     role="listbox"
                     tabIndex={-1}
-                    aria-label="Select currency"
+                    aria-label={label}
                     aria-activedescendant={activeOption ? `${listId}-${activeOption.currency}` : undefined}
                     onKeyDown={onKeyDown}
                     // usePullToRefresh listens on `document` and only bails on window.scrollY > 0,

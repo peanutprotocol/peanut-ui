@@ -25,6 +25,7 @@ export interface ExchangeRateWidgetLabels {
     free: string
     arrivesHours: string
     arrivesMinutes: string
+    selectCurrency: string
 }
 
 // English defaults keep marketing callers (landing page, MDX) unchanged;
@@ -39,6 +40,7 @@ const DEFAULT_LABELS: ExchangeRateWidgetLabels = {
     free: 'Free!',
     arrivesHours: 'Should arrive in hours.',
     arrivesMinutes: 'Should arrive in minutes.',
+    selectCurrency: 'Select currency',
 }
 
 interface IExchangeRateWidgetProps {
@@ -296,6 +298,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                     <CurrencySelect
                         selectedCurrency={sourceCurrency}
                         setSelectedCurrency={setSourceCurrency}
+                        label={l.selectCurrency}
                         // excludeCurrencies={[destinationCurrency]}
                         trigger={
                             <button className="flex w-20 items-center gap-2">
@@ -359,6 +362,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                     <CurrencySelect
                         selectedCurrency={destinationCurrency}
                         setSelectedCurrency={setDestinationCurrency}
+                        label={l.selectCurrency}
                         trigger={
                             <button className="flex w-20 items-center gap-2">
                                 <Image
