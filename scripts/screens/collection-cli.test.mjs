@@ -17,7 +17,7 @@ test('local CLI emits a self-contained collection viewer from selected capture a
         const image = createHash('sha256').update(webp).digest('hex') + '.webp'
         writeFileSync(join(reportDir, 'assets', image), webp)
         writeFileSync(
-            join(reportDir, 'manifest.json'),
+            join(reportDir, 'capture.json'),
             JSON.stringify({
                 schema: 1,
                 type: 'capture',
@@ -26,7 +26,7 @@ test('local CLI emits a self-contained collection viewer from selected capture a
                 screens: [
                     { id: 'profile', name: 'Profile', flow: 'Profile', kind: 'route', status: 'captured', image },
                 ],
-            })
+            }),
         )
         const spec = join(root, 'spec.json')
         writeFileSync(spec, JSON.stringify({ title: 'Review', items: [{ id: 'profile', note: 'Flat menu' }] }))
@@ -40,6 +40,16 @@ test('local CLI emits a self-contained collection viewer from selected capture a
         assert.equal(readFileSync(join(out, 'manifest.json'), 'utf8').includes('Flat menu'), true)
         assert.equal(readFileSync(join(out, 'index.html'), 'utf8').includes('./report.js'), true)
         assert.deepEqual(readFileSync(join(out, 'assets', image)), webp)
+
+        writeFileSync(join(reportDir, 'manifest.json'), readFileSync(join(reportDir, 'capture.json')))
+        const explicitManifestOut = join(root, 'explicit-manifest-out')
+        const explicitManifestCollection = await createLocalCollection({
+            specPath: spec,
+            outDir: explicitManifestOut,
+            id: 'review-20260916-explicit',
+            reportArgs: { en: join(reportDir, 'manifest.json') },
+        })
+        assert.equal(explicitManifestCollection.complete, true)
     } finally {
         rmSync(root, { recursive: true, force: true })
     }

@@ -20,9 +20,9 @@ function serverFor(env) {
             textResult(
                 await collectionRequest(
                     env,
-                    `/v1/screens?locale=${encodeURIComponent(locale)}&q=${encodeURIComponent(query)}`
-                )
-            )
+                    `/v1/screens?locale=${encodeURIComponent(locale)}&q=${encodeURIComponent(query)}`,
+                ),
+            ),
     )
     server.registerTool(
         'create_collection',
@@ -43,7 +43,7 @@ function serverFor(env) {
                         z.object({
                             id: z.string().regex(/^[a-z0-9][a-z0-9-]{0,119}$/),
                             note: z.string().max(1000).optional(),
-                        })
+                        }),
                     )
                     .min(1)
                     .max(200),
@@ -55,8 +55,8 @@ function serverFor(env) {
                 await collectionRequest(env, '/v1/collections', {
                     method: 'POST',
                     body: JSON.stringify(input),
-                })
-            )
+                }),
+            ),
     )
     server.registerTool(
         'get_collection_status',
@@ -65,7 +65,7 @@ function serverFor(env) {
             description: 'Read a collection and see whether any locale variants are still waiting for capture.',
             inputSchema: { id: z.string().regex(/^[a-z0-9][a-z0-9-]{0,119}$/) },
         },
-        async ({ id }) => textResult(await collectionRequest(env, `/v1/collections/${id}`))
+        async ({ id }) => textResult(await collectionRequest(env, `/v1/collections/${id}`)),
     )
     server.registerTool(
         'capture_missing_states',
@@ -74,15 +74,16 @@ function serverFor(env) {
             description: 'Queue the focused GitHub Actions capture for variants missing from an existing collection.',
             inputSchema: { id: z.string().regex(/^[a-z0-9][a-z0-9-]{0,119}$/) },
         },
-        async ({ id }) => textResult(await collectionRequest(env, `/v1/collections/${id}/capture`, { method: 'POST' }))
+        async ({ id }) => textResult(await collectionRequest(env, `/v1/collections/${id}/capture`, { method: 'POST' })),
     )
     return server
 }
 
 export default {
     async fetch(request, env, context) {
-        if (!await verifiedAccessIdentity(context, env.SCREEN_LIBRARY_ACCESS_AUD))
+        if (!(await verifiedAccessIdentity(context, env.SCREEN_LIBRARY_ACCESS_AUD))) {
             return new Response('Unauthorized', { status: 401, headers: { 'Cache-Control': 'no-store' } })
+        }
         const handler = createMcpHandler(() => serverFor(env), {
             route: '/mcp',
             allowedHostnames: [new URL(env.SCREEN_LIBRARY_MCP_URL).hostname],

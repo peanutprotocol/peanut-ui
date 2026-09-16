@@ -42,7 +42,8 @@ export function collectionWorkerConfiguration(env = process.env) {
 export function prepareCollectionWorker(targetArg = '.screen-collection-worker', env = process.env) {
     const target = resolve(targetArg)
     mkdirSync(join(target, 'collection-worker'), { recursive: true })
-    for (const file of ['collection-core.mjs']) copyFileSync(`scripts/screens/${file}`, join(target, file))
+    for (const file of ['access.mjs', 'collection-core.mjs'])
+        copyFileSync(`scripts/screens/${file}`, join(target, file))
     copyFileSync('scripts/screens/collection-worker/index.mjs', join(target, 'collection-worker', 'index.mjs'))
     writeFileSync(join(target, 'index.mjs'), "export { default } from './collection-worker/index.mjs'\n")
     writeFileSync(join(target, 'wrangler.json'), JSON.stringify(collectionWorkerConfiguration(env), null, 2))

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { collectionId, composeCollection, normalizeCollectionSpec } from './collection-core.mjs'
@@ -25,8 +25,13 @@ function argumentsFrom(argv) {
 
 function reportInput(value) {
     const path = resolve(value)
+    const name = basename(path)
     const manifestPath =
-        basename(path) === 'manifest.json' || basename(path) === 'capture.json' ? path : join(path, 'manifest.json')
+        name === 'manifest.json' || name === 'capture.json'
+            ? path
+            : existsSync(join(path, 'manifest.json'))
+              ? join(path, 'manifest.json')
+              : join(path, 'capture.json')
     return {
         report: JSON.parse(readFileSync(manifestPath, 'utf8')),
         assets: join(dirname(manifestPath), 'assets'),
@@ -59,13 +64,13 @@ export async function createLocalCollection({ specPath, outDir, id, reportArgs }
         `window.SCREEN_REPORT=${JSON.stringify(collection)
             .replace(/</g, '\\u003c')
             .replace(/\u2028/g, '\\u2028')
-            .replace(/\u2029/g, '\\u2029')};`
+            .replace(/\u2029/g, '\\u2029')};`,
     )
     const html = readFileSync('public/screen-library/index.html', 'utf8')
         .replaceAll('/screen-library/', './')
         .replace(
             '<script defer src="./viewer.js">',
-            '<script src="./report.js"></script><script defer src="./viewer.js">'
+            '<script src="./report.js"></script><script defer src="./viewer.js">',
         )
     writeFileSync(join(output, 'index.html'), html)
     for (const name of ['viewer.js', 'viewer.css']) copyFileSync(`public/screen-library/${name}`, join(output, name))

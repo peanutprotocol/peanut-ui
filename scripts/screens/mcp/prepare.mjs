@@ -32,6 +32,7 @@ export function mcpWorkerConfiguration(env = process.env) {
 export function prepareMcpWorker(targetArg = '.screen-mcp-worker', env = process.env) {
     const target = resolve(targetArg)
     mkdirSync(join(target, 'mcp'), { recursive: true })
+    copyFileSync('scripts/screens/access.mjs', join(target, 'access.mjs'))
     for (const file of ['index.mjs', 'client.mjs'])
         copyFileSync(`scripts/screens/mcp/${file}`, join(target, 'mcp', file))
     // Keep the entry point at the deployment root while preserving relative imports.
