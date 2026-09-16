@@ -89,12 +89,11 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                             </div>
                             <div>
                                 <div className="mb-4 w-full text-left md:text-left">
-                                    <h3 className="font-roboto-flex-extrabold text-2xl lg:text-3xl">{feature.title}</h3>
+                                    <h3 className="font-roboto-flex-extrabold text-heading-s lg:text-heading-m">
+                                        {feature.title}
+                                    </h3>
                                 </div>
-                                <p
-                                    className="font-roboto-flex w-full max-w-[360px] text-left text-lg leading-relaxed font-normal md:text-xl"
-                                    style={{ letterSpacing: '-0.5px' }}
-                                >
+                                <p className="font-roboto-flex w-full max-w-[360px] text-left text-body-l">
                                     {feature.description}
                                 </p>
                                 {feature.learnMoreHref && (
@@ -103,7 +102,7 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                                     <p className="mt-4 w-full max-w-[360px] text-right">
                                         <a
                                             href={feature.learnMoreHref}
-                                            className="font-roboto-flex text-base text-foreground-primary underline hover:no-underline md:text-lg"
+                                            className="font-roboto-flex text-body-m text-foreground-primary underline hover:no-underline md:text-body-l"
                                         >
                                             {i18n.landingLearnMore} →
                                         </a>
@@ -114,7 +113,7 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                                         <Link prefetch={false} href="/support">
                                             <Button
                                                 shadowSize="4"
-                                                className="bg-white px-6 py-3 text-base font-extrabold text-foreground-primary hover:bg-white/90"
+                                                className="bg-white px-6 text-foreground-primary hover:bg-white/90"
                                             >
                                                 {i18n.landingTalkToSupport}
                                             </Button>

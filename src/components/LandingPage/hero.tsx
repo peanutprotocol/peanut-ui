@@ -144,11 +144,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                     rel={cta.isExternal ? 'noopener noreferrer' : undefined}
                     onClick={cta.onClick}
                 >
-                    <Button
-                        shadowSize="4"
-                        icon={cta.icon}
-                        className="bg-white px-6 py-3 text-base font-extrabold hover:bg-white/90 md:px-8 md:py-8 md:text-xl"
-                    >
+                    <Button shadowSize="4" icon={cta.icon} className="bg-white px-6 hover:bg-white/90 md:px-8">
                         {cta.label}
                     </Button>
                 </a>
@@ -212,10 +208,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                 <h2 className="font-roboto-flex-extrabold mt-18 text-center text-[2.375rem] font-extraBlack text-foreground-primary md:mt-12 md:text-heading [@media(max-height:660px)_and_(max-width:767px)]:mt-4">
                     {strings.heroTapScan}
                 </h2>
-                <span
-                    className="mt-2 block text-center text-xl leading-tight text-foreground-primary md:mt-4 md:text-5xl"
-                    style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
-                >
+                <span className="mt-2 block text-center text-heading-xs text-foreground-primary md:mt-4 md:text-5xl">
                     <Link prefetch={false} href={`/${locale}/argentina`} className="hover:underline">
                         Buenos Aires
                     </Link>
@@ -229,10 +222,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                     </Link>
                     .
                 </span>
-                <span
-                    className="mt-2 block text-center text-body-s text-foreground-primary/70 md:text-body-m"
-                    style={{ fontWeight: 400 }}
-                >
+                <span className="mt-2 block text-center text-body-s text-foreground-primary/70 md:text-body-m">
                     {strings.heroNoLocalId}
                 </span>
                 {primaryCta ? renderCTAButton(primaryCta, 'primary') : customCta ? renderCustomCta() : null}

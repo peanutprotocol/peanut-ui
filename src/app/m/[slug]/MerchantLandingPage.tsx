@@ -34,8 +34,7 @@ function buildInviteHref(merchant: Merchant, content: 'hero' | 'end_fold'): stri
     )
 }
 
-const ctaButtonClassName =
-    '!w-auto bg-white px-6 py-3 text-base font-extrabold hover:bg-white/90 md:px-8 md:py-8 md:text-xl'
+const ctaButtonClassName = '!w-auto bg-white px-6 hover:bg-white/90 md:px-8'
 
 type Currency = 'USD' | 'EUR'
 
@@ -99,19 +98,17 @@ function Hero({ merchant }: { merchant: Merchant }) {
                     <h1 className="font-roboto-flex-extrabold text-headingMedium font-extraBlack lowercase md:text-headingLarge lg:text-[10rem]">
                         {merchant.heading}
                     </h1>
-                    <p className="font-roboto-flex-extrabold mt-6 max-w-xl text-2xl font-extraBlack uppercase md:text-3xl">
+                    <p className="font-roboto-flex-extrabold mt-6 max-w-xl text-heading-s uppercase md:text-heading-m">
                         <HighlightedSub text={merchant.sub} />
                     </p>
-                    <p className="font-roboto-flex mt-6 max-w-xl text-xl leading-relaxed md:text-2xl">
-                        {merchant.body}
-                    </p>
+                    <p className="font-roboto-flex mt-6 max-w-xl text-body-l">{merchant.body}</p>
 
                     {merchant.chips && (
                         <div className="mt-6 flex flex-wrap justify-center gap-2 md:justify-start">
                             {merchant.chips.map((c) => (
                                 <span
                                     key={c}
-                                    className="rounded-sm border border-border-default bg-gray-950/10 px-3 py-1 text-[0.7rem] font-extraBlack tracking-wider uppercase"
+                                    className="rounded-sm border border-border-default bg-gray-950/10 px-3 py-1 text-label-m tracking-wider uppercase"
                                 >
                                     {c}
                                 </span>
@@ -138,7 +135,7 @@ function Hero({ merchant }: { merchant: Merchant }) {
                         </div>
                         <Link
                             href={merchant.secondaryLink.href}
-                            className="font-roboto-flex text-base font-bold underline underline-offset-4"
+                            className="font-roboto-flex text-body-m-semibold underline underline-offset-4"
                         >
                             {merchant.secondaryLink.label}
                         </Link>
@@ -186,10 +183,7 @@ function DealCard({ merchant }: { merchant: Merchant }) {
         <div className="relative z-30 origin-center" style={{ transform: 'rotate(-6deg)' }} aria-hidden>
             <div className="shadow-primary-8 w-65 overflow-hidden rounded-sm border-2 border-border-default bg-yellow-500 md:w-75">
                 {/* cobrand lockup */}
-                <div
-                    className="flex items-center gap-1 px-6 pt-6 pb-2 tracking-wider uppercase"
-                    style={{ fontFamily: 'monospace', fontSize: 11 }}
-                >
+                <div className="flex items-center gap-1 px-6 pt-6 pb-2 font-mono text-body-xs tracking-wider uppercase">
                     <span>peanut ×</span>
                     {merchant.branding?.logoSrc && (
                         <Image
@@ -210,7 +204,7 @@ function DealCard({ merchant }: { merchant: Merchant }) {
                 </div>
 
                 {/* label */}
-                <div className="px-6 pt-3 pb-6 text-center text-base font-extraBlack tracking-wide uppercase md:text-lg">
+                <div className="px-6 pt-3 pb-6 text-center text-body-m-semibold tracking-wide uppercase md:text-heading-card">
                     {merchant.dealLabel}
                 </div>
             </div>
@@ -244,7 +238,7 @@ function Polaroids({ items }: { items: NonNullable<Merchant['polaroids']> }) {
                         transition={{ type: 'spring', damping: 12, delay: 0.15 + i * 0.1 }}
                         style={{ transformOrigin: 'center center' }}
                     >
-                        <div className="border-2 border-border-default bg-white p-2 pb-4 shadow-[5px_6px_0_#000] md:pb-8 md:shadow-[8px_10px_0_#000]">
+                        <div className="shadow-primary-6 border-2 border-border-default bg-white p-2 pb-4 md:pb-8">
                             <Image
                                 src={p.src}
                                 alt={p.alt}
@@ -252,10 +246,7 @@ function Polaroids({ items }: { items: NonNullable<Merchant['polaroids']> }) {
                                 height={200}
                                 className="block size-32 object-cover md:size-50"
                             />
-                            <div
-                                className="mt-1 text-center text-[10px] md:mt-2 md:text-body-s"
-                                style={{ fontFamily: 'monospace' }}
-                            >
+                            <div className="mt-1 text-center font-mono text-body-xs md:mt-2 md:text-body-s">
                                 {p.caption}
                             </div>
                         </div>
@@ -309,9 +300,7 @@ function MenuFold({ fold }: { fold: Extract<Merchant['fold2'], { type: 'menu' }>
                 <h2 className="font-roboto-flex-extrabold mx-auto max-w-3xl text-heading font-extraBlack uppercase md:text-headingMedium">
                     {fold.heading}
                 </h2>
-                <p className="font-roboto-flex mx-auto mt-6 max-w-2xl text-lg leading-relaxed md:text-xl">
-                    {fold.tagline}
-                </p>
+                <p className="font-roboto-flex mx-auto mt-6 max-w-2xl text-body-l">{fold.tagline}</p>
 
                 <div className="mt-10 inline-flex rounded-sm border-2 border-border-default bg-white shadow-4">
                     {(['USD', 'EUR'] as const).map((c) => (
@@ -320,7 +309,7 @@ function MenuFold({ fold }: { fold: Extract<Merchant['fold2'], { type: 'menu' }>
                             type="button"
                             onClick={() => setCurrency(c)}
                             aria-pressed={currency === c}
-                            className={`min-w-20 border-r-2 border-border-default px-6 py-3 text-sm font-extraBlack tracking-wider uppercase last:border-r-0 ${
+                            className={`min-w-20 border-r-2 border-border-default px-6 py-3 text-label-l tracking-wider uppercase last:border-r-0 ${
                                 currency === c ? 'bg-action-primary' : 'bg-white'
                             }`}
                         >
@@ -370,27 +359,23 @@ function MenuItemCard({
     return (
         <div className="flex items-start justify-between gap-4 rounded-sm border-2 border-border-default bg-white p-6 text-left shadow-4">
             <div className="min-w-0 flex-1">
-                <div className="text-lg font-extraBlack md:text-xl">{item.name}</div>
+                <div className="text-heading-card md:text-heading-xs">{item.name}</div>
             </div>
             <div className="flex flex-col items-end pt-1 whitespace-nowrap">
                 {cardFmt !== null && (
-                    <div className="font-roboto-flex-extrabold text-base leading-none font-extraBlack line-through opacity-45">
+                    <div className="font-roboto-flex-extrabold text-body-m-semibold line-through opacity-45">
                         {symbol}
                         {cardFmt}
                     </div>
                 )}
-                <div
-                    className={`font-roboto-flex-extrabold text-3xl leading-none font-extraBlack ${cardFmt !== null ? 'mt-1' : ''}`}
-                >
+                <div className={`font-roboto-flex-extrabold text-heading-m ${cardFmt !== null ? 'mt-1' : ''}`}>
                     {peanutFmt === null ? (
                         <span className="opacity-30">{symbol}··</span>
                     ) : (
                         <>
                             {symbol}
                             {peanutFmt}
-                            <span className="ml-1 text-[11px] font-extraBlack tracking-wider opacity-60">
-                                {currency}
-                            </span>
+                            <span className="ml-1 text-label-m tracking-wider opacity-60">{currency}</span>
                         </>
                     )}
                 </div>
@@ -417,15 +402,13 @@ function LiveRateBanner({
         : 'Loading live cripto-dólar rate…'
 
     return (
-        <div className="mx-auto mt-6 flex max-w-3xl flex-wrap items-center justify-center gap-4 rounded-sm border-2 border-border-default bg-white px-4 py-3 text-sm font-extraBlack tracking-wider uppercase shadow-4">
+        <div className="mx-auto mt-6 flex max-w-3xl flex-wrap items-center justify-center gap-4 rounded-sm border-2 border-border-default bg-white px-4 py-3 text-label-l tracking-wider uppercase shadow-4">
             <span
-                className={`inline-block h-2 w-2 rounded-full ${isLive ? 'bg-green-1' : 'bg-gray-950'}`}
+                className={`inline-block h-2 w-2 rounded-full ${isLive ? 'bg-green-400' : 'bg-gray-950'}`}
                 style={isLive ? {} : { animation: 'pulse 1.6s ease-in-out infinite' }}
             />
             <span>{copy}</span>
-            <span className="text-[9px] tracking-wider uppercase opacity-65" style={{ fontFamily: 'monospace' }}>
-                cripto-dólar · live
-            </span>
+            <span className="font-mono text-body-xs tracking-wider uppercase opacity-65">cripto-dólar · live</span>
         </div>
     )
 }
@@ -485,7 +468,7 @@ function EndFold({ merchant }: { merchant: Merchant }) {
                 <h2 className="font-roboto-flex-extrabold text-headingMedium font-extraBlack lowercase md:text-headingLarge">
                     get peanut.
                 </h2>
-                <p className="font-roboto-flex-extrabold mt-6 text-2xl font-extraBlack uppercase md:text-3xl">
+                <p className="font-roboto-flex-extrabold mt-6 text-heading-s uppercase md:text-heading-m">
                     {merchant.install.sub}
                 </p>
                 <div className="mt-10 flex justify-center">
@@ -497,7 +480,7 @@ function EndFold({ merchant }: { merchant: Merchant }) {
                 </div>
                 <Link
                     href="/home"
-                    className="font-roboto-flex mt-6 inline-block text-base font-bold text-white underline underline-offset-4 hover:opacity-80"
+                    className="font-roboto-flex mt-6 inline-block text-body-m-semibold text-white underline underline-offset-4 hover:opacity-80"
                 >
                     Already have peanut? Open it →
                 </Link>
@@ -511,23 +494,16 @@ function EndFold({ merchant }: { merchant: Merchant }) {
 function Ambassador({ box }: { box: NonNullable<Merchant['ambassador']> }) {
     return (
         <div className="mx-auto mt-20 max-w-xl rounded-sm border-2 border-border-brand p-8 text-left">
-            <div
-                className="text-[10px] font-extraBlack tracking-wider text-yellow-500 uppercase"
-                style={{ fontFamily: 'monospace' }}
-            >
-                {box.kicker}
-            </div>
-            <h3 className="mt-3 text-2xl leading-tight font-extraBlack text-white md:text-3xl">{box.heading}</h3>
-            <p className="font-roboto-flex mt-4 text-sm leading-relaxed opacity-85">{box.body}</p>
+            <div className="font-mono text-label-m tracking-wider text-yellow-500 uppercase">{box.kicker}</div>
+            <h3 className="mt-3 text-heading-s text-white md:text-heading-m">{box.heading}</h3>
+            <p className="font-roboto-flex mt-4 text-body-s opacity-85">{box.body}</p>
             <Link
                 href={box.applyHref}
-                className="font-roboto-flex mt-4 inline-block text-sm font-extraBlack tracking-wider text-action-primary uppercase underline underline-offset-4"
+                className="font-roboto-flex mt-4 inline-block text-label-l tracking-wider text-action-primary uppercase underline underline-offset-4"
             >
                 {box.applyLabel}
             </Link>
-            <span className="font-roboto-flex mt-4 block text-[11px] leading-snug font-bold opacity-50">
-                {box.fine}
-            </span>
+            <span className="font-roboto-flex mt-4 block text-body-xs opacity-50">{box.fine}</span>
         </div>
     )
 }

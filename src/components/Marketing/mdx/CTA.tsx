@@ -55,11 +55,7 @@ export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
                     />
                     <Card shadowSize="4" className="relative z-10 items-center gap-4 p-6 text-center md:p-10">
                         <a href={href}>
-                            <Button
-                                shadowSize="4"
-                                variant="purple"
-                                className="w-full px-8 text-base font-bold sm:w-auto md:px-12 md:text-lg"
-                            >
+                            <Button shadowSize="4" variant="purple" className="w-full px-8 sm:w-auto md:px-12">
                                 {text}
                             </Button>
                         </a>
@@ -73,11 +69,7 @@ export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
     return (
         <div className={`mx-auto ${PROSE_WIDTH} px-6 py-8 text-center md:px-4 md:py-12`}>
             <a href={href}>
-                <Button
-                    shadowSize="4"
-                    variant="purple"
-                    className="w-full px-8 text-base font-bold sm:w-auto md:px-12 md:text-lg"
-                >
+                <Button shadowSize="4" variant="purple" className="w-full px-8 sm:w-auto md:px-12">
                     {text}
                 </Button>
             </a>

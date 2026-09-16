@@ -16,7 +16,7 @@ import {
    `red` as a single flat colour, so `bg-red-500` compiles to nothing at all
    and the outage bars render transparent. */
 const BAR_COLORS: Record<BucketState, string> = {
-    operational: 'bg-success-1',
+    operational: 'bg-green-500',
     degraded: 'bg-yellow-500',
     down: 'bg-red-400',
     unknown: 'bg-gray-200',
@@ -32,7 +32,7 @@ const DOT_COLORS = BAR_COLORS
 const SHOW_SUMMARY_CARD: boolean = false
 
 const RING_STROKES: Record<BucketState, string> = {
-    operational: 'stroke-success-1',
+    operational: 'stroke-green-500',
     degraded: 'stroke-yellow-500',
     down: 'stroke-red-400',
     unknown: 'stroke-gray-200',
@@ -134,10 +134,10 @@ export function OperationalDonut({
  * it into grey is the reason this page read green through 2026-09-03.
  */
 const BANNER_STYLES: Record<BucketState, string> = {
-    operational: 'border-success-1 bg-white text-foreground-primary',
-    degraded: 'border-yellow-500 bg-secondary-4 text-foreground-primary',
-    down: 'border-border-error bg-error-1 text-foreground-primary',
-    unknown: 'border-border-error bg-error-1 text-foreground-primary',
+    operational: 'border-green-500 bg-white text-foreground-primary',
+    degraded: 'border-yellow-500 bg-background-badge-attention text-foreground-primary',
+    down: 'border-border-error bg-background-badge-error text-foreground-primary',
+    unknown: 'border-border-error bg-background-badge-error text-foreground-primary',
 }
 
 export function StatusBanner({ state, title, detail }: { state: BucketState; title: string; detail?: string }) {
@@ -232,7 +232,7 @@ function IncidentList({
                             className={`rounded px-1.5 py-0.5 text-label-m tracking-wide uppercase ${
                                 incident.resolvedAt
                                     ? 'bg-gray-100 text-foreground-secondary'
-                                    : 'bg-error-1 text-foreground-error'
+                                    : 'bg-background-badge-error text-foreground-error'
                             }`}
                         >
                             {incident.resolvedAt ? i18n.statusIncidentResolved : i18n.statusIncidentOngoing}
@@ -336,7 +336,7 @@ export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary;
                                         </div>
                                         <div className="mt-2">
                                             <UptimeBars provider={provider} locale={locale} i18n={i18n} />
-                                            <div className="mt-1 flex justify-between text-[10px] text-foreground-secondary">
+                                            <div className="mt-1 flex justify-between text-body-xs text-foreground-secondary">
                                                 <span>{i18n.statusWindowStart}</span>
                                                 <span>{i18n.statusNow}</span>
                                             </div>
@@ -354,7 +354,7 @@ export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary;
                     </section>
                 ))}
 
-                <div className="mt-10 flex flex-wrap items-center gap-4 border-t border-gray-200 pt-4 text-[11px] text-foreground-secondary">
+                <div className="mt-10 flex flex-wrap items-center gap-4 border-t border-gray-200 pt-4 text-body-xs text-foreground-secondary">
                     {(
                         [
                             ['operational', i18n.statusLegendOperational],

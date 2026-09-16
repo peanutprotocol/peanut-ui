@@ -35,22 +35,20 @@ export function ShhhhhFold() {
                         {t('wordmark')}
                     </Link>
 
-                    <p className="font-roboto-flex-extrabold mt-5 max-w-xl text-2xl leading-tight font-extraBlack uppercase md:text-3xl">
+                    <p className="font-roboto-flex-extrabold mt-5 max-w-xl text-heading-s uppercase md:text-heading-m">
                         {t('tagline')}
                     </p>
 
                     <div className="mt-8 flex flex-wrap items-center gap-5 md:gap-6">
                         <Link prefetch={false} href="/card">
-                            {/* no shadowSize: that prop only paints black. The pink
-                                shadow is an arbitrary class so the base
-                                `active:shadow-none` still flattens it on press. */}
-                            <Button className="!w-auto bg-white px-6 py-3 text-base font-extrabold shadow-[0.25rem_0.25rem_0_var(--color-action-primary)] hover:bg-white/90 active:translate-y-[4px] md:px-8 md:text-lg">
+                            {/* ds-preview: pink 4px shadow -> standard black shadowSize=4 */}
+                            <Button shadowSize="4" className="!w-auto bg-white px-6 hover:bg-white/90 md:px-8">
                                 {t('cta')}
                             </Button>
                         </Link>
                     </div>
 
-                    <p className="font-roboto-flex mt-6 max-w-xl text-xs leading-relaxed text-white/60 md:text-sm">
+                    <p className="font-roboto-flex mt-6 max-w-xl text-body-xs text-white/60 md:text-body-s">
                         {t('disclaimer')}
                     </p>
                 </div>

@@ -5,8 +5,7 @@ import { useAppModal } from '@/components/Migration/AppModalProvider'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 
-const BUTTON_CLASS =
-    'h-auto w-auto bg-white px-8 py-3 text-sm font-extrabold hover:bg-white/90 active:bg-white/90 md:px-10 md:py-4 md:text-lg'
+const BUTTON_CLASS = 'w-auto bg-white px-8 hover:bg-white/90 active:bg-white/90 md:px-10'
 
 /**
  * Keep the illustration server-rendered while this CTA follows the migration flag.

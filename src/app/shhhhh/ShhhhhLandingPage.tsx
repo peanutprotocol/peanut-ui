@@ -82,10 +82,10 @@ export default function ShhhhhLandingPage() {
                         <h1 className="font-roboto-flex-extrabold text-headingMedium font-extraBlack md:text-headingLarge">
                             {t('hero.wordmark')}
                         </h1>
-                        <p className="font-roboto-flex-extrabold mt-6 text-2xl font-extraBlack md:text-3xl">
+                        <p className="font-roboto-flex-extrabold mt-6 text-heading-s md:text-heading-m">
                             {t('hero.tagline')}
                         </p>
-                        <p className="font-roboto-flex mt-6 text-xl leading-relaxed">{t('hero.body')}</p>
+                        <p className="font-roboto-flex mt-6 text-body-l">{t('hero.body')}</p>
                         <Button
                             className="mt-8 sm:w-auto sm:min-w-64 sm:px-10"
                             variant="stroke"
@@ -96,7 +96,7 @@ export default function ShhhhhLandingPage() {
                         >
                             {t('hero.cta')}
                         </Button>
-                        <p className="mt-6 text-body-s leading-relaxed">{t('hero.disclaimer')}</p>
+                        <p className="mt-6 text-body-s">{t('hero.disclaimer')}</p>
                     </div>
                     <div className="mx-auto w-full max-w-md -rotate-6">
                         <ScaledPixelatedCardFace last4="????" />
@@ -108,10 +108,8 @@ export default function ShhhhhLandingPage() {
                     <h2 className="font-roboto-flex-extrabold text-heading font-extraBlack md:text-headingMedium">
                         {t('whatItDoes.titleLine1')} {t('whatItDoes.titleLine2')}
                     </h2>
-                    <p className="mt-6 text-xl leading-relaxed">{t('whatItDoes.body')}</p>
-                    <h3 className="font-roboto-flex-extrabold mt-12 text-2xl font-extraBlack">
-                        {t('howToApply.title')}
-                    </h3>
+                    <p className="mt-6 text-body-l">{t('whatItDoes.body')}</p>
+                    <h3 className="font-roboto-flex-extrabold mt-12 text-heading-s">{t('howToApply.title')}</h3>
                     <ol className="space-y-4 mt-6 list-decimal pl-6 text-body-l">
                         <li>{t('howToApply.verify')}</li>
                         <li>{t('howToApply.terms')}</li>
@@ -139,7 +137,7 @@ export default function ShhhhhLandingPage() {
                                         {'−'}
                                     </span>
                                 </summary>
-                                <p className="mt-4 text-body-l leading-relaxed">{t(`faq.${key}.answer`)}</p>
+                                <p className="mt-4 text-body-l">{t(`faq.${key}.answer`)}</p>
                             </details>
                         ))}
                     </div>
@@ -149,7 +147,7 @@ export default function ShhhhhLandingPage() {
                 <h2 className="font-roboto-flex-extrabold text-heading font-extraBlack md:text-headingMedium">
                     {t('ready.title')}
                 </h2>
-                <p className="mt-6 text-xl">{t('ready.subtitle')}</p>
+                <p className="mt-6 text-body-l">{t('ready.subtitle')}</p>
                 {/* Primary here on purpose: purple pops on the black closer
                     section, while the hero stays stroke — its background is
                     the same hex as the purple fill. */}

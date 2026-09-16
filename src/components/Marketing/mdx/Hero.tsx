@@ -43,7 +43,7 @@ export function Hero({ title, subtitle, cta, ctaHref }: HeroProps) {
                         <div className="mt-8">
                             <Link
                                 href={ctaHref}
-                                className="btn btn-shadow-primary-4 inline-flex w-auto bg-background-default px-8 font-extrabold hover:bg-background-default/90 active:translate-x-1 active:translate-y-1 active:shadow-none"
+                                className="btn btn-shadow-primary-4 inline-flex w-auto bg-background-default px-8 hover:bg-background-default/90 active:translate-x-1 active:translate-y-1 active:shadow-none"
                             >
                                 {cta}
                             </Link>

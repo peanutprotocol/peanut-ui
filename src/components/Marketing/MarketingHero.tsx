@@ -54,12 +54,12 @@ export function MarketingHero({
                             with text-7xl (TASK-22366 sweep) */}
                         <Title text={title} className="text-5xl md:text-9xl" />
                     </h1>
-                    <p className="mt-6 text-3xl font-bold text-foreground-primary md:text-5xl">{subtitle}</p>
+                    <p className="mt-6 text-heading-m text-foreground-primary md:text-5xl">{subtitle}</p>
                     {ctaText && (
                         <div className="mt-8">
                             <Link
                                 href={ctaHref}
-                                className="btn btn-purple btn-shadow-primary-4 inline-flex w-auto px-8 active:translate-x-[3px] active:translate-y-[4px] active:shadow-none"
+                                className="btn btn-purple btn-shadow-primary-4 inline-flex w-auto px-8 active:translate-x-1 active:translate-y-1 active:shadow-none"
                             >
                                 {ctaText}
                             </Link>

@@ -10,7 +10,7 @@ export function Steps({ steps }: StepsProps) {
             {steps.map((step, i) => (
                 <li key={i}>
                     <Card shadowSize="4" className="flex-row items-start gap-4 p-4">
-                        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-action-primary text-base font-bold">
+                        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-action-primary text-body-m-semibold">
                             {i + 1}
                         </span>
                         <div>

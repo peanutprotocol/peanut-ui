@@ -59,15 +59,13 @@ function renderLinkRows(items: ContentItem[]) {
                 <Link
                     key={`${item.type}/${item.slug}`}
                     href={item.href}
-                    className="group flex items-center justify-between border-b border-border-default/10 bg-background-default px-4 py-4 transition-colors last:border-b-0 hover:bg-primary-3/20"
+                    className="group flex items-center justify-between border-b border-border-default/10 bg-background-default px-4 py-4 transition-colors last:border-b-0 hover:bg-purple-200/20"
                 >
                     <div className="flex flex-col gap-0.5">
-                        <h3 className="text-base font-semibold text-foreground-primary group-hover:underline">
+                        <h3 className="text-body-m-semibold text-foreground-primary group-hover:underline">
                             {displayTitle(item.title)}
                         </h3>
-                        <p className="line-clamp-1 text-sm leading-[1.75] text-foreground-secondary">
-                            {item.description}
-                        </p>
+                        <p className="line-clamp-1 text-body-s text-foreground-secondary">{item.description}</p>
                     </div>
                     <Icon name="arrow-up-right" size={16} className="shrink-0 text-foreground-secondary" />
                 </Link>
@@ -93,7 +91,7 @@ export function ContentLinkList({ items, strings, grouped }: ContentLinkListProp
                         if (inType.length === 0) return null
                         return (
                             <section key={t}>
-                                <h2 className="mb-4 text-xs font-bold tracking-widest text-foreground-secondary uppercase">
+                                <h2 className="mb-4 text-label-m tracking-widest text-foreground-secondary uppercase">
                                     {typeLabels[t]}
                                 </h2>
                                 {renderLinkRows(inType)}
@@ -141,7 +139,7 @@ export default function ContentLanding({ items, strings }: Props) {
 
     const typeLabels = typeLabelsFor(strings)
 
-    const chipBase = 'rounded-sm border border-border-default px-3 py-1 text-sm transition-colors'
+    const chipBase = 'rounded-sm border border-border-default px-3 py-1 text-body-s transition-colors'
 
     return (
         <>
@@ -166,7 +164,7 @@ export default function ContentLanding({ items, strings }: Props) {
                     <button
                         type="button"
                         onClick={() => setFilters({ type: null })}
-                        className={`${chipBase} ${activeType === null ? 'bg-action-primary/20 font-semibold' : 'hover:bg-primary-3/30'}`}
+                        className={`${chipBase} ${activeType === null ? 'bg-action-primary/20' : 'hover:bg-purple-200/30'}`}
                     >
                         {strings.filterAll}
                     </button>
@@ -175,7 +173,7 @@ export default function ContentLanding({ items, strings }: Props) {
                             key={t}
                             type="button"
                             onClick={() => setFilters({ type: activeType === t ? null : t })}
-                            className={`${chipBase} ${activeType === t ? 'bg-action-primary/20 font-semibold' : 'hover:bg-primary-3/30'}`}
+                            className={`${chipBase} ${activeType === t ? 'bg-action-primary/20' : 'hover:bg-purple-200/30'}`}
                         >
                             {typeLabels[t]}
                         </button>

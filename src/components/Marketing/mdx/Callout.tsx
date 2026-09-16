@@ -8,7 +8,7 @@ interface CalloutProps {
 }
 
 const STYLES: Record<string, { bg: string; border: string; label: string }> = {
-    info: { bg: 'bg-primary-3/20', border: 'border-primary-3', label: 'Info' },
+    info: { bg: 'bg-purple-200/20', border: 'border-purple-200', label: 'Info' },
     tip: { bg: 'bg-green-200', border: 'border-green-400', label: 'Tip' },
     warning: { bg: 'bg-yellow-200', border: 'border-yellow-400', label: 'Important' },
 }
@@ -20,10 +20,8 @@ export function Callout({ type = 'info', children }: CalloutProps) {
     return (
         <div className={`mx-auto ${PROSE_WIDTH} px-6 md:px-4`}>
             <Card className={`${style.bg} border-l-4 ${style.border} my-8 p-6`}>
-                <p className="mb-1 text-xs font-bold tracking-wide text-foreground-primary/40 uppercase">
-                    {style.label}
-                </p>
-                <div className="text-sm leading-relaxed text-foreground-secondary">{children}</div>
+                <p className="mb-1 text-label-m tracking-wide text-foreground-primary/40 uppercase">{style.label}</p>
+                <div className="text-body-s text-foreground-secondary">{children}</div>
             </Card>
         </div>
     )

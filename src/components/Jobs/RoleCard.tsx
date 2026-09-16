@@ -1,7 +1,7 @@
 import { Card } from '@/components/0_Bruddle/Card'
 import { NOTION_JOB_BOARD_URL, type OpenRole } from '@/components/Jobs/openRoles'
 
-const META_PILL = 'rounded-sm border border-border-default px-3 py-1 text-xs font-medium text-foreground-primary'
+const META_PILL = 'rounded-sm border border-border-default px-3 py-1 text-label-m text-foreground-primary'
 
 export function RoleCard({ role }: { role: OpenRole }) {
     return (

@@ -86,7 +86,7 @@ export default function HelpLanding({ articles, categories, strings }: HelpLandi
                     <div className="flex flex-col gap-10">
                         {filteredCategories.map((category) => (
                             <section key={category}>
-                                <h2 className="mb-4 text-xs font-bold tracking-widest text-foreground-secondary uppercase">
+                                <h2 className="mb-4 text-label-m tracking-widest text-foreground-secondary uppercase">
                                     {category}
                                 </h2>
                                 <div className="flex flex-col gap-px overflow-hidden rounded-sm border border-border-default">
@@ -96,13 +96,13 @@ export default function HelpLanding({ articles, categories, strings }: HelpLandi
                                             <Link
                                                 key={article.slug}
                                                 href={article.href}
-                                                className="group flex items-center justify-between border-b border-border-default/10 bg-background-default px-4 py-4 transition-colors last:border-b-0 hover:bg-primary-3/20"
+                                                className="group flex items-center justify-between border-b border-border-default/10 bg-background-default px-4 py-4 transition-colors last:border-b-0 hover:bg-purple-200/20"
                                             >
                                                 <div className="flex flex-col gap-0.5">
-                                                    <h3 className="text-base font-semibold text-foreground-primary group-hover:underline">
+                                                    <h3 className="text-body-m-semibold text-foreground-primary group-hover:underline">
                                                         {article.title}
                                                     </h3>
-                                                    <p className="line-clamp-1 text-sm leading-[1.75] text-foreground-secondary">
+                                                    <p className="line-clamp-1 text-body-s text-foreground-secondary">
                                                         {article.description}
                                                     </p>
                                                 </div>

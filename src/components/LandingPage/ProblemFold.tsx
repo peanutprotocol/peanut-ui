@@ -50,7 +50,7 @@ export function ProblemFold({ strings }: { strings: LandingStrings }) {
             className="relative overflow-hidden bg-background-page px-4 py-20 text-foreground-primary md:py-28"
         >
             <div className="mx-auto max-w-6xl">
-                <h2 className="font-roboto-flex-extrabold text-4xl leading-none font-extraBlack uppercase md:text-6xl lg:text-heading">
+                <h2 className="font-roboto-flex-extrabold text-heading-l uppercase md:text-6xl lg:text-heading">
                     {problem.heading}
                 </h2>
 
@@ -61,7 +61,7 @@ export function ProblemFold({ strings }: { strings: LandingStrings }) {
                             className={`rounded-sm border-2 border-border-default bg-white p-6 shadow-4 ${tilts[i]}`}
                         >
                             <div className="flex h-11 items-center">{card.icon}</div>
-                            <h3 className="font-roboto-flex-extrabold mt-4 text-xl leading-tight font-extraBlack uppercase md:text-2xl">
+                            <h3 className="font-roboto-flex-extrabold mt-4 text-heading-xs uppercase md:text-heading-s">
                                 {card.title}
                             </h3>
                             <p className="font-roboto-flex mt-2 text-lg leading-relaxed">{card.body}</p>

@@ -17,7 +17,7 @@ interface TabPanelProps {
 }
 
 const triggerClasses =
-    'flex-1 rounded-xl border border-transparent px-3 py-2 text-sm font-medium text-grey-1 transition-all data-[state=active]:border-primary-1 data-[state=active]:bg-primary-1/10 data-[state=active]:text-primary-1'
+    'flex-1 rounded-xl border border-transparent px-3 py-2 text-body-s text-foreground-secondary transition-all data-[state=active]:border-action-primary data-[state=active]:bg-action-primary/10 data-[state=active]:text-action-primary'
 
 /**
  * Tabbed content for MDX pages.
@@ -43,7 +43,7 @@ export function Tabs({ labels, children }: TabsProps) {
         <div className={`mx-auto my-8 ${PROSE_WIDTH} px-6 md:px-4`}>
             <RadixTabs.Root defaultValue={tabs[0]} className="w-full">
                 <RadixTabs.List
-                    className="flex w-full items-center rounded-xl bg-white p-1 shadow-sm ring-1 ring-n-1/10"
+                    className="flex w-full items-center rounded-xl bg-white p-1 shadow-sm ring-1 ring-border-default/10"
                     aria-label="Content tabs"
                 >
                     {tabs.map((tab) => (
@@ -63,7 +63,7 @@ export function TabPanel({ label, children }: TabPanelProps) {
         <RadixTabs.Content
             value={label}
             forceMount
-            className="mt-4 text-base leading-[1.75] text-grey-1 data-[state=inactive]:hidden"
+            className="mt-4 text-body-m text-foreground-secondary data-[state=inactive]:hidden"
         >
             {children}
         </RadixTabs.Content>

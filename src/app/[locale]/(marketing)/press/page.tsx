@@ -202,7 +202,7 @@ export default async function PressPage({ params }: PageProps) {
                                                         rel={
                                                             href.startsWith('http') ? 'noopener noreferrer' : undefined
                                                         }
-                                                        className="rounded-sm border border-border-default px-3 py-1.5 text-body-xs text-foreground-primary hover:bg-primary-3"
+                                                        className="rounded-sm border border-border-default px-3 py-2 text-body-xs text-foreground-primary hover:bg-purple-200"
                                                     >
                                                         {file.name}
                                                     </a>

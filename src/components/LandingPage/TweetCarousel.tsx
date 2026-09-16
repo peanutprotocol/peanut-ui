@@ -112,7 +112,7 @@ const PlayOverlay = () => (
 
 /** Base card styles shared across all card types */
 const CARD_BASE_CLASSES =
-    'shadow-primary-6 flex w-[280px] flex-shrink-0 flex-col overflow-hidden rounded-sm border-2 border-border-default bg-white transition-all duration-instant hover:brightness-95 active:translate-x-[4px] active:translate-y-[4px] active:shadow-none'
+    'shadow-primary-6 flex w-[280px] flex-shrink-0 flex-col overflow-hidden rounded-sm border-2 border-border-default bg-white transition-all duration-instant hover:brightness-95 active:translate-x-1 active:translate-y-1 active:shadow-none'
 
 /** Featured card with media (photo or video) - tallest card type */
 const FeaturedCard = ({ tweet }: { tweet: Tweet }) => {
@@ -146,7 +146,7 @@ const FeaturedCard = ({ tweet }: { tweet: Tweet }) => {
                     <PlayOverlay />
                 </div>
             ) : (
-                <div className="relative flex h-[220px] w-full flex-shrink-0 items-center justify-center overflow-hidden border-b-2 border-border-default bg-gradient-to-br from-secondary-4 to-amber-100">
+                <div className="relative flex h-[220px] w-full flex-shrink-0 items-center justify-center overflow-hidden border-b-2 border-border-default bg-gradient-to-br from-background-badge-attention to-yellow-200">
                     <div className="absolute inset-0 opacity-10">
                         <div className="absolute -top-4 -left-4 text-7xl">🥜</div>
                         <div className="absolute -right-4 -bottom-4 text-7xl">🥜</div>
