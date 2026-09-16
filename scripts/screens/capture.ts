@@ -11,6 +11,7 @@ import { hash, storeAsset, validateCapture, materializeCatalogue } from './core.
 import { captureExitCode } from './capture-status.mjs'
 import { localizedCaptureText } from './capture-copy.mjs'
 import { isRemoteOptimizedImage, REMOTE_IMAGE_PLACEHOLDER } from './capture-images.mjs'
+import { FIXTURE_BANNER_CANDIDATE_SELECTOR, hideFixtureBanners } from './capture-ui.mjs'
 
 import { routePatterns, routePatternFor } from './routes.mjs'
 import { inventory } from './inventory.mjs'
@@ -157,7 +158,14 @@ async function main() {
         })
     try {
         for (const screen of SCREENS) {
-            const metadata = { id: screen.id, name: screen.name, flow: screen.flow, kind: screen.kind }
+            const metadata = {
+                id: screen.id,
+                name: screen.name,
+                flow: screen.flow,
+                kind: screen.kind,
+                order: screen.order,
+                ...(screen.journey ? { journey: screen.journey } : {}),
+            }
             const expectedText = screen.expectText ? captureText(screen.expectText) : undefined
             const clicks = screen.clicks.map(captureText)
             const actions = screen.actions?.map((action) =>
@@ -441,8 +449,9 @@ async function main() {
                 )
                 await page.addStyleTag({
                     content:
-                        '*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important;scroll-behavior:auto!important} a[href*="__fixture=off"]{display:none!important}',
+                        '*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important;scroll-behavior:auto!important} [data-testid="fixture-banner"],a[href*="__fixture=off"]{display:none!important}',
                 })
+                await page.locator(FIXTURE_BANNER_CANDIDATE_SELECTOR).evaluateAll(hideFixtureBanners)
                 await page.evaluate(() => document.fonts.ready)
                 if (screen.videoFrame !== undefined) await page.locator('video').first().waitFor({ state: 'attached' })
                 await page.waitForFunction(() =>

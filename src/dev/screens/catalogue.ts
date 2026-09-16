@@ -26,16 +26,18 @@ export type Screen = {
     expectsLoading?: boolean
     expectedHttpStatus?: number | number[]
     expectText?: string
+    order?: number
+    journey?: string
 }
 const flow = (value: string): string => {
     const rules = [
+        ['badge|reward|points|perk', 'Rewards'],
         ['setup|landing|passkey|signup|residence|install|guest|invite', 'Setup and login'],
         ['kyc|identity|consent|email|bridgetos|reject', 'Verification'],
         ['card|rain', 'Card'],
         ['add.money|onramp|deposit', 'Add money'],
         ['withdraw|recover', 'Withdraw'],
         ['send|claim|request|qr|contribut|transaction', 'Payments'],
-        ['badge|reward|points|perk', 'Rewards'],
         ['profile|language|avatar|support', 'Profile and settings'],
     ]
     return rules.find(([pattern]) => new RegExp(pattern, 'i').test(value))?.[1] ?? 'Home and shared states'
@@ -106,7 +108,51 @@ const definitions: Screen[] = [
         unavailable: routeOverrides[id] ? undefined : s.blocked,
     })),
 ]
-export const SCREENS = definitions.map((screen) => ({
+const flowOrder = [
+    'Setup and login',
+    'Home and shared states',
+    'Verification',
+    'Add money',
+    'Card',
+    'Payments',
+    'Withdraw',
+    'Rewards',
+    'Profile and settings',
+]
+const setupJourney: Record<string, { journey: string; step: number }> = {
+    '01-a-landing': { journey: 'Account setup', step: 10 },
+    '02-a-joinwaitlist': { journey: 'Account setup', step: 20 },
+    '06-a-signup': { journey: 'Account setup', step: 30 },
+    '03-a-residence-select': { journey: 'Account setup', step: 40 },
+    '07-a-setuppasskey': { journey: 'Account setup', step: 50 },
+    '08-a-passkeysetuphelpmodal': { journey: 'Account setup', step: 51 },
+    '09-a-passkeyinfomodal': { journey: 'Account setup', step: 52 },
+    '05-a-signtesttransaction': { journey: 'Account setup', step: 60 },
+    '20-a-setupnotificationsmodal': { journey: 'Account setup', step: 70 },
+    'p51-setup-finish': { journey: 'Account setup', step: 80 },
+    'fixture-setup-pending': { journey: 'Resume setup', step: 110 },
+    'p50-setup-session': { journey: 'Resume setup', step: 120 },
+    'fixture-guest-invite': { journey: 'Invite entry', step: 210 },
+    'p68-invite': { journey: 'Invite entry', step: 220 },
+    '10-a-confirminvitemodal': { journey: 'Invite entry', step: 230 },
+    '13-a-guestloginmodal': { journey: 'Invite entry', step: 240 },
+    '14-a-guestverificationmodal': { journey: 'Invite entry', step: 250 },
+    '15-a-invitefriendsmodal': { journey: 'Invite entry', step: 260 },
+}
+const orderedDefinitions = definitions
+    .map((screen, catalogueIndex) => {
+        const flowIndex = flowOrder.indexOf(screen.flow)
+        const journey = setupJourney[screen.id]
+        return {
+            ...screen,
+            ...(journey ? { journey: journey.journey } : {}),
+            order:
+                (flowIndex === -1 ? flowOrder.length : flowIndex) * 10_000 + (journey?.step ?? 1_000 + catalogueIndex),
+        }
+    })
+    .sort((left, right) => left.order - right.order || left.id.localeCompare(right.id))
+
+export const SCREENS = orderedDefinitions.map((screen) => ({
     ...screen,
     sessionStorage: screen.id === '17-a-nomorejailmodal' ? { showNoMoreJailModal: 'true' } : undefined,
     expectText: screen.id === 'qr-camera-permission' ? 'Camera access needed' : readiness[screen.id],

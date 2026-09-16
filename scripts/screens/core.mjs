@@ -39,6 +39,11 @@ export function validateCapture(input) {
         assert(['captured', 'failed', 'excluded', 'unavailable', 'absent'].includes(s.status), 'Invalid capture status')
         assert(['route', 'component'].includes(s.kind), 'Invalid screen kind')
         const out = { id: s.id, name: text(s.name), flow: text(s.flow), kind: s.kind, status: s.status }
+        if (s.order !== undefined) {
+            assert(Number.isInteger(s.order) && s.order >= 0 && s.order <= 1_000_000, 'Invalid screen order')
+            out.order = s.order
+        }
+        if (s.journey !== undefined) out.journey = text(s.journey, 120)
         if (s.status === 'captured') {
             assert(
                 asset.test(s.image) && s.image.endsWith('.png') && asset.test(s.thumbnail),
@@ -233,11 +238,27 @@ export function compare(beforeInput, afterInput, assetsDir) {
     )
     const left = new Map(before.screens.map((s) => [s.id, s])),
         right = new Map(after.screens.map((s) => [s.id, s]))
-    const screens = [...new Set([...left.keys(), ...right.keys()])].sort().map((id) => {
+    const screenIds = [...new Set([...left.keys(), ...right.keys()])].sort((leftId, rightId) => {
+        const leftScreen = right.get(leftId) ?? left.get(leftId)
+        const rightScreen = right.get(rightId) ?? left.get(rightId)
+        const leftOrder = Number.isInteger(leftScreen?.order) ? leftScreen.order : Number.MAX_SAFE_INTEGER
+        const rightOrder = Number.isInteger(rightScreen?.order) ? rightScreen.order : Number.MAX_SAFE_INTEGER
+        return leftOrder - rightOrder || leftId.localeCompare(rightId)
+    })
+    const screens = screenIds.map((id) => {
         const a = left.get(id),
             b = right.get(id),
             metadata = b ?? a
-        const row = { id, name: metadata.name, flow: metadata.flow, kind: metadata.kind, before: a, after: b }
+        const row = {
+            id,
+            name: metadata.name,
+            flow: metadata.flow,
+            kind: metadata.kind,
+            ...(metadata.order !== undefined ? { order: metadata.order } : {}),
+            ...(metadata.journey !== undefined ? { journey: metadata.journey } : {}),
+            before: a,
+            after: b,
+        }
         if (a?.status === 'absent' && b?.status === 'captured') return { ...row, status: 'added' }
         if (b?.status === 'absent' && a?.status === 'captured') return { ...row, status: 'removed' }
         // Missing/failed capture is never proof of a product addition/removal.
@@ -294,6 +315,8 @@ export function materializeCatalogue(catalogue, results) {
                 name: s.name,
                 flow: s.flow,
                 kind: s.kind,
+                ...(s.order !== undefined ? { order: s.order } : {}),
+                ...(s.journey !== undefined ? { journey: s.journey } : {}),
                 status: 'unavailable',
                 reason: 'Capture has not completed this state',
             }
