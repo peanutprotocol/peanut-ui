@@ -48,7 +48,7 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
                 // below instead of surfacing as unhandled rejections in Sentry
                 await StatusBar.setOverlaysWebView({ overlay: false })
                 await StatusBar.setStyle({ style: Style.Light })
-                await StatusBar.setBackgroundColor({ color: '#90A8ED' }) // secondary-3
+                await StatusBar.setBackgroundColor({ color: '#90A8ED' }) // blue-300 (--color-blue-300); capacitor takes a literal
             })
             .catch(() => {})
     }, [])
