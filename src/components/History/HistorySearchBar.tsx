@@ -3,9 +3,8 @@
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
-import { Icon } from '@/components/Global/Icons/Icon'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { SearchInput } from '@/components/SearchInput'
-import { twMerge } from '@/utils/tw'
 
 interface HistorySearchBarProps {
     /** opens the date-filter drawer */
@@ -35,18 +34,18 @@ export const HistorySearchBar = ({ onOpenFilters, isFilterActive }: HistorySearc
                 placeholder={t('search.placeholder')}
                 aria-label={t('search.placeholder')}
             />
-            {/* icon-only button: 40px box + 20px icon, hit area extended to 44px */}
+            {/* bubble in a button, as in Global/TokenSelector NetworkButton. The
+                40px box keeps the touch target while the S bubble (32px) stays
+                level with the 40px field; an applied range turns it brand-pink,
+                the same override the residence bubble uses. */}
             <Button
                 variant="transparent"
                 onClick={onOpenFilters}
                 aria-label={t('range.title')}
                 data-testid="history-filters"
-                className={twMerge(
-                    'relative size-10 w-10 shrink-0 p-0 shadow-none after:absolute after:-inset-0.5',
-                    isFilterActive && 'text-action-primary'
-                )}
+                className="relative size-10 w-10 shrink-0 p-0 shadow-none after:absolute after:-inset-0.5"
             >
-                <Icon name="list-filter" size={20} />
+                <IconBubble icon="list-filter" size="s" className={isFilterActive ? 'bg-action-primary' : undefined} />
             </Button>
         </div>
     )
