@@ -9,7 +9,6 @@ import { useLongPress } from '@/hooks/useLongPress'
 
 export type ButtonVariant =
     | 'purple'
-    | 'dark'
     | 'stroke'
     | 'transparent-light'
     | 'transparent-dark'
@@ -88,7 +87,6 @@ export interface ButtonLinkProps
 
 const buttonVariants: Record<ButtonVariant, string> = {
     purple: 'btn-purple',
-    dark: 'btn-dark',
     stroke: 'btn-stroke',
     'transparent-light': 'btn-transparent-light',
     'transparent-dark': 'btn-transparent-dark',

@@ -186,7 +186,7 @@ describe('twMerge (DS-configured)', () => {
     describe('custom shadow tokens', () => {
         test('custom shadows conflict with stock shadows and shadow-none', () => {
             expect(twMerge('shadow-4 shadow-none')).toBe('shadow-none')
-            expect(twMerge('shadow-primary-4 shadow-lg')).toBe('shadow-lg')
+            expect(twMerge('shadow-primary-6 shadow-lg')).toBe('shadow-lg')
             expect(twMerge('shadow-2 shadow-4')).toBe('shadow-4')
             // a shadow colour is a different channel and still composes
             expect(twMerge('shadow-red-500 shadow-4')).toBe('shadow-red-500 shadow-4')
