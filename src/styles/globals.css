@@ -9,16 +9,10 @@
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 @theme {
-    /* ───────────────────────────────────────────────────────────────────────
-       LEGACY PALETTE — ported verbatim from tailwind.config.js (v3) for visual
-       parity. consumer migration to the semantic tokens below is DS 06+.
-       deprecated pairs (do not use in new code):
-       - grey.* and gray.* are duplicate scales (same hex at index 1)
-       - purple.* was marked "todo: remove" in the old config
-       ─────────────────────────────────────────────────────────────────────── */
-
-    /* scales replaced (not extended) in v3 — disable v4 defaults so stock
-       shades like purple-500 stay non-existent, exactly like v3 */
+    /* the v3 legacy palette is GONE — every token had its consumers migrated.
+       these resets are all that survives it: a family reset to `initial`
+       leaves only the indices declared below, so an undeclared one like
+       gray-500 or blue-400 renders nothing instead of a stock v4 color. */
     --color-red-*: initial;
     --color-gray-*: initial;
     --color-purple-*: initial;
@@ -30,45 +24,7 @@
     --color-blue-*: initial;
     --color-pink-*: initial;
     --color-orange-*: initial;
-
-    --color-primary-1: #ff90e8;
-    --color-primary-3: #efe4ff;
-
-    --color-secondary-1: #ffc900;
-    --color-secondary-3: #90a8ed;
-    --color-secondary-4: #fff4cc;
-    --color-secondary-7: #5883ff;
-
-    --color-grey-1: #5f646d;
-    --color-grey-2: #e7e8e9;
-    --color-grey-4: #efeff0;
-
-    --color-yellow-1: #ffc900;
-    --color-yellow-7: #ffe6b3;
-    --color-yellow-8: #fae184;
-
-    --color-green-1: #98e9ab;
-
-    --color-gray-1: #5f646d;
-    --color-gray-2: #9ca3af;
-    --color-gray-3: #e5e7eb;
-    --color-gray-4: #d1d5db;
-
-    --color-n-1: #000000;
-    --color-n-2: #161616;
-
-    --color-success-1: #16b413;
-    --color-success-3: #29cc6a;
-
-    --color-white: #ffffff;
-    --color-red: #ff0000;
-    --color-kyc-red: #c80000;
-    --color-black: #000000;
-    --color-kyc-green: #00c800;
-    --color-background: #faf4f0;
-
-    --color-error-1: #ffd8d8;
-    --color-error-4: #fc5555;
+    --color-amber-*: initial;
 
     /* ───────────────────────────────────────────────────────────────────────
        SEMANTIC TOKENS — 1:1 with vlad's figma variables (Peanut-UI file
@@ -165,8 +121,7 @@
        the semantic tokens point at. names + values mirror figma exactly; use a
        semantic token when one exists, a primitive when it doesn't. every family
        here is reset above, so only these indices exist (a typo like gray-500
-       or blue-400 renders nothing instead of a stock color). amber is
-       deliberately NOT reset — landing still paints stock amber. */
+       or blue-400 renders nothing instead of a stock color). */
     --color-gray-0: #ffffff;
     --color-gray-50: #faf4f0;
     --color-gray-100: #efeff0;
@@ -775,10 +730,10 @@
 
 /* shadow-4 is used with variants (sm:shadow-4, hover:shadow-4) — a plain
    @layer components class can't take variants in v4, so it lives here as a
-   real utility. its siblings (shadow-2, shadow-primary/secondary-*) stay in
-   the components layer below; promote one only when a variant needs it. */
+   real utility. its siblings (shadow-2, shadow-primary-*) stay in the
+   components layer below; promote one only when a variant needs it. */
 @utility shadow-4 {
-    @apply shadow-[0.25rem_0.25rem_0_#000000] dark:shadow-[0.25rem_0.25rem_0_rgba(255,255,255,.25)];
+    @apply shadow-[0.25rem_0.25rem_0_#000000];
 }
 
 @layer base {
@@ -811,7 +766,7 @@
     }
 
     body {
-        @apply bg-background text-base antialiased dark:bg-n-2;
+        @apply bg-background-page text-base antialiased;
         /* disable text selection */
         @apply select-none;
         /* disable tap highlight */
@@ -869,9 +824,9 @@
     /* variant classes are deltas on top of .btn (the component always pairs them;
        the few raw call-sites all write "btn btn-purple"). board mapping:
        purple = button.type.primary, stroke = button.type.secondary,
-       transparent* = button.type.ghost. dark/purple-2/yellow are off-board
-       legacy — shape/type restyle inherited from .btn, colors kept until page
-       rebuilds migrate them. */
+       transparent* = button.type.ghost. primary-soft is the last off-board
+       variant — shape/type restyle inherited from .btn, colors kept until a
+       rebuild migrates it. */
     .btn-transparent-light {
         @apply border-transparent fill-white text-white hover:fill-action-ghost-hover hover:text-action-ghost-hover active:fill-action-ghost-hover active:text-action-ghost-hover;
     }
@@ -881,9 +836,6 @@
     .btn-purple {
         /* board 17311:135055: hover drops the offset shadow (flat) */
         @apply bg-action-primary shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] hover:bg-action-primary-hover hover:shadow-none active:bg-action-primary-hover disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
-    }
-    .btn-dark {
-        @apply bg-n-1 fill-white text-white hover:bg-n-1/80;
     }
     .btn-stroke {
         @apply bg-background-default shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] hover:shadow-none active:bg-action-primary disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
@@ -921,7 +873,7 @@
         @apply w-11;
     }
     .shadow-2 {
-        @apply shadow-[0.125rem_0.125rem_0_#000000] dark:shadow-[0.125rem_0.125rem_0_rgba(255,255,255,.25)];
+        @apply shadow-[0.125rem_0.125rem_0_#000000];
     }
     .card-head {
         @apply flex min-h-[4rem] flex-col items-start justify-between border-b border-border-default px-3 py-3 sm:px-5;
@@ -930,51 +882,27 @@
         @apply px-3 py-3 sm:px-5;
     }
     .shadow-primary-6 {
-        @apply shadow-[0.375rem_0.375rem_0_#000000] dark:shadow-[0.375rem_0.375rem_0_rgba(255,255,255,.25)];
+        @apply shadow-[0.375rem_0.375rem_0_#000000];
     }
     .shadow-primary-8 {
-        @apply shadow-[0.5rem_0.5rem_0_#000000] dark:shadow-[0.5rem_0.5rem_0_rgba(255,255,255,.25)];
-    }
-    .shadow-secondary-4 {
-        @apply shadow-[0.25rem_-0.25rem_0_#000000] dark:shadow-[0.25rem_-0.25rem_0_rgba(255,255,255,.25)];
-    }
-    .shadow-secondary-6 {
-        @apply shadow-[0.375rem_-0.375rem_0_#000000] dark:shadow-[0.375rem_-0.375rem_0_rgba(255,255,255,.25)];
-    }
-    .shadow-secondary-8 {
-        @apply shadow-[0.5rem_-0.5rem_0_#000000] dark:shadow-[0.5rem_-0.5rem_0_rgba(255,255,255,.25)];
+        @apply shadow-[0.5rem_0.5rem_0_#000000];
     }
     .btn-shadow-primary-3 {
-        @apply shadow-[0.1875rem_0.1875rem_0_#000000] dark:shadow-[0.1875rem_0.1875rem_0_rgba(255,255,255,.25)];
+        @apply shadow-[0.1875rem_0.1875rem_0_#000000];
     }
     .btn-shadow-primary-4 {
-        @apply shadow-[0.25rem_0.25rem_0_#000000] dark:shadow-[0.25rem_0.25rem_0_rgba(255,255,255,.25)];
+        @apply shadow-[0.25rem_0.25rem_0_#000000];
     }
     .btn-shadow-primary-6 {
-        @apply shadow-[0.375rem_0.375rem_0_#000000] dark:shadow-[0.375rem_0.375rem_0_rgba(255,255,255,.25)];
+        @apply shadow-[0.375rem_0.375rem_0_#000000];
     }
     .btn-shadow-primary-8 {
-        @apply shadow-[0.5rem_0.5rem_0_#000000] dark:shadow-[0.5rem_0.5rem_0_rgba(255,255,255,.25)];
-    }
-    .btn-shadow-secondary-3 {
-        @apply shadow-[0.1875rem_-0.1875rem_0_#000000] dark:shadow-[0.1875rem_-0.1875rem_0_rgba(255,255,255,.25)];
-    }
-    .btn-shadow-secondary-4 {
-        @apply shadow-[0.25rem_-0.25rem_0_#000000] dark:shadow-[0.25rem_-0.25rem_0_rgba(255,255,255,.25)];
-    }
-    .btn-shadow-secondary-6 {
-        @apply shadow-[0.375rem_-0.375rem_0_#000000] dark:shadow-[0.375rem_-0.375rem_0_rgba(255,255,255,.25)];
-    }
-    .btn-shadow-secondary-8 {
-        @apply shadow-[0.5rem_-0.5rem_0_#000000] dark:shadow-[0.5rem_-0.5rem_0_rgba(255,255,255,.25)];
+        @apply shadow-[0.5rem_0.5rem_0_#000000];
     }
     /* input board 17802:61538: every text-input focus uses the same 3px blue
        action-focus ring. The ring replaces the border so states never stack. */
     .input {
         @apply h-12 w-full rounded-sm border border-border-default bg-background-default px-4 text-sm font-bold text-foreground-primary outline-action-focus transition-colors placeholder:text-foreground-secondary focus:border-transparent focus:outline-[3px] focus:outline-action-focus focus:outline-solid disabled:border-border-subtle disabled:bg-background-disabled disabled:text-foreground-secondary aria-invalid:border-border-error;
-    }
-    .bg-peanut-repeat-normal {
-        @apply bg-[url('../assets/bg/peanut-bg.svg')] bg-[length:100px_100px] bg-repeat;
     }
 }
 
@@ -1156,6 +1084,35 @@ Firefox input[type='number'] {
     -moz-appearance: textfield;
 }
 
+/* landing page cloud drift animations */
+@keyframes cloud-drift-ltr {
+    from {
+        transform: translateX(-300px);
+    }
+    to {
+        transform: translateX(100vw);
+    }
+}
+
+@keyframes cloud-drift-rtl {
+    from {
+        transform: translateX(100vw);
+    }
+    to {
+        transform: translateX(-300px);
+    }
+}
+
+.cloud-ltr {
+    animation: cloud-drift-ltr var(--cloud-speed, 35s) linear infinite;
+    animation-delay: var(--cloud-delay, 0s);
+}
+
+.cloud-rtl {
+    animation: cloud-drift-rtl var(--cloud-speed, 35s) linear infinite;
+    animation-delay: var(--cloud-delay, 0s);
+}
+
 .cloud-drift {
     transform: translateX(var(--cloud-from)) scale(var(--cloud-scale));
     animation-name: cloud-drift;
@@ -1173,6 +1130,8 @@ Firefox input[type='number'] {
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .cloud-ltr,
+    .cloud-rtl,
     .cloud-drift {
         animation: none;
     }
@@ -1642,7 +1601,7 @@ input::placeholder {
  */
 
 .content-page tbody tr:nth-child(even) {
-    @apply bg-primary-3/30;
+    @apply bg-background-badge-accent/30;
 }
 
 /* ── Print (public receipt) ── */

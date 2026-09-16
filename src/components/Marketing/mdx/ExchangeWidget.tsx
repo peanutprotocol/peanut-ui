@@ -79,7 +79,9 @@ export function ExchangeWidget({ destinationCurrency, sourceCurrency }: Exchange
             fallback={
                 <section className="relative my-8 w-full overflow-hidden bg-blue-300 pt-10 pb-14 md:pt-14 md:pb-18">
                     <div className="mx-auto flex max-w-[640px] justify-center px-6 md:px-4">
-                        <div className="btn btn-shadow-primary-4 h-[300px] w-full animate-pulse bg-background-default md:w-[420px]" />
+                        {/* the widget box, not a control: the .btn geometry it
+                            used to borrow, written out. */}
+                        <div className="h-[300px] w-full animate-pulse rounded-round border border-border-button bg-background-default shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] md:w-[420px]" />
                     </div>
                 </section>
             }

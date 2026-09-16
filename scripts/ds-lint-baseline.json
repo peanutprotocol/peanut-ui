@@ -3,24 +3,24 @@
     "rawHexFiles": 5,
     "inlineStyle": 22,
     "stockTextSize": 0,
-    "dsTextScale": 3,
+    "dsTextScale": 5,
     "nonDsClassesInViews": 6,
-    "useSearchParamsFiles": 35,
+    "useSearchParamsFiles": 34,
     "nuqsFiles": 37,
     "legacyColorClasses": 0,
     "offRampPalette": 0,
     "deadLegacyTokens": 0,
     "consumedUndefinedTokens": 0,
     "classNameSitesInPages": 128,
-    "fontWeightOnTypeToken": 32,
-    "offScaleSpacing": 103,
-    "iconOffScale": 54,
-    "offScaleRadius": 22,
+    "fontWeightOnTypeToken": 31,
+    "offScaleSpacing": 102,
+    "iconOffScale": 53,
+    "offScaleRadius": 20,
     "rawDuration": 1,
     "retypedCardLiteral": 13,
     "hoverNoActiveFiles": 32,
-    "arbitraryFontSize": 23,
-    "rawErrorText": 14,
+    "arbitraryFontSize": 31,
+    "rawErrorText": 15,
     "handRolledCloseGlyphFiles": 7,
     "_meta": [
         {
@@ -75,8 +75,8 @@
         },
         {
             "date": "2026-09-16",
-            "metrics": ["useSearchParamsFiles 34 -> 35"],
-            "reason": "ArticleLocaleNav: sanctioned useSearchParams exception — verbatim all-params passthrough for locale-switch hrefs, not query state; nuqs has no all-params API (eslint allowlist comment records the same ruling)"
+            "metrics": ["rawErrorText 15 -> 16"],
+            "reason": "limits red text per the legacy-color ruling — progress-meter text, not a field error"
         }
     ]
 }

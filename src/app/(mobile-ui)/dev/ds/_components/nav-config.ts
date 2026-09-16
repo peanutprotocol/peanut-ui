@@ -143,6 +143,20 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             status: 'production',
         },
         {
+            label: 'PinInput',
+            icon: 'lock',
+            href: '/dev/ds/primitives/pin-input',
+            description: 'Filled-dot PIN entry (card flows). Code-only — no figma board yet',
+            status: 'limited',
+        },
+        {
+            label: 'Tabs',
+            icon: 'docs',
+            href: '/dev/ds/primitives/tabs',
+            description: 'The one content-tab component: contained card-top triggers joined to a bordered panel',
+            status: 'production',
+        },
+        {
             label: 'ProgressBar',
             icon: 'meter',
             href: '/dev/ds/primitives/progress-bar',
@@ -255,14 +269,6 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             href: '/dev/ds/primitives/clouds-background',
             description: 'Decorative drifting-clouds backdrop for success and marketing moments. Code-only (brand)',
             status: 'production',
-        },
-        {
-            label: 'Title',
-            icon: 'docs',
-            href: '/dev/ds/primitives/title',
-            description:
-                'Knerd display font with filled/outline double-render effect. DEAD IN PRODUCT — only rendered by MarketingHero (marketing pages); the wallet app never uses it.',
-            status: 'unused',
         },
     ],
     patterns: [

@@ -60,9 +60,9 @@ const DS_ANIMATE_TOKENS = [
 ]
 const DS_SAFE_SPACING_TOKENS = ['safe-top', 'safe-right', 'safe-bottom', 'safe-left']
 // the brutalist offset shadows from @layer components / @utility shadow-4
-const DS_SHADOW_TOKENS = ['2', '4', 'primary-4', 'primary-6', 'primary-8', 'secondary-4', 'secondary-6', 'secondary-8']
+const DS_SHADOW_TOKENS = ['2', '4', 'primary-6', 'primary-8']
 
-export const twMerge = extendTailwindMerge<'ds-bg-peanut-repeat'>({
+export const twMerge = extendTailwindMerge({
     extend: {
         theme: {
             ease: DS_EASE_TOKENS,
@@ -89,8 +89,6 @@ export const twMerge = extendTailwindMerge<'ds-bg-peanut-repeat'>({
             'rounded-bl': [{ 'rounded-bl': [(value: string) => DS_RADIUS_TOKEN.test(value)] }],
             'rounded-br': [{ 'rounded-br': [(value: string) => DS_RADIUS_TOKEN.test(value)] }],
             duration: [{ duration: DS_DURATION_TOKENS }],
-            // background colours compose with the peanut pattern utilities.
-            'ds-bg-peanut-repeat': [{ 'bg-peanut-repeat': ['normal'] }],
         },
     },
 })

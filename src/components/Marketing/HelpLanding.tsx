@@ -96,7 +96,7 @@ export default function HelpLanding({ articles, categories, strings }: HelpLandi
                                             <Link
                                                 key={article.slug}
                                                 href={article.href}
-                                                className="group flex items-center justify-between border-b border-border-default/10 bg-background-default px-4 py-4 transition-colors last:border-b-0 hover:bg-primary-3/20"
+                                                className="group flex items-center justify-between border-b border-border-default/10 bg-background-default px-4 py-4 transition-colors last:border-b-0 hover:bg-purple-200/20"
                                             >
                                                 <div className="flex flex-col gap-0.5">
                                                     <h3 className="text-body-m-semibold text-foreground-primary group-hover:underline">

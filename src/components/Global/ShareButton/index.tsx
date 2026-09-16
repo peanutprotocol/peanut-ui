@@ -127,7 +127,6 @@ const ShareButton = ({
             variant={variant}
             className={`flex items-center justify-center gap-1 ${className}`}
             onClick={handleShare}
-            shadowType="primary"
             shadowSize="4"
         >
             <span className="flex items-center gap-2">

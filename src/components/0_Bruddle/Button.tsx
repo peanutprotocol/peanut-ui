@@ -9,7 +9,6 @@ import { useLongPress } from '@/hooks/useLongPress'
 
 export type ButtonVariant =
     | 'purple'
-    | 'dark'
     | 'stroke'
     | 'transparent-light'
     | 'transparent-dark'
@@ -18,14 +17,12 @@ export type ButtonVariant =
 export type ButtonSize = 'small' | 'medium' | 'large'
 type ButtonShape = 'default' | 'square'
 type ShadowSize = '3' | '4' | '6' | '8'
-type ShadowType = 'primary' | 'secondary'
 
 interface ButtonVisualProps {
     variant?: ButtonVariant
     size?: ButtonSize
     shape?: ButtonShape
     shadowSize?: ShadowSize
-    shadowType?: ShadowType
     loading?: boolean
     icon?: IconName | React.ReactNode
     iconPosition?: 'left' | 'right'
@@ -65,6 +62,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
     external?: never
     download?: never
     plainAnchor?: never
+    prefetch?: never
 }
 
 /**
@@ -82,13 +80,15 @@ export interface ButtonLinkProps
     /** disabled link: the anchor keeps the disabled visuals but drops its href
      *  and gets aria-disabled — nothing to navigate, hydrated or not */
     disabled?: boolean
+    /** forwarded to next/link — internal routes only. `false` keeps a link out
+     *  of the viewport prefetch (marquees and other link-dense surfaces) */
+    prefetch?: boolean
     /** hold-to-confirm is button-only */
     longPress?: never
 }
 
 const buttonVariants: Record<ButtonVariant, string> = {
     purple: 'btn-purple',
-    dark: 'btn-dark',
     stroke: 'btn-stroke',
     'transparent-light': 'btn-transparent-light',
     'transparent-dark': 'btn-transparent-dark',
@@ -111,19 +111,11 @@ const buttonIconSizes: Record<ButtonSize, number> = {
     large: 24,
 }
 
-const buttonShadows: Record<ShadowType, Record<ShadowSize, string>> = {
-    primary: {
-        '3': 'btn-shadow-primary-3',
-        '4': 'btn-shadow-primary-4',
-        '6': 'btn-shadow-primary-6',
-        '8': 'btn-shadow-primary-8',
-    },
-    secondary: {
-        '3': 'btn-shadow-secondary-3',
-        '4': 'btn-shadow-secondary-4',
-        '6': 'btn-shadow-secondary-6',
-        '8': 'btn-shadow-secondary-8',
-    },
+const buttonShadows: Record<ShadowSize, string> = {
+    '3': 'btn-shadow-primary-3',
+    '4': 'btn-shadow-primary-4',
+    '6': 'btn-shadow-primary-6',
+    '8': 'btn-shadow-primary-8',
 }
 
 const ButtonImpl = forwardRef<HTMLButtonElement, ButtonProps | ButtonLinkProps>(
@@ -136,7 +128,6 @@ const ButtonImpl = forwardRef<HTMLButtonElement, ButtonProps | ButtonLinkProps>(
             size,
             shape,
             shadowSize,
-            shadowType,
             icon,
             iconPosition = 'left',
             iconSize,
@@ -150,6 +141,7 @@ const ButtonImpl = forwardRef<HTMLButtonElement, ButtonProps | ButtonLinkProps>(
             external,
             download,
             plainAnchor,
+            prefetch,
             ...props
         },
         ref
@@ -212,7 +204,7 @@ const ButtonImpl = forwardRef<HTMLButtonElement, ButtonProps | ButtonLinkProps>(
             // to the base `gap-2` utility — twMerge is what resolves it.
             size === 'small' && 'gap-1',
             shape === 'square' && 'btn-square',
-            shadowSize && buttonShadows[shadowType || 'primary'][shadowSize],
+            shadowSize && buttonShadows[shadowSize],
             // loading replaces the icon slot (the Loading spinner is a border-animated div, unaffected)
             loading && '[&_svg]:hidden [&_img]:hidden',
 
@@ -297,6 +289,7 @@ const ButtonImpl = forwardRef<HTMLButtonElement, ButtonProps | ButtonLinkProps>(
                     ref={anchorRef}
                     translate="no"
                     href={href}
+                    prefetch={prefetch}
                     onClick={handleClick}
                     {...anchorProps}
                 >

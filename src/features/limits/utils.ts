@@ -135,12 +135,13 @@ const LIMIT_WARNING_THRESHOLD = 20 // 20-70% remaining = yellow, <20% = red
  */
 export function getLimitColorClass(remainingPercent: number, type: 'bg' | 'text'): string {
     if (remainingPercent > LIMIT_HEALTHY_THRESHOLD) {
-        return type === 'bg' ? 'bg-success-3' : 'text-success-1'
+        // green-800 borrowed as green-on-white text — no foreground-success token exists (flagged)
+        return type === 'bg' ? 'bg-background-icon-bubble-green' : 'text-green-800'
     }
     if (remainingPercent > LIMIT_WARNING_THRESHOLD) {
         return type === 'bg' ? 'bg-action-secondary' : 'text-action-secondary'
     }
-    return type === 'bg' ? 'bg-error-4' : 'text-error-4'
+    return type === 'bg' ? 'bg-red-200' : 'text-foreground-error'
 }
 
 // limits warning card helper - eliminates DRY violations

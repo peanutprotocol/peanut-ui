@@ -38,7 +38,7 @@ const GLOBAL_ALLOW = [
     'components/og/',
     'app/api/og/',
     'ImageGeneration/',
-    'dev/components/',
+    'dev/_components/',
     'dev/devices/',
     'dev/fixtures/', // fixture tooling incl. the on-camera banner — dev-only, DEV_TOOLS_ENABLED-gated
     // static audit inventory quotes historical class names as data. The audit
@@ -46,6 +46,8 @@ const GLOBAL_ALLOW = [
     'dev/ds/audit/audit-data.ts',
     'dev/ds/audit/app/audit-app-data.ts',
     'dev/ds/audit/components/audit-components-data.ts',
+    // generated token doc — its previewClass strings name every @theme token
+    'dev/ds/foundations/tokens.generated.ts',
     'features/payment-network-explorer/', // team-gated /dev/payment-graph tool (same class as InvitesGraph) — not product UI
 ]
 
@@ -55,7 +57,6 @@ const HEX_ALLOW = [
     'share-asset/', // canvas card renderer
     'Global/InvitesGraph/', // d3 force graph
     'dev/kyc-flows/', // mermaid theming
-    'LandingPage/PioneerCard3D', // canvas 3d card
     'receipt/[entryId]/pdf/', // @react-pdf/renderer — its StyleSheet takes no tailwind tokens
     'app/layout.tsx', // next viewport themeColor — browser chrome, must be a literal
     'Global/UnsupportedWebViewScreen/', // inline fallback shown when the stylesheet itself cannot parse
@@ -74,7 +75,6 @@ const INLINE_STYLE_ALLOW = [
     'dev/full-graph/', // dev tooling
     'dev/payment-graph/', // dev tooling
     'dev/share-builder/', // dev tooling
-    'dev/rejection-builder/', // dev tooling
     'dev/loading-words/', // dev tooling
     'app/layout.tsx', // colorScheme on <html> — must be a style prop
     '0_Bruddle/BaseSelect.tsx', // width from radix var(--radix-select-trigger-width)
@@ -118,6 +118,8 @@ const isView = (f) => /(^|\/)page\.tsx$/.test(f.path) || /\.view\.tsx$/.test(f.p
 // marketing surfaces + dev tooling outside /dev/ds are out of DS scope (DS 17
 // ruling, approved by Kush 2026-09-03). /dev/ds is the design-system reference,
 // so the lint must check it even though sibling /dev tools stay exempt.
+// SCOPE: hex, inline style, stock text size and non-DS-classes-in-views only.
+// the legacy-palette metrics no longer read this list — see allowedPalette.
 const LEGACY_ALLOW = [
     'components/LandingPage/',
     'components/Marketing/',
@@ -131,6 +133,12 @@ const LEGACY_ALLOW = [
 ]
 const isDevOutsideDs = (path) => path.includes('/dev/') && !path.includes('/dev/ds/')
 const allowedLegacy = (path, extra = []) => isDevOutsideDs(path) || allowed(path, [...LEGACY_ALLOW, ...extra])
+// marketing is now legacy-palette-clean, so the two palette metrics below drop
+// the LEGACY_ALLOW exemption and police it like the app. LEGACY_ALLOW still
+// covers the hex / inline-style / stock-text-size metrics, where the DS 17
+// out-of-scope ruling stands — emptying it there would bake 132 marketing
+// stock text sizes into the ratchet floor.
+const allowedPalette = (path) => isDevOutsideDs(path) || allowed(path)
 
 const counts = {}
 let rawHexFiles = 0
@@ -166,7 +174,7 @@ counts.nuqsFiles = files.filter((f) => /from ['"]nuqs['"]/.test(f.text)).length
 const LEGACY_PALETTE_RE =
     /\b(?:bg|text|border|ring|fill|stroke|divide|outline|decoration|from|to|via)-(?:n|grey|gray|primary|purple|yellow|green|secondary|teal|violet|cyan|orange|success|error|blue|pink|red)-(?:[1-9]|1[01])\b/g
 counts.legacyColorClasses = files
-    .filter((f) => isTsx(f) && !allowedLegacy(f.path))
+    .filter((f) => !allowedPalette(f.path))
     .reduce((sum, f) => sum + countMatches(f.text, LEGACY_PALETTE_RE), 0)
 
 // ramp families with a non-figma index (gray-500, blue-400, pink-300, …).
@@ -185,7 +193,7 @@ const RAMP_INDICES = {
 const RAMP_FAMILY_RE =
     /\b(?:bg|text|border|ring|fill|stroke|divide|outline|decoration|from|to|via)-(gray|pink|yellow|purple|blue|green|red|orange)-([0-9]{2,3})\b/g
 counts.offRampPalette = files
-    .filter((f) => isTsx(f) && !allowedLegacy(f.path))
+    .filter((f) => !allowedPalette(f.path))
     .reduce((sum, f) => {
         let n = 0
         for (const m of f.text.matchAll(RAMP_FAMILY_RE)) {
@@ -250,21 +258,21 @@ const COLOR_CLASS_RE = new RegExp(
 // @apply rules inside globals.css consume tokens too (dark:bg-n-2 on body,
 // bg-purple-3 etc.) — strip the --color definitions so they don't self-count.
 const cssMinusDefs = GLOBALS_CSS.replace(/--color-[a-z0-9-]+\s*:[^;]+;/g, '')
-const allSrcText = files.map((f) => f.text).join('\n') + '\n' + cssMinusDefs
+// files that quote class names as DATA, not styling: the /dev/ds audit
+// inventories and the generated token doc (its previewClass strings name every
+// token, so a token can never look dead while the doc lists it).
+const isTokenProse = (path) => path.includes('dev/ds/audit/') || path.includes('dev/ds/foundations/tokens.generated.ts')
 const consumedBodies = new Set()
-for (const m of allSrcText.matchAll(COLOR_CLASS_RE)) consumedBodies.add(`${m[1]}-${m[2]}`)
+for (const f of files) {
+    if (isTokenProse(f.path)) continue
+    for (const m of f.text.matchAll(COLOR_CLASS_RE)) consumedBodies.add(`${m[1]}-${m[2]}`)
+}
+for (const m of cssMinusDefs.matchAll(COLOR_CLASS_RE)) consumedBodies.add(`${m[1]}-${m[2]}`)
 counts.deadLegacyTokens = [...DEFINED_COLOR_TOKENS].filter((t) => {
     const m = t.match(/^([a-z]+)-([1-9]|1[01])$/)
     return m && LEGACY_FAMILIES.includes(m[1]) && !consumedBodies.has(t)
 }).length
-const consumedOutsideAuditData = new Set()
-for (const f of files) {
-    // dev/ds/audit data files quote historical class names as strings — prose, not styling
-    if (f.path.includes('dev/ds/audit/')) continue
-    for (const m of f.text.matchAll(COLOR_CLASS_RE)) consumedOutsideAuditData.add(`${m[1]}-${m[2]}`)
-}
-for (const m of cssMinusDefs.matchAll(COLOR_CLASS_RE)) consumedOutsideAuditData.add(`${m[1]}-${m[2]}`)
-counts.consumedUndefinedTokens = [...consumedOutsideAuditData].filter((b) => !DEFINED_COLOR_TOKENS.has(b)).length
+counts.consumedUndefinedTokens = [...consumedBodies].filter((b) => !DEFINED_COLOR_TOKENS.has(b)).length
 
 // className sites in (mobile-ui) page.tsx files — pages should compose
 // recipes/views, not respell utility strings. goes down as pages de-inline.

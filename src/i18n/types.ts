@@ -190,6 +190,7 @@ export interface Translations {
     exchangeFree: string
     exchangeArrivesHours: string
     exchangeArrivesMinutes: string
+    exchangeSelectCurrency: string
 
     // Footer
     footerMadeWithLove: string

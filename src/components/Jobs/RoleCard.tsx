@@ -1,3 +1,4 @@
+import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { NOTION_JOB_BOARD_URL, type OpenRole } from '@/components/Jobs/openRoles'
 
@@ -14,14 +15,9 @@ export function RoleCard({ role }: { role: OpenRole }) {
                 </div>
             </div>
             <p className="text-body-s text-foreground-primary">{role.summary}</p>
-            <a
-                href={NOTION_JOB_BOARD_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-purple btn-shadow-primary-4 w-full"
-            >
+            <Button href={NOTION_JOB_BOARD_URL} external shadowSize="4" className="w-full">
                 Apply on Notion
-            </a>
+            </Button>
         </Card>
     )
 }
