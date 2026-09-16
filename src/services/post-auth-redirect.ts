@@ -23,7 +23,7 @@ type PostAuthRedirectOptions = {
      * it is honoured. Discarding those instead would have dropped the stored
      * pay-link continuation for anyone mid-funnel across the deploy — a
      * signup entered from /receipt or a request link landing on /home, which
-     * SendWithPeanutCta and the account-ready CTA exist to prevent. The
+     * SendWithPeanutCta and the setup-completion redirect exist to prevent. The
      * transitional cost of honouring them is the reverse case, a new account
      * on the previous session's page, which the Back fix in this PR already
      * makes harmless; and the window closes at the first write after deploy,
