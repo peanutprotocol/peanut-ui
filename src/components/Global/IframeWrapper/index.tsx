@@ -6,6 +6,7 @@ import ActionModal from '../ActionModal'
 import { useRouter } from 'next/navigation'
 import { useModalsContext } from '@/context/ModalsContext'
 import { Button, type ButtonVariant } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { isAndroidNativeBridge } from '@/utils/capacitor'
 
 /**
@@ -217,7 +218,8 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         className="h-[85%] w-full rounded-sm border-0"
                         sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation allow-media-devices"
                     />
-                    <div className="flex h-[15%] w-full flex-col items-center justify-center gap-2 px-4">
+                    {/* gap-4: the link's 44px hit area extends 14px past its text row */}
+                    <div className="flex h-[15%] w-full flex-col items-center justify-center gap-4 px-4">
                         <Button
                             variant={'stroke'}
                             className={`max-w-md`}
@@ -230,18 +232,15 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                             {t('iframeWrapper.stopVerification')}
                         </Button>
 
-                        <button
+                        <LinkButton
                             onClick={() => {
                                 setModalVariant('trouble')
                                 setIsHelpModalOpen(true)
                             }}
-                            className="flex items-center gap-1"
                         >
-                            <Icon name="peanut-support" size={16} className="text-foreground-secondary" />
-                            <p className="text-body-xs font-medium text-foreground-secondary underline">
-                                {t('iframeWrapper.havingTrouble')}
-                            </p>
-                        </button>
+                            <Icon name="peanut-support" size={16} className="shrink-0" />
+                            {t('iframeWrapper.havingTrouble')}
+                        </LinkButton>
                     </div>
                 </div>
             </div>
