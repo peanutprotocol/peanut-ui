@@ -1,7 +1,11 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { getRedirectUrl, saveToLocalStorage, setRedirectUrl } from '@/utils/general.utils'
-import SignTestTransaction from '../SignTestTransaction'
+import {
+    SETUP_ACCOUNT_READY_EXPERIMENT_FLAG,
+    SETUP_ACCOUNT_READY_SKIP_VARIANT,
+    default as SignTestTransaction,
+} from '../SignTestTransaction'
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -53,7 +57,14 @@ jest.mock('@/app/actions/users', () => ({ updateUserById: jest.fn() }))
 jest.mock('@/utils/passkeyDebug', () => ({ capturePasskeyDebugInfo: jest.fn() }))
 jest.mock('@/utils/auth.utils', () => ({ clearAuthState: jest.fn() }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), addBreadcrumb: jest.fn() }))
-jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn(), setPersonProperties: jest.fn() } }))
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: {
+        capture: jest.fn(),
+        getFeatureFlagResult: jest.fn(),
+        setPersonProperties: jest.fn(),
+    },
+}))
 
 describe('SignTestTransaction — the account-ready screen', () => {
     beforeEach(() => {
@@ -61,6 +72,12 @@ describe('SignTestTransaction — the account-ready screen', () => {
         localStorage.clear()
         accounts = []
         mockSendUserOp.mockResolvedValue({ userOpHash: '0xhash' })
+        jest.mocked(posthog.getFeatureFlagResult).mockReturnValue({
+            key: SETUP_ACCOUNT_READY_EXPERIMENT_FLAG,
+            enabled: true,
+            variant: 'control',
+            payload: undefined,
+        })
         // addAccount refetches the user, so the account appears while this
         // screen is up — the pre-existing-account fast path must not fire.
         mockAddAccount.mockImplementation(async () => {
@@ -128,6 +145,43 @@ describe('SignTestTransaction — the account-ready screen', () => {
         })
         expect(mockRouterReplace).toHaveBeenCalledWith('/home')
         expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    it('redirects automatically after account finalization for the skip-screen variant', async () => {
+        jest.mocked(posthog.getFeatureFlagResult).mockReturnValue({
+            key: SETUP_ACCOUNT_READY_EXPERIMENT_FLAG,
+            enabled: true,
+            variant: SETUP_ACCOUNT_READY_SKIP_VARIANT,
+            payload: undefined,
+        })
+        saveToLocalStorage('redirect', '/receipt?id=abc')
+
+        renderWithIntl(<SignTestTransaction />)
+        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+
+        await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith('/receipt?id=abc'))
+        expect(mockRouterReplace).toHaveBeenCalledTimes(1)
+        expect(posthog.getFeatureFlagResult).toHaveBeenCalledWith(SETUP_ACCOUNT_READY_EXPERIMENT_FLAG)
+        expect(screen.queryByText(/works right now/i)).not.toBeInTheDocument()
+        expect(posthog.capture).toHaveBeenCalledWith(
+            ANALYTICS_EVENTS.SIGNUP_COMPLETED,
+            expect.objectContaining({ flow_version: 1, signup_entry_flow: 'default' })
+        )
+        expect(
+            jest
+                .mocked(posthog.capture)
+                .mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.SIGNUP_ACCOUNT_READY_CTA_CLICKED)
+        ).toHaveLength(0)
+    })
+
+    it('keeps the current account-ready screen when the experiment flag is unavailable', async () => {
+        jest.mocked(posthog.getFeatureFlagResult).mockReturnValue(undefined)
+
+        renderWithIntl(<SignTestTransaction />)
+        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+
+        await screen.findByText(/works right now/i)
+        expect(mockRouterReplace).not.toHaveBeenCalled()
     })
 
     it('consumes the stored route once, however fast the CTA is tapped', async () => {

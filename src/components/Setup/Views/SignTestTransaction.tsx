@@ -22,6 +22,9 @@ import { twMerge } from '@/utils/tw'
 import { useTranslations } from 'next-intl'
 import { captureSignupStepViewed, signupAnalyticsContext } from '@/features/setup/signup-analytics'
 
+export const SETUP_ACCOUNT_READY_EXPERIMENT_FLAG = 'setup-account-ready-screen'
+export const SETUP_ACCOUNT_READY_SKIP_VARIANT = 'test'
+
 export function AccountReadyView({
     onContinue,
     isRedirecting = false,
@@ -88,9 +91,24 @@ const SignTestTransaction = () => {
     const accountReadyCapturedRef = useRef(false)
     const [isRedirecting, setIsRedirecting] = useState(false)
 
-    const showAccountReady = () => {
+    const redirectToAccount = ({ captureCtaClick }: { captureCtaClick: boolean }) => {
+        if (redirectingRef.current) return
+        redirectingRef.current = true
+        setIsRedirecting(true)
+        if (captureCtaClick) {
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_ACCOUNT_READY_CTA_CLICKED, {
+                ...signupAnalyticsContext(signupEntryFlow),
+            })
+        }
+        // This terminal path only runs for an account created in this session,
+        // so it inherits no earlier session's page — only a deep link the
+        // person themselves asked for.
+        handleRedirect({ isNewAccount: true })
+    }
+
+    const completeSignup = () => {
         creatingAccountRef.current = false
-        console.log('[SignTestTransaction] Account setup complete, showing the account-ready screen')
+        console.log('[SignTestTransaction] Account setup complete')
         const inviteCode = getFromCookie('inviteCode')
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_COMPLETED, {
             acquisition_source: inviteCode ? 'referred' : 'organic',
@@ -128,26 +146,29 @@ const SignTestTransaction = () => {
             }
         }
 
+        // Evaluate only once the account is genuinely complete. This keeps
+        // people who fail signing/finalization out of the experiment, and the
+        // SDK's $feature_flag_called event becomes the clean exposure point.
+        // Missing/disabled/unloaded flags fail closed to the current screen.
+        const accountReadyExperiment = posthog.getFeatureFlagResult(SETUP_ACCOUNT_READY_EXPERIMENT_FLAG)
+        if (accountReadyExperiment?.enabled && accountReadyExperiment.variant === SETUP_ACCOUNT_READY_SKIP_VARIANT) {
+            console.log('[SignTestTransaction] Skipping account-ready screen for experiment variant')
+            setIsSigning(false)
+            setSetupLoading(false)
+            redirectToAccount({ captureCtaClick: false })
+            return
+        }
+
         // The finish line does two jobs: celebrate what already works
         // without ID, and plant the honest KYC expectation before home
         // ever asks. The redirect moves to its CTA.
+        console.log('[SignTestTransaction] Showing the account-ready screen')
         setIsSigning(false)
         setSetupLoading(false)
         setAccountReady(true)
     }
 
-    const goToAccount = () => {
-        if (redirectingRef.current) return
-        redirectingRef.current = true
-        setIsRedirecting(true)
-        posthog.capture(ANALYTICS_EVENTS.SIGNUP_ACCOUNT_READY_CTA_CLICKED, {
-            ...signupAnalyticsContext(signupEntryFlow),
-        })
-        // This screen is only reachable for an account created in this
-        // session, so it inherits no earlier session's page — only a deep link
-        // the person themselves asked for.
-        handleRedirect({ isNewAccount: true })
-    }
+    const goToAccount = () => redirectToAccount({ captureCtaClick: true })
 
     useEffect(() => {
         if (!accountReady || accountReadyCapturedRef.current) return
@@ -198,7 +219,7 @@ const SignTestTransaction = () => {
         // account-ready screen and redirects from its CTA instead — nothing may
         // navigate off that screen on its own, so it is a hard guard here and
         // not only the creating-account ref.
-        if (accountReady || creatingAccountRef.current) return
+        if (accountReady || creatingAccountRef.current || redirectingRef.current) return
         if (accountExists) {
             console.log('[SignTestTransaction] Account exists, redirecting to the app')
             handleRedirect()
@@ -275,7 +296,7 @@ const SignTestTransaction = () => {
                 }
 
                 // addAccount() already fetched and verified user data.
-                showAccountReady()
+                completeSignup()
             } else {
                 if (creatingAccountRef.current) {
                     // A prior ambiguous request can commit after both immediate
@@ -283,7 +304,7 @@ const SignTestTransaction = () => {
                     // marker and presents the same success state as the direct
                     // response instead of leaving the button loading forever.
                     console.log('[SignTestTransaction] Reconciled account from an earlier setup request')
-                    showAccountReady()
+                    completeSignup()
                 } else {
                     // Login flow: the account-exists effect owns navigation.
                     console.log('[SignTestTransaction] Account exists, redirecting to the app')
