@@ -8,11 +8,8 @@ jest.mock('@/components/Global/SupportDrawer', () => ({
     __esModule: true,
     default: () => <div data-testid="support-drawer" />,
 }))
-jest.mock('@/components/0_Bruddle/Button', () => ({
-    Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
-        <button {...props}>{children}</button>
-    ),
-}))
+// no Button mock: the CTAs use the real component's link mode, and the test
+// asserts the anchors it renders (server-renderable href = 404 recovery)
 
 function ModalState() {
     const { isSupportModalOpen, supportPrefilledMessage } = useModalsContext()
