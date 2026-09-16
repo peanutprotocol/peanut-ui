@@ -35,7 +35,7 @@ function buildInviteHref(merchant: Merchant, content: 'hero' | 'end_fold'): stri
 }
 
 const ctaButtonClassName =
-    '!w-auto bg-white px-7 py-3 text-base font-extrabold hover:bg-white/90 md:px-9 md:py-8 md:text-xl'
+    '!w-auto bg-white px-6 py-3 text-base font-extrabold hover:bg-white/90 md:px-8 md:py-8 md:text-xl'
 
 type Currency = 'USD' | 'EUR'
 
@@ -50,7 +50,9 @@ export default function MerchantLandingPage({ merchant }: { merchant: Merchant }
             <Marquee {...marqueeProps} />
             <EndFold merchant={merchant} />
             {merchant.footerDisclosure && (
-                <div className="bg-n-1 px-4 py-3 text-center text-xs text-white/65">{merchant.footerDisclosure}</div>
+                <div className="bg-gray-950 px-4 py-3 text-center text-body-xs text-white/65">
+                    {merchant.footerDisclosure}
+                </div>
             )}
         </>
     )
@@ -63,7 +65,7 @@ export default function MerchantLandingPage({ merchant }: { merchant: Merchant }
  * ------------------------------------------------------------------------- */
 function Hero({ merchant }: { merchant: Merchant }) {
     return (
-        <section className="relative overflow-hidden bg-primary-1 px-4 py-20 text-n-1 md:py-24">
+        <section className="relative overflow-hidden bg-background-brand px-4 py-20 text-foreground-primary md:py-24">
             <motion.img
                 src={Star.src}
                 alt=""
@@ -109,7 +111,7 @@ function Hero({ merchant }: { merchant: Merchant }) {
                             {merchant.chips.map((c) => (
                                 <span
                                     key={c}
-                                    className="rounded-sm border border-n-1 bg-black/10 px-3 py-1.5 text-[0.7rem] font-extraBlack tracking-wider uppercase"
+                                    className="rounded-sm border border-border-default bg-gray-950/10 px-3 py-1 text-[0.7rem] font-extraBlack tracking-wider uppercase"
                                 >
                                     {c}
                                 </span>
@@ -117,7 +119,7 @@ function Hero({ merchant }: { merchant: Merchant }) {
                         </div>
                     )}
 
-                    <div className="mt-8 flex flex-col items-center gap-5 md:flex-row md:items-center md:gap-6">
+                    <div className="mt-8 flex flex-col items-center gap-6 md:flex-row md:items-center md:gap-6">
                         <div className="relative">
                             <Link href={buildInviteHref(merchant, 'hero')} className="inline-block">
                                 <Button shadowSize="4" className={ctaButtonClassName}>
@@ -143,7 +145,7 @@ function Hero({ merchant }: { merchant: Merchant }) {
                     </div>
                 </div>
 
-                <div className="relative mx-auto flex h-[330px] w-full max-w-[340px] items-center justify-center md:h-[440px] md:max-w-none">
+                <div className="relative mx-auto flex h-[330px] w-full max-w-85 items-center justify-center md:h-110 md:max-w-none">
                     {merchant.polaroids && <Polaroids items={merchant.polaroids} />}
                     <DealCard merchant={merchant} />
                 </div>
@@ -161,7 +163,7 @@ function HighlightedSub({ text }: { text: string }) {
                 /^\$\d+$/.test(p) ? (
                     <span
                         key={i}
-                        className="mx-1 inline-block bg-n-1 px-2 py-0.5 text-[0.92em] font-extraBlack tracking-wider whitespace-nowrap text-primary-1 uppercase"
+                        className="mx-1 inline-block bg-gray-950 px-2 py-0.5 text-[0.92em] font-extraBlack tracking-wider whitespace-nowrap text-action-primary uppercase"
                     >
                         {p}
                     </span>
@@ -182,10 +184,10 @@ function DealCard({ merchant }: { merchant: Merchant }) {
         merchant.branding?.lockupName ?? (merchant.slug === 'badigitalnomads' ? 'ba nomads' : merchant.slug)
     return (
         <div className="relative z-30 origin-center" style={{ transform: 'rotate(-6deg)' }} aria-hidden>
-            <div className="w-[260px] overflow-hidden rounded-sm border-2 border-n-1 bg-secondary-1 shadow-[8px_8px_0_#000] md:w-[300px]">
+            <div className="shadow-primary-8 w-65 overflow-hidden rounded-sm border-2 border-border-default bg-yellow-500 md:w-75">
                 {/* cobrand lockup */}
                 <div
-                    className="flex items-center gap-1.5 px-6 pt-5 pb-2 tracking-wider uppercase"
+                    className="flex items-center gap-1 px-6 pt-6 pb-2 tracking-wider uppercase"
                     style={{ fontFamily: 'monospace', fontSize: 11 }}
                 >
                     <span>peanut ×</span>
@@ -195,7 +197,7 @@ function DealCard({ merchant }: { merchant: Merchant }) {
                             alt=""
                             width={16}
                             height={16}
-                            className="inline-block border border-n-1"
+                            className="inline-block border border-border-default"
                         />
                     )}
                     <span>{lockupName}</span>
@@ -242,16 +244,16 @@ function Polaroids({ items }: { items: NonNullable<Merchant['polaroids']> }) {
                         transition={{ type: 'spring', damping: 12, delay: 0.15 + i * 0.1 }}
                         style={{ transformOrigin: 'center center' }}
                     >
-                        <div className="border-2 border-n-1 bg-white p-1.5 pb-5 shadow-[5px_6px_0_#000] md:p-2 md:pb-9 md:shadow-[8px_10px_0_#000]">
+                        <div className="border-2 border-border-default bg-white p-2 pb-4 shadow-[5px_6px_0_#000] md:pb-8 md:shadow-[8px_10px_0_#000]">
                             <Image
                                 src={p.src}
                                 alt={p.alt}
                                 width={200}
                                 height={200}
-                                className="block h-[128px] w-[128px] object-cover md:h-[200px] md:w-[200px]"
+                                className="block size-32 object-cover md:size-50"
                             />
                             <div
-                                className="mt-1 text-center text-[10px] md:mt-2 md:text-sm"
+                                className="mt-1 text-center text-[10px] md:mt-2 md:text-body-s"
                                 style={{ fontFamily: 'monospace' }}
                             >
                                 {p.caption}
@@ -299,7 +301,10 @@ function MenuFold({ fold }: { fold: Extract<Merchant['fold2'], { type: 'menu' }>
             : (markup ?? { rate: 0, source: 'static' as const })
 
     return (
-        <section id="menu" className="relative overflow-hidden bg-secondary-1 px-4 py-24 text-center text-n-1 md:py-32">
+        <section
+            id="menu"
+            className="relative overflow-hidden bg-yellow-500 px-4 py-24 text-center text-foreground-primary md:py-32"
+        >
             <div className="mx-auto max-w-5xl">
                 <h2 className="font-roboto-flex-extrabold mx-auto max-w-3xl text-heading font-extraBlack uppercase md:text-headingMedium">
                     {fold.heading}
@@ -308,15 +313,15 @@ function MenuFold({ fold }: { fold: Extract<Merchant['fold2'], { type: 'menu' }>
                     {fold.tagline}
                 </p>
 
-                <div className="mt-10 inline-flex rounded-sm border-2 border-n-1 bg-white shadow-[4px_4px_0_#000]">
+                <div className="mt-10 inline-flex rounded-sm border-2 border-border-default bg-white shadow-4">
                     {(['USD', 'EUR'] as const).map((c) => (
                         <button
                             key={c}
                             type="button"
                             onClick={() => setCurrency(c)}
                             aria-pressed={currency === c}
-                            className={`min-w-[80px] border-r-2 border-n-1 px-6 py-3.5 text-sm font-extraBlack tracking-wider uppercase last:border-r-0 ${
-                                currency === c ? 'bg-primary-1' : 'bg-white'
+                            className={`min-w-20 border-r-2 border-border-default px-6 py-3 text-sm font-extraBlack tracking-wider uppercase last:border-r-0 ${
+                                currency === c ? 'bg-action-primary' : 'bg-white'
                             }`}
                         >
                             {c}
@@ -363,7 +368,7 @@ function MenuItemCard({
     const cardFmt = peanutPrice !== null && cardMarkup > 0 ? (peanutPrice * (1 + cardMarkup)).toFixed(2) : null
 
     return (
-        <div className="flex items-start justify-between gap-4 rounded-sm border-2 border-n-1 bg-white p-5 text-left shadow-[4px_4px_0_#000]">
+        <div className="flex items-start justify-between gap-4 rounded-sm border-2 border-border-default bg-white p-6 text-left shadow-4">
             <div className="min-w-0 flex-1">
                 <div className="text-lg font-extraBlack md:text-xl">{item.name}</div>
             </div>
@@ -412,9 +417,9 @@ function LiveRateBanner({
         : 'Loading live cripto-dólar rate…'
 
     return (
-        <div className="mx-auto mt-6 flex max-w-3xl flex-wrap items-center justify-center gap-4 rounded-sm border-2 border-n-1 bg-white px-5 py-3 text-sm font-extraBlack tracking-wider uppercase shadow-[4px_4px_0_#000]">
+        <div className="mx-auto mt-6 flex max-w-3xl flex-wrap items-center justify-center gap-4 rounded-sm border-2 border-border-default bg-white px-4 py-3 text-sm font-extraBlack tracking-wider uppercase shadow-4">
             <span
-                className={`inline-block h-2 w-2 rounded-full ${isLive ? 'bg-green-1' : 'bg-n-1'}`}
+                className={`inline-block h-2 w-2 rounded-full ${isLive ? 'bg-green-1' : 'bg-gray-950'}`}
                 style={isLive ? {} : { animation: 'pulse 1.6s ease-in-out infinite' }}
             />
             <span>{copy}</span>
@@ -457,7 +462,7 @@ function FaqFold({ fold }: { fold: Extract<Merchant['fold2'], { type: 'faq' }> }
  * ------------------------------------------------------------------------- */
 function EndFold({ merchant }: { merchant: Merchant }) {
     return (
-        <section className="relative overflow-hidden bg-n-1 px-4 py-32 text-center text-white md:py-40">
+        <section className="relative overflow-hidden bg-gray-950 px-4 py-32 text-center text-white md:py-40">
             <motion.img
                 src={Sparkle.src}
                 alt=""
@@ -505,9 +510,9 @@ function EndFold({ merchant }: { merchant: Merchant }) {
 
 function Ambassador({ box }: { box: NonNullable<Merchant['ambassador']> }) {
     return (
-        <div className="mx-auto mt-20 max-w-xl rounded-sm border-2 border-primary-1 p-8 text-left">
+        <div className="mx-auto mt-20 max-w-xl rounded-sm border-2 border-border-brand p-8 text-left">
             <div
-                className="text-[10px] font-extraBlack tracking-wider text-secondary-1 uppercase"
+                className="text-[10px] font-extraBlack tracking-wider text-yellow-500 uppercase"
                 style={{ fontFamily: 'monospace' }}
             >
                 {box.kicker}
@@ -516,7 +521,7 @@ function Ambassador({ box }: { box: NonNullable<Merchant['ambassador']> }) {
             <p className="font-roboto-flex mt-4 text-sm leading-relaxed opacity-85">{box.body}</p>
             <Link
                 href={box.applyHref}
-                className="font-roboto-flex mt-5 inline-block text-sm font-extraBlack tracking-wider text-primary-1 uppercase underline underline-offset-4"
+                className="font-roboto-flex mt-4 inline-block text-sm font-extraBlack tracking-wider text-action-primary uppercase underline underline-offset-4"
             >
                 {box.applyLabel}
             </Link>
