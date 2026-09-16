@@ -55,3 +55,51 @@ describe('CurrencySelect selection', () => {
     // not from any prop, and no supported currency is coming-soon today; add one
     // by jest-mocking the constants module if a coming-soon entry ever ships.
 })
+
+// The hand-rolled keyboard path: moveActive wrap-around arithmetic, Home/End,
+// Enter→select. Row order is SUPPORTED_EXCHANGE_CURRENCIES: USD, EUR, GBP,
+// MXN, ARS, BRL — USD selected means the list opens with USD active.
+describe('CurrencySelect keyboard navigation', () => {
+    const openWithKeyboard = () => {
+        const setSelectedCurrency = jest.fn()
+        render(
+            <CurrencySelect
+                selectedCurrency="USD"
+                setSelectedCurrency={setSelectedCurrency}
+                trigger={<button>pick</button>}
+            />
+        )
+        const trigger = screen.getByText('pick')
+        fireEvent.click(trigger)
+        return { setSelectedCurrency, trigger, listbox: screen.getByRole('listbox') }
+    }
+
+    const expectSelectedAndClosed = (setSelectedCurrency: jest.Mock, trigger: HTMLElement, currency: string) => {
+        expect(setSelectedCurrency).toHaveBeenCalledTimes(1)
+        expect(setSelectedCurrency).toHaveBeenCalledWith(currency)
+        expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
+        expect(document.activeElement).toBe(trigger)
+    }
+
+    it('ArrowDown then Enter selects the next currency and closes with focus on the trigger', () => {
+        const { setSelectedCurrency, trigger, listbox } = openWithKeyboard()
+        fireEvent.keyDown(listbox, { key: 'ArrowDown' })
+        fireEvent.keyDown(listbox, { key: 'Enter' })
+        expectSelectedAndClosed(setSelectedCurrency, trigger, 'EUR')
+    })
+
+    it('End then Enter selects the last currency', () => {
+        const { setSelectedCurrency, trigger, listbox } = openWithKeyboard()
+        fireEvent.keyDown(listbox, { key: 'End' })
+        fireEvent.keyDown(listbox, { key: 'Enter' })
+        expectSelectedAndClosed(setSelectedCurrency, trigger, 'BRL')
+    })
+
+    it('Home then Enter selects the first currency', () => {
+        const { setSelectedCurrency, trigger, listbox } = openWithKeyboard()
+        fireEvent.keyDown(listbox, { key: 'End' })
+        fireEvent.keyDown(listbox, { key: 'Home' })
+        fireEvent.keyDown(listbox, { key: 'Enter' })
+        expectSelectedAndClosed(setSelectedCurrency, trigger, 'USD')
+    })
+})
