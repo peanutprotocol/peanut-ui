@@ -90,10 +90,7 @@ export function SendInSeconds({ locale = DEFAULT_LOCALE }: { locale?: Locale }) 
                     />
                 </div>
 
-                <p
-                    className="mb-6 hidden font-roboto text-body-m leading-tight md:mb-8 md:block md:text-4xl"
-                    style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
-                >
+                <p className="mb-6 hidden font-roboto text-body-m md:mb-8 md:block md:text-heading-l">
                     {i18n.landingSendTagline1}
                     <br />
                     {i18n.landingSendTagline2}

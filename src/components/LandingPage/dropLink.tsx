@@ -125,7 +125,7 @@ export function DropLink({ strings }: { strings: LandingStrings }) {
                     <a href="/setup" target="_blank" rel="noopener noreferrer">
                         <Button
                             shadowSize="4"
-                            className="mt-8 hidden w-58 bg-white px-6 pt-4 pb-10 text-base font-extrabold hover:bg-white/90 md:inline-block md:w-72 md:px-10 md:text-lg"
+                            className="mt-8 hidden w-58 bg-white px-6 hover:bg-white/90 md:inline-block md:w-72 md:px-10"
                         >
                             {strings.signUp}
                         </Button>

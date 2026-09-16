@@ -54,7 +54,7 @@ export function RelatedPages({ title, children, locale = DEFAULT_LOCALE }: Relat
 
     return (
         <nav className={`mx-auto ${PROSE_WIDTH} px-6 py-10 md:px-4 md:py-14`}>
-            <h2 className="mb-5 text-xl font-bold text-foreground-primary md:text-2xl">{heading}</h2>
+            <h2 className="mb-5 text-heading-xs text-foreground-primary md:text-heading-s">{heading}</h2>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {links.map((link) => (
                     <Link key={link.href} href={resolveContentHref(link.href, locale)} className="flex">

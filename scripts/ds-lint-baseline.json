@@ -1,11 +1,11 @@
 {
-    "rawHex": 8,
-    "rawHexFiles": 5,
+    "rawHex": 4,
+    "rawHexFiles": 3,
     "inlineStyle": 22,
     "stockTextSize": 0,
-    "dsTextScale": 5,
+    "dsTextScale": 3,
     "nonDsClassesInViews": 6,
-    "useSearchParamsFiles": 34,
+    "useSearchParamsFiles": 35,
     "nuqsFiles": 37,
     "legacyColorClasses": 0,
     "offRampPalette": 0,
@@ -18,8 +18,8 @@
     "offScaleRadius": 20,
     "rawDuration": 1,
     "retypedCardLiteral": 13,
-    "hoverNoActiveFiles": 32,
-    "arbitraryFontSize": 31,
+    "hoverNoActiveFiles": 33,
+    "arbitraryFontSize": 20,
     "rawErrorText": 15,
     "handRolledCloseGlyphFiles": 7,
     "_meta": [
@@ -77,6 +77,11 @@
             "date": "2026-09-16",
             "metrics": ["rawErrorText 15 -> 16"],
             "reason": "limits red text per the legacy-color ruling — progress-meter text, not a field error"
+        },
+        {
+            "date": "2026-09-16",
+            "metrics": ["useSearchParamsFiles 34 -> 35", "hoverNoActiveFiles 32 -> 33"],
+            "reason": "useSearchParamsFiles: ArticleLocaleNav sanctioned verbatim query passthrough (re-recorded after merge took dev's baseline); hoverNoActiveFiles: the type port moved hand-rolled active:translate into the Button component — files keep a hover: override while press state is component-supplied, a text-scan false positive"
         }
     ]
 }

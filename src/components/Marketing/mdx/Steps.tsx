@@ -82,7 +82,7 @@ export function Steps({ title, children, locale = DEFAULT_LOCALE }: StepsProps) 
             <CloudsCss clouds={stepsClouds} />
             <Stars />
             <div className="relative z-10 mx-auto max-w-3xl">
-                <h2 className="mb-8 text-h2 font-bold md:text-h1">{heading}</h2>
+                <h2 className="mb-8 text-heading-l md:text-h1">{heading}</h2>
                 <StepsCards steps={steps} />
             </div>
             <JsonLd data={howToSchema} />

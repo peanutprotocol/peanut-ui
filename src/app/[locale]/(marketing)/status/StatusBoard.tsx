@@ -339,7 +339,7 @@ export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary;
                                         </div>
                                         <div className="mt-2">
                                             <UptimeBars provider={provider} locale={locale} i18n={i18n} />
-                                            <div className="mt-1 flex justify-between text-[10px] text-foreground-secondary">
+                                            <div className="mt-1 flex justify-between text-body-xs text-foreground-secondary">
                                                 <span>{i18n.statusWindowStart}</span>
                                                 <span>{i18n.statusNow}</span>
                                             </div>
@@ -357,7 +357,7 @@ export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary;
                     </section>
                 ))}
 
-                <div className="mt-10 flex flex-wrap items-center gap-4 border-t border-gray-200 pt-4 text-[11px] text-foreground-secondary">
+                <div className="mt-10 flex flex-wrap items-center gap-4 border-t border-gray-200 pt-4 text-body-xs text-foreground-secondary">
                     {(
                         [
                             ['operational', i18n.statusLegendOperational],

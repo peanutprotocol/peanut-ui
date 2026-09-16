@@ -20,10 +20,8 @@ export function Callout({ type = 'info', children }: CalloutProps) {
     return (
         <div className={`mx-auto ${PROSE_WIDTH} px-6 md:px-4`}>
             <Card className={`${style.bg} border-l-4 ${style.border} my-8 p-6`}>
-                <p className="mb-1 text-xs font-bold tracking-wide text-foreground-primary/40 uppercase">
-                    {style.label}
-                </p>
-                <div className="text-sm leading-relaxed text-foreground-secondary">{children}</div>
+                <p className="mb-1 text-label-m tracking-wide text-foreground-primary/40 uppercase">{style.label}</p>
+                <div className="text-body-s text-foreground-secondary">{children}</div>
             </Card>
         </div>
     )

@@ -34,7 +34,7 @@ export function YourMoney({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
                         {i18n.landingGlobalCashStats}
                     </h2>
 
-                    <p className="font-roboto-flex text-left text-xl font-light md:text-4xl md:font-normal">
+                    <p className="font-roboto-flex text-left text-body-l md:text-4xl">
                         {bodyParts.map((part, index) =>
                             part.href ? (
                                 <Link
