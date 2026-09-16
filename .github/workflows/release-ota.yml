@@ -272,30 +272,30 @@ jobs:
                     node scripts/capgo-release-guard.mjs verify-bundle
                   done
 
-            # This guard is deliberately the last step before the first
-            # production mutation. Candidate uploads above are disposable, but
-            # promotion must never race a newer main commit.
-            - name: Guard current main before production mutation
-              env:
-                  EXPECTED_MAIN_SHA: ${{ github.sha }}
-              run: |
-                  LATEST_MAIN_SHA="$(git ls-remote origin refs/heads/main | cut -f1)"
-                  if [ "$LATEST_MAIN_SHA" != "$EXPECTED_MAIN_SHA" ]; then
-                      echo "::error::main advanced before production promotion ($EXPECTED_MAIN_SHA -> $LATEST_MAIN_SHA); refusing to promote a stale OTA" >&2
-                      exit 1
-                  fi
-                  echo "main is still ${EXPECTED_MAIN_SHA:0:7} before production promotion"
-
             - name: Promote verified bundles to platform production
               env:
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   RELEASE_VERSION: ${{ steps.version.outputs.name }}
                   FLOOR_ANDROID: ${{ steps.ota_floors.outputs.android }}
                   FLOOR_IOS: ${{ steps.ota_floors.outputs.ios }}
+                  EXPECTED_MAIN_SHA: ${{ github.sha }}
               run: |
+                  guard_current_main() {
+                    LATEST_MAIN_SHA="$(git ls-remote origin refs/heads/main | cut -f1)"
+                    if [ "$LATEST_MAIN_SHA" != "$EXPECTED_MAIN_SHA" ]; then
+                      echo "::error::main advanced before production promotion ($EXPECTED_MAIN_SHA -> $LATEST_MAIN_SHA); refusing to promote a stale OTA" >&2
+                      exit 1
+                    fi
+                    echo "main is still ${EXPECTED_MAIN_SHA:0:7} before production promotion"
+                  }
+
                   for PLATFORM in ios android; do
                     export PLATFORM VERSION="$RELEASE_VERSION-$PLATFORM"
                     if [ "$PLATFORM" = ios ]; then export NATIVE_FLOOR="$FLOOR_IOS"; else export NATIVE_FLOOR="$FLOOR_ANDROID"; fi
+                    # Re-check immediately before EACH production mutation: the
+                    # first platform promotion can finish while main advances
+                    # before the second platform is promoted.
+                    guard_current_main
                     # Bundle selection and rollout disablement are one Capgo
                     # mutation, followed by exact channel and artifact readback.
                     node scripts/capgo-release-guard.mjs promote-production
