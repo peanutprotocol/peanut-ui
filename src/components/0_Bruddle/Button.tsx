@@ -1,5 +1,6 @@
 'use client'
 import React, { forwardRef, useCallback, useEffect, useRef } from 'react'
+import Link from 'next/link'
 import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 import Loading from '../Global/Loading'
@@ -19,19 +20,7 @@ type ButtonShape = 'default' | 'square'
 type ShadowSize = '3' | '4' | '6' | '8'
 type ShadowType = 'primary' | 'secondary'
 
-/**
- * Primary button component. Styled to the figma button board (17802:61527):
- * pill shape, sizes l=48/m=44 (default)/s=40px, primary + stroke carry the
- * 4px shadow by default.
- *
- * @prop variant - Visual style. 'purple' = board primary, 'stroke' = board
- *   secondary, 'transparent' = board ghost. Others are legacy.
- * @prop size - Omit for medium (44px). 'large' is 48px, 'small' is 40px.
- * @prop shadowSize - Shadow depth override; '4' is already the default on
- *   purple/stroke, so passing it is a no-op kept for compatibility.
- * @prop longPress - Hold-to-confirm behavior with progress bar animation.
- */
-export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonVisualProps {
     variant?: ButtonVariant
     size?: ButtonSize
     shape?: ButtonShape
@@ -43,13 +32,58 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
     iconClassName?: string
     iconSize?: number
     iconContainerClassName?: HTMLDivElement['className']
+    disableHaptics?: boolean
+}
+
+/**
+ * Primary button component. Styled to the figma button board (17802:61527):
+ * pill shape, sizes l=48/m=44 (default)/s=40px, primary + stroke carry the
+ * 4px shadow by default.
+ *
+ * Navigation split (ruled): underlined text link -> `LinkButton`;
+ * button-looking navigation -> `Button` with `href` (link mode). Link mode
+ * renders ONE anchor element with the exact button classes, press state and
+ * haptics — never wrap a Button in a <Link> (nested interactive) and never
+ * hand-roll `.btn` classes on an anchor.
+ *
+ * @prop variant - Visual style. 'purple' = board primary, 'stroke' = board
+ *   secondary, 'transparent' = board ghost. Others are legacy.
+ * @prop size - Omit for medium (44px). 'large' is 48px, 'small' is 40px.
+ * @prop shadowSize - Shadow depth override; '4' is already the default on
+ *   purple/stroke, so passing it is a no-op kept for compatibility.
+ * @prop longPress - Hold-to-confirm behavior with progress bar animation.
+ */
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, ButtonVisualProps {
     longPress?: {
         duration?: number // Duration in milliseconds (default: 2000)
         onLongPress?: () => void
         onLongPressStart?: () => void
         onLongPressEnd?: () => void
     }
-    disableHaptics?: boolean
+    /** link-mode props — typed `never` here so the two prop sets cannot mix */
+    href?: never
+    external?: never
+    download?: never
+    plainAnchor?: never
+}
+
+/**
+ * Link mode: `href` set. Renders one anchor — next/link for internal routes,
+ * a plain <a> for external/scheme hrefs, downloads, or `plainAnchor`.
+ */
+export interface ButtonLinkProps
+    extends Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'href'>, ButtonVisualProps {
+    href: string
+    /** open in a new tab: plain <a> with target="_blank" rel="noopener noreferrer" */
+    external?: boolean
+    /** force a plain <a> for an internal route — for surfaces that must
+     *  navigate with a full page load and work before hydration (404 recovery) */
+    plainAnchor?: boolean
+    /** disabled link: the anchor keeps the disabled visuals but drops its href
+     *  and gets aria-disabled — nothing to navigate, hydrated or not */
+    disabled?: boolean
+    /** hold-to-confirm is button-only */
+    longPress?: never
 }
 
 const buttonVariants: Record<ButtonVariant, string> = {
@@ -92,7 +126,7 @@ const buttonShadows: Record<ShadowType, Record<ShadowSize, string>> = {
     },
 }
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+export const Button = forwardRef<HTMLButtonElement, ButtonProps | ButtonLinkProps>(
     (
         {
             children,
@@ -111,6 +145,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             longPress,
             onClick,
             disableHaptics,
+            disabled,
+            href,
+            external,
+            download,
+            plainAnchor,
             ...props
         },
         ref
@@ -128,7 +167,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         }, [])
 
         const handleClick = useCallback(
-            (e: React.MouseEvent<HTMLButtonElement>) => {
+            (e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
                 if (longPress && !isLongPressed) {
                     return
                 }
@@ -137,7 +176,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                     triggerHaptic()
                 }
 
-                onClick?.(e)
+                ;(onClick as React.MouseEventHandler<HTMLButtonElement | HTMLAnchorElement> | undefined)?.(e)
             },
             [longPress, isLongPressed, onClick, disableHaptics, triggerHaptic]
         )
@@ -150,13 +189,23 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             (shadowSize !== undefined || variant === 'purple' || variant === 'stroke') &&
             !/(?:^|\s)shadow-none(?:\s|$)/.test(className ?? '')
 
+        const isLink = href !== undefined
+        const linkDisabled = isLink && disabled
+
         const buttonClasses = twMerge(
             // static pressed-state classes: the old `translate-y-[${shadowSize}px]`
             // template never generated a real class under the jit scanner
             'btn w-full flex items-center gap-2 transition-all duration-instant notranslate',
             hasShadow && 'active:translate-x-1 active:translate-y-1 active:shadow-none',
             buttonVariants[variant],
-            variant === 'transparent' && props.disabled && 'disabled:bg-transparent disabled:border-transparent',
+            variant === 'transparent' && disabled && 'disabled:bg-transparent disabled:border-transparent',
+            // anchors never match :disabled, so a disabled link paints the
+            // button's disabled look explicitly: 40% opacity (.btn), the 1px
+            // residual shadow (.btn-purple/.btn-stroke), no hover/press
+            linkDisabled && 'pointer-events-none opacity-40',
+            linkDisabled &&
+                (variant === 'purple' || variant === 'stroke') &&
+                'shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)]',
             size && buttonSizes[size],
             // board icon/label gap: S is XS/4, L and M are S/8. It has to sit
             // here rather than in `.btn-small`, because @layer components loses
@@ -189,11 +238,79 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         // Use children as display text (no text changes for long press)
         const displayText = children
 
+        const content = (
+            <>
+                {loading && <Loading />}
+                {iconPosition === 'left' && renderIcon()}
+                {displayText}
+                {iconPosition === 'right' && renderIcon()}
+            </>
+        )
+
+        if (isLink) {
+            const anchorRef = buttonRef as unknown as React.RefObject<HTMLAnchorElement>
+            const anchorProps = props as React.AnchorHTMLAttributes<HTMLAnchorElement>
+            const linkClasses = twMerge(buttonClasses, 'notranslate', 'no-underline')
+
+            if (disabled) {
+                // disabled link: same anchor element, href dropped — nothing to
+                // navigate even before hydration; aria-disabled + role keep the
+                // semantics without the focusable-but-dead tab stop
+                return (
+                    <a
+                        className={linkClasses}
+                        ref={anchorRef}
+                        translate="no"
+                        role="link"
+                        aria-disabled="true"
+                        {...anchorProps}
+                    >
+                        {content}
+                    </a>
+                )
+            }
+
+            // plain <a> when the url leaves the app (scheme hrefs like https:
+            // or mailto:), carries a download, or the caller forces a full-load
+            // native anchor; next/link handles internal routes (client nav)
+            const isSchemeHref = /^[a-z][a-z0-9+.-]*:|^\/\//i.test(href)
+            if (external || plainAnchor || isSchemeHref || download !== undefined) {
+                return (
+                    <a
+                        className={linkClasses}
+                        ref={anchorRef}
+                        translate="no"
+                        href={href}
+                        download={download}
+                        onClick={handleClick}
+                        {...(external && { target: '_blank', rel: 'noopener noreferrer' })}
+                        {...anchorProps}
+                    >
+                        {content}
+                    </a>
+                )
+            }
+
+            return (
+                <Link
+                    className={linkClasses}
+                    ref={anchorRef}
+                    translate="no"
+                    href={href}
+                    onClick={handleClick}
+                    {...anchorProps}
+                >
+                    {content}
+                </Link>
+            )
+        }
+
         return (
             <button
                 className={twMerge(buttonClasses, 'notranslate', longPress && 'relative overflow-hidden')}
                 ref={buttonRef}
                 translate="no"
+                disabled={disabled}
                 onClick={handleClick}
                 onMouseDown={longPress ? longPressHandlers.onMouseDown : undefined}
                 onMouseUp={longPress ? longPressHandlers.onMouseUp : undefined}
@@ -201,7 +318,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                 onTouchStart={longPress ? longPressHandlers.onTouchStart : undefined}
                 onTouchEnd={longPress ? longPressHandlers.onTouchEnd : undefined}
                 onTouchCancel={longPress ? longPressHandlers.onTouchCancel : undefined}
-                {...props}
+                {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
             >
                 {/* Progress bar for long press */}
                 {longPress && pressProgress > 0 && (
@@ -213,10 +330,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                     />
                 )}
 
-                {loading && <Loading />}
-                {iconPosition === 'left' && renderIcon()}
-                {displayText}
-                {iconPosition === 'right' && renderIcon()}
+                {content}
             </button>
         )
     }

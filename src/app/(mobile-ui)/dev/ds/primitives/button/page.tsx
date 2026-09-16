@@ -26,10 +26,11 @@ export default function ButtonPage() {
                 use={[
                     'Primary and secondary CTAs in flows',
                     'Actions that submit, confirm, or navigate forward',
+                    'Button-looking navigation — pass href (link mode, renders one anchor)',
                     'Icon + label combinations for contextual actions (share, copy)',
                 ]}
                 dontUse={[
-                    'Standalone navigation links — use LinkButton',
+                    'Underlined text links — use LinkButton',
                     'Toggle states — use Checkbox or Toggle',
                     'Inline text actions — use underlined text links',
                 ]}
@@ -206,6 +207,47 @@ export default function ButtonPage() {
 
             <SectionDivider />
 
+            <DocSection
+                title="Link Mode"
+                description="Pass href and the Button renders ONE anchor with the exact button classes — next/link for internal routes, a plain <a> for external/scheme hrefs and downloads. Never wrap a Button in a Link (nested interactive) and never hand-roll .btn classes on an anchor."
+            >
+                <DocSection.Content>
+                    <div className="space-y-3">
+                        <Button href="/home" className="w-full">
+                            Internal route (next/link)
+                        </Button>
+                        <Button variant="stroke" href="https://peanut.me" external className="w-full">
+                            External (new tab, plain anchor)
+                        </Button>
+                        <Button href="/home" disabled className="w-full">
+                            Disabled link (no href, aria-disabled)
+                        </Button>
+                    </div>
+                    <DesignNote type="info">
+                        The split: underlined text link → LinkButton. Button-looking navigation → Button with href.
+                    </DesignNote>
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock
+                        label="Link mode"
+                        code={`{/* internal route — next/link client nav */}
+<Button href="/home">Go home</Button>
+
+{/* external — plain <a>, new tab */}
+<Button variant="stroke" href="https://peanut.me" external>
+  Visit site
+</Button>
+
+{/* download — plain <a> with the attribute */}
+<Button variant="stroke" href="/receipt/1/pdf" download icon="download">
+  Download PDF
+</Button>`}
+                    />
+                </DocSection.Code>
+            </DocSection>
+
+            <SectionDivider />
+
             <DocSection title="Props">
                 <PropsTable
                     rows={[
@@ -240,6 +282,24 @@ export default function ButtonPage() {
                             description: 'Hold-to-confirm with progress bar',
                         },
                         { name: 'disableHaptics', type: 'boolean', default: 'false' },
+                        {
+                            name: 'href',
+                            type: 'string',
+                            default: '(none)',
+                            description: 'Link mode: renders one anchor instead of a button',
+                        },
+                        {
+                            name: 'external',
+                            type: 'boolean',
+                            default: 'false',
+                            description: 'Link mode: plain <a>, target="_blank" rel="noopener noreferrer"',
+                        },
+                        {
+                            name: 'plainAnchor',
+                            type: 'boolean',
+                            default: 'false',
+                            description: 'Link mode: force plain <a> for an internal route (full page load)',
+                        },
                     ]}
                 />
             </DocSection>
