@@ -1,4 +1,5 @@
 import DocsLink from '@/components/Global/DocsLink'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import PasskeyInfoDrawer from '@/components/Setup/components/PasskeyInfoDrawer'
 import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -353,13 +354,7 @@ const SignTestTransaction = () => {
                     {/* In-app explainer instead of a browser redirect — leaving
                         the app mid-signup loses users (full guide inside). */}
                     <p className="border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary">
-                        <button
-                            type="button"
-                            className="relative underline underline-offset-2 after:absolute after:inset-x-0 after:-inset-y-3.5 focus-visible:outline-[3px] focus-visible:outline-action-focus"
-                            onClick={() => setIsPasskeyInfoOpen(true)}
-                        >
-                            {t('passkey.learnMore')}
-                        </button>
+                        <LinkButton onClick={() => setIsPasskeyInfoOpen(true)}>{t('passkey.learnMore')}</LinkButton>
                     </p>
                 </div>
             </div>

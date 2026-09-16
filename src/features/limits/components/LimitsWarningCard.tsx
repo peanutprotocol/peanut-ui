@@ -3,6 +3,7 @@
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
@@ -225,13 +226,12 @@ export default function LimitsWarningCard({
                 {navigationError && (
                     <div className="flex items-center justify-between gap-2">
                         <FieldError className="m-0">{tCommon('genericError')}</FieldError>
-                        <button
-                            type="button"
+                        <LinkButton
                             onClick={() => handleLimitsNavigation('/limits')}
-                            className="pointer-events-auto shrink-0 font-semibold underline"
+                            className="pointer-events-auto shrink-0"
                         >
                             {tCommon('tryAgain')}
-                        </button>
+                        </LinkButton>
                     </div>
                 )}
             </div>

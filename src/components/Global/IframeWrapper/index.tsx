@@ -6,6 +6,7 @@ import ActionModal from '../ActionModal'
 import { useRouter } from 'next/navigation'
 import { useModalsContext } from '@/context/ModalsContext'
 import { Button, type ButtonVariant } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { isAndroidNativeBridge } from '@/utils/capacitor'
 
 /**
@@ -230,18 +231,15 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                             {t('iframeWrapper.stopVerification')}
                         </Button>
 
-                        <button
+                        <LinkButton
                             onClick={() => {
                                 setModalVariant('trouble')
                                 setIsHelpModalOpen(true)
                             }}
-                            className="flex items-center gap-1"
                         >
-                            <Icon name="peanut-support" size={16} className="text-foreground-secondary" />
-                            <p className="text-body-xs font-medium text-foreground-secondary underline">
-                                {t('iframeWrapper.havingTrouble')}
-                            </p>
-                        </button>
+                            <Icon name="peanut-support" size={16} className="shrink-0" />
+                            {t('iframeWrapper.havingTrouble')}
+                        </LinkButton>
                     </div>
                 </div>
             </div>

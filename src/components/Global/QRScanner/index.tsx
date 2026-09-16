@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom'
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { PEANUTMAN } from '@/assets/mascot'
 import { ETHEREUM_ICON } from '@/assets/icons'
@@ -141,13 +142,12 @@ function PasteActions({
     const t = useTranslations('global')
     return (
         <>
-            <button
-                onClick={onPaste}
-                className="mx-auto mt-4 flex items-center gap-1 text-center text-white underline underline-offset-2"
-            >
+            {/* stays white: the link sits on the live camera feed, where the
+                secondary gray of the stock chrome would not read */}
+            <LinkButton onClick={onPaste} className="mx-auto mt-4 flex text-white hover:text-white active:text-white">
                 <Icon name="paste" fill="white" height={16} width={16} />
-                <span className="text-body-s">{t('qrScanner.clickToPaste')}</span>
-            </button>
+                {t('qrScanner.clickToPaste')}
+            </LinkButton>
             {detectedAddress ? (
                 <button
                     onClick={onUseDetected}

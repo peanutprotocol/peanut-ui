@@ -9,6 +9,7 @@ import { useVisualViewport } from '@/hooks/useVisualViewport'
 import { useBackHandler } from '@/hooks/useBackHandler'
 import Loading from '../Loading'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import {
     SUPPORT_EMAIL,
     CRISP_LOCALE_BY_APP_LOCALE,
@@ -490,12 +491,7 @@ const SupportDrawer = () => {
                                 <p className="text-body-s text-foreground-secondary">
                                     {t('supportDrawer.chatLoadFailedDescription')}
                                 </p>
-                                <a
-                                    href={`mailto:${SUPPORT_EMAIL}`}
-                                    className="text-body-m text-foreground-primary underline"
-                                >
-                                    {SUPPORT_EMAIL}
-                                </a>
+                                <LinkButton href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</LinkButton>
                                 <Button variant="stroke" className="w-full" onClick={handleRetry}>
                                     {tCommon('tryAgain')}
                                 </Button>
