@@ -121,30 +121,32 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
             <MarketingShell className="max-w-2xl">
                 <ArticleLocaleNav currentLocale={locale as Locale} localizedHrefs={localizedHrefs} />
                 <nav aria-label="Breadcrumb" className="-mt-2 mb-4">
-                    <ol className="flex flex-wrap items-center gap-1 text-xs text-grey-1">
+                    <ol className="flex flex-wrap items-center gap-1 text-body-xs text-foreground-secondary">
                         {breadcrumbs.map((crumb, i) => (
                             <li key={crumb.href} className="flex items-center gap-1">
                                 {i > 0 && <span aria-hidden>/</span>}
                                 {i < breadcrumbs.length - 1 ? (
                                     <Link
                                         href={crumb.href}
-                                        className="underline decoration-n-1/30 underline-offset-2 hover:text-n-1"
+                                        className="underline decoration-foreground-primary/30 underline-offset-2 hover:text-foreground-primary"
                                     >
                                         {crumb.name}
                                     </Link>
                                 ) : (
-                                    <span className="max-w-[200px] truncate font-medium text-n-1">{crumb.name}</span>
+                                    <span className="max-w-[200px] truncate font-medium text-foreground-primary">
+                                        {crumb.name}
+                                    </span>
                                 )}
                             </li>
                         ))}
                     </ol>
                 </nav>
-                <header className="mb-8 border-b border-n-1 pb-6">
-                    <h1 className="text-3xl font-bold md:text-4xl">{post.frontmatter.title}</h1>
-                    <p className="mt-2 text-gray-600">{post.frontmatter.description}</p>
-                    <time className="mt-3 block text-sm text-gray-400">{post.frontmatter.date}</time>
+                <header className="mb-8 border-b border-border-default pb-6">
+                    <h1 className="text-heading-m md:text-heading-l">{post.frontmatter.title}</h1>
+                    <p className="mt-2 text-foreground-secondary">{post.frontmatter.description}</p>
+                    <time className="mt-3 block text-body-s text-gray-400">{post.frontmatter.date}</time>
                 </header>
-                <article className="prose prose-lg prose-headings:font-bold prose-a:text-black prose-a:underline prose-pre:border prose-pre:border-n-1 prose-pre:bg-white max-w-none">
+                <article className="prose prose-lg prose-headings:font-bold prose-a:text-foreground-primary prose-a:underline prose-pre:border prose-pre:border-border-default prose-pre:bg-white max-w-none">
                     {post.content}
                 </article>
             </MarketingShell>
