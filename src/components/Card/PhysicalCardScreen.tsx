@@ -5,14 +5,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import Image from 'next/image'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import CardFace from '@/components/Card/CardFace'
 import { rainApi } from '@/services/rain'
-import { PeanutWalking } from '@/assets/mascot'
+import PeanutMascot from '@/components/Global/PeanutMascot'
+import { MASCOT_STATE_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 
 export const PHYSICAL_WAITLIST_QUERY_KEY = 'rain-physical-waitlist'
 
@@ -83,7 +83,7 @@ const PhysicalCardScreen: FC<Props> = ({ cardId, last4, onPrev }) => {
                 </div>
             ) : data?.joinedAt ? (
                 <div className="flex flex-col items-center gap-3 text-center">
-                    <Image src={PeanutWalking} unoptimized alt="" aria-hidden className="h-32 w-auto" />
+                    <PeanutMascot pose="walking" className={MASCOT_STATE_CLASS} />
                     {/* position is nullable, so do not render it until rain assigns one. */}
                     <TitleBlock
                         title={<h1>{t('onListTitle')}</h1>}

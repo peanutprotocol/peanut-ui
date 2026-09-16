@@ -18,8 +18,7 @@ import type { Hash } from 'viem'
 import { formatUnits } from 'viem'
 import * as _consts from '../../Claim.consts'
 import CreateAccountButton from '@/components/Global/CreateAccountButton'
-import { PeanutCheering } from '@/assets/mascot'
-import Image from 'next/image'
+import PeanutMascot from '@/components/Global/PeanutMascot'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 import { useTranslations } from 'next-intl'
@@ -240,13 +239,10 @@ export const SuccessClaimLinkView = ({
                 }}
             />
             <PageStack.Center className="relative z-10 gap-4">
-                <Image
-                    src={PeanutCheering.src}
-                    unoptimized
+                <PeanutMascot
+                    pose="cheering"
                     alt={t('success.peanutMascotAlt')}
-                    width={240}
-                    height={240}
-                    className="absolute -top-32 left-1/2 -z-10 h-60 w-60 -translate-x-1/2"
+                    className="absolute -top-32 left-1/2 -z-10 h-60 w-auto -translate-x-1/2"
                 />
                 <PeanutActionDetailsCard {...cardProps} />
                 {renderButtons()}

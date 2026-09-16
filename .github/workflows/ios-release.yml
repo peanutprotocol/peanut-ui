@@ -94,6 +94,7 @@ jobs:
               id: version
               env:
                   INPUT_VERSION: ${{ inputs.versionName || '' }}
+                  LOTTIE_PROFILE_BUILD: ${{ github.event_name == 'workflow_dispatch' && github.ref_name == 'innolope/TASK-21683-lottie-native-testflight' && 'true' || 'false' }}
               run: |
                   # release-native.yml resolves the version and passes it here, so the
                   # input wins; a break-glass tag push falls back to the tag name minus
@@ -105,7 +106,14 @@ jobs:
                   # version the binary ships with. Keep in lockstep with
                   # android-release.yml.
                   VERSION_NAME="$INPUT_VERSION"
-                  if [ -z "$VERSION_NAME" ] && [ "$GITHUB_REF_TYPE" = "tag" ]; then
+                  if [ "$LOTTIE_PROFILE_BUILD" = "true" ]; then
+                      if [ -n "$VERSION_NAME" ]; then
+                          echo "::error::TASK-21683 profile builds reuse the current native version; leave versionName blank" >&2
+                          exit 1
+                      fi
+                      VERSION_NAME="$(node scripts/release-version.mjs native-floor)"
+                      echo "Lottie profile build: reusing $VERSION_NAME without changing production OTA"
+                  elif [ -z "$VERSION_NAME" ] && [ "$GITHUB_REF_TYPE" = "tag" ]; then
                       VERSION_NAME="${GITHUB_REF_NAME#v}"
                   fi
                   if [ -z "$VERSION_NAME" ]; then
@@ -124,6 +132,7 @@ jobs:
             # upload closes the gap this detects. Keep in lockstep with
             # android-release.yml.
             - name: Check production OTA floor
+              if: github.ref_name != 'innolope/TASK-21683-lottie-native-testflight'
               id: ota_floor
               env:
                   CAPGO_APP_ID: me.peanut.wallet
@@ -165,6 +174,8 @@ jobs:
                   echo "SumSub Cordova plugin materialized."
 
             - name: Production web env
+              env:
+                  LOTTIE_PROFILE_BUILD: ${{ github.event_name == 'workflow_dispatch' && github.ref_name == 'innolope/TASK-21683-lottie-native-testflight' && 'true' || 'false' }}
               run: |
                   # NEXT_PUBLIC_* values are baked into the static export at build time.
                   # rpId MUST be peanut.me (passkeys + assetlinks/AASA).
@@ -190,9 +201,14 @@ jobs:
                   NEXT_PUBLIC_SAFARI_WEB_ID=${{ vars.NEXT_PUBLIC_SAFARI_WEB_ID }}
                   NEXT_PUBLIC_ONESIGNAL_WEBHOOK=${{ vars.NEXT_PUBLIC_ONESIGNAL_WEBHOOK }}
                   EOF
-                  if [ "${{ inputs.pushDebug }}" = "true" ]; then
-                      echo "NEXT_PUBLIC_ONESIGNAL_DEBUG=true" >> .env.production.local
-                  fi
+                  {
+                      if [ "${{ inputs.pushDebug }}" = "true" ]; then
+                          echo "NEXT_PUBLIC_ONESIGNAL_DEBUG=true"
+                      fi
+                      if [ "$LOTTIE_PROFILE_BUILD" = "true" ]; then
+                          echo "NEXT_PUBLIC_LOTTIE_PROFILE_ENABLED=true"
+                      fi
+                  } >> .env.production.local
 
             - name: Build web + sync iOS
               env:
@@ -201,6 +217,7 @@ jobs:
                   IOS_MARKETING_VERSION: ${{ steps.version.outputs.name }}
                   MEAWALLET_NEXUS_USER: ${{ vars.IOS_WALLET_PROVISIONING_ENABLED == 'true' && secrets.MEAWALLET_NEXUS_USER_IOS || '' }}
                   MEAWALLET_NEXUS_PASSWORD: ${{ vars.IOS_WALLET_PROVISIONING_ENABLED == 'true' && secrets.MEAWALLET_NEXUS_PASSWORD_IOS || '' }}
+                  KEEP_LOTTIE_PROFILE: ${{ github.event_name == 'workflow_dispatch' && github.ref_name == 'innolope/TASK-21683-lottie-native-testflight' && 'true' || 'false' }}
               run: |
                   node scripts/native-build.js && npx cap sync ios
                   if [ -f scripts/native-ios-postsync.js ]; then node scripts/native-ios-postsync.js; fi
@@ -300,6 +317,7 @@ jobs:
                   # setting. same project dsn the js layer bakes into the static export
                   # above; no new secret needed (mirror of SENTRY_DSN_ANDROID).
                   SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
+                  CAPACITOR_DEBUG: ${{ github.event_name == 'workflow_dispatch' && github.ref_name == 'innolope/TASK-21683-lottie-native-testflight' && 'true' || 'false' }}
               run: |
                   # MARKETING_VERSION comes from the "Resolve release versionName"
                   # step (input > tag > package.json — the same precedence
@@ -334,6 +352,7 @@ jobs:
                       -archivePath build/ios/App.xcarchive \
                       CURRENT_PROJECT_VERSION="$IOS_BUILD_NUMBER" \
                       "${MARKETING_ARG[@]}" \
+                      CAPACITOR_DEBUG="$CAPACITOR_DEBUG" \
                       SENTRY_DSN="$SENTRY_DSN" \
                       "${XCODE_WALLET_ARGS[@]}" \
                       archive
@@ -447,7 +466,7 @@ jobs:
             # native job may reuse it only after exact source/floor/artifact checks;
             # an existing record alone never counts as a successful upload.
             - name: Publish matching production OTA bundle
-              if: steps.ota_floor.outputs.needs_ota == 'true'
+              if: steps.ota_floor.outputs.needs_ota == 'true' && github.ref_name != 'innolope/TASK-21683-lottie-native-testflight'
               env:
                   CAPGO_APP_ID: me.peanut.wallet
                   PLATFORM: ios

@@ -1,11 +1,10 @@
-import { PeanutWavingHello } from '@/assets/mascot'
+import PeanutMascot from '@/components/Global/PeanutMascot'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { NOTION_JOB_BOARD_URL, OPEN_ROLES } from '@/components/Jobs/openRoles'
 import { RoleCard } from '@/components/Jobs/RoleCard'
 import { MarketingHero } from '@/components/Marketing/MarketingHero'
 import { MarketingShell } from '@/components/Marketing/MarketingShell'
-import Image from 'next/image'
 import Link from 'next/link'
 
 // Company facts here are lifted from content/press/en.md (boilerplate + company_facts)
@@ -101,12 +100,7 @@ export function Careers() {
 
                     <section className="flex flex-col gap-4">
                         <div className="flex items-start gap-4">
-                            <Image
-                                src={PeanutWavingHello}
-                                alt=""
-                                unoptimized
-                                className="hidden h-24 w-auto shrink-0 sm:block"
-                            />
+                            <PeanutMascot pose="waving-hello" className="hidden h-24 w-auto shrink-0 sm:block" />
                             <div className="flex flex-col gap-2">
                                 <h2 className="text-heading-xs text-foreground-primary">Ready?</h2>
                                 <p className="text-body-m text-foreground-primary">
