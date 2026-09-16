@@ -17,7 +17,7 @@ export function liveRailsForCountry(countryId: string, flow: MoneyFlow): Specifi
     const methods = COUNTRY_SPECIFIC_METHODS[countryId]
     if (!methods) return []
     if (flow === 'add') return methods.add.filter((method) => method.id === ADD_BANK_METHOD_ID && !method.isSoon)
-    return methods.withdraw.filter((method) => !method.isSoon && method.id !== 'crypto-withdraw')
+    return methods.withdraw.filter((method) => !method.isSoon)
 }
 
 /**

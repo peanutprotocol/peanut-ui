@@ -25,9 +25,10 @@ interface WithdrawAmountViewProps {
     onBack: () => void
     onContinue: () => void
     continueDisabled: boolean
+    isLoading?: boolean
     error: FlowErrorState
     isCryptoWithdraw: boolean
-    limitsValidation: ReturnType<typeof useLimitsValidation>
+    limitsValidation?: ReturnType<typeof useLimitsValidation>
 }
 
 /** Amount step of the withdraw flow — dumb view, state lives in the flow hook + URL. */
@@ -42,6 +43,7 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
     onBack,
     onContinue,
     continueDisabled,
+    isLoading = false,
     error,
     isCryptoWithdraw,
     limitsValidation,
@@ -49,10 +51,11 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
     const tCommon = useTranslations('common')
 
     // only show limits card for bank/manteca withdrawals, not crypto
-    const showLimitsCard = !isCryptoWithdraw && (limitsValidation.isBlocking || limitsValidation.isWarning)
-    const limitsCardProps = showLimitsCard
-        ? getLimitsWarningCardProps({ validation: limitsValidation, flowType: 'offramp', currency: 'USD' })
-        : null
+    const showLimitsCard = !isCryptoWithdraw && (limitsValidation?.isBlocking || limitsValidation?.isWarning)
+    const limitsCardProps =
+        showLimitsCard && limitsValidation
+            ? getLimitsWarningCardProps({ validation: limitsValidation, flowType: 'offramp', currency: 'USD' })
+            : null
 
     return (
         <PageStack>
@@ -80,6 +83,7 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
                     shadowSize="4"
                     onClick={onContinue}
                     disabled={continueDisabled}
+                    loading={isLoading}
                     className="w-full"
                 >
                     {tCommon('continue')}
@@ -88,7 +92,7 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
                 {shouldShowAmountError({
                     showError: error.showError && !!error.errorMessage,
                     showsLimitsCard: !isCryptoWithdraw,
-                    limitsBlocking: limitsValidation.isBlocking,
+                    limitsBlocking: limitsValidation?.isBlocking ?? false,
                 }) && (
                     <Notification priority="error" data-testid="error-alert">
                         {error.errorMessage}

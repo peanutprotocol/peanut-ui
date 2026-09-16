@@ -75,38 +75,12 @@ const DEFAULT_BANK_WITHDRAW_METHOD: SpecificPaymentMethod = {
     isSoon: false,
 }
 
-const DEFAULT_WITHDRAW_METHODS: SpecificPaymentMethod[] = [
-    {
-        id: 'crypto-withdraw',
-        icon: 'wallet-outline' as IconName,
-        title: 'Crypto',
-        description: 'Withdraw to a wallet address',
-        isSoon: false,
-        path: '/withdraw/crypto',
-    },
-    {
-        id: 'default-bank-withdraw',
-        icon: 'bank' as IconName,
-        title: 'To Bank',
-        description: 'Standard bank withdrawal',
-        isSoon: false,
-    },
-]
-
 const countrySpecificWithdrawMethods: Record<
     string,
     Array<{ title: string; description: string; icon?: IconName | string; isSoon?: boolean }>
 > = {
     India: [{ title: 'UPI', description: 'Unified Payments Interface, ~17B txns/month, 84% of digital payments.' }],
     Brazil: [{ title: 'Pix', description: 'Instant transfers', icon: PIX, isSoon: false }],
-    Argentina: [
-        {
-            title: 'Mercado Pago',
-            description: 'Instant transfers',
-            icon: MERCADO_PAGO,
-            isSoon: false,
-        },
-    ],
     Mexico: [{ title: 'CoDi', description: 'Central bank-backed RTP, adoption growing.' }],
     Kenya: [{ title: 'M-Pesa', description: 'Over 90% penetration, also in Tanzania, Mozambique, etc.' }],
     Portugal: [{ title: 'MB WAY', description: 'Popular for QR payments, instant transfers.' }],
@@ -2723,14 +2697,6 @@ countryData.forEach((country) => {
                     : `/withdraw/${countryCode.toLowerCase()}/bank`,
                 isSoon: !isCountryEnabledForBankTransfer(countryCode, 'withdraw'),
             })
-        }
-
-        const cryptoWithdrawMethod = DEFAULT_WITHDRAW_METHODS.find((m) => m.id === 'crypto-withdraw')
-        if (cryptoWithdrawMethod) {
-            const cryptoExists = withdrawList.some((m) => m.id === 'crypto-withdraw')
-            if (!cryptoExists) {
-                withdrawList.unshift(cryptoWithdrawMethod)
-            }
         }
 
         // filter add methods: include Mercado Pago only for LATAM countries

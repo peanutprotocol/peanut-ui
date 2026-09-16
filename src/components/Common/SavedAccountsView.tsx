@@ -16,10 +16,6 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
-import MERCADO_PAGO from '@/assets/payment-apps/mercado-pago.svg'
-
-// brand name, not translatable copy (copy-props-from-catalog wants no literal props)
-const MERCADO_PAGO_BRAND = 'Mercado Pago'
 
 interface SavedAccountListProps {
     pageTitle: string
@@ -36,8 +32,6 @@ interface SavedAccountListProps {
     onSavedAddressEdit?: (saved: SavedAddress) => void
     /** optional "Exchange or Wallet" row (withdraw board 17832:80463) */
     onCryptoClick?: () => void
-    /** optional "Mercado Pago" row (withdraw board 17832:80463) */
-    onMercadoPagoClick?: () => void
 }
 
 /**
@@ -61,7 +55,6 @@ export default function SavedAccountsView({
     onSavedAddressClick,
     onSavedAddressEdit,
     onCryptoClick,
-    onMercadoPagoClick,
 }: SavedAccountListProps) {
     const t = useTranslations('global')
     const tCommon = useTranslations('common')
@@ -101,7 +94,7 @@ export default function SavedAccountsView({
                     only the withdraw flow passes the extra callbacks — other
                     callers (claim's BankFlowManager) keep the legacy button so
                     the redesign doesn't leak into their screens */}
-                {onCryptoClick || onMercadoPagoClick ? (
+                {onCryptoClick ? (
                     <Section title={tWithdraw('addNewAccount')}>
                         <ListItem
                             position="single"
@@ -112,25 +105,6 @@ export default function SavedAccountsView({
                             onClick={onSelectNewMethodClick}
                             data-testid="withdraw-add-bank"
                         />
-                        {onMercadoPagoClick && (
-                            <ListItem
-                                position="single"
-                                leading={
-                                    <Image
-                                        src={MERCADO_PAGO}
-                                        alt="Mercado Pago"
-                                        width={32}
-                                        height={32}
-                                        className="size-8 min-w-8"
-                                    />
-                                }
-                                title={MERCADO_PAGO_BRAND}
-                                body={tWithdraw('mercadoPagoDescription')}
-                                trailing={plusTrailing}
-                                onClick={onMercadoPagoClick}
-                                data-testid="withdraw-add-mercado-pago"
-                            />
-                        )}
                         {onCryptoClick && (
                             <ListItem
                                 position="single"

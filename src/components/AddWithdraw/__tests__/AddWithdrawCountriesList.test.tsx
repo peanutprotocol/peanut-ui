@@ -284,7 +284,6 @@ describe('AddWithdrawCountriesList — bank gate', () => {
         ])
 
         render(<AddWithdrawCountriesList flow="withdraw" />)
-        fireEvent.click(screen.getByText('To Bank'))
 
         // rail chosen → the bank-account form, named in the URL. The amount
         // step comes after the destination now (TASK-22589).
@@ -292,12 +291,14 @@ describe('AddWithdrawCountriesList — bank gate', () => {
         expect(screen.queryByTestId('initiate-kyc-modal')).toBeNull()
     })
 
-    it('withdraw flow: a non-ready gate still blocks + surfaces the KYC modal', () => {
+    it('withdraw flow: a non-ready gate blocks form submission and surfaces KYC', async () => {
         setCapabilities('needs-identity', [])
 
         render(<AddWithdrawCountriesList flow="withdraw" />)
-        fireEvent.click(screen.getByText('To Bank'))
 
+        await act(async () => {
+            await mockBankFormProps.mock.calls.at(-1)?.[0].onSuccess({}, {})
+        })
         expect(mockPush).not.toHaveBeenCalled()
         expect(screen.getByTestId('initiate-kyc-modal')).toBeInTheDocument()
     })

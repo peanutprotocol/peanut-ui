@@ -1891,7 +1891,9 @@
             "exchangeRate": "Taxa de câmbio",
             "exchangeRateInfo": "A taxa mostrada é a atual, mas pode variar um pouco até o pagamento ser confirmado.",
             "flagAlt": "bandeira",
-            "increaseLimitsMessage": "Oi, eu gostaria de aumentar meus limites de pagamento."
+            "increaseLimitsMessage": "Oi, eu gostaria de aumentar meus limites de pagamento.",
+            "enterAccountDetails": "Insira os dados do banco ou da carteira",
+            "accountDetailsHint": "Use seu CBU, CVU ou alias, incluindo Mercado Pago."
         },
         "bankForm": {
             "heading": "Digite os dados da sua conta bancária",

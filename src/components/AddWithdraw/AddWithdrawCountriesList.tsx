@@ -113,7 +113,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     // a step) and old `?view=form` links are rewritten below.
     const [stepParam, setStepParam] = useQueryState('step', parseAsStringEnum(['form']))
     const [viewParam, setViewParam] = useQueryState('view', parseAsStringEnum(['form', 'bank']))
-    const view: 'list' | 'form' = stepParam === 'form' ? 'form' : 'list'
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const formRef = useRef<{ handleSubmit: () => void }>(null)
     const [isSupportedTokensModalOpen, setIsSupportedTokensModalOpen] = useState(false)
@@ -155,6 +154,15 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     )
     const bankRail = liveRails.find((rail) => rail.id.endsWith('-default-bank-withdraw'))
     const railListSkipped = liveRails.length === 1
+    const view =
+        stepParam === 'form' || (railListSkipped && bankRail && !bankRail.path?.includes('/manteca')) ? 'form' : 'list'
+
+    useEffect(() => {
+        const rail = liveRails.length === 1 ? liveRails[0] : undefined
+        if (rail?.path?.includes('/manteca')) {
+            router.replace(rewriteMethodPath(rail.path))
+        }
+    }, [liveRails, router])
 
     // Provider-blind bank-channel deposit gate, country-scoped to the rail
     // jurisdiction of the country the user is on. Reads through
@@ -342,13 +350,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             selectBankMethod(method.title)
             void setViewParam('form')
             return
-        } else if (method.id.includes('crypto-withdraw')) {
-            withdrawFlow?.setSelectedMethod({
-                type: 'crypto',
-                countryPath: 'crypto',
-                title: 'Crypto',
-            })
-            router.push(`/withdraw?step=amount${isBankFromSend ? `&method=${methodParam}` : ''}`)
         } else if (method.path) {
             // other methods with paths — rewrite dynamic routes for native
             const extraParams = isBankFromSend ? `method=${methodParam}` : undefined

@@ -1,14 +1,9 @@
 'use client'
 
-import { Button } from '@/components/0_Bruddle/Button'
-import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { type DepositMethod } from '@/components/AddMoney/components/DepositMethodList'
-import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
 import { CountryList } from '@/components/Common/CountryList'
 import SavedAccountsView from '@/components/Common/SavedAccountsView'
-import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { useAuth } from '@/context/authContext'
 import { AccountType, type Account } from '@/interfaces/interfaces'
@@ -54,7 +49,6 @@ interface WithdrawMethodViewProps {
 export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mainHeading, onExit, onMethodChosen }) => {
     const router = useRouter()
     const { user } = useAuth()
-    const t = useTranslations('withdraw')
     const tGlobal = useTranslations('global')
     const { setSelectedBankAccount, setSelectedMethod, setRecipient, setIsValidRecipient } = useWithdrawFlow()
     // crypto address book — its rows render beside the saved bank accounts
@@ -76,13 +70,6 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
     const showAll = showAllParam || !!currencyCode
 
     const isBankFromSend = useSendFlowOrigin().isBankFromSend
-    // withdraw board 17832:80463: the Mercado Pago add-new-account row follows
-    // the same geo gate as the send method list (hidden in brazil). gate on
-    // !isLoading too — countryCode is null while geo resolves, and the filter
-    // only removes mercadopago once it knows the user is in BR
-    const { filteredMethods: geoMethods, isLoading: isGeoLoading } = useGeoFilteredPaymentOptions()
-    const isMercadoPagoAvailable = !isGeoLoading && geoMethods.some((m) => m.id === 'mercadopago')
-
     const savedAccounts = useMemo<Account[]>(() => {
         const bankAccounts =
             user?.accounts.filter(
@@ -99,26 +86,14 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
     // check if we're coming from request fulfillment or similar flow
     const fromRequestFulfillment = typeof window !== 'undefined' && getFromLocalStorage('fromRequestFulfillment')
 
-    const handleMethodSelected = (method: DepositMethod) => {
-        const methodType = method.type === 'crypto' ? 'crypto' : isMantecaCountry(method.path) ? 'manteca' : 'bridge'
-
-        posthog.capture(ANALYTICS_EVENTS.WITHDRAW_METHOD_SELECTED, {
-            method_type: methodType,
-            country: method.path?.split('?')[0].split('/').filter(Boolean).at(-1),
-        })
-
-        setSelectedMethod({
-            type: methodType,
-            countryPath: method.path,
-            currency: method.currency,
-            title: method.title,
-        })
-        onMethodChosen()
+    const openCryptoDestination = () => {
+        setSelectedBankAccount(null)
+        setSelectedMethod({ type: 'crypto', countryPath: 'crypto', title: 'Crypto' })
+        posthog.capture(ANALYTICS_EVENTS.WITHDRAW_METHOD_SELECTED, { method_type: 'crypto' })
+        router.push(isBankFromSend ? '/withdraw/crypto?method=bank' : '/withdraw/crypto')
     }
 
-    // address-book tap: preselect chain + USDC on it, prefill the destination, then
-    // pick the crypto method exactly like the "Crypto" tile (no navigation — the
-    // withdraw page owns the amount step and pushes /withdraw/crypto after Continue)
+    // Preserve the saved network and address when opening the destination screen.
     const handleSavedAddressClick = (saved: SavedAddress) => {
         // A destination picked by hand wins over one a scan is still offering.
         clearScannedDestination()
@@ -127,7 +102,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
         setSelectedTokenAddress(token?.address ?? '')
         setRecipient({ name: undefined, address: saved.address })
         setIsValidRecipient(true)
-        handleMethodSelected({ id: 'crypto', type: 'crypto', title: 'Crypto', path: 'crypto' })
+        openCryptoDestination()
     }
 
     // the plain "Exchange or Wallet" tile is a fresh destination — drop anything
@@ -136,7 +111,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
         clearScannedDestination()
         setRecipient({ name: undefined, address: '' })
         setIsValidRecipient(false)
-        handleMethodSelected({ id: 'crypto', type: 'crypto', title: 'Crypto', path: 'crypto' })
+        openCryptoDestination()
     }
 
     // The saved-accounts vs no-accounts split needs the user to have resolved —
@@ -147,28 +122,6 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
         return (
             <div className="flex min-h-inherit flex-col justify-center gap-8">
                 <Loading variant="mascot" />
-            </div>
-        )
-    }
-
-    if (!showAll && savedAccounts.length === 0 && savedAddresses.length === 0) {
-        return (
-            <div className="flex min-h-inherit flex-col justify-start gap-8">
-                <NavHeader title={pageTitle} onPrev={onExit} />
-                <Card className="my-auto flex flex-col items-center justify-center gap-4 p-4">
-                    <div className="space-y-2">
-                        <IconBubble icon="alert" size="m" color="yellow" className="mx-auto" />
-                        <div className="space-y-1 text-center">
-                            <h2 className="text-heading-card text-foreground-primary">{t('noAccountsTitle')}</h2>
-                            <p className="text-body-s text-foreground-secondary">
-                                {t.rich('noAccountsDescription', { br: () => <br /> })}
-                            </p>
-                        </div>
-                    </div>
-                    <Button icon="plus" onClick={() => setShowAll(true)} shadowSize="4" className="w-full">
-                        {t('addAccount')}
-                    </Button>
-                </Card>
             </div>
         )
     }
@@ -229,17 +182,6 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                         })
                     }
                     onCryptoClick={handleCryptoTileClick}
-                    onMercadoPagoClick={
-                        isMercadoPagoAvailable
-                            ? () => {
-                                  posthog.capture(ANALYTICS_EVENTS.WITHDRAW_METHOD_SELECTED, {
-                                      method_type: 'manteca',
-                                      country: 'argentina',
-                                  })
-                                  router.push(mantecaWithdrawUrl({ method: 'mercadopago', country: 'argentina' }))
-                              }
-                            : undefined
-                    }
                 />
             </>
         )
@@ -311,11 +253,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                         router.push(withdrawCountryFormUrl(country.path, isBankFromSend ? methodParam : null))
                     })
                 }}
-                onCryptoClick={
-                    // set method in context, no navigation — the withdraw page owns
-                    // the amount step and navigates to /withdraw/crypto after Continue
-                    handleCryptoTileClick
-                }
+                onCryptoClick={handleCryptoTileClick}
                 flow="withdraw"
             />
         </div>

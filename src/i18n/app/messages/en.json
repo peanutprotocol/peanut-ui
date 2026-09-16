@@ -1891,7 +1891,9 @@
             "exchangeRate": "Exchange Rate",
             "exchangeRateInfo": "Rate shown is current but may vary slightly until payment is confirmed.",
             "flagAlt": "flag",
-            "increaseLimitsMessage": "Hi, I would like to increase my payment limits."
+            "increaseLimitsMessage": "Hi, I would like to increase my payment limits.",
+            "enterAccountDetails": "Enter bank or wallet details",
+            "accountDetailsHint": "Use your CBU, CVU or alias, including Mercado Pago."
         },
         "bankForm": {
             "heading": "Enter bank account details",

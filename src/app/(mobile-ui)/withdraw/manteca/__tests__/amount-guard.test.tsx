@@ -1,15 +1,16 @@
 import React from 'react'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
-import { fireEvent, screen } from '@testing-library/react'
+import { fireEvent, screen, waitFor, act } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { parseUnits } from 'viem'
 import MantecaWithdrawFlow from '../page'
 
 const mockPush = jest.fn()
+let mockParams = 'country=argentina&method=bank-transfer&isSavedAccount=true&destination=qa.account'
 let mockBalance: bigint | undefined = parseUnits('10', 6)
 jest.mock('next/navigation', () => ({
-    useSearchParams: () => new URLSearchParams('country=argentina&method=bank-transfer'),
+    useSearchParams: () => new URLSearchParams(mockParams),
     useRouter: () => ({ push: mockPush, replace: mockPush, back: jest.fn() }),
     usePathname: () => '/withdraw/manteca',
 }))
@@ -47,17 +48,21 @@ jest.mock('@/hooks/usePointsConfetti', () => ({ usePointsConfetti: () => {} }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
 jest.mock('@/components/Kyc/InitiateKycModal', () => ({ InitiateKycModal: () => null }))
 jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({ SumsubKycWrapper: () => null }))
-jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/components/Global/NavHeader', () => ({
+    __esModule: true,
+    default: ({ onPrev }: { onPrev: () => void }) => <button onClick={onPrev}>Back</button>,
+}))
 jest.mock('@/features/withdraw/views/PixKeySendView', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/services/manteca', () => ({ mantecaApi: {} }))
 
 beforeEach(() => {
     mockBalance = parseUnits('10', 6)
+    mockParams = 'country=argentina&method=bank-transfer&isSavedAccount=true&destination=qa.account'
 })
 function setup() {
     renderWithIntl(
         <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-            <NuqsTestingAdapter searchParams="country=argentina&method=bank-transfer">
+            <NuqsTestingAdapter searchParams={mockParams}>
                 <MantecaWithdrawFlow />
             </NuqsTestingAdapter>
         </QueryClientProvider>
@@ -90,7 +95,28 @@ test('blocks an amount above the balance and allows an amount within it', () => 
 
 // TASK-22589: the amount is the last step now, so this flow is entered without
 // one and collects it here in the local currency.
-test("an entry with no ?amount= opens this flow's own amount step", () => {
+test('a saved destination opens the amount step', () => {
     setup()
+    expect(screen.getByText(/amount to withdraw/i)).toBeInTheDocument()
+})
+
+test('a new destination opens bank details before amount', () => {
+    mockParams = 'country=argentina&method=bank-transfer'
+    setup()
+    expect(screen.queryByText(/amount to withdraw/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox')).toHaveAttribute('placeholder', expect.stringMatching(/CBU|CVU|alias/i))
+})
+
+test('destination → amount → back → amount does not loop or lose the destination', async () => {
+    mockParams = 'country=argentina&method=bank-transfer'
+    const field = setup()
+    fireEvent.change(field, { target: { value: 'qa.account' } })
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled())
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Continue' })))
+    expect(screen.getByText(/amount to withdraw/i)).toBeInTheDocument()
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Back' })))
+    expect(screen.getByRole('textbox')).toHaveValue('qa.account')
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled())
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Continue' })))
     expect(screen.getByText(/amount to withdraw/i)).toBeInTheDocument()
 })

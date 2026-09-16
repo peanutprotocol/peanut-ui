@@ -7,9 +7,7 @@
  *      amount step);
  *  (b) a saved non-Manteca account sets selectedBankAccount and advances to
  *      the amount step WITHOUT navigating;
- *  (c) the crypto row sets selectedMethod and performs no router.push — a
- *      pre-amount push trips the crypto page's no-amount redirect guard,
- *      whose unmount cleanup resets the flow.
+ *  (c) crypto opens destination selection before amount entry.
  */
 import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
@@ -113,11 +111,16 @@ jest.mock('@/components/Common/CountryList', () => ({
 }))
 
 // what each country leaves the user to choose: Germany one bank rail, Brazil
-// one Manteca rail, Argentina two, India none live
+// one Manteca rail, Argentina one, India none live
 jest.mock('@/features/destinations/country-rails', () => ({
     soleLiveRailForCountry: (id: string) =>
         ({
             DE: { id: 'de-default-bank-withdraw', title: 'To Bank' },
+            AR: {
+                id: 'ar-default-bank-withdraw',
+                title: 'To Bank',
+                path: '/withdraw/manteca?method=bank-transfer&country=argentina',
+            },
             BR: { id: 'br-pix-withdraw', title: 'Pix', path: '/withdraw/manteca?method=pix&country=brazil' },
         })[id] ?? null,
 }))
@@ -277,7 +280,7 @@ describe('WithdrawMethodView — destination state and routing (Chip review roun
         expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
-    it('the crypto row sets the method in context and does NOT navigate', () => {
+    it('the crypto row sets the method in context and opens destination before amount', () => {
         // a pre-amount push trips the crypto page's no-amount redirect guard,
         // whose unmount cleanup resets the flow (the deleted
         // AddWithdrawRouterView test pinned this exact regression)
@@ -285,12 +288,12 @@ describe('WithdrawMethodView — destination state and routing (Chip review roun
         fireEvent.click(screen.getByTestId('crypto-row'))
 
         expect(mockSetSelectedMethod).toHaveBeenCalledWith(expect.objectContaining({ type: 'crypto' }))
-        expect(mockOnMethodChosen).toHaveBeenCalledTimes(1)
-        expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(mockOnMethodChosen).not.toHaveBeenCalled()
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto')
     })
 
     it('an address-book row preselects the saved chain + USDC and prefills a valid recipient', () => {
-        // row → amount → /withdraw/crypto: the saved network must survive into
+        // The saved network must survive into
         // the crypto screen, or an EVM address gets sent on the default chain
         // (Chip: preserve the saved destination network)
         renderView()
@@ -301,8 +304,8 @@ describe('WithdrawMethodView — destination state and routing (Chip review roun
         expect(mockSetRecipient).toHaveBeenCalledWith({ name: undefined, address: mockSavedBaseAddress.address })
         expect(mockSetIsValidRecipient).toHaveBeenCalledWith(true)
         expect(mockSetSelectedMethod).toHaveBeenCalledWith(expect.objectContaining({ type: 'crypto' }))
-        expect(mockOnMethodChosen).toHaveBeenCalledTimes(1)
-        expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(mockOnMethodChosen).not.toHaveBeenCalled()
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto')
     })
 
     it('the plain crypto row clears any address-book prefill before selecting the method', () => {
@@ -357,7 +360,7 @@ describe('WithdrawMethodView — picking a country', () => {
         renderView({ showAll: 'true' })
         fireEvent.click(screen.getByTestId('country-argentina'))
 
-        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/argentina')
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=bank-transfer&country=argentina')
         expect(mockSetSelectedMethod).not.toHaveBeenCalled()
     })
 

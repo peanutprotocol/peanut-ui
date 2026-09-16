@@ -946,7 +946,9 @@
             "enterMethodDetails": "Ingresá los datos de {method}",
             "selectAccountType": "Seleccioná el tipo de cuenta",
             "selectBank": "Seleccioná el banco",
-            "ownAccountOnly": "Solo podés retirar a cuentas a tu nombre."
+            "ownAccountOnly": "Solo podés retirar a cuentas a tu nombre.",
+            "enterAccountDetails": "Ingresá los datos de tu banco o billetera",
+            "accountDetailsHint": "Usá tu CBU, CVU o alias, incluido Mercado Pago."
         },
         "bankForm": {
             "heading": "Ingresá los datos de tu cuenta bancaria",

@@ -2,11 +2,11 @@
 
 import { DepositAccountsFlow } from '@/features/deposit-accounts/components/DepositAccountsFlow'
 import { useState } from 'react'
-import DevNoteCard from '../_components/DevNoteCard'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import DevPageShell from '../_components/DevPageShell'
-import DevPanel from '../_components/DevPanel'
-import DevPresetButton from '../_components/DevPresetButton'
-import DevSegmented from '../_components/DevSegmented'
+import { Section } from '@/components/0_Bruddle/Section'
+import { Button } from '@/components/0_Bruddle/Button'
+import BaseSelect from '@/components/0_Bruddle/BaseSelect'
 import { useSandboxDepositAccounts, type SandboxScenario } from './_components/useSandboxDepositAccounts'
 
 const SCENARIOS: { value: SandboxScenario; label: string; hint: string }[] = [
@@ -20,9 +20,7 @@ const SCENARIOS: { value: SandboxScenario; label: string; hint: string }[] = [
 /**
  * Virtual accounts — the get-paid flow on real Bridge sandbox data.
  *
- * The Virtual Accounts SKU is `not_allowed` in production and ungated in
- * sandbox, so every bank detail on these screens is a payload Bridge really
- * returned (captured 2026-09-11).
+ * Bank details use captured Bridge sandbox responses (2026-09-11).
  */
 export default function DepositAccountsPrototypePage() {
     const [scenario, setScenario] = useState<SandboxScenario>('live')
@@ -35,38 +33,37 @@ export default function DepositAccountsPrototypePage() {
         >
             <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
                 <aside className="order-last flex w-full flex-col gap-6 lg:order-first lg:max-w-sm">
-                    <DevPanel title="Scenario">
+                    <Section title="Scenario">
                         <div className="overflow-x-auto">
-                            <DevSegmented
-                                size="sm"
+                            <BaseSelect
                                 value={scenario}
                                 options={SCENARIOS}
-                                onChange={(next) => {
+                                onValueChange={(next) => {
                                     sandbox.reset()
-                                    setScenario(next)
+                                    setScenario(next as SandboxScenario)
                                 }}
                             />
                         </div>
-                    </DevPanel>
-                    <DevPresetButton onClick={sandbox.reset}>Reset claims</DevPresetButton>
-                    <DevNoteCard title="Where the data comes from">
+                    </Section>
+                    <Button onClick={sandbox.reset}>Reset claims</Button>
+                    <Notification title="Where the data comes from">
                         Every USD, EUR, GBP and MXN value is a Bridge sandbox response, captured by mono
                         projects/virtual-accounts/capture-sandbox-vas.sh and read through the same adapters a product
                         build would use. Sandbox banks have placeholder names — &quot;Bank of Nowhere&quot; is
                         Bridge&apos;s fixture, not a real correspondent.
-                    </DevNoteCard>
-                    <DevNoteCard title="What the data decided">
+                    </Notification>
+                    <Notification title="What the data decided">
                         GBP comes back in Bridge&apos;s own name while EUR, USD and MXN come back in the
                         customer&apos;s, so whose name a payer reads is per corridor and is derived by comparing the
                         returned holder against the user. No corridor carries a reference. Mexican SPEI returns a CLABE
                         and no bank name at all, so rows follow field presence, never currency.
-                    </DevNoteCard>
-                    <DevNoteCard title="Argentina and Brazil">
+                    </Notification>
+                    <Notification title="Argentina and Brazil">
                         Manteca, not Bridge, and not claimable: the Argentine CVU belongs to Sixalime Sas and only
                         credits transfers from an account in the user&apos;s own name, and Brazil mints a Pix code per
                         payment. Both render honestly through the same contract — pooled holder, own-name-only sender —
                         with the share surface off.
-                    </DevNoteCard>
+                    </Notification>
                 </aside>
 
                 <main className="flex flex-1 flex-col items-center gap-4">

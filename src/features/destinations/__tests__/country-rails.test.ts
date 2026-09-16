@@ -4,6 +4,7 @@
  * pick (WithdrawMethodView) mock this helper, so without these cases a catalog
  * change would silently move users onto — or off — the shortcut.
  */
+import { COUNTRY_SPECIFIC_METHODS } from '@/components/AddMoney/consts'
 import { liveRailsForCountry, soleLiveRailForCountry } from '../country-rails'
 
 describe('liveRailsForCountry — withdraw', () => {
@@ -16,10 +17,12 @@ describe('liveRailsForCountry — withdraw', () => {
         expect(soleLiveRailForCountry('US', 'withdraw')?.id).toBe('us-default-bank-withdraw')
     })
 
-    it('Argentina has two, so the user still picks', () => {
+    it('Argentina has one bank/wallet rail, including Mercado Pago', () => {
         const rails = liveRailsForCountry('AR', 'withdraw')
-        expect(rails.map((rail) => rail.title).sort()).toEqual(['Mercado Pago', 'To Bank'])
-        expect(soleLiveRailForCountry('AR', 'withdraw')).toBeNull()
+        expect(rails.map((rail) => rail.title)).toEqual(['To Bank'])
+        expect(soleLiveRailForCountry('AR', 'withdraw')?.path).toBe(
+            '/withdraw/manteca?method=bank-transfer&country=argentina'
+        )
     })
 
     it('Brazil has one, and it routes to its own flow', () => {
@@ -53,4 +56,10 @@ describe('liveRailsForCountry — add', () => {
     it('a country where bank deposits are not live yet keeps its per-country screen', () => {
         expect(soleLiveRailForCountry('IN', 'add')).toBeNull()
     })
+})
+
+it('never offers crypto again inside any country withdrawal list', () => {
+    for (const methods of Object.values(COUNTRY_SPECIFIC_METHODS)) {
+        expect(methods.withdraw.some((method) => method.id === 'crypto-withdraw')).toBe(false)
+    }
 })

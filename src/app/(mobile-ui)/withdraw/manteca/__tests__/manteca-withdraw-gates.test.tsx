@@ -292,23 +292,18 @@ const PRICE_LOCK = { priceLockCode: 'lock-1', fiatAmount: '75000.00' }
 
 const render = (ui: React.ReactElement) => rtlRender(ui)
 
-/**
- * Drive the real flow to the review step: the seed consumes ?amount=50 on the
- * amount step (advancing via the mocked stepper), bank-details submits with
- * the ?destination=-prefilled CBU (locks the price), review renders Confirm.
- */
+/** Destination confirmation precedes amount entry and the price lock. */
 const reachReview = async () => {
     mockInitiateWithdraw.mockResolvedValue({ data: PRICE_LOCK })
-    mockStepper.step = 'amount'
-    const view = render(<MantecaWithdrawFlow />)
-    // the seed consumed ?amount= and asked to advance
-    await waitFor(() => expect(mockStepperGoTo).toHaveBeenCalledWith('bank-details'))
-
     mockStepper.step = 'bank-details'
-    view.rerender(<MantecaWithdrawFlow />)
-    // mark the (?destination=-prefilled) CBU valid, then submit for the price lock
+    const view = render(<MantecaWithdrawFlow />)
     fireEvent.change(screen.getByTestId('destination-input'), { target: { value: '0000003100010000000009' } })
-    fireEvent.click(screen.getByText('withdraw.review'))
+    fireEvent.click(screen.getByText('common.continue'))
+    expect(mockInitiateWithdraw).not.toHaveBeenCalled()
+    expect(mockStepperGoTo).toHaveBeenCalledWith('amount')
+    mockStepper.step = 'amount'
+    view.rerender(<MantecaWithdrawFlow />)
+    fireEvent.click(screen.getByText('common.continue'))
     // the price locked and the flow asked for review
     await waitFor(() => expect(mockInitiateWithdraw).toHaveBeenCalledWith({ amount: '50.00', currency: 'ARS' }))
     await waitFor(() => expect(mockStepperGoTo).toHaveBeenCalledWith('review'))
@@ -391,20 +386,15 @@ describe('manteca withdraw — submit-time gates (Chip review round 5)', () => {
         expect(mockWithdrawWithSignedTx).not.toHaveBeenCalled()
     })
 
-    it('limits still loading at the price-lock boundary: bank-details submit bounces to amount', async () => {
-        mockInitiateWithdraw.mockResolvedValue({ data: PRICE_LOCK })
-        mockStepper.step = 'amount'
-        const view = render(<MantecaWithdrawFlow />)
-        await waitFor(() => expect(mockStepperGoTo).toHaveBeenCalledWith('bank-details'))
-
+    it('does not lock a price while limits are loading', async () => {
         mockStepper.step = 'bank-details'
+        const view = render(<MantecaWithdrawFlow />)
+        fireEvent.change(screen.getByTestId('destination-input'), { target: { value: '0000003100010000000009' } })
+        fireEvent.click(screen.getByText('common.continue'))
+        mockStepper.step = 'amount'
         mockLimitsValidation.isLoading = true
         view.rerender(<MantecaWithdrawFlow />)
-        mockStepperGoTo.mockClear()
-        fireEvent.change(screen.getByTestId('destination-input'), { target: { value: '0000003100010000000009' } })
-        fireEvent.click(screen.getByText('withdraw.review'))
-
-        await waitFor(() => expect(mockStepperGoTo).toHaveBeenCalledWith('amount'))
+        expect(screen.getByText('common.continue')).toBeDisabled()
         expect(mockInitiateWithdraw).not.toHaveBeenCalled()
     })
 })
