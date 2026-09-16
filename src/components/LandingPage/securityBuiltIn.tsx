@@ -64,8 +64,10 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                     {/* h2, not h1: this h1 sat directly above the h3 feature
                         titles, and that h1 → h3 skip failed Lighthouse's
                         heading-order audit. */}
-                    {/* headingSmall on mobile: "SEGURANÇA." at text-heading (60px)
-                        needs 403px and clips at 320px (TASK-22366) */}
+                    {/* headingSmall on mobile: tried text-heading (60px) per the
+                        preview ask, but "SEGURANÇA." measures 387px at 60px and
+                        clips a 320px viewport (TASK-22366) — fell back one
+                        display-ramp step */}
                     <h2 className="font-roboto-flex-extrabold text-left text-headingSmall font-extraBlack md:text-6xl lg:text-heading">
                         {i18n.landingSecurityHeading}
                     </h2>
@@ -89,12 +91,12 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                             </div>
                             <div>
                                 <div className="mb-4 w-full text-left md:text-left">
-                                    <h3 className="font-roboto-flex-extrabold text-2xl lg:text-3xl">{feature.title}</h3>
+                                    <h3 className="font-roboto-flex-extrabold text-heading-s lg:text-heading-m">
+                                        {feature.title}
+                                    </h3>
                                 </div>
-                                <p
-                                    className="font-roboto-flex w-full max-w-[360px] text-left text-lg leading-relaxed font-normal md:text-xl"
-                                    style={{ letterSpacing: '-0.5px' }}
-                                >
+                                {/* no 20px/400 body token in the DS ramp (tops out at body-l 18) — raw md:text-xl keeps the pre-preview desktop size */}
+                                <p className="font-roboto-flex w-full max-w-[360px] text-left text-body-l md:text-xl">
                                     {feature.description}
                                 </p>
                                 {feature.learnMoreHref && (
@@ -103,7 +105,7 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                                     <p className="mt-4 w-full max-w-[360px] text-right">
                                         <a
                                             href={feature.learnMoreHref}
-                                            className="font-roboto-flex text-base text-foreground-primary underline hover:no-underline md:text-lg"
+                                            className="font-roboto-flex text-body-m text-foreground-primary underline hover:no-underline md:text-body-l"
                                         >
                                             {i18n.landingLearnMore} →
                                         </a>
@@ -114,7 +116,7 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                                         <Link prefetch={false} href="/support">
                                             <Button
                                                 shadowSize="4"
-                                                className="bg-white px-6 py-3 text-base font-extrabold text-foreground-primary hover:bg-white/90"
+                                                className="bg-white px-6 text-foreground-primary hover:bg-white/90"
                                             >
                                                 {i18n.landingTalkToSupport}
                                             </Button>

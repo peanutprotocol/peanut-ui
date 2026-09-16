@@ -51,7 +51,7 @@ export function ArticleLocaleNav({ currentLocale }: Props) {
                     aria-expanded={open}
                     aria-label={`Language: ${current.label}`}
                     onClick={() => setOpen((v) => !v)}
-                    className={`${CARD_SURFACE} inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold transition-colors hover:bg-primary-3/30`}
+                    className={`${CARD_SURFACE} inline-flex items-center gap-1 px-2 py-1 text-label-m transition-colors hover:bg-primary-3/30`}
                 >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={current.flag} alt="" width={18} height={18} className="rounded-full" />

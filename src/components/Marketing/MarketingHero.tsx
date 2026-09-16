@@ -54,7 +54,7 @@ export function MarketingHero({
                             with text-7xl (TASK-22366 sweep) */}
                         <Title text={title} className="text-5xl md:text-9xl" />
                     </h1>
-                    <p className="mt-6 text-3xl font-bold text-foreground-primary md:text-5xl">{subtitle}</p>
+                    <p className="mt-6 text-heading-m text-foreground-primary md:text-5xl">{subtitle}</p>
                     {ctaText && (
                         <div className="mt-8">
                             <Link

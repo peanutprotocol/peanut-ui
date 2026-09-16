@@ -144,11 +144,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                     rel={cta.isExternal ? 'noopener noreferrer' : undefined}
                     onClick={cta.onClick}
                 >
-                    <Button
-                        shadowSize="4"
-                        icon={cta.icon}
-                        className="bg-white px-6 py-3 text-base font-extrabold hover:bg-white/90 md:px-8 md:py-8 md:text-xl"
-                    >
+                    <Button shadowSize="4" icon={cta.icon} className="bg-white px-6 hover:bg-white/90 md:px-8">
                         {cta.label}
                     </Button>
                 </a>
@@ -229,10 +225,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                     </Link>
                     .
                 </span>
-                <span
-                    className="mt-2 block text-center text-body-s text-foreground-primary/70 md:text-body-m"
-                    style={{ fontWeight: 400 }}
-                >
+                <span className="mt-2 block text-center text-body-s text-foreground-primary/70 md:text-body-m">
                     {strings.heroNoLocalId}
                 </span>
                 {primaryCta ? renderCTAButton(primaryCta, 'primary') : customCta ? renderCustomCta() : null}

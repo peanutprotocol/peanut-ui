@@ -112,7 +112,7 @@ const PlayOverlay = () => (
 
 /** Base card styles shared across all card types */
 const CARD_BASE_CLASSES =
-    'shadow-primary-6 flex w-[280px] flex-shrink-0 flex-col overflow-hidden rounded-sm border-2 border-border-default bg-white transition-all duration-instant hover:brightness-95 active:translate-x-[4px] active:translate-y-[4px] active:shadow-none'
+    'shadow-primary-6 flex w-[280px] flex-shrink-0 flex-col overflow-hidden rounded-sm border-2 border-border-default bg-white transition-all duration-instant hover:brightness-95 active:translate-x-1 active:translate-y-1 active:shadow-none'
 
 /** Featured card with media (photo or video) - tallest card type */
 const FeaturedCard = ({ tweet }: { tweet: Tweet }) => {

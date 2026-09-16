@@ -69,9 +69,8 @@ export function FAQ({ title, children, locale = DEFAULT_LOCALE }: FAQProps) {
 
     return (
         <section
-            className="overflow-x-hidden"
+            className="overflow-x-hidden bg-purple-600"
             style={{
-                backgroundColor: '#6340df',
                 backgroundImage: `url(${PeanutsBG.src})`,
                 backgroundSize: '10rem auto',
                 backgroundRepeat: 'repeat',

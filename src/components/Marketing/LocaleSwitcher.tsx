@@ -63,7 +63,7 @@ export function LocaleSwitcher({ locale, label }: { locale: Locale; label: strin
                 aria-expanded={open}
                 aria-label={`${label}: ${LOCALE_META[locale].shortLabel}`}
                 onClick={() => setOpen((v) => !v)}
-                className={`${TRIGGER_WIDTH} ${CARD_SURFACE} inline-flex items-center justify-between px-3 py-1.5 text-sm font-semibold text-foreground-primary transition-colors hover:border-gray-0 hover:bg-gray-950 hover:text-foreground-inverse`}
+                className={`${TRIGGER_WIDTH} ${CARD_SURFACE} inline-flex items-center justify-between px-3 py-2 text-body-s-semibold text-foreground-primary transition-colors hover:border-gray-0 hover:bg-gray-950 hover:text-foreground-inverse`}
             >
                 {LOCALE_META[locale].shortLabel}
                 <span aria-hidden className="text-foreground-secondary">

@@ -87,7 +87,7 @@ export const mdxComponents: MdxComponentMap = {
     ),
     h3: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
         <h3
-            className={`mx-auto mt-10 mb-3 ${PROSE_WIDTH} px-6 text-xl font-bold text-foreground-primary md:px-4 md:text-2xl`}
+            className={`mx-auto mt-10 mb-3 ${PROSE_WIDTH} px-6 text-heading-xs text-foreground-primary md:px-4 md:text-heading-s`}
             {...props}
         />
     ),
@@ -127,7 +127,7 @@ export const mdxComponents: MdxComponentMap = {
     ),
     th: (props: React.HTMLAttributes<HTMLTableCellElement>) => (
         <th
-            className="border-b border-border-default bg-action-primary/15 px-4 py-3 text-xs font-bold tracking-wide text-foreground-primary uppercase"
+            className="border-b border-border-default bg-action-primary/15 px-4 py-3 text-label-m tracking-wide text-foreground-primary uppercase"
             {...props}
         />
     ),

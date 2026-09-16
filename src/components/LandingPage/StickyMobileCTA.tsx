@@ -88,14 +88,14 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
                                 variant="purple"
                                 shadowSize="4"
                                 icon={store === 'ios' ? 'apple-logo' : 'google-play'}
-                                className="w-full py-3 text-base font-extrabold uppercase"
+                                className="w-full uppercase"
                             >
                                 {tMigration('downloadNow')}
                             </Button>
                         </a>
                     ) : (
                         <Link prefetch={false} href="/setup" className="pointer-events-auto block">
-                            <Button variant="purple" shadowSize="4" className="w-full py-3 text-base font-extrabold">
+                            <Button variant="purple" shadowSize="4" className="w-full">
                                 {strings.signUpNow}
                             </Button>
                         </Link>
