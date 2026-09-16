@@ -457,11 +457,9 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Withdraw with two saved bank accounts (a Spanish IBAN and a US account).',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
     },
-    // ?method=crypto is send's hand-off: the flow commits the crypto method and
-    // lands straight on the shared amount step (TASK-21816 URL stepper).
-    'withdraw-amount': {
-        route: '/withdraw?method=crypto',
-        about: 'Withdraw amount step (crypto): USD amount entry with balance and Continue.',
+    'withdraw-crypto-destination': {
+        route: '/withdraw/crypto',
+        about: 'Crypto withdrawal: select the token, network and address before entering an amount.',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
     },
     // Crypto address book beside the saved bank accounts. The three entries hit
@@ -518,16 +516,15 @@ export const FIXTURES: Record<string, Fixture> = {
     // Manteca is entered with no amount now and collects it itself, in the
     // local currency — the amount as the last step before the review.
     'withdraw-amount-last': {
-        route: '/withdraw/manteca?method=bank-transfer&country=argentina',
+        route: '/withdraw/manteca?method=bank-transfer&country=argentina&destination=fixture.account&isSavedAccount=true',
         about: 'Withdraw amount as the last step, in local currency, with its own minimum.',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS] } },
     },
-    // Over the balance, so the inline error under the input is on screen.
+    // A saved destination opens amount entry; an amount below the minimum shows the field error.
     'withdraw-amount-error': {
-        route: '/withdraw?method=crypto&step=amount&amount=999999',
-        about: 'Withdraw amount step with its inline error — the amount is above the balance.',
-        // the error is validated on a 300ms debounce, so the shot waits for it
-        waitFor: '[data-testid="error-alert"]',
+        route: '/withdraw/manteca?method=bank-transfer&country=argentina&destination=fixture.account&isSavedAccount=true&amount=0.01',
+        about: 'Withdraw amount step with its inline error — the amount is below the minimum.',
+        waitFor: 'p[role="alert"]',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS] } },
     },
     // Named bank accounts beside the named address book: destinationLabel on
