@@ -1,5 +1,6 @@
 import DocsLink from '@/components/Global/DocsLink'
 import PasskeyInfoDrawer from '@/components/Setup/components/PasskeyInfoDrawer'
+import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
@@ -20,6 +21,37 @@ import { getFromCookie } from '@/utils/general.utils'
 import { twMerge } from '@/utils/tw'
 import { useTranslations } from 'next-intl'
 import { signupAnalyticsContext } from '@/features/setup/signup-analytics'
+
+export function AccountReadyView({
+    onContinue,
+    isRedirecting = false,
+}: {
+    onContinue: () => void
+    isRedirecting?: boolean
+}) {
+    const t = useTranslations('setup')
+    return (
+        <div className="flex w-full flex-col gap-4 text-left">
+            <div className="flex flex-col gap-1">
+                <MiniHeader>{t('accountReady.worksNowTitle')}</MiniHeader>
+                <p className="text-body-s text-foreground-primary">{t('accountReady.worksNowBody')}</p>
+            </div>
+            <div className="flex flex-col gap-1">
+                <MiniHeader>{t('accountReady.laterTitle')}</MiniHeader>
+                <p className="text-body-s text-foreground-primary">{t('accountReady.laterBody')}</p>
+            </div>
+            <Button
+                onClick={onContinue}
+                loading={isRedirecting}
+                disabled={isRedirecting}
+                shadowSize="4"
+                className="mt-2"
+            >
+                {t('accountReady.cta')}
+            </Button>
+        </div>
+    )
+}
 
 const SignTestTransaction = () => {
     const t = useTranslations('setup')

@@ -554,6 +554,13 @@
         },
         "finish": {
             "title": "Firmá una transacción de prueba"
+        },
+        "accountReady": {
+            "worksNowTitle": "Funciona desde ya",
+            "worksNowBody": "Recibí dólares, enviá a cualquier @usuario y guardá tu saldo: sin verificar tu identidad.",
+            "laterTitle": "Cuando quieras pagos bancarios o una tarjeta",
+            "laterBody": "Vas a necesitar una verificación de identidad: unos minutos, o de 1 a 3 días hábiles si alguien la revisa a fondo.",
+            "cta": "Ir a mi cuenta"
         }
     },
     "loadingStates": {

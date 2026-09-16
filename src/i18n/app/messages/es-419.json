@@ -909,6 +909,13 @@
         "finish": {
             "title": "Firma una transacción de prueba",
             "description": "Asegurémonos de que tu passkey funciona y de que todo está configurado correctamente."
+        },
+        "accountReady": {
+            "worksNowTitle": "Funciona desde ya",
+            "worksNowBody": "Recibe dólares, envía a cualquier @usuario y guarda tu saldo: sin verificar tu identidad.",
+            "laterTitle": "Cuando quieras pagos bancarios o una tarjeta",
+            "laterBody": "Vas a necesitar una verificación de identidad: unos minutos, o de 1 a 3 días hábiles si alguien la revisa a fondo.",
+            "cta": "Ir a mi cuenta"
         }
     },
     "loadingStates": {

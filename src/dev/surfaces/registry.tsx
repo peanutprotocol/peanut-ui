@@ -13,6 +13,7 @@
 
 import React from 'react'
 import { SetupFlowProvider } from '@/features/setup/SetupFlowContext'
+import { AccountReadyView } from '@/components/Setup/Views/SignTestTransaction'
 import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotificationsModal'
 import { useTranslations } from 'next-intl'
 import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
@@ -144,6 +145,14 @@ export const SURFACES: Record<string, Surface> = {
     '03-a-residence-select': {
         ...SURFACE_META['03-a-residence-select'],
         render: () => <SetupScreen screenId="residence" />,
+    },
+    '05-a-signtesttransaction': {
+        ...SURFACE_META['05-a-signtesttransaction'],
+        render: () => (
+            <SetupScreen screenId="sign-test-transaction">
+                <AccountReadyView onContinue={noop} />
+            </SetupScreen>
+        ),
     },
     '06-a-signup': { name: 'Signup', path: 'Setup/Views/Signup.tsx', render: () => <SetupScreen screenId="signup" /> },
     '07-a-setuppasskey': {

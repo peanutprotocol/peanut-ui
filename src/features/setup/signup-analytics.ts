@@ -6,7 +6,7 @@ import posthog from 'posthog-js'
 export const SIGNUP_FLOW_VERSION = 1
 
 export type SignupEntryFlow = 'default' | 'add-money' | 'identity-verification' | 'card' | 'claim' | 'other'
-export type SignupAnalyticsScreenId = ScreenId
+export type SignupAnalyticsScreenId = ScreenId | 'account-ready'
 export type SignupNavigationType = 'initial' | 'forward' | 'back' | 'jump'
 
 const PEANUT_ORIGIN = 'https://peanut.me'

@@ -33,6 +33,7 @@ export const ANALYTICS_EVENTS = {
     SIGNUP_TEST_TX_STARTED: 'signup_test_tx_started',
     SIGNUP_TEST_TX_SIGNED: 'signup_test_tx_signed',
     SIGNUP_TEST_TX_FAILED: 'signup_test_tx_failed',
+    SIGNUP_ACCOUNT_READY_CTA_CLICKED: 'signup_account_ready_cta_clicked',
     SIGNUP_COMPLETED: 'signup_completed',
 
     // ── KYC (Bridge) ──
