@@ -143,6 +143,13 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             status: 'production',
         },
         {
+            label: 'Tabs',
+            icon: 'docs',
+            href: '/dev/ds/primitives/tabs',
+            description: 'The one content-tab component: contained card-top triggers joined to a bordered panel',
+            status: 'production',
+        },
+        {
             label: 'ProgressBar',
             icon: 'meter',
             href: '/dev/ds/primitives/progress-bar',
