@@ -65,6 +65,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
     external?: never
     download?: never
     plainAnchor?: never
+    prefetch?: never
 }
 
 /**
@@ -82,6 +83,9 @@ export interface ButtonLinkProps
     /** disabled link: the anchor keeps the disabled visuals but drops its href
      *  and gets aria-disabled — nothing to navigate, hydrated or not */
     disabled?: boolean
+    /** forwarded to next/link — internal routes only. `false` keeps a link out
+     *  of the viewport prefetch (marquees and other link-dense surfaces) */
+    prefetch?: boolean
     /** hold-to-confirm is button-only */
     longPress?: never
 }
@@ -150,6 +154,7 @@ const ButtonImpl = forwardRef<HTMLButtonElement, ButtonProps | ButtonLinkProps>(
             external,
             download,
             plainAnchor,
+            prefetch,
             ...props
         },
         ref
@@ -297,6 +302,7 @@ const ButtonImpl = forwardRef<HTMLButtonElement, ButtonProps | ButtonLinkProps>(
                     ref={anchorRef}
                     translate="no"
                     href={href}
+                    prefetch={prefetch}
                     onClick={handleClick}
                     {...anchorProps}
                 >

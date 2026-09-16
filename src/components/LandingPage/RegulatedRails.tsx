@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import Link from 'next/link'
+import { Button } from '@/components/0_Bruddle/Button'
 import { MarqueeWrapper } from '../Global/MarqueeWrapper'
 import BBVA_ICON from '@/assets/icons/bbva-logo.svg'
 import BRUBANK_ICON from '@/assets/icons/brubank-logo.svg'
@@ -47,7 +47,9 @@ const logos: Array<{
 // makes the Y axis compute to auto — it clips. Without top margin the tile sits
 // flush against that edge and the hover lift shaves its top border off.
 const tileClass = 'btn btn-purple btn-shadow-primary-4 mx-6 my-2 flex h-26 w-48 items-center gap-2'
-const linkedTileClass = `${tileClass} transition-transform hover:-translate-y-0.5 hover:opacity-90`
+// a linked tile is a control, so it is a Button in link mode — the button
+// look comes from the component, this class carries the tile geometry only.
+const linkedTileClass = 'mx-6 my-2 h-26 w-48 transition-transform hover:-translate-y-0.5 hover:opacity-90'
 
 const regulatedRailsClouds = [
     { top: '20%', width: 200, speed: '38s', direction: 'ltr' as const },
@@ -114,14 +116,15 @@ export function RegulatedRails({ locale = DEFAULT_LOCALE }: { locale?: Locale })
                             />
                         )
                         return logo.hrefKey ? (
-                            <Link
+                            <Button
                                 prefetch={false}
                                 key={logo.alt}
                                 href={contentHrefs[logo.hrefKey]}
+                                shadowSize="4"
                                 className={linkedTileClass}
                             >
                                 {mark}
-                            </Link>
+                            </Button>
                         ) : (
                             <div key={logo.alt} className={tileClass}>
                                 {mark}

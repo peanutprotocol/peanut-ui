@@ -8,7 +8,7 @@ interface CalloutProps {
 }
 
 const STYLES: Record<string, { bg: string; border: string; label: string }> = {
-    info: { bg: 'bg-primary-3/20', border: 'border-primary-3', label: 'Info' },
+    info: { bg: 'bg-purple-200/20', border: 'border-purple-200', label: 'Info' },
     tip: { bg: 'bg-green-200', border: 'border-green-400', label: 'Tip' },
     warning: { bg: 'bg-yellow-200', border: 'border-yellow-400', label: 'Important' },
 }

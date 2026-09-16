@@ -59,7 +59,7 @@ function renderLinkRows(items: ContentItem[]) {
                 <Link
                     key={`${item.type}/${item.slug}`}
                     href={item.href}
-                    className="group flex items-center justify-between border-b border-border-default/10 bg-background-default px-4 py-4 transition-colors last:border-b-0 hover:bg-primary-3/20"
+                    className="group flex items-center justify-between border-b border-border-default/10 bg-background-default px-4 py-4 transition-colors last:border-b-0 hover:bg-purple-200/20"
                 >
                     <div className="flex flex-col gap-0.5">
                         <h3 className="text-base font-semibold text-foreground-primary group-hover:underline">
@@ -166,7 +166,7 @@ export default function ContentLanding({ items, strings }: Props) {
                     <button
                         type="button"
                         onClick={() => setFilters({ type: null })}
-                        className={`${chipBase} ${activeType === null ? 'bg-action-primary/20 font-semibold' : 'hover:bg-primary-3/30'}`}
+                        className={`${chipBase} ${activeType === null ? 'bg-action-primary/20 font-semibold' : 'hover:bg-purple-200/30'}`}
                     >
                         {strings.filterAll}
                     </button>
@@ -175,7 +175,7 @@ export default function ContentLanding({ items, strings }: Props) {
                             key={t}
                             type="button"
                             onClick={() => setFilters({ type: activeType === t ? null : t })}
-                            className={`${chipBase} ${activeType === t ? 'bg-action-primary/20 font-semibold' : 'hover:bg-primary-3/30'}`}
+                            className={`${chipBase} ${activeType === t ? 'bg-action-primary/20 font-semibold' : 'hover:bg-purple-200/30'}`}
                         >
                             {typeLabels[t]}
                         </button>

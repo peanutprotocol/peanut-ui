@@ -1,4 +1,5 @@
 import { PeanutWavingHello } from '@/assets/mascot'
+import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { NOTION_JOB_BOARD_URL, OPEN_ROLES } from '@/components/Jobs/openRoles'
 import { RoleCard } from '@/components/Jobs/RoleCard'
@@ -115,17 +116,12 @@ export function Careers() {
                             </div>
                         </div>
                         <div className="flex flex-col gap-3 sm:max-w-sm">
-                            <a
-                                href={NOTION_JOB_BOARD_URL}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="btn btn-purple btn-shadow-primary-4 w-full"
-                            >
+                            <Button href={NOTION_JOB_BOARD_URL} external shadowSize="4" className="w-full">
                                 Apply on Notion
-                            </a>
-                            <Link href="/lp" className="btn btn-stroke w-full">
+                            </Button>
+                            <Button variant="stroke" href="/lp" className="w-full">
                                 See what we&apos;ve built
-                            </Link>
+                            </Button>
                         </div>
                         <p className="text-body-s text-foreground-secondary">
                             Curious first? Read the{' '}

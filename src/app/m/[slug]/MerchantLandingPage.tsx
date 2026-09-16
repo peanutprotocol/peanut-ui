@@ -419,7 +419,7 @@ function LiveRateBanner({
     return (
         <div className="mx-auto mt-6 flex max-w-3xl flex-wrap items-center justify-center gap-4 rounded-sm border-2 border-border-default bg-white px-4 py-3 text-sm font-extraBlack tracking-wider uppercase shadow-4">
             <span
-                className={`inline-block h-2 w-2 rounded-full ${isLive ? 'bg-green-1' : 'bg-gray-950'}`}
+                className={`inline-block h-2 w-2 rounded-full ${isLive ? 'bg-green-400' : 'bg-gray-950'}`}
                 style={isLive ? {} : { animation: 'pulse 1.6s ease-in-out infinite' }}
             />
             <span>{copy}</span>

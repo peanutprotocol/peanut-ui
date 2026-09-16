@@ -15,9 +15,12 @@ import {
 /* House tokens, not the stock Tailwind palette: tailwind.config.js redefines
    `red` as a single flat colour, so `bg-red-500` compiles to nothing at all
    and the outage bars render transparent. */
+// the icon-bubble and badge tokens are the only declared greens/yellows/reds in
+// the semantic set, so status fills borrow them. using a bubble token as a bar
+// fill is a naming gap — tracked in design.md open-conflicts.
 const BAR_COLORS: Record<BucketState, string> = {
-    operational: 'bg-success-1',
-    degraded: 'bg-yellow-500',
+    operational: 'bg-background-icon-bubble-green',
+    degraded: 'bg-background-icon-bubble-yellow',
     down: 'bg-red-400',
     unknown: 'bg-gray-200',
 }
@@ -32,8 +35,8 @@ const DOT_COLORS = BAR_COLORS
 const SHOW_SUMMARY_CARD: boolean = false
 
 const RING_STROKES: Record<BucketState, string> = {
-    operational: 'stroke-success-1',
-    degraded: 'stroke-yellow-500',
+    operational: 'stroke-background-icon-bubble-green',
+    degraded: 'stroke-background-icon-bubble-yellow',
     down: 'stroke-red-400',
     unknown: 'stroke-gray-200',
 }
@@ -134,10 +137,10 @@ export function OperationalDonut({
  * it into grey is the reason this page read green through 2026-09-03.
  */
 const BANNER_STYLES: Record<BucketState, string> = {
-    operational: 'border-success-1 bg-white text-foreground-primary',
-    degraded: 'border-yellow-500 bg-secondary-4 text-foreground-primary',
-    down: 'border-border-error bg-error-1 text-foreground-primary',
-    unknown: 'border-border-error bg-error-1 text-foreground-primary',
+    operational: 'border-background-icon-bubble-green bg-white text-foreground-primary',
+    degraded: 'border-background-icon-bubble-yellow bg-background-badge-attention text-foreground-primary',
+    down: 'border-border-error bg-background-badge-error text-foreground-primary',
+    unknown: 'border-border-error bg-background-badge-error text-foreground-primary',
 }
 
 export function StatusBanner({ state, title, detail }: { state: BucketState; title: string; detail?: string }) {
@@ -232,7 +235,7 @@ function IncidentList({
                             className={`rounded px-1.5 py-0.5 text-label-m tracking-wide uppercase ${
                                 incident.resolvedAt
                                     ? 'bg-gray-100 text-foreground-secondary'
-                                    : 'bg-error-1 text-foreground-error'
+                                    : 'bg-background-badge-error text-foreground-error'
                             }`}
                         >
                             {incident.resolvedAt ? i18n.statusIncidentResolved : i18n.statusIncidentOngoing}
