@@ -224,7 +224,9 @@ export default function LimitsWarningCard({
                     </>
                 ) : null}
                 {navigationError && (
-                    <div className="flex items-center justify-between gap-2">
+                    /* mt-2 on top of the stack's gap-2 = 16px, clear of the underlined
+                       increase/support button above (the link's hit area extends 14px up) */
+                    <div className="mt-2 flex items-center justify-between gap-2">
                         <FieldError className="m-0">{tCommon('genericError')}</FieldError>
                         <LinkButton
                             onClick={() => handleLimitsNavigation('/limits')}

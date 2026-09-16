@@ -151,7 +151,8 @@ function PasteActions({
             {detectedAddress ? (
                 <button
                     onClick={onUseDetected}
-                    className="mx-auto mt-3 flex items-center gap-1 rounded-full border border-white/40 px-3 py-2 text-white"
+                    // mt-4: clear of the paste link's 14px extended hit area above
+                    className="mx-auto mt-4 flex items-center gap-1 rounded-full border border-white/40 px-3 py-2 text-white"
                 >
                     <Icon name="wallet" fill="white" height={16} width={16} />
                     <span className="text-label-l">{printableAddress(detectedAddress)}</span>
@@ -159,7 +160,8 @@ function PasteActions({
             ) : showPasteChip ? (
                 <button
                     onClick={onUsePasteChip}
-                    className="mx-auto mt-3 flex items-center gap-1 rounded-full border border-white/40 px-3 py-2 text-white"
+                    // mt-4: clear of the paste link's 14px extended hit area above
+                    className="mx-auto mt-4 flex items-center gap-1 rounded-full border border-white/40 px-3 py-2 text-white"
                 >
                     <Icon name="paste" fill="white" height={16} width={16} />
                     <span className="text-label-l">{t('qrScanner.useCopiedCode')}</span>

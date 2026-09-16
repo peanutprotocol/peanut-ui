@@ -218,7 +218,8 @@ const IframeWrapper = ({ src, visible, onClose, closeConfirmMessage }: IFrameWra
                         className="h-[85%] w-full rounded-sm border-0"
                         sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation allow-media-devices"
                     />
-                    <div className="flex h-[15%] w-full flex-col items-center justify-center gap-2 px-4">
+                    {/* gap-4: the link's 44px hit area extends 14px past its text row */}
+                    <div className="flex h-[15%] w-full flex-col items-center justify-center gap-4 px-4">
                         <Button
                             variant={'stroke'}
                             className={`max-w-md`}
