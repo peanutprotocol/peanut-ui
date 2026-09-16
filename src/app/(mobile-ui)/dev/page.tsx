@@ -28,6 +28,12 @@ const groups: { title: string; tools: DevTool[] }[] = [
                 path: '/dev/ds',
                 icon: 'docs',
             },
+            {
+                name: 'Tabs proposals',
+                description: '4 DS-pure candidates for the one consolidated Tab component, in both surfaces',
+                path: '/dev/tabs-proposals',
+                icon: 'docs',
+            },
         ],
     },
     {
