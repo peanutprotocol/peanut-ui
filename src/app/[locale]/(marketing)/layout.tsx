@@ -39,7 +39,7 @@ export default async function LocalizedMarketingLayout({ children, params }: Lay
                 it (min-h on the padded div was border-box and did nothing). */}
             <div className="bg-background-page px-4 pt-[calc(var(--safe-top)_+_1rem)] pb-4">
                 <div className="flex h-10 items-center justify-end">
-                    {/* The nav reads useSearchParams to carry filters across a
+                    {/* The nav reads the search params to carry filters across a
                         locale switch, which bails the subtree to client render —
                         without this boundary every prerendered marketing route
                         fails the build. The row is a fixed h-10, so a null

@@ -3,24 +3,24 @@
     "rawHexFiles": 5,
     "inlineStyle": 22,
     "stockTextSize": 0,
-    "dsTextScale": 5,
+    "dsTextScale": 3,
     "nonDsClassesInViews": 6,
-    "useSearchParamsFiles": 34,
+    "useSearchParamsFiles": 35,
     "nuqsFiles": 37,
     "legacyColorClasses": 0,
     "offRampPalette": 0,
     "deadLegacyTokens": 0,
     "consumedUndefinedTokens": 0,
-    "classNameSitesInPages": 129,
-    "fontWeightOnTypeToken": 40,
-    "offScaleSpacing": 139,
-    "iconOffScale": 57,
-    "offScaleRadius": 23,
-    "rawDuration": 2,
-    "retypedCardLiteral": 15,
+    "classNameSitesInPages": 128,
+    "fontWeightOnTypeToken": 32,
+    "offScaleSpacing": 103,
+    "iconOffScale": 54,
+    "offScaleRadius": 22,
+    "rawDuration": 1,
+    "retypedCardLiteral": 13,
     "hoverNoActiveFiles": 32,
-    "arbitraryFontSize": 32,
-    "rawErrorText": 15,
+    "arbitraryFontSize": 23,
+    "rawErrorText": 14,
     "handRolledCloseGlyphFiles": 7,
     "_meta": [
         {
@@ -72,6 +72,11 @@
             "date": "2026-09-15",
             "metrics": ["classNameSitesInPages 127 -> 129"],
             "reason": "classNameSitesInPages 127->129: inherited from origin/dev's receipts-v2 (#3159) receipt-shell wrappers via the dev merge — upstream code, not this branch's; TASK-22452"
+        },
+        {
+            "date": "2026-09-16",
+            "metrics": ["useSearchParamsFiles 34 -> 35"],
+            "reason": "ArticleLocaleNav: sanctioned useSearchParams exception — verbatim all-params passthrough for locale-switch hrefs, not query state; nuqs has no all-params API (eslint allowlist comment records the same ruling)"
         }
     ]
 }
