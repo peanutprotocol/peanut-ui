@@ -38,7 +38,7 @@ const mockParams: Record<string, string> = { country: 'testland' }
 // useSendFlowOrigin (which reads useSearchParams)
 let mockSearchParams = new URLSearchParams()
 jest.mock('next/navigation', () => ({
-    useRouter: () => ({ push: mockPush }),
+    useRouter: () => ({ push: mockPush, replace: mockPush }),
     useParams: () => mockParams,
     useSearchParams: () => mockSearchParams,
 }))
@@ -152,7 +152,11 @@ jest.mock('@/hooks/useResidenceRestrictions', () => ({
 }))
 jest.mock('@/app/actions/users', () => ({ addBankAccount: jest.fn() }))
 jest.mock('@/utils/native-routes', () => ({
-    rewriteMethodPath: (p: string) => p,
+    rewriteMethodPath: (p: string, extra?: string) => {
+        const url = new URL(p, 'https://peanut.test')
+        new URLSearchParams(extra).forEach((value, key) => url.searchParams.set(key, value))
+        return url.pathname + url.search
+    },
     withdrawBankUrl: (p: string, qs: string = '') => `/withdraw/${p}/bank${qs}`,
 }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false, isAndroidNative: () => false }))
@@ -607,4 +611,21 @@ describe('AddWithdrawCountriesList — the bank form entered cold', () => {
         await waitFor(() => expect(screen.queryByTestId('bank-form')).not.toBeInTheDocument())
         expect(mockPush).not.toHaveBeenCalled()
     })
+})
+
+it('a direct Manteca country link preserves the send marker and incoming amount', () => {
+    const { COUNTRY_SPECIFIC_METHODS } = jest.requireMock('@/components/AddMoney/consts')
+    const rail = COUNTRY_SPECIFIC_METHODS.US.withdraw[0]
+    const previousPath = rail.path
+    mockSearchParams = new URLSearchParams('method=bank')
+    mockUrlAmount = '50'
+    rail.path = '/withdraw/manteca?method=bank-transfer&country=argentina'
+    try {
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+        expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=bank&country=argentina&amount=50')
+    } finally {
+        rail.path = previousPath
+        mockSearchParams = new URLSearchParams()
+        mockUrlAmount = ''
+    }
 })

@@ -160,9 +160,12 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     useEffect(() => {
         const rail = liveRails.length === 1 ? liveRails[0] : undefined
         if (rail?.path?.includes('/manteca')) {
-            router.replace(rewriteMethodPath(rail.path))
+            const extra = new URLSearchParams()
+            if (isBankFromSend && methodParam) extra.set('method', methodParam)
+            if (urlAmount) extra.set('amount', urlAmount)
+            router.replace(rewriteMethodPath(rail.path, extra.toString()))
         }
-    }, [liveRails, router])
+    }, [liveRails, router, isBankFromSend, methodParam, urlAmount])
 
     // Provider-blind bank-channel deposit gate, country-scoped to the rail
     // jurisdiction of the country the user is on. Reads through
