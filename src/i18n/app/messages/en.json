@@ -692,7 +692,8 @@
             "bankFee": "Bank fee",
             "free": "Free!",
             "arrivesHours": "Usually arrives in hours.",
-            "arrivesMinutes": "Usually arrives in minutes."
+            "arrivesMinutes": "Usually arrives in minutes.",
+            "selectCurrency": "Select currency"
         },
         "row": {
             "approximate": "This is an approximate value. The actual amount received may vary based on your bank's exchange rate",
