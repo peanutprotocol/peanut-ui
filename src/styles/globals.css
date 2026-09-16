@@ -9,15 +9,10 @@
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 @theme {
-    /* ───────────────────────────────────────────────────────────────────────
-       LEGACY PALETTE — what is left of the v3 port. every zero-consumer token
-       was deleted in refactor/legacy-palette-elimination; only tokens with a
-       live consumer remain. do not add to this block — new code uses the
-       semantic tokens below.
-       ─────────────────────────────────────────────────────────────────────── */
-
-    /* scales replaced (not extended) in v3 — disable v4 defaults so stock
-       shades like purple-500 stay non-existent, exactly like v3 */
+    /* the v3 legacy palette is GONE — every token had its consumers migrated.
+       these resets are all that survives it: a family reset to `initial`
+       leaves only the indices declared below, so an undeclared one like
+       gray-500 or blue-400 renders nothing instead of a stock v4 color. */
     --color-red-*: initial;
     --color-gray-*: initial;
     --color-purple-*: initial;
@@ -30,17 +25,6 @@
     --color-pink-*: initial;
     --color-orange-*: initial;
     --color-amber-*: initial;
-
-    /* last three legacy tokens — consumers migrate in #3208; delete after it merges */
-    --color-background: #faf4f0;
-    --color-success-3: #29cc6a;
-    --color-error-4: #fc5555;
-
-    /* still consumed outside #3208: .btn-dark (globals.css), the marketing
-       .content-page zebra stripe, and the limits meter's "text" tone */
-    --color-n-1: #000000;
-    --color-primary-3: #efe4ff;
-    --color-success-1: #16b413;
 
     /* ───────────────────────────────────────────────────────────────────────
        SEMANTIC TOKENS — 1:1 with vlad's figma variables (Peanut-UI file
@@ -840,10 +824,9 @@
     /* variant classes are deltas on top of .btn (the component always pairs them;
        the few raw call-sites all write "btn btn-purple"). board mapping:
        purple = button.type.primary, stroke = button.type.secondary,
-       transparent* = button.type.ghost. dark and primary-soft are the last
-       off-board variants — shape/type restyle inherited from .btn, colors kept
-       until a rebuild migrates them. .btn-dark is the last --color-n-1
-       consumer; it has no product call-site today. */
+       transparent* = button.type.ghost. primary-soft is the last off-board
+       variant — shape/type restyle inherited from .btn, colors kept until a
+       rebuild migrates it. */
     .btn-transparent-light {
         @apply border-transparent fill-white text-white hover:fill-action-ghost-hover hover:text-action-ghost-hover active:fill-action-ghost-hover active:text-action-ghost-hover;
     }

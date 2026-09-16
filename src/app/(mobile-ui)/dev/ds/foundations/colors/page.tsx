@@ -77,9 +77,10 @@ export default function ColorsPage() {
                 description="Generated from the @theme block in globals.css (pnpm gen:ds-tokens) — swatches cannot drift from the source. Tap any swatch to copy the class name."
             />
 
-            <DesignNote type="warning">
-                The legacy v3 palette is gone — six tokens with a live consumer are all that is left of it, and they are
-                not documented here. New UI uses semantic tokens only.
+            <DesignNote type="info">
+                The legacy v3 palette is gone — every token below is a semantic one. The families it used to occupy are
+                reset to <code className="font-mono text-label-m">initial</code>, so a stock Tailwind shade that this
+                page does not list renders nothing at all.
             </DesignNote>
 
             <DocSection title="Semantic Tokens">

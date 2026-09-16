@@ -3,9 +3,9 @@
 // a jest drift test (scripts/__tests__/ds-tokens-drift.test.js) fails CI when
 // this file is stale.
 
-/** which @theme banner the token sits under: legacy palette (v3 port, do not
- * use in new code), semantic (figma-verified, use these), or v3-parity shims. */
-export type TokenSection = 'legacy' | 'semantic' | 'parity'
+/** which @theme banner the token sits under: semantic (figma-verified, use
+ * these) or v3-parity shims. The legacy palette section no longer exists. */
+export type TokenSection = 'semantic' | 'parity'
 
 export interface ThemeToken {
     name: string
@@ -33,42 +33,6 @@ export interface FontToken {
 }
 
 export const COLOR_TOKENS: ThemeToken[] = [
-    {
-        "name": "background",
-        "value": "#faf4f0",
-        "section": "legacy",
-        "previewClass": "bg-background"
-    },
-    {
-        "name": "success-3",
-        "value": "#29cc6a",
-        "section": "legacy",
-        "previewClass": "bg-success-3"
-    },
-    {
-        "name": "error-4",
-        "value": "#fc5555",
-        "section": "legacy",
-        "previewClass": "bg-error-4"
-    },
-    {
-        "name": "n-1",
-        "value": "#000000",
-        "section": "legacy",
-        "previewClass": "bg-n-1"
-    },
-    {
-        "name": "primary-3",
-        "value": "#efe4ff",
-        "section": "legacy",
-        "previewClass": "bg-primary-3"
-    },
-    {
-        "name": "success-1",
-        "value": "#16b413",
-        "section": "legacy",
-        "previewClass": "bg-success-1"
-    },
     {
         "name": "action-primary",
         "value": "#ff90e8",
