@@ -22,6 +22,7 @@ export function collectionWorkerConfiguration(env = process.env) {
     if (!/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(bucket ?? '')) throw new Error('Configure SCREEN_LIBRARY_R2_BUCKET')
     const apiOrigin = httpsOrigin(env.SCREEN_LIBRARY_COLLECTION_API_URL, 'SCREEN_LIBRARY_COLLECTION_API_URL')
     const galleryOrigin = httpsOrigin(env.SCREEN_LIBRARY_PUBLIC_URL, 'SCREEN_LIBRARY_PUBLIC_URL')
+    if (!env.SCREEN_LIBRARY_ACCESS_AUD) throw new Error('Configure SCREEN_LIBRARY_ACCESS_AUD')
     return {
         name: 'peanut-screen-library-collections',
         main: 'index.mjs',
@@ -31,6 +32,7 @@ export function collectionWorkerConfiguration(env = process.env) {
         routes: [{ pattern: new URL(apiOrigin).hostname, custom_domain: true }],
         vars: {
             SCREEN_LIBRARY_PUBLIC_URL: galleryOrigin,
+            SCREEN_LIBRARY_ACCESS_AUD: env.SCREEN_LIBRARY_ACCESS_AUD,
             GITHUB_REPOSITORY: env.GITHUB_REPOSITORY || 'peanutprotocol/peanut-ui',
         },
         r2_buckets: [{ binding: 'REPORTS', bucket_name: bucket, jurisdiction }],

@@ -75,9 +75,13 @@ function bucket() {
         },
     }
 }
-const accessHeaders = {
-    'Cf-Access-Authenticated-User-Email': 'reviewer@peanut.me',
-    'Cf-Access-Jwt-Assertion': 'verified-by-access',
+const accessContext = {
+    access: {
+        aud: 'screen-library-access',
+        async getIdentity() {
+            return { email: 'reviewer@peanut.me' }
+        },
+    },
 }
 
 test('collection API requires Access identity or the private service token', async () => {
@@ -96,10 +100,15 @@ test('collection API requires Access identity or the private service token', asy
 
 test('collection API searches screens and creates an ordered reusable collection', async () => {
     const REPORTS = bucket()
-    const env = { REPORTS, SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.peanut.me' }
+    const env = {
+        REPORTS,
+        SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.peanut.me',
+        SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access',
+    }
     const search = await worker.fetch(
-        new Request('https://api.example/v1/screens?q=prof', { headers: accessHeaders }),
-        env
+        new Request('https://api.example/v1/screens?q=prof'),
+        env,
+        accessContext
     )
     const searchBody = await search.json()
     assert.equal(searchBody.screens[0].id, 'profile')
@@ -107,10 +116,11 @@ test('collection API searches screens and creates an ordered reusable collection
     const created = await worker.fetch(
         new Request('https://api.example/v1/collections', {
             method: 'POST',
-            headers: { ...accessHeaders, 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ title: 'Choice overload', items: [{ id: 'profile', note: 'Flat menu' }] }),
         }),
-        env
+        env,
+        accessContext
     )
     assert.equal(created.status, 201)
     const body = await created.json()
@@ -126,6 +136,7 @@ test('captureMissing queues the exact missing matrix against the current dev rev
     const env = {
         REPORTS,
         SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.peanut.me',
+        SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access',
         GITHUB_REPOSITORY: 'peanutprotocol/peanut-ui',
         GITHUB_ACTIONS_TOKEN: 'github-token',
         GITHUB_FETCH: async (url, options = {}) => {
@@ -137,10 +148,11 @@ test('captureMissing queues the exact missing matrix against the current dev rev
     const response = await worker.fetch(
         new Request('https://api.example/v1/collections', {
             method: 'POST',
-            headers: { ...accessHeaders, 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ title: 'Missing state', items: [{ id: 'send' }], captureMissing: true }),
         }),
-        env
+        env,
+        accessContext
     )
     assert.equal(response.status, 201)
     const { collection } = await response.json()
@@ -164,6 +176,7 @@ test('a failed workflow dispatch leaves the collection retriable', async () => {
     const env = {
         REPORTS,
         SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.peanut.me',
+        SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access',
         GITHUB_REPOSITORY: 'peanutprotocol/peanut-ui',
         GITHUB_ACTIONS_TOKEN: 'github-token',
         GITHUB_FETCH: async (url) => {
@@ -175,12 +188,16 @@ test('a failed workflow dispatch leaves the collection retriable', async () => {
     const created = await worker.fetch(
         new Request('https://api.example/v1/collections', {
             method: 'POST',
-            headers: { ...accessHeaders, 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ title: 'Retry dispatch', items: [{ id: 'send' }], captureMissing: true }),
         }),
-        env
+        env,
+        accessContext
     )
     assert.equal(created.status, 503)
+    const failedResponse = await created.json()
+    assert.match(failedResponse.url, /^https:\/\/screens\.peanut\.me\/collections\//)
+    assert.equal(failedResponse.collection.capture.status, 'failed')
     const manifestKey = [...REPORTS.objects.keys()].find((key) => /^collections\/.+\/manifest\.json$/.test(key))
     const failed = JSON.parse(REPORTS.objects.get(manifestKey))
     assert.equal(failed.capture.status, 'failed')
@@ -189,9 +206,10 @@ test('a failed workflow dispatch leaves the collection retriable', async () => {
     const retried = await worker.fetch(
         new Request(`https://api.example/v1/collections/${failed.id}/capture`, {
             method: 'POST',
-            headers: accessHeaders,
+            headers: {},
         }),
-        env
+        env,
+        accessContext
     )
     assert.equal(retried.status, 202)
     assert.equal((await retried.json()).queued, true)

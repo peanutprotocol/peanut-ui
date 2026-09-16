@@ -123,6 +123,7 @@ jobs:
                   SCREEN_LIBRARY_R2_BUCKET: ${{ vars.SCREEN_LIBRARY_R2_BUCKET }}
                   SCREEN_LIBRARY_R2_JURISDICTION: ${{ vars.SCREEN_LIBRARY_R2_JURISDICTION }}
                   SCREEN_LIBRARY_PUBLIC_URL: ${{ vars.SCREEN_LIBRARY_PUBLIC_URL }}
+                  SCREEN_LIBRARY_ACCESS_AUD: ${{ vars.SCREEN_LIBRARY_ACCESS_AUD }}
                   SCREEN_LIBRARY_COLLECTION_API_URL: ${{ vars.SCREEN_LIBRARY_COLLECTION_API_URL }}
                   GITHUB_REPOSITORY: ${{ github.repository }}
               run: node scripts/screens/collection-worker/prepare.mjs /tmp/screen-collections

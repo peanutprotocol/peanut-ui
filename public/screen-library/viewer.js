@@ -488,6 +488,29 @@ function renderLanding() {
     }
     syncShareableUrl()
 }
+function renderCoverage() {
+    const counts = rows.reduce((a, r) => {
+        a[r.status] = (a[r.status] || 0) + 1
+        return a
+    }, {})
+    $('coverage').textContent = `${
+        report.type === 'collection'
+            ? report.complete
+                ? 'Complete curated collection'
+                : 'Collection capture in progress'
+            : report.type === 'journeys'
+              ? report.complete
+                  ? 'Complete Nutcracker run'
+                  : 'Incomplete Nutcracker run'
+              : report.complete
+                ? 'Complete capture'
+                : 'Incomplete capture — review gaps and failures'
+    } · ${rows.length} ${report.type === 'journeys' || report.type === 'collection' ? 'screenshots' : 'states'} · ${Object.entries(
+        counts
+    )
+        .map(([s, n]) => `${n} ${s}`)
+        .join(' · ')}`
+}
 async function configureReportLocales(reportPath) {
     if (report.type === 'collection') {
         reportLocaleEntries = report.locales.map((locale) => ({ locale }))
@@ -639,27 +662,7 @@ async function start() {
                 $('provenance').append(n)
             }
     }
-    const counts = rows.reduce((a, r) => {
-        a[r.status] = (a[r.status] || 0) + 1
-        return a
-    }, {})
-    $('coverage').textContent = `${
-        report.type === 'collection'
-            ? report.complete
-                ? 'Complete curated collection'
-                : 'Collection capture in progress'
-            : report.type === 'journeys'
-              ? report.complete
-                  ? 'Complete Nutcracker run'
-                  : 'Incomplete Nutcracker run'
-              : report.complete
-                ? 'Complete capture'
-                : 'Incomplete capture — review gaps and failures'
-    } · ${rows.length} ${report.type === 'journeys' || report.type === 'collection' ? 'screenshots' : 'states'} · ${Object.entries(
-        counts
-    )
-        .map(([s, n]) => `${n} ${s}`)
-        .join(' · ')}`
+    renderCoverage()
     for (const f of [...new Set(rows.map((r) => r.flow))].sort()) {
         const o = el('option', f)
         o.value = f
@@ -712,6 +715,7 @@ $('status').addEventListener('input', () => {
 $('locale').addEventListener('change', () => {
     if (report?.type === 'collection') {
         rows = collectionRows(report, $('locale').value)
+        renderCoverage()
         $('footer').textContent = `${localeLabel($('locale').value)} · Curated collection · Synthetic app states`
         $('flow').replaceChildren(el('option', 'All flows'))
         $('flow').children[0].value = ''

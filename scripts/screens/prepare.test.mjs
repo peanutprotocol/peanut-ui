@@ -25,3 +25,18 @@ test('adapter only changes transport allowlist and refuses unknown entry shape',
         rmSync(dir, { recursive: true, force: true })
     }
 })
+
+test('adapter accepts the legacy synchronous API entry shape', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'screen-adapter-legacy-'))
+    try {
+        mkdirSync(join(dir, 'src/utils'), { recursive: true })
+        writeFileSync(
+            join(dir, 'src/utils/api-fetch.ts'),
+            'function callApi(path, options) {return fetch(path, options)}'
+        )
+        assert.equal(prepare(dir).length, 1)
+        assert.match(readFileSync(join(dir, 'src/utils/api-fetch.ts'), 'utf8'), /screen-capture-adapter-v1/)
+    } finally {
+        rmSync(dir, { recursive: true, force: true })
+    }
+})

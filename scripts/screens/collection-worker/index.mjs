@@ -17,12 +17,17 @@ const error = (message, status) => json({ error: message }, status)
 const safeId = /^[a-z0-9][a-z0-9-]{0,119}$/
 const safeRepository = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/
 
-function actor(request, env) {
+async function actor(request, env, ctx) {
     const internal = request.headers.get('authorization')
     if (env.COLLECTION_SERVICE_TOKEN && internal === `Bearer ${env.COLLECTION_SERVICE_TOKEN}`) return 'mcp@internal'
-    const email = request.headers.get('cf-access-authenticated-user-email')?.toLowerCase()
-    const assertion = request.headers.get('cf-access-jwt-assertion')
-    if (assertion && email?.endsWith('@peanut.me')) return email
+    const access = ctx?.access
+    if (!access || access.aud !== env.SCREEN_LIBRARY_ACCESS_AUD) return null
+    try {
+        const email = (await access.getIdentity())?.email?.toLowerCase()
+        if (email?.endsWith('@peanut.me')) return email
+    } catch {
+        return null
+    }
     return null
 }
 
@@ -171,7 +176,20 @@ async function createCollection(request, actorEmail, env) {
         JSON.stringify({ id, title: collection.title, createdAt: collection.createdAt, complete: collection.complete }),
         { httpMetadata: { contentType: 'application/json', cacheControl: 'no-store' } }
     )
-    if (spec.captureMissing && collection.missing.length) collection = await queueCapture(collection, env)
+    if (spec.captureMissing && collection.missing.length) {
+        try {
+            collection = await queueCapture(collection, env)
+        } catch {
+            return json(
+                {
+                    error: 'The capture workflow could not be dispatched. Retry this collection capture.',
+                    collection,
+                    url: `${env.SCREEN_LIBRARY_PUBLIC_URL.replace(/\/$/, '')}/collections/${id}/`,
+                },
+                503
+            )
+        }
+    }
     return json(
         {
             collection,
@@ -203,13 +221,13 @@ async function collectionRoute(request, id, action, env) {
 }
 
 export default {
-    async fetch(request, env) {
+    async fetch(request, env, ctx) {
         if (!['GET', 'POST'].includes(request.method))
             return new Response(JSON.stringify({ error: 'Method not allowed' }), {
                 status: 405,
                 headers: { ...responseHeaders, Allow: 'GET, POST' },
             })
-        const authenticated = actor(request, env)
+        const authenticated = await actor(request, env, ctx)
         if (!authenticated) return error('Authentication required', 401)
         const url = new URL(request.url)
         try {

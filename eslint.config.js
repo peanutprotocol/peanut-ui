@@ -546,6 +546,10 @@ module.exports = [
             'src/components/Global/{PeanutLoading,Icons}/**',
             // InvitesGraph is a /dev-only debug visualization, not user-facing UI.
             'src/components/Global/InvitesGraph/**',
+            // The top-level 404 is a provider-free fallback shown before the
+            // locale runtime exists; its intentionally stable English copy is
+            // excluded narrowly instead of hiding the rest of Global.
+            'src/components/Global/NotFoundScreen.tsx',
             // The payment network explorer is a team-gated /dev tool; its copy is
             // intentionally English-only.
             'src/features/payment-network-explorer/**',

@@ -8,9 +8,11 @@ test('collection API uses only an Access-protected custom domain', () => {
         SCREEN_LIBRARY_R2_JURISDICTION: 'eu',
         SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.peanut.me',
         SCREEN_LIBRARY_COLLECTION_API_URL: 'https://screen-collections.peanut.me',
+        SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access',
     })
     assert.equal(config.workers_dev, false)
     assert.equal(config.preview_urls, false)
+    assert.equal(config.vars.SCREEN_LIBRARY_ACCESS_AUD, 'screen-library-access')
     assert.deepEqual(config.routes, [{ pattern: 'screen-collections.peanut.me', custom_domain: true }])
 })
 
@@ -21,6 +23,7 @@ test('collection API refuses an alternate public workers.dev origin', () => {
                 SCREEN_LIBRARY_R2_BUCKET: 'screens-library',
                 SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.peanut.me',
                 SCREEN_LIBRARY_COLLECTION_API_URL: 'https://collections.example.workers.dev',
+                SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access',
             }),
         /custom HTTPS origin/
     )

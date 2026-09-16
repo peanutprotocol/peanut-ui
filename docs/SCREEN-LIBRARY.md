@@ -74,8 +74,10 @@ control plane and viewer, not a second browser-rendering stack. This preserves
 the pinned Chromium/diff environment and leaves a later migration to Cloudflare
 Browser Rendering possible without changing the collection API.
 
-Required repository variables are `SCREEN_LIBRARY_COLLECTION_API_URL` and
-`SCREEN_LIBRARY_MCP_URL`, both custom HTTPS origins. Both generated Workers set
+Required repository variables are `SCREEN_LIBRARY_COLLECTION_API_URL`,
+`SCREEN_LIBRARY_ACCESS_AUD`, and `SCREEN_LIBRARY_MCP_URL`; the two URL variables
+are custom HTTPS origins and the audience is the expected Cloudflare Access
+application audience for the collection Worker. Both generated Workers set
 `workers_dev = false` and disable preview URLs. Configure Cloudflare Access with
 Google and an `@peanut.me` allow rule for the collection origin and the MCP
 origin. Configure the MCP Access application as the OAuth provider for remote
