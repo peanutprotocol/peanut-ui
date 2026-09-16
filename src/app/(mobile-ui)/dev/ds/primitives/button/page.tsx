@@ -67,7 +67,6 @@ export default function ButtonPage() {
                                 'stroke',
                                 'primary-soft',
                                 'transparent',
-                                'dark',
                                 'transparent-dark',
                                 'transparent-light',
                             ],
@@ -127,7 +126,6 @@ export default function ButtonPage() {
                                 ['stroke', '27 usages', 'production'],
                                 ['primary-soft', '18 usages', 'production'],
                                 ['transparent', '12 usages', 'production'],
-                                ['dark', '2 usages', 'limited'],
                                 ['transparent-dark', '3 usages', 'limited'],
                             ] as const
                         ).map(([variant, count, status]) => (

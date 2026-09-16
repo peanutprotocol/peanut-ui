@@ -6,7 +6,7 @@
     "dsTextScale": 5,
     "nonDsClassesInViews": 6,
     "useSearchParamsFiles": 34,
-    "nuqsFiles": 37,
+    "nuqsFiles": 38,
     "legacyColorClasses": 0,
     "offRampPalette": 0,
     "deadLegacyTokens": 0,
@@ -20,7 +20,7 @@
     "retypedCardLiteral": 15,
     "hoverNoActiveFiles": 32,
     "arbitraryFontSize": 32,
-    "rawErrorText": 15,
+    "rawErrorText": 16,
     "handRolledCloseGlyphFiles": 7,
     "_meta": [
         {
@@ -72,6 +72,11 @@
             "date": "2026-09-15",
             "metrics": ["classNameSitesInPages 127 -> 129"],
             "reason": "classNameSitesInPages 127->129: inherited from origin/dev's receipts-v2 (#3159) receipt-shell wrappers via the dev merge — upstream code, not this branch's; TASK-22452"
+        },
+        {
+            "date": "2026-09-16",
+            "metrics": ["rawErrorText 15 -> 16"],
+            "reason": "limits red text per the legacy-color ruling — progress-meter text, not a field error"
         }
     ]
 }

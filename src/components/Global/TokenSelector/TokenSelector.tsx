@@ -534,7 +534,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
 
                                 {/* Hide search when cross-chain functionality is disabled (withdraw or send) - only one option available */}
                                 {!isCrossChainDisabled && (
-                                    <div className="sticky -top-1 z-10 space-y-2 bg-background py-3">
+                                    <div className="sticky -top-1 z-10 space-y-2 bg-background-page py-3">
                                         <SearchInput
                                             value={searchValue}
                                             onChange={setSearchValue}
