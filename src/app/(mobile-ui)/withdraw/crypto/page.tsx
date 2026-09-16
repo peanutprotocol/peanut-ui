@@ -893,13 +893,21 @@ export default function WithdrawCryptoPage() {
     // Rhino accepts SDA deposits below the route minimum on-chain but never
     // bridges them — funds strand at the SDA, uncredited. Block the CTA before
     // the user signs. Same-chain USDC transfers have no minimum.
-    const belowMinimumMessage = useMemo<string | null>(
-        () =>
-            isCrossChainWithdrawal && isBelowRhinoMinDeposit(payAmount, minDepositLimitUsd)
-                ? `The minimum withdrawal to this network is $${minDepositLimitUsd}. Enter a larger amount.`
-                : null,
-        [isCrossChainWithdrawal, payAmount, minDepositLimitUsd]
-    )
+    const belowMinimumMessage = useMemo<string | null>(() => {
+        if (!isCrossChainWithdrawal) return null
+        if (isBelowRhinoMinDeposit(payAmount, minDepositLimitUsd)) {
+            return `The minimum withdrawal to this network is $${minDepositLimitUsd}. Enter a larger amount.`
+        }
+        // Rhino's route minimum predates the fee, so it can still admit an
+        // amount the fee swallows whole — $0.50 to Solana costs $0.50035 to
+        // deliver. Block it rather than show a delivery the recipient will
+        // never see.
+        const amountUsdValue = parseFloat(usdAmount)
+        if (scheduledFeeUsd > 0 && Number.isFinite(amountUsdValue) && scheduledFeeUsd >= amountUsdValue) {
+            return `The network fee to ${withdrawData?.chain.networkName ?? 'this network'} is $${scheduledFeeUsd.toFixed(2)}, which is more than you are withdrawing. Enter a larger amount or pick a cheaper network.`
+        }
+        return null
+    }, [isCrossChainWithdrawal, payAmount, minDepositLimitUsd, scheduledFeeUsd, usdAmount, withdrawData])
 
     // Redirect to main withdraw page for amount input. The push must run in an
     // effect — navigating during render is a React violation ("Cannot update

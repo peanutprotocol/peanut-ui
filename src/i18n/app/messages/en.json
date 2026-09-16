@@ -1907,8 +1907,8 @@
             "chainAlt": "chain",
             "to": "To",
             "networkFee": "Network fee",
-            "networkFeeInfo": "Peanut covers the bridge cost. A small network cost may be deducted on delivery.",
-            "networkFeeChargedInfo": "This is what it costs to deliver on this network. It comes out of the amount received. Peanut adds no fee of its own.",
+            "networkFeeInfo": "Delivering on this network is free — Peanut covers it. Some networks, like Ethereum and Tron, charge a fee that comes out of the amount received.",
+            "networkFeeChargedInfo": "Networks charge different amounts to deliver. This one charges, and it comes out of the amount received. Others, like Arbitrum, are free.",
             "youPay": "You pay",
             "highFeeWarning": "Note: the network fee is a large share of this withdrawal. Withdrawing a larger amount or choosing a cheaper network reduces it."
         },

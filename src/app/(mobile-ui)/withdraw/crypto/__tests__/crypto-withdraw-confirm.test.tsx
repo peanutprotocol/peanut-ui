@@ -132,6 +132,7 @@ jest.mock('@/features/withdraw/views/ConfirmWithdrawView', () => ({
         networkFee?: number
         receiveAmount?: string | null
         showHighFeeWarning?: boolean
+        belowMinimumMessage?: string | null
     }) => (
         <>
             <button data-testid="back-review" onClick={props.onBack}>
@@ -143,6 +144,7 @@ jest.mock('@/features/withdraw/views/ConfirmWithdrawView', () => ({
             <span data-testid="network-fee">{String(props.networkFee)}</span>
             <span data-testid="receive-amount">{String(props.receiveAmount)}</span>
             <span data-testid="high-fee-warning">{String(!!props.showHighFeeWarning)}</span>
+            <span data-testid="below-minimum">{String(props.belowMinimumMessage)}</span>
         </>
     ),
 }))
@@ -451,6 +453,18 @@ describe('crypto withdraw confirm — network fee', () => {
 
         expect(screen.getByTestId('network-fee').textContent).toBe('0')
         expect(screen.getByTestId('high-fee-warning').textContent).toBe('false')
+    })
+
+    it('blocks a withdrawal the fee would swallow whole', () => {
+        // $0.50 clears Rhino's Solana minimum but costs $0.50035 to deliver,
+        // so there is nothing left to arrive.
+        chargeDetails.chainId = 'solana'
+        mockUrlAmount = '0.5'
+        Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 0, receiveAmount: '0.5' })
+
+        render(<WithdrawCryptoPage />)
+
+        expect(screen.getByTestId('below-minimum').textContent).toMatch(/more than you are withdrawing/)
     })
 
     it('raises the heads-up when flat gas dominates a minimum Ethereum withdrawal', () => {

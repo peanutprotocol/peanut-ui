@@ -1907,8 +1907,8 @@
             "chainAlt": "red",
             "to": "Para",
             "networkFee": "Comisión de red",
-            "networkFeeInfo": "Peanut cubre el costo del puente. Es posible que se descuente un pequeño costo de red al entregar.",
-            "networkFeeChargedInfo": "Esto es lo que cuesta entregar en esta red. Se descuenta del monto recibido. Peanut no cobra comisión propia.",
+            "networkFeeInfo": "Entregar en esta red es gratis — Peanut lo cubre. Algunas redes, como Ethereum y Tron, cobran una comisión que se descuenta del monto recibido.",
+            "networkFeeChargedInfo": "Cada red cobra distinto por entregar. Esta cobra, y se descuenta del monto recibido. Otras, como Arbitrum, son gratis.",
             "youPay": "Pagas",
             "highFeeWarning": "Nota: la comisión de red es una parte grande de este retiro. Retirar un monto mayor o elegir una red más barata la reduce."
         },
