@@ -43,11 +43,10 @@ export const RHINO_FEE_RATE = 0.0007 // 0.07%
 /**
  * Flat destination gas per chain, charged on top of RHINO_FEE_RATE.
  *
- * Peanut stops sponsoring the withdrawal fee on these three networks — the
- * expensive ones, where one account's withdrawal loop drove most of a ~$700
- * monthly Rhino bill (Ross Middleton call, 2026-09-16). Rhino enables the
- * charge on their side; from then on the user absorbs it, and a withdrawal of
- * $10 to Ethereum delivers about $8.50.
+ * Delivering to these three costs orders of magnitude more than to an L2, so
+ * Peanut no longer covers it there and the user absorbs it: a $10 withdrawal
+ * to Ethereum delivers about $8.50. Policy and rationale live in mono
+ * (product/networks.md `withdrawal_fee`, ops/rhino-fee-display-fix.md).
  *
  * Values are Rhino's schedule, fitted from 14 days of their quotes to
  * 2026-09-16 — the median of `feeUsd - RHINO_FEE_RATE * amount`, whose 50th
