@@ -26,3 +26,22 @@ describe.each(['release-ota.yml', 'release-native.yml', 'android-release.yml'])(
         expect(result.stderr).toContain('::error::')
     })
 })
+
+it('keeps the scheduled screen harness compatible with historical merge bases', () => {
+    const workflow = fs.readFileSync(
+        path.join(__dirname, '..', '..', '.github', 'workflows', 'screen-library-baseline.yml'),
+        'utf8'
+    )
+    const checkoutTarget = workflow.indexOf('ref: ${{ matrix.sha }}')
+    const adapterPatch = workflow.indexOf('- name: Keep the harness adapter compatible with historical targets')
+    const installCaptureTools = workflow.indexOf('- name: Install capture tools')
+    const capture = workflow.indexOf('- name: Build and capture full dev catalogue')
+
+    expect(checkoutTarget).toBeGreaterThan(-1)
+    expect(adapterPatch).toBeGreaterThan(checkoutTarget)
+    expect(adapterPatch).toBeLessThan(installCaptureTools)
+    expect(installCaptureTools).toBeLessThan(capture)
+    expect(workflow).toContain('const strict = String.raw`const anchor = /async function callApi')
+    expect(workflow).toContain('const compatible = String.raw`const anchor = /(?:async\\s+)?function callApi')
+    expect(workflow).toContain('Unexpected screen adapter shape')
+})

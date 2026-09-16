@@ -74,6 +74,29 @@ jobs:
                   submodules: true
                   token: ${{ secrets.SUBMODULE_TOKEN }}
                   persist-credentials: false
+            - name: Keep the harness adapter compatible with historical targets
+              working-directory: harness
+              shell: bash
+              run: |
+                  # Some active PR merge bases predate the async annotation on
+                  # callApi. The harness is current dev, but its adapter must
+                  # accept both source shapes or those exact-base captures fail.
+                  node --input-type=module <<'NODE'
+                  import { readFileSync, writeFileSync } from 'node:fs'
+
+                  const path = 'scripts/screens/prepare.mjs'
+                  const source = readFileSync(path, 'utf8')
+                  const strict = String.raw`const anchor = /async function callApi\([^)]*\): Promise<Response> \{/`
+                  const compatible = String.raw`const anchor = /(?:async\s+)?function callApi\([^)]*\)(?:\s*:\s*Promise<Response>)?\s*\{/`
+                  if (!source.includes(strict)) {
+                      throw new Error('Unexpected screen adapter shape; refusing an unreviewed historical compatibility patch')
+                  }
+                  const patched = source.replace(strict, compatible)
+                  if (patched === source || !new RegExp(String.raw`(?:async\s+)?function callApi\([^)]*\)`).test(patched)) {
+                      throw new Error('Historical API adapter compatibility patch did not apply')
+                  }
+                  writeFileSync(path, patched)
+                  NODE
             - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
               with:
                   version: 10.30.1
