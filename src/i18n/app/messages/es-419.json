@@ -692,7 +692,8 @@
             "bankFee": "Comisión bancaria",
             "free": "¡Gratis!",
             "arrivesHours": "Suele llegar en horas.",
-            "arrivesMinutes": "Suele llegar en minutos."
+            "arrivesMinutes": "Suele llegar en minutos.",
+            "selectCurrency": "Seleccionar moneda"
         },
         "row": {
             "approximate": "Este es un valor aproximado. El monto que recibas puede variar según el tipo de cambio de tu banco.",

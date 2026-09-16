@@ -60,7 +60,7 @@ const DS_ANIMATE_TOKENS = [
 ]
 const DS_SAFE_SPACING_TOKENS = ['safe-top', 'safe-right', 'safe-bottom', 'safe-left']
 // the brutalist offset shadows from @layer components / @utility shadow-4
-const DS_SHADOW_TOKENS = ['2', '4', 'primary-4', 'primary-6', 'primary-8']
+const DS_SHADOW_TOKENS = ['2', '4', 'primary-6', 'primary-8']
 
 export const twMerge = extendTailwindMerge({
     extend: {

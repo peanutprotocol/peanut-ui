@@ -63,7 +63,7 @@ export const Profile = () => {
     const displayName = user?.user.showFullName && user?.user.fullName ? user.user.fullName : ''
 
     return (
-        <div className="h-full w-full bg-background">
+        <div className="h-full w-full bg-background-page">
             <NavHeader hideLabel showLogoutBtn onPrev={onBack} />
             <div className="space-y-8">
                 {/* the share pill is the profile's one share affordance — the

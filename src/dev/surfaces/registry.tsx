@@ -298,10 +298,11 @@ export const SURFACES: Record<string, Surface> = {
     '33-c-cardlimiteditmodal': {
         ...SURFACE_META['33-c-cardlimiteditmodal'],
         render: () => (
+            // perauthorization is the only frequency the product surfaces
             <CardLimitEditDrawer
                 cardId="demo-card"
-                frequency="per24HourPeriod"
-                label="Daily limit"
+                frequency="perAuthorization"
+                label="Per transaction"
                 initialAmountCents={50000}
                 isOpen
                 onClose={noop}

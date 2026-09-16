@@ -692,7 +692,8 @@
             "bankFee": "Taxa do banco",
             "free": "Grátis!",
             "arrivesHours": "Costuma chegar em horas.",
-            "arrivesMinutes": "Costuma chegar em minutos."
+            "arrivesMinutes": "Costuma chegar em minutos.",
+            "selectCurrency": "Selecionar moeda"
         },
         "row": {
             "approximate": "Este é um valor aproximado. O valor recebido pode variar conforme a taxa de câmbio do seu banco.",
