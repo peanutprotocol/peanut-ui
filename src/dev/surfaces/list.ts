@@ -24,10 +24,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '01-a-landing': { name: 'Landing', path: 'Setup/Views/Landing.tsx' },
     '02-a-joinwaitlist': { name: 'JoinWaitlist', path: 'Setup/Views/JoinWaitlist.tsx' },
     '03-a-residence-select': { name: 'Residence — select', path: 'Setup/Views/Residence.tsx' },
-    '05-a-signtesttransaction': {
-        name: 'SignTestTransaction — account ready',
-        path: 'Setup/Views/SignTestTransaction.tsx',
-    },
     '06-a-signup': { name: 'Signup', path: 'Setup/Views/Signup.tsx' },
     '07-a-setuppasskey': { name: 'SetupPasskey', path: 'Setup/Views/SetupPasskey.tsx' },
     '08-a-passkeysetuphelpmodal': { name: 'PasskeySetupHelpDrawer', path: 'Setup/Views/PasskeySetupHelpDrawer.tsx' },

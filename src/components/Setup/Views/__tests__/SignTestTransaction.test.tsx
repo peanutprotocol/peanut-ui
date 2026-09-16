@@ -1,11 +1,7 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
-import { getRedirectUrl, saveToLocalStorage, setRedirectUrl } from '@/utils/general.utils'
-import {
-    SETUP_ACCOUNT_READY_EXPERIMENT_FLAG,
-    SETUP_ACCOUNT_READY_SKIP_VARIANT,
-    default as SignTestTransaction,
-} from '../SignTestTransaction'
+import { getRedirectUrl, setRedirectUrl } from '@/utils/general.utils'
+import SignTestTransaction from '../SignTestTransaction'
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -61,25 +57,18 @@ jest.mock('posthog-js', () => ({
     __esModule: true,
     default: {
         capture: jest.fn(),
-        getFeatureFlagResult: jest.fn(),
         setPersonProperties: jest.fn(),
     },
 }))
 
-describe('SignTestTransaction — the account-ready screen', () => {
+describe('SignTestTransaction — setup completion', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         localStorage.clear()
         accounts = []
         mockSendUserOp.mockResolvedValue({ userOpHash: '0xhash' })
-        jest.mocked(posthog.getFeatureFlagResult).mockReturnValue({
-            key: SETUP_ACCOUNT_READY_EXPERIMENT_FLAG,
-            enabled: true,
-            variant: 'control',
-            payload: undefined,
-        })
-        // addAccount refetches the user, so the account appears while this
-        // screen is up — the pre-existing-account fast path must not fire.
+        // addAccount refetches the user, so the account appears before the
+        // completion redirect — the pre-existing-account effect must not race it.
         mockAddAccount.mockImplementation(async () => {
             accounts = [{ type: AccountType.PEANUT_WALLET }]
         })
@@ -95,7 +84,7 @@ describe('SignTestTransaction — the account-ready screen', () => {
         expect(mockAddAccount).not.toHaveBeenCalled()
     })
 
-    it('shows account-ready when Retry discovers an account from the ambiguous request', async () => {
+    it('redirects when Retry discovers an account from the ambiguous request', async () => {
         mockAddAccount.mockRejectedValueOnce(
             new AccountSetupError('Account creation could not be confirmed', {
                 kind: 'retryable',
@@ -114,117 +103,44 @@ describe('SignTestTransaction — the account-ready screen', () => {
         rerender(<SignTestTransaction />)
         fireEvent.click(screen.getByRole('button', { name: /retry account setup/i }))
 
-        await screen.findByText(/works right now/i)
+        await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith('/home'))
         expect(mockAddAccount).toHaveBeenCalledTimes(1)
         expect(mockRouterPush).not.toHaveBeenCalled()
-        expect(mockRouterReplace).not.toHaveBeenCalled()
-    })
-
-    it('never navigates on its own — the CTA is the only way off it', async () => {
-        renderWithIntl(<SignTestTransaction />)
-
-        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
-
-        await screen.findByText(/works right now/i)
-        await waitFor(() => expect(mockAddAccount).toHaveBeenCalled())
-        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_STEP_VIEWED, {
-            screen_id: 'account-ready',
-            step_index: 4,
-            total_steps: 4,
-            nav_type: 'forward',
-            flow_version: 1,
-            signup_entry_flow: 'default',
-        })
-        expect(mockRouterPush).not.toHaveBeenCalled()
-        expect(mockRouterReplace).not.toHaveBeenCalled()
-
-        fireEvent.click(screen.getByRole('button', { name: /go to my account/i }))
-        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_ACCOUNT_READY_CTA_CLICKED, {
-            flow_version: 1,
-            signup_entry_flow: 'default',
-        })
-        expect(mockRouterReplace).toHaveBeenCalledWith('/home')
-        expect(mockRouterPush).not.toHaveBeenCalled()
-    })
-
-    it('redirects automatically after account finalization for the skip-screen variant', async () => {
-        jest.mocked(posthog.getFeatureFlagResult).mockReturnValue({
-            key: SETUP_ACCOUNT_READY_EXPERIMENT_FLAG,
-            enabled: true,
-            variant: SETUP_ACCOUNT_READY_SKIP_VARIANT,
-            payload: undefined,
-        })
-        saveToLocalStorage('redirect', '/receipt?id=abc')
-
-        renderWithIntl(<SignTestTransaction />)
-        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
-
-        await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith('/receipt?id=abc'))
         expect(mockRouterReplace).toHaveBeenCalledTimes(1)
-        expect(posthog.getFeatureFlagResult).toHaveBeenCalledWith(SETUP_ACCOUNT_READY_EXPERIMENT_FLAG)
+    })
+
+    it('redirects immediately after account finalization', async () => {
+        renderWithIntl(<SignTestTransaction />)
+
+        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+
+        await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith('/home'))
+        expect(mockRouterReplace).toHaveBeenCalledTimes(1)
         expect(screen.queryByText(/works right now/i)).not.toBeInTheDocument()
         expect(posthog.capture).toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SIGNUP_COMPLETED,
             expect.objectContaining({ flow_version: 1, signup_entry_flow: 'default' })
         )
-        expect(
-            jest
-                .mocked(posthog.capture)
-                .mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.SIGNUP_ACCOUNT_READY_CTA_CLICKED)
-        ).toHaveLength(0)
-    })
-
-    it('keeps the current account-ready screen when the experiment flag is unavailable', async () => {
-        jest.mocked(posthog.getFeatureFlagResult).mockReturnValue(undefined)
-
-        renderWithIntl(<SignTestTransaction />)
-        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
-
-        await screen.findByText(/works right now/i)
-        expect(mockRouterReplace).not.toHaveBeenCalled()
-    })
-
-    it('consumes the stored route once, however fast the CTA is tapped', async () => {
-        // handleRedirect clears the stored route, so a second tap would fall
-        // back to /home and race the first push.
-        saveToLocalStorage('redirect', '/receipt?id=abc')
-
-        renderWithIntl(<SignTestTransaction />)
-        fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
-        await screen.findByText(/works right now/i)
-
-        const cta = screen.getByRole('button', { name: /go to my account/i })
-        fireEvent.click(cta)
-        fireEvent.click(cta)
-        fireEvent.click(cta)
-
-        expect(
-            jest
-                .mocked(posthog.capture)
-                .mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.SIGNUP_ACCOUNT_READY_CTA_CLICKED)
-        ).toHaveLength(1)
-        expect(mockRouterReplace).toHaveBeenCalledTimes(1)
-        expect(mockRouterReplace).toHaveBeenCalledWith('/receipt?id=abc')
+        expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
     /*
-     * This CTA is the only caller that declares the account new, and so the
-     * only place the cross-account guard is switched on. Without a classified
+     * Signup completion declares the account new, switching on the cross-account
+     * guard. Without a classified
      * record in the fixture the flag is unobserved — the argument could be
      * deleted with every test here still green, and logout-from-/profile then
      * signup would land on /profile again.
      */
-    const completeSignupAndTapCta = async () => {
+    const completeSignup = async () => {
         renderWithIntl(<SignTestTransaction />)
         fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
-        await screen.findByText(/works right now/i)
-        fireEvent.click(screen.getByRole('button', { name: /go to my account/i }))
+        await waitFor(() => expect(mockRouterReplace).toHaveBeenCalled())
     }
 
     it('refuses a page the previous session was standing on', async () => {
         setRedirectUrl('/profile', 'session-end')
 
-        await completeSignupAndTapCta()
+        await completeSignup()
 
         expect(mockRouterReplace).toHaveBeenCalledWith('/home')
         expect(getRedirectUrl()).toBeNull()
@@ -233,8 +149,9 @@ describe('SignTestTransaction — the account-ready screen', () => {
     it('still takes a deep link the person asked for', async () => {
         setRedirectUrl('/receipt?id=abc')
 
-        await completeSignupAndTapCta()
+        await completeSignup()
 
         expect(mockRouterReplace).toHaveBeenCalledWith('/receipt?id=abc')
+        expect(mockRouterReplace).toHaveBeenCalledTimes(1)
     })
 })

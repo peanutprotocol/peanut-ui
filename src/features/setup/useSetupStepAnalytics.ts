@@ -49,9 +49,7 @@ export const useSetupStepAnalytics = ({
         captureSignupStepViewed({
             screenId,
             stepIndex: stepIndex + 1,
-            // Account ready is a semantic screen rendered inside the terminal
-            // step rather than a URL step, so include it in the funnel total.
-            totalSteps: steps.length + 1,
+            totalSteps: steps.length,
             navType,
             signupEntryFlow,
         })
