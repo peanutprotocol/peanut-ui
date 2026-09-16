@@ -11845,6 +11845,27 @@
 						},
 						"description": "Default Response"
 					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
 					"422": {
 						"content": {
 							"application/json": {
@@ -12240,6 +12261,27 @@
 						"description": "Default Response"
 					},
 					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
 						"content": {
 							"application/json": {
 								"schema": {
@@ -12827,10 +12869,20 @@
 								"schema": {
 									"properties": {
 										"code": {
-											"enum": [
-												"STALE_CARD_APPROVAL"
-											],
-											"type": "string"
+											"anyOf": [
+												{
+													"enum": [
+														"STALE_CARD_APPROVAL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"WITHDRAWAL_PENDING_CONFIRMATION"
+													],
+													"type": "string"
+												}
+											]
 										},
 										"error": {
 											"type": "string"
