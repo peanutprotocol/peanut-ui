@@ -1900,7 +1900,7 @@
         },
         "confirm": {
             "recipientReceives": "Recipient receives",
-            "recipientReceivesInfo": "Peanut covers the bridge cost. A small network cost may be deducted on delivery.",
+            "recipientReceivesInfo": "This is what arrives at the destination, after any delivery cost.",
             "tokenAndNetwork": "Token and network",
             "tokenOnChain": "{token} on <c>{chain}</c>",
             "tokenAlt": "token",
@@ -1908,7 +1908,7 @@
             "to": "To",
             "networkFee": "Network fee",
             "networkFeeInfo": "Peanut covers the bridge cost. A small network cost may be deducted on delivery.",
-            "networkFeeChargedInfo": "This is the fee the network charges to deliver. It comes out of the transfer. Peanut adds no fee of its own.",
+            "networkFeeChargedInfo": "This is what it costs to deliver on this network. It comes out of the amount received. Peanut adds no fee of its own.",
             "youPay": "You pay",
             "highFeeWarning": "Note: the network fee is a large share of this withdrawal. Withdrawing a larger amount or choosing a cheaper network reduces it."
         },

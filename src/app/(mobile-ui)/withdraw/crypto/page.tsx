@@ -17,7 +17,11 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { chargesApi } from '@/services/charges'
 import type { CreateChargeRequest, TCharge } from '@/services/services.types'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
-import { isWithdrawFeeDisproportionate, getMinWithdrawUsdForChain } from '@/utils/cross-chain-fee.utils'
+import {
+    isWithdrawFeeDisproportionate,
+    getMinWithdrawUsdForChain,
+    estimateRhinoNetworkFeeUsd,
+} from '@/utils/cross-chain-fee.utils'
 import { isAmountWithinBalance } from '@/utils/balance.utils'
 import { isBelowRhinoMinDeposit, resolveWithdrawAmount } from '@/utils/withdraw.utils'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
@@ -808,7 +812,42 @@ export default function WithdrawCryptoPage() {
 
     // Get network fee from Rhino preview. Under SDA the fee is a transparent
     // bridge-fee in USD — no slippage distinction.
-    const networkFee = useMemo<number>(() => feeUsd ?? 0, [feeUsd])
+    //
+    // Peanut no longer sponsors the fee on Ethereum, Tron and Solana, and a
+    // quote issued before Rhino enables the charge comes back at zero. The
+    // schedule supplies the fee in that window. It is held apart from the
+    // quoted fee because only this one is missing from `receiveAmount`: a
+    // quoted fee is already deducted there (withdraw quotes are pay mode).
+    // Wait for the quote to resolve before pricing — an in-flight or failed
+    // quote is not a zero fee, and a number here would reach the heads-up
+    // while the row itself shows a spinner or a dash.
+    const scheduledFeeUsd = useMemo<number>(() => {
+        if (!isCrossChainWithdrawal || !chargeDetails) return 0
+        if (feeUsd === undefined || isCalculating || isFeeEstimationError) return 0
+        if (feeUsd > 0) return 0
+        return estimateRhinoNetworkFeeUsd(chargeDetails.chainId, parseFloat(usdAmount)) ?? 0
+    }, [isCrossChainWithdrawal, chargeDetails, feeUsd, isCalculating, isFeeEstimationError, usdAmount])
+
+    const networkFee = useMemo<number>(
+        () => (feeUsd && feeUsd > 0 ? feeUsd : scheduledFeeUsd),
+        [feeUsd, scheduledFeeUsd]
+    )
+
+    // What the recipient actually gets. Rhino deducts the fee on delivery, so a
+    // scheduled fee has to come off the quoted delivery here — the card must
+    // not promise the full amount and name a fee beside it. The quote is
+    // denominated in the destination token, so convert with its price (ETH to
+    // Ethereum is quoted in ETH, not dollars).
+    const receiveAmountAfterFee = useMemo<string | null | undefined>(() => {
+        if (!scheduledFeeUsd || !receiveAmount) return receiveAmount
+        const tokenPrice = withdrawData?.token.price
+        if (!tokenPrice || !Number.isFinite(tokenPrice) || tokenPrice <= 0) return receiveAmount
+        const net = parseFloat(receiveAmount) - scheduledFeeUsd / tokenPrice
+        if (!Number.isFinite(net) || net <= 0) return receiveAmount
+        // Trim the zeros toFixed pads to the token's precision — the row reads
+        // "$48.465", not "$48.465000".
+        return net.toFixed(Number(withdrawData?.token.decimals ?? 6)).replace(/\.?0+$/, '')
+    }, [scheduledFeeUsd, receiveAmount, withdrawData])
 
     // Non-blocking heads-up when the bridge fee is a large share of the amount
     // (flat mainnet gas dominating a small withdraw). The user can still proceed
@@ -903,7 +942,7 @@ export default function WithdrawCryptoPage() {
                     isCrossChain={isCrossChainWithdrawal}
                     isCalculating={isCalculating}
                     quoteFailed={isFeeEstimationError}
-                    receiveAmount={receiveAmount}
+                    receiveAmount={receiveAmountAfterFee}
                     payAmount={payAmount}
                     showHighFeeWarning={showHighFeeWarning}
                     insufficientBalance={insufficientBalance}

@@ -1900,7 +1900,7 @@
         },
         "confirm": {
             "recipientReceives": "El destinatario recibe",
-            "recipientReceivesInfo": "Peanut cubre el costo del puente. Es posible que se descuente un pequeño costo de red al entregar.",
+            "recipientReceivesInfo": "Esto es lo que llega al destino, después de cualquier costo de entrega.",
             "tokenAndNetwork": "Token y red",
             "tokenOnChain": "{token} en <c>{chain}</c>",
             "tokenAlt": "token",
@@ -1908,7 +1908,7 @@
             "to": "Para",
             "networkFee": "Comisión de red",
             "networkFeeInfo": "Peanut cubre el costo del puente. Es posible que se descuente un pequeño costo de red al entregar.",
-            "networkFeeChargedInfo": "Esta es la comisión que cobra la red por entregar. Se descuenta de la transferencia. Peanut no cobra comisión propia.",
+            "networkFeeChargedInfo": "Esto es lo que cuesta entregar en esta red. Se descuenta del monto recibido. Peanut no cobra comisión propia.",
             "youPay": "Pagas",
             "highFeeWarning": "Nota: la comisión de red es una parte grande de este retiro. Retirar un monto mayor o elegir una red más barata la reduce."
         },

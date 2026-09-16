@@ -2,9 +2,11 @@ import {
     formatNetworkFee,
     isWithdrawFeeDisproportionate,
     getMinWithdrawUsdForChain,
+    estimateRhinoNetworkFeeUsd,
     HIGH_WITHDRAW_FEE_RATIO,
     MIN_CRYPTO_WITHDRAW_USD,
     ETHEREUM_MIN_WITHDRAW_USD,
+    RHINO_FEE_RATE,
 } from './cross-chain-fee.utils'
 import { NON_EVM_WITHDRAW_CHAINS } from '@/constants/chainRegistry.consts'
 import chainDetails from '@/constants/chain-details.json'
@@ -82,6 +84,55 @@ describe('getMinWithdrawUsdForChain', () => {
 
         expect((chainDetails as Record<string, unknown>)['1']).toBeDefined()
         expect(getMinWithdrawUsdForChain('1')).toBe(ETHEREUM_MIN_WITHDRAW_USD)
+    })
+})
+
+describe('estimateRhinoNetworkFeeUsd', () => {
+    test('charges flat destination gas plus 0.07% of the amount', () => {
+        expect(estimateRhinoNetworkFeeUsd('1', 100)).toBeCloseTo(1.57, 10) // Ethereum: $1.50 flat
+        expect(estimateRhinoNetworkFeeUsd('solana', 100)).toBeCloseTo(0.57, 10) // Solana: $0.50 flat
+        expect(estimateRhinoNetworkFeeUsd('tron', 100)).toBeCloseTo(1.47, 10) // Tron: $1.40 flat
+    })
+
+    test('the rate is 0.07%', () => {
+        expect(RHINO_FEE_RATE).toBe(0.0007)
+    })
+
+    test('Tron matches on the picker slug and on the numeric chain id', () => {
+        // the withdraw picker supplies 'tron' (NON_EVM_WITHDRAW_CHAINS slug);
+        // a charge can carry the numeric id instead
+        expect(estimateRhinoNetworkFeeUsd('tron', 10)).toBe(estimateRhinoNetworkFeeUsd('728126428', 10))
+    })
+
+    test('matches a chain id whatever its casing', () => {
+        // isNonEvmWithdrawChainId lowercases too, so an uppercase slug is a
+        // shape this codebase already treats as reachable.
+        expect(estimateRhinoNetworkFeeUsd('SOLANA', 100)).toBe(estimateRhinoNetworkFeeUsd('solana', 100))
+        expect(estimateRhinoNetworkFeeUsd('Tron', 100)).toBe(estimateRhinoNetworkFeeUsd('tron', 100))
+    })
+
+    test('accepts a numeric chain id', () => {
+        expect(estimateRhinoNetworkFeeUsd(1, 100)).toBe(estimateRhinoNetworkFeeUsd('1', 100))
+    })
+
+    test('is null for a chain with no scheduled fee — the caller keeps the quote', () => {
+        expect(estimateRhinoNetworkFeeUsd('42161', 100)).toBeNull() // Arbitrum (same-chain)
+        expect(estimateRhinoNetworkFeeUsd('8453', 100)).toBeNull() // Base
+        expect(estimateRhinoNetworkFeeUsd('10', 100)).toBeNull() // Optimism — NOT Ethereum's '1'
+        expect(estimateRhinoNetworkFeeUsd('unknown-chain', 100)).toBeNull()
+    })
+
+    test('is null until the amount is a usable number', () => {
+        expect(estimateRhinoNetworkFeeUsd('1', 0)).toBeNull()
+        expect(estimateRhinoNetworkFeeUsd('1', -5)).toBeNull()
+        expect(estimateRhinoNetworkFeeUsd('1', Number.NaN)).toBeNull()
+        expect(estimateRhinoNetworkFeeUsd('1', Number.POSITIVE_INFINITY)).toBeNull()
+    })
+
+    test('the scheduled fee on a minimum Ethereum withdrawal earns the heads-up', () => {
+        // $5 is Ethereum's floor; $1.50 flat gas on it is 30% of the amount.
+        const fee = estimateRhinoNetworkFeeUsd('1', ETHEREUM_MIN_WITHDRAW_USD)!
+        expect(isWithdrawFeeDisproportionate(fee, ETHEREUM_MIN_WITHDRAW_USD)).toBe(true)
     })
 })
 

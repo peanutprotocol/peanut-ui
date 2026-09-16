@@ -75,8 +75,12 @@ jest.mock('@/utils/token.utils', () => ({
 }))
 
 jest.mock('@/utils/cross-chain-fee.utils', () => ({
-    isWithdrawFeeDisproportionate: () => false,
+    ...jest.requireActual('@/utils/cross-chain-fee.utils'),
+    isWithdrawFeeDisproportionate: (...args: unknown[]) => mockIsWithdrawFeeDisproportionate(...args),
 }))
+// Off by default so the existing cases keep their old behaviour; the fee suite
+// restores the real rule to cover the heads-up the schedule can now trigger.
+const mockIsWithdrawFeeDisproportionate = jest.fn((..._args: unknown[]) => false)
 
 const mockIsAmountWithinBalance = jest.fn((..._args: unknown[]) => true)
 jest.mock('@/utils/balance.utils', () => ({
@@ -122,7 +126,13 @@ jest.mock('@/services/requests', () => ({
 
 jest.mock('@/features/withdraw/views/ConfirmWithdrawView', () => ({
     __esModule: true,
-    default: (props: { onConfirm: () => void; onBack: () => void }) => (
+    default: (props: {
+        onConfirm: () => void
+        onBack: () => void
+        networkFee?: number
+        receiveAmount?: string | null
+        showHighFeeWarning?: boolean
+    }) => (
         <>
             <button data-testid="back-review" onClick={props.onBack}>
                 Back
@@ -130,6 +140,9 @@ jest.mock('@/features/withdraw/views/ConfirmWithdrawView', () => ({
             <button data-testid="confirm-withdraw" onClick={props.onConfirm}>
                 Confirm
             </button>
+            <span data-testid="network-fee">{String(props.networkFee)}</span>
+            <span data-testid="receive-amount">{String(props.receiveAmount)}</span>
+            <span data-testid="high-fee-warning">{String(!!props.showHighFeeWarning)}</span>
         </>
     ),
 }))
@@ -333,13 +346,125 @@ beforeEach(() => {
     mockWithdrawFlow.showCompatibilityModal = false
     jest.clearAllMocks()
     mockRecordPayment.mockResolvedValue(PAYMENT_RESULT)
-    Object.assign(mockCrossChainTransfer, { isXChain: false, isDiffToken: false, quoteExpiresAt: null })
+    Object.assign(mockCrossChainTransfer, {
+        isXChain: false,
+        isDiffToken: false,
+        quoteExpiresAt: null,
+        feeUsd: 0,
+        receiveAmount: '50',
+        isCalculating: false,
+        isFeeEstimationError: false,
+    })
+    chargeDetails.chainId = '42161'
+    withdrawData.token.price = 1
+    mockIsWithdrawFeeDisproportionate.mockImplementation(() => false)
     mockUrlAmount = '50'
     mockStepper.step = 'review'
     mockWithdrawFlow.isMaxWithdrawal = false
     mockWalletState.spendableBalance = 100n * 10n ** 6n
     mockIsAmountWithinBalance.mockReset()
     mockIsAmountWithinBalance.mockImplementation(() => true)
+})
+
+// Peanut stops sponsoring the withdrawal fee on Ethereum, Tron and Solana.
+// Rhino enables the charge on their side; until a quote carries it, the
+// schedule prices the fee AND comes off the delivery, so the card never
+// promises the full amount next to a fee.
+describe('crypto withdraw confirm — network fee', () => {
+    const realRule = jest.requireActual('@/utils/cross-chain-fee.utils').isWithdrawFeeDisproportionate
+
+    it('prices a zero-quote Ethereum withdrawal from the schedule', () => {
+        chargeDetails.chainId = '1'
+        Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 0 })
+
+        render(<WithdrawCryptoPage />)
+
+        // $1.50 flat destination gas + 0.07% of the $50 withdrawn
+        expect(screen.getByTestId('network-fee').textContent).toBe('1.535')
+    })
+
+    it('takes the scheduled fee off what the recipient receives', () => {
+        chargeDetails.chainId = '1'
+        Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 0, receiveAmount: '50' })
+
+        render(<WithdrawCryptoPage />)
+
+        // the quote never priced the fee, so the delivery has to lose it here
+        expect(screen.getByTestId('receive-amount').textContent).toBe('48.465')
+    })
+
+    it('converts the fee into the destination token before deducting it', () => {
+        chargeDetails.chainId = '1'
+        withdrawData.token.price = 2000 // withdrawing ETH, quoted in ETH
+        Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 0, receiveAmount: '1' })
+
+        render(<WithdrawCryptoPage />)
+
+        // 1 ETH - ($1.535 / $2000), not 1 - 1.535
+        expect(screen.getByTestId('receive-amount').textContent).toBe('0.999232')
+    })
+
+    it('leaves the quoted delivery alone — a priced quote already deducted its fee', () => {
+        chargeDetails.chainId = '1'
+        Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 2, receiveAmount: '48' })
+
+        render(<WithdrawCryptoPage />)
+
+        expect(screen.getByTestId('network-fee').textContent).toBe('2')
+        expect(screen.getByTestId('receive-amount').textContent).toBe('48')
+    })
+
+    it('stays sponsored on a same-chain withdrawal', () => {
+        Object.assign(mockCrossChainTransfer, { isXChain: false, isDiffToken: false, feeUsd: 0 })
+
+        render(<WithdrawCryptoPage />)
+
+        expect(screen.getByTestId('network-fee').textContent).toBe('0')
+    })
+
+    it('stays sponsored on a cross-chain route Peanut still covers', () => {
+        chargeDetails.chainId = '8453' // Base — flat gas is cents, still sponsored
+        Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 0 })
+
+        render(<WithdrawCryptoPage />)
+
+        expect(screen.getByTestId('network-fee').textContent).toBe('0')
+        expect(screen.getByTestId('receive-amount').textContent).toBe('50')
+    })
+
+    it('waits for the quote — an in-flight quote is not a zero fee', () => {
+        chargeDetails.chainId = '1'
+        Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: undefined, isCalculating: true })
+
+        render(<WithdrawCryptoPage />)
+
+        // otherwise the heads-up fires while the row still shows a spinner
+        expect(screen.getByTestId('network-fee').textContent).toBe('0')
+        expect(screen.getByTestId('high-fee-warning').textContent).toBe('false')
+    })
+
+    it('prices nothing when the quote failed — that row shows a dash', () => {
+        chargeDetails.chainId = '1'
+        Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 0, isFeeEstimationError: true })
+
+        render(<WithdrawCryptoPage />)
+
+        expect(screen.getByTestId('network-fee').textContent).toBe('0')
+        expect(screen.getByTestId('high-fee-warning').textContent).toBe('false')
+    })
+
+    it('raises the heads-up when flat gas dominates a minimum Ethereum withdrawal', () => {
+        mockIsWithdrawFeeDisproportionate.mockImplementation((...args: unknown[]) =>
+            realRule(...(args as Parameters<typeof realRule>))
+        )
+        chargeDetails.chainId = '1'
+        mockUrlAmount = '5' // Ethereum's floor — $1.50 of it is 30%
+        Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 0 })
+
+        render(<WithdrawCryptoPage />)
+
+        expect(screen.getByTestId('high-fee-warning').textContent).toBe('true')
+    })
 })
 
 describe('crypto withdraw preparation', () => {

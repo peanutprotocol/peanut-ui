@@ -1,14 +1,12 @@
 /**
  * Cross-chain withdrawal fee display and heads-up.
  *
- * The app quotes with Rhino's authenticated (account-bound) quote, and
- * Peanut's account is configured 1:1 with no on-chain fee on stablecoin
- * routes — so `feeUsd` is normally 0 and the row shows the sponsored label.
- * Rhino can still deduct a small network cost on delivery (1–3 bps seen on
- * Solana) and the account config can change, so everything here reads the
- * quote verbatim and never assumes zero: a non-zero quote is shown as-is, and
- * when it is a large share of a small withdrawal we surface a non-blocking
- * heads-up rather than block.
+ * The app quotes with Rhino's authenticated (account-bound) quote and shows
+ * `feeUsd` verbatim wherever it prices the route. Peanut no longer sponsors
+ * the fee on Ethereum, Tron and Solana, so a zero quote on those three is
+ * priced from the schedule below instead of showing the sponsored label.
+ * When the fee is a large share of a small withdrawal we surface a
+ * non-blocking heads-up rather than block.
  */
 
 /**
@@ -37,6 +35,50 @@ export function isWithdrawFeeDisproportionate(
     if (!feeUsd || feeUsd <= 0) return false
     if (!Number.isFinite(amountUsd) || amountUsd <= 0) return false
     return feeUsd / amountUsd > threshold
+}
+
+/** The share of the withdrawal amount Rhino charges on top of the flat gas. */
+export const RHINO_FEE_RATE = 0.0007 // 0.07%
+
+/**
+ * Flat destination gas per chain, charged on top of RHINO_FEE_RATE.
+ *
+ * Peanut stops sponsoring the withdrawal fee on these three networks — the
+ * expensive ones, where one account's withdrawal loop drove most of a ~$700
+ * monthly Rhino bill (Ross Middleton call, 2026-09-16). Rhino enables the
+ * charge on their side; from then on the user absorbs it, and a withdrawal of
+ * $10 to Ethereum delivers about $8.50.
+ *
+ * Values are Rhino's schedule, fitted from 14 days of their quotes to
+ * 2026-09-16 — the median of `feeUsd - RHINO_FEE_RATE * amount`, whose 50th
+ * and 90th percentile agree to the cent on all three chains. Only these three
+ * are listed: everywhere else the flat gas is cents and Peanut keeps covering
+ * it. Re-fit the table when Rhino changes its schedule.
+ *
+ * Quotes issued before the charge is enabled come back at zero, so the fee
+ * still has to be named from this table; the caller subtracts it from what
+ * the recipient receives, which that quote also has not accounted for.
+ */
+const CHAIN_FLAT_GAS_USD: Record<string, number> = {
+    '1': 1.5, // Ethereum mainnet
+    solana: 0.5,
+    // Tron: the withdraw picker's NON_EVM_WITHDRAW_CHAINS entry uses the
+    // 'tron' slug (chainRegistry.consts.ts), not the numeric chain id — key
+    // both, so neither representation misses the fee.
+    tron: 1.4,
+    '728126428': 1.4,
+}
+
+/**
+ * The scheduled network fee for a withdrawal of this amount to this chain.
+ * Null when the chain is not on the schedule, or the amount is not yet a
+ * usable number — the caller then keeps whatever the quote said.
+ */
+export function estimateRhinoNetworkFeeUsd(chainId: string | number, amountUsd: number): number | null {
+    const flatGasUsd = CHAIN_FLAT_GAS_USD[String(chainId).toLowerCase()]
+    if (flatGasUsd === undefined) return null
+    if (!Number.isFinite(amountUsd) || amountUsd <= 0) return null
+    return flatGasUsd + RHINO_FEE_RATE * amountUsd
 }
 
 /**
