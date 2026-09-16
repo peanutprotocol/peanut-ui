@@ -817,9 +817,11 @@ export default function WithdrawCryptoPage() {
     // rather than call a real fee sponsored. See cross-chain-fee.utils.ts.
     const networkFee = useMemo<number>(() => {
         if (feeUsd && feeUsd > 0) return feeUsd
-        if (!isCrossChainWithdrawal || !chargeDetails) return 0
+        // A failed quote is not a zero fee — the row shows a dash there, and a
+        // schedule number would only feed the heads-up a fee nobody quoted.
+        if (!isCrossChainWithdrawal || !chargeDetails || isFeeEstimationError) return 0
         return estimateRhinoNetworkFeeUsd(chargeDetails.chainId, parseFloat(usdAmount)) ?? 0
-    }, [feeUsd, isCrossChainWithdrawal, chargeDetails, usdAmount])
+    }, [feeUsd, isCrossChainWithdrawal, chargeDetails, isFeeEstimationError, usdAmount])
 
     // Non-blocking heads-up when the bridge fee is a large share of the amount
     // (flat mainnet gas dominating a small withdraw). The user can still proceed

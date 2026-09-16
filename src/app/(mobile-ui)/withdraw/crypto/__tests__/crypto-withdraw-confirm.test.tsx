@@ -377,6 +377,18 @@ describe('crypto withdraw confirm — network fee', () => {
         expect(screen.getByTestId('network-fee')).toHaveTextContent('0')
     })
 
+    it('does not invent a fee when the quote failed — that route shows a dash, not a number', () => {
+        chargeDetails.chainId = '1'
+        Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 0, isFeeEstimationError: true })
+        try {
+            render(<WithdrawCryptoPage />)
+
+            expect(screen.getByTestId('network-fee')).toHaveTextContent('0')
+        } finally {
+            Object.assign(mockCrossChainTransfer, { isFeeEstimationError: false })
+        }
+    })
+
     it('stays sponsored on a cross-chain route with no scheduled fee', () => {
         chargeDetails.chainId = '8453' // Base — flat gas is cents, not worth naming
         Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 0 })
