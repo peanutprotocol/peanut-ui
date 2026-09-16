@@ -17,11 +17,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { chargesApi } from '@/services/charges'
 import type { CreateChargeRequest, TCharge } from '@/services/services.types'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
-import {
-    isWithdrawFeeDisproportionate,
-    getMinWithdrawUsdForChain,
-    estimateRhinoNetworkFeeUsd,
-} from '@/utils/cross-chain-fee.utils'
+import { isWithdrawFeeDisproportionate, getMinWithdrawUsdForChain } from '@/utils/cross-chain-fee.utils'
 import { isAmountWithinBalance } from '@/utils/balance.utils'
 import { isBelowRhinoMinDeposit, resolveWithdrawAmount } from '@/utils/withdraw.utils'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
@@ -811,17 +807,8 @@ export default function WithdrawCryptoPage() {
     const displayError = paymentError
 
     // Get network fee from Rhino preview. Under SDA the fee is a transparent
-    // bridge-fee in USD — no slippage distinction. The quote is the source
-    // whenever it prices the route; Rhino returns zero on part of the traffic
-    // for chains it does charge for, so fall back to its published schedule
-    // rather than call a real fee sponsored. See cross-chain-fee.utils.ts.
-    const networkFee = useMemo<number>(() => {
-        if (feeUsd && feeUsd > 0) return feeUsd
-        // A failed quote is not a zero fee — the row shows a dash there, and a
-        // schedule number would only feed the heads-up a fee nobody quoted.
-        if (!isCrossChainWithdrawal || !chargeDetails || isFeeEstimationError) return 0
-        return estimateRhinoNetworkFeeUsd(chargeDetails.chainId, parseFloat(usdAmount)) ?? 0
-    }, [feeUsd, isCrossChainWithdrawal, chargeDetails, isFeeEstimationError, usdAmount])
+    // bridge-fee in USD — no slippage distinction.
+    const networkFee = useMemo<number>(() => feeUsd ?? 0, [feeUsd])
 
     // Non-blocking heads-up when the bridge fee is a large share of the amount
     // (flat mainnet gas dominating a small withdraw). The user can still proceed

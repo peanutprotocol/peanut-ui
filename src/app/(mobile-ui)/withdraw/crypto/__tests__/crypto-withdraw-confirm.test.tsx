@@ -75,7 +75,6 @@ jest.mock('@/utils/token.utils', () => ({
 }))
 
 jest.mock('@/utils/cross-chain-fee.utils', () => ({
-    ...jest.requireActual('@/utils/cross-chain-fee.utils'),
     isWithdrawFeeDisproportionate: () => false,
 }))
 
@@ -123,7 +122,7 @@ jest.mock('@/services/requests', () => ({
 
 jest.mock('@/features/withdraw/views/ConfirmWithdrawView', () => ({
     __esModule: true,
-    default: (props: { onConfirm: () => void; onBack: () => void; networkFee?: number }) => (
+    default: (props: { onConfirm: () => void; onBack: () => void }) => (
         <>
             <button data-testid="back-review" onClick={props.onBack}>
                 Back
@@ -131,7 +130,6 @@ jest.mock('@/features/withdraw/views/ConfirmWithdrawView', () => ({
             <button data-testid="confirm-withdraw" onClick={props.onConfirm}>
                 Confirm
             </button>
-            <span data-testid="network-fee">{String(props.networkFee)}</span>
         </>
     ),
 }))
@@ -335,68 +333,13 @@ beforeEach(() => {
     mockWithdrawFlow.showCompatibilityModal = false
     jest.clearAllMocks()
     mockRecordPayment.mockResolvedValue(PAYMENT_RESULT)
-    Object.assign(mockCrossChainTransfer, { isXChain: false, isDiffToken: false, quoteExpiresAt: null, feeUsd: 0 })
-    chargeDetails.chainId = '42161'
+    Object.assign(mockCrossChainTransfer, { isXChain: false, isDiffToken: false, quoteExpiresAt: null })
     mockUrlAmount = '50'
     mockStepper.step = 'review'
     mockWithdrawFlow.isMaxWithdrawal = false
     mockWalletState.spendableBalance = 100n * 10n ** 6n
     mockIsAmountWithinBalance.mockReset()
     mockIsAmountWithinBalance.mockImplementation(() => true)
-})
-
-// Rhino prices Ethereum/Tron/Solana withdrawals but returns a zero fee on part
-// of the traffic, which showed "Sponsored by Peanut!" on a withdrawal that does
-// carry a fee. The quote stays the source wherever it prices the route; the
-// published schedule only fills a zero.
-describe('crypto withdraw confirm — network fee', () => {
-    it('falls back to the scheduled fee when Rhino quotes a cross-chain route at zero', () => {
-        chargeDetails.chainId = '1' // Ethereum mainnet
-        Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 0 })
-
-        render(<WithdrawCryptoPage />)
-
-        // $1.50 flat destination gas + 0.07% of the $50 withdrawn
-        expect(screen.getByTestId('network-fee')).toHaveTextContent('1.535')
-    })
-
-    it('shows the quoted fee verbatim when Rhino does price the route', () => {
-        chargeDetails.chainId = '1'
-        Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 2 })
-
-        render(<WithdrawCryptoPage />)
-
-        expect(screen.getByTestId('network-fee')).toHaveTextContent('2')
-    })
-
-    it('stays sponsored on a same-chain withdrawal', () => {
-        Object.assign(mockCrossChainTransfer, { isXChain: false, isDiffToken: false, feeUsd: 0 })
-
-        render(<WithdrawCryptoPage />)
-
-        expect(screen.getByTestId('network-fee')).toHaveTextContent('0')
-    })
-
-    it('does not invent a fee when the quote failed — that route shows a dash, not a number', () => {
-        chargeDetails.chainId = '1'
-        Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 0, isFeeEstimationError: true })
-        try {
-            render(<WithdrawCryptoPage />)
-
-            expect(screen.getByTestId('network-fee')).toHaveTextContent('0')
-        } finally {
-            Object.assign(mockCrossChainTransfer, { isFeeEstimationError: false })
-        }
-    })
-
-    it('stays sponsored on a cross-chain route with no scheduled fee', () => {
-        chargeDetails.chainId = '8453' // Base — flat gas is cents, not worth naming
-        Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 0 })
-
-        render(<WithdrawCryptoPage />)
-
-        expect(screen.getByTestId('network-fee')).toHaveTextContent('0')
-    })
 })
 
 describe('crypto withdraw preparation', () => {
