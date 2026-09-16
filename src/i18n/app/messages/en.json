@@ -1908,7 +1908,7 @@
             "to": "To",
             "networkFee": "Network fee",
             "networkFeeInfo": "Peanut covers the bridge cost. A small network cost may be deducted on delivery.",
-            "networkFeeChargedInfo": "This route quotes a fee. It's already included in the amount you pay.",
+            "networkFeeChargedInfo": "This is the fee the network charges to deliver. It comes out of the transfer. Peanut adds no fee of its own.",
             "youPay": "You pay",
             "highFeeWarning": "Note: the network fee is a large share of this withdrawal. Withdrawing a larger amount or choosing a cheaper network reduces it."
         },

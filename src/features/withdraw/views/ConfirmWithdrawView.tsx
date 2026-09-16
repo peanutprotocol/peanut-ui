@@ -211,9 +211,10 @@ export default function ConfirmWithdrawView({
                         loading={isCrossChain && isCalculating}
                         estimationFailed={isCrossChain && quoteFailed}
                         // Two different things to explain: nothing charged on
-                        // top (the sponsored row), or a quoted fee — which this
-                        // flow quotes receive-mode, so it sits inside You pay,
-                        // not on top of it.
+                        // top (the sponsored row), or a real network fee —
+                        // inside You pay when Rhino quotes it receive-mode,
+                        // taken on delivery when the schedule fills a zero
+                        // quote.
                         moreInfoText={
                             isCrossChain && (networkFee ?? 0) > 0
                                 ? t('confirm.networkFeeChargedInfo')
