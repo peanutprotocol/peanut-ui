@@ -9,7 +9,9 @@ import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { Field } from '@/components/0_Bruddle/Field'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import ProgressBar from '@/components/0_Bruddle/ProgressBar'
 import { ScreenMark } from '@/components/0_Bruddle/ScreenMark'
 import { Section } from '@/components/0_Bruddle/Section'
@@ -23,13 +25,17 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/G
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Icon } from '@/components/Global/Icons/Icon'
 import DevPageShell from '../_components/DevPageShell'
-import PinDisplay from './PinDisplay'
 
 /**
  * /dev/card-ds-variants — visual-QA variants for the card surfaces migrated
  * in the card DS-conformance PR. Every piece of data is mocked: no rainApi,
  * no network. Each section shows the shipped layout next to the proposal so
  * the decision is a side-by-side look, not a code read.
+ *
+ * Round 2: sections 1, 5, 6 and the empty state are APPROVED (winner kept,
+ * losers deleted). Sections 2 and 3 were rejected wholesale — the new
+ * variants below each follow the anatomy of a real shipped page, named in
+ * the variant label.
  */
 
 // mock values — the page never talks to a backend
@@ -47,31 +53,17 @@ const PIN_RULES = ["Numbers can't be sequential (1234)", 'No repeating digits (1
 
 const mockSave = () => new Promise<void>((resolve) => setTimeout(resolve, MOCK_SAVE_MS))
 
-/** reveal state with the 30s auto-mask window; pct is the remaining window for the V3 countdown bar */
+/** reveal state with the 30s auto-mask window */
 const useMockReveal = () => {
     const [revealed, setRevealed] = useState(false)
-    const [pct, setPct] = useState(100)
 
     useEffect(() => {
         if (!revealed) return
-        const start = Date.now()
-        const id = setInterval(() => {
-            const left = 1 - (Date.now() - start) / REVEAL_MS
-            if (left <= 0) {
-                setRevealed(false)
-                setPct(100)
-            } else {
-                setPct(left * 100)
-            }
-        }, 250)
-        return () => clearInterval(id)
+        const id = setTimeout(() => setRevealed(false), REVEAL_MS)
+        return () => clearTimeout(id)
     }, [revealed])
 
-    const toggle = () => {
-        setPct(100)
-        setRevealed((v) => !v)
-    }
-    return { revealed, pct, toggle }
+    return { revealed, toggle: () => setRevealed((v) => !v) }
 }
 
 const EyeButton = ({ revealed, onClick }: { revealed: boolean; onClick: () => void }) => (
@@ -88,6 +80,16 @@ const EyeButton = ({ revealed, onClick }: { revealed: boolean; onClick: () => vo
     />
 )
 
+/** the locked pin representation: plain text digits/mask + the small inline eye */
+const PinText = ({ revealed, toggle }: { revealed: boolean; toggle: () => void }) => (
+    <div className="flex items-center gap-3">
+        <div className="ph-no-capture flex h-14 items-center">
+            <span className="text-heading-xl">{revealed ? MOCK_PIN : '****'}</span>
+        </div>
+        <EyeButton revealed={revealed} onClick={toggle} />
+    </div>
+)
+
 const VariantBlock = ({ label, note, children }: { label: string; note?: string; children: React.ReactNode }) => (
     <div className="flex w-full max-w-96 flex-col gap-3">
         <div className="flex flex-col gap-1">
@@ -100,6 +102,7 @@ const VariantBlock = ({ label, note, children }: { label: string; note?: string;
 
 // ---- section 2: pin view variants ----
 
+// baseline replica of the current PR's CardPinScreen render
 const PinViewV1 = () => {
     const { revealed, toggle } = useMockReveal()
     return (
@@ -107,12 +110,7 @@ const PinViewV1 = () => {
             <ScreenMark icon="credit-card" color="brand" />
             <div className="flex flex-col gap-6">
                 <p className="text-body-s text-foreground-secondary">Your pin is hidden for security reasons.</p>
-                <div className="flex items-center gap-3">
-                    <div className="ph-no-capture flex h-14 items-center">
-                        <span className="text-heading-xl">{revealed ? MOCK_PIN : '****'}</span>
-                    </div>
-                    <EyeButton revealed={revealed} onClick={toggle} />
-                </div>
+                <PinText revealed={revealed} toggle={toggle} />
                 <ListItem
                     title="Change pin"
                     leading={<Icon name="more-horizontal" size={24} />}
@@ -125,29 +123,74 @@ const PinViewV1 = () => {
     )
 }
 
-const PinViewV2 = ({ withCountdown = false }: { withCountdown?: boolean }) => {
-    const { revealed, pct, toggle } = useMockReveal()
+// anatomy from /profile/backup: hero card up top, then titled sections of
+// grouped rows — the page's copy lives inside the hero card, not floating
+const PinViewBackupAnatomy = () => {
+    const { revealed, toggle } = useMockReveal()
     return (
-        <>
-            <ScreenMark icon="credit-card" color="brand" />
-            <TitleBlock title="Your card pin" description="Your pin is hidden for security reasons." />
-            <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-3">
-                    <PinDisplay pin={MOCK_PIN} revealed={revealed} />
-                    <EyeButton revealed={revealed} onClick={toggle} />
-                </div>
-                {withCountdown && revealed && <ProgressBar value={pct} fillClassName="bg-action-primary" />}
-            </div>
-            <Section title="Manage">
-                <ListItem
-                    title="Change pin"
-                    leading={<Icon name="more-horizontal" size={24} />}
-                    chevron
-                    onClick={() => {}}
-                    position="single"
+        <div className="flex flex-col gap-4">
+            <Card className="items-center gap-2 px-4 py-6 text-center">
+                <TitleBlock
+                    align="center"
+                    title="Your card pin"
+                    description="Your pin is hidden for security reasons."
                 />
+                <PinText revealed={revealed} toggle={toggle} />
+            </Card>
+            <Section title="Manage">
+                <ListGroup>
+                    <ListItem title="Change pin" chevron onClick={() => {}} />
+                </ListGroup>
             </Section>
-        </>
+        </div>
+    )
+}
+
+// anatomy from /limits (LimitsPageView): info notification as the page
+// description, then settings-style rows — the pin itself is a row value
+const PinViewLimitsAnatomy = () => {
+    const { revealed, toggle } = useMockReveal()
+    return (
+        <div className="flex flex-col gap-4">
+            <Notification priority="info">Your pin is hidden for security reasons.</Notification>
+            <Section title="Card pin">
+                <ListGroup>
+                    <ListItem
+                        title="PIN"
+                        leading={<Icon name="credit-card" size={24} />}
+                        trailing={
+                            <div className="flex items-center gap-2">
+                                <span className="ph-no-capture text-body-m-semibold">
+                                    {revealed ? MOCK_PIN : '****'}
+                                </span>
+                                <EyeButton revealed={revealed} onClick={toggle} />
+                            </div>
+                        }
+                    />
+                    <ListItem title="Change pin" chevron onClick={() => {}} />
+                </ListGroup>
+            </Section>
+        </div>
+    )
+}
+
+// anatomy from withdraw PixKeySendView: heading-card + description column,
+// the value where the input sits, helper line, full-width cta at the end
+const PinViewFlowAnatomy = () => {
+    const { revealed, toggle } = useMockReveal()
+    return (
+        <div className="space-y-4">
+            <h2 className="text-heading-card text-foreground-primary">Your card pin</h2>
+            <div className="space-y-2">
+                <PinText revealed={revealed} toggle={toggle} />
+                <div className="flex items-center gap-2 text-body-s text-foreground-secondary">
+                    <span>Your pin is hidden for security reasons.</span>
+                </div>
+            </div>
+            <Button variant="stroke" className="w-full" shadowSize="4" onClick={() => {}}>
+                Change pin
+            </Button>
+        </div>
     )
 }
 
@@ -155,22 +198,13 @@ const PinViewV2 = ({ withCountdown = false }: { withCountdown?: boolean }) => {
 
 type SetupStep = 'choose' | 'confirm' | 'saving' | 'success'
 
-const PinSetupFlow = ({ autoAdvance }: { autoAdvance: boolean }) => {
+const usePinSetup = () => {
     const [step, setStep] = useState<SetupStep>('choose')
     const [first, setFirst] = useState('')
     const [second, setSecond] = useState('')
     const [fieldError, setFieldError] = useState<string | null>(null)
 
     const chooseValidation = first.length === 4 ? validatePin(first) : null
-
-    // v2 proposal: the 4th valid digit advances to confirm — no continue button.
-    // the 200ms pause lets the 4th dot paint before the step swaps.
-    useEffect(() => {
-        if (!autoAdvance || step !== 'choose') return
-        if (!chooseValidation?.valid) return
-        const id = setTimeout(() => setStep('confirm'), 200)
-        return () => clearTimeout(id)
-    }, [autoAdvance, step, chooseValidation])
 
     const reset = () => {
         setStep('choose')
@@ -190,41 +224,46 @@ const PinSetupFlow = ({ autoAdvance }: { autoAdvance: boolean }) => {
         setStep('success')
     }
 
-    if (step === 'success') {
+    return { step, setStep, first, setFirst, second, setSecond, fieldError, chooseValidation, reset, onConfirm }
+}
+
+const SetupSuccess = ({ onDone }: { onDone: () => void }) => (
+    <div className="flex flex-col items-center gap-4 text-center">
+        <IconBubble icon="check" size="l" color="green" />
+        <TitleBlock
+            title={<h2>PIN successfully set</h2>}
+            description="You can now use your card for in-store purchases."
+            align="center"
+            size="s"
+        />
+        <Button variant="purple" className="w-full" onClick={onDone}>
+            Done
+        </Button>
+    </div>
+)
+
+// baseline replica of the current PR's CardPinSetupFlow (centered TitleBlock,
+// centered pin, bullets, continue button, plain-text success)
+const PinSetupBaseline = () => {
+    const s = usePinSetup()
+
+    if (s.step === 'success') {
         return (
             <div className="flex flex-col items-center gap-4 text-center">
-                {autoAdvance ? (
-                    // v2 proposal: the ds success shape — green check bubble above the title
-                    <>
-                        <IconBubble icon="check" size="l" color="green" />
-                        <TitleBlock
-                            title={<h2>PIN successfully set</h2>}
-                            description="You can now use your card for in-store purchases."
-                            align="center"
-                            size="s"
-                        />
-                        <Button variant="purple" className="w-full" onClick={reset}>
-                            Done
-                        </Button>
-                    </>
-                ) : (
-                    <>
-                        <TitleBlock
-                            title={<h2>PIN successfully set</h2>}
-                            description="You can now use your card for in-store purchases."
-                            align="center"
-                            size="s"
-                        />
-                        <Button variant="purple" className="w-full" onClick={reset}>
-                            Close
-                        </Button>
-                    </>
-                )}
+                <TitleBlock
+                    title={<h2>PIN successfully set</h2>}
+                    description="You can now use your card for in-store purchases."
+                    align="center"
+                    size="s"
+                />
+                <Button variant="purple" className="w-full" onClick={s.reset}>
+                    Close
+                </Button>
             </div>
         )
     }
 
-    if (step === 'confirm' || step === 'saving') {
+    if (s.step === 'confirm' || s.step === 'saving') {
         return (
             <div className="flex flex-col items-center gap-6 text-center">
                 <TitleBlock
@@ -234,15 +273,20 @@ const PinSetupFlow = ({ autoAdvance }: { autoAdvance: boolean }) => {
                     size="s"
                 />
                 <div className="flex flex-col items-center gap-1">
-                    <PinInput value={second} onChange={setSecond} autoFocus={false} disabled={step === 'saving'} />
-                    {fieldError && <FieldError>{fieldError}</FieldError>}
+                    <PinInput
+                        value={s.second}
+                        onChange={s.setSecond}
+                        autoFocus={false}
+                        disabled={s.step === 'saving'}
+                    />
+                    {s.fieldError && <FieldError>{s.fieldError}</FieldError>}
                 </div>
                 <Button
                     variant="purple"
                     className="w-full"
-                    onClick={onConfirm}
-                    loading={step === 'saving'}
-                    disabled={second.length < 4 || step === 'saving'}
+                    onClick={s.onConfirm}
+                    loading={s.step === 'saving'}
+                    disabled={s.second.length < 4 || s.step === 'saving'}
                 >
                     Save
                 </Button>
@@ -259,29 +303,123 @@ const PinSetupFlow = ({ autoAdvance }: { autoAdvance: boolean }) => {
                 size="s"
             />
             <div className="flex flex-col items-center gap-1">
-                <PinInput value={first} onChange={setFirst} autoFocus={false} />
-                {chooseValidation && !chooseValidation.valid && chooseValidation.reason && (
-                    <FieldError>{REJECTION_COPY[chooseValidation.reason]}</FieldError>
+                <PinInput value={s.first} onChange={s.setFirst} autoFocus={false} />
+                {s.chooseValidation && !s.chooseValidation.valid && s.chooseValidation.reason && (
+                    <FieldError>{REJECTION_COPY[s.chooseValidation.reason]}</FieldError>
                 )}
             </div>
             <BulletList items={PIN_RULES} />
-            {!autoAdvance && (
-                <Button
-                    variant="purple"
-                    className="w-full"
-                    onClick={() => setStep('confirm')}
-                    disabled={!chooseValidation?.valid}
-                >
-                    Continue
-                </Button>
-            )}
+            <Button
+                variant="purple"
+                className="w-full"
+                onClick={() => s.setStep('confirm')}
+                disabled={!s.chooseValidation?.valid}
+            >
+                Continue
+            </Button>
         </div>
     )
 }
 
-// ---- section 5: limit edit drawer replica ----
+// anatomy from add-money InputAmountStep: left text-label-l prompt, input
+// column, one helper line in body-xs, purple cta with shadow, flow error
+// notification below the cta
+const PinSetupAmountAnatomy = () => {
+    const s = usePinSetup()
 
-const LimitDrawerDemo = ({ withIcon, open, onClose }: { withIcon: boolean; open: boolean; onClose: () => void }) => {
+    if (s.step === 'success') return <SetupSuccess onDone={s.reset} />
+
+    const isConfirm = s.step === 'confirm' || s.step === 'saving'
+    return (
+        <div className="flex flex-col gap-4">
+            <div className="text-label-l">{isConfirm ? 'Re-enter your PIN to verify' : 'Choose a 4 digit PIN'}</div>
+            <div className="flex flex-col gap-1">
+                {isConfirm ? (
+                    <PinInput
+                        value={s.second}
+                        onChange={s.setSecond}
+                        autoFocus={false}
+                        disabled={s.step === 'saving'}
+                        className="justify-start"
+                    />
+                ) : (
+                    <PinInput value={s.first} onChange={s.setFirst} autoFocus={false} className="justify-start" />
+                )}
+                {!isConfirm && s.chooseValidation && !s.chooseValidation.valid && s.chooseValidation.reason && (
+                    <FieldError>{REJECTION_COPY[s.chooseValidation.reason]}</FieldError>
+                )}
+            </div>
+            <div className="flex items-center gap-2 text-body-xs text-foreground-secondary">
+                <span>No sequential (1234) or repeating (1111) digits. You can change it later.</span>
+            </div>
+            <Button
+                variant="purple"
+                shadowSize="4"
+                className="w-full"
+                onClick={isConfirm ? s.onConfirm : () => s.setStep('confirm')}
+                loading={s.step === 'saving'}
+                disabled={isConfirm ? s.second.length < 4 || s.step === 'saving' : !s.chooseValidation?.valid}
+            >
+                {isConfirm ? 'Save' : 'Continue'}
+            </Button>
+            {isConfirm && s.fieldError && <Notification priority="error">{s.fieldError}</Notification>}
+        </div>
+    )
+}
+
+// anatomy from withdraw PixKeySendView: heading-card + input column with the
+// field error, restyled bullets under the input, continue cta with shadow
+const PinSetupPixAnatomy = () => {
+    const s = usePinSetup()
+
+    if (s.step === 'success') return <SetupSuccess onDone={s.reset} />
+
+    const isConfirm = s.step === 'confirm' || s.step === 'saving'
+    return (
+        <div className="space-y-4">
+            <h2 className="text-heading-card text-foreground-primary">
+                {isConfirm ? 'Confirm PIN' : 'Choose a 4 digit PIN'}
+            </h2>
+            <div className="space-y-2">
+                <div className="flex flex-col gap-1">
+                    {isConfirm ? (
+                        <PinInput
+                            value={s.second}
+                            onChange={s.setSecond}
+                            autoFocus={false}
+                            disabled={s.step === 'saving'}
+                            className="justify-start"
+                        />
+                    ) : (
+                        <PinInput value={s.first} onChange={s.setFirst} autoFocus={false} className="justify-start" />
+                    )}
+                    {isConfirm
+                        ? s.fieldError && <FieldError>{s.fieldError}</FieldError>
+                        : s.chooseValidation &&
+                          !s.chooseValidation.valid &&
+                          s.chooseValidation.reason && (
+                              <FieldError>{REJECTION_COPY[s.chooseValidation.reason]}</FieldError>
+                          )}
+                </div>
+                {!isConfirm && <BulletList items={PIN_RULES} size="xs" />}
+            </div>
+            <Button
+                variant="purple"
+                shadowSize="4"
+                className="w-full"
+                onClick={isConfirm ? s.onConfirm : () => s.setStep('confirm')}
+                loading={s.step === 'saving'}
+                disabled={isConfirm ? s.second.length < 4 || s.step === 'saving' : !s.chooseValidation?.valid}
+            >
+                {isConfirm ? 'Save' : 'Continue'}
+            </Button>
+        </div>
+    )
+}
+
+// ---- section 5: limit edit drawer (approved: no icon bubble) ----
+
+const LimitDrawerDemo = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
     const [value, setValue] = useState('500.00')
     const [saving, setSaving] = useState(false)
 
@@ -297,15 +435,14 @@ const LimitDrawerDemo = ({ withIcon, open, onClose }: { withIcon: boolean; open:
             <DrawerContent>
                 <div className="flex flex-col items-center pt-1 pb-6 text-center">
                     <div className="mb-3 flex w-full flex-col items-center gap-4">
-                        {withIcon && <IconBubble icon="credit-card" color="brand" />}
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>Change limit</DrawerTitle>
                         </DrawerHeader>
                     </div>
                     <div className="flex w-full flex-col gap-4">
-                        <Field label="Per transaction" htmlFor={`limit-input-${withIcon}`} className="text-left">
+                        <Field label="Per transaction" htmlFor="limit-input" className="text-left">
                             <BaseInput
-                                id={`limit-input-${withIcon}`}
+                                id="limit-input"
                                 type="number"
                                 inputMode="decimal"
                                 value={value}
@@ -330,9 +467,9 @@ const LimitDrawerDemo = ({ withIcon, open, onClose }: { withIcon: boolean; open:
     )
 }
 
-// ---- section 6: cancel confirm replica ----
+// ---- section 6: cancel confirm (approved: slide to confirm) ----
 
-const CancelModalDemo = ({ slide, open, onClose }: { slide: boolean; open: boolean; onClose: () => void }) => (
+const CancelModalDemo = ({ open, onClose }: { open: boolean; onClose: () => void }) => (
     <ActionModal
         visible={open}
         onClose={onClose}
@@ -340,15 +477,8 @@ const CancelModalDemo = ({ slide, open, onClose }: { slide: boolean; open: boole
         icon="alert"
         title="Cancel your card?"
         description="You won't be able to use it again."
-        content={slide ? <SlideToConfirm label="Slide to Cancel" onConfirm={onClose} /> : undefined}
-        ctas={
-            slide
-                ? [{ text: 'Keep my card', variant: 'stroke', onClick: onClose }]
-                : [
-                      { text: 'Cancel card', variant: 'purple', onClick: onClose },
-                      { text: 'Keep my card', variant: 'stroke', className: 'w-full', onClick: onClose },
-                  ]
-        }
+        content={<SlideToConfirm label="Slide to Cancel" onConfirm={onClose} />}
+        ctas={[{ text: 'Keep my card', variant: 'stroke', onClick: onClose }]}
     />
 )
 
@@ -367,42 +497,48 @@ const LimitListItem = () => (
 )
 
 export default function CardDsVariantsPage() {
-    const [openDrawer, setOpenDrawer] = useState<'v1' | 'v2' | null>(null)
-    const [openModal, setOpenModal] = useState<'v1' | 'v2' | null>(null)
+    const [drawerOpen, setDrawerOpen] = useState(false)
+    const [modalOpen, setModalOpen] = useState(false)
 
     return (
         <DevPageShell
             title="Card — DS proposal variants"
-            description="Visual QA for the card DS-conformance PR. All data mocked, no backend. View at 375px."
+            description="Visual QA for the card DS-conformance PR. All data mocked, no backend. View at 375px. Sections 1, 5, 6 + the empty state are decided; section 4 awaits a verdict; sections 2 and 3 carry round-2 variants derived from real shipped-page anatomies."
         >
             <section className="flex flex-col gap-4">
-                <TitleBlock title="1. card face radius" description="Confirm the corner radius before merge." />
-                <VariantBlock label="V1 — current PR" note="rounded-sm, the DS card radius token">
-                    <CardFace last4="1234" />
-                </VariantBlock>
-                <VariantBlock label="V2 — proposal" note="rounded-xl, restores the original card rounding">
+                <TitleBlock title="1. card face radius — APPROVED" description="Verdict: rounded-xl wins." />
+                <VariantBlock label="Winner — rounded-xl" note="was V2; restores the original card rounding">
                     <CardFace last4="1234" className="rounded-xl" />
                 </VariantBlock>
             </section>
 
             <section className="flex flex-col gap-4">
                 <TitleBlock
-                    title="2. pin view page"
-                    description="All variants keep the small inline eye (locked decision). Eye reveals the pin; revealed auto-masks after 30s."
+                    title="2. pin view page — round 2"
+                    description="All prior variants rejected (ScreenMark pattern and pin cell boxes both out). Locked: plain **** heading + small inline eye. New variants follow real shipped-page anatomies, named per variant. Eye reveals; auto-masks after 30s."
                 />
-                <VariantBlock
-                    label="V1 — current PR"
-                    note="bare paragraph + text pin + change-pin row without a section"
-                >
+                <VariantBlock label="V1 — current PR baseline" note="kept for comparison only — rejected">
                     <PinViewV1 />
                 </VariantBlock>
-                <VariantBlock label="V2 — proposal" note="TitleBlock + pin cell boxes + Section around change pin">
-                    <PinViewV2 />
+                <VariantBlock
+                    label="V4 — anatomy from /profile/backup"
+                    note="hero card holds the copy and the pin; manage actions grouped under a titled section"
+                >
+                    <PinViewBackupAnatomy />
                 </VariantBlock>
-                <VariantBlock label="V3 — proposal" note="V2 + countdown bar draining over the 30s reveal window">
-                    <PinViewV2 withCountdown />
+                <VariantBlock
+                    label="V5 — anatomy from /limits"
+                    note="info notification as page description; pin is a settings row value (body-m-semibold, not heading-xl), change pin in the same group"
+                >
+                    <PinViewLimitsAnatomy />
                 </VariantBlock>
-                <VariantBlock label="state: no pin set" note="the EmptyState branch, rarely seen in QA">
+                <VariantBlock
+                    label="V6 — anatomy from withdraw pix-key step"
+                    note="flow-step shape: heading-card, value where the input sits, helper line, full-width cta"
+                >
+                    <PinViewFlowAnatomy />
+                </VariantBlock>
+                <VariantBlock label="state: no pin set — APPROVED" note="ships as-is">
                     <EmptyState
                         icon="credit-card"
                         iconColor="brand"
@@ -419,24 +555,30 @@ export default function CardDsVariantsPage() {
 
             <section className="flex flex-col gap-4">
                 <TitleBlock
-                    title="3. pin setup flow"
-                    description="Interactive. Save is mocked (~800ms). Try 1111 / 1234 to see validation."
+                    title="3. pin setup flow — round 2"
+                    description="All prior variants rejected. Interactive; real PinInput; save mocked (~800ms). Try 1111 / 1234 to see validation. New variants follow the app's flow-step anatomies."
                 />
-                <VariantBlock label="V1 — current PR" note="explicit Continue button on choose; plain text success">
-                    <PinSetupFlow autoAdvance={false} />
+                <VariantBlock label="V1 — current PR baseline" note="kept for comparison only — rejected">
+                    <PinSetupBaseline />
                 </VariantBlock>
                 <VariantBlock
-                    label="V2 — proposal"
-                    note="auto-advance on the 4th valid digit; DS success shape (green check bubble)"
+                    label="V2 — anatomy from add-money amount step"
+                    note="left label-l prompt, left-aligned input, single body-xs helper line, cta with shadow, flow error below the cta"
                 >
-                    <PinSetupFlow autoAdvance />
+                    <PinSetupAmountAnatomy />
+                </VariantBlock>
+                <VariantBlock
+                    label="V3 — anatomy from withdraw pix-key step"
+                    note="heading-card, input column with field error, bullets restyled xs under the input, cta with shadow"
+                >
+                    <PinSetupPixAnatomy />
                 </VariantBlock>
             </section>
 
             <section className="flex flex-col gap-4">
                 <TitleBlock
-                    title="4. card limit page"
-                    description="Mock: $500 per transaction, $350 spent this period."
+                    title="4. card limit page — awaiting verdict"
+                    description="Mock: $500 per transaction, $350 spent this period. No decision yet — all three variants stand."
                 />
                 <VariantBlock label="V1 — current PR" note="single row, no context">
                     <ScreenMark icon="credit-card" color="brand" />
@@ -464,36 +606,28 @@ export default function CardDsVariantsPage() {
 
             <section className="flex flex-col gap-4">
                 <TitleBlock
-                    title="5. limit edit drawer"
-                    description="Replicas of CardLimitEditDrawer. Save is mocked."
+                    title="5. limit edit drawer — APPROVED"
+                    description="Verdict: without the IconBubble wins. Save is mocked."
                 />
                 <div className="flex w-full max-w-96 flex-col gap-3">
-                    <Button variant="stroke" onClick={() => setOpenDrawer('v1')}>
-                        V1 — current PR (with IconBubble)
-                    </Button>
-                    <Button variant="stroke" onClick={() => setOpenDrawer('v2')}>
-                        V2 — proposal (IconBubble removed)
+                    <Button variant="stroke" onClick={() => setDrawerOpen(true)}>
+                        Open winner — no IconBubble
                     </Button>
                 </div>
-                <LimitDrawerDemo withIcon open={openDrawer === 'v1'} onClose={() => setOpenDrawer(null)} />
-                <LimitDrawerDemo withIcon={false} open={openDrawer === 'v2'} onClose={() => setOpenDrawer(null)} />
+                <LimitDrawerDemo open={drawerOpen} onClose={() => setDrawerOpen(false)} />
             </section>
 
             <section className="flex flex-col gap-4">
                 <TitleBlock
-                    title="6. cancel confirm CTA"
-                    description="Replicas of the cancel confirm phase. Confirm is mocked — it just closes."
+                    title="6. cancel confirm CTA — APPROVED"
+                    description="Verdict: SlideToConfirm wins. Confirm is mocked — it just closes."
                 />
                 <div className="flex w-full max-w-96 flex-col gap-3">
-                    <Button variant="stroke" onClick={() => setOpenModal('v1')}>
-                        V1 — current PR (purple Cancel button)
-                    </Button>
-                    <Button variant="stroke" onClick={() => setOpenModal('v2')}>
-                        V2 — proposal (slide to cancel)
+                    <Button variant="stroke" onClick={() => setModalOpen(true)}>
+                        Open winner — slide to cancel
                     </Button>
                 </div>
-                <CancelModalDemo slide={false} open={openModal === 'v1'} onClose={() => setOpenModal(null)} />
-                <CancelModalDemo slide open={openModal === 'v2'} onClose={() => setOpenModal(null)} />
+                <CancelModalDemo open={modalOpen} onClose={() => setModalOpen(false)} />
             </section>
         </DevPageShell>
     )
