@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { CarouselDots } from '@/components/0_Bruddle/CarouselDots'
+import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { APPLE_WALLET_STEPS, GOOGLE_WALLET_STEPS } from '@/assets/cards'
 import { useWalletPlatform, type WalletPlatform } from '@/hooks/useWalletPlatform'
 
@@ -95,11 +96,11 @@ const AddToWalletCarousel: FC<Props> = ({ onDone, onPrev }) => {
                         pointerStartXRef.current = null
                     }}
                 >
-                    <div className="w-full max-w-xs overflow-hidden rounded-sm border border-border-default">
+                    <div className="w-full overflow-hidden rounded-sm border border-border-default">
                         <Image src={step.image} alt="" aria-hidden className="h-auto w-full" priority />
                     </div>
 
-                    <div className="text-heading-xs">{t(step.titleKey)}</div>
+                    <TitleBlock title={<h1>{t(step.titleKey)}</h1>} align="center" size="s" />
 
                     <CarouselDots
                         count={steps.length}
@@ -108,7 +109,7 @@ const AddToWalletCarousel: FC<Props> = ({ onDone, onPrev }) => {
                     />
                 </div>
 
-                <Button variant="purple" shadowSize="4" className="w-full" onClick={onNext}>
+                <Button variant="purple" className="w-full" onClick={onNext}>
                     {isLast ? tCommon('done') : tCommon('next')}
                 </Button>
             </div>

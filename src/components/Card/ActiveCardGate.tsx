@@ -2,8 +2,11 @@
 import { type ReactNode } from 'react'
 import { useTranslations } from 'next-intl'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import NavHeader from '@/components/Global/NavHeader'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useSafeBack } from '@/hooks/useSafeBack'
@@ -31,9 +34,12 @@ const ActiveCardGate = ({ noCardMessageKey = 'noActiveCard', children }: ActiveC
     if (isLoading) {
         return (
             <PageContainer>
-                <div className="flex min-h-inherit w-full items-center justify-center">
-                    <Loading />
-                </div>
+                <PageStack gap="6">
+                    <NavHeader title={t('yourCard.navTitle')} onPrev={onBack} />
+                    <PageStack.Center className="items-center">
+                        <Loading variant="mascot" />
+                    </PageStack.Center>
+                </PageStack>
             </PageContainer>
         )
     }
@@ -41,12 +47,21 @@ const ActiveCardGate = ({ noCardMessageKey = 'noActiveCard', children }: ActiveC
     if (!card) {
         return (
             <PageContainer>
-                <div className="flex min-h-inherit w-full flex-col items-center justify-center gap-4 p-4 text-center">
-                    <p className="text-foreground-primary">{t(noCardMessageKey)}</p>
-                    <Button variant="purple" shadowSize="4" onClick={onBack}>
-                        {t('backToCard')}
-                    </Button>
-                </div>
+                <PageStack gap="6">
+                    <NavHeader title={t('yourCard.navTitle')} onPrev={onBack} />
+                    <PageStack.Center>
+                        <EmptyState
+                            icon="credit-card"
+                            iconColor="brand"
+                            title={t(noCardMessageKey)}
+                            cta={
+                                <Button variant="purple" className="mt-4 w-full" onClick={onBack}>
+                                    {t('backToCard')}
+                                </Button>
+                            }
+                        />
+                    </PageStack.Center>
+                </PageStack>
             </PageContainer>
         )
     }
