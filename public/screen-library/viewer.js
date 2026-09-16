@@ -103,6 +103,21 @@ let rows = [],
 const PAGE_SIZE = 24
 const unavailable = (s) => !s || !s.image
 const availableScreen = (row) => [row?.after, row?.before].find((screen) => !unavailable(screen))
+const collectionRows = (collection, locale) =>
+    collection.items.map((item) => {
+        const variant = item.variants?.[locale]
+        const screen = {
+            status: variant?.status === 'captured' ? 'captured' : 'unavailable',
+            image: variant?.image,
+            thumbnail: variant?.thumbnail,
+            reason: variant?.reason,
+        }
+        return { ...item, status: screen.status, after: screen }
+    })
+const requestedCollectionLocale = (collection) => {
+    const requested = requestedFilter('locale')
+    return collection.locales.includes(requested) ? requested : collection.locales[0]
+}
 const requestedFilter = (name) => new URLSearchParams(location.search ?? '').get(name) ?? ''
 function shareableParams(overrides = {}) {
     const params = new URLSearchParams()
@@ -189,6 +204,7 @@ function renderTile(row) {
             ? `${row.flow} · ${row.route} · ${row.trustTier}`
             : `${row.flow} · ${row.kind === 'component' ? 'Isolated component' : 'App route'}`
     head.append(el('span', row.status, `tag ${row.status}`), el('h2', row.name), el('div', detail, 'meta'))
+    if (row.note) head.append(el('p', row.note, 'collection-note'))
     tile.append(head)
     const showSingle = report.type !== 'comparison' || viewMode === 'all'
     const pair = el('div', undefined, `pair${showSingle ? ' single' : ''}`)
@@ -465,6 +481,15 @@ function renderLanding() {
     syncShareableUrl()
 }
 async function configureReportLocales(reportPath) {
+    if (report.type === 'collection') {
+        reportLocaleEntries = report.locales.map((locale) => ({ locale }))
+        reportSourceEntries = []
+        populateLocale(reportLocaleEntries, $('locale').value || requestedCollectionLocale(report))
+        $('source-control').hidden = true
+        $('dashboard-filters').hidden = report.locales.length <= 1
+        $('date-filter').hidden = true
+        return
+    }
     if (offline) {
         reportLocaleEntries = []
         reportSourceEntries = []
@@ -501,6 +526,7 @@ async function start() {
         pathname === '/screen-library' ||
         pathname === '/screen-library/' ||
         pathname === '/screen-library/index.html'
+    const collectionMatch = /^\/collections\/([a-z0-9][a-z0-9-]{0,119})\/?$/.exec(pathname)
     const path = isHostedIndex ? '' : pathname.replace(/^\/screens\/?/, '').replace(/\/$/, '')
     if (!offline && !path) {
         const index = await loadJSON('/screen-data/index.json')
@@ -523,39 +549,61 @@ async function start() {
     }
     let reportPath = path
     if (path === 'latest') reportPath = (await loadJSON('/screen-data/latest.json')).path
-    if (!offline && !/^[a-z0-9/-]+$/.test(reportPath)) throw new Error('Invalid report path')
-    report = offline ? window.SCREEN_REPORT : await loadJSON(`/screen-data/reports/${reportPath}/manifest.json`)
-    if (!report || report.schema !== 1 || !['capture', 'comparison', 'journeys'].includes(report.type))
+    if (!offline && !collectionMatch && !/^[a-z0-9/-]+$/.test(reportPath)) throw new Error('Invalid report path')
+    report = offline
+        ? window.SCREEN_REPORT
+        : collectionMatch
+          ? await loadJSON(`/screen-data/collections/${collectionMatch[1]}/manifest.json`)
+          : await loadJSON(`/screen-data/reports/${reportPath}/manifest.json`)
+    if (!report || report.schema !== 1 || !['capture', 'comparison', 'journeys', 'collection'].includes(report.type))
         throw new Error('Unsupported report')
     $('dashboard-filters').hidden = true
     $('date-filter').hidden = true
     $('filters-row').hidden = false
     $('view-mode-row').hidden = report.type !== 'comparison'
     rows =
-        report.type !== 'comparison'
-            ? report.screens.map((s) => ({
-                  ...s,
-                  after: s,
-                  status: s.status,
-              }))
-            : report.screens
+        report.type === 'collection'
+            ? collectionRows(report, requestedCollectionLocale(report))
+            : report.type !== 'comparison'
+              ? report.screens.map((s) => ({
+                    ...s,
+                    after: s,
+                    status: s.status,
+                }))
+              : report.screens
     const before = report.before,
         after = report.type === 'comparison' ? report.after : report
     viewMode = report.type === 'comparison' ? 'changed' : 'all'
     $('view-mode').checked = viewMode === 'all'
     $('title').textContent =
-        report.type === 'journeys'
-            ? 'Real backend journeys.'
-            : report.type === 'capture'
-              ? 'The screen library.'
-              : 'See what changed.'
-    const captureDate = formatCaptureDate(after?.capturedAt ?? report.capturedAt)
-    $('description').replaceChildren(captureDate ? el('strong', captureDate) : el('span', ''))
+        report.type === 'collection'
+            ? report.title
+            : report.type === 'journeys'
+              ? 'Real backend journeys.'
+              : report.type === 'capture'
+                ? 'The screen library.'
+                : 'See what changed.'
+    const captureDate = formatCaptureDate(after?.capturedAt ?? report.capturedAt ?? report.createdAt)
+    $('description').replaceChildren()
+    if (report.type === 'collection' && report.description) $('description').append(el('span', report.description), ' ')
+    $('description').append(captureDate ? el('strong', captureDate) : el('span', ''))
     $('footer').textContent =
-        report.type === 'journeys'
-            ? `${localeLabel(report.locale)} · ${report.width} × ${report.height} viewport · Nutcracker sandbox backend`
-            : `${localeLabel(report.locale)} · 393 × 852 · Synthetic data`
-    if (report.type === 'journeys') {
+        report.type === 'collection'
+            ? `${localeLabel(requestedCollectionLocale(report))} · Curated collection · Synthetic app states`
+            : report.type === 'journeys'
+              ? `${localeLabel(report.locale)} · ${report.width} × ${report.height} viewport · Nutcracker sandbox backend`
+              : `${localeLabel(report.locale)} · 393 × 852 · Synthetic data`
+    if (report.type === 'collection') {
+        for (const locale of report.locales) {
+            const source = report.source?.[locale]
+            const n = el('div')
+            n.append(
+                el('strong', `${localeLabel(locale)} · ${source?.commit ?? 'capture pending'}`),
+                el('div', source?.reportPath ?? 'On-demand capture')
+            )
+            $('provenance').append(n)
+        }
+    } else if (report.type === 'journeys') {
         const n = el('div')
         n.append(
             el('strong', `Nutcracker ${report.commit}`),
@@ -587,14 +635,20 @@ async function start() {
         return a
     }, {})
     $('coverage').textContent = `${
-        report.type === 'journeys'
+        report.type === 'collection'
             ? report.complete
-                ? 'Complete Nutcracker run'
-                : 'Incomplete Nutcracker run'
-            : report.complete
-              ? 'Complete capture'
-              : 'Incomplete capture — review gaps and failures'
-    } · ${rows.length} ${report.type === 'journeys' ? 'screenshots' : 'states'} · ${Object.entries(counts)
+                ? 'Complete curated collection'
+                : 'Collection capture in progress'
+            : report.type === 'journeys'
+              ? report.complete
+                  ? 'Complete Nutcracker run'
+                  : 'Incomplete Nutcracker run'
+              : report.complete
+                ? 'Complete capture'
+                : 'Incomplete capture — review gaps and failures'
+    } · ${rows.length} ${report.type === 'journeys' || report.type === 'collection' ? 'screenshots' : 'states'} · ${Object.entries(
+        counts
+    )
         .map(([s, n]) => `${n} ${s}`)
         .join(' · ')}`
     for (const f of [...new Set(rows.map((r) => r.flow))].sort()) {
@@ -647,6 +701,21 @@ $('status').addEventListener('input', () => {
     syncShareableUrl()
 })
 $('locale').addEventListener('change', () => {
+    if (report?.type === 'collection') {
+        rows = collectionRows(report, $('locale').value)
+        $('footer').textContent = `${localeLabel($('locale').value)} · Curated collection · Synthetic app states`
+        $('flow').replaceChildren(el('option', 'All flows'))
+        $('flow').children[0].value = ''
+        for (const flow of [...new Set(rows.map((row) => row.flow))].sort()) {
+            const option = el('option', flow)
+            option.value = flow
+            $('flow').append(option)
+        }
+        $('status').value = ''
+        render()
+        syncShareableUrl()
+        return
+    }
     if (report && reportLocaleEntries.length) {
         const entry = reportLocaleEntries.find((candidate) => candidate.locale === $('locale').value)
         if (entry && /^[a-z0-9/-]+$/.test(entry.path) && !offline) {

@@ -678,6 +678,55 @@ test('new reports use Access-protected same-origin screenshot URLs', async () =>
     assert.equal(screenshot.src, `/screen-data/assets/${image}`)
 })
 
+test('curated collection pages preserve order, notes and switch locale in place', async () => {
+    const english = 'a'.repeat(64) + '.webp'
+    const portuguese = 'b'.repeat(64) + '.webp'
+    const report = {
+        schema: 1,
+        type: 'collection',
+        id: 'choice-overload-20260916-abc123',
+        title: 'Choice overload review',
+        description: 'The strongest candidates for choice overload.',
+        createdAt: '2026-09-16T12:00:00Z',
+        locales: ['en', 'pt-BR'],
+        source: {
+            en: { commit: 'c'.repeat(40), reportPath: '2026-09-16/dev/en/source' },
+            'pt-BR': { commit: 'c'.repeat(40), reportPath: '2026-09-16/dev/pt-br/source' },
+        },
+        complete: true,
+        items: [
+            {
+                id: 'profile',
+                order: 0,
+                name: 'Profile',
+                flow: 'Profile',
+                kind: 'route',
+                note: 'Flat menu hierarchy.',
+                variants: {
+                    en: { status: 'captured', image: english, thumbnail: english, commit: 'c'.repeat(40) },
+                    'pt-BR': { status: 'captured', image: portuguese, thumbnail: portuguese, commit: 'c'.repeat(40) },
+                },
+            },
+        ],
+        missing: [],
+        capture: { status: 'not-needed' },
+    }
+    const elements = await loadLanding('/collections/choice-overload-20260916-abc123/', {
+        report,
+        search: '?locale=unsupported',
+    })
+    assert.equal(elements.get('title').textContent, 'Choice overload review')
+    assert.equal(elements.get('source-control').hidden, true)
+    assert.equal(elements.get('locale').children.length, 2)
+    assert.equal(elements.get('locale').value, 'en')
+    assert.equal(elements.get('screens').children[0].children[0].children[3].textContent, 'Flat menu hierarchy.')
+    assert.ok(imageSources(elements.get('screens')).includes(`/screen-data/assets/${english}`))
+    elements.get('locale').value = 'pt-BR'
+    elements.get('locale').dispatch('change')
+    assert.ok(imageSources(elements.get('screens')).includes(`/screen-data/assets/${portuguese}`))
+    assert.equal(elements.location.search, '?locale=pt-BR')
+})
+
 test('Nutcracker reports show real-backend provenance and retain a screenshot when its assertion failed', async () => {
     const original = 'a'.repeat(64) + '.png'
     const thumbnail = 'b'.repeat(64) + '.webp'

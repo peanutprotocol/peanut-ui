@@ -172,6 +172,39 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'Transaction limits — error',
         path: 'features/limits/components/LimitsWarningCard.tsx',
     },
+    '78-f-choice-guest-claim': {
+        name: 'Guest claim — payment choices',
+        path: 'Claim/Link/SendLinkActionList.tsx',
+    },
+    '79-f-choice-direct-send': {
+        name: 'Direct send — payment choices',
+        path: 'features/payments/shared/components/PaymentMethodActionList.tsx',
+    },
+    '80-f-choice-semantic-request': {
+        name: 'Semantic request — payment choices',
+        path: 'features/payments/shared/components/PaymentMethodActionList.tsx',
+    },
+    '81-f-choice-request-pot': {
+        name: 'Request pot — payment choices',
+        path: 'features/payments/flows/contribute-pot/components/RequestPotActionList.tsx',
+    },
+    '82-f-choice-card-requires-info': {
+        name: 'Card application — more information required',
+        path: 'Card/ApplicationStatusScreen.tsx',
+    },
+    '83-f-choice-residence-restricted': {
+        name: 'Setup residence — restricted',
+        path: 'Setup/Views/Residence.tsx',
+    },
+    '84-f-choice-public-profile-guest': {
+        name: 'Public profile — guest actions',
+        path: 'Profile/components/PublicProfile.tsx',
+    },
+    '85-f-choice-claim-error': {
+        name: 'Claim error — recovery actions',
+        path: 'Claim/Generic/ClaimError.view.tsx',
+    },
+    '86-f-choice-not-found': { name: 'Not found — recovery actions', path: 'app/not-found.tsx' },
     '69-d-perkclaimsuccess': { name: 'PerkClaimSuccessDrawer', path: 'Home/PerkClaimSuccessDrawer.tsx' },
     '70-d-activationctas-outbound': {
         name: 'ActivationCTAs (outbound)',

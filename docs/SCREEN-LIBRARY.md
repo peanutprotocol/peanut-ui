@@ -12,6 +12,89 @@ Gallery filters are URL-backed. Source, locale, search, flow, status, and
 all/changed mode are restored from the query string, so copying the browser URL
 shares the exact visible view.
 
+## Curated, on-demand collections
+
+A collection is a first-class, ordered manifest over the same content-addressed
+assets as the main library. It stores a title, optional review context, screen
+IDs, per-screen notes, locale variants and exact source commits. Creating a
+collection does not copy screenshots and does not create another baseline. If a
+requested state already exists in the latest complete dev capture, its published
+WebP is reused immediately. Only missing state/locale pairs are sent to the
+focused `Capture screen collection` workflow, which keeps exact PNGs inside CI,
+publishes the resulting 393×852 WebPs, and completes the collection manifest.
+
+The supplied choice-overload review is
+`docs/screen-collections/choice-overload.json`. It includes the actual app
+states for the combined direct-send, semantic-request and request-pot row, so the
+review has 16 ordered screenshots rather than collapsing three distinct choices
+into one label.
+
+Create a self-contained local review from capture directories:
+
+```sh
+pnpm screens:collection -- \
+  --spec=docs/screen-collections/choice-overload.json \
+  --report=en:/tmp/screens-en \
+  --report=es-419:/tmp/screens-es-419 \
+  --report=es-AR:/tmp/screens-es-ar \
+  --report=pt-BR:/tmp/screens-pt-br \
+  --out=/tmp/choice-overload
+```
+
+Or create the hosted page through the collection API. The CLI service token is
+for automation only; interactive users and MCP clients authenticate through
+Cloudflare Access:
+
+```sh
+COLLECTION_SERVICE_TOKEN=... pnpm screens:collection -- \
+  --spec=docs/screen-collections/choice-overload.json \
+  --api=https://screen-collections.peanut.me
+```
+
+Hosted links use `/collections/<immutable-id>/` and keep the selected locale in
+the URL. The manifest may change from queued to complete while focused capture
+runs; after completion its ordered content and assets are stable.
+
+### Collection and MCP services
+
+The deployment has three deliberately separate Workers:
+
+1. `peanut-screen-library` remains the read-only gallery and R2 asset gateway.
+2. `peanut-screen-library-collections` is the authenticated control plane. It
+   searches the latest complete catalogues, writes collection manifests, and
+   dispatches the focused GitHub Actions workflow when an asset is missing.
+3. `peanut-screen-library-mcp` is a stateless Streamable HTTP MCP endpoint at
+   `/mcp`. Its four tools (`search_screens`, `create_collection`,
+   `get_collection_status`, and `capture_missing_states`) call the collection
+   Worker through a Cloudflare service binding. MCP never receives R2 or GitHub
+   credentials.
+
+Screenshot rendering stays on `ubuntu-24.04` GitHub runners. The Workers are the
+control plane and viewer, not a second browser-rendering stack. This preserves
+the pinned Chromium/diff environment and leaves a later migration to Cloudflare
+Browser Rendering possible without changing the collection API.
+
+Required repository variables are `SCREEN_LIBRARY_COLLECTION_API_URL` and
+`SCREEN_LIBRARY_MCP_URL`, both custom HTTPS origins. Both generated Workers set
+`workers_dev = false` and disable preview URLs. Configure Cloudflare Access with
+Google and an `@peanut.me` allow rule for the collection origin and the MCP
+origin. Configure the MCP Access application as the OAuth provider for remote
+MCP clients.
+
+Two Worker secrets are configured once, outside GitHub logs:
+
+- `GITHUB_ACTIONS_TOKEN` on `peanut-screen-library-collections`: a fine-grained
+  repository token limited to Actions write and metadata/content read for
+  `peanutprotocol/peanut-ui`.
+- one random `COLLECTION_SERVICE_TOKEN` value on both the collection and MCP
+  Workers. It authenticates only the service-binding hop; it is not a user
+  credential.
+
+The existing `CLOUDFLARE_API_TOKEN` deploy secret must also be allowed to edit
+all three Worker scripts and their custom-domain routes. The focused capture
+workflow uses the existing R2 publisher credential and protected
+`screen-library-deploy` environment.
+
 For Nutcracker, only full-resolution WebP renders and a small allowlisted
 manifest are published. Replay credentials, database snapshots, API traces,
 console output and provider details stay in the private GitHub Actions artifact

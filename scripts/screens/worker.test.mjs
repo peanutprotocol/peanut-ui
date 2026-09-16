@@ -27,6 +27,11 @@ test('worker exposes only protected gallery objects and supports read methods', 
     assert.equal(index.headers.get('cache-control'), 'private, max-age=60')
     const report = await worker.fetch(request('/screen-data/reports/2026-09-11/dev-abc/manifest.json'), env)
     assert.equal(report.headers.get('cache-control'), 'private, max-age=60')
+    const collection = await worker.fetch(
+        request('/screen-data/collections/choice-overload-20260916-abc/manifest.json'),
+        env
+    )
+    assert.equal(collection.headers.get('cache-control'), 'private, max-age=10')
     const archive = await worker.fetch(request('/screen-data/reports/2026-09-11/dev-abc/offline.tar.gz'), env)
     assert.match(archive.headers.get('cache-control'), /immutable/)
     const asset = await worker.fetch(request(`/screen-data/assets/${'a'.repeat(64)}.png`), env)
