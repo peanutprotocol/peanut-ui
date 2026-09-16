@@ -8,7 +8,7 @@ import { useCurrency } from '@/hooks/useCurrency'
 import { mantecaApi } from '@/services/manteca'
 import { sendLinksApi } from '@/services/sendLinks'
 import { MercadoPagoStep } from '@/types/manteca.types'
-import { type Dispatch, type FC, type SetStateAction, useState } from 'react'
+import { type Dispatch, type FC, type SetStateAction, useRef, useState } from 'react'
 import useClaimLink from '@/components/Claim/useClaimLink'
 import * as Sentry from '@sentry/nextjs'
 import { pickMantecaDepositAddress, requireMantecaDepositAddress } from '@/utils/manteca.utils'
@@ -38,6 +38,16 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
     const [error, setError] = useState<string | null>(null)
     const { price, isLoading, refetch: refetchCurrency } = useCurrency(currency)
     const { claimLink: claimLinkSecure } = useClaimLink()
+    // The claim spends the one-shot link, so its txHash must outlive the
+    // attempt: if /withdraw then answers FUNDING_PENDING_CONFIRMATION,
+    // CLAIM_STORE_UNAVAILABLE or fails in transport, the API holds the claim
+    // until a retry carries the SAME hash. Keyed by link so a re-rendered
+    // step for a different link can never replay it. A reload still loses it:
+    // backend recovery and ops reconciliation cover that case.
+    const claimedRef = useRef<{ claimLink: string; txHash: string } | null>(null)
+    // setIsSubmitting is not synchronous; a second click in the same tick
+    // must not start a second claim.
+    const inFlightRef = useRef(false)
 
     const detailsCardRows: (PaymentInfoRowProps & { key: string })[] = [
         {
@@ -59,53 +69,64 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
         },
     ]
     const handleWithdraw = async () => {
-        if (destinationAddress) {
+        if (destinationAddress && !inFlightRef.current) {
+            inFlightRef.current = true
             try {
                 setError(null)
                 setIsSubmitting(true)
 
-                // Entity-aware deposit address (per-entity balances from
-                // 2026-09-14): ask /withdraw/init where THIS currency's
-                // offramp must be funded BEFORE spending the one-shot claim
-                // link. This path FAILS CLOSED on any init problem — error,
-                // missing field, malformed or zero address — because no funds
-                // have moved yet and the user can retry, while claiming to a
-                // guessed address and then failing would irreversibly strand
-                // the link's funds at the wrong entity. (The signed flows keep
-                // a constant fallback because the backend validates their
-                // recipient before anything is broadcast; nothing validates a
-                // link claim.)
-                const { data: initData, error: initError } = await mantecaApi.initiateWithdraw({ amount, currency })
-                if (initError) {
-                    setError(t('manteca.errors.generic'))
-                    return
-                }
-                // Strict only against an ENTITY-AWARE API (it marks its
-                // responses with legalEntity): there the served address is
-                // the one truth and anything else fails closed. A pre-entity
-                // API omits both fields and still validates the legacy
-                // constant — falling back keeps claim links working during
-                // the deploy window where this UI meets the older API.
-                let depositAddress: Address | null
-                if (initData?.legalEntity) {
-                    depositAddress = requireMantecaDepositAddress(initData?.depositAddress)
-                    if (!depositAddress) {
+                // A retry for the link already claimed here skips init and
+                // claim and re-presents the original hash to /withdraw.
+                let txHash = claimedRef.current?.claimLink === claimLink ? claimedRef.current.txHash : undefined
+                if (!txHash) {
+                    // Entity-aware deposit address (per-entity balances from
+                    // 2026-09-14): ask /withdraw/init where THIS currency's
+                    // offramp must be funded BEFORE spending the one-shot claim
+                    // link. This path FAILS CLOSED on any init problem — error,
+                    // missing field, malformed or zero address — because no funds
+                    // have moved yet and the user can retry, while claiming to a
+                    // guessed address and then failing would irreversibly strand
+                    // the link's funds at the wrong entity. (The signed flows keep
+                    // a constant fallback because the backend validates their
+                    // recipient before anything is broadcast; nothing validates a
+                    // link claim.)
+                    const { data: initData, error: initError } = await mantecaApi.initiateWithdraw({
+                        amount,
+                        currency,
+                    })
+                    if (initError) {
                         setError(t('manteca.errors.generic'))
                         return
                     }
-                } else {
-                    depositAddress = pickMantecaDepositAddress(initData?.depositAddress, MANTECA_DEPOSIT_ADDRESS)
-                }
+                    // Strict only against an ENTITY-AWARE API (it marks its
+                    // responses with legalEntity): there the served address is
+                    // the one truth and anything else fails closed. A pre-entity
+                    // API omits both fields and still validates the legacy
+                    // constant — falling back keeps claim links working during
+                    // the deploy window where this UI meets the older API.
+                    let depositAddress: Address | null
+                    if (initData?.legalEntity) {
+                        depositAddress = requireMantecaDepositAddress(initData?.depositAddress)
+                        if (!depositAddress) {
+                            setError(t('manteca.errors.generic'))
+                            return
+                        }
+                    } else {
+                        depositAddress = pickMantecaDepositAddress(initData?.depositAddress, MANTECA_DEPOSIT_ADDRESS)
+                    }
 
-                // Use secure SDK claim (password stays client-side, only signature sent to backend)
-                const txHash = await claimLinkSecure({
-                    address: depositAddress,
-                    link: claimLink,
-                })
+                    // Use secure SDK claim (password stays client-side, only signature sent to backend)
+                    txHash = await claimLinkSecure({
+                        address: depositAddress,
+                        link: claimLink,
+                    })
 
-                if (!txHash) {
-                    setError(t('manteca.errors.missingTxHash'))
-                    return
+                    if (!txHash) {
+                        setError(t('manteca.errors.missingTxHash'))
+                        return
+                    }
+                    // Keep it BEFORE any await that can fail below.
+                    claimedRef.current = { claimLink, txHash }
                 }
 
                 // Associate the claim with user if logged in
@@ -164,6 +185,7 @@ const MantecaReviewStep: FC<MantecaReviewStepProps> = ({
                 setError(error instanceof Error ? error.message : t('manteca.errors.generic'))
                 console.error('Error claiming link:', error)
             } finally {
+                inFlightRef.current = false
                 setIsSubmitting(false)
             }
         }
