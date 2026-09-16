@@ -35,7 +35,7 @@ const receiptPanel = (
 const historyRows = [
     { icon: 'bank', title: 'Bank deposit', body: '12 Sep 2026', amount: '+$50.00' },
     { icon: 'credit-card', title: 'Card payment', body: '10 Sep 2026', amount: '-$12.40' },
-    { icon: 'dollar', title: 'Cashback', body: '8 Sep 2026', amount: '+$0.62' },
+    { icon: 'dollar', title: 'Rewards', body: '8 Sep 2026', amount: '+$0.62' },
 ] as const
 
 const historyPanel = (
@@ -90,48 +90,50 @@ const prosePanel = (name: string, fee: string, points: string[]) => (
     <div className="flex flex-col gap-3">
         <h3 className="text-heading-card text-foreground-primary">Sending $500 with {name}</h3>
         <p className="text-body-l text-foreground-primary">
-            {name} charges {fee} on a typical $500 transfer to Argentina. The money arrives in local currency, and the
-            exchange rate applied at send time decides most of the real cost.
+            {name} charges {fee} on a typical $500 transfer to Freedonia. All names and numbers on this panel are
+            invented placeholders — the layout is what is being judged.
         </p>
         <BulletList items={points} />
     </div>
 )
 
+// ponytail: fictional brands and numbers on purpose — nothing true-looking that
+// could get lifted into real content (chip finding, PR #3209)
 const MARKETING_TABS: TabDef[] = [
     {
-        value: 'peanut',
-        label: 'Peanut',
-        content: prosePanel('Peanut', 'no transfer fee', [
-            'Mid-market exchange rate',
-            'Arrives in minutes',
-            'Pay with QR at local shops',
+        value: 'acmepay',
+        label: 'AcmePay',
+        content: prosePanel('AcmePay', 'a made-up 0.99% fee', [
+            'Placeholder rate claim',
+            'Arrives in N minutes',
+            'Fictional QR perk',
         ]),
     },
     {
-        value: 'wise',
-        label: 'Wise',
-        content: prosePanel('Wise', 'a 1.2% fee', [
-            'Mid-market rate plus fee',
-            'Arrives in hours',
-            'No local QR payments',
+        value: 'transferco',
+        label: 'TransferCo',
+        content: prosePanel('TransferCo', 'an invented $12.34 fee', [
+            'Placeholder rate claim',
+            'Arrives in N hours',
+            'Fictional pickup option',
         ]),
     },
     {
-        value: 'western-union',
-        label: 'Western Union',
-        content: prosePanel('Western Union', 'a $9.99 fee', [
-            'Marked-up exchange rate',
-            'Cash pickup available',
-            'Arrives in 1-2 days',
+        value: 'globex',
+        label: 'Globex Money',
+        content: prosePanel('Globex Money', 'a pretend 42% markup', [
+            'Placeholder rate claim',
+            'Arrives in N days',
+            'Fictional coverage note',
         ]),
     },
     {
-        value: 'revolut',
-        label: 'Revolut',
-        content: prosePanel('Revolut', 'a weekend markup', [
-            'Fair rate on weekdays',
-            'App-only',
-            'Limited coverage in LatAm',
+        value: 'wonderwire',
+        label: 'WonderWire',
+        content: prosePanel('WonderWire', 'a fictional weekend fee', [
+            'Placeholder rate claim',
+            'App-only, allegedly',
+            'Fictional loyalty points',
         ]),
     },
 ]

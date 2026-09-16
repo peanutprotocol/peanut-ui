@@ -28,29 +28,40 @@ interface TabVariantProps {
     'aria-label': string
 }
 
-// the one focus treatment, shared by every variant (matches .btn in globals.css)
+// the one focus treatment, shared by every variant (matches .btn in globals.css).
+// radix Content has tabIndex=0, so panels get the same ring instead of an
+// invisible focus stop.
 const focusRing =
     'focus-visible:z-10 focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-action-focus'
 
-const panelClasses = 'pt-4 focus-visible:outline-none'
+const panelClasses = twMerge('pt-4', focusRing)
+
+// scrolling variants: the ring must not clip at the scroll edges, so the
+// wrapper owns overflow with a 4px inner gutter (>=3px ring) and a negative
+// margin to keep the layout; the list spans the scrolled width (w-max
+// min-w-full) so its divider rule runs under every tab.
+const scrollWrap = '-m-1 overflow-x-auto p-1'
+const scrollList = 'flex w-max min-w-full'
 
 /** A — underline: active tab gets a 2px action-primary underline over the divider rule. overflow scrolls. */
 export const UnderlineTabs = ({ tabs, 'aria-label': ariaLabel }: TabVariantProps) => (
     <Root defaultValue={tabs[0].value}>
-        <List aria-label={ariaLabel} className="flex overflow-x-auto border-b border-border-default">
-            {tabs.map((tab) => (
-                <Trigger
-                    key={tab.value}
-                    value={tab.value}
-                    className={twMerge(
-                        '-mb-px min-h-11 shrink-0 border-b-2 border-transparent px-4 text-body-m whitespace-nowrap text-foreground-secondary transition-colors duration-instant active:text-action-ghost-hover data-[state=active]:border-action-primary data-[state=active]:text-foreground-primary',
-                        focusRing
-                    )}
-                >
-                    {tab.label}
-                </Trigger>
-            ))}
-        </List>
+        <div className={scrollWrap}>
+            <List aria-label={ariaLabel} className={twMerge(scrollList, 'border-b border-border-default')}>
+                {tabs.map((tab) => (
+                    <Trigger
+                        key={tab.value}
+                        value={tab.value}
+                        className={twMerge(
+                            '-mb-px min-h-11 shrink-0 border-b-2 border-transparent px-4 text-body-m whitespace-nowrap text-foreground-secondary transition-colors duration-instant active:text-action-ghost-hover data-[state=active]:border-action-primary data-[state=active]:text-foreground-primary',
+                            focusRing
+                        )}
+                    >
+                        {tab.label}
+                    </Trigger>
+                ))}
+            </List>
+        </div>
         {tabs.map((tab) => (
             <Content key={tab.value} value={tab.value} className={panelClasses}>
                 {tab.content}
@@ -62,25 +73,30 @@ export const UnderlineTabs = ({ tabs, 'aria-label': ariaLabel }: TabVariantProps
 /** B — contained: active tab is a bordered card-top joined to a bordered panel. overflow scrolls. */
 export const ContainedTabs = ({ tabs, 'aria-label': ariaLabel }: TabVariantProps) => (
     <Root defaultValue={tabs[0].value}>
-        <List aria-label={ariaLabel} className="flex overflow-x-auto px-2">
-            {tabs.map((tab) => (
-                <Trigger
-                    key={tab.value}
-                    value={tab.value}
-                    className={twMerge(
-                        'relative min-h-11 shrink-0 rounded-t-sm border border-b-0 border-transparent px-4 text-body-m whitespace-nowrap text-foreground-secondary transition-colors duration-instant active:text-action-ghost-hover data-[state=active]:z-10 data-[state=active]:border-border-default data-[state=active]:bg-background-default data-[state=active]:text-foreground-primary',
-                        focusRing
-                    )}
-                >
-                    {tab.label}
-                </Trigger>
-            ))}
-        </List>
+        <div className={scrollWrap}>
+            <List aria-label={ariaLabel} className={twMerge(scrollList, 'px-2')}>
+                {tabs.map((tab) => (
+                    <Trigger
+                        key={tab.value}
+                        value={tab.value}
+                        className={twMerge(
+                            'relative min-h-11 shrink-0 rounded-t-sm border border-b-0 border-transparent px-4 text-body-m whitespace-nowrap text-foreground-secondary transition-colors duration-instant active:text-action-ghost-hover data-[state=active]:z-10 data-[state=active]:border-border-default data-[state=active]:bg-background-default data-[state=active]:text-foreground-primary',
+                            focusRing
+                        )}
+                    >
+                        {tab.label}
+                    </Trigger>
+                ))}
+            </List>
+        </div>
         {tabs.map((tab) => (
             <Content
                 key={tab.value}
                 value={tab.value}
-                className="-mt-px rounded-sm border border-border-default bg-background-default p-4 focus-visible:outline-none"
+                className={twMerge(
+                    '-mt-px rounded-sm border border-border-default bg-background-default p-4',
+                    focusRing
+                )}
             >
                 {tab.content}
             </Content>
@@ -116,22 +132,24 @@ export const PillTabs = ({ tabs, 'aria-label': ariaLabel }: TabVariantProps) => 
 /** D — text: minimal labels over a divider rule; active is foreground-primary at semibold. overflow scrolls. */
 export const TextTabs = ({ tabs, 'aria-label': ariaLabel }: TabVariantProps) => (
     <Root defaultValue={tabs[0].value}>
-        <List aria-label={ariaLabel} className="flex gap-6 overflow-x-auto border-b border-border-default">
-            {tabs.map((tab) => (
-                <Trigger
-                    key={tab.value}
-                    value={tab.value}
-                    // font-semibold on body-m reproduces the body-m-semibold token values
-                    // (16/600) without stacking two type tokens in one class list
-                    className={twMerge(
-                        'min-h-11 shrink-0 text-body-m whitespace-nowrap text-foreground-secondary transition-colors duration-instant active:text-action-ghost-hover data-[state=active]:font-semibold data-[state=active]:text-foreground-primary',
-                        focusRing
-                    )}
-                >
-                    {tab.label}
-                </Trigger>
-            ))}
-        </List>
+        <div className={scrollWrap}>
+            <List aria-label={ariaLabel} className={twMerge(scrollList, 'gap-6 border-b border-border-default')}>
+                {tabs.map((tab) => (
+                    <Trigger
+                        key={tab.value}
+                        value={tab.value}
+                        // font-semibold on body-m reproduces the body-m-semibold token values
+                        // (16/600) without stacking two type tokens in one class list
+                        className={twMerge(
+                            'min-h-11 shrink-0 text-body-m whitespace-nowrap text-foreground-secondary transition-colors duration-instant active:text-action-ghost-hover data-[state=active]:font-semibold data-[state=active]:text-foreground-primary',
+                            focusRing
+                        )}
+                    >
+                        {tab.label}
+                    </Trigger>
+                ))}
+            </List>
+        </div>
         {tabs.map((tab) => (
             <Content key={tab.value} value={tab.value} className={panelClasses}>
                 {tab.content}
