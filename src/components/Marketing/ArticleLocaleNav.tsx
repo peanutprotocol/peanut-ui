@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { SUPPORTED_LOCALES, type Locale } from '@/i18n/types'
 import { LOCALE_META } from '@/i18n/localeMeta'
+import { toAppLocale } from '@/i18n/localeBridge'
+import { persistLocale } from '@/i18n/app/locale-store'
 import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import { localeHref } from './LocaleSwitcher'
 
@@ -71,7 +73,13 @@ export function ArticleLocaleNav({ currentLocale }: Props) {
                                 <li key={loc} role="option" aria-selected={isCurrent}>
                                     <Link
                                         href={localeHref(pathname, loc)}
-                                        onClick={() => setOpen(false)}
+                                        // Same cookie the product UI reads, so a choice made
+                                        // here carries into the app and back. Without it the
+                                        // next visit to `/` redirects to the old locale.
+                                        onClick={() => {
+                                            persistLocale(toAppLocale(loc))
+                                            setOpen(false)
+                                        }}
                                         aria-label={meta.label}
                                         title={meta.label}
                                         className={`flex items-center justify-center px-3 py-2 transition-colors ${
