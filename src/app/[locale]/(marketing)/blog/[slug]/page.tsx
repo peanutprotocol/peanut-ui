@@ -5,7 +5,6 @@ import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { getAllPosts, getPostBySlug } from '@/lib/blog'
 import { MarketingShell } from '@/components/Marketing/MarketingShell'
 import { JsonLd } from '@/components/Marketing/JsonLd'
-import { ArticleLocaleNav } from '@/components/Marketing/ArticleLocaleNav'
 import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import { availableContentLocales, contentLocaleFor } from '@/lib/content'
 import type { Locale } from '@/i18n/types'
@@ -97,11 +96,6 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
         { name: post.frontmatter.title, href: `/${locale}/blog/${slug}` },
     ]
 
-    const localizedHrefs = Object.fromEntries(SUPPORTED_LOCALES.map((l) => [l, `/${l}/blog/${slug}`])) as Record<
-        Locale,
-        string
-    >
-
     const breadcrumbSchema = {
         '@context': 'https://schema.org',
         '@type': 'BreadcrumbList',
@@ -119,7 +113,6 @@ export default async function BlogPostPageLocalized({ params }: PageProps) {
             <JsonLd data={breadcrumbSchema} />
             {faqSchema && <JsonLd data={faqSchema} />}
             <MarketingShell className="max-w-2xl">
-                <ArticleLocaleNav currentLocale={locale as Locale} localizedHrefs={localizedHrefs} />
                 <nav aria-label="Breadcrumb" className="-mt-2 mb-4">
                     <ol className="flex flex-wrap items-center gap-1 text-body-xs text-foreground-secondary">
                         {breadcrumbs.map((crumb, i) => (
