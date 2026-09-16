@@ -24,8 +24,8 @@ import { useFormatter, useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { ExportActivityDrawer } from '@/components/History/ExportActivityDrawer'
-import { HistoryRangeControl } from '@/components/History/HistoryRangeControl'
 import { HistoryRangeDrawer } from '@/components/History/HistoryRangeDrawer'
+import { HistorySearchBar } from '@/components/History/HistorySearchBar'
 import { useHistoryRange } from '@/hooks/useHistoryRange'
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useWebSocket } from '@/hooks/useWebSocket'
@@ -262,7 +262,7 @@ const HistoryPage = () => {
             <PageStack>
                 <NavHeader title={t('title')} rightElement={exportButton} />
                 <div className="flex w-full flex-col gap-4">
-                    <HistoryRangeControl onClick={() => setRangeDrawerOpen(true)} />
+                    <HistorySearchBar onOpenFilters={() => setRangeDrawerOpen(true)} isFilterActive={hasActiveRange} />
                     <Loading />
                 </div>
                 {drawers}
@@ -289,7 +289,10 @@ const HistoryPage = () => {
                 <PageStack>
                     <NavHeader title={t('title')} rightElement={exportButton} />
                     <div className="flex w-full flex-col gap-4">
-                        <HistoryRangeControl onClick={() => setRangeDrawerOpen(true)} />
+                        <HistorySearchBar
+                            onOpenFilters={() => setRangeDrawerOpen(true)}
+                            isFilterActive={hasActiveRange}
+                        />
                         <EmptyState
                             icon="calendar"
                             title={t('emptyFiltered')}
@@ -323,7 +326,7 @@ const HistoryPage = () => {
         <PageStack>
             <NavHeader title={t('title')} rightElement={exportButton} />
             <div className="flex w-full flex-col gap-4">
-                <HistoryRangeControl onClick={() => setRangeDrawerOpen(true)} />
+                <HistorySearchBar onOpenFilters={() => setRangeDrawerOpen(true)} isFilterActive={hasActiveRange} />
                 <div className="h-full w-full">
                     {combinedAndSortedEntries.map((item, index) => {
                         const itemDate = new Date(item.timestamp)

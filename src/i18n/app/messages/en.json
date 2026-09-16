@@ -2220,15 +2220,14 @@
         "yesterday": "Yesterday",
         "range": {
             "title": "Filter by date",
+            "description": "Pick the period you want to see.",
             "allTime": "All time",
             "last7d": "Last 7 days",
             "last30d": "Last 30 days",
             "last3m": "Last 3 months",
             "last6m": "Last 6 months",
             "ytd": "Year to date",
-            "custom": "Custom range",
-            "customTitle": "Pick a range",
-            "apply": "Apply"
+            "custom": "Custom range"
         },
         "export": {
             "title": "Export activity",
@@ -2239,7 +2238,10 @@
             "error": "Export failed. Try again."
         },
         "emptyFiltered": "No activity in this period",
-        "emptyFilteredDescription": "Try a different date range."
+        "emptyFilteredDescription": "Try a different date range.",
+        "search": {
+            "placeholder": "Search"
+        }
     },
     "rewards": {
         "title": "Rewards",

@@ -33,6 +33,7 @@ import {
     DollarSign,
     Calendar,
     Download,
+    ListFilter,
     ExternalLink,
     Eye,
     EyeOff,
@@ -108,6 +109,7 @@ export type IconName =
     | 'calendar'
     | 'dice'
     | 'download'
+    | 'list-filter'
     | 'double-check'
     | 'eye'
     | 'eye-slash'
@@ -268,6 +270,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'chevron-up': (props) => <LucideWrapper Icon={ChevronUp} {...props} />,
     calendar: (props) => <LucideWrapper Icon={Calendar} {...props} />,
     download: (props) => <LucideWrapper Icon={Download} {...props} />,
+    'list-filter': (props) => <LucideWrapper Icon={ListFilter} {...props} />,
     dollar: (props) => <LucideWrapper Icon={DollarSign} {...props} />,
     'double-check': DoubleCheckIcon,
     eye: (props) => <LucideWrapper Icon={Eye} {...props} />,

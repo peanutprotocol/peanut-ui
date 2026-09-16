@@ -2220,15 +2220,14 @@
         "yesterday": "Ayer",
         "range": {
             "title": "Filtrar por fecha",
+            "description": "Elige el período que quieres ver.",
             "allTime": "Todo el historial",
             "last7d": "Últimos 7 días",
             "last30d": "Últimos 30 días",
             "last3m": "Últimos 3 meses",
             "last6m": "Últimos 6 meses",
             "ytd": "Este año",
-            "custom": "Rango personalizado",
-            "customTitle": "Elige un rango",
-            "apply": "Aplicar"
+            "custom": "Rango personalizado"
         },
         "export": {
             "title": "Exportar actividad",
@@ -2239,7 +2238,10 @@
             "error": "La exportación falló. Intenta de nuevo."
         },
         "emptyFiltered": "No hay actividad en este período",
-        "emptyFilteredDescription": "Prueba con otro rango de fechas."
+        "emptyFilteredDescription": "Prueba con otro rango de fechas.",
+        "search": {
+            "placeholder": "Buscar"
+        }
     },
     "rewards": {
         "title": "Recompensas",

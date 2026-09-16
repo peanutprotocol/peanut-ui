@@ -67,7 +67,7 @@ export const ExportActivityDrawer = ({ open, onOpenChange }: ExportActivityDrawe
                         position="single"
                         leading={<IconBubble icon="calendar" size="s" />}
                         title={t('export.range')}
-                        trailing={<span className="text-body-s text-foreground-secondary">{rangeLabel}</span>}
+                        body={rangeLabel}
                         chevron
                         onClick={() => setRangeOpen(true)}
                     />

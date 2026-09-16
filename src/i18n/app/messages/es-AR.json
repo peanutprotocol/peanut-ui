@@ -1013,7 +1013,7 @@
         "errorDescription": "Contactá a soporte.",
         "empty": "No hiciste ninguna transacción",
         "range": {
-            "customTitle": "Elegí un rango"
+            "description": "Elegí el período que querés ver."
         },
         "export": {
             "error": "La exportación falló. Intentá de nuevo."
