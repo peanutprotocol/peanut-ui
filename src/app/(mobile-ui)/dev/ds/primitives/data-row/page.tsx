@@ -54,7 +54,7 @@ export default function DataRowPage() {
                         <DataRow label="Fee" value="$0.10" />
                         <DataRow label="Address" value="0x1234…abcd" allowCopy copyValue="0x1234abcd" />
                         <DataRow
-                            label="Daily limit"
+                            label="Per transaction"
                             value="$500"
                             trailing={<LinkButton onClick={() => {}}>Edit</LinkButton>}
                         />

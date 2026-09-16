@@ -143,6 +143,13 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             status: 'production',
         },
         {
+            label: 'PinInput',
+            icon: 'lock',
+            href: '/dev/ds/primitives/pin-input',
+            description: 'Filled-dot PIN entry (card flows). Code-only — no figma board yet',
+            status: 'limited',
+        },
+        {
             label: 'ProgressBar',
             icon: 'meter',
             href: '/dev/ds/primitives/progress-bar',
