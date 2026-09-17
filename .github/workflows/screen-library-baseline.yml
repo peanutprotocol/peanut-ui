@@ -110,7 +110,7 @@ jobs:
               run: pnpm install --frozen-lockfile
             - name: Install pinned browser
               working-directory: harness
-              run: pnpm exec playwright install --with-deps --no-shell chromium
+              run: pnpm exec playwright install --with-deps chromium
             - name: Build and capture full dev catalogue
               working-directory: harness
               env:
