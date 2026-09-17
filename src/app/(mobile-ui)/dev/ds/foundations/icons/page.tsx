@@ -1,7 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
 import { DocPage } from '../../_components/DocPage'
@@ -107,36 +111,28 @@ export default function IconsPage() {
             />
 
             {/* Search */}
-            <input
+            <BaseInput
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search icons..."
-                className="w-full rounded-sm border border-border-default px-3 py-2 text-body-s"
             />
 
             {/* Grid */}
-            <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-8">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {filtered.map((name) => (
-                    <button
+                    <ListItem
                         key={name}
                         onClick={() => copyIcon(name)}
-                        className={`flex flex-col items-center gap-0.5 rounded-sm border p-1.5 transition-colors ${
-                            copiedIcon === name
-                                ? 'border-background-icon-bubble-green bg-background-badge-success/40'
-                                : 'border-border-disabled hover:border-border-subtle'
-                        }`}
-                    >
-                        <Icon name={name} size={18} />
-                        <span className="text-body-xs leading-tight break-all text-foreground-secondary">{name}</span>
-                    </button>
+                        leading={<IconBubble icon={name} size="s" color="gray" />}
+                        title={name}
+                        trailing={copiedIcon === name ? <Icon name="check" size={16} /> : undefined}
+                    />
                 ))}
             </div>
 
             {filtered.length === 0 && (
-                <p className="py-8 text-center text-body-s text-foreground-secondary">
-                    No icons match &quot;{search}&quot;
-                </p>
+                <EmptyState icon="search" title="No matching icons" description={`No icons match “${search}”.`} />
             )}
 
             <DocSection title="Usage">
@@ -165,12 +161,8 @@ export default function IconsPage() {
                         code={`import { CountryList } from '@/components/Common/CountryList'`}
                     />
                     <CodeBlock
-                        label="CountryFlagAndName — single country, multi-flag for bridge regions"
-                        code={`import { CountryFlagAndName } from '@/components/Kyc/CountryFlagAndName'`}
-                    />
-                    <CodeBlock
                         label="Flag URL pattern"
-                        code={`import { getFlagUrl } from '@/constants/countryCurrencyMapping'\n<img src={getFlagUrl(countryCode)} alt="flag" className="h-6 w-6 rounded-full object-cover" />`}
+                        code={`import { getFlagUrl } from '@/constants/countryCurrencyMapping'\n<img src={getFlagUrl(countryCode)} alt="flag" className="h-6 w-6 rounded-round object-cover" />`}
                     />
                 </DocSection.Code>
             </DocSection>

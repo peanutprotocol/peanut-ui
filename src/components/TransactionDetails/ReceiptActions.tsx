@@ -2,26 +2,29 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLocale } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { Button } from '@/components/0_Bruddle/Button'
 import CancelSendLinkDrawer from '@/components/Global/CancelSendLinkDrawer'
 import { Icon } from '@/components/Global/Icons/Icon'
 import ShareButton from '@/components/Global/ShareButton'
+import { useShareAction } from '@/components/Global/ShareButton/useShareAction'
 import { PasskeyDocsLink } from '@/components/Setup/Views/SignTestTransaction'
+import { useModalsContext } from '@/context/ModalsContext'
 import { CancelDepositActions } from './provider-actions/CancelDepositActions'
-import { ReceiptReferralNudge } from './ReceiptReferralNudge'
 import { ReceiptSupportLink } from './ReceiptSupportLink'
 import { DownloadReceiptPdfLink } from './DownloadReceiptPdfLink'
+import { ReceiptMoreActionsDrawer, type ReceiptMoreAction } from './ReceiptMoreActionsDrawer'
+import { openReceiptPdfUrl, receiptPdfPath } from './receipt-pdf-link.utils'
+import { useReceiptPdfFile } from './useReceiptPdfFile'
+import { useReceiptReferralAction } from './useReceiptReferralAction'
 import { type ReceiptViewModel } from './useReceiptViewModel'
 import { useReceiptActions } from './useReceiptActions'
 import { type TransactionDetails } from './transactionTransformer'
-import { hasReferralNudge, isRequestEntry, isSendLinkEntry, isSplittable } from './transaction-predicates'
+import { hasReceiptPage, isRequestEntry, isSendLinkEntry, isSplittable } from './transaction-predicates'
 import { buildSplitBillRequestUrl } from './splitBill.utils'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
-import { useActivationStatus } from '@/hooks/useActivationStatus'
-import { useAuth } from '@/context/authContext'
 import { openExternalUrl } from '@/utils/capacitor'
-import { generateInviteCodeLink } from '@/utils/general.utils'
 import { getReceiptUrl, isTestTransaction } from '@/utils/history.utils'
 import { resolveInAppNavigation } from '@/utils/native-routes'
 
@@ -34,10 +37,12 @@ const CANCEL_LINK_KEYS = {
 } as const satisfies Record<CancelLinkState, string>
 
 /**
- * The receipt's CTA stack (DS 09): share/cancel for pending links, pay/reject
- * for requests, split bill, share receipt, deposit cancels, referral nudge and
- * the support footer. All api side effects route through useReceiptActions —
- * this view only holds ephemeral UI state.
+ * The receipt's CTA stack (TASK-22452 hierarchy): one state-aware primary —
+ * Split when the spend is splittable, Share receipt otherwise, Download on
+ * the public page — with the remaining actions demoted into the
+ * More-actions drawer. Pending links/requests keep their decision buttons.
+ * All api side effects route through useReceiptActions — this view only
+ * holds ephemeral UI state.
  */
 export function ReceiptActions({
     transaction,
@@ -61,40 +66,48 @@ export function ReceiptActions({
     setIsModalOpen?: (isModalOpen: boolean) => void
 }) {
     const t = useAppTranslations('transaction')
+    const locale = useLocale()
     const router = useRouter()
-    const { user } = useAuth()
-    const { isActivated } = useActivationStatus()
     const { closeRequest, rejectRequest, cancelSendLink } = useReceiptActions(transaction)
+    const { setIsSupportModalOpen } = useModalsContext()
     const { isPendingBankRequest, isPendingRequestee, isPendingRequester, isPendingSentLink } = vm
 
     const [showCancelLinkDrawer, setShowCancelLinkDrawer] = useState(false)
+    const [showMoreActions, setShowMoreActions] = useState(false)
     const [cancelLinkState, setCancelLinkState] = useState<CancelLinkState>('idle')
 
-    // Sync drawer state to parent if callback is provided — the details drawer
-    // keeps itself open while the confirm drawer is up.
+    // Sync child-drawer state to the parent details drawer — it keeps itself
+    // open while any of our drawers are up (vaul NestedRoot contract).
     useEffect(() => {
-        setIsModalOpen?.(showCancelLinkDrawer)
-    }, [showCancelLinkDrawer, setIsModalOpen])
+        setIsModalOpen?.(showCancelLinkDrawer || showMoreActions)
+    }, [showCancelLinkDrawer, showMoreActions, setIsModalOpen])
 
-    // `shouldShowShareReceipt` alone is TRUE for card spends (the txHash
-    // short-circuit in useReceiptViewModel); `getReceiptUrl` returning undefined
-    // is the real suppressor, so the CTA arithmetic must read the composite.
+    // An action/payment URL is not necessarily a public receipt URL. Only the
+    // dedicated receipt-page kinds may share it; every other completed kind
+    // shares the authenticated PDF file (#3159 boundary, unchanged here).
+    const kind = transaction.extraDataForDrawer?.kind
     const receiptUrl = getReceiptUrl(transaction)
-    const showShareReceipt = vm.shouldShowShareReceipt && !!receiptUrl
+    const hasPublicReceiptPage = hasReceiptPage(transaction)
+    const canShareUrl = vm.shouldShowShareReceipt && hasPublicReceiptPage && !!receiptUrl
+    const canSharePdf = vm.shouldShowShareReceipt && vm.shouldShowDownloadPdf && !hasPublicReceiptPage && !!kind
+    const canShareReceipt = canShareUrl || canSharePdf
+    const canDownloadPdf = vm.shouldShowDownloadPdf && !!kind
     const showSplitCta = !isPublic && isSplittable(transaction)
+    // one primary per state: split first, else share (never both visible)
+    const sharePrimary = !showSplitCta && canShareReceipt
+    const isTest = isTestTransaction(transaction.userName)
 
-    // `!isPublic`: on a public receipt the *viewer's* username would credit a
-    // bystander for someone else's payment.
-    const inviteUsername = user?.user.username
-    const showReferralNudge =
-        !isPublic &&
-        isActivated &&
-        transaction.status === 'completed' &&
-        hasReferralNudge(transaction) &&
-        !!inviteUsername
-    const inviteLink = inviteUsername ? generateInviteCodeLink(inviteUsername).inviteLink : ''
-
-    const referralCtaVariant = showSplitCta && showShareReceipt ? 'text_link' : 'button'
+    // hooks are unconditional; prefetch mirrors the old PrivateReceiptPdfActions
+    // scope — private-kind finals fetch eagerly with the stored bearer.
+    const pdfFile = useReceiptPdfFile({ entryId: transaction.id, kind: kind ?? '', prefetch: canSharePdf })
+    const shareReceiptUrl = useShareAction({ url: receiptUrl ?? '' })
+    // invite row (TASK-22452 item 5): pre-#3159 eligibility, impression only
+    // while the drawer is open with the row visible
+    const referralAction = useReceiptReferralAction(transaction, {
+        isPublic,
+        drawerOpen: showMoreActions,
+        onSelect: () => setShowMoreActions(false),
+    })
 
     const handleCloseRequest = async () => {
         if (!setIsLoading || !onClose) return
@@ -145,11 +158,75 @@ export function ReceiptActions({
         onClose()
     }
 
+    // the overflow rows, in menu order: share (when split owns the primary),
+    // download, support. the referral row joins here (TASK-22452 item 5).
+    const moreActions: ReceiptMoreAction[] = []
+    if (!isPublic) {
+        if (showSplitCta && canShareUrl) {
+            moreActions.push({
+                icon: 'share',
+                title: t('actions.shareReceipt'),
+                onSelect: () => {
+                    setShowMoreActions(false)
+                    void shareReceiptUrl()
+                },
+                'data-testid': 'more-action-share',
+            })
+        }
+        if (showSplitCta && canSharePdf) {
+            moreActions.push({
+                icon: 'share',
+                title: t('actions.shareReceipt'),
+                onSelect: () => {
+                    setShowMoreActions(false)
+                    void pdfFile.share()
+                },
+                disabled: pdfFile.unavailable || pdfFile.busy !== null,
+                'data-testid': 'more-action-share',
+            })
+        }
+        if (canDownloadPdf) {
+            // public-capability kinds keep their pre-existing url download —
+            // anchor on web, system browser on native, no bearer, no wait.
+            // only private kinds use the authenticated file hook.
+            const downloadViaUrl = hasPublicReceiptPage
+            moreActions.push({
+                icon: 'download',
+                title: t('actions.downloadPdf'),
+                onSelect: () => {
+                    setShowMoreActions(false)
+                    if (downloadViaUrl) openReceiptPdfUrl(receiptPdfPath(transaction.id, kind!, locale))
+                    else void pdfFile.download()
+                },
+                disabled: !downloadViaUrl && (pdfFile.unavailable || pdfFile.busy !== null),
+                'data-testid': 'more-action-download',
+            })
+        }
+        if (referralAction && (showSplitCta || sharePrimary)) {
+            moreActions.push(referralAction)
+        }
+        if (!isTest && (showSplitCta || sharePrimary)) {
+            moreActions.push({
+                icon: 'peanut-support',
+                title: t('actions.reportIssue'),
+                onSelect: () => {
+                    setShowMoreActions(false)
+                    setIsSupportModalOpen(true)
+                },
+                'data-testid': 'more-action-support',
+            })
+        }
+    }
+    const showMoreActionsButton = moreActions.length > 0
+    // the drawer owns support only when the overflow exists; every other
+    // state keeps the visible support/passkey footer.
+    const supportInDrawer = moreActions.some((action) => action['data-testid'] === 'more-action-support')
+
     return (
         <>
             {/* share and cancel buttons section (only if qr is shown) */}
             {shouldShowQrShare && transaction.extraDataForDrawer?.link && (
-                <div className="flex flex-col gap-2 pr-1 print:hidden">
+                <div className="flex flex-col gap-2 print:hidden">
                     <ShareButton url={transaction.extraDataForDrawer.link} title={t('actions.shareLinkTitle')}>
                         {t('actions.shareLink')}
                     </ShareButton>
@@ -180,24 +257,22 @@ export function ReceiptActions({
             )}
 
             {isPendingRequester && setIsLoading && onClose && (
-                <div className="pr-1">
-                    <Button
-                        icon="ban"
-                        iconSize={18}
-                        loading={isLoading}
-                        disabled={isLoading}
-                        onClick={handleCloseRequest}
-                        variant="stroke"
-                        shadowSize="4"
-                        className="flex w-full items-center gap-1"
-                    >
-                        {transaction.totalAmountCollected > 0 ? t('actions.closeRequest') : t('actions.cancelRequest')}
-                    </Button>
-                </div>
+                <Button
+                    icon="ban"
+                    iconSize={18}
+                    loading={isLoading}
+                    disabled={isLoading}
+                    onClick={handleCloseRequest}
+                    variant="stroke"
+                    shadowSize="4"
+                    className="flex w-full items-center gap-1"
+                >
+                    {transaction.totalAmountCollected > 0 ? t('actions.closeRequest') : t('actions.cancelRequest')}
+                </Button>
             )}
 
             {isPendingRequestee && setIsLoading && onClose && (
-                <div className="flex flex-col gap-2 pr-1">
+                <div className="flex flex-col gap-2">
                     <Button onClick={handlePay} shadowSize="4" className="flex w-full items-center gap-1">
                         <Icon name="currency" size={20} />
                         {t('actions.pay')}
@@ -216,21 +291,65 @@ export function ReceiptActions({
                 </div>
             )}
 
-            {showSplitCta && (
-                <Button
-                    onClick={() => router.push(buildSplitBillRequestUrl(transaction.amount, transaction.userName))}
-                    icon="users"
-                    shadowSize="4"
-                >
-                    {t('actions.splitBill')}
-                </Button>
+            {/* the final-state cta group (S/8 inside one action area): the one
+                primary, then the overflow trigger */}
+            {(showSplitCta || sharePrimary || showMoreActionsButton) && (
+                <div className="flex flex-col gap-2 print:hidden">
+                    {showSplitCta && (
+                        <Button
+                            onClick={() =>
+                                router.push(buildSplitBillRequestUrl(transaction.amount, transaction.userName))
+                            }
+                            icon="users"
+                            shadowSize="4"
+                        >
+                            {t('actions.splitBill')}
+                        </Button>
+                    )}
+
+                    {sharePrimary && canShareUrl && (
+                        <div data-testid="public-share">
+                            <ShareButton url={receiptUrl!} className="w-full">
+                                {t('actions.shareReceipt')}
+                            </ShareButton>
+                        </div>
+                    )}
+
+                    {sharePrimary && canSharePdf && (
+                        <Button
+                            shadowSize="4"
+                            className="w-full"
+                            loading={pdfFile.busy === 'share'}
+                            disabled={pdfFile.unavailable || pdfFile.busy !== null}
+                            onClick={() => void pdfFile.share()}
+                            icon={<Icon name="share" size={20} />}
+                            data-testid="private-pdf-share"
+                        >
+                            {t('actions.shareReceipt')}
+                        </Button>
+                    )}
+
+                    {showMoreActionsButton && (
+                        <Button
+                            variant="stroke"
+                            shadowSize="4"
+                            className="w-full"
+                            onClick={() => setShowMoreActions(true)}
+                            data-testid="more-actions-trigger"
+                        >
+                            {t('actions.moreActions')}
+                        </Button>
+                    )}
+                </div>
             )}
 
-            {showShareReceipt && (
-                <div className="pr-1">
-                    <ShareButton variant={showSplitCta ? 'stroke' : 'purple'} url={receiptUrl!}>
-                        {t('actions.shareReceipt')}
-                    </ShareButton>
+            {/* public page: download is the one primary; no account actions.
+                support sits in the same tight group (S/8) — the link wrapper
+                reserves its own 44px target so the two cannot overlap */}
+            {isPublic && canDownloadPdf && kind && (
+                <div className="flex flex-col gap-2 print:hidden">
+                    <DownloadReceiptPdfLink entryId={transaction.id} kind={kind} />
+                    {isTest ? <PasskeyDocsLink className="border-t-0 pt-0" /> : <ReceiptSupportLink />}
                 </div>
             )}
 
@@ -243,31 +362,24 @@ export function ReceiptActions({
                 setIsModalOpen={setIsModalOpen}
             />
 
-            {showReferralNudge && (
-                <ReceiptReferralNudge
-                    transactionId={transaction.id}
-                    inviteLink={inviteLink}
-                    variant={referralCtaVariant}
-                    label={t('actions.inviteFriends')}
-                />
-            )}
+            {/* support link section or passkey docs for test transactions —
+                unless the public action group above already carries it */}
+            {!(isPublic && canDownloadPdf && kind) &&
+                (isTest ? <PasskeyDocsLink className="border-t-0 pt-0" /> : !supportInDrawer && <ReceiptSupportLink />)}
 
-            {vm.shouldShowDownloadPdf && transaction.extraDataForDrawer?.kind && (
-                <DownloadReceiptPdfLink entryId={transaction.id} kind={transaction.extraDataForDrawer.kind} />
-            )}
-
-            {/* support link section or passkey docs for test transactions */}
-            {isTestTransaction(transaction.userName) ? (
-                <PasskeyDocsLink className="border-t-0 pt-0" />
-            ) : (
-                <ReceiptSupportLink />
-            )}
+            <ReceiptMoreActionsDrawer
+                // rendered inside the transaction details drawer whenever that
+                // drawer owns the close handler — vaul needs a NestedRoot there
+                nested={!!setIsModalOpen}
+                open={showMoreActions}
+                onOpenChange={setShowMoreActions}
+                actions={moreActions}
+            />
 
             {/* Cancel Link Drawer */}
             {setIsLoading && onClose && (
                 <CancelSendLinkDrawer
-                    // Rendered inside the transaction details drawer whenever that
-                    // drawer owns the close handler — vaul needs a NestedRoot there.
+                    // same NestedRoot rule as the more-actions drawer above
                     nested={!!setIsModalOpen}
                     showCancelLinkDrawer={showCancelLinkDrawer}
                     setShowCancelLinkDrawer={setShowCancelLinkDrawer}

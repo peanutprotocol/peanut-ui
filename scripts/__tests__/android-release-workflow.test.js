@@ -20,7 +20,18 @@ describe('Android replacement release workflow', () => {
         expect(workflow).toContain(
             'node scripts/check-native-change-scope.cjs "v$VERSION_NAME" android --legacy-compatible'
         )
-        expect(workflow).toContain('echo "rebuild=$DIRECT_REBUILD" >> "$GITHUB_OUTPUT"')
+        expect(workflow).toContain('echo "rebuild=$DIRECT_REBUILD"')
+        expect(workflow).toContain('IS_REBUILD: ${{ steps.version.outputs.rebuild }}')
+    })
+
+    it('keeps TASK-21683 profile builds on Play internal without production OTA or tags', () => {
+        expect(workflow).toContain("github.ref_name == 'innolope/TASK-21683-lottie-native-testflight'")
+        expect(workflow).toContain('TASK-21683 profile builds may upload only to Play internal')
+        expect(workflow).toContain('echo "profile=$PROFILE_BUILD"')
+        expect(workflow).toContain("KEEP_LOTTIE_PROFILE: ${{ steps.version.outputs.profile == 'true'")
+        expect(workflow).toContain("WEBVIEW_DEBUG: ${{ steps.version.outputs.profile == 'true'")
+        expect(workflow).toContain("if: steps.version.outputs.profile != 'true'")
+        expect(workflow).toContain("steps.version.outputs.profile != 'true'")
     })
 
     it('allows only a same-build OTA to sort above a replacement binary', () => {
@@ -29,10 +40,28 @@ describe('Android replacement release workflow', () => {
         expect(workflow).toContain('Replacement build $VERSION_NAME remains covered by production OTA $CURRENT')
     })
 
-    it('refuses to upload an optimized DEX without CameraPlugin permission metadata', () => {
-        expect(workflow).toContain('Verify Capacitor permission metadata survived R8')
-        expect(workflow).toContain('Lcom/getcapacitor/annotation/CapacitorPlugin; name="Camera" permissions={')
-        expect(workflow).toContain('refusing to upload a crash-prone AAB')
+    it('refuses to upload optimized DEX without required Capacitor metadata', () => {
+        const check = workflow.slice(
+            workflow.indexOf('            - name: Verify optimized native metadata survived R8'),
+            workflow.indexOf('            # The Cordova plugin registry')
+        )
+
+        expect(check).toContain('Lcom/getcapacitor/annotation/CapacitorPlugin; name="Camera" permissions={')
+        expect(check).toContain('Lme/peanut/wallet/PushProvisioningPlugin;')
+        expect(check).toContain('Lcom/getcapacitor/annotation/CapacitorPlugin; name="PushProvisioning"')
+        expect(check).toContain('refusing to upload a crash-prone AAB')
+    })
+
+    it('refuses to upload optimized AABs without reflection-loaded native resources', () => {
+        const check = workflow.slice(
+            workflow.indexOf('            - name: Verify Cordova plugin registration survived resource shrinking'),
+            workflow.indexOf('            - name: Preserve R8 mapping')
+        )
+
+        expect(check).toContain('base/res/xml/config.xml')
+        expect(check).toContain('base/res/raw/mea_config')
+        expect(check).toContain('ic_stat_onesignal_default')
+        expect(check).toContain('Google Pay config')
     })
 
     it('records an attested replacement baseline only after the read-only release job succeeds', () => {
@@ -42,7 +71,7 @@ describe('Android replacement release workflow', () => {
         expect(releaseJob).toBeGreaterThan(-1)
         expect(baselineJob).toBeGreaterThan(releaseJob)
         expect(workflow).toContain("if: needs.release.outputs.rebuild == 'true'")
-        expect(workflow).toContain('peanut-native-replacement-v2: platform=android')
+        expect(workflow).toContain('peanut-native-replacement-v3: platform=android')
         expect(workflow).toContain('js-guard=android-capacitor-permissions-v1')
         expect(workflow).toContain('android-v${VERSION}-replacement-${GITHUB_SHA:0:12}')
         expect(workflow.slice(baselineJob)).toContain('contents: write')

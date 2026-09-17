@@ -1,13 +1,21 @@
-import { render } from '@testing-library/react'
+import { renderWithIntl } from '@/test-utils/intl'
 import HelpLanding from '../HelpLanding'
 
 jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
 }))
 
+const STRINGS = {
+    searchPlaceholder: 'Search help articles...',
+    clearSearch: 'Clear search',
+    noResults: 'Nothing matches your search.',
+    cantFind: 'Cannot find an answer?',
+    cantFindDesc: 'Chat with us.',
+}
+
 describe('HelpLanding owner links', () => {
     it('renders the server-provided href instead of reconstructing it from the hub locale', () => {
-        const { container } = render(
+        const { container } = renderWithIntl(
             <HelpLanding
                 articles={[
                     {
@@ -26,6 +34,7 @@ describe('HelpLanding owner links', () => {
                     },
                 ]}
                 categories={['Security', 'Payments']}
+                strings={STRINGS}
             />
         )
         const hrefs = [...container.querySelectorAll<HTMLAnchorElement>('a[href]')].map((link) =>

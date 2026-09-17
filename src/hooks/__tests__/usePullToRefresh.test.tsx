@@ -23,6 +23,21 @@ import { impactHaptic, notifyHaptic } from '@/utils/haptics'
 // flourishes can be asserted without them throwing.
 const animateCalls: { element: Element; keyframes: unknown }[] = []
 
+// jsdom's CSSOM drops var() values outright, so the token backgrounds the hook
+// assigns would read back as ''. store the raw assignment to keep it assertable.
+const rawBackground = new WeakMap<CSSStyleDeclaration, string>()
+beforeAll(() => {
+    Object.defineProperty(CSSStyleDeclaration.prototype, 'background', {
+        configurable: true,
+        set(value: string) {
+            rawBackground.set(this, value)
+        },
+        get() {
+            return rawBackground.get(this) ?? ''
+        },
+    })
+})
+
 let queryClient: QueryClient
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -112,7 +127,7 @@ describe('usePullToRefresh', () => {
         })
 
         expect(iconHtml()).toContain('M5 13l4 4L19 7') // checkmark
-        expect(indicator()?.style.background).toBe('rgb(152, 233, 171)')
+        expect(indicator()?.style.background).toBe('var(--color-background-badge-success)')
         expect(notifyHaptic).toHaveBeenCalledWith('success')
 
         // the refreshed content fades back in — the "it reloaded" signal on a
@@ -125,7 +140,7 @@ describe('usePullToRefresh', () => {
             jest.advanceTimersByTime(550 + 220)
         })
         expect(iconHtml()).toContain('M12 5v14')
-        expect(indicator()?.style.background).toBe('rgb(255, 255, 255)')
+        expect(indicator()?.style.background).toBe('var(--color-background-default)')
     })
 
     it('reloads the page instead of invalidating on web', () => {

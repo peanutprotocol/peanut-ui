@@ -1,4 +1,3 @@
-export { default as InstallPWA } from './InstallPWA'
 export { default as SetupPasskey } from './SetupPasskey'
 export { default as SignTestTransaction } from './SignTestTransaction'
 export { default as SignupStep } from './Signup'

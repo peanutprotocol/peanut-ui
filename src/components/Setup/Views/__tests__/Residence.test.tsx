@@ -214,12 +214,11 @@ describe('ResidenceStep', () => {
         // the screen itself never names a country
         expect(screen.queryByText(/Brazil/)).not.toBeInTheDocument()
         // gates stay separated in prose: no-ID features first, the bank rail
-        // behind the ID check (named per country), then the card behind BOTH
-        // of its remaining gates. Naming the card without the waitlist is the
-        // regression this guards (2026-09-05 policy change).
+        // behind the ID check (named per country), then the card application
+        // behind verification. The retired virtual-card queue is absent.
         expect(screen.getByText(/work right away, and a quick ID check unlocks PIX transfers/)).toBeInTheDocument()
-        expect(screen.getByText(/The Peanut card is also available/)).toBeInTheDocument()
-        expect(screen.getByText(/it needs an ID check, and you'll join a waitlist/)).toBeInTheDocument()
+        expect(screen.getByText(/apply for a Peanut Card/)).toBeInTheDocument()
+        expect(screen.getByText(/after verifying your identity/)).toBeInTheDocument()
         // Rain §7 bans availability framing keyed to a place — no country here
         expect(screen.queryByText(/in your country/)).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
@@ -236,7 +235,7 @@ describe('ResidenceStep', () => {
         // the rail clause disappears; the card clause is self-contained, so the
         // same string serves both branches
         expect(screen.getByText(/work right away\./)).toBeInTheDocument()
-        expect(screen.getByText(/it needs an ID check, and you'll join a waitlist/)).toBeInTheDocument()
+        expect(screen.getByText(/after verifying your identity/)).toBeInTheDocument()
         expect(screen.queryByText(/in your country/)).not.toBeInTheDocument()
         expect(screen.queryByText(/unlocks/)).not.toBeInTheDocument()
         expect(screen.queryByText(/bank transfers/i)).not.toBeInTheDocument()

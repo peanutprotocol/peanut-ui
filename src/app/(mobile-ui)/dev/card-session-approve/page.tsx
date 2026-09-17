@@ -13,22 +13,28 @@ import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Card } from '@/components/0_Bruddle/Card'
+import { DataRow } from '@/components/0_Bruddle/DataRow'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import DevPageShell from '../_components/DevPageShell'
 
 export default function CardSessionApprovePage() {
     const { overview } = useRainCardOverview()
     const { grant, isGranting } = useGrantSessionKey()
-    const [status, setStatus] = useState<string>('')
+    const [status, setStatus] = useState<{ ok: boolean; message: string } | null>(null)
 
     const card = findActiveCard(overview)
 
     const handleClick = async () => {
-        setStatus('Waiting for passkey tap…')
+        setStatus(null)
         const result = await grant()
         if (result.ok) {
-            setStatus('✅ Granted — overview now shows hasWithdrawApproval=true')
+            setStatus({ ok: true, message: 'Granted. The overview now shows hasWithdrawApproval=true.' })
         } else {
-            setStatus(`❌ ${result.error.kind}${'message' in result.error ? ': ' + result.error.message : ''}`)
+            setStatus({
+                ok: false,
+                message: `${result.error.kind}${'message' in result.error ? `: ${result.error.message}` : ''}`,
+            })
         }
     }
 
@@ -38,40 +44,24 @@ export default function CardSessionApprovePage() {
             description="One passkey tap installs both auto-balancer and withdraw policies to your kernel. After this grant, card collateral spends only need a single admin EIP-712 tap per spend."
             width="prose"
         >
-            <div className="rounded-sm border border-border-default p-3 text-body-s">
-                <div>
-                    <span className="font-bold">Card status: </span>
-                    {card ? card.status : 'no card'}
-                </div>
-                <div>
-                    <span className="font-bold">Collateral proxy: </span>
-                    {overview?.status?.contractAddress ?? '—'}
-                </div>
-                <div>
-                    <span className="font-bold">Coordinator: </span>
-                    {overview?.status?.coordinatorAddress ?? '—'}
-                </div>
-                <div>
-                    <span className="font-bold">hasWithdrawApproval: </span>
-                    {card?.hasWithdrawApproval ? '✅ true' : '❌ false'}
-                </div>
-            </div>
+            <Card className="divide-y divide-dashed divide-border-default px-4">
+                <DataRow label="Card status" value={card?.status ?? 'no card'} />
+                <DataRow label="Collateral proxy" value={overview?.status?.contractAddress ?? '—'} />
+                <DataRow label="Coordinator" value={overview?.status?.coordinatorAddress ?? '—'} />
+                <DataRow label="Withdraw approval" value={card?.hasWithdrawApproval ? 'true' : 'false'} />
+            </Card>
 
             <Button
                 variant="purple"
-                shadowSize="4"
                 className="w-full"
                 onClick={handleClick}
                 disabled={isGranting || !card}
+                loading={isGranting}
             >
-                {isGranting ? 'Working…' : 'Grant permission (one tap)'}
+                Grant permission (one tap)
             </Button>
 
-            {status && (
-                <pre className="rounded-sm border border-border-default p-3 text-body-xs whitespace-pre-wrap">
-                    {status}
-                </pre>
-            )}
+            {status && <Notification priority={status.ok ? 'success' : 'error'}>{status.message}</Notification>}
         </DevPageShell>
     )
 }

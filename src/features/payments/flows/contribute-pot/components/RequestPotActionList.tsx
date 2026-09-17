@@ -181,7 +181,7 @@ export function RequestPotActionList({
                         <ListItem
                             key={method.id}
                             position="single"
-                            body={<div className="text-[12px]">{method.description}</div>}
+                            body={<div className="text-body-xs">{method.description}</div>}
                             title={
                                 <div className="flex items-center gap-2">
                                     {method.title}
@@ -195,7 +195,7 @@ export function RequestPotActionList({
                             }
                             onClick={() => handleMethodClick(method)}
                             disabled={method.soon || !isAmountEntered}
-                            trailing={<IconStack icons={method.icons} iconSize={method.id === 'bank' ? 80 : 24} />}
+                            trailing={<IconStack icons={method.icons} iconSize={24} />}
                         />
                     )
                 })}
@@ -207,11 +207,9 @@ export function RequestPotActionList({
                 onClose={() => setShowMinAmountError(false)}
                 title={t('minAmount.title')}
                 description={t('minAmount.description', { minAmount: MIN_BANK_TRANSFER_AMOUNT })}
-                icon="alert"
+                tone="warning"
                 ctas={[{ text: tCommon('close'), shadowSize: '4', onClick: () => setShowMinAmountError(false) }]}
-                iconContainerClassName="bg-action-secondary"
                 preventClose={false}
-                modalPanelClassName="max-w-md mx-8"
             />
 
             {/* use peanut balance modal - only shown when user has enough balance */}
@@ -250,9 +248,7 @@ export function RequestPotActionList({
                         },
                     },
                 ]}
-                iconContainerClassName="bg-action-primary"
                 preventClose={false}
-                modalPanelClassName="max-w-md mx-8"
             />
         </div>
     )

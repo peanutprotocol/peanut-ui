@@ -1,6 +1,9 @@
 'use client'
 
 import React, { useState } from 'react'
+import { Button } from '@/components/0_Bruddle/Button'
+import { Card } from '@/components/0_Bruddle/Card'
+import { Section } from '@/components/0_Bruddle/Section'
 
 interface DocSectionProps {
     title: string
@@ -37,29 +40,30 @@ function DocSectionRoot({ title, description, children }: DocSectionProps) {
     return (
         <section className={hasCode ? 'lg:grid lg:grid-cols-2 lg:gap-10' : ''}>
             {/* Left: title + description + content */}
-            <div>
-                <div className="flex items-center gap-2">
-                    <h2 className="text-heading-xs">{title}</h2>
+            <Section title={title}>
+                <div className="flex items-center gap-2 lg:hidden">
                     {hasCode && (
-                        <button
+                        <Button
+                            variant="stroke"
+                            size="small"
+                            className="w-auto"
                             onClick={() => setCodeVisible(!codeVisible)}
-                            className="flex items-center gap-1 rounded-sm border border-border-disabled px-2 py-0.5 text-label-m text-foreground-secondary lg:hidden"
                             aria-label={codeVisible ? 'Hide code' : 'Show code'}
                         >
-                            &lt;/&gt;
-                        </button>
+                            {codeVisible ? 'Hide code' : 'Show code'}
+                        </Button>
                     )}
                 </div>
                 {description && <p className="mt-2 text-body-s text-foreground-secondary">{description}</p>}
                 {/* space-y-4 = L/16 within-group gap (design.md spacing anatomy) — the
                     content column owns the stack rhythm so pages don't sprinkle margins */}
                 <div className="space-y-4 mt-6">{contentNode}</div>
-            </div>
+            </Section>
 
             {/* Right: code */}
             {hasCode && (
                 <div className={`mt-6 lg:mt-0 ${codeVisible ? 'block' : 'hidden'} lg:block`}>
-                    <div className="space-y-6 rounded-sm bg-background-badge-accent/20 p-4">{codeNode}</div>
+                    <Card className="space-y-6 bg-background-badge-accent/20 p-4">{codeNode}</Card>
                 </div>
             )}
         </section>

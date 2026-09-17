@@ -203,25 +203,6 @@ jest.mock('@/components/Global/ShareButton', () => ({
     ),
 }))
 
-jest.mock('@/components/Global/FileUploadInput', () => ({
-    __esModule: true,
-    default: (props: any) => (
-        <div data-testid="file-upload-input">
-            <input
-                data-testid="comment-field"
-                value={props.attachmentOptions?.message ?? ''}
-                onChange={(e) =>
-                    props.setAttachmentOptions?.({
-                        ...props.attachmentOptions,
-                        message: e.target.value,
-                    })
-                }
-                placeholder={props.placeholder}
-            />
-        </div>
-    ),
-}))
-
 jest.mock('@/components/Global/Loading', () => ({
     __esModule: true,
     default: (props: any) =>
@@ -455,37 +436,37 @@ beforeEach(() => {
 })
 
 // ============================================================
-// GROUP 0: Balance affordance — spendable (smart + card collateral)
+// GROUP 0: Balance affordance — a request shows no balance at all
 // ============================================================
 describe('GROUP 0: Balance affordance', () => {
-    // Regression for the report where /request read lower than /home: both entry
-    // views must show the spendable total (smart + card collateral), sourced from
-    // the hook's `formattedSpendableBalance` — NOT the smart-only `formattedBalance`.
-    // Distinct sentinels prove which field reaches the AmountInput's walletBalance.
-    const SPENDABLE = '250.00 (spendable)'
-    const SMART_ONLY = '100.00 (smart-only)'
+    // A request asks somebody ELSE for money, so the user's own balance is not a
+    // ceiling on what they may type — and an amount row the user cannot act on is
+    // noise. Both request entry views therefore pass no walletBalance (TASK-22452).
+    // The screens that DO spend the balance (send-link, direct send, semantic
+    // request, contribute pot, withdraw) show it AND fill it; their coverage lives
+    // in Global/AmountInput/__tests__/balance-fill.test.tsx.
     const walletWithSplit = {
         address: '0x1234567890abcdef1234567890abcdef12345678',
         isConnected: true,
         spendableBalance: BigInt(250_000_000), // defined → not the loading branch
-        formattedSpendableBalance: SPENDABLE,
-        formattedBalance: SMART_ONLY,
+        formattedSpendableBalance: '250.00 (spendable)',
+        formattedBalance: '100.00 (smart-only)',
     }
 
-    test('create-request shows the spendable balance, not smart-only', () => {
+    test('create-request shows no balance row', () => {
         mockUseWallet.mockReturnValue(walletWithSplit)
 
         renderCreateRequest()
 
-        expect(screen.getByTestId('amount-input')).toHaveAttribute('data-wallet-balance', SPENDABLE)
+        expect(screen.getByTestId('amount-input')).not.toHaveAttribute('data-wallet-balance')
     })
 
-    test('direct-request shows the spendable balance, not smart-only', () => {
+    test('direct-request shows no balance row', () => {
         mockUseWallet.mockReturnValue(walletWithSplit)
 
         renderDirectRequest()
 
-        expect(screen.getByTestId('amount-input')).toHaveAttribute('data-wallet-balance', SPENDABLE)
+        expect(screen.getByTestId('amount-input')).not.toHaveAttribute('data-wallet-balance')
     })
 })
 
@@ -556,7 +537,6 @@ describe('GROUP 1: Initial Form States', () => {
     test('comment input is available', () => {
         renderCreateRequest()
 
-        expect(screen.getByTestId('file-upload-input')).toBeInTheDocument()
         expect(screen.getByPlaceholderText('Comment')).toBeInTheDocument()
     })
 
@@ -874,7 +854,7 @@ describe('GROUP 5: Merchant / Bill Split Flow', () => {
     test('merchant param populates comment with bill split message', () => {
         renderCreateRequest({ merchant: 'CoolCafe' })
 
-        const commentField = screen.getByTestId('comment-field')
+        const commentField = screen.getByPlaceholderText('Comment')
         expect(commentField).toHaveValue('Bill split for CoolCafe')
     })
 

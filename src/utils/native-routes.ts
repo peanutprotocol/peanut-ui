@@ -3,6 +3,7 @@
 // on web, use the normal path-based urls.
 
 import { couldBeRecipient, isPlausibleUsername, isReservedRoute } from '@/constants/routes'
+import { LOTTIE_PROFILE_ENABLED } from '@/constants/dev-tools.consts'
 import { isCapacitor } from './capacitor'
 import { sanitizeRedirectURL } from './cookie-url.utils'
 
@@ -127,6 +128,13 @@ function mapDeepLinkPath(parsed: URL): string | null {
         const requestId = parsed.searchParams.get('id')
         if (requestId) return requestPotUrl(requestId)
         return isCapacitor() ? null : appendParams(path, extraParams)
+    }
+
+    // TASK-21683 profile binaries deliberately keep this single /dev route in
+    // the static export. Let a tester tap https://peanut.me/dev/lottie-profile
+    // to enter it; every other /dev link stays outside the native app.
+    if (isCapacitor() && LOTTIE_PROFILE_ENABLED && path === '/dev/lottie-profile') {
+        return appendParams(path, extraParams)
     }
 
     // OS associations also claim /app/*, but only /app exists in the native export.
@@ -299,7 +307,9 @@ export const NATIVE_EXPORT_ROOTS: ReadonlySet<string> = new Set([
  * fallback.
  */
 export function isNativeExportPath(path: string): boolean {
-    const root = path.split(/[?#]/)[0].split('/').filter(Boolean)[0]
+    const pathname = path.split(/[?#]/)[0]
+    if (LOTTIE_PROFILE_ENABLED && pathname === '/dev/lottie-profile') return true
+    const root = pathname.split('/').filter(Boolean)[0]
     if (!root) return true // '/' exists in the export (RootRedirect)
     return NATIVE_EXPORT_ROOTS.has(root.toLowerCase())
 }

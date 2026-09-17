@@ -24,10 +24,7 @@ export default function CardPage() {
                 name="Card"
                 importPath={`import { Card } from '@/components/0_Bruddle/Card'`}
                 defaults={{ shadowSize: '4' }}
-                controls={[
-                    { type: 'select', prop: 'shadowSize', label: 'shadowSize', options: ['4', '6', '8'] },
-                    { type: 'select', prop: 'color', label: 'color', options: ['primary', 'secondary'] },
-                ]}
+                controls={[{ type: 'select', prop: 'shadowSize', label: 'shadowSize', options: ['4', '6', '8'] }]}
                 render={(props) => (
                     <Card {...props} className="w-full max-w-xs p-4">
                         <Card.Header>
@@ -42,7 +39,6 @@ export default function CardPage() {
                 codeTemplate={(props) => {
                     const parts = ['<Card']
                     if (props.shadowSize) parts.push(`shadowSize="${props.shadowSize}"`)
-                    if (props.color && props.color !== 'primary') parts.push(`color="${props.color}"`)
                     parts.push('className="p-4">')
                     return (
                         parts.join(' ') +
@@ -56,7 +52,6 @@ export default function CardPage() {
             <PropsTable
                 rows={[
                     { name: 'shadowSize', type: "'4' | '6' | '8'", default: '(none)' },
-                    { name: 'color', type: "'primary' | 'secondary'", default: "'primary'" },
                     { name: 'className', type: 'string', default: '(none)' },
                 ]}
             />

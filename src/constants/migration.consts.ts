@@ -3,9 +3,9 @@
  *
  * Everything here is dark until the `pwa-sunset` PostHog flag is flipped ON
  * (no deploy needed). Flag ON starts the notice window: download prompts +
- * store links appear and new signups skip the PWA-install steps. Once
- * MIGRATION_CUTOVER_DATE passes (flag still ON), the web app is replaced by
- * the full-screen sunset block (SunsetScreen).
+ * store links appear and web signups close. Once MIGRATION_CUTOVER_DATE passes
+ * (flag still ON), the web app is replaced by the full-screen sunset block
+ * (SunsetScreen).
  */
 
 export const PWA_SUNSET_FLAG = 'pwa-sunset'
@@ -49,10 +49,6 @@ export const STORE_URL = {
     ios: 'https://apps.apple.com/us/app/id6786373552',
     android: 'https://play.google.com/store/apps/details?id=me.peanut.wallet',
 } as const
-
-// The iOS listing (App Store Connect app 6786373552) is not published yet:
-// the store URL 404s, so store-update prompts stay hidden on iOS until then.
-export const IOS_APP_STORE_LISTING_LIVE = false
 
 export const STORE_NAME = {
     ios: 'App Store',

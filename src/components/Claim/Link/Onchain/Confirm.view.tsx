@@ -219,6 +219,7 @@ export const ConfirmClaimLinkView = ({
                     transactionType="CLAIM_LINK"
                     recipientType="USERNAME"
                     recipientName={senderDisplay.displayName}
+                    avatarKey={claimLinkData.sender?.avatarKey}
                     amount={
                         isReward
                             ? formatTokenAmount(Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)))!
@@ -260,7 +261,7 @@ export const ConfirmClaimLinkView = ({
                                                         altText={resolvedChainName || t('confirm.chainAlt')}
                                                         fallbackName={resolvedChainName || 'C'}
                                                         sizeClass="h-3.5 w-3.5"
-                                                        className="rounded-full border-2 border-white dark:border-gray-100"
+                                                        className="rounded-full border-2 border-background-default"
                                                     />
                                                 </div>
                                             )}

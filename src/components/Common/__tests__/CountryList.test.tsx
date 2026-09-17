@@ -30,7 +30,7 @@ jest.mock('@/hooks/useGeoLocation', () => ({
     useGeoLocation: () => ({ countryCode: null, isLoading: false }),
 }))
 
-jest.mock('@/components/Global/EasterEggModal', () => ({
+jest.mock('@/components/Global/EasterEggDrawer', () => ({
     __esModule: true,
     default: () => null,
     EASTER_EGG_COUNTRIES: {},

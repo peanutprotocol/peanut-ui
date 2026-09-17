@@ -27,6 +27,7 @@ import {
     type SpendStrategy,
 } from './spendPreflight'
 import { registerEphemeralArtifact, requiresPasskeyRetry } from './signSpendRetry'
+import { buildUsdcTransferCall, type PreparedSmartSpend } from './smartSpendPreparation'
 import { usdcUnitsToRainCents } from '@/utils/balance.utils'
 
 /**
@@ -88,7 +89,16 @@ export interface SignSpendBundleInput {
     onStrategyDecided?: (strategy: Exclude<SpendStrategy, 'insufficient'>) => void
     /** Fires right before the one-time session-key grant prompt appears. */
     onGrantRequired?: () => void
+    /** Unsigned smart-only candidate built ahead of Pay. Consulted only when
+     *  LIVE routing picks smart-only; every other strategy ignores it. */
+    preparedSmartSpend?: PreparedSmartSpend | null
+    /** Latency telemetry only: fires as the pipeline crosses each boundary. */
+    onProgress?: (event: SignSpendProgressEvent) => void
 }
+
+export type SignSpendProgressEvent =
+    | { stage: 'preflight_ready' }
+    | { stage: 'signing_preparation_ready'; preparation: 'reused' | 'fresh' }
 
 /**
  * Sign-only sibling of `useSpendBundle`. Picks a strategy
@@ -125,6 +135,8 @@ export const useSignSpendBundle = () => {
                 forceStrategy,
                 onStrategyDecided,
                 onGrantRequired,
+                preparedSmartSpend,
+                onProgress,
             } = input
 
             const chainIdNum = PEANUT_WALLET_CHAIN.id
@@ -208,17 +220,21 @@ export const useSignSpendBundle = () => {
                 if (!activeAccount) {
                     throw new Error('useSignSpendBundle: kernel account not initialized after preflight')
                 }
+                onProgress?.({ stage: 'preflight_ready' })
 
                 // ─── smart-only ─────────────────────────────────────────────────
                 if (strategy === 'smart-only') {
-                    const transferData = encodeFunctionData({
-                        abi: erc20Abi,
-                        functionName: 'transfer',
-                        args: [recipient, requiredUsdcAmount],
-                    })
+                    // The only strategy a pre-Pay candidate can serve: it is a
+                    // plain transfer from the smart account, so nothing about it
+                    // depends on a Rain draft or a session key.
                     const signedUserOp = await signCallsUserOp(
-                        [{ to: PEANUT_WALLET_TOKEN as Hex, value: 0n, data: transferData }],
-                        chainIdStr
+                        [buildUsdcTransferCall(recipient, requiredUsdcAmount)],
+                        chainIdStr,
+                        {
+                            prepared: preparedSmartSpend,
+                            onPrepared: (origin) =>
+                                onProgress?.({ stage: 'signing_preparation_ready', preparation: origin }),
+                        }
                     )
                     return { strategy, signedUserOp }
                 }
@@ -235,6 +251,7 @@ export const useSignSpendBundle = () => {
                         directTransfer: true,
                     })
                     livePreparationId = prep.preparationId
+                    onProgress?.({ stage: 'signing_preparation_ready', preparation: 'fresh' })
 
                     const adminSignature = (await withCeremonyPurpose('admin_eip712', () =>
                         activeAccount.signTypedData(buildRainWithdrawTypedData(prep, chainIdNum))
@@ -275,6 +292,7 @@ export const useSignSpendBundle = () => {
                     totalAmountCents: usdcUnitsToRainCents(requiredUsdcAmount).toString(),
                 })
                 livePreparationId = prep.preparationId
+                onProgress?.({ stage: 'signing_preparation_ready', preparation: 'fresh' })
 
                 /*
                  * SESSION_KEY_SIGN: one tap instead of two — see mixedEphemeralSign.ts.

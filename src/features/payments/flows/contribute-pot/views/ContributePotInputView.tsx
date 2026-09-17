@@ -36,6 +36,7 @@ export function ContributePotInputView() {
         recipient,
         error,
         formattedBalance,
+        balanceFillAmount,
         canProceed,
         hasSufficientBalance,
         isInsufficientBalance,
@@ -95,6 +96,7 @@ export function ContributePotInputView() {
                         amountCollected={totalCollected}
                         isRequestPot={true}
                         contributors={contributors}
+                        avatarKey={recipient.avatarKey}
                     />
                 )}
 
@@ -105,6 +107,7 @@ export function ContributePotInputView() {
                         setPrimaryAmount={setAmount}
                         onSubmit={handlePayWithPeanut}
                         walletBalance={isLoggedIn ? formattedBalance : undefined}
+                        balanceFillAmount={isLoggedIn ? balanceFillAmount : undefined}
                         hideBalance={!isLoggedIn}
                         hideCurrencyToggle={true}
                         showSlider={totalAmount > 0}

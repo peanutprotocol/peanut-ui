@@ -1,4 +1,4 @@
-name: Release Native
+name: App Release Android & iOS
 
 # The single entry point for a store build. Click "Run workflow" on `dev`, `main`, or `release/android-kyc`; the
 # version is resolved here, not typed, and both platforms build from that one
@@ -66,6 +66,30 @@ jobs:
             - uses: actions/setup-node@v6
               with:
                   node-version: '22'
+
+            # `native` returns latestBuild + 1 — a number, derived from the tags,
+            # with no opinion on whether this commit contains the build it is
+            # numbering itself after. Cut from a ref that lags the newest release
+            # and the store gets a HIGHER version carrying OLDER code, which only
+            # another store release can undo. The OTA lane makes the same check
+            # for the same reason (see release-ota.yml).
+            - name: Guard release provenance
+              run: |
+                  # Deliberately `newest-native`, not `native-floor`: the floor is
+                  # scoped to the CURRENT major, so the first release of a new major
+                  # has no floor — and skipping the check there is what would let a
+                  # lagging ref build 2.1.0 without containing v1.6.0. Only a
+                  # repository with no native release at all has nothing to contain.
+                  FLOOR="$(node scripts/release-version.mjs newest-native --allow-none)"
+                  if [ -z "$FLOOR" ]; then
+                      echo "no native release exists yet — nothing to contain"
+                      exit 0
+                  fi
+                  if ! git merge-base --is-ancestor "v$FLOOR" HEAD; then
+                      echo "::error::$GITHUB_REF_NAME (${GITHUB_SHA:0:7}) does not contain the newest native release v$FLOOR — a build from it would ship a higher version than v$FLOOR carrying older code. Back-merge the release into this ref first." >&2
+                      exit 1
+                  fi
+                  echo "${GITHUB_SHA:0:7} contains v$FLOOR"
 
             - name: Resolve next build version
               id: resolve

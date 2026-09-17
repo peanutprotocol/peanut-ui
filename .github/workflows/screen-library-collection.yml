@@ -1,0 +1,137 @@
+name: Capture screen collection
+on:
+    workflow_dispatch:
+        inputs:
+            collection_id:
+                description: Immutable collection request ID
+                required: true
+                type: string
+
+permissions:
+    contents: read
+
+concurrency:
+    group: screen-collection-${{ inputs.collection_id }}
+    cancel-in-progress: false
+
+jobs:
+    request:
+        runs-on: ubuntu-24.04
+        environment: screen-library-deploy
+        outputs:
+            target_commit: ${{ steps.request.outputs.target_commit }}
+            attempt: ${{ steps.request.outputs.attempt }}
+            matrix: ${{ steps.request.outputs.matrix }}
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  ref: dev
+                  persist-credentials: false
+                  fetch-depth: 0
+            - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+              with:
+                  node-version: '22'
+            - run: npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/screens/publisher
+            - run: ln -s "$GITHUB_WORKSPACE/scripts/screens/publisher/node_modules" node_modules
+            - name: Verify request and build capture matrix
+              id: request
+              env:
+                  COLLECTION_ID: ${{ inputs.collection_id }}
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+                  CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+                  SCREEN_LIBRARY_R2_BUCKET: ${{ vars.SCREEN_LIBRARY_R2_BUCKET }}
+                  SCREEN_LIBRARY_R2_JURISDICTION: ${{ vars.SCREEN_LIBRARY_R2_JURISDICTION }}
+                  SCREEN_LIBRARY_PUBLIC_URL: ${{ vars.SCREEN_LIBRARY_PUBLIC_URL }}
+              run: node scripts/screens/collection-request.mjs "$COLLECTION_ID" >> "$GITHUB_OUTPUT"
+            - name: Verify target belongs to dev
+              env:
+                  TARGET_COMMIT: ${{ steps.request.outputs.target_commit }}
+              run: |
+                  set -euo pipefail
+                  [[ "$TARGET_COMMIT" =~ ^[a-f0-9]{40}$ ]]
+                  git merge-base --is-ancestor "$TARGET_COMMIT" origin/dev
+
+    capture:
+        needs: request
+        runs-on: ubuntu-24.04
+        timeout-minutes: 60
+        strategy:
+            fail-fast: false
+            matrix:
+                include: ${{ fromJSON(needs.request.outputs.matrix) }}
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  ref: dev
+                  path: harness
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+                  persist-credentials: false
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  ref: ${{ needs.request.outputs.target_commit }}
+                  path: target
+                  submodules: true
+                  token: ${{ secrets.SUBMODULE_TOKEN }}
+                  persist-credentials: false
+            - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+              with:
+                  version: 10.30.1
+            - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+              with:
+                  node-version: '22'
+            - name: Install capture tools
+              working-directory: harness
+              run: pnpm install --frozen-lockfile
+            - name: Install pinned browser
+              working-directory: harness
+              run: pnpm exec playwright install --with-deps --no-shell chromium
+            - name: Capture only missing states
+              working-directory: harness
+              env:
+                  TARGET_COMMIT: ${{ needs.request.outputs.target_commit }}
+                  CAPTURE_LOCALE: ${{ matrix.locale }}
+                  SCREEN_IDS: ${{ matrix.only }}
+              run: >-
+                  node scripts/screens/run-capture.mjs ../target "$TARGET_COMMIT"
+                  ../capture --locale="$CAPTURE_LOCALE" --only="$SCREEN_IDS"
+            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+              if: always()
+              with:
+                  name: screen-collection-${{ inputs.collection_id }}-${{ matrix.locale }}
+                  path: capture/
+                  if-no-files-found: error
+                  retention-days: 7
+
+    publish:
+        needs: [request, capture]
+        if: ${{ always() && needs.request.result == 'success' }}
+        runs-on: ubuntu-24.04
+        environment: screen-library-deploy
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  ref: dev
+                  persist-credentials: false
+            - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+              with:
+                  node-version: '22'
+            - run: npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/screens/publisher
+            - run: ln -s "$GITHUB_WORKSPACE/scripts/screens/publisher/node_modules" node_modules
+            - run: mkdir -p incoming
+            - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+              continue-on-error: true
+              with:
+                  pattern: screen-collection-${{ inputs.collection_id }}-*
+                  merge-multiple: false
+                  path: incoming
+            - name: Publish WebP assets and complete collection
+              env:
+                  COLLECTION_ID: ${{ inputs.collection_id }}
+                  CAPTURE_ATTEMPT: ${{ needs.request.outputs.attempt }}
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+                  CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+                  SCREEN_LIBRARY_R2_BUCKET: ${{ vars.SCREEN_LIBRARY_R2_BUCKET }}
+                  SCREEN_LIBRARY_R2_JURISDICTION: ${{ vars.SCREEN_LIBRARY_R2_JURISDICTION }}
+                  SCREEN_LIBRARY_PUBLIC_URL: ${{ vars.SCREEN_LIBRARY_PUBLIC_URL }}
+              run: node scripts/screens/complete-collection.mjs "$COLLECTION_ID" incoming "$CAPTURE_ATTEMPT"

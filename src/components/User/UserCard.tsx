@@ -1,12 +1,13 @@
 import { type RecipientType } from '@/lib/url-parser/types/payment'
-import { AVATAR_TEXT_DARK, getColorForUsername } from '@/utils/color.utils'
+import { AVATAR_TEXT_DARK } from '@/utils/color.utils'
 import { useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import AddressLink from '../Global/AddressLink'
 import Attachment from '../Global/Attachment'
-import Card from '../Global/Card'
+import { Card } from '../0_Bruddle/Card'
 import { Icon, type IconName } from '../Global/Icons/Icon'
 import AvatarWithBadge, { type AvatarSize } from '../Profile/AvatarWithBadge'
+import { UserAvatar } from '../Avatar/UserAvatar'
 import { VerifiedUserLabel } from '../UserHeader'
 import PotProgress from './PotProgress'
 import { ContributorsDrawer } from '@/features/payments/flows/contribute-pot/components/ContributorsDrawer'
@@ -26,6 +27,9 @@ interface UserCardProps {
     amountCollected?: number
     isRequestPot?: boolean
     contributors?: PotContributor[]
+    /** The other person's picked avatar (TASK-22625). Read only when
+     *  `recipientType` is USERNAME — an address has nobody behind it. */
+    avatarKey?: string | null
 }
 
 const UserCard = ({
@@ -42,6 +46,7 @@ const UserCard = ({
     amountCollected,
     isRequestPot,
     contributors,
+    avatarKey,
 }: UserCardProps) => {
     const t = useTranslations('global')
     const getIcon = (): IconName | undefined => {
@@ -62,7 +67,7 @@ const UserCard = ({
         if (type === 'request_fulfilment') title = t('userCard.sendingTo', { name: fullName ?? username })
         return (
             <div className="flex items-center gap-2 text-body-xs text-foreground-secondary">
-                {icon && <Icon name={icon} size={8} />} {title}
+                {icon && <Icon name={icon} size={16} />} {title}
             </div>
         )
     }, [type, fullName, username, t])
@@ -75,24 +80,25 @@ const UserCard = ({
     }
 
     return (
-        <Card className="flex flex-col items-center gap-4 p-4">
+        <Card className="w-full flex-col items-center gap-4 p-4">
             <div className="flex w-full items-center gap-2">
-                <AvatarWithBadge
-                    icon={recipientType !== 'USERNAME' ? 'wallet-outline' : undefined}
-                    inlineStyle={{
-                        backgroundColor:
-                            recipientType !== 'USERNAME'
-                                ? // drift fix: was an off-token gold hex — snapped to the DS yellow
-                                  'var(--color-background-icon-bubble-yellow)'
-                                : getColorForUsername(fullName || username).lightShade,
-                        color:
-                            recipientType !== 'USERNAME'
-                                ? AVATAR_TEXT_DARK
-                                : getColorForUsername(fullName || username).darkShade,
-                    }}
-                    size={size}
-                    name={fullName || username}
-                />
+                {recipientType === 'USERNAME' ? (
+                    // A Peanut handle is a person: their picked avatar, with the
+                    // handle's letter as the fallback. `decorative` because the
+                    // card names them right beside it.
+                    <UserAvatar name={username} avatarKey={avatarKey} size={size} decorative />
+                ) : (
+                    <AvatarWithBadge
+                        icon="wallet-outline"
+                        inlineStyle={{
+                            // drift fix: was an off-token gold hex — snapped to the DS yellow
+                            backgroundColor: 'var(--color-background-icon-bubble-yellow)',
+                            color: AVATAR_TEXT_DARK,
+                        }}
+                        size={size}
+                        name={fullName || username}
+                    />
+                )}
                 <div>
                     {getTitle()}
                     {recipientType !== 'USERNAME' || type === 'request_pay' || type === 'request_fulfilment' ? (
@@ -101,8 +107,10 @@ const UserCard = ({
                                 <div>
                                     <p className="text-heading-s text-foreground-primary">${amount}</p>
                                     <div className="flex items-center gap-2">
-                                        <Icon name="alert-filled" size={16} className="text-yellow-900" />
-                                        <p className="text-body-s text-yellow-900">{t('userCard.sendExactAmount')}</p>
+                                        <Icon name="alert-filled" size={16} className="text-foreground-attention" />
+                                        <p className="text-body-s text-foreground-attention">
+                                            {t('userCard.sendExactAmount')}
+                                        </p>
                                     </div>
                                 </div>
                             )}
@@ -117,7 +125,7 @@ const UserCard = ({
                                     // as colors) — keep stock classes there.
                                     className={
                                         type === 'request_pay'
-                                            ? 'text-heading-s font-medium text-foreground-primary md:text-heading-m'
+                                            ? 'text-heading-s text-foreground-primary'
                                             : 'text-body-m'
                                     }
                                     isLink={type !== 'request_pay'}

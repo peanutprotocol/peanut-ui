@@ -33,7 +33,10 @@ const toFailure = (link: SendLink): ClaimPollFailure => ({
 })
 
 /**
- * Polls the send link after an optimistic claim until the claim tx is indexed.
+ * Polls the authoritative send-link status after an optimistic claim until
+ * the claim tx is indexed. The status endpoint bypasses the recent-create
+ * cache and reads primary, so a completed claim is not hidden behind the 30s
+ * initial-link cache.
  * react-query owns the cadence: in-flight requests are deduped (a bare
  * setInterval here once piled up 89 concurrent GETs on a slow Android
  * connection), gcTime 0 stops polling on unmount, and after the fast phase the
@@ -65,7 +68,7 @@ export function useClaimSuccessPolling(
         queryKey: ['send-link-claim-status', link],
         queryFn: () => {
             attempts.current += 1
-            return sendLinksApi.get(link)
+            return sendLinksApi.getClaimStatus(link)
         },
         enabled,
         retry: false,

@@ -1,13 +1,15 @@
 'use client'
 
 import { railUserMessage, railVerdict } from '@/utils/capability-gate'
+import underMaintenanceConfig from '@/config/underMaintenance.config'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { type ActivationStep } from '@/hooks/useActivationStatus'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import { useRouter } from 'next/navigation'
-import ActionModal from '@/components/Global/ActionModal'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { useModalsContext } from '@/context/ModalsContext'
 import Card from '../Global/Card'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -17,7 +19,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import GettingStartedChecklist from '@/components/Home/GettingStartedChecklist'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
-import { useCardInfo } from '@/hooks/useCardInfo'
+import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { REGION_RESTRICTED_CTA_HREF } from '@/components/Kyc/KycRegionRestrictedContent'
 import { useAuth } from '@/context/authContext'
@@ -63,7 +65,14 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // `undefined` while loading collapses to false → scanner behavior (never
     // tease the card to a user we can't confirm has access), which is also why
     // the scanner path must stand on its own QR-rail check below.
-    const { hasCardAccess } = useCardInfo()
+    // canSpendPathViaCard, not showCardSurface: a prohibited residence with
+    // only a pending application keeps the /card surface to watch its status,
+    // but a spend CTA would promise a card that cannot issue.
+    const { canSpendPathViaCard } = useCardSurfaceAccess()
+    // The Home card-prompt kill switch mutes every card arm in this component
+    // (outbound copy, chooser, spend-to-activate) while the QR path stands.
+    // /card itself stays available — the switch is documented as prompt-only.
+    const canApplyForCard = underMaintenanceConfig.disableCardPromotion ? false : canSpendPathViaCard
     // Suppress the "Unlock payments" verify CTA while identity is mid-flight
     // (Sumsub processing / action_required). The user already took the verify
     // action; the identity-verification page surfaces the in-progress modal,
@@ -183,8 +192,8 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // If card access is revoked (or the card-info refetch flips it) while the
     // chooser is open, close it — a no-access user must never see the card option.
     useEffect(() => {
-        if (hasCardAccess !== true) setShowSpendChooser(false)
-    }, [hasCardAccess])
+        if (canApplyForCard !== true) setShowSpendChooser(false)
+    }, [canApplyForCard])
 
     const steps: Record<Exclude<ActivationStep, 'completed'>, StepConfig> = useMemo(
         () => ({
@@ -264,7 +273,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // (This preserves the shielding the pre-2026-08-20 card-first step gave
     // this exact cohort; a fixable RFI still surfaces in the /add-money bank
     // flow, in context.)
-    const hasCardPath = hasCardAccess === true
+    const hasCardPath = canApplyForCard === true
     const hasProviderRejection =
         activationStep !== 'verify' &&
         activationStep !== 'card' &&
@@ -361,7 +370,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         // Card-access users can activate by swiping too — broaden the QR-only
         // framing. Users without card access keep the QR copy untouched so we
         // never tease a card they can't get.
-        if (activationStep === 'outbound' && hasCardAccess) {
+        if (activationStep === 'outbound' && canApplyForCard) {
             return {
                 ...steps.outbound,
                 icon: 'credit-card',
@@ -383,7 +392,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
         isIdentityProcessing,
         isIdentityActionRequired,
         residenceRestrictions,
-        hasCardAccess,
+        canApplyForCard,
         isRegionRestricted,
         tRegion,
         tProviderRejection,
@@ -409,7 +418,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     // cannot clear this step at all — a peer send is volume, not activation —
     // so the card would reappear after every payment they make. They keep the
     // activity list instead.
-    const canSpendToActivate = hasCardAccess === true || hasQrSpendRail
+    const canSpendToActivate = canApplyForCard === true || hasQrSpendRail
     if (activationStep === 'outbound' && !hasProviderRejection && !isRegionRestricted && !canSpendToActivate) {
         return null
     }
@@ -456,8 +465,14 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                             void kycFlow.handleFixableRejection({
                                 provider: fixableProvider,
                                 actionKey: fixableActionKey,
+                                // The handler routes a residence park to start-action
+                                // and everything else to resubmit, and the code is the
+                                // only thing that tells them apart. `emailBlocked` is
+                                // falsy in this branch, so the memo's precedence makes
+                                // this the fixable rail's own code.
+                                reasonCode: primaryRejectionCode,
                             })
-                        } else if (activationStep === 'outbound' && !hasProviderRejection && hasCardAccess) {
+                        } else if (activationStep === 'outbound' && !hasProviderRejection && canApplyForCard) {
                             posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SHOWN)
                             setShowSpendChooser(true)
                         } else if (activationStep === 'outbound' && !hasProviderRejection) {
@@ -486,33 +501,54 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 onComplete={() => setShowProvideEmail(false)}
                 onSkip={() => setShowProvideEmail(false)}
             />
-            <ActionModal
-                visible={showSpendChooser && hasCardAccess === true}
-                onClose={() => setShowSpendChooser(false)}
-                icon="credit-card"
-                title={t('spendChooser.title')}
-                description={t('spendChooser.description')}
-                ctas={[
-                    {
-                        text: t('spendChooser.payWithCard'),
-                        shadowSize: '4',
-                        onClick: () => {
-                            posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SELECTED, { choice: 'card' })
-                            setShowSpendChooser(false)
-                            router.push('/card')
-                        },
-                    },
-                    {
-                        text: t('spendChooser.scanQr'),
-                        variant: 'stroke',
-                        onClick: () => {
-                            posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SELECTED, { choice: 'qr' })
-                            setShowSpendChooser(false)
-                            setIsQRScannerOpen(true)
-                        },
-                    },
-                ]}
-            />
+            <Drawer
+                open={showSpendChooser && canApplyForCard === true}
+                onOpenChange={(open) => {
+                    if (!open) setShowSpendChooser(false)
+                }}
+            >
+                <DrawerContent>
+                    <div className="flex flex-col items-center pt-1 pb-6 text-center">
+                        {/* the head owns the M/12 beneath it; everything after it
+                            keeps the drawer's L/16 rhythm */}
+                        <div className="mb-3 flex w-full flex-col items-center gap-4">
+                            <IconBubble icon="credit-card" className="bg-action-primary" />
+                            <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                                <DrawerTitle>{t('spendChooser.title')}</DrawerTitle>
+                                <DrawerDescription>{t('spendChooser.description')}</DrawerDescription>
+                            </DrawerHeader>
+                        </div>
+                        <div className="flex w-full flex-col items-center gap-4">
+                            <Button
+                                shadowSize="4"
+                                className="w-full justify-center"
+                                onClick={() => {
+                                    posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SELECTED, {
+                                        choice: 'card',
+                                    })
+                                    setShowSpendChooser(false)
+                                    router.push('/card')
+                                }}
+                            >
+                                {t('spendChooser.payWithCard')}
+                            </Button>
+                            <Button
+                                variant="stroke"
+                                className="w-full justify-center"
+                                onClick={() => {
+                                    posthog.capture(ANALYTICS_EVENTS.ACTIVATION_SPEND_CHOOSER_SELECTED, {
+                                        choice: 'qr',
+                                    })
+                                    setShowSpendChooser(false)
+                                    setIsQRScannerOpen(true)
+                                }}
+                            >
+                                {t('spendChooser.scanQr')}
+                            </Button>
+                        </div>
+                    </div>
+                </DrawerContent>
+            </Drawer>
             <SumsubKycModals flow={kycFlow} />
         </Card>
     )

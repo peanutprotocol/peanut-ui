@@ -4,7 +4,10 @@ import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { Button } from '@/components/0_Bruddle/Button'
+import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
+import { Notification } from '@/components/0_Bruddle/Notification'
+import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import PinInput from '@/components/Card/PinInput'
 import { type PinRejectionReason, validatePin } from '@/components/Card/pin.utils'
 import { rainApi, RainCardRateLimitError } from '@/services/rain'
@@ -28,29 +31,34 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
     const [step, setStep] = useState<Step>('choose')
     const [first, setFirst] = useState('')
     const [second, setSecond] = useState('')
-    const [error, setError] = useState<string | null>(null)
+    const [fieldError, setFieldError] = useState<string | null>(null)
+    // save/api failure — not attributable to the pin input, rendered as a
+    // notification banner instead of a field error (design.md error display)
+    const [flowError, setFlowError] = useState<string | null>(null)
 
     const onContinueFromChoose = () => {
         const v = validatePin(first)
         if (!v.valid) {
-            setError(v.reason ? t(REJECTION_KEYS[v.reason]) : t('pin.invalid'))
+            setFieldError(v.reason ? t(REJECTION_KEYS[v.reason]) : t('pin.invalid'))
             posthog.capture(ANALYTICS_EVENTS.CARD_PIN_SET_REJECTED, {
                 reason: v.reason ?? 'invalid',
                 stage: 'choose',
             })
             return
         }
-        setError(null)
+        setFieldError(null)
         setStep('confirm')
     }
 
     const onConfirm = async () => {
         if (second !== first) {
-            setError(t('pin.mismatch'))
+            setFieldError(t('pin.mismatch'))
+            setFlowError(null)
             posthog.capture(ANALYTICS_EVENTS.CARD_PIN_SET_REJECTED, { reason: 'mismatch', stage: 'confirm' })
             return
         }
-        setError(null)
+        setFieldError(null)
+        setFlowError(null)
         setStep('saving')
         posthog.capture(ANALYTICS_EVENTS.CARD_PIN_SET_ATTEMPTED)
         try {
@@ -59,7 +67,7 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
             setStep('success')
         } catch (e) {
             const message = e instanceof Error ? e.message : t('pin.saveFailed')
-            setError(message)
+            setFlowError(message)
             if (e instanceof RainCardRateLimitError) {
                 posthog.capture(ANALYTICS_EVENTS.CARD_PIN_RATE_LIMITED, { action: 'set' })
             } else {
@@ -72,9 +80,13 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
     if (step === 'success') {
         return (
             <div className="flex flex-col items-center gap-4 text-center">
-                <div className="text-heading-xs">{t('pin.successTitle')}</div>
-                <p className="text-body-s text-foreground-secondary">{t('pin.successBody')}</p>
-                <Button variant="purple" shadowSize="4" className="w-full" onClick={onDone}>
+                <TitleBlock
+                    title={<h1>{t('pin.successTitle')}</h1>}
+                    description={t('pin.successBody')}
+                    align="center"
+                    size="s"
+                />
+                <Button variant="purple" className="w-full" onClick={onDone}>
                     {tCommon('close')}
                 </Button>
             </div>
@@ -84,15 +96,20 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
     if (step === 'confirm' || step === 'saving') {
         return (
             <div className="flex flex-col items-center gap-6 text-center">
-                <div className="flex flex-col gap-2">
-                    <h1 className="text-heading-xs">{t('pin.confirmTitle')}</h1>
-                    <p className="text-body-s text-foreground-secondary">{t('pin.confirmBody')}</p>
+                <TitleBlock
+                    title={<h1>{t('pin.confirmTitle')}</h1>}
+                    description={t('pin.confirmBody')}
+                    align="center"
+                    size="s"
+                />
+                {/* pin input + its field error form one column, 4px apart (form-field board 17788:19179) */}
+                <div className="flex flex-col items-center gap-1">
+                    <PinInput value={second} onChange={setSecond} disabled={step === 'saving'} />
+                    {fieldError && <FieldError>{fieldError}</FieldError>}
                 </div>
-                <PinInput value={second} onChange={setSecond} disabled={step === 'saving'} />
-                {error && <p className="text-body-s text-foreground-error">{error}</p>}
+                {flowError && <Notification priority="error">{flowError}</Notification>}
                 <Button
                     variant="purple"
-                    shadowSize="4"
                     className="w-full"
                     onClick={onConfirm}
                     loading={step === 'saving'}
@@ -112,10 +129,12 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
 
     return (
         <div className="flex flex-col items-center gap-6 text-center">
-            <div className="flex flex-col gap-2">
-                <h1 className="text-heading-xs">{t('pin.chooseTitle')}</h1>
-                <p className="text-body-s text-foreground-secondary">{t('pin.chooseBody')}</p>
-            </div>
+            <TitleBlock
+                title={<h1>{t('pin.chooseTitle')}</h1>}
+                description={t('pin.chooseBody')}
+                align="center"
+                size="s"
+            />
             {/* pin input + its field error form one column, 4px apart (form-field board 17788:19179) */}
             <div className="flex flex-col items-center gap-1">
                 <PinInput value={first} onChange={setFirst} />
@@ -123,15 +142,9 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
                     <FieldError>{t(REJECTION_KEYS[choosePinValidation.reason])}</FieldError>
                 )}
             </div>
-            <ul className="w-full list-inside list-disc text-left text-body-s text-foreground-secondary">
-                <li>{t('pin.ruleSequential')}</li>
-                <li>{t('pin.ruleRepeating')}</li>
-                <li>{t('pin.ruleChangeLater')}</li>
-            </ul>
-            {error && <p className="text-body-s text-foreground-error">{error}</p>}
+            <BulletList items={[t('pin.ruleSequential'), t('pin.ruleRepeating'), t('pin.ruleChangeLater')]} />
             <Button
                 variant="purple"
-                shadowSize="4"
                 className="w-full"
                 onClick={onContinueFromChoose}
                 disabled={!choosePinValidation || !choosePinValidation.valid}

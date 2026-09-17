@@ -21,7 +21,7 @@ const FULL_LOCALES = APP_LOCALES.filter((locale) => !DELTA_LOCALES.includes(loca
  */
 const CONTEXT_DIVERGENT: Record<string, string> = {
     Send: 'nav/action verb vs. transaction-type noun (Enviar / Envío)',
-    Request: 'nav/action verb vs. transaction-type noun (Recibir / Solicitud)',
+    Request: 'nav/action verb vs. transaction-type noun (Solicitar / Solicitud)',
     Add: 'nav verb vs. transaction-type noun (Agregar / Ingreso)',
     Withdraw: 'nav verb vs. transaction-type noun (Retirar / Retiro)',
     Pay: 'nav/action verb vs. transaction-type noun (Pagar / Pago)',
@@ -72,6 +72,21 @@ describe('catalog key parity', () => {
     it.each(DELTA_LOCALES)('%s holds only keys that exist in en', (locale) => {
         const stray = leafPaths(CATALOGS[locale]).filter((path) => !enPaths.includes(path))
         expect(stray).toEqual([])
+    })
+})
+
+describe('navigation action labels', () => {
+    const EXPECTED_ACTIONS: Record<AppLocale, { request: string; add: string }> = {
+        en: { request: 'Request', add: 'Add' },
+        'es-419': { request: 'Solicitar', add: 'Agregar' },
+        'es-AR': { request: 'Solicitar', add: 'Agregar' },
+        'pt-BR': { request: 'Cobrar', add: 'Adicionar' },
+    }
+
+    it.each(APP_LOCALES)('%s keeps request and add distinct', async (locale) => {
+        const { navigation } = await loadMessages(locale)
+        expect({ request: navigation.request, add: navigation.add }).toEqual(EXPECTED_ACTIONS[locale])
+        expect(navigation.request).not.toBe(navigation.add)
     })
 })
 
@@ -136,6 +151,22 @@ describe('ICU message compilation', () => {
             t(path as any, dummy)
         }
         expect(invalid).toEqual([])
+    })
+})
+
+describe('badge invite requirement agreement', () => {
+    const EXPECTED = {
+        en: ['Invite 1 friend who joins Peanut.', 'Invite 2 friends who join Peanut.'],
+        'es-419': ['Invita a 1 amigo que se una a Peanut.', 'Invita a 2 amigos que se unan a Peanut.'],
+        'es-AR': ['Invita a 1 amigo que se una a Peanut.', 'Invita a 2 amigos que se unan a Peanut.'],
+        'pt-BR': ['Convide 1 amigo que entre no Peanut.', 'Convide 2 amigos que entrem no Peanut.'],
+    } satisfies Record<AppLocale, [string, string]>
+
+    it.each(APP_LOCALES)('%s uses singular and plural relative verbs', async (locale) => {
+        const messages = await loadMessages(locale)
+        const t = createTranslator({ locale, messages, namespace: 'badges' })
+
+        expect([t('unlock.invites', { target: 1 }), t('unlock.invites', { target: 2 })]).toEqual(EXPECTED[locale])
     })
 })
 

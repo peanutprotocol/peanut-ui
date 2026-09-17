@@ -7,7 +7,6 @@
  * the root layout (server component) renders this single client boundary.
  */
 import { ConsoleGreeting } from '@/components/Global/ConsoleGreeting'
-import { InputModalityProvider } from '@/components/Accessibility/InputModalityProvider'
 import { ScreenOrientationLocker } from '@/components/Global/ScreenOrientationLocker'
 import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
 import { UnsupportedWebViewScreen, hasUnsupportedWebViewBypass } from '@/components/Global/UnsupportedWebViewScreen'
@@ -28,6 +27,7 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
 import { Suspense, useEffect } from 'react'
+import { PathnamePageviewTracker } from '@/components/Analytics/PathnamePageviewTracker'
 
 // Harness bootstrap ships only in harness builds. In prod bundles the dynamic
 // import is in dead code behind `if (false)` and webpack drops the chunk.
@@ -95,6 +95,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
            chunk that loads slowly or fails would take readiness down with it. */
         <OtaUpdateProvider>
             <SignupAttributionNavigationCapture pathname={pathname} />
+            <PathnamePageviewTracker />
             <NuqsAdapter>
                 <PeanutProvider>
                     {/* Must sit ABOVE ContextProvider: TokenContextProvider → useWallet
@@ -111,9 +112,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
                                             <HarnessBootstrap />
                                         </Suspense>
                                     )}
-                                    <InputModalityProvider>
-                                        {marketing ? children : <AppGlobals>{children}</AppGlobals>}
-                                    </InputModalityProvider>
+                                    {marketing ? children : <AppGlobals>{children}</AppGlobals>}
                                 </TranslationSafeWrapper>
                             </FooterVisibilityProvider>
                         </ContextProvider>

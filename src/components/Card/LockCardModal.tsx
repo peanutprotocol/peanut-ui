@@ -5,7 +5,9 @@ import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import ActionModal from '@/components/Global/ActionModal'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import { rainApi } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
@@ -14,7 +16,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { rainCentsToUsdcUnits } from '@/utils/balance.utils'
 
 type Mode = 'lock' | 'unlock'
-type Phase = 'prompt' | 'loading' | 'success' | 'error'
+type Phase = 'prompt' | 'loading' | 'error'
 
 interface Props {
     cardId: string
@@ -28,26 +30,26 @@ const COPY_KEYS = {
         title: 'lockModal.lockTitle',
         body: 'lockModal.lockBody',
         success: 'lockModal.lockSuccess',
-        successBody: 'lockModal.lockSuccessBody',
         failed: 'lockModal.lockFailed',
     },
     unlock: {
         title: 'lockModal.unlockTitle',
         body: 'lockModal.unlockBody',
         success: 'lockModal.unlockSuccess',
-        successBody: 'lockModal.unlockSuccessBody',
         failed: 'lockModal.unlockFailed',
     },
 } as const satisfies Record<Mode, Record<string, string>>
 
 const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
     const t = useTranslations('card')
+    const tCommon = useTranslations('common')
     const [phase, setPhase] = useState<Phase>('prompt')
     const [error, setError] = useState<string | null>(null)
     const queryClient = useQueryClient()
     const { overview } = useRainCardOverview()
     const { address: smartWalletAddress } = useWallet()
     const { signSpend } = useSignSpendBundle()
+    const toast = useToast()
 
     useEffect(() => {
         if (!isOpen) {
@@ -106,7 +108,8 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
             }
             await queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
             posthog.capture(mode === 'lock' ? ANALYTICS_EVENTS.CARD_LOCKED : ANALYTICS_EVENTS.CARD_UNLOCKED)
-            setPhase('success')
+            toast.success(t(copyKeys.success))
+            onClose()
         } catch (e) {
             // Friendlier copy for the two known sign-time errors. Any other
             // throw (passkey cancelled, network, backend) keeps its message.
@@ -122,14 +125,12 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
         }
     }
 
-    const isSuccess = phase === 'success'
-
     const showError = phase === 'error' && !!error
     const showSlide = mode === 'lock'
-    const hasBody = !isSuccess && (showError || showSlide)
+    const hasBody = showError || showSlide
     const bodyContent = (
         <>
-            {showError && <p className="text-body-s text-foreground-error">{error}</p>}
+            {showError && <Notification priority="error">{error}</Notification>}
             {showSlide && (
                 <SlideToConfirm
                     label={phase === 'loading' ? t('lockModal.locking') : t('lockModal.slideToLock')}
@@ -148,26 +149,40 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose }) => {
             hideModalCloseButton={phase === 'loading'}
             tone="warning"
             icon="lock"
-            title={t(isSuccess ? copyKeys.success : copyKeys.title)}
-            description={t(isSuccess ? copyKeys.successBody : copyKeys.body)}
+            title={t(copyKeys.title)}
+            description={t(copyKeys.body)}
             /* undefined, not an empty fragment: ActionModal reads a truthy
                `content` as "this modal has a body" and spaces it accordingly, so
                a fragment whose children are all absent buys the head margin and
                an empty wrapper for nothing. */
             content={hasBody ? bodyContent : undefined}
             ctas={
-                !isSuccess && mode === 'unlock'
+                mode === 'unlock'
                     ? [
                           {
                               text: t('lockModal.unlockCta'),
                               variant: 'purple',
-                              shadowSize: '4',
                               onClick: run,
                               loading: phase === 'loading',
                               disabled: phase === 'loading',
                           },
+                          {
+                              text: tCommon('cancel'),
+                              variant: 'stroke',
+                              className: 'w-full',
+                              onClick: onClose,
+                              disabled: phase === 'loading',
+                          },
                       ]
-                    : undefined
+                    : [
+                          {
+                              text: tCommon('cancel'),
+                              variant: 'stroke',
+                              className: 'w-full',
+                              onClick: onClose,
+                              disabled: phase === 'loading',
+                          },
+                      ]
             }
         />
     )

@@ -17,6 +17,7 @@ import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import TransactionCard from '../TransactionCard'
 import { type TransactionDetails } from '../transactionTransformer'
+import { type StatusPillType } from '@/components/Global/StatusPill'
 
 const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
 
@@ -143,34 +144,55 @@ describe('TransactionCard — clickable counterparty name', () => {
 })
 
 // TASK-21887: a received request is inbound money (the viewer created the
-// request), so the row must carry the inbound arrow and the "+" — it used to
-// render the outbound arrow with a negative amount.
+// request), so the row must carry the "+" — it used to render a negative amount.
+// TASK-22452 moved the leading bubble off a fixed direction arrow onto the
+// link's own state, so the arrow it used to draw is now the state glyph.
 describe('TransactionCard — received request renders as inbound', () => {
-    function requestTx(): TransactionDetails {
+    function requestTx(status: StatusPillType = 'pending'): TransactionDetails {
         const tx = eligibleTx()
         tx.direction = 'request_received'
-        tx.status = 'pending'
+        tx.status = status
         ;(tx.extraDataForDrawer as { transactionCardType: string }).transactionCardType = 'request'
         return tx
     }
 
-    it('draws the inbound arrow and a positive amount', () => {
-        const { container } = render(
+    function renderRequest(status: StatusPillType) {
+        return render(
             <TransactionCard
                 type="request"
                 name="natalia"
                 amount={10}
-                status="pending"
-                transaction={requestTx()}
+                status={status}
+                transaction={requestTx(status)}
                 isSelected={false}
                 onOpen={() => {}}
                 onClose={() => {}}
             />
         )
+    }
 
-        expect(container.querySelector('svg.lucide-arrow-down-left')).not.toBeNull()
+    it('draws a positive amount and never the outbound arrow', () => {
+        const { container } = renderRequest('pending')
+
         expect(container.querySelector('svg.lucide-arrow-up-right')).toBeNull()
         expect(screen.getByText('+$10')).toBeInTheDocument()
+    })
+
+    // the state→bubble map (TASK-22452). one case per ruled row, so a changed
+    // glyph or colour fails here rather than in a screenshot.
+    it.each([
+        ['pending', 'lucide-clock', 'bg-background-icon-bubble-gray'],
+        ['processing', 'lucide-clock', 'bg-background-icon-bubble-gray'],
+        ['completed', 'lucide-check', 'bg-background-icon-bubble-green'],
+        ['cancelled', 'lucide-ban', 'bg-background-icon-bubble-gray'],
+        ['refunded', 'lucide-ban', 'bg-background-icon-bubble-gray'],
+        ['failed', 'lucide-triangle-alert', 'bg-background-icon-bubble-red'],
+    ] as const)('a %s link row shows the %s bubble', (status, iconClass, bgClass) => {
+        const { container } = renderRequest(status)
+
+        const icon = container.querySelector(`svg.${iconClass}`)
+        expect(icon).not.toBeNull()
+        expect(icon!.closest(`.${bgClass}`)).not.toBeNull()
     })
 })
 
@@ -348,5 +370,107 @@ describe('TransactionCard — secondary currency line requires a valid amount', 
     it('hides the line when currency.amount is missing entirely', () => {
         renderCard(currencyTx({ code: 'ARS' } as any)) // deliberately missing `amount`
         expect(screen.queryByText(/≈ ARS/)).toBeNull()
+    })
+})
+
+// TASK-22625: the counterparty's picked avatar reaches the feed row. Only the
+// person branch — a merchant logo still wins, and a bank row keeps its icon.
+describe('TransactionCard — counterparty avatar', () => {
+    // The list always passes `transactionDetails.initials`; the person branch
+    // of TransactionAvatarBadge is gated on it.
+    const renderRow = (transaction: TransactionDetails, type: 'send' | 'bank_request_fulfillment' = 'send') =>
+        render(
+            <TransactionCard
+                type={type}
+                name="natalia"
+                amount={10}
+                status="completed"
+                initials="N"
+                transaction={transaction}
+                isSelected={false}
+                onOpen={openTransactionDetails}
+                onClose={jest.fn()}
+            />
+        )
+
+    const img = (container: HTMLElement) => container.querySelector('img')
+
+    it('renders the picked sticker for a person row', () => {
+        const { container } = renderRow({ ...eligibleTx(), avatarKey: 'basic.frog' } as TransactionDetails)
+
+        expect(img(container)).toHaveAttribute('src', '/avatars/basic/frog.webp')
+    })
+
+    it('falls back to the letter sticker of the displayed name without a pick', () => {
+        const { container } = renderRow({ ...eligibleTx(), avatarKey: null } as TransactionDetails)
+
+        expect(img(container)).toHaveAttribute('src', '/avatars/letter/n.webp')
+    })
+
+    it('lets a merchant logo win over the sticker', () => {
+        const tx = { ...eligibleTx(), avatarKey: 'basic.frog' } as TransactionDetails
+        ;(tx.extraDataForDrawer as Record<string, unknown>).rewardData = { avatarUrl: '/merchant-logo.png' }
+
+        const { container } = renderRow(tx)
+
+        expect(img(container)).toHaveAttribute('src', '/merchant-logo.png')
+    })
+
+    // The person's handle drives the letter, not the name the row displays —
+    // one person looks the same in the feed, in contacts and on their profile.
+    it('draws the letter from the handle even when the row shows a full name', () => {
+        const tx = {
+            ...eligibleTx(),
+            userName: 'satoshi',
+            fullName: 'Hal Finney',
+            showFullName: true,
+            avatarKey: null,
+        } as TransactionDetails
+
+        const { container } = renderRow(tx)
+
+        expect(img(container)).toHaveAttribute('src', '/avatars/letter/s.webp')
+    })
+
+    // A peer with a display name but no handle has an address in `userName`,
+    // which draws no letter — the display name is the only one left.
+    it('falls back to the display name when the handle is an address', () => {
+        const tx = {
+            ...eligibleTx(),
+            userName: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+            fullName: 'Nancy Drew',
+            showFullName: true,
+            avatarKey: null,
+        } as TransactionDetails
+
+        const { container } = renderRow(tx)
+
+        expect(img(container)).toHaveAttribute('src', '/avatars/letter/n.webp')
+    })
+
+    // A reaper-failed transfer has its name rewritten to system copy ("Send
+    // didn't complete"): named, not an address, and nobody behind it.
+    it('draws no person avatar for a system failure label', () => {
+        const tx = {
+            ...eligibleTx(),
+            userName: "Send didn't complete",
+            isPeerActuallyUser: false,
+            avatarKey: null,
+        } as TransactionDetails
+
+        const { container } = renderRow(tx)
+
+        expect(img(container)).toBeNull()
+        // the initials circle it had before this PR, not a letter sticker
+        expect(container).toHaveTextContent('SD')
+    })
+
+    it('leaves a bank row on its bank icon', () => {
+        const tx = { ...eligibleTx('bank_request_fulfillment'), avatarKey: 'basic.frog' } as TransactionDetails
+
+        const { container } = renderRow(tx, 'bank_request_fulfillment')
+
+        expect(img(container)).toBeNull()
+        expect(container.querySelector('svg')).not.toBeNull()
     })
 })

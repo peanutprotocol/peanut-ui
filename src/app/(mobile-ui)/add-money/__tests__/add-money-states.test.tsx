@@ -329,6 +329,7 @@ jest.mock('@/utils/general.utils', () => ({
     getExplorerUrl: jest.fn(() => 'https://arbiscan.io'),
     saveRedirectUrl: jest.fn(),
     getRedirectUrl: jest.fn(() => null),
+    getStoredRedirect: jest.fn(() => null),
     clearRedirectUrl: jest.fn(),
     getFromLocalStorage: jest.fn(() => null),
     isCryptoAddress: jest.fn(() => false),
@@ -379,11 +380,6 @@ jest.mock('@/components/Global/Loading', () => ({
         ) : (
             <div data-testid="loading-spinner" />
         ),
-}))
-
-jest.mock('@/components/Global/Loading/CyclingLoading', () => ({
-    __esModule: true,
-    default: () => <div data-testid="cycling-loading" />,
 }))
 
 jest.mock('@/components/Global/NavHeader', () => ({
@@ -543,12 +539,12 @@ jest.mock('@/components/AddMoney/components/ChainChip', () => ({
     default: (props: any) => <span data-testid="chain-chip">{props.chainName}</span>,
 }))
 
-jest.mock('@/components/AddMoney/components/HowToDepositModal', () => ({
+jest.mock('@/components/AddMoney/components/HowToDepositDrawer', () => ({
     __esModule: true,
     default: (props: any) => (props.visible ? <div data-testid="how-to-deposit-modal">How to Deposit</div> : null),
 }))
 
-jest.mock('@/components/AddMoney/components/SupportedNetworksModal', () => ({
+jest.mock('@/components/AddMoney/components/SupportedNetworksDrawer', () => ({
     __esModule: true,
     default: (props: any) =>
         props.visible ? <div data-testid="supported-networks-modal">Supported Networks</div> : null,
@@ -1132,7 +1128,7 @@ describe('GROUP 3: Crypto Deposit', () => {
         expect(screen.getByText('10,000 USD')).toBeInTheDocument()
     })
 
-    test('deposit processing shows CyclingLoading', () => {
+    test('deposit processing shows the shared processing screen', () => {
         mockUseCryptoDepositPolling.mockReturnValue({
             status: 'loading',
             resetStatus: jest.fn(),
@@ -1154,7 +1150,10 @@ describe('GROUP 3: Crypto Deposit', () => {
             />
         )
 
-        expect(screen.getByTestId('cycling-loading')).toBeInTheDocument()
+        // the shared treatment (TASK-22452): mascot loader + titled copy
+        expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
+        expect(screen.getByText('Processing your deposit')).toBeInTheDocument()
+        expect(screen.getByText(/confirming your deposit/)).toBeInTheDocument()
     })
 
     test('deposit failed shows error card with retry button', () => {

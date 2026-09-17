@@ -2,7 +2,9 @@ import {
     formatNetworkFee,
     isWithdrawFeeDisproportionate,
     getMinWithdrawUsdForChain,
+    feeConsumesWithdrawal,
     HIGH_WITHDRAW_FEE_RATIO,
+    SOLANA_MIN_WITHDRAW_USD,
     MIN_CRYPTO_WITHDRAW_USD,
     ETHEREUM_MIN_WITHDRAW_USD,
 } from './cross-chain-fee.utils'
@@ -64,6 +66,13 @@ describe('getMinWithdrawUsdForChain', () => {
         expect(getMinWithdrawUsdForChain('728126428')).toBe(10)
     })
 
+    test('Solana needs $1 — a Peanut floor, above the $0.50 Rhino route minimum', () => {
+        // the delivery Peanut no longer sponsors costs about $0.50, so
+        // anything under a dollar arrives as dust or not at all
+        expect(getMinWithdrawUsdForChain('solana')).toBe(SOLANA_MIN_WITHDRAW_USD)
+        expect(getMinWithdrawUsdForChain('solana')).toBe(1)
+    })
+
     test('every other network floors at $0.50', () => {
         expect(getMinWithdrawUsdForChain('42161')).toBe(0.5) // Arbitrum (same-chain)
         expect(getMinWithdrawUsdForChain('8453')).toBe(0.5) // Base
@@ -82,6 +91,28 @@ describe('getMinWithdrawUsdForChain', () => {
 
         expect((chainDetails as Record<string, unknown>)['1']).toBeDefined()
         expect(getMinWithdrawUsdForChain('1')).toBe(ETHEREUM_MIN_WITHDRAW_USD)
+    })
+})
+
+describe('feeConsumesWithdrawal', () => {
+    test('true when the fee takes the whole amount, or more', () => {
+        expect(feeConsumesWithdrawal(0.5, 0.5)).toBe(true) // exactly all of it
+        expect(feeConsumesWithdrawal(1.5, 1)).toBe(true)
+    })
+
+    test('false when something is left to deliver', () => {
+        expect(feeConsumesWithdrawal(1.5, 5)).toBe(false)
+        expect(feeConsumesWithdrawal(0.5, 0.51)).toBe(false)
+    })
+
+    test('no fee is never a problem', () => {
+        expect(feeConsumesWithdrawal(0, 10)).toBe(false)
+        expect(feeConsumesWithdrawal(undefined, 10)).toBe(false)
+    })
+
+    test('guards a non-positive or non-finite amount', () => {
+        expect(feeConsumesWithdrawal(1, 0)).toBe(false)
+        expect(feeConsumesWithdrawal(1, Number.NaN)).toBe(false)
     })
 })
 

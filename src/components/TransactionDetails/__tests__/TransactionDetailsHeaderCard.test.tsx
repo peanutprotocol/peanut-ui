@@ -16,8 +16,18 @@ jest.mock('next/image', () => ({
 
 jest.mock('../TransactionAvatarBadge', () => ({
     __esModule: true,
-    default: ({ countryCode }: { countryCode?: string | null }) => (
-        <span data-testid="transaction-avatar">{countryCode ? 'bank flag' : 'user initials'}</span>
+    default: ({
+        countryCode,
+        avatarKey,
+        status,
+    }: {
+        countryCode?: string | null
+        avatarKey?: string | null
+        status?: string
+    }) => (
+        <span data-testid="transaction-avatar" data-avatar-key={avatarKey ?? ''} data-status={status ?? ''}>
+            {countryCode ? 'bank flag' : 'user initials'}
+        </span>
     ),
 }))
 
@@ -232,4 +242,33 @@ describe('TransactionDetailsHeaderCard self-describing labels', () => {
         expect(screen.queryByText('You requested')).not.toBeInTheDocument()
         expect(screen.queryByText(/is requesting/)).not.toBeInTheDocument()
     })
+})
+
+// TASK-22625: the receipt head shows the same picked avatar as the feed row.
+describe('TransactionDetailsHeaderCard — counterparty avatar', () => {
+    it('forwards the counterparty pick to the badge', () => {
+        renderHeaderCard({ avatarKey: 'basic.frog' })
+
+        expect(screen.getByTestId('transaction-avatar')).toHaveAttribute('data-avatar-key', 'basic.frog')
+    })
+
+    it('keeps the merchant logo ahead of the sticker', () => {
+        const { container } = renderHeaderCard({ avatarKey: 'basic.frog', avatarUrl: '/merchant-logo.png' })
+
+        expect(container.querySelector('img')).toHaveAttribute('src', '/merchant-logo.png')
+        expect(screen.queryByTestId('transaction-avatar')).not.toBeInTheDocument()
+    })
+})
+
+// TASK-22452: a link row's bubble is derived from the link's state, so the
+// receipt header has to hand the badge the status it already renders in the
+// badge below. Without it every link row falls back to the fixed pink icon.
+describe('TransactionDetailsHeaderCard avatar status', () => {
+    it.each(['pending', 'completed', 'cancelled', 'refunded', 'failed'] as const)(
+        'passes %s down to the avatar badge',
+        (status) => {
+            renderHeaderCard({ direction: 'send', status, isLinkTransaction: true })
+            expect(screen.getByTestId('transaction-avatar')).toHaveAttribute('data-status', status)
+        }
+    )
 })

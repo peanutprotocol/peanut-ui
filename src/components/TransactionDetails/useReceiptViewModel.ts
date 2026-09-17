@@ -4,12 +4,12 @@ import { useMemo } from 'react'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import {
+    receiptIssuedAt,
     type TransactionDetailsRowKey,
     transactionDetailsRowKeys,
 } from '@/components/TransactionDetails/transaction-details.utils'
 import {
     hasReceiptPage,
-    hasShareableReceipt,
     isCardPaymentEntry,
     isCardSpend as isCardSpendTransaction,
     isFxBearingFlow,
@@ -240,25 +240,31 @@ export function useReceiptViewModel(
             // visible-but-empty (a stray divider in the details card).
             cardPayment: isCardPaymentEntry(transaction) && hasCardPaymentRowsContent(transaction),
             closed: !!(transaction.status === 'closed' && transaction.cancelledDate),
+            // document rows: the entry id ties any shared or printed receipt
+            // back to the source activity, and the issuance date follows the
+            // shared status-branched rule (receiptIssuedAt) — both render
+            // only from real source fields, never fabricated. the Transfer ID
+            // row shows the same id under its own label for bank rails; the
+            // user ruled the Reference fact stays regardless.
+            reference: !!transaction.id,
+            issuedOn: !!receiptIssuedAt(transaction),
         }
     }, [transaction, isPublic, isPendingBankRequest, isPeanutWalletToken, isSendLinkSenderCancelled])
 
-    // The share conditions without the isPublic suppression, so the PDF gate
-    // below can reuse them on the public receipt.
-    const meetsShareConditions = useMemo(() => {
-        if (!transaction || isPendingSentLink || isPendingRequester || isPendingRequestee) return false
-        if (transaction.txHash && transaction.direction !== 'receive' && transaction.direction !== 'request_sent') {
-            return true
-        }
-        return hasShareableReceipt(transaction)
-    }, [transaction, isPendingSentLink, isPendingRequester, isPendingRequestee])
+    // Every activity kind gets a receipt once it is no longer waiting for an
+    // interactive send/request action. Existing public receipt kinds share a
+    // capability URL; all other kinds share an authenticated PDF file.
+    const meetsShareConditions = useMemo(
+        () => !!transaction && !isPendingSentLink && !isPendingRequester && !isPendingRequestee,
+        [transaction, isPendingSentLink, isPendingRequester, isPendingRequestee]
+    )
 
     const shouldShowShareReceipt = !isPublic && meetsShareConditions
 
     const shouldShowDownloadPdf = useMemo(() => {
-        if (!transaction || !hasReceiptPage(transaction)) return false
+        if (!transaction) return false
         if (isPendingSentLink || isPendingRequester || isPendingRequestee) return false
-        return isPublic || meetsShareConditions
+        return isPublic ? hasReceiptPage(transaction) : meetsShareConditions
     }, [transaction, isPublic, isPendingSentLink, isPendingRequester, isPendingRequestee, meetsShareConditions])
 
     const requestPotContributors = useMemo(() => {

@@ -4,7 +4,6 @@ import { useTranslations } from 'next-intl'
 // type-only: erased at build, so the catalog is not bundled here
 import type enMessages from '@/i18n/app/messages/en.json'
 import { Button } from '@/components/0_Bruddle/Button'
-import Link from 'next/link'
 import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Icons/Icon'
 import { useAuth } from '@/context/authContext'
@@ -87,20 +86,20 @@ const NavHeader = ({
             <div className="grid w-full grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-start gap-x-6">
                 <div className="col-start-1 row-start-1">
                     {hideBackBtn ? null : !onPrev ? (
-                        <Link href={href ?? '/home'}>
-                            <Button
-                                variant="stroke"
-                                className={navCircleBtn}
-                                aria-label={tCommon('back')}
-                                data-testid="nav-back"
-                            >
-                                <Icon
-                                    name={icon}
-                                    size={20}
-                                    className={twMerge(icon === 'chevron-up' && '-rotate-90') || undefined}
-                                />
-                            </Button>
-                        </Link>
+                        // link-mode Button: one anchor, no Link>Button nested interactive
+                        <Button
+                            variant="stroke"
+                            href={href ?? '/home'}
+                            className={navCircleBtn}
+                            aria-label={tCommon('back')}
+                            data-testid="nav-back"
+                        >
+                            <Icon
+                                name={icon}
+                                size={20}
+                                className={twMerge(icon === 'chevron-up' && '-rotate-90') || undefined}
+                            />
+                        </Button>
                     ) : (
                         <Button
                             variant="stroke"

@@ -3,14 +3,15 @@
 // a jest drift test (scripts/__tests__/ds-tokens-drift.test.js) fails CI when
 // this file is stale.
 
-/** which @theme banner the token sits under: legacy palette (v3 port, do not
- * use in new code), semantic (figma-verified, use these), or v3-parity shims. */
-export type TokenSection = 'legacy' | 'semantic' | 'parity'
+/** which @theme banner the token sits under: semantic (figma-verified, use
+ * these) or v3-parity shims. The legacy palette section no longer exists. */
+export type TokenSection = 'semantic' | 'parity'
 
 export interface ThemeToken {
     name: string
     value: string
     section: TokenSection
+    previewClass?: string
 }
 
 export interface TextStyle {
@@ -19,6 +20,7 @@ export interface TextStyle {
     fontSize?: string
     lineHeight?: string
     fontWeight?: string
+    previewClass?: string
     [modifier: string]: string | undefined
 }
 
@@ -26,689 +28,640 @@ export interface FontToken {
     name: string
     section: TokenSection
     stack?: string
+    previewClass?: string
     [modifier: string]: string | undefined
 }
 
 export const COLOR_TOKENS: ThemeToken[] = [
     {
-        "name": "primary-1",
-        "value": "#ff90e8",
-        "section": "legacy"
-    },
-    {
-        "name": "primary-3",
-        "value": "#efe4ff",
-        "section": "legacy"
-    },
-    {
-        "name": "secondary-1",
-        "value": "#ffc900",
-        "section": "legacy"
-    },
-    {
-        "name": "secondary-3",
-        "value": "#90a8ed",
-        "section": "legacy"
-    },
-    {
-        "name": "secondary-4",
-        "value": "#fff4cc",
-        "section": "legacy"
-    },
-    {
-        "name": "secondary-7",
-        "value": "#5883ff",
-        "section": "legacy"
-    },
-    {
-        "name": "grey-1",
-        "value": "#5f646d",
-        "section": "legacy"
-    },
-    {
-        "name": "grey-2",
-        "value": "#e7e8e9",
-        "section": "legacy"
-    },
-    {
-        "name": "grey-4",
-        "value": "#efeff0",
-        "section": "legacy"
-    },
-    {
-        "name": "purple-1",
-        "value": "#ff90e8",
-        "section": "legacy"
-    },
-    {
-        "name": "purple-3",
-        "value": "#fffae8",
-        "section": "legacy"
-    },
-    {
-        "name": "yellow-1",
-        "value": "#ffc900",
-        "section": "legacy"
-    },
-    {
-        "name": "yellow-7",
-        "value": "#ffe6b3",
-        "section": "legacy"
-    },
-    {
-        "name": "yellow-8",
-        "value": "#fae184",
-        "section": "legacy"
-    },
-    {
-        "name": "green-1",
-        "value": "#98e9ab",
-        "section": "legacy"
-    },
-    {
-        "name": "teal-1",
-        "value": "#23a094",
-        "section": "legacy"
-    },
-    {
-        "name": "gray-1",
-        "value": "#5f646d",
-        "section": "legacy"
-    },
-    {
-        "name": "gray-2",
-        "value": "#9ca3af",
-        "section": "legacy"
-    },
-    {
-        "name": "gray-3",
-        "value": "#e5e7eb",
-        "section": "legacy"
-    },
-    {
-        "name": "gray-4",
-        "value": "#d1d5db",
-        "section": "legacy"
-    },
-    {
-        "name": "n-1",
-        "value": "#000000",
-        "section": "legacy"
-    },
-    {
-        "name": "n-2",
-        "value": "#161616",
-        "section": "legacy"
-    },
-    {
-        "name": "violet-3",
-        "value": "#6340df",
-        "section": "legacy"
-    },
-    {
-        "name": "success-1",
-        "value": "#16b413",
-        "section": "legacy"
-    },
-    {
-        "name": "success-3",
-        "value": "#29cc6a",
-        "section": "legacy"
-    },
-    {
-        "name": "white",
-        "value": "#ffffff",
-        "section": "legacy"
-    },
-    {
-        "name": "red",
-        "value": "#ff0000",
-        "section": "legacy"
-    },
-    {
-        "name": "kyc-red",
-        "value": "#c80000",
-        "section": "legacy"
-    },
-    {
-        "name": "black",
-        "value": "#000000",
-        "section": "legacy"
-    },
-    {
-        "name": "kyc-green",
-        "value": "#00c800",
-        "section": "legacy"
-    },
-    {
-        "name": "background",
-        "value": "#faf4f0",
-        "section": "legacy"
-    },
-    {
-        "name": "error-1",
-        "value": "#ffd8d8",
-        "section": "legacy"
-    },
-    {
-        "name": "error-4",
-        "value": "#fc5555",
-        "section": "legacy"
-    },
-    {
         "name": "action-primary",
         "value": "#ff90e8",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-action-primary"
     },
     {
         "name": "action-primary-hover",
         "value": "#ffa3ec",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-action-primary-hover"
     },
     {
         "name": "action-secondary",
         "value": "#ffc900",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-action-secondary"
     },
     {
         "name": "action-ghost-hover",
         "value": "#bd33a1",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-action-ghost-hover"
     },
     {
         "name": "action-focus",
         "value": "#2563eb",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-action-focus"
     },
     {
         "name": "background-default",
         "value": "#ffffff",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-background-default"
     },
     {
         "name": "background-page",
         "value": "#faf4f0",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-background-page"
     },
     {
         "name": "background-disabled",
         "value": "#efeff0",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-background-disabled"
     },
     {
         "name": "background-brand",
         "value": "#ff90e8",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-background-brand"
+    },
+    {
+        "name": "background-setup-hero",
+        "value": "#90a8ed",
+        "section": "semantic",
+        "previewClass": "bg-background-setup-hero"
     },
     {
         "name": "background-icon-bubble-green",
         "value": "#29cc6a",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-background-icon-bubble-green"
     },
     {
         "name": "background-icon-bubble-red",
         "value": "#ea8282",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-background-icon-bubble-red"
     },
     {
         "name": "background-icon-bubble-yellow",
         "value": "#ffc900",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-background-icon-bubble-yellow"
     },
     {
         "name": "background-icon-bubble-gray",
         "value": "#d1d5db",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-background-icon-bubble-gray"
     },
     {
         "name": "background-icon-bubble-blue",
         "value": "#90a8ed",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-background-icon-bubble-blue"
     },
     {
         "name": "background-surface-success",
         "value": "#f4fcf8",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-background-surface-success"
     },
     {
         "name": "background-surface-error",
         "value": "#fef9f9",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-background-surface-error"
     },
     {
         "name": "background-surface-attention",
         "value": "#fffcf2",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-background-surface-attention"
     },
     {
         "name": "background-surface-info",
         "value": "#f9fbfe",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-background-surface-info"
     },
     {
         "name": "background-surface-helper",
         "value": "#fdfdfd",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-background-surface-helper"
     },
     {
         "name": "background-badge-attention",
         "value": "#ffe6b3",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-background-badge-attention"
     },
     {
         "name": "background-badge-info",
         "value": "#dbeafe",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-background-badge-info"
     },
     {
         "name": "background-badge-error",
         "value": "#ffcccc",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-background-badge-error"
     },
     {
         "name": "background-badge-success",
         "value": "#c7f9c6",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-background-badge-success"
     },
     {
         "name": "background-badge-accent",
         "value": "#dcd6ff",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-background-badge-accent"
     },
     {
         "name": "background-badge-helper",
         "value": "#e7e8e9",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-background-badge-helper"
     },
     {
         "name": "foreground-primary",
         "value": "#000000",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-foreground-primary"
     },
     {
         "name": "foreground-secondary",
         "value": "#5f646d",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-foreground-secondary"
     },
     {
         "name": "foreground-inverse",
         "value": "#ffffff",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-foreground-inverse"
     },
     {
         "name": "foreground-error",
         "value": "#ff3b30",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-foreground-error"
+    },
+    {
+        "name": "foreground-attention",
+        "value": "#885b00",
+        "section": "semantic",
+        "previewClass": "bg-foreground-attention"
     },
     {
         "name": "foreground-over-color-primary",
         "value": "#000000",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-foreground-over-color-primary"
     },
     {
         "name": "foreground-over-color-secondary",
         "value": "#00000099",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-foreground-over-color-secondary"
     },
     {
         "name": "border-default",
         "value": "#161616",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-border-default"
     },
     {
         "name": "border-subtle",
         "value": "#9ca3af",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-border-subtle"
     },
     {
         "name": "border-button",
         "value": "#000000",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-border-button"
     },
     {
         "name": "border-button-secondary",
         "value": "#000000",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-border-button-secondary"
     },
     {
         "name": "border-brand",
         "value": "#ff90e8",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-border-brand"
     },
     {
         "name": "border-error",
         "value": "#ff3b30",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-border-error"
     },
     {
         "name": "border-disabled",
         "value": "#e7e8e9",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-border-disabled"
     },
     {
         "name": "avatar-pink",
         "value": "#ffd5f6",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-avatar-pink"
     },
     {
         "name": "avatar-pink-border",
         "value": "#e06ac8",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-avatar-pink-border"
     },
     {
         "name": "avatar-pink-foreground",
         "value": "#a42089",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-avatar-pink-foreground"
     },
     {
         "name": "avatar-yellow",
         "value": "#fae184",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-avatar-yellow"
     },
     {
         "name": "avatar-yellow-border",
         "value": "#dcae01",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-avatar-yellow-border"
     },
     {
         "name": "avatar-yellow-foreground",
         "value": "#885b00",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-avatar-yellow-foreground"
     },
     {
         "name": "avatar-orange",
         "value": "#ffd3b4",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-avatar-orange"
     },
     {
         "name": "avatar-orange-border",
         "value": "#f69855",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-avatar-orange-border"
     },
     {
         "name": "avatar-orange-foreground",
         "value": "#b8450a",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-avatar-orange-foreground"
     },
     {
         "name": "avatar-blue",
         "value": "#dbeafe",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-avatar-blue"
     },
     {
         "name": "avatar-blue-border",
         "value": "#90a8ed",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-avatar-blue-border"
     },
     {
         "name": "avatar-blue-foreground",
         "value": "#2563eb",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-avatar-blue-foreground"
     },
     {
         "name": "avatar-purple",
         "value": "#dcd6ff",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-avatar-purple"
     },
     {
         "name": "avatar-purple-border",
         "value": "#ba8bff",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-avatar-purple-border"
     },
     {
         "name": "avatar-purple-foreground",
         "value": "#9333ea",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-avatar-purple-foreground"
     },
     {
         "name": "avatar-red",
         "value": "#ffcccc",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-avatar-red"
     },
     {
         "name": "avatar-red-border",
         "value": "#ea8282",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-avatar-red-border"
     },
     {
         "name": "avatar-red-foreground",
         "value": "#e40c0c",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-avatar-red-foreground"
     },
     {
         "name": "avatar-green",
         "value": "#c7f9c6",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-avatar-green"
     },
     {
         "name": "avatar-green-border",
         "value": "#29cc6a",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-avatar-green-border"
     },
     {
         "name": "avatar-green-foreground",
         "value": "#3b730c",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-avatar-green-foreground"
     },
     {
         "name": "shadow-primary",
         "value": "#000000",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-shadow-primary"
     },
     {
         "name": "gray-0",
         "value": "#ffffff",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-gray-0"
     },
     {
         "name": "gray-50",
         "value": "#faf4f0",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-gray-50"
     },
     {
         "name": "gray-100",
         "value": "#efeff0",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-gray-100"
     },
     {
         "name": "gray-200",
         "value": "#e7e8e9",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-gray-200"
     },
     {
         "name": "gray-300",
         "value": "#d1d5db",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-gray-300"
     },
     {
         "name": "gray-400",
         "value": "#9ca3af",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-gray-400"
     },
     {
         "name": "gray-600",
         "value": "#5f646d",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-gray-600"
     },
     {
         "name": "gray-700",
         "value": "#374151",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-gray-700"
     },
     {
         "name": "gray-800",
         "value": "#1f2937",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-gray-800"
     },
     {
         "name": "gray-900",
         "value": "#161616",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-gray-900"
     },
     {
         "name": "gray-950",
         "value": "#000000",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-gray-950"
     },
     {
         "name": "pink-200",
         "value": "#ffd5f6",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-pink-200"
     },
     {
         "name": "pink-500",
         "value": "#ff90e8",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-pink-500"
     },
     {
         "name": "pink-600",
         "value": "#e06ac8",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-pink-600"
     },
     {
         "name": "pink-700",
         "value": "#bd33a1",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-pink-700"
     },
     {
         "name": "pink-800",
         "value": "#a42089",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-pink-800"
     },
     {
         "name": "yellow-200",
         "value": "#fae184",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-yellow-200"
     },
     {
         "name": "yellow-400",
         "value": "#fde047",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-yellow-400"
     },
     {
         "name": "yellow-500",
         "value": "#ffc900",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-yellow-500"
     },
     {
         "name": "yellow-600",
         "value": "#dcae01",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-yellow-600"
     },
     {
         "name": "yellow-900",
         "value": "#885b00",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-yellow-900"
     },
     {
         "name": "purple-200",
         "value": "#dcd6ff",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-purple-200"
     },
     {
         "name": "purple-400",
         "value": "#ba8bff",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-purple-400"
     },
     {
         "name": "purple-500",
         "value": "#ae7aff",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-purple-500"
     },
     {
         "name": "purple-600",
         "value": "#9333ea",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-purple-600"
     },
     {
         "name": "blue-200",
         "value": "#dbeafe",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-blue-200"
     },
     {
         "name": "blue-300",
         "value": "#90a8ed",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-blue-300"
     },
     {
         "name": "blue-500",
         "value": "#5883ff",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-blue-500"
     },
     {
         "name": "blue-600",
         "value": "#2563eb",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-blue-600"
     },
     {
         "name": "green-200",
         "value": "#c7f9c6",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-green-200"
     },
     {
         "name": "green-400",
         "value": "#88d987",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-green-400"
     },
     {
         "name": "green-500",
         "value": "#29cc6a",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-green-500"
     },
     {
         "name": "green-800",
         "value": "#3b730c",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-green-800"
     },
     {
         "name": "green-900",
         "value": "#2a5309",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-green-900"
     },
     {
         "name": "red-50",
         "value": "#ffcccc",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-red-50"
     },
     {
         "name": "red-100",
         "value": "#ea8282",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-red-100"
     },
     {
         "name": "red-200",
         "value": "#fc5555",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-red-200"
     },
     {
         "name": "red-400",
         "value": "#ff3b30",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-red-400"
     },
     {
         "name": "red-500",
         "value": "#ff0000",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-red-500"
     },
     {
         "name": "red-600",
         "value": "#e40c0c",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-red-600"
     },
     {
         "name": "orange-200",
         "value": "#ffd3b4",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-orange-200"
     },
     {
         "name": "orange-400",
         "value": "#f69855",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-orange-400"
     },
     {
         "name": "orange-800",
         "value": "#b8450a",
-        "section": "semantic"
+        "section": "semantic",
+        "previewClass": "bg-orange-800"
     }
 ]
 
@@ -716,6 +669,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "heading-big-input",
         "section": "semantic",
+        "previewClass": "text-heading-big-input",
         "fontSize": "3.25rem",
         "lineHeight": "4rem",
         "fontWeight": "700"
@@ -723,6 +677,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "heading-xl",
         "section": "semantic",
+        "previewClass": "text-heading-xl",
         "fontSize": "2.625rem",
         "lineHeight": "3rem",
         "fontWeight": "800"
@@ -730,6 +685,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "heading-l",
         "section": "semantic",
+        "previewClass": "text-heading-l",
         "fontSize": "2.25rem",
         "lineHeight": "2.5rem",
         "fontWeight": "800"
@@ -737,6 +693,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "heading-m",
         "section": "semantic",
+        "previewClass": "text-heading-m",
         "fontSize": "1.875rem",
         "lineHeight": "2.25rem",
         "fontWeight": "800"
@@ -744,6 +701,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "heading-s",
         "section": "semantic",
+        "previewClass": "text-heading-s",
         "fontSize": "1.5rem",
         "lineHeight": "2rem",
         "fontWeight": "800"
@@ -751,6 +709,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "heading-xs",
         "section": "semantic",
+        "previewClass": "text-heading-xs",
         "fontSize": "1.25rem",
         "lineHeight": "1.5rem",
         "fontWeight": "800"
@@ -758,6 +717,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "heading-card",
         "section": "semantic",
+        "previewClass": "text-heading-card",
         "fontSize": "1.125rem",
         "lineHeight": "1.5rem",
         "fontWeight": "700"
@@ -765,6 +725,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "body-l",
         "section": "semantic",
+        "previewClass": "text-body-l",
         "fontSize": "1.125rem",
         "lineHeight": "1.625rem",
         "fontWeight": "400"
@@ -772,6 +733,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "body-m",
         "section": "semantic",
+        "previewClass": "text-body-m",
         "fontSize": "1rem",
         "lineHeight": "1.25rem",
         "fontWeight": "500"
@@ -779,6 +741,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "body-m-semibold",
         "section": "semantic",
+        "previewClass": "text-body-m-semibold",
         "fontSize": "1rem",
         "lineHeight": "1.25rem",
         "fontWeight": "600"
@@ -786,6 +749,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "body-s",
         "section": "semantic",
+        "previewClass": "text-body-s",
         "fontSize": "0.875rem",
         "lineHeight": "1.25rem",
         "fontWeight": "500"
@@ -793,6 +757,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "body-s-semibold",
         "section": "semantic",
+        "previewClass": "text-body-s-semibold",
         "fontSize": "0.875rem",
         "lineHeight": "1.25rem",
         "fontWeight": "600"
@@ -800,6 +765,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "body-xs",
         "section": "semantic",
+        "previewClass": "text-body-xs",
         "fontSize": "0.75rem",
         "lineHeight": "1rem",
         "fontWeight": "400"
@@ -807,6 +773,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "label-l",
         "section": "semantic",
+        "previewClass": "text-label-l",
         "fontSize": "0.875rem",
         "lineHeight": "1.25rem",
         "fontWeight": "700"
@@ -814,6 +781,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "label-m",
         "section": "semantic",
+        "previewClass": "text-label-m",
         "fontSize": "0.75rem",
         "lineHeight": "1rem",
         "fontWeight": "800"
@@ -821,6 +789,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "button-l",
         "section": "semantic",
+        "previewClass": "text-button-l",
         "fontSize": "1.125rem",
         "lineHeight": "1.5rem",
         "fontWeight": "700"
@@ -828,6 +797,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "button-m",
         "section": "semantic",
+        "previewClass": "text-button-m",
         "fontSize": "1rem",
         "lineHeight": "1rem",
         "fontWeight": "700"
@@ -835,6 +805,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "button-s",
         "section": "semantic",
+        "previewClass": "text-button-s",
         "fontSize": "0.875rem",
         "lineHeight": "0.875rem",
         "fontWeight": "700"
@@ -842,47 +813,55 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "display",
         "section": "semantic",
+        "previewClass": "text-display",
         "fontSize": "3.75rem"
     },
     {
         "name": "0",
         "section": "parity",
+        "previewClass": "text-0",
         "fontSize": "0px",
         "lineHeight": "0px"
     },
     {
         "name": "sm",
         "section": "parity",
+        "previewClass": "text-sm",
         "fontSize": "0.875rem",
         "lineHeight": "1.3125rem"
     },
     {
         "name": "6xl",
         "section": "parity",
+        "previewClass": "text-6xl",
         "fontSize": "3rem",
         "lineHeight": "3.25rem"
     },
     {
         "name": "7xl",
         "section": "parity",
+        "previewClass": "text-7xl",
         "fontSize": "7rem",
         "lineHeight": "7rem"
     },
     {
         "name": "8xl",
         "section": "parity",
+        "previewClass": "text-8xl",
         "fontSize": "10rem",
         "lineHeight": "10rem"
     },
     {
         "name": "9xl",
         "section": "parity",
+        "previewClass": "text-9xl",
         "fontSize": "12rem",
         "lineHeight": "0.9"
     },
     {
         "name": "h1",
         "section": "parity",
+        "previewClass": "text-h1",
         "fontSize": "3rem",
         "lineHeight": "3.5rem",
         "fontWeight": "800"
@@ -890,6 +869,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "h2",
         "section": "parity",
+        "previewClass": "text-h2",
         "fontSize": "2.25rem",
         "lineHeight": "2.875rem",
         "fontWeight": "800"
@@ -897,6 +877,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "h3",
         "section": "parity",
+        "previewClass": "text-h3",
         "fontSize": "1.875rem",
         "lineHeight": "2.375rem",
         "fontWeight": "800"
@@ -904,6 +885,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "h4",
         "section": "parity",
+        "previewClass": "text-h4",
         "fontSize": "1.5rem",
         "lineHeight": "2rem",
         "fontWeight": "800"
@@ -911,6 +893,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "h5",
         "section": "parity",
+        "previewClass": "text-h5",
         "fontSize": "1.25rem",
         "lineHeight": "1.75rem",
         "fontWeight": "800"
@@ -918,6 +901,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "h6",
         "section": "parity",
+        "previewClass": "text-h6",
         "fontSize": "1.125rem",
         "lineHeight": "1.5rem",
         "fontWeight": "800"
@@ -925,6 +909,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "h7",
         "section": "parity",
+        "previewClass": "text-h7",
         "fontSize": "1rem",
         "lineHeight": "1.25rem",
         "fontWeight": "800"
@@ -932,6 +917,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "h8",
         "section": "parity",
+        "previewClass": "text-h8",
         "fontSize": "0.875rem",
         "lineHeight": "1rem",
         "fontWeight": "800"
@@ -939,6 +925,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "h9",
         "section": "parity",
+        "previewClass": "text-h9",
         "fontSize": "0.75rem",
         "lineHeight": "0.875rem",
         "fontWeight": "800"
@@ -946,6 +933,7 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "h10",
         "section": "parity",
+        "previewClass": "text-h10",
         "fontSize": "0.625rem",
         "lineHeight": "0.75rem",
         "fontWeight": "800"
@@ -953,20 +941,30 @@ export const TEXT_STYLES: TextStyle[] = [
     {
         "name": "headingLarge",
         "section": "parity",
+        "previewClass": "text-headingLarge",
         "fontSize": "7rem",
         "lineHeight": "6.5rem"
     },
     {
         "name": "headingMedium",
         "section": "parity",
+        "previewClass": "text-headingMedium",
         "fontSize": "5rem",
         "lineHeight": "4rem"
     },
     {
         "name": "heading",
         "section": "parity",
+        "previewClass": "text-heading",
         "fontSize": "3.75rem",
         "lineHeight": "2.875rem"
+    },
+    {
+        "name": "headingSmall",
+        "section": "parity",
+        "previewClass": "text-headingSmall",
+        "fontSize": "2.625rem",
+        "lineHeight": "2.25rem"
     }
 ]
 
@@ -974,16 +972,19 @@ export const FONT_TOKENS: FontToken[] = [
     {
         "name": "sans",
         "section": "parity",
+        "previewClass": "font-sans",
         "stack": "var(--font-roboto), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'"
     },
     {
         "name": "display",
         "section": "parity",
+        "previewClass": "font-display",
         "stack": "var(--font-sniglet), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'"
     },
     {
         "name": "condensed",
         "section": "parity",
+        "previewClass": "font-condensed",
         "stack": "var(--font-roboto)",
         "fontVariationSettings": "'wdth' 50"
     }
@@ -995,6 +996,11 @@ export const TOKEN_GROUPS: Record<string, ThemeToken[]> = {
         {
             "name": "round",
             "value": "999px",
+            "section": "semantic"
+        },
+        {
+            "name": "card",
+            "value": "0.75rem",
             "section": "semantic"
         },
         {
@@ -1066,22 +1072,26 @@ export const TOKEN_GROUPS: Record<string, ThemeToken[]> = {
         {
             "name": "safe-top",
             "value": "var(--safe-top, env(safe-area-inset-top, 0px))",
-            "section": "semantic"
+            "section": "semantic",
+            "previewClass": "w-safe-top"
         },
         {
             "name": "safe-right",
             "value": "var(--safe-right, env(safe-area-inset-right, 0px))",
-            "section": "semantic"
+            "section": "semantic",
+            "previewClass": "w-safe-right"
         },
         {
             "name": "safe-bottom",
             "value": "var(--safe-bottom, env(safe-area-inset-bottom, 0px))",
-            "section": "semantic"
+            "section": "semantic",
+            "previewClass": "w-safe-bottom"
         },
         {
             "name": "safe-left",
             "value": "var(--safe-left, env(safe-area-inset-left, 0px))",
-            "section": "semantic"
+            "section": "semantic",
+            "previewClass": "w-safe-left"
         }
     ],
     "shadow": [

@@ -20,9 +20,9 @@ import JoinWaitlistPage from '@/components/Invites/JoinWaitlistPage'
 import { useRouter } from 'next/navigation'
 import { NavHeaderPresenceProvider } from '@/components/Global/Banner/navHeaderPresence'
 import { ShellBannerFallback } from '@/components/Global/Banner/ShellBannerFallback'
-import ForceIOSPWAInstall from '@/components/ForceIOSPWAInstall'
 import { isPublicRoute } from '@/constants/routes'
 import { saveRedirectUrl } from '@/utils/general.utils'
+import { consumeHeldSession, markSessionHeld } from '@/utils/session-presence'
 import { IS_DEV } from '@/constants/general.consts'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { FixtureBanner } from '@/dev/fixtures/FixtureBanner'
@@ -40,7 +40,6 @@ import SunsetScreen from '@/components/Migration/SunsetScreen'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { shouldShowSunsetBlock } from '@/utils/migration.utils'
-import { useIosPwaInstallGate } from '@/hooks/useIosPwaInstallGate'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     useNativePlugins()
@@ -67,7 +66,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isDev = pathName?.startsWith('/dev') ?? false
     const alignStart = isHome || isHistory || isSupport
     const router = useRouter()
-    const { showIosPwaInstallScreen } = useIosPwaInstallGate()
     const migrationOn = useMigrationFlag()
     const hasKeepWebBypass = useKeepWebBypass()
 
@@ -85,6 +83,18 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     useLongPressGuard()
 
     const isRedirecting = useRef(false)
+    /*
+     * Whether this TAB has held a session separates the two reasons the gate
+     * below fires — a logged-out arrival at a deep link, or a session
+     * collapsing where it stood — and it is recorded per tab rather than per
+     * document so a reload after the token was revoked still knows the
+     * difference (see session-presence). In an effect, not during render:
+     * React can discard or replay a render, and this outlives the one it was
+     * observed in. Declared above the gate so the gate reads it settled.
+     */
+    useEffect(() => {
+        if (user) markSessionHeld()
+    }, [user])
 
     useEffect(() => {
         // Harness-only: if a reproduce session is in progress, ReproduceBootstrap
@@ -102,21 +112,22 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         // for a 5xx or a network failure. so an error here means the backend is
         // down, not that the person is logged out. leave them on the error screen
         // below — a bounce to signup reads as "you are logged out" during an outage.
-        if (
-            !isPublicPath &&
-            isReady &&
-            !isFetchingUser &&
-            !user &&
-            !userFetchError &&
-            !isRedirecting.current &&
-            !isDemoMode()
-        ) {
+        if (isPublicPath) {
+            // A session can expire while this tab is sitting on a public route.
+            // Retire that tab-local provenance here without storing the public
+            // route, so its next protected deep link is fresh intent.
+            if (isReady && !isFetchingUser && !user && !userFetchError) consumeHeldSession()
+            return undefined
+        }
+        if (isReady && !isFetchingUser && !user && !userFetchError && !isRedirecting.current && !isDemoMode()) {
             isRedirecting.current = true
             // Keep the target: a logged-out tap on a protected deep link
             // (/pay-request, /card, /receipt, every push) used to be dropped
             // here and land on /home after login. useLogin/useAccountSetup
-            // consume this via consumePostAuthRedirect.
-            saveRedirectUrl()
+            // consume this via consumePostAuthRedirect — which is why the
+            // origin rides along: a fresh signup must not inherit the page a
+            // previous session was standing on.
+            saveRedirectUrl(consumeHeldSession() ? 'session-end' : 'deep-link')
             router.replace('/setup')
             // Hard-nav fallback if the soft nav silently fails; re-check at fire time.
             const fallback = setTimeout(() => {
@@ -165,17 +176,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         }
     }
 
-    // PWA sunset: past the cutover the web app is switched off — download the
-    // native app is the only way forward (keep-web cookie bypasses, public
-    // guest links keep working). Must precede the PWA-install and waitlist
-    // screens: the web is gone either way.
+    // Past the cutover, the web app is switched off and the native app is the
+    // only way forward. The keep-web cookie bypasses this for public guest links.
     if (shouldShowSunsetBlock({ migrationOn, hasKeepWebBypass, isPublic: isPublicPath })) {
         return <SunsetScreen />
-    }
-
-    // After setup flow is completed, show ios pwa install screen if not in pwa
-    if (!isPublicPath && showIosPwaInstallScreen) {
-        return <ForceIOSPWAInstall />
     }
 
     // Show waitlist page if user doesn't have app access

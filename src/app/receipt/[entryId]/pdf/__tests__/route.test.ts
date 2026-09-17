@@ -32,10 +32,21 @@ const mockRender = renderReceiptPdf as jest.Mock
 const mockBuildModel = buildReceiptPdfModel as jest.Mock
 const mockLoadMessages = loadMessages as jest.Mock
 
-const get = async (entryId: string, query: string, cookieLocale?: string) => {
+const get = async (
+    entryId: string,
+    query: string,
+    options: { cookieLocale?: string; authorization?: string; cookieToken?: string } = {}
+) => {
     const request = {
         nextUrl: new URL(`http://localhost/receipt/${entryId}/pdf?${query}`),
-        cookies: { get: () => (cookieLocale ? { value: cookieLocale } : undefined) },
+        headers: { get: (name: string) => (name === 'authorization' ? options.authorization : undefined) },
+        cookies: {
+            get: (name: string) => {
+                if (name === 'app-locale' && options.cookieLocale) return { value: options.cookieLocale }
+                if (name === 'jwt-token' && options.cookieToken) return { value: options.cookieToken }
+                return undefined
+            },
+        },
     } as unknown as NextRequest
     return GET(request, { params: Promise.resolve({ entryId }) })
 }
@@ -62,7 +73,7 @@ describe('GET /receipt/[entryId]/pdf', () => {
                 .toString()
         ).toBe('%PDF-')
         // same data path as the page
-        expect(mockGetHistoryEntry).toHaveBeenCalledWith('entry-1', 'OFFRAMP')
+        expect(mockGetHistoryEntry).toHaveBeenCalledWith('entry-1', 'OFFRAMP', undefined)
         expect(mockMap).toHaveBeenCalledWith({ status: 'COMPLETED' })
     })
 
@@ -76,7 +87,7 @@ describe('GET /receipt/[entryId]/pdf', () => {
         mockGetHistoryEntry.mockResolvedValue({ status: 'COMPLETED' })
         const response = await get('entry-3', 't=3')
         expect(response.status).toBe(200)
-        expect(mockGetHistoryEntry).toHaveBeenCalledWith('entry-3', 'SEND_LINK')
+        expect(mockGetHistoryEntry).toHaveBeenCalledWith('entry-3', 'SEND_LINK', undefined)
     })
 
     test('404s for an unknown entry', async () => {
@@ -118,10 +129,7 @@ describe('GET /receipt/[entryId]/pdf', () => {
         expect(mockRender).toHaveBeenCalledTimes(2)
     })
 
-    // The route is public: resolveReceiptKind resolves more kinds than the
-    // receipt page publishes, so without the whitelist an entry id for an
-    // excluded kind would yield a full PDF.
-    test('404s for a kind the receipt page does not serve', async () => {
+    test('404s for a private receipt kind without authentication', async () => {
         mockGetHistoryEntry.mockResolvedValue({ status: 'COMPLETED', kind: 'DIRECT_TRANSFER' })
         mockMap.mockReturnValueOnce({
             transactionDetails: { id: 'entry-excluded', extraDataForDrawer: { kind: 'DIRECT_TRANSFER' } },
@@ -132,6 +140,34 @@ describe('GET /receipt/[entryId]/pdf', () => {
 
         expect(response.status).toBe(404)
         expect(mockRender).not.toHaveBeenCalled()
+    })
+
+    test('renders a private receipt with bearer auth and never caches it publicly', async () => {
+        mockGetHistoryEntry.mockResolvedValue({ status: 'COMPLETED', kind: 'DIRECT_TRANSFER' })
+        mockMap.mockReturnValue({
+            transactionDetails: { id: 'entry-private', extraDataForDrawer: { kind: 'DIRECT_TRANSFER' } },
+        } as never)
+
+        const response = await get('entry-private', 'kind=DIRECT_TRANSFER&locale=en', {
+            authorization: 'Bearer owner-token',
+        })
+
+        expect(response.status).toBe(200)
+        expect(response.headers.get('Cache-Control')).toBe('no-store')
+        expect(mockGetHistoryEntry).toHaveBeenCalledWith('entry-private', 'DIRECT_TRANSFER', 'Bearer owner-token')
+        expect(mockRender).toHaveBeenCalledTimes(1)
+    })
+
+    test('forwards the same-origin session cookie as bearer auth', async () => {
+        mockGetHistoryEntry.mockResolvedValue({ status: 'COMPLETED', kind: 'CARD_SPEND_CLEAR' })
+        mockMap.mockReturnValue({
+            transactionDetails: { id: 'entry-card', extraDataForDrawer: { kind: 'CARD_SPEND_CLEAR' } },
+        } as never)
+
+        expect((await get('entry-card', 'kind=CARD_SPEND_CLEAR', { cookieToken: 'cookie-owner-token' })).status).toBe(
+            200
+        )
+        expect(mockGetHistoryEntry).toHaveBeenCalledWith('entry-card', 'CARD_SPEND_CLEAR', 'Bearer cookie-owner-token')
     })
 
     test('coalesces concurrent renders of the same receipt', async () => {
@@ -161,18 +197,20 @@ describe('GET /receipt/[entryId]/pdf', () => {
         expect(captureException).toHaveBeenCalledTimes(1)
     })
 
-    test('honors a valid ?locale= param', async () => {
+    test.each(['en', 'es-419', 'es-AR', 'pt-BR'])('honors the supported ?locale=%s param', async (locale) => {
         mockGetHistoryEntry.mockResolvedValue({ status: 'COMPLETED' })
-        const response = await get('entry-6', 'kind=OFFRAMP&locale=es-419', 'pt-BR')
+        const response = await get(`entry-locale-${locale}`, `kind=OFFRAMP&locale=${locale}`, {
+            cookieLocale: locale === 'pt-BR' ? 'es-419' : 'pt-BR',
+        })
         expect(response.status).toBe(200)
         // the URL param wins over the cookie
-        expect(mockLoadMessages).toHaveBeenCalledWith('es-419')
+        expect(mockLoadMessages).toHaveBeenCalledWith(locale)
     })
 
     test('unknown ?locale= falls back to the cookie, then the default', async () => {
         mockGetHistoryEntry.mockResolvedValue({ status: 'COMPLETED' })
 
-        await get('entry-7', 'kind=OFFRAMP&locale=xx-XX', 'pt-BR')
+        await get('entry-7', 'kind=OFFRAMP&locale=xx-XX', { cookieLocale: 'pt-BR' })
         expect(mockLoadMessages).toHaveBeenLastCalledWith('pt-BR')
 
         await get('entry-8', 'kind=OFFRAMP&locale=xx-XX')
@@ -185,7 +223,9 @@ describe('GET /receipt/[entryId]/pdf', () => {
             'public, s-maxage=3600'
         )
         // cookie-derived bytes must never be CDN-shared under a locale-less URL
-        expect((await get('entry-10', 'kind=OFFRAMP', 'es-419')).headers.get('Cache-Control')).toBe('no-store')
+        expect((await get('entry-10', 'kind=OFFRAMP', { cookieLocale: 'es-419' })).headers.get('Cache-Control')).toBe(
+            'no-store'
+        )
         expect((await get('entry-11', 'kind=OFFRAMP&locale=xx-XX')).headers.get('Cache-Control')).toBe('no-store')
 
         mockGetHistoryEntry.mockResolvedValue({ status: 'PENDING' })

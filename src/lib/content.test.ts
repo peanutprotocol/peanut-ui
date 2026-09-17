@@ -70,6 +70,13 @@ describe('listAllContent', () => {
 })
 
 describe('resolveContentHref', () => {
+    it('keeps locale-neutral app routes bare — /{locale}/card would 404 in the country catch-all', () => {
+        expect(resolveContentHref('/card', 'es-ar')).toBe('/card')
+        expect(resolveContentHref('/shhhhh?campaign=x', 'pt-br')).toBe('/shhhhh?campaign=x')
+        expect(resolveContentHref('https://peanut.me/card', 'es-ar')).toBe('https://peanut.me/card')
+        expect(resolveContentHref('https://peanut.me/en/card', 'es-ar')).toBe('https://peanut.me/card')
+    })
+
     it.each([
         ['/en/countries-do-not-exist', '/es-ar/countries-do-not-exist'],
         ['/en/poland', '/es-419/poland'],

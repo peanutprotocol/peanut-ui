@@ -1,4 +1,6 @@
 import AvatarWithBadge, { type AvatarSize } from '@/components/Profile/AvatarWithBadge'
+import { UserAvatar } from '@/components/Avatar/UserAvatar'
+import { avatarSrc, letterAvatarSrc } from '@/components/Avatar/avatar.utils'
 import { type RecipientType } from '@/lib/url-parser/types/payment'
 import { printableAddress } from '@/utils/general.utils'
 import { AVATAR_TEXT_DARK, getColorForUsername } from '@/utils/color.utils'
@@ -6,9 +8,9 @@ import { useTranslations } from 'next-intl'
 import { useCallback } from 'react'
 import { twMerge } from '@/utils/tw'
 import Attachment from '../Attachment'
-import Card from '../Card'
+import { Card } from '@/components/0_Bruddle/Card'
 import { Icon, type IconName } from '../Icons/Icon'
-import Image, { type StaticImageData } from 'next/image'
+import { type StaticImageData } from 'next/image'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import Loading from '../Loading'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
@@ -42,6 +44,9 @@ export interface PeanutActionDetailsCardProps {
     currencySymbol?: string
     isLoading?: boolean
     logo?: StaticImageData
+    /** The other person's picked avatar (TASK-22625). Read only on the branch
+     *  that would otherwise draw their initials — every icon branch ignores it. */
+    avatarKey?: string | null
     /**
      * A withdraw the user reached through the send flow (Send → Exchange or
      * Wallet / Bank). Mechanically identical to a withdraw — only the verb
@@ -69,6 +74,7 @@ export default function PeanutActionDetailsCard({
     currencySymbol,
     isLoading = false,
     logo,
+    avatarKey,
     isFromSendFlow = false,
 }: PeanutActionDetailsCardProps) {
     const t = useTranslations('global')
@@ -119,8 +125,8 @@ export default function PeanutActionDetailsCard({
         }
         if (transactionType === 'REGIONAL_METHOD_CLAIM') title = recipientName // Render the string as is for regional method
         return (
-            <h1 className="flex items-center gap-2 overflow-hidden text-body-m font-normal text-ellipsis whitespace-nowrap text-foreground-secondary">
-                {icon && <Icon name={icon} size={10} />} {title}
+            <h1 className="flex items-center gap-2 overflow-hidden text-body-m text-ellipsis whitespace-nowrap text-foreground-secondary">
+                {icon && <Icon name={icon} size={16} />} {title}
             </h1>
         )
     }
@@ -167,33 +173,43 @@ export default function PeanutActionDetailsCard({
         return getColorForUsername(recipientName).darkShade
     }
 
+    // No icon means the avatar slot stood for a person — the only case where an
+    // avatar belongs. A caller-supplied brand logo still wins.
+    //
+    // The art check is load-bearing: the claim views and CountryListRouter
+    // hardcode recipientType="USERNAME" while passing a resolved display name,
+    // which is a shortened address whenever the counterparty has no Peanut
+    // account. Those draw neither a pick nor a letter, so they keep the
+    // initials bubble they had.
+    const avatarIcon = getAvatarIcon()
+    const showsPersonAvatar = !avatarIcon && !logo && !!(avatarSrc(avatarKey) ?? letterAvatarSrc(recipientName))
+
     const isWithdrawBankAccount = transactionType === 'WITHDRAW_BANK_ACCOUNT' && recipientType === 'BANK_ACCOUNT'
     const isAddBankAccount = transactionType === 'ADD_MONEY_BANK_ACCOUNT'
     const isClaimLinkBankAccount = transactionType === 'CLAIM_LINK_BANK_ACCOUNT' && recipientType === 'BANK_ACCOUNT'
     const isRegionalMethodClaim = transactionType === 'REGIONAL_METHOD_CLAIM'
 
-    const withdrawBankIcon = () => {
-        const imgSrc = logo ? logo : getFlagUrl(countryCodeForFlag)
-        if (isWithdrawBankAccount || isAddBankAccount || isClaimLinkBankAccount || isRegionalMethodClaim)
-            return (
-                <div className="relative mr-1 h-12 w-12">
-                    {(countryCodeForFlag || logo) && (
-                        <Image
-                            src={imgSrc}
-                            alt={`${countryCodeForFlag} flag`}
-                            width={160}
-                            height={160}
-                            className="h-12 w-12 rounded-full object-cover"
-                        />
-                    )}
-                    {!isRegionalMethodClaim && (
-                        <div className="absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full bg-background-icon-bubble-blue p-1.5">
-                            <Icon size={14} name="bank" className="text-black" />
-                        </div>
-                    )}
-                </div>
-            )
-        return undefined
+    /*
+     * one leading element, per the ListItem-leading rule: the flag or the
+     * provider logo, with the bank icon as its fallback when neither loads.
+     * same shape as TransactionAvatarBadge's bank rows. the mini bank bubble
+     * this used to overlay on the flag is gone — a composite leading has no
+     * board row (design.md open conflicts, "listitem leading composite").
+     */
+    const bankAvatar = () => {
+        if (!(isWithdrawBankAccount || isAddBankAccount || isClaimLinkBankAccount || isRegionalMethodClaim))
+            return undefined
+        const imgSrc = logo ?? (countryCodeForFlag ? getFlagUrl(countryCodeForFlag) : undefined)
+        return (
+            <AvatarWithBadge
+                size="small"
+                logo={imgSrc}
+                icon="bank"
+                inlineStyle={{ backgroundColor: 'var(--color-background-icon-bubble-blue)' }}
+                iconFillColor={AVATAR_TEXT_DARK}
+                fallback={{ icon: 'bank', bgColor: 'var(--color-background-icon-bubble-blue)' }}
+            />
+        )
     }
 
     return (
@@ -202,10 +218,15 @@ export default function PeanutActionDetailsCard({
                 <div className="flex items-center gap-3">
                     {viewType !== 'SUCCESS' &&
                     (isWithdrawBankAccount || isAddBankAccount || isClaimLinkBankAccount || isRegionalMethodClaim) ? (
-                        withdrawBankIcon()
+                        bankAvatar()
+                    ) : showsPersonAvatar ? (
+                        // The branch that used to draw the counterparty's
+                        // initials: a Peanut handle with no icon of its own.
+                        // `decorative` because the card names them above.
+                        <UserAvatar name={recipientName} avatarKey={avatarKey} size={avatarSize} decorative />
                     ) : (
                         <AvatarWithBadge
-                            icon={getAvatarIcon()}
+                            icon={avatarIcon}
                             size={avatarSize}
                             name={viewType === 'NORMAL' ? recipientName : undefined}
                             inlineStyle={{
@@ -217,7 +238,7 @@ export default function PeanutActionDetailsCard({
                     )}
                 </div>
 
-                <div className="space-y-1 w-full">
+                <div className="flex w-full flex-col gap-1">
                     {getTitle()}
                     {isLoading ? (
                         <Loading />

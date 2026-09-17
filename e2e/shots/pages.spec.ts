@@ -25,104 +25,7 @@ const OUT_DIR = process.env.PAGES_OUT ?? 'e2e/__shots__/pages'
 const FIXTURE = 'profile-edit'
 const FROZEN_NOW = new Date('2026-08-15T12:00:00.000Z')
 
-type Capture = {
-    id: string
-    name: string
-    route: string
-    /** Fixture to serve this capture. Defaults to FIXTURE (the demo baseline). */
-    fixture?: string
-    /** Accessible names clicked in order before the shot. */
-    clicks?: string[]
-    /** Scroll to the bottom first — some notifications sit below the fold. */
-    toBottom?: boolean
-}
-
-const CAPTURES: Capture[] = [
-    // The page you flagged, then each of its three inline FAQ sheets.
-    { id: 'p01-backup', name: 'Backup', route: '/profile/backup' },
-    {
-        id: 'p02-backup-lose-phone',
-        name: 'Backup — What if I lose my phone?',
-        route: '/profile/backup',
-        clicks: ['What if I lose my phone?'],
-    },
-    {
-        id: 'p03-backup-change-phone',
-        name: 'Backup — What if I change phone?',
-        route: '/profile/backup',
-        clicks: ['What if I change phone?'],
-    },
-    {
-        id: 'p04-backup-export-keys',
-        name: 'Backup — Why can’t I export my private key?',
-        route: '/profile/backup',
-        clicks: ["Why can't I export my private key?"],
-    },
-
-    { id: 'p05-home', name: 'Home', route: '/home' },
-    { id: 'p06-profile', name: 'Profile', route: '/profile' },
-    { id: 'p07-profile-edit', name: 'Profile — edit', route: '/profile/edit' },
-    { id: 'p08-profile-view', name: 'Profile — public view', route: '/profile/view' },
-    { id: 'p09-profile-about', name: 'Profile — about', route: '/profile/about' },
-    { id: 'p10-exchange-rate', name: 'Exchange rate', route: '/profile/exchange-rate' },
-
-    { id: 'p11-identity-verification', name: 'Identity verification', route: '/profile/identity-verification' },
-    {
-        id: 'p12-identity-additional',
-        name: 'Identity — additional',
-        route: '/profile/identity-verification/additional',
-    },
-    { id: 'p13-limits', name: 'Limits', route: '/limits' },
-
-    { id: 'p14-withdraw', name: 'Withdraw', route: '/withdraw' },
-    { id: 'p15-withdraw-crypto', name: 'Withdraw — crypto', route: '/withdraw/crypto' },
-    { id: 'p16-withdraw-manteca', name: 'Withdraw — Manteca', route: '/withdraw/manteca' },
-    { id: 'p17-add-money', name: 'Add money', route: '/add-money' },
-    { id: 'p18-add-money-crypto', name: 'Add money — crypto', route: '/add-money/crypto' },
-    { id: 'p19-add-money-us-bank', name: 'Add money — US bank', route: '/add-money/us/bank' },
-
-    { id: 'p20-qr-pay', name: 'QR Pay', route: '/qr-pay' },
-    { id: 'p21-qr', name: 'QR', route: '/qr' },
-    { id: 'p22-card', name: 'Card', route: '/card' },
-    { id: 'p23-card-limit', name: 'Card — limit', route: '/card/limit' },
-    { id: 'p24-card-pin', name: 'Card — PIN', route: '/card/pin' },
-    { id: 'p25-card-recovery', name: 'Card recovery', route: '/card-recovery' },
-
-    { id: 'p26-recover-funds', name: 'Recover funds', route: '/recover-funds' },
-    { id: 'p27-recover-wallet', name: 'Recover wallet', route: '/recover-wallet' },
-    { id: 'p28-history', name: 'History', route: '/history' },
-    { id: 'p29-badges', name: 'Badges', route: '/badges' },
-    { id: 'p30-points', name: 'Points', route: '/points' },
-    { id: 'p31-send', name: 'Send', route: '/send' },
-    { id: 'p32-request', name: 'Request', route: '/request' },
-    { id: 'p33-claim', name: 'Claim', route: '/claim' },
-    { id: 'p34-language', name: 'Language', route: '/settings/language' },
-    { id: 'p35-home-ctas', name: 'Home CTAs (incl. spend chooser)', route: '/dev/home-ctas' },
-
-    // Screens the demo baseline gates out; each has a fixture that opens it.
-    {
-        id: 'p36-add-money-bank-list',
-        name: 'Add money — bank country list',
-        route: '/add-money?method=bank',
-        fixture: 'add-money',
-    },
-    {
-        id: 'p37-add-money-crypto',
-        name: 'Add money — network picker',
-        route: '/add-money/crypto',
-        fixture: 'add-money-crypto',
-    },
-    {
-        id: 'p38-kyc-action-required',
-        name: 'Identity — action required',
-        route: '/profile/identity-verification',
-        fixture: 'kyc-action-required',
-    },
-    { id: 'p39-language', name: 'Language', route: '/settings/language', fixture: 'settings-language' },
-    { id: 'p40-withdraw', name: 'Withdraw — saved accounts', route: '/withdraw', fixture: 'withdraw' },
-    { id: 'p41-home-add-drawer', name: 'Home — Add money drawer', route: '/home?drawer=add' },
-    { id: 'p42-home-send-drawer', name: 'Home — Send drawer (no mark)', route: '/home?drawer=send' },
-]
+import { PAGE_CAPTURES as CAPTURES } from '../../src/dev/screens/pages'
 
 function seenOnceModals(): void {
     window.sessionStorage.setItem('showNoMoreJailModal', 'true')
@@ -148,9 +51,7 @@ const LOADERS = '.animate-spin img[alt="Peanut mascot"], .animate-pulse'
 test.describe.configure({ mode: 'parallel' })
 
 for (const capture of CAPTURES) {
-    test(capture.id, async ({ page }) => {
-        await page.setViewportSize({ width: 375, height: 900 })
-
+    test(capture.id, async ({ page }, testInfo) => {
         await page.route('**/*', (route) => {
             const { hostname } = new URL(route.request().url())
             return hostname === '127.0.0.1' || hostname === 'localhost' ? route.continue() : route.abort()
@@ -215,13 +116,13 @@ for (const capture of CAPTURES) {
 
         await mkdir(OUT_DIR, { recursive: true })
         await page.screenshot({
-            path: join(OUT_DIR, `${capture.id}.png`),
+            path: join(OUT_DIR, `${capture.id}@${testInfo.project.name}.png`),
             animations: 'disabled',
             caret: 'hide',
             scale: 'css',
         })
         await writeFile(
-            join(OUT_DIR, `${capture.id}.json`),
+            join(OUT_DIR, `${capture.id}@${testInfo.project.name}.json`),
             JSON.stringify({ ...capture, landed, notes, ok: notes.length === 0 }, null, 2)
         )
     })

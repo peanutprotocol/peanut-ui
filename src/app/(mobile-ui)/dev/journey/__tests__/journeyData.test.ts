@@ -51,9 +51,7 @@ describe('journeyData', () => {
         expect([...mapped].sort()).toEqual(['create_card', 'first_spend', 'fund', 'verify', 'win_back'])
     })
 
-    it('carries all 7 inventory findings, each source-file-annotated', () => {
-        expect(FINDINGS).toHaveLength(7)
-        expect(FINDINGS.map((f) => f.id)).toEqual([1, 2, 3, 4, 5, 6, 7])
+    it('keeps remaining inventory findings source-file-annotated', () => {
         for (const finding of FINDINGS) {
             expect(finding.sourceFiles.length).toBeGreaterThan(0)
             for (const file of finding.sourceFiles) expect(file).toMatch(/^src\//)

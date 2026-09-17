@@ -100,10 +100,14 @@
     "statusTimesInUtc": "Horarios en UTC",
     "lastUpdated": "Última actualización: {date}",
     "relatedPages": "Páginas Relacionadas",
+    "calloutInfo": "Info",
+    "calloutTip": "Consejo",
+    "calloutImportant": "Importante",
+    "clearSearch": "Borrar búsqueda",
     "content": "Contenido",
     "contentHubTitle": "Explorá Peanut",
     "contentHubSubtitle": "Artículos, historias, guías y comparaciones.",
-    "contentSearchPlaceholder": "Buscá artículos, historias, guías...",
+    "contentSearchPlaceholder": "Buscá artículos",
     "filterAll": "Todos",
     "filterBlog": "Blog",
     "filterStories": "Historias",
@@ -219,6 +223,7 @@
     "exchangeFree": "¡Gratis!",
     "exchangeArrivesHours": "Debería llegar en unas horas.",
     "exchangeArrivesMinutes": "Debería llegar en minutos.",
+    "exchangeSelectCurrency": "Seleccionar moneda",
     "legalHeroSubtitlePrivacy": "Cómo tratamos tus datos",
     "legalHeroSubtitleTerms": "El acuerdo entre vos y Peanut"
 }

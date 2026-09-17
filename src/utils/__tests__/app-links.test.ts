@@ -23,7 +23,23 @@ const androidPaths = [...manifest.matchAll(/android:path="([^"]+)"/g)].map((m) =
 const androidPrefixes = [...manifest.matchAll(/android:pathPrefix="([^"]+)"/g)].map((m) => m[1])
 
 describe('App Links', () => {
-    it('claims /app and /app/* for every iOS appID', () => {
+    /*
+     * SKIPPED, NOT ABANDONED — restore both with the next native release.
+     *
+     * The `/app` claim never reached a binary: v1.6.0 predates d91ea7cee, so its
+     * manifest and AASA carry no `/app` at all, and an intent filter cannot be
+     * shipped over the air. What the two lines did reach was
+     * check-native-ota-surface, which compares this tree's native fingerprint
+     * against the binary an OTA targets — so they blocked every bundle while
+     * delivering nothing, with production stuck on JS older than the binary
+     * running it.
+     *
+     * Both platforms were reverted together, deliberately: dropping only the
+     * Android half would manufacture exactly the drift the parity case below
+     * exists to catch, and that case stays live. Restoring these two is part of
+     * cutting the next native release — see docs/NATIVE-RELEASE.md.
+     */
+    it.skip('claims /app and /app/* for every iOS appID', () => {
         expect(details.length).toBeGreaterThan(0)
         for (const detail of details) {
             expect(detail.paths).toContain('/app')
@@ -31,7 +47,7 @@ describe('App Links', () => {
         }
     })
 
-    it('claims /app on Android with the same exact-plus-prefix shape', () => {
+    it.skip('claims /app on Android with the same exact-plus-prefix shape', () => {
         expect(androidPaths).toContain('/app')
         expect(androidPrefixes).toContain('/app/')
     })

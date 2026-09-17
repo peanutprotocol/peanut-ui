@@ -1,4 +1,4 @@
-name: Android Release (Play)
+name: App Release Android
 
 # Builds a SIGNED Android App Bundle and uploads it to Google Play.
 # Removes the "release only builds on one laptop" gap: the upload keystore lives
@@ -121,11 +121,13 @@ jobs:
                   EOF
 
             - name: Production web env
+              env:
+                  LOTTIE_PROFILE_BUILD: ${{ github.event_name == 'workflow_dispatch' && github.ref_name == 'innolope/TASK-21683-lottie-native-testflight' && 'true' || 'false' }}
               run: |
                   # NEXT_PUBLIC_* values are baked into the static export at build time.
                   # rpId MUST be peanut.me (passkeys + assetlinks/AASA).
                   # Keep this block identical to ios-release.yml / android-release.yml /
-                  # capgo-deploy.yml. CAPACITOR_BUILD / IS_NATIVE_BUILD / GIT_COMMIT_HASH
+                  # release-ota.yml. CAPACITOR_BUILD / IS_NATIVE_BUILD / GIT_COMMIT_HASH
                   # are auto-baked by next.config.native.js.
                   # Delimiter is quoted: a secret holding $ or a backtick must land in the
                   # file verbatim, not be expanded — or executed — by the shell.
@@ -146,14 +148,20 @@ jobs:
                   NEXT_PUBLIC_SAFARI_WEB_ID=${{ vars.NEXT_PUBLIC_SAFARI_WEB_ID }}
                   NEXT_PUBLIC_ONESIGNAL_WEBHOOK=${{ vars.NEXT_PUBLIC_ONESIGNAL_WEBHOOK }}
                   EOF
-                  if [ "${{ inputs.pushDebug }}" = "true" ]; then
-                      echo "NEXT_PUBLIC_ONESIGNAL_DEBUG=true" >> .env.production.local
-                  fi
+                  {
+                      if [ "${{ inputs.pushDebug }}" = "true" ]; then
+                          echo "NEXT_PUBLIC_ONESIGNAL_DEBUG=true"
+                      fi
+                      if [ "$LOTTIE_PROFILE_BUILD" = "true" ]; then
+                          echo "NEXT_PUBLIC_LOTTIE_PROFILE_ENABLED=true"
+                      fi
+                  } >> .env.production.local
 
             - name: Resolve release versionName
               id: version
               env:
                   INPUT_VERSION: ${{ inputs.versionName || '' }}
+                  LOTTIE_PROFILE_BUILD: ${{ github.event_name == 'workflow_dispatch' && github.ref_name == 'innolope/TASK-21683-lottie-native-testflight' && 'true' || 'false' }}
               run: |
                   # release-native.yml resolves the version and passes it here, so the
                   # input wins; a break-glass tag push falls back to the tag name minus
@@ -163,7 +171,20 @@ jobs:
                   # version the binary ships with. Keep in lockstep with ios-release.yml.
                   VERSION_NAME="$INPUT_VERSION"
                   DIRECT_REBUILD=false
-                  if [ -z "$VERSION_NAME" ] && [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "$GITHUB_REF_TYPE" != "tag" ]; then
+                  PROFILE_BUILD=false
+                  if [ "$LOTTIE_PROFILE_BUILD" = "true" ]; then
+                      if [ -n "$VERSION_NAME" ]; then
+                          echo "::error::TASK-21683 profile builds reuse the current native version; leave versionName blank" >&2
+                          exit 1
+                      fi
+                      if [ "${{ inputs.track || 'internal' }}" != "internal" ]; then
+                          echo "::error::TASK-21683 profile builds may upload only to Play internal" >&2
+                          exit 1
+                      fi
+                      VERSION_NAME="$(node scripts/release-version.mjs native-floor)"
+                      PROFILE_BUILD=true
+                      echo "Lottie profile build: reusing $VERSION_NAME without changing production OTA"
+                  elif [ -z "$VERSION_NAME" ] && [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "$GITHUB_REF_TYPE" != "tag" ]; then
                       if [ "$GITHUB_REF_NAME" != "dev" ] && [ "$GITHUB_REF_NAME" != "main" ] && [ "$GITHUB_REF_NAME" != "release/android-kyc" ]; then
                           echo "::error::Android replacement builds are cut from dev, main, or release/android-kyc, not $GITHUB_REF_NAME" >&2
                           exit 1
@@ -181,8 +202,11 @@ jobs:
                       exit 1
                   fi
                   node scripts/release-version.mjs validate "$VERSION_NAME" --kind native
-                  echo "name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
-                  echo "rebuild=$DIRECT_REBUILD" >> "$GITHUB_OUTPUT"
+                  {
+                      echo "name=$VERSION_NAME"
+                      echo "rebuild=$DIRECT_REBUILD"
+                      echo "profile=$PROFILE_BUILD"
+                  } >> "$GITHUB_OUTPUT"
                   echo "Release versionName: $VERSION_NAME"
 
             # A binary whose versionName is ahead of the newest production OTA bundle
@@ -193,24 +217,22 @@ jobs:
             # upload closes the gap this detects. Keep in lockstep with
             # ios-release.yml.
             - name: Check production OTA floor
+              if: steps.version.outputs.profile != 'true'
               id: ota_floor
               env:
+                  CAPGO_APP_ID: me.peanut.wallet
+                  PLATFORM: android
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   VERSION_NAME: ${{ steps.version.outputs.name }}
                   IS_REBUILD: ${{ steps.version.outputs.rebuild }}
               run: |
-                  CURRENT="$(npx @capgo/cli@8.42.4 channel currentBundle production \
-                    --apikey "$CAPGO_API_KEY" --quiet | grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?' | tail -n1 || true)"
-                  if [ -z "$CURRENT" ]; then
-                      echo "::error::cannot read the production channel's current bundle from Capgo — refusing to ship a binary that may strand the fleet's OTA path" >&2
-                      exit 1
+                  CURRENT="$(node scripts/capgo-release-guard.mjs current-version)"
+                  if [ "$CURRENT" = builtin ]; then
+                    echo "needs_ota=true" >> "$GITHUB_OUTPUT"
+                    exit 0
                   fi
-                  # Fail closed on an anomalous read. CURRENT is scraped from a CLI
-                  # whose stdout format is not contractual, so a stray version-like
-                  # token that sorts ABOVE a new release would make needs_ota false,
-                  # silently skip the matching publish, and recreate TASK-21793 with
-                  # CI green. A same-build replacement is the one valid exception:
-                  # its existing .1+ OTA is expected to sort above the rebuilt .0.
+                  # A new native release cannot lag its platform channel. A same-
+                  # version replacement may already be covered by a newer OTA.
                   if [ "$(node scripts/semver-newer.mjs "$CURRENT" "$VERSION_NAME")" = "true" ]; then
                       CURRENT_CORE="${CURRENT%%-*}"
                       if [ "$IS_REBUILD" != "true" ] || [ "${CURRENT_CORE%.*}" != "${VERSION_NAME%.*}" ]; then
@@ -256,6 +278,8 @@ jobs:
                   MEAWALLET_NEXUS_USER: ${{ secrets.MEAWALLET_NEXUS_USER_ANDROID }}
                   MEAWALLET_NEXUS_PASSWORD: ${{ secrets.MEAWALLET_NEXUS_PASSWORD_ANDROID }}
                   ANDROID_VERSION_NAME: ${{ steps.version.outputs.name }}
+                  KEEP_LOTTIE_PROFILE: ${{ steps.version.outputs.profile == 'true' && 'true' || 'false' }}
+                  WEBVIEW_DEBUG: ${{ steps.version.outputs.profile == 'true' && 'true' || 'false' }}
               run: |
                   # versionCode must increase in UPLOAD order, which is not run
                   # order: GitHub preserves run_number when you re-run an older
@@ -272,7 +296,7 @@ jobs:
                   echo "versionCode $ANDROID_VERSION_CODE (version $ANDROID_VERSION_NAME, run $GITHUB_RUN_NUMBER attempt $GITHUB_RUN_ATTEMPT)"
                   pnpm native:release
 
-            - name: Verify Capacitor permission metadata survived R8
+            - name: Verify optimized native metadata survived R8
               run: |
                   DEXDUMP="$(find "$ANDROID_HOME/build-tools" -type f -name dexdump -print | sort -V | tail -n1)"
                   if [ -z "$DEXDUMP" ]; then
@@ -300,6 +324,28 @@ jobs:
                   fi
                   echo "CameraPlugin runtime permission metadata is present in the optimized DEX"
 
+                  PUSH_PROVISIONING_CLASS='Lme/peanut/wallet/PushProvisioningPlugin;'
+                  PUSH_PROVISIONING_ANNOTATION='VISIBILITY_RUNTIME Lcom/getcapacitor/annotation/CapacitorPlugin; name="PushProvisioning"'
+                  CLASS_FOUND=false
+                  ANNOTATION_FOUND=false
+                  for DEX in "${DEX_FILES[@]}"; do
+                      if "$DEXDUMP" -a "$DEX" | grep -F "$PUSH_PROVISIONING_CLASS" >/dev/null; then
+                          CLASS_FOUND=true
+                      fi
+                      if "$DEXDUMP" -a "$DEX" | grep -F "$PUSH_PROVISIONING_ANNOTATION" >/dev/null; then
+                          ANNOTATION_FOUND=true
+                      fi
+                  done
+                  if [ "$CLASS_FOUND" != "true" ]; then
+                      echo "::error::PushProvisioningPlugin was removed from the optimized DEX — Google Pay provisioning would be unavailable" >&2
+                      exit 1
+                  fi
+                  if [ "$ANNOTATION_FOUND" != "true" ]; then
+                      echo "::error::PushProvisioningPlugin lost its runtime CapacitorPlugin annotation during R8 — bridge registration would fail" >&2
+                      exit 1
+                  fi
+                  echo "PushProvisioningPlugin class and CapacitorPlugin metadata are present in the optimized DEX"
+
             # The Cordova plugin registry (res/xml/config.xml) is generated by
             # `cap sync` and read only through reflection, so the resource
             # shrinker sees it as unused and can silently drop it. Binary
@@ -326,7 +372,18 @@ jobs:
                       echo "::error::SNSMobileSdkCordovaPlugin is absent from the AAB DEX files — the Sumsub native half did not make it into the artifact (TASK-22471)" >&2
                       exit 1
                   fi
-                  echo "Cordova plugin registry and Sumsub native class are present in the AAB"
+
+                  if ! unzip -Z1 "$AAB" | grep -Eq '^base/res/raw/mea_config($|\.)'; then
+                      echo "::error::base/res/raw/mea_config is missing from the AAB — Google Pay provisioning would be unavailable" >&2
+                      exit 1
+                  fi
+
+                  if ! unzip -Z1 "$AAB" | grep -Eq '^base/res/drawable(-[^/]*)?/ic_stat_onesignal_default\.[^/]+$'; then
+                      echo "::error::ic_stat_onesignal_default is missing from the AAB — OneSignal notifications may lose their configured icon" >&2
+                      exit 1
+                  fi
+
+                  echo "Cordova plugin registry, Sumsub native class, Google Pay config, and OneSignal icon are present in the AAB"
 
             - name: Preserve R8 mapping
               uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -346,41 +403,19 @@ jobs:
                   # Staged production rollout: set status: inProgress + userFraction: 0.1,
                   # then promote in Play Console once crash/error rates look clean.
 
-            # The binary that just shipped is ahead of every production OTA bundle, so
-            # its devices would refuse all existing bundles. Publish the exact JS baked
-            # into this binary (native:release leaves it in out/) under the binary's own
-            # version — the lanes can no longer drift apart. A failure here is the floor
-            # guard firing: the job goes red instead of the fleet going silently dark.
-            # Upload flags in lockstep with capgo-deploy.yml; ios-release.yml publishes
-            # the same version from the same tag, which --version-exists-ok turns into a
-            # verified no-op.
+            # Publish the native .0 record to this platform's channel. The other
+            # native job may reuse it only after exact source/floor/artifact checks;
+            # an existing record alone never counts as a successful upload.
             - name: Publish matching production OTA bundle
-              if: steps.ota_floor.outputs.needs_ota == 'true'
+              if: steps.ota_floor.outputs.needs_ota == 'true' && steps.version.outputs.profile != 'true'
               env:
+                  CAPGO_APP_ID: me.peanut.wallet
+                  PLATFORM: android
                   CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
                   CAPGO_PRIVATE_KEY: ${{ secrets.CAPGO_PRIVATE_KEY }}
                   VERSION: ${{ steps.version.outputs.name }}
-              run: |
-                  if [ ! -f out/index.html ]; then
-                      echo "::error::out/ is missing its static export — cannot publish the matching OTA bundle, and without it every device on the $VERSION binary refuses OTA updates" >&2
-                      exit 1
-                  fi
-                  npx @capgo/cli@8.42.4 bundle upload \
-                    --channel production \
-                    --apikey "$CAPGO_API_KEY" \
-                    --key-data-v2 "$CAPGO_PRIVATE_KEY" \
-                    --path ./out \
-                    --bundle "$VERSION" \
-                    --min-update-version "$VERSION" \
-                    --version-exists-ok \
-                    --comment "${GITHUB_SHA:0:7} — auto-published with the $VERSION native release"
-                  CURRENT="$(npx @capgo/cli@8.42.4 channel currentBundle production \
-                    --apikey "$CAPGO_API_KEY" --quiet | grep -oE '[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?' | tail -n1 || true)"
-                  if [ "$CURRENT" != "$VERSION" ]; then
-                      echo "::error::production channel serves '${CURRENT:-<none>}', expected $VERSION — devices on the $VERSION binary have no OTA path" >&2
-                      exit 1
-                  fi
-                  echo "Production channel now serves $VERSION"
+                  IS_REBUILD: ${{ steps.version.outputs.rebuild }}
+              run: bash scripts/publish-native-ota.sh
 
             - name: Upload AAB as build artifact
               if: always()
@@ -416,7 +451,7 @@ jobs:
                   node scripts/check-native-change-scope.cjs "v$VERSION" android --legacy-compatible --ref "$GITHUB_SHA"
                   FINGERPRINT="$(node scripts/native-fingerprint.mjs --ref "$GITHUB_SHA")"
                   TAG="android-v${VERSION}-replacement-${GITHUB_SHA:0:12}"
-                  ATTESTATION="peanut-native-replacement-v2: platform=android base=v$VERSION native-compatible=true js-guard=android-capacitor-permissions-v1 fingerprint=$FINGERPRINT"
+                  ATTESTATION="peanut-native-replacement-v3: platform=android base=v$VERSION native-compatible=true js-guard=android-capacitor-permissions-v1 fingerprint=$FINGERPRINT"
 
                   if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
                       EXISTING_COMMIT="$(git rev-parse "$TAG^{commit}")"

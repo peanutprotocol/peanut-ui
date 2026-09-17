@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom'
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { PEANUTMAN } from '@/assets/mascot'
 import { ETHEREUM_ICON } from '@/assets/icons'
@@ -10,7 +11,7 @@ import Image from 'next/image'
 import { Icon } from '../Icons/Icon'
 import { useQRScanner, type QRScanHandler } from './useQRScanner'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import CameraPermissionModal from './CameraPermissionModal'
+import CameraPermissionDrawer from './CameraPermissionDrawer'
 import { Clipboard } from '@capacitor/clipboard'
 import { clipboardHasStrings } from '@/utils/clipboard-detect'
 import { extractPaymentValue, readClipboard } from '@/utils/clipboard-extract.utils'
@@ -65,6 +66,10 @@ export interface QRScannerProps {
     onScan: QRScanHandler
     onClose?: () => void
     isOpen?: boolean
+    /** Reports the camera-permission-denied recovery state, so the host can
+     *  clear anything it floats above the scanner (the my-QR peek sits at
+     *  z-60 and would cover the z-50 recovery sheet). */
+    onPermissionDenied?: (denied: boolean) => void
 }
 
 // ============================================================================
@@ -137,17 +142,17 @@ function PasteActions({
     const t = useTranslations('global')
     return (
         <>
-            <button
-                onClick={onPaste}
-                className="mx-auto mt-4 flex items-center gap-1 text-center text-white underline underline-offset-2"
-            >
+            {/* stays white: the link sits on the live camera feed, where the
+                secondary gray of the stock chrome would not read */}
+            <LinkButton onClick={onPaste} className="mx-auto mt-4 flex text-white hover:text-white active:text-white">
                 <Icon name="paste" fill="white" height={16} width={16} />
-                <span className="text-body-s">{t('qrScanner.clickToPaste')}</span>
-            </button>
+                {t('qrScanner.clickToPaste')}
+            </LinkButton>
             {detectedAddress ? (
                 <button
                     onClick={onUseDetected}
-                    className="mx-auto mt-3 flex items-center gap-1 rounded-full border border-white/40 px-3 py-2 text-white"
+                    // mt-4: clear of the paste link's 14px extended hit area above
+                    className="mx-auto mt-4 flex items-center gap-1 rounded-full border border-white/40 px-3 py-2 text-white"
                 >
                     <Icon name="wallet" fill="white" height={16} width={16} />
                     <span className="text-label-l">{printableAddress(detectedAddress)}</span>
@@ -155,7 +160,8 @@ function PasteActions({
             ) : showPasteChip ? (
                 <button
                     onClick={onUsePasteChip}
-                    className="mx-auto mt-3 flex items-center gap-1 rounded-full border border-white/40 px-3 py-2 text-white"
+                    // mt-4: clear of the paste link's 14px extended hit area above
+                    className="mx-auto mt-4 flex items-center gap-1 rounded-full border border-white/40 px-3 py-2 text-white"
                 >
                     <Icon name="paste" fill="white" height={16} width={16} />
                     <span className="text-label-l">{t('qrScanner.useCopiedCode')}</span>
@@ -287,9 +293,14 @@ function ErrorView({
 // Main Component
 // ============================================================================
 
-export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerProps) {
+export default function QRScanner({ onScan, onClose, onPermissionDenied, isOpen = true }: QRScannerProps) {
     const { error, isPermissionDenied, isScanning, isCameraReady, videoRef, close, toggleCamera, retryCamera } =
         useQRScanner(onScan, onClose, isOpen)
+    useEffect(() => {
+        onPermissionDenied?.(isPermissionDenied)
+        return () => onPermissionDenied?.(false)
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- callback identity is the host's concern
+    }, [isPermissionDenied])
     const t = useTranslations('global')
     const toast = useToast()
     const [detectedAddress, setDetectedAddress] = useState<string | null>(null)
@@ -302,7 +313,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
      * raises the "Allow Paste" alert, which raced the camera permission dialog
      * and blocked it (PEANUT-UI-PYW) — so only a prompt-free hasStrings check
      * runs here, and the actual read happens on the chip tap (a real gesture).
-     * Web/PWA: no pre-read at all; "Click to paste" remains.
+     * Web: no pre-read at all; "Click to paste" remains.
      */
     useEffect(() => {
         if (!isScanning) {
@@ -389,7 +400,7 @@ export default function QRScanner({ onScan, onClose, isOpen = true }: QRScannerP
                  * for a copied Pix code. The modal owns the whole screen here, so the
                  * action has to sit inside it to be reachable.
                  */
-                <CameraPermissionModal visible onRetry={retryCamera} onClose={close} />
+                <CameraPermissionDrawer visible onRetry={retryCamera} onClose={close} />
             ) : error ? (
                 <ErrorView message={error} onClose={close} onRetry={retryCamera}>
                     <PasteActions

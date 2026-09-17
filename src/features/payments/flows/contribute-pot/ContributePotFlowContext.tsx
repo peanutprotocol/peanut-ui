@@ -26,6 +26,8 @@ export interface PotRecipient {
     address: Address
     userId?: string
     fullName?: string
+    /** Their picked profile avatar; null means the username-letter fallback. */
+    avatarKey?: string | null
 }
 
 // contributor info from charges
@@ -33,6 +35,9 @@ export interface PotContributor {
     uuid: string
     username?: string
     address?: string
+    /** The contributor's picked profile avatar; null means the username-letter
+     *  fallback, and it stays null for a raw-address contributor. */
+    avatarKey?: string | null
     amount: string
     createdAt: string
 }
@@ -139,6 +144,7 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
             username: request.recipientAccount.user?.username || request.recipientAccount.identifier,
             address: request.recipientAddress as Address,
             userId: request.recipientAccount.userId,
+            avatarKey: request.recipientAccount.user?.avatarKey ?? null,
         }
     }, [request])
 
@@ -160,6 +166,7 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
                 uuid: c.uuid,
                 username: c.fulfillmentPayment?.payerAccount?.user?.username,
                 address: c.fulfillmentPayment?.payerAddress ?? undefined,
+                avatarKey: c.fulfillmentPayment?.payerAccount?.user?.avatarKey ?? null,
                 amount: c.tokenAmount,
                 createdAt: c.createdAt,
             }))

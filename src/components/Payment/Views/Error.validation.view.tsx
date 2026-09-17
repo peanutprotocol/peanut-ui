@@ -1,13 +1,14 @@
 'use client'
 
-import { PeanutSad } from '@/assets/mascot'
 import { Button } from '@/components/0_Bruddle/Button'
-import Image from 'next/image'
+import PeanutMascot from '@/components/Global/PeanutMascot'
+import { MASCOT_STATE_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useEffect, useState } from 'react'
 import DocsLink from '@/components/Global/DocsLink'
+import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
 
 export type ValidationErrorViewProps = {
     title: string | React.ReactNode
@@ -44,13 +45,14 @@ function ValidationErrorView({
 
     return (
         <div className="space-y-4 flex flex-col items-center justify-center text-center">
-            <Image src={PeanutSad.src} unoptimized alt={t('validation.sadPeanutAlt')} width={96} height={96} />
+            <PeanutMascot pose="sad" alt={t('validation.sadPeanutAlt')} className={MASCOT_STATE_CLASS} />
             <div className="space-y-2">
                 <h1 className="text-heading-card">{title}</h1>
                 <p className="text-body-s font-normal md:max-w-xs">{message}</p>
             </div>
             {showLearnMore && (
-                <DocsLink href="/en/help/request-money" className="text-body-s underline">
+                /* DocsLink keeps the locale + native behavior; the chrome is LinkButton's. */
+                <DocsLink href="/en/help/request-money" className={LINK_BUTTON_CLASSES}>
                     {t('validation.learnHow')}
                 </DocsLink>
             )}

@@ -14,6 +14,7 @@ import { applyBridgeCrossCurrencyFee, getCurrencyConfig, getCurrencySymbol } fro
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { formatAmount } from '@/utils/general.utils'
 import { Notification } from '@/components/0_Bruddle/Notification'
+import { BulletList } from '@/components/0_Bruddle/BulletList'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { resolveBridgeAccountHolderName } from '@/constants/payment.consts'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -58,6 +59,7 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
 
     // URL state - read amount from URL query params
     const [amountFromUrl] = useQueryState('amount', parseAsString)
+    const [countryFromQuery] = useQueryState('country', parseAsString)
 
     // contexts
     const onrampContext = useOnrampFlow()
@@ -70,7 +72,8 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
     // routing and country context
     const router = useRouter()
     const params = useParams()
-    const currentCountryName = params.country as string
+    // Native routes keep the country in query state instead of a path segment.
+    const currentCountryName = (params.country as string) || countryFromQuery || ''
 
     // get country information from url params or request fulfillment context
     const currentCountryDetails = useMemo(() => {
@@ -438,8 +441,8 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                 </Card>
 
                 <Notification priority="attention" hideIcon title={t('bankDetails.doubleCheckTitle')}>
-                    <ul className="list-inside list-disc text-start">
-                        {[
+                    <BulletList
+                        items={[
                             t('bankDetails.doubleCheckAmount', { amount: formattedCurrencyAmount }),
                             t('bankDetails.doubleCheckReference', {
                                 reference:
@@ -452,10 +455,8 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                             ...(currentCountryDetails?.id !== 'MX'
                                 ? [t('bankDetails.doubleCheckSenderName'), t('bankDetails.doubleCheckRecipientName')]
                                 : []),
-                        ].map((item, index) => (
-                            <li key={index}>{item}</li>
-                        ))}
-                    </ul>
+                        ]}
+                    />
                 </Notification>
 
                 {/* Arrival expectation per rail: waiting for money with no ETA

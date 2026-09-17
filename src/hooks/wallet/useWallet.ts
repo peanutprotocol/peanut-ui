@@ -329,6 +329,16 @@ export const useWallet = () => {
         return formatCurrency(formatUnits(spendableBalance, PEANUT_WALLET_TOKEN_DECIMALS))
     }, [spendableBalance])
 
+    // The same displayed spendable total as a plain number, for the amount
+    // inputs whose balance row fills in "everything" (AmountInput's
+    // balanceFillAmount). One source, so a screen can never offer a max that
+    // disagrees with the balance printed next to it. Undefined while loading —
+    // a fill of 0 would render the row inert anyway.
+    const spendableBalanceDecimal = useMemo(() => {
+        if (spendableBalance === undefined) return undefined
+        return Number(formatUnits(spendableBalance, PEANUT_WALLET_TOKEN_DECIMALS))
+    }, [spendableBalance])
+
     // STRICT affordability gate on AVAILABLE-NOW (excludes in-transit). Used by
     // the features/payments flows, which createCharge before spending — an
     // in-transit amount must be blocked here, not green-lit into an orphan charge.
@@ -344,6 +354,7 @@ export const useWallet = () => {
         address: isAddressReady ? address : undefined, // populate address only if it is validated and matches the user's wallet address
         balance,
         spendableBalance,
+        spendableBalanceDecimal,
         formattedBalance,
         formattedSpendableBalance,
         hasSufficientSpendableBalance,

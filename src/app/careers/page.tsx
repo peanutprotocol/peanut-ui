@@ -15,7 +15,7 @@ export default function CareersPage() {
     return (
         // /careers lives outside [locale], so it never inherits the marketing
         // layout's footer — render it here explicitly.
-        <main className="flex min-h-dvh flex-col bg-white">
+        <main className="flex min-h-dvh flex-col bg-background-default">
             <div className="flex-1">
                 <Careers />
             </div>

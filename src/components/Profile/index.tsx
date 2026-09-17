@@ -1,7 +1,6 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { Icon } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
 import NavHeader from '../Global/NavHeader'
 import ProfileHeader from './components/ProfileHeader'
@@ -15,7 +14,7 @@ import { useAppLocale } from '@/i18n/app/locale-context'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
-import InviteFriendsModal from '../Global/InviteFriendsModal'
+import InviteFriendsDrawer from '../Global/InviteFriendsDrawer'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import Image from 'next/image'
 import { useQueryState } from 'nuqs'
@@ -24,12 +23,10 @@ import { AVATAR_PICKER_PARAM, avatarPickerParser } from '@/components/Avatar/ava
 import { useOtaUpdate } from '@/context/OtaUpdateContext'
 import OtaUpdateModal from './components/OtaUpdateModal'
 import StoreUpdateModal from './components/StoreUpdateModal'
-import { IOS_APP_STORE_LISTING_LIVE } from '@/constants/migration.consts'
-import { isIOSNative } from '@/utils/capacitor'
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
-    const [isInviteFriendsModalOpen, setIsInviteFriendsModalOpen] = useState(false)
+    const [isInviteFriendsDrawerOpen, setIsInviteFriendsDrawerOpen] = useState(false)
     // URL state so the badge-earned toast can deep-link straight into the picker
     const [avatarPickerOpen, setAvatarPickerOpen] = useQueryState(AVATAR_PICKER_PARAM, avatarPickerParser)
     const router = useRouter()
@@ -39,13 +36,12 @@ export const Profile = () => {
     // Rain) to the provider-blind identityVerification projection, which today mirrors Sumsub
     // applicant state. Bridge/Manteca rail approval does NOT flip this badge.
     const { isVerified: isUserSumsubKycApproved } = useIdentityVerification()
-    const { hasCardAccess, hasCardRelationship, showCardSurface: showCardMenuItem, cardHref } = useCardSurfaceAccess()
+    const { showCardSurface: showCardMenuItem, cardHref } = useCardSurfaceAccess()
     const t = useAppTranslations('profile')
     const { locale } = useAppLocale()
     const { pendingBundle, storeUpdateRequired } = useOtaUpdate()
     const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
     const [isStoreUpdateModalOpen, setIsStoreUpdateModalOpen] = useState(false)
-    const storeUpdateOffered = storeUpdateRequired && (!isIOSNative() || IOS_APP_STORE_LISTING_LIVE)
     // A staged OTA bundle wins over the store hint: it is already on the device,
     // and the gate only ever stages one this binary can run. Store updates get
     // their own modal — offering a restart for one would reload the same JS.
@@ -67,7 +63,7 @@ export const Profile = () => {
     const displayName = user?.user.showFullName && user?.user.fullName ? user.user.fullName : ''
 
     return (
-        <div className="h-full w-full bg-background">
+        <div className="h-full w-full bg-background-page">
             <NavHeader hideLabel showLogoutBtn onPrev={onBack} />
             <div className="space-y-8">
                 {/* the share pill is the profile's one share affordance — the
@@ -96,20 +92,8 @@ export const Profile = () => {
                             // one screen.
                             badge={isUserSumsubKycApproved ? undefined : t('menu.unlockBadge')}
                         />
-                        {/* Card row shows for holders and for everyone the card is
-                            still attainable by (see useCardSurfaceAccess). Past the
-                            waitlist gate goes straight to /card; everyone else lands
-                            on /shhhhh — the waitlist/explainer door, the canonical
-                            card entry point — whose CTA forwards on to /card
-                            post-launch. We deliberately DON'T send users without that
-                            gate to /card: it notFound()s them. */}
                         {showCardMenuItem && (
-                            <ProfileMenuItem
-                                icon="credit-card"
-                                label={hasCardAccess || hasCardRelationship ? t('menu.yourCard') : t('menu.peanutCard')}
-                                href={cardHref}
-                                badge={hasCardAccess || hasCardRelationship ? undefined : t('menu.newBadge')}
-                            />
+                            <ProfileMenuItem icon="credit-card" label={t('menu.peanutCard')} href={cardHref} />
                         )}
                         <ProfileMenuItem
                             icon="exchange"
@@ -123,7 +107,7 @@ export const Profile = () => {
                         <ProfileMenuItem
                             icon="smile"
                             label={t('menu.inviteFriends')}
-                            onClick={() => setIsInviteFriendsModalOpen(true)}
+                            onClick={() => setIsInviteFriendsDrawerOpen(true)}
                             href="/dummy" // Dummy link, wont be called
                         />
                         <ProfileMenuItem icon="achievements" label={t('menu.yourBadges')} href="/badges" />
@@ -152,7 +136,7 @@ export const Profile = () => {
                             the path and opens the in-app browser in Capacitor */}
                         <ProfileMenuItem icon="question-mark" label={t('menu.help')} href="/en/help" isDocsLink />
                         <ProfileMenuItem icon="info" label={t('menu.about')} href="/profile/about" />
-                        {(pendingBundle || storeUpdateOffered) && (
+                        {(pendingBundle || storeUpdateRequired) && (
                             <ProfileMenuItem
                                 icon="download"
                                 label={t('menu.updateAvailable')}
@@ -178,17 +162,17 @@ export const Profile = () => {
                             shadowSize="4"
                             className="w-full"
                             onClick={logout}
+                            icon="logout"
                         >
-                            <Icon name="logout" size={20} fill="black" />
-                            <span className="font-bold">{t('logOut')}</span>
+                            <span>{t('logOut')}</span>
                         </Button>
                     </div>
                 </div>
             </div>
 
-            <InviteFriendsModal
-                visible={isInviteFriendsModalOpen}
-                onClose={() => setIsInviteFriendsModalOpen(false)}
+            <InviteFriendsDrawer
+                visible={isInviteFriendsDrawerOpen}
+                onClose={() => setIsInviteFriendsDrawerOpen(false)}
                 username={user?.user.username ?? ''}
                 source="profile"
             />

@@ -18,7 +18,7 @@ import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import AmountInput from '@/components/Global/AmountInput'
 import UserCard from '@/components/User/UserCard'
-import FileUploadInput from '@/components/Global/FileUploadInput'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
 import SupportCTA from '@/components/Global/SupportCTA'
 import { useDirectSendFlow } from '../useDirectSendFlow'
 import { useSafeBack } from '@/hooks/useSafeBack'
@@ -38,6 +38,7 @@ export function SendInputView() {
         attachment,
         error,
         formattedBalance,
+        balanceFillAmount,
         canProceed,
         hasSufficientBalance,
         isInsufficientBalance,
@@ -72,6 +73,7 @@ export function SendInputView() {
                         fullName={recipient.fullName}
                         recipientType="USERNAME"
                         isVerified={!!recipient.userId}
+                        avatarKey={recipient.avatarKey}
                     />
                 )}
 
@@ -82,6 +84,7 @@ export function SendInputView() {
                         setPrimaryAmount={setAmount}
                         onSubmit={handleSubmit}
                         walletBalance={isLoggedIn ? formattedBalance : undefined}
+                        balanceFillAmount={isLoggedIn ? balanceFillAmount : undefined}
                         hideBalance={!isLoggedIn}
                         hideCurrencyToggle={true}
                     />
@@ -89,21 +92,17 @@ export function SendInputView() {
                 </div>
 
                 {/* message input */}
-                <FileUploadInput
+                <BaseInput
                     placeholder={tCommon('comment')}
-                    attachmentOptions={{
-                        fileUrl: attachment.fileUrl,
-                        rawFile: attachment.file,
-                        message: attachment.message,
-                    }}
-                    setAttachmentOptions={(opts) =>
+                    value={attachment.message}
+                    maxLength={140}
+                    onChange={(e) =>
                         setAttachment({
-                            message: opts.message,
-                            file: opts.rawFile,
-                            fileUrl: opts.fileUrl,
+                            message: e.target.value,
+                            file: attachment.file,
+                            fileUrl: attachment.fileUrl,
                         })
                     }
-                    className="h-11"
                 />
 
                 {/* button and error */}

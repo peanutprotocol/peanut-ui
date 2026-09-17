@@ -5,7 +5,7 @@
  * The load-bearing claim: `Clipboard.read()` must NEVER run at scanner open
  * off Android-native. An un-gestured read raises the iOS "Allow Paste" alert,
  * which raced (and blocked) the camera permission dialog. iOS native only
- * probes prompt-free `hasStrings` and reads on the chip TAP; web/PWA does
+ * probes prompt-free `hasStrings` and reads on the chip TAP; web does
  * neither.
  */
 import React from 'react'
@@ -34,7 +34,7 @@ jest.mock('next/image', () => ({
 }))
 // Stands in for the real modal's paste CTA: the modal owns the whole screen in
 // the denied state, so paste is only reachable if it is rendered inside it.
-jest.mock('../CameraPermissionModal', () => ({
+jest.mock('../CameraPermissionDrawer', () => ({
     __esModule: true,
     // mirrors the real contract: Try again + Dismiss, and a paste button ONLY
     // if a caller were to pass onPaste (it must not — the assertion relies on it)
@@ -123,7 +123,7 @@ describe('camera permission denied: the modal keeps one primary + Dismiss', () =
     })
 })
 
-it('web/PWA: never reads the clipboard at open and shows no chip', async () => {
+it('web: never reads the clipboard at open and shows no chip', async () => {
     mockIsAndroidNative.mockReturnValue(false)
     mockHasStrings.mockResolvedValue(false)
 

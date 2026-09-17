@@ -17,12 +17,11 @@ import { formatUnits } from 'viem'
 // lazy load heavy modal components (~20-30KB each) to reduce initial bundle size
 // components are only loaded when user triggers them
 // wrapped in error boundaries to gracefully handle chunk load failures
-const BalanceWarningModal = lazy(() => import('@/components/Global/BalanceWarningModal'))
+const BalanceWarningDrawer = lazy(() => import('@/components/Global/BalanceWarningDrawer'))
 const SetupNotificationsModal = lazy(() => import('@/components/Notifications/SetupNotificationsModal'))
-const NoMoreJailModal = lazy(() => import('@/components/Global/NoMoreJailModal'))
-const EarlyUserModal = lazy(() => import('@/components/Global/EarlyUserModal'))
-const WelcomeUnlockModal = lazy(() => import('@/components/Home/WelcomeUnlockModal'))
-const IosPwaInstallModal = lazy(() => import('@/components/Global/IosPwaInstallModal'))
+const NoMoreJailDrawer = lazy(() => import('@/components/Global/NoMoreJailDrawer'))
+const EarlyUserDrawer = lazy(() => import('@/components/Global/EarlyUserDrawer'))
+const WelcomeUnlockDrawer = lazy(() => import('@/components/Home/WelcomeUnlockDrawer'))
 const MigrationDownloadModal = lazy(() => import('@/components/Migration/MigrationDownloadModal'))
 const ScanToDownloadModal = lazy(() => import('@/components/Migration/ScanToDownloadModal'))
 
@@ -36,21 +35,35 @@ const BALANCE_WARNING_EXPIRY = Number.isNaN(parsedExpiry) ? 1814400 : parsedExpi
 /**
  * home modal orchestration — the priority chain the old home page carried
  * inline. migration download outranks everything, then notifications, kyc
- * celebration, post-signup, ios pwa, balance warning.
+ * celebration, post-signup, and balance warning.
  */
 export function HomeModals() {
     const { showPermissionModal } = useNotifications()
-    const { isGetAppModalOpen, setIsGetAppModalOpen, isIosPwaInstallModalOpen } = useModalsContext()
+    const { isGetAppModalOpen, setIsGetAppModalOpen } = useModalsContext()
     const { balance, isFetchingBalance } = useWallet()
     const { user, fetchUser } = useAuth()
     const { isKycApproved } = useCapabilities()
 
-    const [showBalanceWarningModal, setShowBalanceWarningModal] = useState(false)
+    const [showBalanceWarningDrawer, setShowBalanceWarningDrawer] = useState(false)
     const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
     const [showKycModal, setShowKycModal] = useState(false)
     // migration download prompt outranks every other home modal (self-gating,
-    // only during the pwa-sunset notice window)
+    // only during the native-migration notice window)
     const [showMigrationModal, setShowMigrationModal] = useState(false)
+    // Both celebration drawers open themselves (session storage / a user
+    // flag), and a pre-lockup invitee can qualify for both at once — two open
+    // vaul roots would stack overlays and scroll locks. The jail celebration
+    // goes first; the early-user drawer mounts only once it is out of the way.
+    const [jailCelebrationPending, setJailCelebrationPending] = useState(
+        () => typeof window !== 'undefined' && sessionStorage.getItem('showNoMoreJailModal') === 'true'
+    )
+    // Derived synchronously from the user flag, not from the child's effect:
+    // the drawer only reports itself open after mount, and that one-commit gap
+    // let the activation celebration flash open between two drawers. The flag
+    // holds the queue until the drawer reports its dismissal.
+    const [earlyUserDone, setEarlyUserDone] = useState(false)
+    const [earlyUserOpen, setEarlyUserOpen] = useState(false)
+    const earlyUserPending = (!!user?.showEarlyUserModal && !earlyUserDone) || earlyUserOpen
 
     // the migration prompt outranks the post-signup modal; unmounting the
     // manager skips its onVisibilityChange(false), so clear the state here or
@@ -88,7 +101,7 @@ export function HomeModals() {
             !showKycModal &&
             !isPostSignupActionModalVisible
         ) {
-            setShowBalanceWarningModal(true)
+            setShowBalanceWarningDrawer(true)
         }
     }, [
         balance,
@@ -102,7 +115,7 @@ export function HomeModals() {
 
     return (
         <>
-            {showPermissionModal && !showBalanceWarningModal && !showMigrationModal && (
+            {showPermissionModal && !showBalanceWarningDrawer && !showMigrationModal && (
                 <LazyLoadErrorBoundary>
                     <Suspense fallback={null}>
                         <SetupNotificationsModal />
@@ -130,19 +143,26 @@ export function HomeModals() {
             )}
 
             {/* these modals manage their own state internally */}
-            {!showBalanceWarningModal && !showMigrationModal && (
+            {!showBalanceWarningDrawer && !showMigrationModal && (
                 <>
                     <LazyLoadErrorBoundary>
                         <Suspense fallback={null}>
-                            <NoMoreJailModal />
+                            <NoMoreJailDrawer onVisibilityChange={setJailCelebrationPending} />
                         </Suspense>
                     </LazyLoadErrorBoundary>
 
-                    <LazyLoadErrorBoundary>
-                        <Suspense fallback={null}>
-                            <EarlyUserModal />
-                        </Suspense>
-                    </LazyLoadErrorBoundary>
+                    {!jailCelebrationPending && (
+                        <LazyLoadErrorBoundary>
+                            <Suspense fallback={null}>
+                                <EarlyUserDrawer
+                                    onVisibilityChange={(visible) => {
+                                        setEarlyUserOpen(visible)
+                                        if (!visible) setEarlyUserDone(true)
+                                    }}
+                                />
+                            </Suspense>
+                        </LazyLoadErrorBoundary>
+                    )}
                 </>
             )}
 
@@ -150,8 +170,14 @@ export function HomeModals() {
             {showKycModal && (
                 <LazyLoadErrorBoundary>
                     <Suspense fallback={null}>
-                        <WelcomeUnlockModal
-                            isOpen={showKycModal && !showBalanceWarningModal && !showMigrationModal}
+                        <WelcomeUnlockDrawer
+                            isOpen={
+                                showKycModal &&
+                                !showBalanceWarningDrawer &&
+                                !showMigrationModal &&
+                                !jailCelebrationPending &&
+                                !earlyUserPending
+                            }
                             onClose={async () => {
                                 // close the modal immediately for better ux
                                 setShowKycModal(false)
@@ -171,10 +197,10 @@ export function HomeModals() {
 
             <LazyLoadErrorBoundary>
                 <Suspense fallback={null}>
-                    <BalanceWarningModal
-                        visible={showBalanceWarningModal && !showMigrationModal}
+                    <BalanceWarningDrawer
+                        visible={showBalanceWarningDrawer && !showMigrationModal}
                         onCloseAction={() => {
-                            setShowBalanceWarningModal(false)
+                            setShowBalanceWarningDrawer(false)
                             // no non-null assertion: user can log out while the modal is open
                             if (user?.user.userId) {
                                 updateUserPreferences(user.user.userId, {
@@ -189,19 +215,8 @@ export function HomeModals() {
                 </Suspense>
             </LazyLoadErrorBoundary>
 
-            {/* mount-gated: the modal is purely context-driven, so the chunk
-                only loads once something opens it */}
-            {isIosPwaInstallModalOpen && (
-                <LazyLoadErrorBoundary>
-                    <Suspense fallback={null}>
-                        <IosPwaInstallModal />
-                    </Suspense>
-                </LazyLoadErrorBoundary>
-            )}
-
-            {/* card pioneer modal — eligibility check happens during the flow (geo
-                screen), not here. unmounted while the migration prompt shows (it
-                re-checks on remount); the effect above clears its stuck state */}
+            {/* Post-signup actions are unmounted while the migration prompt shows.
+                The effect above clears their visibility state before remounting. */}
             {!showMigrationModal && (
                 <PostSignupActionManager onActionModalVisibilityChange={setIsPostSignupActionModalVisible} />
             )}

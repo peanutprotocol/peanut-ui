@@ -11,38 +11,38 @@ export type SurfaceMeta = {
     name: string
     path: string
     blocked?: string
+    /** Fixture the shot spec must load instead of its default — for surfaces
+     *  whose open state depends on an API answer the demo baseline lacks. */
+    shotFixture?: string
+    /** Accessible name of a button the shot spec clicks after load — for
+     *  surfaces that mount closed and open on an in-surface action. The spec
+     *  asserts a dialog is open before capturing. */
+    shotClick?: string
 }
 
 export const SURFACE_META: Record<string, SurfaceMeta> = {
     '01-a-landing': { name: 'Landing', path: 'Setup/Views/Landing.tsx' },
     '02-a-joinwaitlist': { name: 'JoinWaitlist', path: 'Setup/Views/JoinWaitlist.tsx' },
     '03-a-residence-select': { name: 'Residence — select', path: 'Setup/Views/Residence.tsx' },
-    '04-a-installpwa': {
-        name: 'InstallPWA',
-        path: 'Setup/Views/InstallPWA.tsx',
-        blocked:
-            'Redirects to /home when a session exists (InstallPWA.tsx:75), and the harness is signed in — the shot lands on the home screen, not this step.',
-    },
     '05-a-signtesttransaction': {
         name: 'SignTestTransaction — account ready',
         path: 'Setup/Views/SignTestTransaction.tsx',
     },
     '06-a-signup': { name: 'Signup', path: 'Setup/Views/Signup.tsx' },
     '07-a-setuppasskey': { name: 'SetupPasskey', path: 'Setup/Views/SetupPasskey.tsx' },
-    '08-a-passkeysetuphelpmodal': { name: 'PasskeySetupHelpModal', path: 'Setup/Views/PasskeySetupHelpModal.tsx' },
-    '09-a-passkeyinfomodal': { name: 'PasskeyInfoModal', path: 'Setup/components/PasskeyInfoModal.tsx' },
+    '08-a-passkeysetuphelpmodal': { name: 'PasskeySetupHelpDrawer', path: 'Setup/Views/PasskeySetupHelpDrawer.tsx' },
+    '09-a-passkeyinfomodal': { name: 'PasskeyInfoDrawer', path: 'Setup/components/PasskeyInfoDrawer.tsx' },
     '10-a-confirminvitemodal': { name: 'ConfirmInviteModal', path: 'Global/ConfirmInviteModal/index.tsx' },
     '11-a-earlyusermodal': {
-        name: 'EarlyUserModal',
-        path: 'Global/EarlyUserModal/index.tsx',
-        blocked: 'Opens itself from the signed-in user’s creation date — no visible prop.',
+        name: 'EarlyUserDrawer',
+        path: 'Global/EarlyUserDrawer/index.tsx',
+        shotFixture: 'early-user',
     },
-    '12-a-eastereggmodal': { name: 'EasterEggModal', path: 'Global/EasterEggModal/index.tsx' },
+    '12-a-eastereggmodal': { name: 'EasterEggDrawer', path: 'Global/EasterEggDrawer/index.tsx' },
     '13-a-guestloginmodal': { name: 'GuestLoginModal', path: 'Global/GuestLoginModal/index.tsx' },
     '14-a-guestverificationmodal': { name: 'GuestVerificationModal', path: 'Global/GuestVerificationModal/index.tsx' },
-    '15-a-invitefriendsmodal': { name: 'InviteFriendsModal', path: 'Global/InviteFriendsModal/index.tsx' },
-    '16-a-iospwainstallmodal': { name: 'IosPwaInstallModal', path: 'Global/IosPwaInstallModal/index.tsx' },
-    '17-a-nomorejailmodal': { name: 'NoMoreJailModal', path: 'Global/NoMoreJailModal/index.tsx' },
+    '15-a-invitefriendsmodal': { name: 'InviteFriendsDrawer', path: 'Global/InviteFriendsDrawer/index.tsx' },
+    '17-a-nomorejailmodal': { name: 'NoMoreJailDrawer', path: 'Global/NoMoreJailDrawer/index.tsx' },
     '18-a-reconsentmodal': {
         name: 'ReConsentModal',
         path: 'Global/ReConsentModal/index.tsx',
@@ -56,8 +56,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '20-a-setupnotificationsmodal': {
         name: 'SetupNotificationsModal',
         path: 'Notifications/SetupNotificationsModal.tsx',
-        blocked:
-            'Driven by a module-level notifications store whose setter is not exported, off the browser push-permission state.',
     },
     '21-b-advisorypreemptmodal': { name: 'AdvisoryPreemptModal', path: 'Kyc/AdvisoryPreemptModal.tsx' },
     '22-b-initiatekycmodal': { name: 'InitiateKycModal (default)', path: 'Kyc/InitiateKycModal.tsx' },
@@ -78,21 +76,19 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     },
     '29-b-kycstatusdrawer': { name: 'KycStatusDrawer (action-needed)', path: 'Kyc/KycStatusDrawer.tsx' },
     '30-b-unlockmethodmodal': { name: 'UnlockMethodModal', path: 'IdentityVerification/UnlockMethodModal.tsx' },
-    '31-b-unlockregionmodal': { name: 'UnlockRegionModal', path: 'IdentityVerification/UnlockRegionModal.tsx' },
     '32-c-cancelcardmodal': { name: 'CancelCardModal (confirm phase)', path: 'Card/CancelCardModal.tsx' },
-    '33-c-cardlimiteditmodal': { name: 'CardLimitEditModal', path: 'Card/CardLimitEditModal.tsx' },
+    '33-c-cardlimiteditmodal': { name: 'CardLimitEditDrawer', path: 'Card/CardLimitEditDrawer.tsx' },
     '34-c-lockcardmodal': { name: 'LockCardModal (lock)', path: 'Card/LockCardModal.tsx' },
-    '35-c-cardunlockdrawer': { name: 'CardUnlockDrawer', path: 'Card/CardUnlockDrawer.tsx' },
-    '36-c-badgedetailmodal': { name: 'BadgeDetailModal', path: 'Badges/BadgeDetailModal.tsx' },
+    '36-c-badgedetailmodal': { name: 'BadgeDetailDrawer', path: 'Badges/BadgeDetailDrawer.tsx' },
     '37-c-badgestatusdrawer': { name: 'BadgeStatusDrawer', path: 'Badges/BadgeStatusDrawer.tsx' },
-    '38-c-howtodepositmodal': { name: 'HowToDepositModal', path: 'AddMoney/components/HowToDepositModal.tsx' },
+    '38-c-howtodepositmodal': { name: 'HowToDepositDrawer', path: 'AddMoney/components/HowToDepositDrawer.tsx' },
     '39-c-onrampconfirmationmodal': {
         name: 'OnrampConfirmationModal',
         path: 'AddMoney/components/OnrampConfirmationModal.tsx',
     },
     '40-c-supportednetworksmodal': {
-        name: 'SupportedNetworksModal',
-        path: 'AddMoney/components/SupportedNetworksModal.tsx',
+        name: 'SupportedNetworksDrawer',
+        path: 'AddMoney/components/SupportedNetworksDrawer.tsx',
     },
     '41-c-migrationdownloadmodal': {
         name: 'MigrationDownloadModal (early)',
@@ -101,13 +97,13 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     },
     '43-c-scantodownloadmodal': { name: 'ScanToDownloadModal', path: 'Migration/ScanToDownloadModal.tsx' },
     '44-c-otaupdatemodal': { name: 'OtaUpdateModal (normal)', path: 'Profile/components/OtaUpdateModal.tsx' },
-    '45-c-residencechangemodal': { name: 'ResidenceChangeModal', path: 'Profile/views/ResidenceChangeModal.tsx' },
-    '46-c-perkclaimmodal': { name: 'PerkClaimModal', path: 'Home/PerkClaimModal.tsx' },
-    '47-c-welcomeunlockmodal': { name: 'WelcomeUnlockModal', path: 'Home/WelcomeUnlockModal/index.tsx' },
-    '48-c-balancewarningmodal': { name: 'BalanceWarningModal', path: 'Global/BalanceWarningModal/index.tsx' },
+    '45-c-residencechangemodal': { name: 'ResidenceChangeDrawer', path: 'Profile/views/ResidenceChangeDrawer.tsx' },
+    '46-c-perkclaimmodal': { name: 'PerkClaimDrawer', path: 'Home/PerkClaimDrawer.tsx' },
+    '47-c-welcomeunlockmodal': { name: 'WelcomeUnlockDrawer', path: 'Home/WelcomeUnlockDrawer/index.tsx' },
+    '48-c-balancewarningmodal': { name: 'BalanceWarningDrawer', path: 'Global/BalanceWarningDrawer/index.tsx' },
     '49-c-tokenandnetworkconfirmationmodal': {
-        name: 'TokenAndNetworkConfirmationModal',
-        path: 'Global/TokenAndNetworkConfirmationModal/index.tsx',
+        name: 'TokenAndNetworkConfirmationDrawer',
+        path: 'Global/TokenAndNetworkConfirmationDrawer/index.tsx',
     },
     '50-d-transactiondetailsdrawer': {
         name: 'TransactionDetailsDrawer',
@@ -126,16 +122,15 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '54-d-qrbottomdrawer': {
         name: 'QRBottomDrawer',
         path: 'Global/QRBottomDrawer/index.tsx',
-        blocked:
-            'Always-open snap-point drawer: it starts at its peek snap and is positioned against the screen behind it, so on an empty harness page it sits off-frame.',
     },
     '55-d-supportdrawer': {
         name: 'SupportDrawer (chat-failed)',
         path: 'Global/SupportDrawer/index.tsx',
-        blocked:
-            'Renders its real loading state: the Crisp chat host is an external origin the capture blocks, and the chat-failed state needs that request to time out.',
     },
-    '56-d-camerapermissionmodal': { name: 'CameraPermissionModal', path: 'Global/QRScanner/CameraPermissionModal.tsx' },
+    '56-d-camerapermissionmodal': {
+        name: 'CameraPermissionDrawer',
+        path: 'Global/QRScanner/CameraPermissionDrawer.tsx',
+    },
     '57-d-raincooldownintromodal': {
         name: 'RainCooldownIntroModal',
         path: 'Global/RainCooldown/IntroModal.tsx',
@@ -159,6 +154,67 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '63-d-emptystate': { name: 'EmptyState', path: 'Global/EmptyStates/EmptyState.tsx' },
     '64-d-nodataemptystate': { name: 'NoDataEmptyState', path: 'Global/EmptyStates/NoDataEmptyState.tsx' },
     '65-d-faqs': { name: 'FAQs', path: 'Global/FAQs/index.tsx' },
+    '66-e-avatarpicker': { name: 'Avatar picker', path: 'Avatar/AvatarPicker.tsx' },
+    '67-e-provideemailstep': { name: 'Provide email', path: 'Kyc/ProvideEmailStep.tsx' },
+    '68-e-bridgetosstep': { name: 'Bridge terms', path: 'Kyc/BridgeTosStep.tsx' },
+    '69-e-kycprepchecklist-standard': { name: 'Verification checklist — standard', path: 'Kyc/KycPrepChecklist.tsx' },
+    '70-e-kycprepchecklist-extended': { name: 'Verification checklist — extended', path: 'Kyc/KycPrepChecklist.tsx' },
+    '71-e-kycprepchecklist-hosted': { name: 'Verification checklist — hosted', path: 'Kyc/KycPrepChecklist.tsx' },
+    '72-e-kycfailedcontent-terminal': { name: 'Verification — terminal failure', path: 'Kyc/KycFailedContent.tsx' },
+    '73-e-rejectlabelslist': { name: 'Verification rejection reasons', path: 'Kyc/RejectLabelsList.tsx' },
+    '74-e-kycactionrequired': { name: 'Verification — action required', path: 'Kyc/states/KycActionRequired.tsx' },
+    '75-e-rateunavailable': { name: 'Exchange rate unavailable', path: 'Global/RateUnavailable/index.tsx' },
+    '76-e-limitswarningcard-warning': {
+        name: 'Transaction limits — warning',
+        path: 'features/limits/components/LimitsWarningCard.tsx',
+    },
+    '77-e-limitswarningcard-error': {
+        name: 'Transaction limits — error',
+        path: 'features/limits/components/LimitsWarningCard.tsx',
+    },
+    '78-f-choice-guest-claim': {
+        name: 'Guest claim — payment choices',
+        path: 'Claim/Link/SendLinkActionList.tsx',
+    },
+    '79-f-choice-direct-send': {
+        name: 'Direct send — payment choices',
+        path: 'features/payments/shared/components/PaymentMethodActionList.tsx',
+    },
+    '80-f-choice-semantic-request': {
+        name: 'Semantic request — payment choices',
+        path: 'features/payments/shared/components/PaymentMethodActionList.tsx',
+    },
+    '81-f-choice-request-pot': {
+        name: 'Request pot — payment choices',
+        path: 'features/payments/flows/contribute-pot/components/RequestPotActionList.tsx',
+    },
+    '82-f-choice-card-requires-info': {
+        name: 'Card application — more information required',
+        path: 'Card/ApplicationStatusScreen.tsx',
+    },
+    '83-f-choice-residence-restricted': {
+        name: 'Setup residence — restricted',
+        path: 'Setup/Views/Residence.tsx',
+    },
+    '84-f-choice-public-profile-guest': {
+        name: 'Public profile — guest actions',
+        path: 'Profile/components/PublicProfile.tsx',
+    },
+    '85-f-choice-claim-error': {
+        name: 'Claim error — recovery actions',
+        path: 'Claim/Generic/ClaimError.view.tsx',
+    },
+    '86-f-choice-not-found': { name: 'Not found — recovery actions', path: 'app/not-found.tsx' },
+    '69-d-perkclaimsuccess': { name: 'PerkClaimSuccessDrawer', path: 'Home/PerkClaimSuccessDrawer.tsx' },
+    '70-d-activationctas-outbound': {
+        name: 'ActivationCTAs (outbound)',
+        path: 'Home/ActivationCTAs.tsx',
+        shotFixture: 'card-access',
+        shotClick: 'Start Spending',
+    },
+    '66-d-backupfaqlosephone': { name: 'Backup FAQ — lose phone', path: 'Profile/BackupFaqDrawers.tsx' },
+    '67-d-backupfaqchangephone': { name: 'Backup FAQ — change phone', path: 'Profile/BackupFaqDrawers.tsx' },
+    '68-d-backupfaqexportkeys': { name: 'Backup FAQ — export keys', path: 'Profile/BackupFaqDrawers.tsx' },
 }
 
 export const SURFACE_IDS = Object.keys(SURFACE_META).sort()

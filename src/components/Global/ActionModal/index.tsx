@@ -93,7 +93,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
     classOverlay,
     hideOverlay,
 }) => {
-    const defaultModalPanelClasses = 'max-w-[85%]'
+    const defaultModalPanelClasses = 'mx-8 max-w-md'
     const defaultIconContainerClassName = 'bg-action-primary' // default pink background
     const defaultIconPropsClassName = 'text-black' // default black icon color
     const toneStyle = tone ? TONE_STYLES[tone] : undefined

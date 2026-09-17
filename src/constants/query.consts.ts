@@ -5,6 +5,7 @@ export const SAVED_ADDRESSES = 'saved-addresses'
 export const CLAIM_LINK = 'claimLink'
 export const CLAIM_LINK_XCHAIN = 'claimLinkXChain'
 export const LIMITS = 'limits'
+export const BADGE_CATALOG = 'badge-catalog'
 
 // Balance-decreasing operations (for mutation tracking)
 export const BALANCE_DECREASE = 'balance-decrease'

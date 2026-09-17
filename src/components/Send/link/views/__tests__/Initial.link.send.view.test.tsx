@@ -64,16 +64,23 @@ jest.mock('@/components/Global/PeanutActionCard', () => ({
     default: () => <div data-testid="action-card" />,
 }))
 
-jest.mock('@/components/Global/FileUploadInput', () => ({
-    __esModule: true,
-    default: () => <div data-testid="file-upload" />,
-}))
-
 jest.mock('@/components/Global/AmountInput', () => ({
     __esModule: true,
-    default: ({ setPrimaryAmount, onSubmit }: { setPrimaryAmount: (value: string) => void; onSubmit?: () => void }) => (
+    default: ({
+        setPrimaryAmount,
+        onSubmit,
+        walletBalance,
+        balanceFillAmount,
+    }: {
+        setPrimaryAmount: (value: string) => void
+        onSubmit?: () => void
+        walletBalance?: string
+        balanceFillAmount?: number
+    }) => (
         <input
             data-testid="amount-input"
+            data-wallet-balance={walletBalance}
+            data-balance-fill={balanceFillAmount}
             onChange={(e) => setPrimaryAmount(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && onSubmit?.()}
         />
@@ -108,6 +115,7 @@ const walletState = (spendableDollars: number | undefined) => ({
     fetchBalance: jest.fn(),
     spendableBalance: spendableDollars === undefined ? undefined : usdc(spendableDollars),
     formattedSpendableBalance: spendableDollars === undefined ? '0.00' : spendableDollars.toFixed(2),
+    spendableBalanceDecimal: spendableDollars,
 })
 
 /** Drives the flow context from inside the provider (AmountInput is mocked out). */
@@ -300,5 +308,29 @@ describe('LinkSendInitialView zero-amount gate', () => {
 
         renderView('20')
         await waitFor(() => expect(screen.getByText('Create link')).toBeEnabled())
+    })
+})
+
+// TASK-22452: send-via-link and withdraw-to-crypto used to disagree — withdraw's
+// balance row filled the amount, send's rendered the same text and did nothing.
+// The spendable total is the ceiling on both, so both fill it.
+describe('LinkSendInitialView balance fill', () => {
+    test('the balance row can fill the whole spendable balance', async () => {
+        mockUseWallet.mockReturnValue(walletState(100))
+
+        renderView('')
+
+        const input = await screen.findByTestId('amount-input')
+        expect(input).toHaveAttribute('data-wallet-balance', '100.00')
+        expect(input).toHaveAttribute('data-balance-fill', '100')
+    })
+
+    test('nothing to fill while the balance is still loading', async () => {
+        mockUseWallet.mockReturnValue(walletState(undefined))
+
+        renderView('')
+
+        const input = await screen.findByTestId('amount-input')
+        expect(input).not.toHaveAttribute('data-balance-fill')
     })
 })

@@ -121,7 +121,7 @@ const SlideToConfirm: FC<SlideToConfirmProps> = ({ label, onConfirm, disabled = 
                     }
                 }}
                 disabled={disabled}
-                className="absolute left-[3px] z-10 flex size-10 cursor-grab items-center justify-center rounded-round border border-border-button bg-action-primary focus-visible:outline-[3px] focus-visible:outline-action-focus active:cursor-grabbing"
+                className="absolute left-[3px] z-10 flex size-10 cursor-grab items-center justify-center rounded-round border border-border-button bg-action-primary after:absolute after:-inset-1 focus-visible:outline-[3px] focus-visible:outline-action-focus active:cursor-grabbing"
                 aria-label={label}
             >
                 <Icon name="chevron-right" size={20} className="text-foreground-primary" />

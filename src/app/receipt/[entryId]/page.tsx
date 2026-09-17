@@ -8,17 +8,15 @@ import {
     type TransactionDetails,
 } from '@/components/TransactionDetails/transactionTransformer'
 import { resolveReceiptKind } from '@/components/TransactionDetails/strategies/registry'
-import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
-import { ReceiptUnavailable } from '@/components/TransactionDetails/ReceiptUnavailable'
-import NavHeader from '@/components/Global/NavHeader'
 import { generateMetadata as generateBaseMetadata } from '@/app/metadata'
 import { type Metadata } from 'next'
 import { BASE_URL } from '@/constants/general.consts'
 import { formatCurrency } from '@/utils/general.utils'
 import { buildOgImageUrl } from '@/utils/og.utils'
 import getOrigin from '@/lib/hosting/get-origin'
-import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { generateReceiptTitle, generateReceiptDescription } from './receipt-metadata.utils'
+import { getReceiptAuthorization } from './receipt-auth'
+import { PublicReceiptPage } from './PublicReceiptPage'
 
 // Helper function to map transaction card type to OG image type
 function mapTransactionTypeToOGType(transactionType: string): 'send' | 'request' {
@@ -60,7 +58,8 @@ export async function generateMetadata({
 
     let transactionDetails: TransactionDetails
     try {
-        const entry = await getHistoryEntry(entryId, kind)
+        const authorization = await getReceiptAuthorization()
+        const entry = await getHistoryEntry(entryId, kind, authorization)
         if (!entry) {
             return basicMetadata
         }
@@ -120,16 +119,17 @@ export default async function ReceiptPage({
     // longer resolves. A hard 404 reads as breakage on a link users hold, so
     // show a branded explanation instead.
     if (!entryId || !kind) {
-        return <ReceiptShell state="gone" />
+        return <PublicReceiptPage state="gone" />
     }
     let entry: HistoryEntry | null
     try {
-        entry = await getHistoryEntry(entryId, kind)
+        const authorization = await getReceiptAuthorization()
+        entry = await getHistoryEntry(entryId, kind, authorization)
     } catch (error) {
         // A BE hiccup was crashing the whole Server Components render
         // (PEANUT-UI-4S9); keep the Sentry signal but render a retryable state.
         captureException(error)
-        return <ReceiptShell state="loadFailed" />
+        return <PublicReceiptPage state="loadFailed" />
     }
     if (!entry) {
         notFound()
@@ -144,24 +144,7 @@ export default async function ReceiptPage({
         captureException(error)
     }
     if (!transactionDetails) {
-        return <ReceiptShell state="loadFailed" />
+        return <PublicReceiptPage state="loadFailed" />
     }
-    return (
-        <ReceiptShell>
-            <TransactionDetailsReceipt className="w-full" transaction={transactionDetails} isPublic />
-        </ReceiptShell>
-    )
-}
-
-function ReceiptShell({ state, children }: { state?: 'gone' | 'loadFailed'; children?: React.ReactNode }) {
-    return (
-        <PageContainer className="receipt-page flex min-h-dvh flex-col items-center justify-center p-4">
-            <div className="md:hidden print:hidden">
-                <NavHeader titleKey="receipt" />
-            </div>
-            <div className="flex flex-1 flex-col items-center justify-center">
-                {state ? <ReceiptUnavailable variant={state} /> : children}
-            </div>
-        </PageContainer>
-    )
+    return <PublicReceiptPage transaction={transactionDetails} />
 }

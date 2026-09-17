@@ -80,6 +80,9 @@ export const Tooltip = ({
                 onMouseLeave={hideTooltip}
                 onFocus={showTooltip}
                 onBlur={hideTooltip}
+                onKeyDown={(event) => {
+                    if (event.key === 'Escape') hideTooltip()
+                }}
                 onClick={(e) => {
                     e.stopPropagation()
                     if (visible) {

@@ -209,6 +209,8 @@ beforeEach(() => {
 
 // ---------- tests ----------
 
+import { stashScannedDestination, takeScannedDestination } from '@/features/withdraw/destination'
+
 describe('WithdrawMethodView — destination state and routing (Chip review round 7)', () => {
     it('a saved Manteca account forwards destination + isSavedAccount into /withdraw/manteca', () => {
         renderView()
@@ -278,5 +280,20 @@ describe('WithdrawMethodView — destination state and routing (Chip review roun
         expect(mockSetRecipient).toHaveBeenCalledWith({ name: undefined, address: '' })
         expect(mockSetIsValidRecipient).toHaveBeenCalledWith(false)
         expect(mockSetSelectedMethod).toHaveBeenCalledWith(expect.objectContaining({ type: 'crypto' }))
+    })
+
+    // A destination the user picks by hand must not be overwritten later by one a
+    // scan is still offering (TASK-22251, Chip review).
+    it.each([
+        ['an address-book row', () => screen.getByTestId(`saved-address-${mockSavedBaseAddress.id}`)],
+        ['the plain crypto row', () => screen.getByTestId('crypto-row')],
+    ])('%s drops a pending scanned destination', (_case, row) => {
+        const scanId = stashScannedDestination('9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM', 'solana')
+        expect(scanId).toBeTruthy()
+
+        renderView()
+        fireEvent.click(row())
+
+        expect(takeScannedDestination(scanId)).toBeNull()
     })
 })

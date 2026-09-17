@@ -150,7 +150,7 @@ export default function CardsGlobalPage() {
                             name: 'className',
                             type: 'string',
                             default: "''",
-                            description: 'Override styles (base: w-full bg-white px-4 py-2)',
+                            description: 'Override styles (base: w-full bg-background-default px-4 py-2)',
                         },
                         { name: 'children', type: 'ReactNode', default: '-', required: true },
                         { name: 'ref', type: 'Ref<HTMLDivElement>', default: '(none)' },
@@ -164,22 +164,22 @@ export default function CardsGlobalPage() {
                     <table className="w-full">
                         <thead>
                             <tr className="border-b border-border-default bg-background-badge-accent/20">
-                                <th className="px-3 py-1.5 text-left font-bold">Position</th>
-                                <th className="px-3 py-1.5 text-left font-bold">Border Radius</th>
-                                <th className="px-3 py-1.5 text-left font-bold">Border</th>
+                                <th className="px-3 py-2 text-left text-label-m">Position</th>
+                                <th className="px-3 py-2 text-left text-label-m">Border Radius</th>
+                                <th className="px-3 py-2 text-left text-label-m">Border</th>
                             </tr>
                         </thead>
                         <tbody>
                             {[
-                                ['single', 'rounded-sm (all)', 'border border-black'],
-                                ['first', 'rounded-t-sm (top only)', 'border border-black'],
-                                ['middle', 'none', 'border border-black border-t-0'],
-                                ['last', 'rounded-b-sm (bottom only)', 'border border-black border-t-0'],
+                                ['single', 'rounded-sm (all)', 'border border-border-default'],
+                                ['first', 'rounded-t-sm (top only)', 'border border-border-default'],
+                                ['middle', 'none', 'border border-border-default border-t-0'],
+                                ['last', 'rounded-b-sm (bottom only)', 'border border-border-default border-t-0'],
                             ].map(([pos, radius, border]) => (
                                 <tr key={pos} className="border-b border-border-default last:border-0">
-                                    <td className="px-3 py-1.5 font-mono font-bold">{pos}</td>
-                                    <td className="px-3 py-1.5 font-mono">{radius}</td>
-                                    <td className="px-3 py-1.5 font-mono">{border}</td>
+                                    <td className="px-3 py-2 font-mono text-label-m">{pos}</td>
+                                    <td className="px-3 py-2 font-mono">{radius}</td>
+                                    <td className="px-3 py-2 font-mono">{border}</td>
                                 </tr>
                             ))}
                         </tbody>

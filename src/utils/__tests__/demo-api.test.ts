@@ -64,6 +64,16 @@ describe('demoRespond — routing', () => {
         expect(data.user.username).toBe(DEMO_USER.user.username)
     })
 
+    it('only advertises badges with live unlock paths in the demo catalog', async () => {
+        const { data } = await body('/badge/catalog')
+        const codes = data.badges.map(({ code }: { code: string }) => code)
+
+        expect(codes).toEqual(expect.arrayContaining(['CARD_FIRST_SWIPE', 'CARD_SPENT_1K', 'ENS', 'SURF_UP']))
+        expect(codes).not.toEqual(
+            expect.arrayContaining(['FIRST_INVITE', 'SECOND_INVITE', 'VERIFIED', 'OG_2025_10_12'])
+        )
+    })
+
     it('returns populated contacts for GET /users/contacts', async () => {
         const { data } = await body('/users/contacts?limit=20&offset=0')
         expect(data.contacts).toHaveLength(DEMO_CONTACTS.length)
@@ -93,6 +103,13 @@ describe('demoRespond — routing', () => {
     it('treats GET /requests (search) as "none found" via 404', async () => {
         const { res } = await body('/requests?recipient=demo')
         expect(res.status).toBe(404)
+    })
+
+    it('returns a terminal claim status for the optimistic-claim poll', async () => {
+        const { res, data } = await body('/send-links/demo-pubkey/status?c=42161&v=v4.4&i=0')
+
+        expect(res.status).toBe(200)
+        expect(data).toMatchObject({ pubKey: 'demo-pubkey', status: 'CLAIMED' })
     })
 
     it('returns a believable off-ramp success for POST /bridge/offramp/create', async () => {
@@ -272,5 +289,21 @@ describe('demo mode is web-safe', () => {
         const { isDemoMode, enableDemoMode } = require('@/utils/demo')
         enableDemoMode() // even with the flag set...
         expect(isDemoMode()).toBe(false) // ...web stays inert
+    })
+})
+
+describe('demoRespond — card application', () => {
+    it('walks apply → terms → pending like the real contract', async () => {
+        const before = await body('/rain/cards')
+        expect(before.data.status.hasApplication).toBe(false)
+
+        const ask = await body('/rain/cards', { method: 'POST', body: JSON.stringify({ termsAccepted: false }) })
+        expect(ask.data.status).toBe('terms-required')
+
+        const accept = await body('/rain/cards', { method: 'POST', body: JSON.stringify({ termsAccepted: true }) })
+        expect(accept.data.status).toBe('pending')
+
+        const after = await body('/rain/cards')
+        expect(after.data.status).toEqual({ hasApplication: true, railStatus: 'PENDING' })
     })
 })

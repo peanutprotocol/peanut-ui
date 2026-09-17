@@ -41,9 +41,11 @@ export function SemanticRequestInputView() {
         chargeIdFromUrl,
         isAmountFromUrl,
         urlToken,
+        tokenUsdPrice,
         isTokenDenominated,
         error,
         formattedBalance,
+        balanceFillAmount,
         canProceed,
         isInsufficientBalance,
         isLoading,
@@ -137,7 +139,7 @@ export function SemanticRequestInputView() {
         if (isTokenDenominated && urlToken) {
             return {
                 symbol: urlToken.symbol.toUpperCase(),
-                price: urlToken.usdPrice,
+                price: tokenUsdPrice ?? 0,
                 decimals: urlToken.decimals,
             }
         }
@@ -147,10 +149,27 @@ export function SemanticRequestInputView() {
             price: 1,
             decimals: 6, // USDC decimals
         }
-    }, [isTokenDenominated, urlToken])
+    }, [isTokenDenominated, urlToken, tokenUsdPrice])
+
+    // The fill has to be in the SAME denomination as the field, and the balance
+    // row it fills from is always usd. That holds while the field is usd too.
+    // A url that names a token (/alice/eth) makes the field token-denominated,
+    // and then the two can never agree: AmountInput floors every fill to the 2
+    // decimals the usd label shows (its TASK-21899 rule, so the filled amount
+    // always matches the number under the user's thumb), which silently drops
+    // most of a token balance — 0.025 ETH fills as 0.02, and anything under
+    // 0.01 token formats to zero and the row goes inert with no explanation.
+    // So the token case gets no fill at all: the balance stays plain text, the
+    // way it is today, instead of an affordance that quietly short-changes the
+    // user. Making the floor denomination-aware is the real fix and it belongs
+    // in AmountInput with its own ruling, not smuggled in from a call site.
+    const balanceFill = useMemo(() => {
+        if (!isLoggedIn || isTokenDenominated) return undefined
+        return balanceFillAmount
+    }, [isLoggedIn, isTokenDenominated, balanceFillAmount])
 
     return (
-        <div className="flex min-h-inherit flex-col justify-between gap-8">
+        <PageStack>
             <NavHeader onPrev={onBack} title={t('headers.pay')} />
 
             <PageStack.Center className="gap-4">
@@ -176,6 +195,7 @@ export function SemanticRequestInputView() {
                         primaryDenomination={primaryDenomination}
                         onSubmit={handleSubmit}
                         walletBalance={isLoggedIn ? formattedBalance : undefined}
+                        balanceFillAmount={balanceFill}
                         hideBalance={!isLoggedIn}
                         hideCurrencyToggle={true}
                         disabled={isAmountFromUrl || !!chargeIdFromUrl}
@@ -213,6 +233,6 @@ export function SemanticRequestInputView() {
 
             {/* support cta */}
             {!isLoggedIn && <SupportCTA />}
-        </div>
+        </PageStack>
     )
 }

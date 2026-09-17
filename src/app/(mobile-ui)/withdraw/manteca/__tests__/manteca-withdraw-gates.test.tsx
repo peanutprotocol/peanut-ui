@@ -96,7 +96,9 @@ jest.mock('@/components/Global/ValidatedInput', () => ({
 }))
 jest.mock('@/components/Global/AmountInput', () => ({
     __esModule: true,
-    default: () => <div data-testid="amount-input" />,
+    default: ({ walletBalance, balanceFillAmount }: { walletBalance?: string; balanceFillAmount?: number }) => (
+        <div data-testid="amount-input" data-wallet-balance={walletBalance} data-balance-fill={balanceFillAmount} />
+    ),
 }))
 jest.mock('@/components/Payment/PaymentInfoRow', () => ({ PaymentInfoRow: () => null }))
 jest.mock('@/components/Common/PointsCard', () => ({ __esModule: true, default: () => null }))
@@ -117,7 +119,11 @@ jest.mock('next/image', () => ({
 
 let mockBalance: bigint | undefined = 100n * 10n ** 6n // 100 USDC
 jest.mock('@/hooks/wallet/useWallet', () => ({
-    useWallet: () => ({ spendableBalance: mockBalance, formattedSpendableBalance: '$100.00' }),
+    useWallet: () => ({
+        spendableBalance: mockBalance,
+        formattedSpendableBalance: '$100.00',
+        spendableBalanceDecimal: mockBalance === undefined ? undefined : Number(mockBalance) / 1e6,
+    }),
 }))
 
 const mockSignSpend = jest.fn()
@@ -406,5 +412,26 @@ describe('manteca withdraw — submit-time gates (Chip review round 5)', () => {
 
         await waitFor(() => expect(mockStepperGoTo).toHaveBeenCalledWith('amount'))
         expect(mockInitiateWithdraw).not.toHaveBeenCalled()
+    })
+})
+
+// TASK-22452: the amount field is in the local currency while the balance row is
+// in USD, so the fill has to cross the same rate the screen quotes — a raw USD
+// number here would offer ~1/1500th of the balance.
+describe('manteca withdraw — balance fill crosses the quoted rate', () => {
+    it('offers the spendable balance converted at currencyPrice.sell', () => {
+        mockStepper.step = 'amount'
+        render(<MantecaWithdrawFlow />)
+
+        // 100 USDC spendable x 1500 ARS/USD = 150000 ARS
+        expect(screen.getByTestId('amount-input')).toHaveAttribute('data-balance-fill', '150000')
+    })
+
+    it('offers nothing while the balance is still loading', () => {
+        mockBalance = undefined
+        mockStepper.step = 'amount'
+        render(<MantecaWithdrawFlow />)
+
+        expect(screen.getByTestId('amount-input')).not.toHaveAttribute('data-balance-fill')
     })
 })

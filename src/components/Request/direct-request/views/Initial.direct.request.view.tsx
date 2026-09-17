@@ -3,7 +3,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Notification } from '@/components/0_Bruddle/Notification'
-import FileUploadInput from '@/components/Global/FileUploadInput'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
@@ -36,7 +36,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     const tLoading = useTranslations('loadingStates')
     const onBack = useSafeBack('/home')
     const { user: authUser } = useAuth()
-    const { spendableBalance: balance, formattedSpendableBalance, address } = useWallet()
+    const { address } = useWallet()
     const [attachmentOptions, setAttachmentOptions] = useState<IAttachmentOptions>({
         message: undefined,
         fileUrl: undefined,
@@ -75,12 +75,6 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
             rawFile: undefined,
         })
     }
-
-    // Displayed total spendable, single-sourced + formatted by the hook; empty
-    // while loading so we don't flash "$0.00".
-    const peanutWalletBalance = useMemo(() => {
-        return balance === undefined ? '' : formattedSpendableBalance
-    }, [balance, formattedSpendableBalance])
 
     const handleTokenValueChange = (value: string | undefined) => {
         setCurrentInputValue(value || '')
@@ -230,6 +224,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                     recipientType={'USERNAME'}
                     username={recipientUser?.username || username}
                     fullName={recipientUser?.fullName}
+                    avatarKey={recipientUser?.avatarKey}
                     isVerified={recipientUser?.isVerified ?? false}
                     haveSentMoneyToUser={recipientUser?.userId ? interactions[recipientUser.userId] || false : false}
                 />
@@ -240,15 +235,14 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                         initialAmount={currentInputValue}
                         setPrimaryAmount={handleTokenValueChange}
                         onSubmit={() => setView('confirm')}
-                        walletBalance={peanutWalletBalance}
                         hideCurrencyToggle
                     />
 
-                    <FileUploadInput
+                    <BaseInput
                         placeholder={tCommon('comment')}
-                        attachmentOptions={attachmentOptions}
-                        setAttachmentOptions={setAttachmentOptions}
-                        className="h-11"
+                        value={attachmentOptions.message}
+                        maxLength={140}
+                        onChange={(e) => setAttachmentOptions({ ...attachmentOptions, message: e.target.value })}
                     />
                     {!authUser?.user.userId && (
                         <FieldColumn error={fieldError}>

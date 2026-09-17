@@ -4,13 +4,14 @@ import { FieldColumn } from '../FieldColumn'
 describe('FieldColumn', () => {
     test('stacks the input and its FieldError in the 4px board column', () => {
         const { container } = render(
-            <FieldColumn error="Invalid IBAN" errorTestId="error-alert">
+            <FieldColumn error="Invalid IBAN" errorTestId="error-alert" errorId="iban-error">
                 <input />
             </FieldColumn>
         )
         expect(container.firstChild).toHaveClass('flex', 'flex-col', 'gap-1')
         const alert = screen.getByTestId('error-alert')
         expect(alert).toHaveTextContent('Invalid IBAN')
+        expect(alert).toHaveAttribute('id', 'iban-error')
         expect(alert).toHaveAttribute('role', 'alert')
     })
 

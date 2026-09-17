@@ -5,7 +5,7 @@ export default function PatternsPage() {
     return (
         <DocPage>
             <div>
-                <h1 className="text-h3">Patterns</h1>
+                <h1 className="text-heading-m">Patterns</h1>
                 <p className="mt-1 text-body-s text-foreground-secondary">
                     Composed components and layout patterns built from primitives and Global shared components.
                 </p>
@@ -14,7 +14,7 @@ export default function PatternsPage() {
             <CatalogGrid>
                 <CatalogCard
                     title="Modal"
-                    description="Base Modal + ActionModal + specialized modals (14 total)"
+                    description="ActionModal for short decisions and confirmations"
                     href="/dev/ds/patterns/modal"
                     icon="link"
                     status="production"
@@ -46,7 +46,7 @@ export default function PatternsPage() {
                 />
                 <CatalogCard
                     title="Feedback"
-                    description="StatusBadge, StatusPill, inline errors, EmptyState, NoDataEmptyState"
+                    description="StatusBadge, StatusPill, inline errors, and EmptyState"
                     href="/dev/ds/patterns/feedback"
                     icon="meter"
                     status="production"
@@ -54,7 +54,7 @@ export default function PatternsPage() {
                 />
                 <CatalogCard
                     title="Copy & Share"
-                    description="CopyField, CopyToClipboard, ShareButton, AddressLink"
+                    description="CopyField, CopyToClipboard, and ShareButton"
                     href="/dev/ds/patterns/copy-share"
                     icon="copy"
                     status="production"

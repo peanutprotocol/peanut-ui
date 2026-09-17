@@ -3,7 +3,7 @@
  *
  * The funnel trunk is verify → deposit → card → first spend. ui#2262 made the
  * card step override every state for card-eligible users, so the Brazil
- * campaign cohort (skip-badge holders) saw "get your card" before they had
+ * campaign cohort (card applicants) saw "get your card" before they had
  * verified or deposited anything — unfunded users minting plastic with
  * nothing to spend (~1% activation). This suite is the regression guard the
  * override never had: card replaces only the FUNDED states.
@@ -46,14 +46,14 @@ jest.mock('@/components/Card/cardState.utils', () => ({
 
 jest.mock('@/config/underMaintenance.config', () => ({
     __esModule: true,
-    default: { disableCardLaunchCTA: false },
+    default: { disableCardPromotion: false },
 }))
 import underMaintenanceConfig from '@/config/underMaintenance.config'
 
 function setup(opts: {
     milestone?: 'registered' | 'verified' | 'funded' | 'activated'
     isActivated?: boolean
-    hasCardAccess?: boolean
+    isCardEligible?: boolean
     hasActiveCard?: boolean
     balance?: string
     isKycApproved?: boolean
@@ -70,7 +70,7 @@ function setup(opts: {
     })
     mockUseWallet.mockReturnValue({ balance: opts.balance ?? '0', isFetchingBalance: false })
     mockUseCapabilities.mockReturnValue({ isKycApproved: opts.isKycApproved ?? false })
-    mockUseQuery.mockReturnValue({ data: { hasCardAccess: opts.hasCardAccess ?? false } })
+    mockUseQuery.mockReturnValue({ data: { isEligible: opts.isCardEligible ?? false } })
     mockFindActiveCard.mockReturnValue(opts.hasActiveCard ? { id: 'card-1', status: 'active' } : undefined)
     return renderHook(() => useActivationStatus())
 }
@@ -78,43 +78,43 @@ function setup(opts: {
 beforeEach(() => {
     jest.clearAllMocks()
     localStorage.clear()
-    ;(underMaintenanceConfig as { disableCardLaunchCTA: boolean }).disableCardLaunchCTA = false
+    ;(underMaintenanceConfig as { disableCardPromotion: boolean }).disableCardPromotion = false
 })
 
 describe('card gate: card comes AFTER deposit, never before', () => {
-    it('registered + card access → verify, NOT card (the #2262 regression)', () => {
-        const { result } = setup({ milestone: 'registered', hasCardAccess: true })
+    it('registered + eligible residence → verify, NOT card (the #2262 regression)', () => {
+        const { result } = setup({ milestone: 'registered', isCardEligible: true })
         expect(result.current.activationStep).toBe('verify')
     })
 
-    it('verified-but-unfunded + card access → deposit, NOT card (the Brazil campaign cohort)', () => {
-        const { result } = setup({ milestone: 'verified', hasCardAccess: true })
+    it('verified-but-unfunded + eligible residence → deposit, NOT card (the Brazil campaign cohort)', () => {
+        const { result } = setup({ milestone: 'verified', isCardEligible: true })
         expect(result.current.activationStep).toBe('deposit')
     })
 
-    it('funded + card access + no card → card (the override still fires where money exists)', () => {
-        const { result } = setup({ milestone: 'funded', hasCardAccess: true })
+    it('funded + eligible residence + no card → card (the override still fires where money exists)', () => {
+        const { result } = setup({ milestone: 'funded', isCardEligible: true })
         expect(result.current.activationStep).toBe('card')
     })
 
-    it('funded without card access → outbound (first spend)', () => {
+    it('funded without eligible residence → outbound (first spend)', () => {
         const { result } = setup({ milestone: 'funded' })
         expect(result.current.activationStep).toBe('outbound')
     })
 
-    it('funded + card access + ACTIVE card → outbound (no re-pitch of a held card)', () => {
-        const { result } = setup({ milestone: 'funded', hasCardAccess: true, hasActiveCard: true })
+    it('funded + eligible residence + ACTIVE card → outbound (no re-pitch of a held card)', () => {
+        const { result } = setup({ milestone: 'funded', isCardEligible: true, hasActiveCard: true })
         expect(result.current.activationStep).toBe('outbound')
     })
 
-    it('activated + card access + no card → card (completed stays card-eligible)', () => {
-        const { result } = setup({ isActivated: true, hasCardAccess: true })
+    it('activated + eligible residence + no card → card (completed stays card-eligible)', () => {
+        const { result } = setup({ isActivated: true, isCardEligible: true })
         expect(result.current.activationStep).toBe('card')
     })
 
     it('dismissed card step stays dismissed even when funded (v2 key)', () => {
         localStorage.setItem('peanut_card_activation_dismissed_v2', 'true')
-        const { result } = setup({ milestone: 'funded', hasCardAccess: true })
+        const { result } = setup({ milestone: 'funded', isCardEligible: true })
         expect(result.current.activationStep).toBe('outbound')
     })
 
@@ -122,41 +122,41 @@ describe('card gate: card comes AFTER deposit, never before', () => {
         // The v1 flag was set by users dismissing the mis-timed pre-deposit
         // banner — the exact cohort the relocated step targets.
         localStorage.setItem('peanut_card_activation_dismissed', 'true')
-        const { result } = setup({ milestone: 'funded', hasCardAccess: true })
+        const { result } = setup({ milestone: 'funded', isCardEligible: true })
         expect(result.current.activationStep).toBe('card')
     })
 
     it('live chain balance counts as funded even when the BE milestone lags at verified', () => {
         // Inbound mid-poller: milestone stuck at 'verified' but money is real.
-        const { result } = setup({ milestone: 'verified', balance: '40', hasCardAccess: true })
+        const { result } = setup({ milestone: 'verified', balance: '40', isCardEligible: true })
         expect(result.current.activationStep).toBe('card')
     })
 
-    it('the disableCardLaunchCTA kill switch mutes the card step', () => {
-        ;(underMaintenanceConfig as { disableCardLaunchCTA: boolean }).disableCardLaunchCTA = true
-        const { result } = setup({ milestone: 'funded', hasCardAccess: true })
+    it('the disableCardPromotion kill switch mutes the card step', () => {
+        ;(underMaintenanceConfig as { disableCardPromotion: boolean }).disableCardPromotion = true
+        const { result } = setup({ milestone: 'funded', isCardEligible: true })
         expect(result.current.activationStep).toBe('outbound')
     })
 
     it('the hook passes the rain overview through to findActiveCard', () => {
-        setup({ milestone: 'funded', hasCardAccess: true })
+        setup({ milestone: 'funded', isCardEligible: true })
         expect(mockFindActiveCard).toHaveBeenCalledWith(undefined) // useRainCardOverview mock returns overview: undefined
     })
 })
 
 describe('card gate on the milestone-less fallback path', () => {
-    it('kyc approved + zero balance + card access → deposit (fallback agrees with the trunk)', () => {
-        const { result } = setup({ isKycApproved: true, balance: '0', hasCardAccess: true })
+    it('kyc approved + zero balance + eligible residence → deposit (fallback agrees with the trunk)', () => {
+        const { result } = setup({ isKycApproved: true, balance: '0', isCardEligible: true })
         expect(result.current.activationStep).toBe('deposit')
     })
 
-    it('kyc approved + positive balance + card access → card (fallback funded state)', () => {
-        const { result } = setup({ isKycApproved: true, balance: '25', hasCardAccess: true })
+    it('kyc approved + positive balance + eligible residence → card (fallback funded state)', () => {
+        const { result } = setup({ isKycApproved: true, balance: '25', isCardEligible: true })
         expect(result.current.activationStep).toBe('card')
     })
 
-    it('not kyc approved + card access → verify', () => {
-        const { result } = setup({ isKycApproved: false, hasCardAccess: true })
+    it('not kyc approved + eligible residence → verify', () => {
+        const { result } = setup({ isKycApproved: false, isCardEligible: true })
         expect(result.current.activationStep).toBe('verify')
     })
 })

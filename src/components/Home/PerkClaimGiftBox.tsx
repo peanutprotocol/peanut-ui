@@ -64,7 +64,18 @@ export function PerkClaimGiftBox({ perk, onHoldComplete, claimPhase }: PerkClaim
                 />
 
                 {/* Gift box container */}
-                <div {...buttonProps} className="relative cursor-pointer touch-none select-none">
+                {/* not a <button>: the gift box holds block content (divs); keyboard
+                    handlers come from useHoldToClaim's buttonProps */}
+                <div
+                    {...buttonProps}
+                    role="button"
+                    // out of the tab order + announced disabled while the hook
+                    // rejects input (claim already running)
+                    tabIndex={claimPhase === 'idle' ? 0 : -1}
+                    aria-disabled={claimPhase !== 'idle' || undefined}
+                    aria-label={t('holdToUnwrap')}
+                    className="relative cursor-pointer touch-none rounded-xl select-none focus-visible:outline-[3px] focus-visible:outline-action-focus"
+                >
                     {/* Gift box */}
                     <div
                         className={`gift-box-shine relative h-32 w-44 overflow-hidden rounded-xl border-4 border-action-primary bg-gradient-to-br from-action-primary/20 via-white to-action-primary/20 shadow-xl transition-transform ${holdProgress > 0 ? 'scale-[0.98]' : ''}`}
@@ -97,7 +108,7 @@ export function PerkClaimGiftBox({ perk, onHoldComplete, claimPhase }: PerkClaim
                         {/* Gift icon */}
                         <div className="absolute inset-0 flex items-center justify-center">
                             <div
-                                className={`rounded-full bg-action-primary p-3 shadow-lg transition-transform ${holdProgress > 30 ? 'animate-bounce' : ''}`}
+                                className={`rounded-full bg-action-primary p-3 shadow-lg transition-transform ${holdProgress > 30 ? 'motion-safe:animate-bounce' : ''}`}
                             >
                                 <Icon name="gift" size={24} className="text-white" />
                             </div>
@@ -141,20 +152,20 @@ export function PerkClaimGiftBox({ perk, onHoldComplete, claimPhase }: PerkClaim
                     {/* Particles flying out */}
                     {holdProgress > 30 && (
                         <>
-                            <div className="absolute top-2 -right-4 animate-ping text-body-l [animation-duration:1s]">
+                            <div className="absolute top-2 -right-4 text-body-l [animation-duration:1s] motion-safe:animate-ping">
                                 ✨
                             </div>
-                            <div className="absolute bottom-4 -left-4 animate-ping text-body-l [animation-delay:0.2s] [animation-duration:1.2s]">
+                            <div className="absolute bottom-4 -left-4 text-body-l [animation-delay:0.2s] [animation-duration:1.2s] motion-safe:animate-ping">
                                 ✨
                             </div>
                         </>
                     )}
                     {holdProgress > 60 && (
                         <>
-                            <div className="absolute -top-2 right-2 animate-ping text-body-s [animation-delay:0.3s] [animation-duration:0.8s]">
+                            <div className="absolute -top-2 right-2 text-body-s [animation-delay:0.3s] [animation-duration:0.8s] motion-safe:animate-ping">
                                 ⭐
                             </div>
-                            <div className="absolute -bottom-2 left-2 animate-ping text-body-s [animation-delay:0.1s] [animation-duration:1s]">
+                            <div className="absolute -bottom-2 left-2 text-body-s [animation-delay:0.1s] [animation-duration:1s] motion-safe:animate-ping">
                                 ⭐
                             </div>
                         </>

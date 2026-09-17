@@ -22,6 +22,13 @@ jest.mock('@sentry/nextjs', () => ({ captureMessage: jest.fn() }))
 const capture = jest.fn()
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: (...a: unknown[]) => capture(...a) } }))
 
+const mockQueuePendingBadgeCampaigns = jest.fn()
+jest.mock('@/components/Invites/badge-campaign-context', () => ({
+    badgeCampaignsFromSearchParams: (params: URLSearchParams) => params.getAll('badge_campaign'),
+    queuePendingBadgeCampaigns: (...args: unknown[]) => mockQueuePendingBadgeCampaigns(...args),
+}))
+jest.mock('@/utils/invite-stash', () => ({ stashInvite: jest.fn() }))
+
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: jest.fn(() => true),
     getPlatform: jest.fn(() => 'android-native'),
@@ -219,6 +226,18 @@ describe('notification unread refresh', () => {
 })
 
 describe('launch-url replay guard', () => {
+    it('queues an invite badge campaign before routing into native setup', async () => {
+        launchUrl = 'https://peanut.me/invite?code=alice&badge_campaign=bug_whisperer'
+
+        renderHook(() => useNativeAppLinks())
+
+        await waitFor(() =>
+            expect(push).toHaveBeenCalledWith('/setup?step=signup&code=alice&badge_campaign=bug_whisperer')
+        )
+        expect(mockQueuePendingBadgeCampaigns).toHaveBeenCalledTimes(1)
+        expect(mockQueuePendingBadgeCampaigns).toHaveBeenCalledWith(['bug_whisperer'], 30)
+    })
+
     it('stamps the launch url even when RootRedirect already routed it, so a webview reload cannot replay it', async () => {
         launchUrl = 'https://peanut.me/claim?i=abc'
         // RootRedirect recovered the same URL from location on the full-document load

@@ -1,23 +1,16 @@
 'use client'
 
 import React, { useMemo } from 'react'
-import Image from 'next/image'
-import { useTranslations } from 'next-intl'
 import { twMerge } from '@/utils/tw'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import Card from '@/components/Global/Card'
-import CopyToClipboard from '@/components/Global/CopyToClipboard'
-import { DataRow } from '@/components/0_Bruddle/DataRow'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { getAvatarUrl, getTransactionSign } from '@/utils/history.utils'
 import { formatCurrency, isStableCoin } from '@/utils/general.utils'
-import PEANUT_LOGO from '@/assets/logos/peanut-logo.svg'
-import { shortenAddress } from '@/utils/general.utils'
 import { PerkIcon } from './PerkIcon'
-import { useReceiptDateFormatter } from './useReceiptDateFormatter'
 import { ReceiptActions } from './ReceiptActions'
 import { ReceiptDetailsCard } from './ReceiptDetailsCard'
 import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
@@ -33,6 +26,7 @@ import {
     isSendLinkEntry,
 } from './transaction-predicates'
 import { useReceiptViewModel } from './useReceiptViewModel'
+import { PublicReceiptIssuer } from './PublicReceiptIssuer'
 
 export const TransactionDetailsReceipt = ({
     transaction,
@@ -45,6 +39,7 @@ export const TransactionDetailsReceipt = ({
     setIsModalOpen,
     avatarUrl,
     isPublic = false,
+    showPublicIssuer = false,
 }: {
     transaction: TransactionDetails | null
     onClose?: () => void
@@ -57,10 +52,9 @@ export const TransactionDetailsReceipt = ({
     setIsModalOpen?: (isModalOpen: boolean) => void
     avatarUrl?: string
     isPublic?: boolean
+    showPublicIssuer?: boolean
 }) => {
     const t = useAppTranslations('transaction')
-    const tNav = useTranslations('navigation')
-    const formatDate = useReceiptDateFormatter()
 
     // All derived row-visibility / status / share-receipt state lives in the
     // hook so this component stays focused on composition.
@@ -116,11 +110,6 @@ export const TransactionDetailsReceipt = ({
         amountDisplay = t('amountCollected', { amount: formattedTotalAmountCollected })
     }
 
-    // Official-receipt issue date: the settlement timestamp when there is one,
-    // else creation. `formatDate` renders an em dash for anything unparsable.
-    const issuedAtSource = transaction.completedAt ?? transaction.claimedAt ?? transaction.createdAt ?? transaction.date
-    const issuedAt = issuedAtSource ? new Date(issuedAtSource) : undefined
-
     // '-' out, '+' in. Pots show a collected total, never a sign.
     const headSign = transaction.isRequestPotLink ? '' : getTransactionSign(transaction)
 
@@ -151,29 +140,28 @@ export const TransactionDetailsReceipt = ({
                 amountDisplay={amountDisplay}
                 contentRef={contentRef}
                 className={className}
+                actions={
+                    <ReceiptActions
+                        transaction={transaction}
+                        vm={vm}
+                        isPublic={isPublic}
+                        amountDisplay={amountDisplay}
+                        shouldShowQrShare={shouldShowQrShare}
+                        isLoading={isLoading}
+                        setIsLoading={setIsLoading}
+                        onClose={onClose}
+                        setIsModalOpen={setIsModalOpen}
+                    />
+                }
             />
         )
     }
 
     return (
-        <div ref={contentRef} className={twMerge('flex flex-col gap-4', className)}>
-            {/* official header — only the shared/public receipt carries branding */}
-            {isPublic && (
-                <div className="flex items-center justify-between">
-                    <Image src={PEANUT_LOGO} alt={tNav('peanutLogoAlt')} className="h-6 w-auto" />
-                    <div className="text-right text-body-xs text-foreground-secondary">
-                        <p className="text-body-m-semibold">{t('officialReceipt.issuedBy')}</p>
-                        <a
-                            href="https://peanut.me"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="underline print:no-underline"
-                        >
-                            {'peanut.me'}
-                        </a>
-                    </div>
-                </div>
-            )}
+        // xl/24 between the receipt's main sections (approved layout); action
+        // groups keep their own s/8 internally
+        <div ref={contentRef} className={twMerge('flex flex-col gap-6', className)}>
+            {showPublicIssuer && <PublicReceiptIssuer />}
 
             {/* head (board 17490:115877): centered bubble → type line → amount → badge */}
             <TransactionDetailsHeaderCard
@@ -189,6 +177,8 @@ export const TransactionDetailsReceipt = ({
                 isLinkTransaction={transaction.extraDataForDrawer?.isLinkTransaction}
                 transactionType={transaction.extraDataForDrawer?.transactionCardType}
                 avatarUrl={avatarUrl ?? getAvatarUrl(transaction)}
+                avatarKey={transaction.avatarKey}
+                isPeer={transaction.isPeerActuallyUser}
                 haveSentMoneyToUser={transaction.haveSentMoneyToUser}
                 isNameClickable={isNameClickable}
                 isAvatarClickable={isAvatarClickable}
@@ -237,26 +227,6 @@ export const TransactionDetailsReceipt = ({
                 shouldShowQrShare={shouldShowQrShare}
                 convertedAmount={convertedAmount ?? undefined}
             />
-
-            {/* official footer — reference + issue date so the shared page
-                reads as a document, not an app screen */}
-            {isPublic && (
-                <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">
-                    <DataRow
-                        label={t('officialReceipt.reference')}
-                        value={
-                            <div className="flex items-center gap-2">
-                                {/* uppercase is display-only: the raw id is a case-sensitive lookup key */}
-                                <span className="uppercase">{shortenAddress(transaction.id, 20)}</span>
-                                <span className="print:hidden">
-                                    <CopyToClipboard textToCopy={transaction.id} iconSize="4" />
-                                </span>
-                            </div>
-                        }
-                    />
-                    <DataRow label={t('officialReceipt.issuedOn')} value={formatDate(issuedAt)} />
-                </Card>
-            )}
 
             {/* Over-capture explainer — the words for the Initial hold /
                 Adjustment rows in the details card and the merchant-recourse

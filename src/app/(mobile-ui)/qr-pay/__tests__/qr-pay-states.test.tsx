@@ -85,14 +85,16 @@ jest.mock('@/assets/payment-apps', () => ({
     PIX: '/pix.png',
 }))
 
-// The page imports PeanutThinking from @/assets/mascot and STAR_STRAIGHT_ICON
-// from @/assets/icons directly — mock those paths, not the @/assets barrel, and
-// keep sibling exports (e.g. PEANUTMAN, ETHEREUM_ICON used by QRScanner) intact.
-jest.mock('@/assets/mascot', () => ({
-    ...jest.requireActual('@/assets/mascot'),
-    PeanutThinking: '/peanut-guy.gif',
+// PeanutMascot loads lottie-web, which needs a canvas jsdom does not have.
+jest.mock('@/components/Global/PeanutMascot', () => ({
+    __esModule: true,
+    default: ({ pose, alt }: { pose: string; alt?: string }) => (
+        <div data-testid="peanut-mascot" data-pose={pose} aria-label={alt} />
+    ),
 }))
 
+// The page imports STAR_STRAIGHT_ICON from @/assets/icons directly — mock that
+// path, not the @/assets barrel, and keep sibling exports intact.
 jest.mock('@/assets/icons', () => ({
     ...jest.requireActual('@/assets/icons'),
     STAR_STRAIGHT_ICON: '/star.png',
@@ -126,6 +128,15 @@ const mockSignSpend = jest.fn()
 jest.mock('@/hooks/wallet/useSignSpendBundle', () => ({
     useSignSpendBundle: () => ({ signSpend: mockSignSpend }),
 }))
+
+// Pre-Pay UserOp preparation needs the kernel-client provider; its own
+// integration lives in features/payments/flows/qr-pay/__tests__.
+jest.mock('@/hooks/wallet/useSmartSpendPreparation', () => ({
+    useSmartSpendPreparation: () => ({ takePreparedSmartSpend: () => null }),
+}))
+
+const mockPerksApi = { claimPerk: jest.fn(), getPendingPerks: jest.fn() }
+jest.mock('@/services/perks', () => ({ perksApi: mockPerksApi }))
 
 jest.mock('@/hooks/wallet/useSpendBundle', () => ({
     InsufficientSpendableError: class extends Error {
@@ -170,7 +181,7 @@ jest.mock('@/components/TransactionDetails/TransactionDetailsDrawer', () => ({
 
 // Stubbed to keep the QR canvas out of jsdom. The props are the contract that
 // matters here — the modal itself owns every referral capture.
-jest.mock('@/components/Global/InviteFriendsModal', () => ({
+jest.mock('@/components/Global/InviteFriendsDrawer', () => ({
     __esModule: true,
     default: ({ visible, username, source }: any) =>
         visible ? <div data-testid="invite-friends-modal" data-username={username} data-source={source} /> : null,
@@ -365,11 +376,6 @@ jest.mock('@/components/Global/Loading', () => ({
         ),
 }))
 
-jest.mock('@/components/Global/Loading/CyclingLoading', () => ({
-    __esModule: true,
-    default: () => <div data-testid="cycling-loading" />,
-}))
-
 jest.mock('@/components/Global/NavHeader', () => ({
     __esModule: true,
     default: (props: any) => <div data-testid="nav-header">{props.title}</div>,
@@ -451,6 +457,7 @@ jest.mock('@/constants/analytics.consts', () => ({
         SURPRISE_MOMENT_SHOWN: 'surprise_moment_shown',
         REWARD_CLAIMED: 'reward_claimed',
         REWARD_CLAIM_DISMISSED: 'reward_claim_dismissed',
+        QR_PAYMENT_STAGE: 'qr_payment_stage',
     },
 }))
 
@@ -464,6 +471,7 @@ jest.mock('@/services/services.types', () => ({
 
 // ---------- import component under test AFTER all mocks ----------
 import QRPayPage from '../page'
+import { shootDoubleStarConfetti } from '@/utils/confetti'
 
 // ---------- helpers ----------
 
@@ -1095,11 +1103,10 @@ describe('GROUP 3: Processing States', () => {
             fireEvent.click(payButton)
         })
 
-        // After clicking pay, loading state should trigger PeanutLoading or CyclingLoading
-        // (signSpend resolves, then completeQrPayment hangs)
+        // after clicking pay the flow shows the shared processing screen
+        // (signSpend resolves, then completeQrPayment hangs) — TASK-22452
         await waitFor(() => {
-            // Component is in loading state - either shows a loading variant or loading button text
-            const loadingEl = screen.queryByTestId('peanut-loading') ?? screen.queryByTestId('cycling-loading')
+            const loadingEl = screen.queryByTestId('peanut-loading')
             const loadingButton = screen.queryByText('Loading...')
             expect(loadingEl || loadingButton).toBeTruthy()
         })
@@ -1371,6 +1378,128 @@ describe('GROUP 4: Success States', () => {
         expect('claimPerk' in mockMantecaApi).toBe(false)
 
         jest.useRealTimers()
+    })
+
+    // Regression (TASK-22692): the API now returns once the reward is durably
+    // issued and budget-reserved, BEFORE its payout transfer settles. A
+    // `payoutStatus: 'pending'` perk with no txHash is still an earned reward:
+    // the hold-to-claim card, the gesture and the confetti must all be there,
+    // and the reveal must not ask the server for anything — the local
+    // `claimed` flag is a reveal, not a settlement.
+    test('a durably issued reward whose payout is still pending keeps hold-to-claim + confetti, with no payout request', async () => {
+        jest.useFakeTimers()
+
+        await completeMantecaPayment({
+            perk: {
+                eligible: true,
+                discountPercentage: 5,
+                sponsoredUsd: 0.5,
+                usageId: 'usage-1',
+                payoutStatus: 'pending',
+            },
+        })
+
+        await waitFor(() => {
+            expect(screen.getByText('You earned a reward!')).toBeInTheDocument()
+        })
+        const claimButton = screen.getByRole('button', { name: /Claim Reward/i })
+        await act(async () => {
+            fireEvent.pointerDown(claimButton)
+        })
+        await act(async () => {
+            jest.advanceTimersByTime(1600)
+        })
+
+        await waitFor(() => {
+            expect(screen.getByText('Go to Home')).toBeInTheDocument()
+        })
+        expect(shootDoubleStarConfetti).toHaveBeenCalledTimes(1)
+        expect(posthog.capture).toHaveBeenCalledWith('reward_claimed', { amount_usd: 0.5, discount_pct: 5 })
+
+        // The reveal talks to no one: the scan init and the completion are the
+        // only Manteca calls, and the legacy /perks/claim round-trip stays dead.
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1)
+        expect(mockPerksApi.claimPerk).not.toHaveBeenCalled()
+
+        jest.useRealTimers()
+    })
+
+    // The API keeps `eligible: true` on a FAILED payout so the entitlement
+    // survives for reconciliation. That is bookkeeping, not a reward the user
+    // can act on: the payment itself still succeeded and renders as such, but
+    // nothing may offer a hold, shake, celebrate or report a claim.
+    test('a reward whose payout already failed: payment success stays, no claimable card, no confetti, no reward events', async () => {
+        jest.useFakeTimers()
+
+        await completeMantecaPayment({
+            perk: {
+                eligible: true,
+                discountPercentage: 5,
+                sponsoredUsd: 0.5,
+                usageId: 'usage-1',
+                payoutStatus: 'failed',
+            },
+        })
+
+        await waitFor(() => {
+            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+        })
+        expect(screen.getByTestId('success-sound')).toBeInTheDocument()
+        expect(screen.getByText('Split this bill')).toBeInTheDocument()
+        expect(screen.queryByText('You earned a reward!')).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /Claim Reward/i })).not.toBeInTheDocument()
+
+        // give any armed timer a chance to fire — nothing is armed
+        await act(async () => {
+            jest.advanceTimersByTime(2000)
+        })
+        expect(shootDoubleStarConfetti).not.toHaveBeenCalled()
+        for (const event of ['reward_claim_shown', 'surprise_moment_shown', 'reward_claimed']) {
+            expect(posthog.capture).not.toHaveBeenCalledWith(event, expect.anything())
+        }
+        expect(mockPerksApi.claimPerk).not.toHaveBeenCalled()
+
+        jest.useRealTimers()
+    })
+
+    test('a failed payout the API marks claimed still shows the payment confirmation, never the earned-reward banner', async () => {
+        await completeMantecaPayment({
+            perk: {
+                eligible: true,
+                claimed: true,
+                discountPercentage: 5,
+                sponsoredUsd: 0.5,
+                usageId: 'usage-1',
+                payoutStatus: 'failed',
+            },
+        })
+
+        await waitFor(() => {
+            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+        })
+        expect(screen.getByTestId('success-sound')).toBeInTheDocument()
+        expect(screen.queryByText('You earned a reward!')).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /Claim Reward/i })).not.toBeInTheDocument()
+        expect(screen.queryByText('Go to Home')).not.toBeInTheDocument()
+        expect(screen.getByText('Split this bill')).toBeInTheDocument()
+        expect(shootDoubleStarConfetti).not.toHaveBeenCalled()
+        for (const event of ['reward_claim_shown', 'surprise_moment_shown', 'reward_claimed']) {
+            expect(posthog.capture).not.toHaveBeenCalledWith(event, expect.anything())
+        }
+    })
+
+    test('a perk the API did not reserve (eligible: false) gets no hold-to-claim and no confetti', async () => {
+        await completeMantecaPayment({
+            perk: { eligible: false, discountPercentage: 5, sponsoredUsd: 0.5 },
+        })
+
+        await waitFor(() => {
+            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+        })
+        expect(screen.queryByText('You earned a reward!')).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /Claim Reward/i })).not.toBeInTheDocument()
+        expect(shootDoubleStarConfetti).not.toHaveBeenCalled()
     })
 
     test('PIX success shows PIX icon', async () => {

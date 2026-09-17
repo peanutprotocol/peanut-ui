@@ -1,6 +1,6 @@
 'use client'
 
-import DevChip from '../_components/DevChip'
+import { Card } from '@/components/0_Bruddle/Card'
 import type { InAppSurface } from './journeyTypes'
 import { SURFACE_KIND_META } from './surfaceKindMeta'
 
@@ -9,34 +9,34 @@ export default function SurfaceCard({ surface, showDev }: { surface: InAppSurfac
     const kind = SURFACE_KIND_META[surface.kind]
 
     return (
-        <div className="rounded-sm border border-border-default bg-white p-2.5">
+        <Card className="p-3">
             <div className="flex items-start justify-between gap-2">
                 <div className="text-label-m leading-tight">{surface.name}</div>
                 <div className="flex shrink-0 flex-wrap justify-end gap-1">
-                    {surface.isNewInThisPr && <DevChip tone="ink">NEW in this PR</DevChip>}
-                    <DevChip tone={kind.tone} title={kind.description}>
+                    {surface.isNewInThisPr && <span className="text-label-m">new in this PR</span>}
+                    <span className="text-label-m text-foreground-secondary" title={kind.description}>
                         {kind.label}
-                    </DevChip>
+                    </span>
                 </div>
             </div>
-            <p className="mt-1 text-[11px] leading-snug text-foreground-primary">{surface.copy}</p>
+            <p className="mt-1 text-body-xs leading-snug text-foreground-primary">{surface.copy}</p>
             {surface.cta && (
-                <p className="mt-1 text-[11px] leading-snug">
-                    <span className="rounded-sm bg-action-secondary px-1 font-bold">{surface.cta.label}</span>
+                <p className="mt-1 text-body-xs leading-snug">
+                    <strong>{surface.cta.label}</strong>
                     <span className="text-foreground-secondary"> → {surface.cta.dest}</span>
                 </p>
             )}
-            {surface.note && <p className="mt-1 text-[10px] leading-snug text-foreground-secondary">{surface.note}</p>}
+            {surface.note && <p className="mt-1 text-body-xs leading-snug text-foreground-secondary">{surface.note}</p>}
             {showDev && (
                 <>
-                    <p className="mt-1 text-[10px] leading-snug text-foreground-secondary italic">
+                    <p className="mt-1 text-body-xs leading-snug text-foreground-secondary italic">
                         {surface.condition}
                     </p>
-                    <p className="mt-1.5 font-mono text-[9px] leading-tight break-all text-foreground-secondary">
+                    <p className="mt-2 font-mono text-body-xs leading-tight break-all text-foreground-secondary">
                         {surface.sourceFile}
                     </p>
                 </>
             )}
-        </div>
+        </Card>
     )
 }

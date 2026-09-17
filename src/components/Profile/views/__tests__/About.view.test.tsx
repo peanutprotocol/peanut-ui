@@ -77,16 +77,29 @@ describe('AboutView', () => {
         expect(await screen.findByTestId('beta-updates-card')).toBeInTheDocument()
     })
 
-    // The card reads the badge off the user object, so revealing before the
-    // claim lands would show a disabled toggle and an "ask for access" line on
-    // the very gesture that just granted it.
-    it('earns the team badge and refetches the user before revealing the card', async () => {
+    // The badge is a support/diagnostic record. The card must be usable while
+    // the record and the best-effort profile refresh complete.
+    it('records the team badge and refreshes the user after revealing the card', async () => {
         render(<AboutView appVersion="1.2.3" />)
         tapVersion(5)
 
         await waitFor(() => expect(claimPeanutTeamBadge).toHaveBeenCalledTimes(1))
         await waitFor(() => expect(fetchUser).toHaveBeenCalledTimes(1))
         expect(await screen.findByTestId('beta-updates-card')).toBeInTheDocument()
+    })
+
+    it('reveals the usable switch before a slow badge write completes', async () => {
+        let releaseClaim!: (claimed: boolean) => void
+        claimPeanutTeamBadge.mockReturnValueOnce(new Promise<boolean>((resolve) => (releaseClaim = resolve)))
+
+        render(<AboutView appVersion="1.2.3" />)
+        tapVersion(5)
+
+        expect(await screen.findByTestId('beta-updates-card')).toBeInTheDocument()
+        expect(fetchUser).not.toHaveBeenCalled()
+
+        releaseClaim(true)
+        await waitFor(() => expect(fetchUser).toHaveBeenCalledTimes(1))
     })
 
     // Offline, the switch still has to appear: a device already on beta needs

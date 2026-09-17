@@ -1,27 +1,27 @@
 {
-    "rawHex": 8,
-    "rawHexFiles": 5,
-    "inlineStyle": 21,
+    "rawHex": 4,
+    "rawHexFiles": 3,
+    "inlineStyle": 22,
     "stockTextSize": 0,
-    "dsTextScale": 11,
+    "dsTextScale": 2,
     "nonDsClassesInViews": 6,
-    "useSearchParamsFiles": 44,
-    "nuqsFiles": 25,
+    "useSearchParamsFiles": 35,
+    "nuqsFiles": 37,
     "legacyColorClasses": 0,
     "offRampPalette": 0,
     "deadLegacyTokens": 0,
     "consumedUndefinedTokens": 0,
-    "classNameSitesInPages": 298,
-    "fontWeightOnTypeToken": 45,
-    "offScaleSpacing": 188,
-    "iconOffScale": 68,
-    "offScaleRadius": 37,
-    "rawDuration": 6,
-    "retypedCardLiteral": 16,
-    "hoverNoActiveFiles": 44,
-    "arbitraryFontSize": 110,
-    "rawErrorText": 25,
-    "handRolledCloseGlyphFiles": 9,
+    "classNameSitesInPages": 128,
+    "fontWeightOnTypeToken": 31,
+    "offScaleSpacing": 82,
+    "iconOffScale": 46,
+    "offScaleRadius": 16,
+    "rawDuration": 1,
+    "retypedCardLiteral": 13,
+    "hoverNoActiveFiles": 23,
+    "arbitraryFontSize": 20,
+    "rawErrorText": 14,
+    "handRolledCloseGlyphFiles": 7,
     "_meta": [
         {
             "date": "2026-09-01",
@@ -62,6 +62,26 @@
             "date": "2026-09-07",
             "metrics": ["fontWeightOnTypeToken 46 -> 45"],
             "reason": "PR #3004 semantic contract: conditional branches are alternatives in all contexts. The only per-file count change is dev/_components/DevSegmented.tsx: font-bold in the small branch never co-applies with text-label-m in the other branch. CVA support is explicitly deferred with a diagnostic; there are no src consumers and its removal changes no counts. See scripts/ds-lint-contract.md."
+        },
+        {
+            "date": "2026-09-15",
+            "metrics": ["inlineStyle 21 -> 22"],
+            "reason": "HoldToClaimButton clipped-white label: dynamic clipPath percent must be inline (same pattern as QrPaySuccessView), TASK-22452"
+        },
+        {
+            "date": "2026-09-15",
+            "metrics": ["classNameSitesInPages 127 -> 129"],
+            "reason": "classNameSitesInPages 127->129: inherited from origin/dev's receipts-v2 (#3159) receipt-shell wrappers via the dev merge — upstream code, not this branch's; TASK-22452"
+        },
+        {
+            "date": "2026-09-16",
+            "metrics": ["rawErrorText 15 -> 16"],
+            "reason": "limits red text per the legacy-color ruling — progress-meter text, not a field error"
+        },
+        {
+            "date": "2026-09-16",
+            "metrics": ["useSearchParamsFiles 34 -> 35", "hoverNoActiveFiles 32 -> 33"],
+            "reason": "useSearchParamsFiles: ArticleLocaleNav sanctioned verbatim query passthrough (re-recorded after merge took dev's baseline); hoverNoActiveFiles: the type port moved hand-rolled active:translate into the Button component — files keep a hover: override while press state is component-supplied, a text-scan false positive"
         }
     ]
 }

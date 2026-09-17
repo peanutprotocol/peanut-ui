@@ -2,9 +2,10 @@
 
 // A replacement build may reuse the current native version only when every
 // native change since that version belongs to the platform being rebuilt.
-// Shared changes (Capacitor config, plugin versions, patches) are deliberately
-// rejected: they may alter both shells, even when the immediate incident was
-// observed on one platform.
+// Shared changes (Capacitor config, cross-platform plugin versions, patches)
+// are deliberately rejected: they may alter both shells, even when the
+// immediate incident was observed on one platform. Platform runtime dependency
+// inputs live below android/ or ios/ and therefore remain attributable.
 
 const PLATFORM_PREFIXES = {
     android: 'android/',
@@ -55,7 +56,7 @@ async function main(argv) {
         const paths = outside.map(({ path }) => `  ${path}`).join('\n')
         throw new Error(
             `native changes since ${baseRef} are not ${platform}-only:\n${paths}\n` +
-                'Run the coordinated Release Native workflow so every affected platform advances together.'
+                'Run the coordinated App Release Android & iOS workflow so every affected platform advances together.'
         )
     }
 
@@ -65,7 +66,7 @@ async function main(argv) {
             const paths = unsafe.map(({ path }) => `  ${path}`).join('\n')
             throw new Error(
                 `native changes since ${baseRef} are not safe for older same-version ${platform} installs:\n${paths}\n` +
-                    'A replacement versionName cannot gate these changes away from older binaries. Run the coordinated Release Native workflow instead.'
+                    'A replacement versionName cannot gate these changes away from older binaries. Run the coordinated App Release Android & iOS workflow instead.'
             )
         }
     }

@@ -13,6 +13,10 @@ export type ClaimLinkData = SendLink & { link: string; password: string }
 const CLAIM_LINK_SLOT_PREFIX = 'claim-link-slot'
 // KYC review between opening a link and returning to claim can span days.
 const CLAIM_LINK_TTL_SECONDS = 7 * 24 * 60 * 60
+// Claim status must not wait behind the API's recent-create cache or a slow
+// replica/on-chain fallback. The fetch helper may retry a GET once, so the
+// caller-visible transport budget is still bounded to roughly two attempts.
+export const CLAIM_STATUS_TIMEOUT_MS = 5_000
 
 /**
  * Resolve the link used to fetch + claim a send link, hardened against the
@@ -156,6 +160,31 @@ export const sendLinksApi = {
                 cache: 'no-store',
             }
         )
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        const data: SendLink = jsonParse(await response.text())
+        return data
+    },
+
+    getClaimStatus: async (link: string): Promise<SendLink> => {
+        const params = getParamsFromLink(link)
+        const pubKey = generateKeysFromString(params.password).address
+        const response = await serverFetch(
+            `/send-links/${pubKey}/status?c=${params.chainId}&v=${params.contractVersion}&i=${params.depositIdx}`,
+            {
+                method: 'GET',
+                cache: 'no-store',
+                timeoutMs: CLAIM_STATUS_TIMEOUT_MS,
+                silentTimeout: true,
+            }
+        )
+        // Keep UI and API releases independently deployable while the status
+        // route rolls out. The legacy endpoint is slower, but it is preferable
+        // to leaving a settled claim stuck in the processing state.
+        if (response.status === 404) {
+            return sendLinksApi.get(link)
+        }
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)
         }

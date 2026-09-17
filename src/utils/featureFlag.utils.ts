@@ -1,10 +1,9 @@
 import posthog from 'posthog-js'
 import { BASE_URL } from '@/constants/general.consts'
-import { CHAIN_ROLLOUT_FLAGS } from '@/constants/chainRegistry.consts'
 
 /**
  * PostHog feature flags — the runtime-toggle primitive (non-reactive reads;
- * components use the `useFeatureFlags` / `useChainRollout` hooks so they
+ * components use the `useFeatureFlags` hook so they
  * re-render when flags load).
  *
  * DOCTRINE (mono engineering/patterns/feature-gates.md): a PostHog flag
@@ -27,9 +26,7 @@ export function isFeatureFlagEnabled(flagKey: string, options: FeatureFlagOption
     return posthog.isFeatureEnabled(flagKey) ?? false
 }
 
-/** Chains without a rollout flag (the legacy set) are always on. */
-export function isChainRolledOut(chainKey: string): boolean {
-    const flag = CHAIN_ROLLOUT_FLAGS[chainKey]
-    if (!flag) return true
-    return isFeatureFlagEnabled(flag, { nonProdBypass: true })
+/** PostHog distinguishes an evaluated false from the pre-fetch unknown state. */
+export function areFeatureFlagsLoaded(): boolean {
+    return posthog.featureFlags.hasLoadedFlags
 }
