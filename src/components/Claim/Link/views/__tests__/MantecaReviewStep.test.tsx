@@ -52,6 +52,9 @@ const TX_HASH = '0x' + 'ab'.repeat(32)
 
 function renderStep(claimLink = CLAIM_LINK) {
     const setCurrentStep = jest.fn()
+    // One recovery object per flow, as MantecaFlowManager holds it in a ref
+    // across the step's remounts.
+    const recovery: React.ComponentProps<typeof MantecaReviewStep>['recovery'] = { claimed: null, inFlight: false }
     const view = render(
         <IntlWrapper>
             <MantecaReviewStep
@@ -60,6 +63,7 @@ function renderStep(claimLink = CLAIM_LINK) {
                 destinationAddress="somepixkey@bank.br"
                 amount="10.00"
                 currency="BRL"
+                recovery={recovery}
             />
         </IntlWrapper>
     )
@@ -72,6 +76,7 @@ function renderStep(claimLink = CLAIM_LINK) {
                     destinationAddress="somepixkey@bank.br"
                     amount="10.00"
                     currency="BRL"
+                    recovery={recovery}
                 />
             </IntlWrapper>
         )
