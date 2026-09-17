@@ -72,7 +72,8 @@ beforeEach(() => {
         return { cancel: jest.fn() } as unknown as Animation
     }) as unknown as Element['animate']
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    // the layout's scroll container — the element that gets the settle fade
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 0, writable: true })
+    // The layout's scroll container must stay visually stable during refresh.
     const content = document.createElement('div')
     content.id = 'scrollable-content'
     document.body.appendChild(content)
@@ -131,10 +132,10 @@ describe('usePullToRefresh', () => {
         expect(indicator()?.style.background).toBe('var(--color-background-badge-success)')
         expect(notifyHaptic).toHaveBeenCalledWith('success')
 
-        // the refreshed content fades back in — the "it reloaded" signal on a
-        // screen that never blinks
+        // Completion feedback belongs to the indicator: fading the entire
+        // page makes a successful refresh look like a WebView flash.
         const content = document.querySelector('#scrollable-content')
-        expect(animateCalls.some((call) => call.element === content)).toBe(true)
+        expect(animateCalls.some((call) => call.element === content)).toBe(false)
 
         // ...then the indicator retracts and resets to the arrow
         act(() => {
