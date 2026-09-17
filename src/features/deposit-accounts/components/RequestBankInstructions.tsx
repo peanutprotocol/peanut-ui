@@ -4,9 +4,11 @@ import { DataRow } from '@/components/0_Bruddle/DataRow'
 import Card from '@/components/Global/Card'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { Section } from '@/components/0_Bruddle/Section'
+import { useExchangeRate } from '@/hooks/useExchangeRate'
 import type { RequestDepositInstructions } from '@/services/services.types'
-import { useTranslations } from 'next-intl'
+import { useFormatter, useTranslations } from 'next-intl'
 import { instructionRows } from '../instructionRows'
+import { minorUnitDigits, payerAmount } from '../payerAmount'
 import { corridorFromRailId } from '../rails'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { DepositDetailsCard } from './DepositDetailsCard'
@@ -18,23 +20,66 @@ import { DepositDetailsCard } from './DepositDetailsCard'
  * details screen, built from the same `instructionRows`. A payer and a holder
  * looking at one account must never see two different sets of numbers.
  *
- * The reference is the only thing this screen adds, and it is the one field
- * the payment depends on: without it the deposit still credits the requester,
- * but nothing connects it to this request and the request stays open.
+ * Two things this screen adds, and the payment depends on both. The amount is
+ * stated in the account's own currency, from the same live rate the exchange
+ * rate page reads, because a payer typing a dollar figure into a euro transfer
+ * sends the wrong money. The reference is what connects the deposit to this
+ * request: without it the money still credits the requester, but the request
+ * stays open.
  */
-export function RequestBankInstructions({ instructions }: { instructions: RequestDepositInstructions }) {
+export function RequestBankInstructions({
+    instructions,
+    usdAmount,
+}: {
+    instructions: RequestDepositInstructions
+    /** what the request asks for, in dollars */
+    usdAmount?: string
+}) {
     const t = useTranslations('payment')
+    const format = useFormatter()
     const { t: tDeposit, rowLabels, railLabels, arrivalDetail } = useDepositAccountCopy()
     const account = instructions.depositAccount
+    const currency = account.currency.toUpperCase()
+    const sameCurrency = currency === 'USD'
+
+    const { exchangeRate } = useExchangeRate({
+        sourceCurrency: 'USD',
+        destinationCurrency: currency,
+        enabled: !sameCurrency,
+    })
 
     const rows = account.instructions ? instructionRows(account.instructions, rowLabels, railLabels) : []
     const corridor = corridorFromRailId(account.railId)
+    const toSend = payerAmount(usdAmount, currency, exchangeRate)
+    const digits = minorUnitDigits(currency)
 
     return (
         <div className="flex flex-col gap-4">
             <Section title={tDeposit('details.sectionTitle')}>
                 <DepositDetailsCard rows={rows} />
             </Section>
+
+            {toSend !== undefined && (
+                <div className="flex flex-col gap-2">
+                    <Card position="single" className="px-4 py-0">
+                        <DataRow
+                            label={t('bankTransfer.amountLabel')}
+                            value={t('bankTransfer.amountValue', {
+                                amount: format.number(toSend, {
+                                    minimumFractionDigits: digits,
+                                    maximumFractionDigits: digits,
+                                }),
+                                currency,
+                            })}
+                            allowCopy={true}
+                            copyValue={toSend.toFixed(digits)}
+                        />
+                    </Card>
+                    <p className="text-body-s text-foreground-secondary">
+                        {sameCurrency ? t('bankTransfer.amountNoteSameCurrency') : t('bankTransfer.amountNote')}
+                    </p>
+                </div>
+            )}
 
             <Section title={t('bankTransfer.referenceSection')}>
                 <Card position="single" className="px-4 py-0">

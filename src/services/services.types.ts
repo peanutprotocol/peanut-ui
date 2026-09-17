@@ -32,6 +32,12 @@ export interface CreateRequestRequest {
 export type RequestDepositInstructions =
     paths['/requests/{uuid}/deposit-instructions']['get']['responses'][200]['content']['application/json']
 
+/**
+ * How much of a request money arriving by bank answered, as the backend
+ * decides it: nothing yet, some of it, or the whole request.
+ */
+export type BankFulfilment = 'none' | 'partial' | 'paid'
+
 export interface TRequestResponse {
     uuid: string
     chainId: string
@@ -50,10 +56,23 @@ export interface TRequestResponse {
      * A bank deposit carrying this request's reference answered it. `paidAt`
      * is when it landed and `receivedAmount` is what arrived, which can be
      * less than `tokenAmount` — a part payment leaves the request open.
+     *
+     * `bankFulfilment` is the backend's own verdict on those two numbers: a
+     * transfer loses fees on the way, so the request counts as paid once the
+     * net amount is close enough to the amount asked. Read it rather than
+     * comparing the amounts here.
+     *
+     * `payerName` is the name the payer's bank reported on the last transfer.
+     * It is on the owner-facing request alone — a payer opening the link never
+     * sees who else paid it.
+     *
+     * Both are optional while the backend that returns them ships.
      */
     paidAt: string | null
     fulfilledByIntentId: string | null
     receivedAmount: string | null
+    bankFulfilment?: BankFulfilment
+    payerName?: string | null
     bankInstructionsShared: boolean
     charges: ChargeEntry[]
     history: TRequestHistory[]

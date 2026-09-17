@@ -214,7 +214,9 @@ export function RequestPotActionList({
                     fallback for a payer whose bank is the only thing they
                     have, not the first thing offered.
                 */}
-                {requestId && <PayByBankTransferDrawer requestId={requestId} bankPayable={bankPayable} />}
+                {requestId && (
+                    <PayByBankTransferDrawer requestId={requestId} bankPayable={bankPayable} usdAmount={usdAmount} />
+                )}
             </div>
 
             {/* minimum amount error modal */}

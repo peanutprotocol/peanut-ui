@@ -17,7 +17,16 @@ import { useState } from 'react'
  * the username page for the same reason — a request link is a thing somebody
  * was given, a public profile is not.
  */
-export function PayByBankTransferDrawer({ requestId, bankPayable }: { requestId: string; bankPayable: boolean }) {
+export function PayByBankTransferDrawer({
+    requestId,
+    bankPayable,
+    usdAmount,
+}: {
+    requestId: string
+    bankPayable: boolean
+    /** what the request asks for, so the payer reads it in the account's currency */
+    usdAmount?: string
+}) {
     const t = useTranslations('payment')
     const [isOpen, setIsOpen] = useState(false)
     const { instructions, isLoading, isUnavailable } = useRequestDepositInstructions(requestId, bankPayable && isOpen)
@@ -49,7 +58,7 @@ export function PayByBankTransferDrawer({ requestId, bankPayable }: { requestId:
                                 {t('bankTransfer.unavailable')}
                             </p>
                         )}
-                        {instructions && <RequestBankInstructions instructions={instructions} />}
+                        {instructions && <RequestBankInstructions instructions={instructions} usdAmount={usdAmount} />}
                     </div>
                 </DrawerContent>
             </Drawer>

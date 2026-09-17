@@ -1,22 +1,29 @@
+import type { BankFulfilment } from '@/services/services.types'
+
 /**
  * How much of a payment request a bank deposit answered.
  *
- * `paidAt` alone is not the whole answer. The backend marks the request paid
- * as soon as a deposit names it, and only closes it when at least the amount
- * asked for arrived — so a request can be paid AND still short. Telling the
- * requester "paid" over a part payment is the one mistake this exists to
- * prevent.
+ * The backend owns this answer and returns it as `bankFulfilment`. A bank
+ * transfer loses fees on the way and lands as a converted amount, so "did the
+ * requested amount arrive" is a question about tolerance, not about equality —
+ * and the tolerance belongs where the deposit is booked, not on a screen.
  *
- * A request with no amount asks for whatever the payer sends, so anything that
- * arrives pays it in full.
+ * The comparison below is the fallback for a response from before the field
+ * existed. It reads short of the asked amount as a part payment, which is what
+ * this file was written for: telling the requester "paid" over a part payment
+ * is the one mistake to prevent. A request with no amount asks for whatever the
+ * payer sends, so anything that arrives pays it in full.
  */
 export type RequestFulfillmentState = 'unpaid' | 'partial' | 'paid'
 
 export function requestFulfillmentState(request: {
+    bankFulfilment?: BankFulfilment | null
     paidAt: string | null
     receivedAmount: string | null
     tokenAmount: string | null
 }): RequestFulfillmentState {
+    if (request.bankFulfilment) return request.bankFulfilment === 'none' ? 'unpaid' : request.bankFulfilment
+
     if (!request.paidAt || !request.receivedAmount) return 'unpaid'
     if (!request.tokenAmount) return 'paid'
 

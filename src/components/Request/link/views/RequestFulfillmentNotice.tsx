@@ -39,15 +39,17 @@ export function RequestFulfillmentNotice({ requestId, bankPayable }: { requestId
     const received = formatTokenAmount(data.receivedAmount ?? '0', 2) ?? data.receivedAmount ?? '0'
     const requested = formatTokenAmount(data.tokenAmount, 2) ?? data.tokenAmount ?? '0'
 
+    // A part payment states both numbers, because the requester's next move is
+    // to ask for the difference. A paid request states who paid instead: the
+    // amount is settled, and the name is the only fact left that the requester
+    // does not already know.
+    const paidValue = data.payerName ? t('paidByBank.paidByName', { name: data.payerName }) : t('paidByBank.paidByBank')
+
     return (
         <Card position="single" className="w-full px-4 py-0">
             <DataRow
                 label={t('paidByBank.rowLabel')}
-                value={
-                    state === 'paid'
-                        ? t('paidByBank.receivedFull', { received })
-                        : t('paidByBank.receivedPartial', { received, requested })
-                }
+                value={state === 'paid' ? paidValue : t('paidByBank.receivedPartial', { received, requested })}
                 trailing={
                     <StatusBadge
                         status={state === 'paid' ? 'completed' : 'pending'}
