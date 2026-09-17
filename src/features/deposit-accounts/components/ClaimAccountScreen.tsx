@@ -10,9 +10,8 @@ import { Section } from '@/components/0_Bruddle/Section'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
-import type { ClaimableCorridor, DepositDetailRow, DepositRail } from '../types'
+import type { ClaimableCorridor, DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
-import { DepositDetailsCard } from './DepositDetailsCard'
 import { DepositFeeLine } from './DepositFeeLine'
 import { DepositRuleList } from './DepositRuleList'
 
@@ -20,10 +19,9 @@ import { DepositRuleList } from './DepositRuleList'
  * The claim step — the one screen where the user decides to hold an account.
  *
  * It sells the outcome (a real account, not a lookup) before it asks for the
- * tap: a preview of the details card so the shape is not a surprise, three
- * benefit rows for what the account actually buys them, and the conditions
- * — a bank's rules, not ours — held to one Notification above the CTA rather
- * than stacked into the page.
+ * tap: three benefit rows for what the account actually buys them, and the
+ * conditions — a bank's rules, not ours — held to one Notification above the
+ * CTA rather than stacked into the page.
  *
  * Who may pay in is stated here, in the same three lines the details screen
  * states them in and through the same resolver: the backend runs it before an
@@ -58,20 +56,11 @@ export function ClaimAccountScreen({
     onClaim: () => void
     onBack: () => void
 }) {
-    const { t, rowLabels, arrivalDetail, ruleLines } = useDepositAccountCopy()
+    const { t, arrivalDetail, ruleLines } = useDepositAccountCopy()
     // "Good to know" already exists as a title for a bank's-rules-not-ours
     // aside (BalanceWarningDrawer) — reused rather than re-authored so the
     // catalog does not carry two English strings with two translations.
     const tGlobal = useTranslations('global')
-
-    // A sample of the shape the real card will have, never real numbers: the
-    // backend only returns instructions once the account exists, so anything
-    // more specific here would be a promise the claim has not made yet. The
-    // account holder is left out for the same reason — on a provider-held
-    // corridor the name is our banking partner, not the user's.
-    const previewRows: DepositDetailRow[] = [
-        { key: 'accountNumber', label: rowLabels.accountNumber, value: '•••• •••• 4821', copyable: false },
-    ]
 
     const rules = terms ? ruleLines(terms.matching, terms.rules, userName) : undefined
     // The terms were resolved without one input, and only the dollar rail
@@ -90,11 +79,6 @@ export function ClaimAccountScreen({
                     title={t('claim.heading', { currency: rail.currency })}
                     description={t('claim.subheading')}
                 />
-
-                <Section title={t('claim.previewTitle')}>
-                    <DepositDetailsCard rows={previewRows} />
-                    <p className="text-body-xs text-foreground-secondary">{t('claim.previewCaption')}</p>
-                </Section>
 
                 {/*
                  * `title` is a plain string here on purpose, wrapped in a span:

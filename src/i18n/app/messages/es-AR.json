@@ -1734,7 +1734,7 @@
             "verifyTitle": "Primero verificá tu identidad",
             "verifyBody": "Solo podemos abrir una cuenta a tu nombre cuando sabemos quién sos.",
             "waitBody": "No tenés que hacer nada. Esta pantalla se actualiza sola.",
-            "emailBody": "Tu identidad está verificada. Nunca recibimos un correo para pasarle a nuestro socio, así que no podemos abrir la cuenta hasta que agregues uno.",
+            "emailBody": "Tu identidad está verificada. Nunca recibimos un correo para reenviar, así que no podemos abrir la cuenta hasta que agregues uno.",
             "emailCta": "Agregá tu email",
             "limitTitle": "Ya tenés dos cuentas",
             "limitBody": "Dos cuentas bancarias es lo normal. Si necesitás otra, soporte puede abrirla."
@@ -1744,24 +1744,24 @@
                 "why": "Podés transferir desde tu propia cuenta bancaria. Contactá a soporte antes de enviar más de US$100.000."
             },
             "ownAccountMax": {
-                "why": "La plata que te enviás a vos mismo es una recarga, no un pago de otra persona. Nuestro socio bancario acepta hasta {max} desde tu propia cuenta en esta moneda. Si una transferencia tuya más grande se devuelve, escribí a soporte."
+                "why": "La plata que te enviás a vos mismo es una recarga, no un pago de otra persona. Se aceptan hasta {max} desde tu propia cuenta en esta moneda. Si una transferencia tuya más grande se devuelve, escribí a soporte."
             },
             "individualAny": {
-                "why": "Nuestro socio bancario acepta pagos de otras personas en esta moneda, así que podés dar estos datos a quien te pague."
+                "why": "Se aceptan pagos de otras personas en esta moneda, así que podés dar estos datos a quien te pague."
             },
             "individualCap": {
-                "why": "Nuestro socio bancario limita a {cap} un pago único de una persona. Una empresa no tiene ese límite. Si alguien necesita pagarte más de {cap} en un solo pago, escribí a soporte."
+                "why": "Un pago único de otra persona tiene un límite de {cap}. Una empresa puede pagar cualquier monto. Para recibir más de {cap} de una persona en un solo pago, escribí a soporte."
             },
             "individualCapFamily": {
-                "why": "Nuestro socio bancario limita a {cap} un pago único de una persona. Una empresa no tiene ese límite, y los familiares con tu mismo apellido tampoco. Si alguien necesita pagarte más de {cap} en un solo pago, escribí a soporte."
+                "why": "Un pago único de otra persona tiene un límite de {cap}. Una empresa puede pagar cualquier monto, y también los familiares con tu mismo apellido. Para recibir más de {cap} de una persona en un solo pago, escribí a soporte."
             },
             "individualVolume": {
                 "line": "Desde otra persona: hasta {limit} en total. Preguntá a soporte por el periodo.",
                 "payer": "Desde otra persona: hasta {limit} en total. Pedile al titular que consulte el periodo con soporte.",
-                "why": "Nuestro socio bancario limita a {limit} el total que otras personas pueden pagar a esta cuenta. No publica el periodo que cubre ese total, así que escribí a soporte antes de un pago grande. Una empresa no tiene ese límite."
+                "why": "El total que otras personas pueden pagar a esta cuenta tiene un límite de {limit}. El periodo que cubre ese total no se publica, así que escribí a soporte antes de un pago grande. Una empresa puede pagar cualquier monto."
             },
             "individualUnconfirmed": {
-                "why": "Solo indicamos lo que nuestro socio bancario confirmó para esta moneda, y no dijo nada sobre pagos de otras personas. Los datos funcionan; si alguna vez un pago se devuelve, avisanos y lo resolvemos."
+                "why": "Los pagos de otras personas no están confirmados en esta moneda. Los datos funcionan; si alguna vez un pago se devuelve, avisanos y lo resolvemos."
             },
             "stateRestricted": {
                 "line": "Solo vos podés ingresar plata, desde una cuenta bancaria a tu nombre."

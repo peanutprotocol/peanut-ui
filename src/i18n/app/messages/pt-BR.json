@@ -3951,8 +3951,6 @@
         "claim": {
             "heading": "Dados bancários em {currency}",
             "subheading": "Dados bancários reais que seu empregador, cliente ou plataforma já sabe usar.",
-            "previewTitle": "Como seus dados vão aparecer",
-            "previewCaption": "Só um exemplo — seus números reais aparecem quando a conta for aberta.",
             "conditionTerms": "Quem pode te pagar depende dos termos de {currency}. Você vai ver assim que a conta for aberta.",
             "statePending": "As regras do seu estado são confirmadas quando você abre a conta.",
             "benefitStable": "Envie esses dados uma vez — eles continuam os mesmos em cada pagamento depois.",
@@ -4077,7 +4075,7 @@
             "blockedTitle": "Não conseguimos abrir uma conta para você",
             "supportCta": "Falar com o suporte",
             "emailTitle": "Precisamos de um e-mail",
-            "emailBody": "Sua identidade está verificada. Nunca recebemos um e-mail para repassar ao nosso parceiro, então a conta não pode ser aberta até você adicionar um.",
+            "emailBody": "Sua identidade está verificada. Nunca recebemos um e-mail para repassar, então a conta não pode ser aberta até você adicionar um.",
             "emailCta": "Adicione seu e-mail",
             "notYetTitle": "Ainda não está disponível para você",
             "notYetBody": "Estamos abrindo aos poucos.",
@@ -4089,9 +4087,9 @@
         },
         "rules": {
             "providerHeld": {
-                "line": "A conta é mantida pelo nosso parceiro bancário em seu nome.",
-                "payer": "A conta é mantida pelo nosso parceiro bancário em nome de {user}.",
-                "why": "O dinheiro que entra continua chegando ao seu saldo na Peanut. O nome na conta é o do parceiro, não o seu, então um formulário de folha de pagamento que confere o nome precisa do titular mostrado acima."
+                "line": "A conta é mantida para você, não no seu nome.",
+                "payer": "A conta é mantida para {user}, não no nome dele.",
+                "why": "O dinheiro que entra continua chegando ao seu saldo na Peanut. O nome na conta não é o seu, então um formulário de folha de pagamento que confere o nome precisa do titular mostrado acima."
             },
             "ownAccount": {
                 "line": "Da sua própria conta: sim.",
@@ -4101,47 +4099,47 @@
             "ownAccountMax": {
                 "line": "Da sua própria conta: até {max}.",
                 "payer": "Da conta do próprio titular: até {max}.",
-                "why": "O dinheiro que você envia para si mesmo é um depósito seu, não um pagamento de outra pessoa. Nosso parceiro bancário aceita até {max} da sua própria conta nesta moeda. Se uma transferência maior sua voltar, fale com o suporte."
+                "why": "O dinheiro que você envia para si mesmo é um depósito seu, não um pagamento de outra pessoa. São aceitos até {max} da sua própria conta nesta moeda. Se uma transferência maior sua voltar, fale com o suporte."
             },
             "ownAccountNo": {
                 "line": "Da sua própria conta: ainda não.",
                 "payer": "Da conta do próprio titular: ainda não.",
-                "why": "Nosso parceiro bancário não aceita uma transferência da sua própria conta bancária nesta moeda. Vamos avisar aqui no dia em que aceitar."
+                "why": "Ainda não são aceitas transferências da sua própria conta bancária nesta moeda. Vamos avisar aqui no dia em que isso mudar."
             },
             "businessAny": {
                 "line": "De uma empresa: qualquer valor.",
                 "payer": "De uma empresa: qualquer valor.",
-                "why": "Um banco lê a transferência de uma empresa como pagamento comercial, então nosso parceiro bancário não coloca limite. Salário e faturas passam sem mudança."
+                "why": "Um pagamento de uma empresa não tem limite. Salário e faturas passam sem mudança."
             },
             "businessNotYet": {
                 "line": "De uma empresa: ainda não.",
                 "payer": "De uma empresa: ainda não.",
-                "why": "Nosso parceiro bancário ainda não liberou pagamentos de empresas nesta moeda. Vamos avisar aqui no dia em que liberar."
+                "why": "Pagamentos de empresas ainda não estão disponíveis nesta moeda. Vamos avisar aqui no dia em que isso mudar."
             },
             "businessUnconfirmed": {
                 "line": "De uma empresa: não confirmado.",
                 "payer": "De uma empresa: não confirmado. A transferência pode ser devolvida.",
-                "why": "Nosso parceiro bancário não confirmou pagamentos de empresas nesta moeda. Os dados funcionam; se algum pagamento voltar, nos avise e a gente resolve."
+                "why": "Pagamentos de empresas não estão confirmados nesta moeda. Os dados funcionam; se algum pagamento voltar, nos avise e a gente resolve."
             },
             "individualAny": {
                 "line": "De outra pessoa: qualquer valor.",
                 "payer": "De outra pessoa: qualquer valor.",
-                "why": "Nosso parceiro bancário aceita pagamentos de outras pessoas nesta moeda, então você pode passar estes dados a quem for te pagar."
+                "why": "Pagamentos de outras pessoas são aceitos nesta moeda, então você pode passar estes dados a quem for te pagar."
             },
             "individualCap": {
                 "line": "De outra pessoa: menos de {cap} por pagamento.",
                 "payer": "De outra pessoa: menos de {cap} por pagamento.",
-                "why": "Nosso parceiro bancário limita a {cap} um pagamento único de uma pessoa física. Uma empresa não tem esse limite. Se alguém precisar te pagar mais de {cap} em um único pagamento, fale com o suporte."
+                "why": "Um pagamento único de outra pessoa tem limite de {cap}. Uma empresa pode pagar qualquer valor. Para receber mais de {cap} de uma pessoa em um único pagamento, fale com o suporte."
             },
             "individualCapFamily": {
                 "line": "De outra pessoa: menos de {cap} por pagamento. Familiares com o seu sobrenome: qualquer valor.",
                 "payer": "De outra pessoa: menos de {cap} por pagamento. Familiares com o sobrenome do titular: qualquer valor.",
-                "why": "Nosso parceiro bancário limita a {cap} um pagamento único de uma pessoa física. Uma empresa não tem esse limite, e familiares com o seu sobrenome também não. Se alguém precisar te pagar mais de {cap} em um único pagamento, fale com o suporte."
+                "why": "Um pagamento único de outra pessoa tem limite de {cap}. Uma empresa pode pagar qualquer valor, e familiares com o seu sobrenome também. Para receber mais de {cap} de uma pessoa em um único pagamento, fale com o suporte."
             },
             "individualVolume": {
                 "line": "De outra pessoa: até {limit} no total. Pergunte ao suporte sobre o período.",
                 "payer": "De outra pessoa: até {limit} no total. Peça ao titular para confirmar o período com o suporte.",
-                "why": "Nosso parceiro bancário limita a {limit} o total que outras pessoas físicas podem pagar nesta conta. Ele não publica o período que esse total cobre, então fale com o suporte antes de um pagamento grande. Uma empresa não tem esse limite."
+                "why": "O total que outras pessoas podem pagar nesta conta tem limite de {limit}. O período que esse total cobre não é publicado, então fale com o suporte antes de um pagamento grande. Uma empresa pode pagar qualquer valor."
             },
             "individualNotYet": {
                 "line": "De outra pessoa: ainda não.",
@@ -4151,7 +4149,7 @@
             "individualUnconfirmed": {
                 "line": "De outra pessoa: não confirmado.",
                 "payer": "De outra pessoa: não confirmado. A transferência pode ser devolvida.",
-                "why": "Só informamos o que nosso parceiro bancário confirmou para esta moeda, e ele não falou nada sobre pagamentos de outras pessoas. Os dados funcionam; se algum pagamento voltar, nos avise e a gente resolve."
+                "why": "Pagamentos de outras pessoas não estão confirmados nesta moeda. Os dados funcionam; se algum pagamento voltar, nos avise e a gente resolve."
             },
             "minimum": {
                 "line": "Depósito mínimo: {min}.",
@@ -4166,7 +4164,7 @@
             "ownName": {
                 "line": "Deposite de uma conta bancária no seu nome.",
                 "payer": "Só o titular pode pagar nesta conta.",
-                "why": "Nosso parceiro bancário só credita uma transferência que venha de uma conta no seu nome. Um pagamento de qualquer outra pessoa volta para quem enviou."
+                "why": "Só é creditada uma transferência que venha de uma conta no seu nome. Um pagamento de qualquer outra pessoa volta para quem enviou."
             },
             "businessAllowed": {
                 "line": "De uma empresa: aceito.",
