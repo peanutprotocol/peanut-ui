@@ -807,7 +807,11 @@ export default function WithdrawCryptoPage() {
     const displayError = paymentError
 
     // Get network fee from Rhino preview. Under SDA the fee is a transparent
-    // bridge-fee in USD — no slippage distinction.
+    // bridge-fee in USD — no slippage distinction. The quote is the only
+    // source: it is account-bound, so it already reflects whichever networks
+    // Peanut sponsors, and it is re-fetched on every attempt. `receiveAmount`
+    // comes from the same quote and already has the fee taken off (withdraw
+    // quotes are pay mode), so the row below needs no arithmetic here.
     const networkFee = useMemo<number>(() => feeUsd ?? 0, [feeUsd])
 
     // Non-blocking heads-up when the bridge fee is a large share of the amount
@@ -854,13 +858,21 @@ export default function WithdrawCryptoPage() {
     // Rhino accepts SDA deposits below the route minimum on-chain but never
     // bridges them — funds strand at the SDA, uncredited. Block the CTA before
     // the user signs. Same-chain USDC transfers have no minimum.
-    const belowMinimumMessage = useMemo<string | null>(
-        () =>
-            isCrossChainWithdrawal && isBelowRhinoMinDeposit(payAmount, minDepositLimitUsd)
-                ? `The minimum withdrawal to this network is $${minDepositLimitUsd}. Enter a larger amount.`
-                : null,
-        [isCrossChainWithdrawal, payAmount, minDepositLimitUsd]
-    )
+    const belowMinimumMessage = useMemo<string | null>(() => {
+        if (!isCrossChainWithdrawal) return null
+        if (isBelowRhinoMinDeposit(payAmount, minDepositLimitUsd)) {
+            return `The minimum withdrawal to this network is $${minDepositLimitUsd}. Enter a larger amount.`
+        }
+        // Rhino's route minimum is about the bridge rejecting a small deposit,
+        // not about the fee. A quote whose fee takes the whole amount leaves
+        // nothing to deliver, so block it rather than show the recipient a
+        // delivery they will never see.
+        const amountUsdValue = parseFloat(usdAmount)
+        if (networkFee > 0 && Number.isFinite(amountUsdValue) && networkFee >= amountUsdValue) {
+            return `The network fee to ${withdrawData?.chain.networkName ?? 'this network'} is $${networkFee.toFixed(2)}, which is more than you are withdrawing. Enter a larger amount or pick a cheaper network.`
+        }
+        return null
+    }, [isCrossChainWithdrawal, payAmount, minDepositLimitUsd, networkFee, usdAmount, withdrawData])
 
     // Redirect to main withdraw page for amount input. The push must run in an
     // effect — navigating during render is a React violation ("Cannot update

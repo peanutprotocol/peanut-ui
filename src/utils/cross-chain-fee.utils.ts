@@ -1,14 +1,13 @@
 /**
  * Cross-chain withdrawal fee display and heads-up.
  *
- * The app quotes with Rhino's authenticated (account-bound) quote, and
- * Peanut's account is configured 1:1 with no on-chain fee on stablecoin
- * routes — so `feeUsd` is normally 0 and the row shows the sponsored label.
- * Rhino can still deduct a small network cost on delivery (1–3 bps seen on
- * Solana) and the account config can change, so everything here reads the
- * quote verbatim and never assumes zero: a non-zero quote is shown as-is, and
- * when it is a large share of a small withdrawal we surface a non-blocking
- * heads-up rather than block.
+ * The app quotes with Rhino's authenticated (account-bound) quote, so `feeUsd`
+ * already reflects which networks Peanut sponsors — a sponsored route quotes
+ * zero and the row shows the sponsored label. Nothing here assumes which
+ * routes those are, or stays right only until the account changes: the quote
+ * is read verbatim, a non-zero one is shown as-is, and when it is a large
+ * share of a small withdrawal we surface a non-blocking heads-up rather than
+ * block.
  */
 
 /**

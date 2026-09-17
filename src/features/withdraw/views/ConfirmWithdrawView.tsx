@@ -211,9 +211,10 @@ export default function ConfirmWithdrawView({
                         loading={isCrossChain && isCalculating}
                         estimationFailed={isCrossChain && quoteFailed}
                         // Two different things to explain: nothing charged on
-                        // top (the sponsored row), or a quoted fee — which this
-                        // flow quotes receive-mode, so it sits inside You pay,
-                        // not on top of it.
+                        // top (the sponsored row), or a quoted fee. Withdraw
+                        // quotes are pay-mode (useCrossChainTransfer), so the
+                        // fee comes out of what the recipient receives — it is
+                        // never added on top of You pay.
                         moreInfoText={
                             isCrossChain && (networkFee ?? 0) > 0
                                 ? t('confirm.networkFeeChargedInfo')
