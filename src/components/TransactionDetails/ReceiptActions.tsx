@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLocale } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { Button } from '@/components/0_Bruddle/Button'
 import CancelSendLinkDrawer from '@/components/Global/CancelSendLinkDrawer'
@@ -14,6 +15,7 @@ import { CancelDepositActions } from './provider-actions/CancelDepositActions'
 import { ReceiptSupportLink } from './ReceiptSupportLink'
 import { DownloadReceiptPdfLink } from './DownloadReceiptPdfLink'
 import { ReceiptMoreActionsDrawer, type ReceiptMoreAction } from './ReceiptMoreActionsDrawer'
+import { openReceiptPdfUrl, receiptPdfPath } from './receipt-pdf-link.utils'
 import { useReceiptPdfFile } from './useReceiptPdfFile'
 import { useReceiptReferralAction } from './useReceiptReferralAction'
 import { type ReceiptViewModel } from './useReceiptViewModel'
@@ -64,6 +66,7 @@ export function ReceiptActions({
     setIsModalOpen?: (isModalOpen: boolean) => void
 }) {
     const t = useAppTranslations('transaction')
+    const locale = useLocale()
     const router = useRouter()
     const { closeRequest, rejectRequest, cancelSendLink } = useReceiptActions(transaction)
     const { setIsSupportModalOpen } = useModalsContext()
@@ -178,19 +181,24 @@ export function ReceiptActions({
                     setShowMoreActions(false)
                     void pdfFile.share()
                 },
-                disabled: pdfFile.unavailable,
+                disabled: pdfFile.unavailable || pdfFile.busy !== null,
                 'data-testid': 'more-action-share',
             })
         }
         if (canDownloadPdf) {
+            // public-capability kinds keep their pre-existing url download —
+            // anchor on web, system browser on native, no bearer, no wait.
+            // only private kinds use the authenticated file hook.
+            const downloadViaUrl = hasPublicReceiptPage
             moreActions.push({
                 icon: 'download',
                 title: t('actions.downloadPdf'),
                 onSelect: () => {
                     setShowMoreActions(false)
-                    void pdfFile.download()
+                    if (downloadViaUrl) openReceiptPdfUrl(receiptPdfPath(transaction.id, kind!, locale))
+                    else void pdfFile.download()
                 },
-                disabled: canSharePdf && pdfFile.unavailable,
+                disabled: !downloadViaUrl && (pdfFile.unavailable || pdfFile.busy !== null),
                 'data-testid': 'more-action-download',
             })
         }
@@ -337,10 +345,13 @@ export function ReceiptActions({
                 </div>
             )}
 
-            {/* public page: download is the one primary; no account actions */}
+            {/* public page: download is the one primary; no account actions.
+                support sits in the same tight group (S/8) — the link wrapper
+                reserves its own 44px target so the two cannot overlap */}
             {isPublic && canDownloadPdf && kind && (
                 <div className="flex flex-col gap-2 pr-1 print:hidden">
                     <DownloadReceiptPdfLink entryId={transaction.id} kind={kind} />
+                    {isTest ? <PasskeyDocsLink className="border-t-0 pt-0" /> : <ReceiptSupportLink />}
                 </div>
             )}
 
@@ -353,8 +364,10 @@ export function ReceiptActions({
                 setIsModalOpen={setIsModalOpen}
             />
 
-            {/* support link section or passkey docs for test transactions */}
-            {isTest ? <PasskeyDocsLink className="border-t-0 pt-0" /> : !supportInDrawer && <ReceiptSupportLink />}
+            {/* support link section or passkey docs for test transactions —
+                unless the public action group above already carries it */}
+            {!(isPublic && canDownloadPdf && kind) &&
+                (isTest ? <PasskeyDocsLink className="border-t-0 pt-0" /> : !supportInDrawer && <ReceiptSupportLink />)}
 
             <ReceiptMoreActionsDrawer
                 // rendered inside the transaction details drawer whenever that

@@ -1,7 +1,7 @@
 'use client'
 
 import * as Sentry from '@sentry/nextjs'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocale } from 'next-intl'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { downloadBlob } from '@/components/Card/share-asset/captureShareAsset'
@@ -58,8 +58,9 @@ async function fetchReceiptPdf(path: `/${string}`, entryId: string): Promise<Rec
  * the authenticated pdf-file behavior that lived inside
  * PrivateReceiptPdfActions (#3159), as a hook so the receipt's primary share
  * button and the more-actions drawer rows reuse one fetch/share/download
- * path (TASK-22452). auth, native CapacitorHttp handling, prefetch and
- * retry-on-failure semantics are unchanged.
+ * path. auth, native CapacitorHttp handling, prefetch and retry-on-failure
+ * semantics are unchanged — including the guarantee that a cached file is
+ * shared synchronously from the click, which native share sheets require.
  */
 export function useReceiptPdfFile({
     entryId,
@@ -78,12 +79,21 @@ export function useReceiptPdfFile({
     const [error, setError] = useState(false)
     const [busy, setBusy] = useState<'share' | 'download' | null>(null)
     const pdfPath: `/${string}` = `/receipt/${encodeURIComponent(entryId)}/pdf?kind=${encodeURIComponent(kind)}&locale=${encodeURIComponent(locale)}`
+    // the identity a cached or in-flight file belongs to; a receipt/locale
+    // switch must never share the previous transaction's document
+    const pathRef = useRef(pdfPath)
+    pathRef.current = pdfPath
+    // state alone cannot guard same-tick double taps (it only lands on the
+    // next render); the ref makes repeated selection while pending a no-op
+    const busyRef = useRef(false)
 
     useEffect(() => {
-        if (!prefetch) return
-        let cancelled = false
+        // always drop a stale file on identity change — with or without
+        // prefetch; the on-demand path must refetch for the new receipt
         setPdf(null)
         setError(false)
+        if (!prefetch) return
+        let cancelled = false
         void fetchReceiptPdf(pdfPath, entryId)
             .then((file) => {
                 if (!cancelled) setPdf(file)
@@ -98,63 +108,63 @@ export function useReceiptPdfFile({
         }
     }, [entryId, pdfPath, prefetch])
 
-    const ensureFile = async (action: string): Promise<ReceiptPdfFile | null> => {
-        let receipt = pdf
-        if (!receipt) {
-            setError(false)
-            try {
-                receipt = await fetchReceiptPdf(pdfPath, entryId)
+    const runFileAction = async (
+        action: 'share' | 'download',
+        deliver: (file: File, receipt: ReceiptPdfFile) => Promise<void>
+    ) => {
+        if (busyRef.current) return
+        busyRef.current = true
+        setBusy(action)
+        const requestPath = pdfPath
+        try {
+            // cached file first, synchronously — the share sheet must open
+            // inside the click's user activation when the prefetch landed
+            let receipt = pdf
+            if (!receipt) {
+                setError(false)
+                try {
+                    receipt = await fetchReceiptPdf(requestPath, entryId)
+                } catch (cause) {
+                    setError(true)
+                    Sentry.captureException(cause, { tags: { feature: 'receipt-pdf', action: `${action}-retry` } })
+                    toast.error(t('actions.receiptPdfUnavailable'))
+                    return
+                }
+                // the receipt changed while fetching: this file belongs to
+                // the previous identity — do not cache it, do not deliver it
+                if (pathRef.current !== requestPath) return
                 setPdf(receipt)
-            } catch (cause) {
-                setError(true)
-                Sentry.captureException(cause, { tags: { feature: 'receipt-pdf', action } })
-                toast.error(t('actions.receiptPdfUnavailable'))
-                return null
             }
+            const file = new File([receipt.blob], receipt.filename, { type: 'application/pdf' })
+            await deliver(file, receipt)
+        } catch (cause) {
+            if (cause instanceof Error && cause.name === 'AbortError') return
+            Sentry.captureException(cause, { tags: { feature: 'receipt-pdf', action } })
+            toast.error(t('actions.receiptPdfUnavailable'))
+        } finally {
+            busyRef.current = false
+            setBusy(null)
         }
-        return receipt
     }
 
-    const share = async () => {
-        setBusy('share')
-        try {
-            const receipt = await ensureFile('share-retry')
-            if (!receipt) return
-            const file = new File([receipt.blob], receipt.filename, { type: 'application/pdf' })
+    const share = () =>
+        runFileAction('share', async (file, receipt) => {
             if (navigator.share && navigator.canShare?.({ files: [file] })) {
                 await navigator.share({ files: [file], title: t('officialReceipt.pdf.title') })
             } else {
                 downloadBlob(receipt.blob, receipt.filename)
                 toast.info(t('actions.pdfDownloadedInstead'))
             }
-        } catch (cause) {
-            if (cause instanceof Error && cause.name === 'AbortError') return
-            Sentry.captureException(cause, { tags: { feature: 'receipt-pdf', action: 'share' } })
-            toast.error(t('actions.receiptPdfUnavailable'))
-        } finally {
-            setBusy(null)
-        }
-    }
+        })
 
-    const download = async () => {
-        setBusy('download')
-        try {
-            const receipt = await ensureFile('download-retry')
-            if (!receipt) return
-            const file = new File([receipt.blob], receipt.filename, { type: 'application/pdf' })
+    const download = () =>
+        runFileAction('download', async (file, receipt) => {
             if (isCapacitor() && navigator.share && navigator.canShare?.({ files: [file] })) {
                 await navigator.share({ files: [file], title: t('officialReceipt.pdf.title') })
             } else {
                 downloadBlob(receipt.blob, receipt.filename)
             }
-        } catch (cause) {
-            if (cause instanceof Error && cause.name === 'AbortError') return
-            Sentry.captureException(cause, { tags: { feature: 'receipt-pdf', action: 'download' } })
-            toast.error(t('actions.receiptPdfUnavailable'))
-        } finally {
-            setBusy(null)
-        }
-    }
+        })
 
     // with prefetch on, actions stay disabled while the initial fetch is
     // unresolved, then become clickable after a failure so either can retry

@@ -3,9 +3,9 @@
 import { useLocale } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
-import { shareableUrl } from '@/utils/url.utils'
+import { isCapacitor } from '@/utils/capacitor'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
+import { openReceiptPdfUrl, receiptPdfPath } from './receipt-pdf-link.utils'
 
 /**
  * Download affordance for the server-rendered PDF receipt
@@ -22,10 +22,10 @@ import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 export function DownloadReceiptPdfLink({ entryId, kind }: { entryId: string; kind: string }) {
     const t = useAppTranslations('transaction')
     const locale = useLocale()
-    const pdfPath: `/${string}` = `/receipt/${encodeURIComponent(entryId)}/pdf?kind=${encodeURIComponent(kind)}&locale=${encodeURIComponent(locale)}`
+    const pdfPath = receiptPdfPath(entryId, kind, locale)
 
     return (
-        // purple: download is the public receipt's one primary (TASK-22452)
+        // purple: download is the public receipt's one primary
         <Button
             variant="purple"
             href={pdfPath}
@@ -35,7 +35,7 @@ export function DownloadReceiptPdfLink({ entryId, kind }: { entryId: string; kin
             onClick={(e) => {
                 if (isCapacitor()) {
                     e.preventDefault()
-                    void openExternalUrl(shareableUrl(pdfPath))
+                    openReceiptPdfUrl(pdfPath)
                 }
             }}
             className="justify-center print:hidden"

@@ -140,3 +140,95 @@ describe('useReceiptPdfFile', () => {
         await waitFor(() => expect(mockDownloadBlob).toHaveBeenCalledWith(expect.any(Blob), 'private-receipt.pdf'))
     })
 })
+
+describe('useReceiptPdfFile — review regressions (TASK-22452)', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockIsCapacitor.mockReturnValue(false)
+        global.fetch = jest.fn().mockResolvedValue({
+            ok: true,
+            status: 200,
+            blob: jest.fn().mockResolvedValue(new Blob(['%PDF-private'], { type: 'application/pdf' })),
+            headers: { get: () => 'inline; filename="private-receipt.pdf"' },
+        })
+    })
+
+    const withWebShare = () => {
+        const share = jest.fn().mockResolvedValue(undefined)
+        Object.assign(navigator, { share, canShare: () => true })
+        return share
+    }
+    afterEach(() => {
+        Object.assign(navigator, { share: undefined, canShare: undefined })
+    })
+
+    test('a prefetched file is handed to the share sheet synchronously from the click', async () => {
+        const share = withWebShare()
+        renderHarness({ entryId: 'entry-sync', kind: 'DIRECT_TRANSFER' })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'share' })).toBeEnabled())
+
+        fireEvent.click(screen.getByRole('button', { name: 'share' }))
+        // no awaits between the click and this assertion: the cached path
+        // must reach navigator.share inside the click's user activation
+        expect(share).toHaveBeenCalledTimes(1)
+    })
+
+    test('an identity switch drops the cached file and discards an in-flight fetch', async () => {
+        let resolveFirst!: (value: unknown) => void
+        ;(global.fetch as jest.Mock).mockImplementationOnce(() => new Promise((res) => (resolveFirst = res)))
+
+        const view = render(
+            <IntlWrapper>
+                <Harness entryId="entry-old" kind="QR_PAY" prefetch={false} />
+            </IntlWrapper>
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'download' }))
+        // the fetch fires after the auth-ready microtask
+        await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1))
+
+        // the receipt changes while the old fetch is still in flight
+        view.rerender(
+            <IntlWrapper>
+                <Harness entryId="entry-new" kind="QR_PAY" prefetch={false} />
+            </IntlWrapper>
+        )
+        await waitFor(() => {})
+        resolveFirst({
+            ok: true,
+            status: 200,
+            blob: jest.fn().mockResolvedValue(new Blob(['%PDF-old'], { type: 'application/pdf' })),
+            headers: { get: () => 'inline; filename="old-receipt.pdf"' },
+        })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'download' })).toBeEnabled())
+        // the stale file is never delivered
+        expect(mockDownloadBlob).not.toHaveBeenCalled()
+
+        // the next action fetches the NEW identity, not the cached old file
+        fireEvent.click(screen.getByRole('button', { name: 'download' }))
+        await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2))
+        expect((global.fetch as jest.Mock).mock.calls[1][0]).toContain('entry-new')
+        await waitFor(() => expect(mockDownloadBlob).toHaveBeenCalledWith(expect.any(Blob), 'private-receipt.pdf'))
+    })
+
+    test('repeated taps while an action is pending are a no-op', async () => {
+        let resolveFetch!: (value: unknown) => void
+        ;(global.fetch as jest.Mock).mockImplementationOnce(() => new Promise((res) => (resolveFetch = res)))
+        renderHarness({ entryId: 'entry-busy', kind: 'QR_PAY', prefetch: false })
+
+        const download = screen.getByRole('button', { name: 'download' })
+        fireEvent.click(download)
+        // second tap in the same tick, before busy state re-renders — the
+        // busy ref makes it a no-op
+        fireEvent.click(download)
+        await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1))
+        expect(global.fetch).toHaveBeenCalledTimes(1)
+
+        resolveFetch({
+            ok: true,
+            status: 200,
+            blob: jest.fn().mockResolvedValue(new Blob(['%PDF-busy'], { type: 'application/pdf' })),
+            headers: { get: () => 'inline; filename="busy-receipt.pdf"' },
+        })
+        await waitFor(() => expect(mockDownloadBlob).toHaveBeenCalledTimes(1))
+    })
+})

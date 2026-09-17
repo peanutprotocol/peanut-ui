@@ -12,6 +12,7 @@ import type { ReceiptViewModel } from '../useReceiptViewModel'
 
 const mockPush = jest.fn()
 
+jest.mock('next-intl', () => ({ useLocale: () => 'en' }))
 jest.mock('@/i18n/app/useAppTranslations', () => ({ useAppTranslations: () => (key: string) => key }))
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
 // isCapacitor() runs at module load deep in the import chain, so the mocks

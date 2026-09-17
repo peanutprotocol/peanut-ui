@@ -5,6 +5,7 @@ import type { TransactionDetails } from '../transactionTransformer'
 import type { ReceiptViewModel } from '../useReceiptViewModel'
 import type { ReceiptMoreAction } from '../ReceiptMoreActionsDrawer'
 
+jest.mock('next-intl', () => ({ useLocale: () => 'en' }))
 jest.mock('@/i18n/app/useAppTranslations', () => ({ useAppTranslations: () => (key: string) => key }))
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
 jest.mock('@/utils/capacitor', () => ({
@@ -41,14 +42,20 @@ jest.mock('@/components/Global/ShareButton/useShareAction', () => ({
 }))
 const mockPdfShare = jest.fn()
 const mockPdfDownload = jest.fn()
+let mockPdfBusy: 'share' | 'download' | null = null
 jest.mock('../useReceiptPdfFile', () => ({
     useReceiptPdfFile: jest.fn(() => ({
         share: mockPdfShare,
         download: mockPdfDownload,
-        busy: null,
+        busy: mockPdfBusy,
         unavailable: false,
         error: false,
     })),
+}))
+const mockOpenReceiptPdfUrl = jest.fn()
+jest.mock('../receipt-pdf-link.utils', () => ({
+    ...jest.requireActual('../receipt-pdf-link.utils'),
+    openReceiptPdfUrl: (path: string) => mockOpenReceiptPdfUrl(path),
 }))
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }),
@@ -63,7 +70,12 @@ jest.mock('../ReceiptMoreActionsDrawer', () => ({
     ReceiptMoreActionsDrawer: ({ open, actions }: { open: boolean; actions: ReceiptMoreAction[] }) => (
         <div data-testid="more-actions-drawer" data-open={open}>
             {actions.map((action) => (
-                <button key={action.title + action.icon} data-testid={action['data-testid']} onClick={action.onSelect}>
+                <button
+                    key={action.title + action.icon}
+                    data-testid={action['data-testid']}
+                    onClick={action.onSelect}
+                    disabled={action.disabled}
+                >
                     {action.title}
                 </button>
             ))}
@@ -111,7 +123,10 @@ const renderActions = (tx: TransactionDetails, viewModel: ReceiptViewModel, isPu
     )
 
 describe('ReceiptActions hierarchy (TASK-22452)', () => {
-    beforeEach(() => jest.clearAllMocks())
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockPdfBusy = null
+    })
 
     test('nonsplittable private kind: pdf share is the primary; download + support live in the drawer', () => {
         renderActions(transaction('DIRECT_TRANSFER', 'https://peanut.me/recipient'), vm())
@@ -155,8 +170,33 @@ describe('ReceiptActions hierarchy (TASK-22452)', () => {
 
         fireEvent.click(screen.getByTestId('more-action-share'))
         expect(mockShareUrl).toHaveBeenCalledTimes(1)
+        // qr pay is a public-capability kind: its drawer download keeps the
+        // pre-existing url path (anchor/web, system browser/native) — never
+        // the authenticated file hook
+        fireEvent.click(screen.getByTestId('more-action-download'))
+        expect(mockOpenReceiptPdfUrl).toHaveBeenCalledWith('/receipt/entry-1/pdf?kind=QR_PAY&locale=en')
+        expect(mockPdfDownload).not.toHaveBeenCalled()
+    })
+
+    test('a private kind downloads through the authenticated file hook', () => {
+        renderActions(transaction('CARD_SPEND_CLEAR'), vm())
+
         fireEvent.click(screen.getByTestId('more-action-download'))
         expect(mockPdfDownload).toHaveBeenCalledTimes(1)
+        expect(mockOpenReceiptPdfUrl).not.toHaveBeenCalled()
+    })
+
+    test('pending file actions disable the private drawer rows, not the url download', () => {
+        mockPdfBusy = 'download'
+        renderActions(transaction('CARD_SPEND_CLEAR'), vm())
+        expect(screen.getByTestId('more-action-share')).toBeDisabled()
+        expect(screen.getByTestId('more-action-download')).toBeDisabled()
+
+        jest.clearAllMocks()
+        mockPdfBusy = 'download'
+        renderActions(transaction('QR_PAY'), vm())
+        // the url path has no fetch to double-run — it stays enabled
+        expect(screen.getAllByTestId('more-action-download').at(-1)).toBeEnabled()
     })
 
     test('public receipt: download is the one primary and no account actions render', () => {

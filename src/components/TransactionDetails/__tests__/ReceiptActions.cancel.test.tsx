@@ -14,6 +14,7 @@ import type { ReceiptViewModel } from '../useReceiptViewModel'
 
 const mockCancelSendLink = jest.fn()
 
+jest.mock('next-intl', () => ({ useLocale: () => 'en' }))
 jest.mock('@/i18n/app/useAppTranslations', () => ({ useAppTranslations: () => (key: string) => key }))
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { username: 'sender' } } }) }))
