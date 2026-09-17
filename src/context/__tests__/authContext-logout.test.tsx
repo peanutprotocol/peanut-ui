@@ -17,6 +17,7 @@ const mockCancelQueries = jest.fn().mockResolvedValue(undefined)
 const mockRefetch = jest.fn().mockResolvedValue({ data: null })
 const mockApiFetch = jest.fn().mockResolvedValue(undefined)
 const mockToastError = jest.fn()
+const mockClearSignupAttribution = jest.fn().mockResolvedValue(undefined)
 
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToastError }) }))
@@ -38,7 +39,7 @@ jest.mock('@/utils/api-fetch', () => ({ apiFetch: (...args: unknown[]) => mockAp
 jest.mock('@/utils/auth-token', () => ({ clearAuthToken: jest.fn().mockResolvedValue(undefined) }))
 jest.mock('@/utils/login-session', () => ({ recoverLoginSession: jest.fn() }))
 jest.mock('@/utils/cache.utils', () => ({ purgeCaches: jest.fn().mockResolvedValue(undefined) }))
-jest.mock('@/utils/crisp', () => ({ resetCrispProxySessions: jest.fn() }))
+jest.mock('@/utils/crisp', () => ({ resetCrispProxySessions: jest.fn().mockResolvedValue(undefined) }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
 jest.mock('@/utils/sentry-lazy', () => ({ captureException: jest.fn(), setUser: jest.fn() }))
 jest.mock('@/i18n/app/locale-store', () => ({
@@ -56,6 +57,9 @@ jest.mock('@/components/Invites/badge-campaign-context', () => ({
     getPendingBadgeCampaigns: () => [],
 }))
 jest.mock('@/utils/invite-stash', () => ({ clearInvite: jest.fn() }))
+jest.mock('@/utils/signup-attribution', () => ({
+    clearSignupAttribution: () => mockClearSignupAttribution(),
+}))
 jest.mock('@/services/pending-invite-attribution', () => ({
     settlePendingInviteAttribution: jest.fn().mockResolvedValue({ status: 'none' }),
 }))
@@ -93,6 +97,7 @@ describe('logoutUser', () => {
         jest.clearAllMocks()
         mockCancelQueries.mockResolvedValue(undefined)
         mockRefetch.mockResolvedValue({ data: null })
+        mockClearSignupAttribution.mockResolvedValue(undefined)
         endIntentionalLogout()
         clearRedirectUrl()
         clearSessionHeld()
@@ -172,5 +177,35 @@ describe('logoutUser', () => {
         })
 
         expect(order).toEqual(['api:/users/logout', 'cache-cleared'])
+    })
+
+    it('awaits signup-attribution cleanup before leaving the account boundary', async () => {
+        let finishAttributionCleanup: (() => void) | undefined
+        mockClearSignupAttribution.mockImplementation(
+            () =>
+                new Promise<void>((resolve) => {
+                    finishAttributionCleanup = resolve
+                })
+        )
+        let navigated = false
+        stubLocation(() => {
+            navigated = true
+        })
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        let logout: Promise<void> | undefined
+        act(() => {
+            logout = result.current.logoutUser({ skipBackendCall: true })
+        })
+
+        await waitFor(() => expect(mockClearSignupAttribution).toHaveBeenCalledTimes(1))
+        expect(navigated).toBe(false)
+
+        finishAttributionCleanup?.()
+        await act(async () => {
+            await logout
+        })
+
+        expect(navigated).toBe(true)
     })
 })

@@ -8,6 +8,10 @@ const SIGNUP_ATTRIBUTION_EXPIRY_DAYS = 90
 const MAX_VALUE_LENGTH = 128
 const MAX_PATH_LENGTH = 512
 const MAX_SERIALIZED_ATTRIBUTION_LENGTH = 4096
+// Browser limits vary around 4 KiB and some count cookie attributes too.
+// Keep the percent-encoded name/value below 3.8 KiB so expiry, path,
+// SameSite, and Secure attributes still fit without silent eviction.
+const MAX_ATTRIBUTION_COOKIE_NAME_VALUE_LENGTH = 3800
 const NATIVE_STORAGE_KEY = 'signup-attribution'
 const PENDING_SIGNUP_KEY = 'signup-attribution-pending'
 const MAX_TOUCH_AGE_MS = 180 * 24 * 60 * 60 * 1000
@@ -205,7 +209,16 @@ function canonicalTouch(touch: SignupAttributionTouch): SignupAttributionTouch {
     }
 }
 
-/** Rebuild from allowlisted fields and trim lower-priority touches to the API cap. */
+function fitsAttributionStorage(candidate: SignupAttributionContext): boolean {
+    const serialized = JSON.stringify(candidate)
+    return (
+        serialized.length <= MAX_SERIALIZED_ATTRIBUTION_LENGTH &&
+        `${SIGNUP_ATTRIBUTION_COOKIE}=${encodeURIComponent(serialized)}`.length <=
+            MAX_ATTRIBUTION_COOKIE_NAME_VALUE_LENGTH
+    )
+}
+
+/** Rebuild from allowlisted fields and trim lower-priority touches to the API and cookie caps. */
 function canonicalSignupAttribution(value: unknown): SignupAttributionContext | null {
     if (!isContext(value)) return null
     const canonical: SignupAttributionContext = {
@@ -223,7 +236,7 @@ function canonicalSignupAttribution(value: unknown): SignupAttributionContext | 
         { ...canonical, lastTouch: undefined },
         { ...canonical, firstContentTouch: undefined, lastTouch: undefined },
     ]
-    return candidates.find((candidate) => JSON.stringify(candidate).length <= MAX_SERIALIZED_ATTRIBUTION_LENGTH) ?? null
+    return candidates.find(fitsAttributionStorage) ?? null
 }
 
 export function readSignupAttribution(): SignupAttributionContext | null {

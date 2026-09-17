@@ -11,6 +11,7 @@ import {
     readSignupAttributionAsync,
     restoreSignupAttribution,
     serializeSignupAttribution,
+    SIGNUP_ATTRIBUTION_COOKIE,
     signupAttributionPosthogProperties,
 } from '../signup-attribution'
 
@@ -189,12 +190,49 @@ describe('signup attribution context', () => {
             lastTouch: touch,
         }
 
+        expect(`${SIGNUP_ATTRIBUTION_COOKIE}=${encodeURIComponent(JSON.stringify(context))}`.length).toBeGreaterThan(
+            4096
+        )
         const serialized = serializeSignupAttribution(context)
         expect(serialized).not.toBeNull()
         expect(serialized!.length).toBeLessThanOrEqual(4096)
         expect(parseSignupAttribution(serialized)).not.toBeNull()
         expect(parseSignupAttribution(JSON.stringify({ ...context, unexpected: 'field' }))).toBeNull()
         expect(parseSignupAttribution(JSON.stringify({ ...context, unexpected: 'x'.repeat(5000) }))).toBeNull()
+    })
+
+    it('bounds the percent-encoded cookie while preserving the first campaign touch', () => {
+        const occurredAt = new Date().toISOString()
+        const maxSpacedTag = `x${' '.repeat(126)}x`
+        const slashHeavyPath = `/blog/${'a/'.repeat(250)}`
+        const touch = {
+            occurredAt,
+            utmSource: maxSpacedTag,
+            utmMedium: maxSpacedTag,
+            utmCampaign: maxSpacedTag,
+            utmContent: maxSpacedTag,
+            referrerHost: `${'x'.repeat(120)}.example`,
+            path: slashHeavyPath,
+        }
+        const context = {
+            schemaVersion: '1' as const,
+            journeyId: '33333333-3333-4333-8333-333333333333',
+            platform: 'web' as const,
+            analyticsState: 'enabled' as const,
+            captureMethod: 'browser' as const,
+            firstTouch: touch,
+            firstContentTouch: touch,
+            lastTouch: touch,
+        }
+
+        const serialized = serializeSignupAttribution(context)
+        expect(serialized).not.toBeNull()
+        expect(`${SIGNUP_ATTRIBUTION_COOKIE}=${encodeURIComponent(serialized!)}`.length).toBeLessThanOrEqual(4096)
+        expect(parseSignupAttribution(serialized)?.firstTouch).toMatchObject({
+            utmSource: maxSpacedTag,
+            utmCampaign: maxSpacedTag,
+            path: slashHeavyPath,
+        })
     })
 
     it('awaits both native attribution removals at an account boundary', async () => {
