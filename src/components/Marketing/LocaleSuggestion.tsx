@@ -78,7 +78,9 @@ export function LocaleSuggestion({ locale }: { locale: Locale }) {
         // lang rides the wrapper, not the Notification: the banner speaks the
         // SUGGESTED language while the page around it does not.
         <div lang={suggested}>
-            <Notification priority="info" onDismiss={dismiss} className="rounded-none border-b border-border-default">
+            {/* square corners only: the compact inline anatomy is a borderless tint
+                (ruled 2026-09-03), and this one runs edge to edge. */}
+            <Notification priority="info" onDismiss={dismiss} className="rounded-none">
                 {i18n.text}{' '}
                 <Link
                     href={localeHref(pathname, suggested)}
