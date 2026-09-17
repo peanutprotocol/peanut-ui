@@ -2051,7 +2051,9 @@
             "feeExceedsAmount": "A taxa de rede é maior que este saque. Informe um valor maior ou escolha uma rede mais barata."
         },
         "resolvesTo": "resolve para",
-        "addNewAccount": "Adicionar nova conta"
+        "addNewAccount": "Adicionar nova conta",
+        "withdrawToBank": "Saque para uma conta bancária",
+        "withdrawToCrypto": "Saque para um endereço cripto"
     },
     "transaction": {
         "drawerTitle": "Detalhes da transação",
@@ -3557,6 +3559,7 @@
         },
         "savedAccounts": {
             "title": "Contas salvas",
+            "bankSectionTitle": "Contas bancárias",
             "selectNewMethod": "Escolher outro método",
             "flagAlt": "Bandeira de {country}",
             "flagAltGeneric": "Bandeira do país"

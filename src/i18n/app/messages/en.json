@@ -2051,7 +2051,9 @@
             "feeExceedsAmount": "The network fee is more than this withdrawal. Enter a larger amount or pick a cheaper network."
         },
         "resolvesTo": "resolves to",
-        "addNewAccount": "Add new account"
+        "addNewAccount": "Add new account",
+        "withdrawToBank": "Withdraw to a bank account",
+        "withdrawToCrypto": "Withdraw to a crypto address"
     },
     "transaction": {
         "drawerTitle": "Transaction Details",
@@ -3557,6 +3559,7 @@
         },
         "savedAccounts": {
             "title": "Saved accounts",
+            "bankSectionTitle": "Bank accounts",
             "selectNewMethod": "Select new method",
             "flagAlt": "{country} flag",
             "flagAltGeneric": "Country flag"

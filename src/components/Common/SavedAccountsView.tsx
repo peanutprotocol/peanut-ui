@@ -65,62 +65,70 @@ export default function SavedAccountsView({
         <div className="flex min-h-inherit flex-col justify-normal gap-8">
             <NavHeader title={pageTitle} onPrev={onPrev} />
             <div className="space-y-6">
-                {/* either list can be empty on its own — the caller only renders this
-                    view when at least one of the two has entries */}
-                {savedAccounts.length > 0 && (
-                    <Section title={t('savedAccounts.title')} className="h-full justify-center">
-                        <SavedAccountsMapping
-                            accounts={savedAccounts}
-                            onItemClick={onAccountClick}
-                            onItemEdit={onAccountEdit}
-                        />
-                    </Section>
-                )}
-                {savedAddresses.length > 0 && onSavedAddressClick && onSavedAddressEdit && (
-                    <Section title={t('savedAddresses.title')} className="h-full justify-center">
-                        <SavedAddressesList
-                            savedAddresses={savedAddresses}
-                            onSelect={onSavedAddressClick}
-                            onEdit={onSavedAddressEdit}
-                        />
-                    </Section>
-                )}
-                <Divider
-                    textClassname="text-label-m text-foreground-secondary"
-                    dividerClassname="bg-border-subtle"
-                    text={tCommon('or')}
-                />
-                {/* add-new-account section per the withdraw board (17832:80463).
-                    only the withdraw flow passes the extra callbacks — other
-                    callers (claim's BankFlowManager) keep the legacy button so
-                    the redesign doesn't leak into their screens */}
                 {onCryptoClick ? (
-                    <Section title={tWithdraw('addNewAccount')}>
-                        <ListItem
-                            position="single"
-                            leading={<IconBubble icon="bank" size="s" color="gray" />}
-                            title={tSend('methods.bankTitle')}
-                            body={tSend('methods.bankDescription')}
-                            trailing={plusTrailing}
-                            onClick={onSelectNewMethodClick}
-                            data-testid="withdraw-add-bank"
-                        />
-                        {onCryptoClick && (
+                    // withdraw flow (board 17832:80463): both rails stay visible even when
+                    // one has no saved destinations, so bank and crypto withdrawal are
+                    // always reachable. Saved rows sit under their rail's entry row (TASK-22589).
+                    <>
+                        <Section title={t('savedAccounts.bankSectionTitle')}>
+                            {savedAccounts.length > 0 && (
+                                <SavedAccountsMapping
+                                    accounts={savedAccounts}
+                                    onItemClick={onAccountClick}
+                                    onItemEdit={onAccountEdit}
+                                />
+                            )}
+                            <ListItem
+                                position="single"
+                                leading={<IconBubble icon="bank" size="s" color="gray" />}
+                                title={tWithdraw('withdrawToBank')}
+                                body={tSend('methods.bankDescription')}
+                                trailing={plusTrailing}
+                                onClick={onSelectNewMethodClick}
+                                data-testid="withdraw-add-bank"
+                            />
+                        </Section>
+                        <Section title={t('savedAddresses.title')}>
+                            {savedAddresses.length > 0 && onSavedAddressClick && onSavedAddressEdit && (
+                                <SavedAddressesList
+                                    savedAddresses={savedAddresses}
+                                    onSelect={onSavedAddressClick}
+                                    onEdit={onSavedAddressEdit}
+                                />
+                            )}
                             <ListItem
                                 position="single"
                                 leading={<IconBubble icon="credit-card" size="s" color="blue" />}
-                                title={tSend('methods.exchangeOrWalletTitle')}
+                                title={tWithdraw('withdrawToCrypto')}
                                 body={tSend('methods.exchangeOrWalletDescription')}
                                 trailing={plusTrailing}
                                 onClick={onCryptoClick}
                                 data-testid="withdraw-add-crypto"
                             />
-                        )}
-                    </Section>
+                        </Section>
+                    </>
                 ) : (
-                    <Button icon="plus" onClick={onSelectNewMethodClick} shadowSize="4">
-                        {t('savedAccounts.selectNewMethod')}
-                    </Button>
+                    // legacy callers (claim's BankFlowManager) keep the single saved-list +
+                    // "select new method" button so the withdraw redesign doesn't leak in
+                    <>
+                        {savedAccounts.length > 0 && (
+                            <Section title={t('savedAccounts.title')} className="h-full justify-center">
+                                <SavedAccountsMapping
+                                    accounts={savedAccounts}
+                                    onItemClick={onAccountClick}
+                                    onItemEdit={onAccountEdit}
+                                />
+                            </Section>
+                        )}
+                        <Divider
+                            textClassname="text-label-m text-foreground-secondary"
+                            dividerClassname="bg-border-subtle"
+                            text={tCommon('or')}
+                        />
+                        <Button icon="plus" onClick={onSelectNewMethodClick} shadowSize="4">
+                            {t('savedAccounts.selectNewMethod')}
+                        </Button>
+                    </>
                 )}
             </div>
         </div>

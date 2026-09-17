@@ -2051,7 +2051,9 @@
             "feeExceedsAmount": "La comisión de red supera este retiro. Ingresá un monto mayor o elegí una red más barata."
         },
         "resolvesTo": "se resuelve a",
-        "addNewAccount": "Agregar nueva cuenta"
+        "addNewAccount": "Agregar nueva cuenta",
+        "withdrawToBank": "Retira a una cuenta bancaria",
+        "withdrawToCrypto": "Retira a una dirección cripto"
     },
     "transaction": {
         "drawerTitle": "Detalles de la transacción",
@@ -3557,6 +3559,7 @@
         },
         "savedAccounts": {
             "title": "Cuentas guardadas",
+            "bankSectionTitle": "Cuentas bancarias",
             "selectNewMethod": "Elegir otro método",
             "flagAlt": "Bandera de {country}",
             "flagAltGeneric": "Bandera del país"
