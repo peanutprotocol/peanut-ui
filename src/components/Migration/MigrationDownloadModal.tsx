@@ -65,6 +65,13 @@ export default function MigrationDownloadModal({
         legalPromptSeenFor.current = userId
     }
 
+    // `visible` state alone is not enough to render by: it only updates in
+    // an effect, so during the first render(s) after an account switch the
+    // PREVIOUS account's true would commit under the new one. the render
+    // gates synchronously on the current account + gate instead, and the
+    // ref records which account the visible state was decided for.
+    const visibleFor = useRef<string | null>(null)
+
     useEffect(() => {
         if (forceVariant) {
             setVisible(true)
@@ -85,13 +92,23 @@ export default function MigrationDownloadModal({
             setVisible(false)
             return
         }
+        visibleFor.current = userId
         setVisible(true)
         posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.MIGRATION_DOWNLOAD })
     }, [migrationOn, userId, forceVariant, legalBlocking])
 
+    // the committed visibility: the stored decision, only while it still
+    // belongs to the current account and legal is not blocking it
+    const renderVisible =
+        !!forceVariant ||
+        (visible &&
+            visibleFor.current === (userId ?? null) &&
+            !legalBlocking &&
+            !(!!userId && legalPromptSeenFor.current === userId))
+
     useEffect(() => {
-        onVisibilityChange?.(visible)
-    }, [visible, onVisibilityChange])
+        onVisibilityChange?.(renderVisible)
+    }, [renderVisible, onVisibilityChange])
 
     const snooze = () => {
         setVisible(false)
@@ -121,7 +138,7 @@ export default function MigrationDownloadModal({
     // fortnight — the two-phase split only changes the copy
     return (
         <ActionModal
-            visible={visible}
+            visible={renderVisible}
             onClose={snooze}
             icon="mobile-install"
             title={t(isUrgent ? 'downloadPrompt.title' : 'downloadPrompt.earlyTitle')}

@@ -40,8 +40,11 @@ const ReConsentModal = () => {
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
     // false while a status check may still surface documents; true on every
-    // terminal path. feeds the priority gate below (TASK-22452).
+    // terminal path. `resolvedFor` names the account that resolution belongs
+    // to — the gate below must never publish one account's result under
+    // another account's id.
     const [resolved, setResolved] = useState(false)
+    const [resolvedFor, setResolvedFor] = useState<string | null>(null)
     const lastCheckedUserId = useRef<string | null>(null)
     const setLegalConsentGate = useModalsContextOptional()?.setLegalConsentGate
 
@@ -52,6 +55,7 @@ const ReConsentModal = () => {
         if (!userId) {
             // logged out: nothing can prompt — the gate must not stay closed
             setResolved(true)
+            setResolvedFor(null)
             setOutdatedDocs([])
             lastCheckedUserId.current = null
             return
@@ -61,6 +65,7 @@ const ReConsentModal = () => {
         // account switched: none of the previous user's consent state may leak
         // into this session (an already-populated modal or a pre-ticked box)
         setResolved(false)
+        setResolvedFor(userId)
         setOutdatedDocs([])
         setChecked(false)
         setError(null)
@@ -97,15 +102,23 @@ const ReConsentModal = () => {
 
     // publish the priority gate, owned by the current account: in-flight
     // counts as blocking so the download prompt can never flash before legal
-    // resolves, and a stale 'clear' from the previous account never releases
-    // the next one
+    // resolves. the first render after an account switch still carries the
+    // PREVIOUS account's resolved state — publishing that under the new id
+    // would briefly release it, so a state/account mismatch reads 'checking'.
     const gateUserId = user?.user.userId ?? null
     useEffect(() => {
+        const stateOwnedByCurrentAccount = resolvedFor === gateUserId
         setLegalConsentGate?.({
-            status: !resolved ? 'checking' : outdatedDocs.length ? 'prompting' : 'clear',
+            status: !stateOwnedByCurrentAccount
+                ? 'checking'
+                : !resolved
+                  ? 'checking'
+                  : outdatedDocs.length
+                    ? 'prompting'
+                    : 'clear',
             userId: gateUserId,
         })
-    }, [setLegalConsentGate, resolved, outdatedDocs.length, gateUserId])
+    }, [setLegalConsentGate, resolved, resolvedFor, outdatedDocs.length, gateUserId])
 
     // this modal unmounting (route group change, error boundary) must never
     // leave the rest of the app gated

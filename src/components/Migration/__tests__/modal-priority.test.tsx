@@ -26,10 +26,18 @@ jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockUser }),
 }))
 
-// one stub serves both modals; the title tells them apart
+// one stub serves both modals; the title tells them apart. every COMMITTED
+// visible state is recorded with the account it committed under — rtl's act
+// flushes intermediate renders before a queryBy assertion runs, so only this
+// record can prove no modal flashed under the wrong account mid-switch.
+const committedVisible: { userId: string; title?: string }[] = []
 jest.mock('@/components/Global/ActionModal', () => ({
     __esModule: true,
     default: (props: { visible: boolean; title?: string; onClose: () => void }) => {
+        const userId = mockUser?.user.userId ?? ''
+        jest.requireActual<typeof React>('react').useLayoutEffect(() => {
+            if (props.visible) committedVisible.push({ userId, title: props.title })
+        }, [props.visible, props.title, userId])
         if (!props.visible) return null
         return (
             <div data-testid={`modal-${props.title}`}>
@@ -38,6 +46,9 @@ jest.mock('@/components/Global/ActionModal', () => ({
         )
     },
 }))
+
+const migrationCommitsFor = (userId: string) =>
+    committedVisible.filter((entry) => entry.userId === userId && entry.title === 'downloadPrompt.earlyTitle')
 jest.mock('@/components/Global/DocsLink', () => ({
     __esModule: true,
     default: ({ children }: { children: React.ReactNode }) => <a>{children}</a>,
@@ -107,6 +118,7 @@ const Both = Tree
 beforeEach(() => {
     jest.clearAllMocks()
     window.localStorage.clear()
+    committedVisible.length = 0
     mockUser = { user: { userId: 'user-a' } }
 })
 
@@ -116,10 +128,12 @@ describe('legal re-consent vs download prompt priority', () => {
         mockGetStatus.mockReturnValue(pending.promise as Promise<unknown>)
         render(<Both />)
 
-        // synchronous first render AND settled effects: still gated
+        // synchronous first render AND settled effects: still gated — and no
+        // intermediate commit ever flashed the prompt on this cold login
         expect(screen.queryByTestId(MIGRATION_MODAL)).not.toBeInTheDocument()
         await flush()
         expect(screen.queryByTestId(MIGRATION_MODAL)).not.toBeInTheDocument()
+        expect(migrationCommitsFor('user-a')).toEqual([])
 
         await act(async () => {
             pending.resolve({ needsReConsent: true, documents: [statusDoc()] })
@@ -132,6 +146,7 @@ describe('legal re-consent vs download prompt priority', () => {
         await flush()
         expect(screen.queryByTestId(RECONSENT_MODAL)).not.toBeInTheDocument()
         expect(screen.queryByTestId(MIGRATION_MODAL)).not.toBeInTheDocument()
+        expect(migrationCommitsFor('user-a')).toEqual([])
     })
 
     test('a no-change consent check releases the download prompt', async () => {
@@ -166,20 +181,46 @@ describe('legal re-consent vs download prompt priority', () => {
         await flush()
         expect(screen.getByTestId(MIGRATION_MODAL)).toBeInTheDocument()
 
-        // switch to account B with its check still pending
+        // switch to account B with its check still pending — a is VISIBLE at
+        // the moment of the switch, the hardest case
         const pendingB = deferred()
         mockGetStatus.mockReturnValue(pendingB.promise as Promise<unknown>)
         mockUser = { user: { userId: 'user-b' } }
         view.rerender(<Both />)
-        // synchronously after the switch render: the prompt must already be
-        // gone — A's stale 'clear' does not own B
+        // no COMMIT under b, not merely no final dom: rtl flushes the
+        // intermediate effect passes, so only the commit record catches a's
+        // stale visible/clear leaking into b's first frames
+        expect(migrationCommitsFor('user-b')).toEqual([])
         expect(screen.queryByTestId(MIGRATION_MODAL)).not.toBeInTheDocument()
         await flush()
+        expect(migrationCommitsFor('user-b')).toEqual([])
         expect(screen.queryByTestId(MIGRATION_MODAL)).not.toBeInTheDocument()
 
         await act(async () => {
             pendingB.resolve({ needsReConsent: false, documents: [] })
         })
+        expect(screen.getByTestId(MIGRATION_MODAL)).toBeInTheDocument()
+        expect(migrationCommitsFor('user-b').length).toBeGreaterThan(0)
+    })
+
+    test("A->B while A's prompt is visible and B's check fails: release only on the fail-open", async () => {
+        mockGetStatus.mockResolvedValueOnce({ needsReConsent: false, documents: [] })
+        const view = render(<Both />)
+        await flush()
+        expect(screen.getByTestId(MIGRATION_MODAL)).toBeInTheDocument()
+
+        const pendingB = deferred()
+        mockGetStatus.mockReturnValue(pendingB.promise as Promise<unknown>)
+        mockUser = { user: { userId: 'user-b' } }
+        view.rerender(<Both />)
+        await flush()
+        expect(migrationCommitsFor('user-b')).toEqual([])
+        expect(screen.queryByTestId(MIGRATION_MODAL)).not.toBeInTheDocument()
+
+        await act(async () => {
+            pendingB.reject(new Error('api down'))
+        })
+        // fail-open: b is released once ITS check settles, never before
         expect(screen.getByTestId(MIGRATION_MODAL)).toBeInTheDocument()
     })
 
