@@ -576,7 +576,7 @@
             "contactsDescription": "Ingresá un @usuario exacto o elegí un contacto"
         },
         "contacts": {
-            "searchPlaceholder": "Ingresá el usuario exacto o buscá contactos...",
+            "searchPlaceholder": "Destinatario",
             "searchLabel": "Nombre de usuario de Peanut o contacto",
             "exactUsername": "Nombre de usuario exacto",
             "usernameFound": "Encontramos a @{username}",

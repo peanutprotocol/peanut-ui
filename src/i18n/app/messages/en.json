@@ -1004,7 +1004,7 @@
             "exchangeOrWalletDescription": "Binance, Metamask and more"
         },
         "contacts": {
-            "searchPlaceholder": "Enter exact username or search contacts...",
+            "searchPlaceholder": "Recipient",
             "searchLabel": "Peanut username or contact",
             "exactUsername": "Exact username",
             "usernameFound": "@{username} found",
