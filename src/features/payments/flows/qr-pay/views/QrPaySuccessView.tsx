@@ -36,10 +36,8 @@ export function QrPaySuccessView() {
     const router = useRouter()
     const { user } = useAuth()
     const { qrPayment, setQrPayment, paymentLock, currency, usdAmount, pointsData, pointsDivRef } = useQrPayFlow()
-    const { perkClaimed, holdProgress, isShaking, shakeIntensity, startHold, cancelHold } = usePerkHoldToClaim(
-        qrPayment,
-        setQrPayment
-    )
+    const { rewardOffered, perkClaimed, holdProgress, isShaking, shakeIntensity, startHold, cancelHold } =
+        usePerkHoldToClaim(qrPayment, setQrPayment)
     const { openTransactionDetails, isTransactionSelected, closeTransactionDetails } = useTransactionDetailsDrawer()
     const [showInviteFriendsDrawer, setShowInviteFriendsDrawer] = useState(false)
 
@@ -68,15 +66,19 @@ export function QrPaySuccessView() {
               })
         : ''
 
-    const rewardClaimable = !!qrPayment?.perk?.eligible && !perkClaimed && !qrPayment.perk.claimed
+    // `rewardOffered` is the hook's verdict (reserved AND not a failed payout);
+    // `claimed` is a reveal flag (local hold or API), not payout settlement.
+    // A failed payout is never revealed, whatever the flag says.
+    const rewardRevealed = rewardOffered && (perkClaimed || !!qrPayment?.perk?.claimed)
+    const rewardClaimable = rewardOffered && !rewardRevealed
 
     return (
         <PageStack className={getShakeClass(isShaking, shakeIntensity)}>
             <SoundPlayer sound="success" />
             <NavHeader title={tNav('pay')} />
             <PageStack.Center className="gap-4">
-                {/* Only show payment card if reward was not claimed */}
-                {!perkClaimed && !qrPayment?.perk?.claimed && (
+                {/* Only show payment card if reward was not revealed */}
+                {!rewardRevealed && (
                     <Card className="flex flex-row items-center gap-3 p-4">
                         <div className="flex items-center gap-3">
                             <IconBubble icon="check" color="green" />
@@ -132,7 +134,7 @@ export function QrPaySuccessView() {
                 )}
 
                 {/* Reward Success Banner - Show after claiming */}
-                {(perkClaimed || qrPayment?.perk?.claimed) && (
+                {rewardRevealed && (
                     <GlobalCard className="flex items-start gap-3 bg-background-default p-4">
                         <div className="flex max-w-[15%] flex-shrink-0 items-center justify-center rounded-full p-2">
                             <Image src={STAR_STRAIGHT_ICON} alt="star" width={28} height={28} />
@@ -157,7 +159,7 @@ export function QrPaySuccessView() {
                 )}
 
                 {/* Points Display - ref used for confetti origin point */}
-                {!qrPayment?.perk?.eligible && pointsData?.estimatedPoints && (
+                {!rewardOffered && pointsData?.estimatedPoints && (
                     <PointsCard points={pointsData.estimatedPoints} pointsDivRef={pointsDivRef} />
                 )}
 
@@ -217,7 +219,7 @@ export function QrPaySuccessView() {
                     ) : (
                         <>
                             {/* after claiming a reward, primary CTA is "Done" — not "Split this bill" */}
-                            {perkClaimed || qrPayment?.perk?.claimed ? (
+                            {rewardRevealed ? (
                                 <Button shadowSize="4" onClick={() => router.push('/home')}>
                                     {tCommon('goToHome')}
                                 </Button>

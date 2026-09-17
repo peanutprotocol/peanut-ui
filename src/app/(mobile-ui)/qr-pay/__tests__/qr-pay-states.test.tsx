@@ -1429,6 +1429,70 @@ describe('GROUP 4: Success States', () => {
         jest.useRealTimers()
     })
 
+    // The API keeps `eligible: true` on a FAILED payout so the entitlement
+    // survives for reconciliation. That is bookkeeping, not a reward the user
+    // can act on: the payment itself still succeeded and renders as such, but
+    // nothing may offer a hold, shake, celebrate or report a claim.
+    test('a reward whose payout already failed: payment success stays, no claimable card, no confetti, no reward events', async () => {
+        jest.useFakeTimers()
+
+        await completeMantecaPayment({
+            perk: {
+                eligible: true,
+                discountPercentage: 5,
+                sponsoredUsd: 0.5,
+                usageId: 'usage-1',
+                payoutStatus: 'failed',
+            },
+        })
+
+        await waitFor(() => {
+            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+        })
+        expect(screen.getByTestId('success-sound')).toBeInTheDocument()
+        expect(screen.getByText('Split this bill')).toBeInTheDocument()
+        expect(screen.queryByText('You earned a reward!')).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /Claim Reward/i })).not.toBeInTheDocument()
+
+        // give any armed timer a chance to fire — nothing is armed
+        await act(async () => {
+            jest.advanceTimersByTime(2000)
+        })
+        expect(shootDoubleStarConfetti).not.toHaveBeenCalled()
+        for (const event of ['reward_claim_shown', 'surprise_moment_shown', 'reward_claimed']) {
+            expect(posthog.capture).not.toHaveBeenCalledWith(event, expect.anything())
+        }
+        expect(mockPerksApi.claimPerk).not.toHaveBeenCalled()
+
+        jest.useRealTimers()
+    })
+
+    test('a failed payout the API marks claimed still shows the payment confirmation, never the earned-reward banner', async () => {
+        await completeMantecaPayment({
+            perk: {
+                eligible: true,
+                claimed: true,
+                discountPercentage: 5,
+                sponsoredUsd: 0.5,
+                usageId: 'usage-1',
+                payoutStatus: 'failed',
+            },
+        })
+
+        await waitFor(() => {
+            expect(screen.getByText(/You paid/)).toBeInTheDocument()
+        })
+        expect(screen.getByTestId('success-sound')).toBeInTheDocument()
+        expect(screen.queryByText('You earned a reward!')).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /Claim Reward/i })).not.toBeInTheDocument()
+        expect(screen.queryByText('Go to Home')).not.toBeInTheDocument()
+        expect(screen.getByText('Split this bill')).toBeInTheDocument()
+        expect(shootDoubleStarConfetti).not.toHaveBeenCalled()
+        for (const event of ['reward_claim_shown', 'surprise_moment_shown', 'reward_claimed']) {
+            expect(posthog.capture).not.toHaveBeenCalledWith(event, expect.anything())
+        }
+    })
+
     test('a perk the API did not reserve (eligible: false) gets no hold-to-claim and no confetti', async () => {
         await completeMantecaPayment({
             perk: { eligible: false, discountPercentage: 5, sponsoredUsd: 0.5 },
