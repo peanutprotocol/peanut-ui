@@ -14,12 +14,14 @@ import { type TransactionDetails } from './transactionTransformer'
 
 // one wire shape for the drawer row — same source/link_type the old surface
 // ctas sent; `drawer_row` replaces the retired button/text_link variants
-// (the nudge now has exactly one placement, TASK-22452)
-const referralNudgeProps = {
+// (the nudge now has exactly one placement). lazy on purpose, like the old
+// component: suites that partially mock the analytics constants must not
+// crash this module at import time.
+const referralNudgeProps = () => ({
     source: REFERRAL_SOURCES.TRANSACTION_RECEIPT,
     link_type: 'invite_code',
     variant: 'drawer_row',
-}
+})
 
 /**
  * the invite-friends row for the receipt's More-actions drawer (TASK-22452:
@@ -55,8 +57,8 @@ export function useReceiptReferralAction(
     const share = useShareAction({
         url: inviteLink,
         onSuccess: () => {
-            posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, referralNudgeProps)
-            posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, referralNudgeProps)
+            posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, referralNudgeProps())
+            posthog.capture(ANALYTICS_EVENTS.INVITE_LINK_SHARED, referralNudgeProps())
         },
     })
 
@@ -69,7 +71,7 @@ export function useReceiptReferralAction(
         if (!drawerOpen || !eligible) return
         if (impressionsSent.current.has(impressionKey)) return
         impressionsSent.current.add(impressionKey)
-        posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, referralNudgeProps)
+        posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, referralNudgeProps())
     }, [drawerOpen, eligible, impressionKey])
 
     if (!eligible) return null
