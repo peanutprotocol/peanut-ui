@@ -530,8 +530,15 @@ jobs:
             # source hash, restore-keys falls back to the newest cache for the
             # same lockfile and build configuration. Do not restore Webpack caches
             # across configuration changes; stale module hashes can crash the build.
-            # v3 invalidates a dev-scoped v2 entry that reproducibly crashed
-            # Webpack's WasmHash on PR builds before screenshot capture.
+            # The version suffix is the kill switch for a poisoned entry.
+            # v3 invalidated a dev-scoped v2 entry that reproducibly crashed
+            # Webpack's WasmHash on PR builds before screenshot capture; v4
+            # invalidates a v3 entry that went the same way on 2026-09-17
+            # (`TypeError: Cannot read properties of undefined (reading
+            # 'length')` in WasmHash._updateWithBuffer, ~60s into Build, on
+            # every PR that restored it — ui#3227 and ui#3232 crashed
+            # identically off the same key). Bump the version again the next
+            # time PRs start failing in Build with a WasmHash stack.
             # Restore-only on purpose: a save on every PR push would upload a
             # fresh 100-400 MB entry that is branch-scoped (no other PR can
             # read it), churning the shared 10 GB cache quota and spending
@@ -541,9 +548,9 @@ jobs:
               uses: actions/cache/restore@v4
               with:
                   path: .next/cache
-                  key: ds-shots-next-v3-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
+                  key: ds-shots-next-v4-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
                   restore-keys: |
-                      ds-shots-next-v3-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-
+                      ds-shots-next-v4-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-
 
             - name: Build
               env:
@@ -570,7 +577,7 @@ jobs:
               uses: actions/cache/save@v4
               with:
                   path: .next/cache
-                  key: ds-shots-next-v3-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
+                  key: ds-shots-next-v4-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'next.config.*', '.github/workflows/tests.yml') }}-${{ hashFiles('src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx') }}
 
             # The capture fails a shot that still has a spinner on camera, on
             # purpose. No continue-on-error: a red step is how anyone finds out.
