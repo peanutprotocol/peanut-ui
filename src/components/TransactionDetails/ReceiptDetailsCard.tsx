@@ -14,7 +14,12 @@ import { ReceiptTokenRows } from '@/components/TransactionDetails/ReceiptTokenRo
 import { type ReceiptViewModel } from '@/components/TransactionDetails/useReceiptViewModel'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useReceiptDateFormatter } from '@/components/TransactionDetails/useReceiptDateFormatter'
-import { bankAccountLabelKey, getAccountCopyValue, type BankAccountLabelKey } from './transaction-details.utils'
+import {
+    bankAccountLabelKey,
+    getAccountCopyValue,
+    receiptIssuedAt,
+    type BankAccountLabelKey,
+} from './transaction-details.utils'
 import { usesCompletedTimestampLabel } from './transaction-predicates'
 import { CardPaymentRows } from './provider-rows/CardPaymentRows'
 import { MantecaDepositInfo } from './provider-rows/MantecaDepositInfo'
@@ -23,7 +28,7 @@ import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
 import { formatAmount, formatCurrency } from '@/utils/general.utils'
 import { formatPoints } from '@/utils/format.utils'
-import { printableAddress, shortenAddress, shortenStringLong } from '@/utils/general.utils'
+import { middleEllipsisAccount, printableAddress, shortenAddress, shortenStringLong } from '@/utils/general.utils'
 import { RequestPotProgressRow } from './provider-rows/RequestPotProgressRow'
 import { RequestPotContributorRows } from './provider-rows/RequestPotContributorRows'
 
@@ -259,6 +264,22 @@ export function ReceiptDetailsCard({
                         </LinkButton>
                     }
                 />
+            )}
+
+            {/* document rows, last (TASK-22452): the id every receipt can be
+                traced by and its issuance date. uppercase is display-only —
+                the raw id (copyValue) is a case-sensitive lookup key. */}
+            {rowVisibilityConfig.reference && (
+                <DataRow
+                    label={t('officialReceipt.reference')}
+                    value={middleEllipsisAccount(transaction.id, 20).toUpperCase()}
+                    allowCopy
+                    copyValue={transaction.id}
+                />
+            )}
+
+            {rowVisibilityConfig.issuedOn && (
+                <DataRow label={t('officialReceipt.issuedOn')} value={formatDate(receiptIssuedAt(transaction))} />
             )}
         </Card>
     )

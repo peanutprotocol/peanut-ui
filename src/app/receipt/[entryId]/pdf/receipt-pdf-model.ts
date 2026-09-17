@@ -117,6 +117,8 @@ export function buildReceiptPdfModel(
     // One canonical receipt date is always the first field. Prefer the final
     // lifecycle timestamp, then fall back to the creation/display date for
     // transactions that are still pending or have older history shapes.
+    // labelled "Issued on": this timestamp IS the issuance date of the state
+    // the receipt documents — never the download time (TASK-22452).
     const receiptDate = isCancelled
         ? transaction.cancelledDate || transaction.createdAt || transaction.date
         : status === 'closed'
@@ -126,7 +128,7 @@ export function buildReceiptPdfModel(
             : status === 'completed'
               ? transaction.claimedAt || transaction.completedAt || transaction.date || transaction.createdAt
               : transaction.createdAt || transaction.date
-    push(t('transaction.officialReceipt.pdf.date'), formatDate(receiptDate, locale))
+    push(t('transaction.officialReceipt.issuedOn'), formatDate(receiptDate, locale))
 
     const cardType = drawer?.transactionCardType
     push(t('transaction.officialReceipt.pdf.type'), cardType ? t(`transaction.type.${cardType}`) : undefined)

@@ -54,6 +54,14 @@ jest.mock('@/components/Global/ShareButton', () => ({ __esModule: true, default:
 jest.mock('@/components/Setup/Views/SignTestTransaction', () => ({ PasskeyDocsLink: () => null }))
 jest.mock('../provider-actions/CancelDepositActions', () => ({ CancelDepositActions: () => null }))
 jest.mock('../ReceiptReferralNudge', () => ({ ReceiptReferralNudge: () => null }))
+jest.mock('@/context/ModalsContext', () => ({
+    useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }),
+}))
+jest.mock('../useReceiptPdfFile', () => ({
+    useReceiptPdfFile: () => ({ share: jest.fn(), download: jest.fn(), busy: null, unavailable: false, error: false }),
+}))
+jest.mock('@/components/Global/ShareButton/useShareAction', () => ({ useShareAction: () => jest.fn() }))
+jest.mock('../ReceiptMoreActionsDrawer', () => ({ ReceiptMoreActionsDrawer: () => null }))
 jest.mock('../ReceiptSupportLink', () => ({ ReceiptSupportLink: () => null }))
 jest.mock('../DownloadReceiptPdfLink', () => ({ DownloadReceiptPdfLink: () => null }))
 

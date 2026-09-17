@@ -24,6 +24,8 @@ export type TransactionDetailsRowKey =
     | 'mantecaDepositInfo'
     | 'cardPayment'
     | 'closed'
+    | 'reference'
+    | 'issuedOn'
 
 // order of the rows in the receipt (must match actual rendering order in component)
 export const transactionDetailsRowKeys: TransactionDetailsRowKey[] = [
@@ -48,7 +50,22 @@ export const transactionDetailsRowKeys: TransactionDetailsRowKey[] = [
     'networkFee',
     'peanutFee',
     'attachment',
+    'reference',
+    'issuedOn',
 ]
+
+/** the receipt's issuance timestamp: the settlement moment when there is one,
+ *  else creation. shared by the details-card row and the public header so the
+ *  two can never disagree (TASK-22452). */
+export const receiptIssuedAt = (transaction: {
+    completedAt?: string | Date
+    claimedAt?: string | Date
+    createdAt?: string | Date
+    date: string | Date
+}): Date | undefined => {
+    const source = transaction.completedAt ?? transaction.claimedAt ?? transaction.createdAt ?? transaction.date
+    return source ? new Date(source) : undefined
+}
 
 /** Which label a bank-account row carries. Callers map it to display text —
  *  this module stays copy-free. */

@@ -1977,7 +1977,6 @@
             "issuedOn": "Emitido em",
             "pdf": {
                 "title": "Comprovante da transação",
-                "date": "Data",
                 "type": "Tipo",
                 "status": "Status",
                 "from": "De"
@@ -2113,6 +2112,7 @@
             "cancelRequest": "Cancelar cobrança",
             "pay": "Pagar",
             "rejectRequest": "Recusar cobrança",
+            "moreActions": "Mais ações",
             "splitBill": "Dividir essa conta",
             "shareReceipt": "Compartilhar comprovante",
             "downloadPdf": "Baixar comprovante (PDF)",

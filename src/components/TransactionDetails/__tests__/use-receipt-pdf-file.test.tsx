@@ -1,7 +1,7 @@
 import React from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
-import { PrivateReceiptPdfActions } from '../PrivateReceiptPdfActions'
+import { useReceiptPdfFile } from '../useReceiptPdfFile'
 import { isCapacitor } from '@/utils/capacitor'
 import { downloadBlob } from '@/components/Card/share-asset/captureShareAsset'
 import { CapacitorHttp } from '@capacitor/core'
@@ -32,7 +32,30 @@ const mockIsCapacitor = isCapacitor as jest.Mock
 const mockDownloadBlob = downloadBlob as jest.Mock
 const mockNativeRequest = CapacitorHttp.request as jest.Mock
 
-describe('PrivateReceiptPdfActions', () => {
+/* the hook powers the receipt's primary share button AND the more-actions
+   drawer rows (TASK-22452) — this harness stands in for both consumers. */
+function Harness({ entryId, kind, prefetch = true }: { entryId: string; kind: string; prefetch?: boolean }) {
+    const pdf = useReceiptPdfFile({ entryId, kind, prefetch })
+    return (
+        <div>
+            <button disabled={pdf.unavailable || pdf.busy !== null} onClick={() => void pdf.share()}>
+                share
+            </button>
+            <button disabled={pdf.unavailable || pdf.busy !== null} onClick={() => void pdf.download()}>
+                download
+            </button>
+        </div>
+    )
+}
+
+const renderHarness = (props: { entryId: string; kind: string; prefetch?: boolean }) =>
+    render(
+        <IntlWrapper>
+            <Harness {...props} />
+        </IntlWrapper>
+    )
+
+describe('useReceiptPdfFile', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         mockIsCapacitor.mockReturnValue(false)
@@ -45,14 +68,10 @@ describe('PrivateReceiptPdfActions', () => {
     })
 
     test('prefetches with bearer auth and exposes share/download for a private kind', async () => {
-        render(
-            <IntlWrapper>
-                <PrivateReceiptPdfActions entryId="entry-private" kind="DIRECT_TRANSFER" />
-            </IntlWrapper>
-        )
+        renderHarness({ entryId: 'entry-private', kind: 'DIRECT_TRANSFER' })
 
-        const share = screen.getByRole('button', { name: 'Share Receipt' })
-        const download = screen.getByRole('button', { name: 'Download Receipt (PDF)' })
+        const share = screen.getByRole('button', { name: 'share' })
+        const download = screen.getByRole('button', { name: 'download' })
         await waitFor(() => expect(share).toBeEnabled())
         expect(download).toBeEnabled()
         expect(global.fetch).toHaveBeenCalledWith(
@@ -73,11 +92,7 @@ describe('PrivateReceiptPdfActions', () => {
             headers: { 'content-disposition': 'inline; filename="native-receipt.pdf"' },
         })
 
-        render(
-            <IntlWrapper>
-                <PrivateReceiptPdfActions entryId="entry-native" kind="CARD_SPEND_CLEAR" />
-            </IntlWrapper>
-        )
+        renderHarness({ entryId: 'entry-native', kind: 'CARD_SPEND_CLEAR' })
 
         await waitFor(() =>
             expect(mockNativeRequest).toHaveBeenCalledWith(
@@ -89,7 +104,7 @@ describe('PrivateReceiptPdfActions', () => {
             )
         )
         expect(global.fetch).not.toHaveBeenCalled()
-        expect(await screen.findByRole('button', { name: 'Download Receipt (PDF)' })).toBeEnabled()
+        await waitFor(() => expect(screen.getByRole('button', { name: 'download' })).toBeEnabled())
     })
 
     test('retries when the initial PDF prefetch fails', async () => {
@@ -103,18 +118,25 @@ describe('PrivateReceiptPdfActions', () => {
             .mockRejectedValueOnce(new Error('temporary outage'))
             .mockResolvedValueOnce(response)
 
-        render(
-            <IntlWrapper>
-                <PrivateReceiptPdfActions entryId="entry-retry" kind="DIRECT_TRANSFER" />
-            </IntlWrapper>
-        )
+        renderHarness({ entryId: 'entry-retry', kind: 'DIRECT_TRANSFER' })
 
-        const download = screen.getByRole('button', { name: 'Download Receipt (PDF)' })
+        const download = screen.getByRole('button', { name: 'download' })
         await waitFor(() => expect(download).toBeEnabled())
         fireEvent.click(download)
 
         await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2))
         await waitFor(() => expect(mockDownloadBlob).toHaveBeenCalledWith(expect.any(Blob), 'retried-receipt.pdf'))
         expect(mockToastError).not.toHaveBeenCalled()
+    })
+
+    test('without prefetch nothing is fetched until an action asks for the file', async () => {
+        renderHarness({ entryId: 'entry-lazy', kind: 'QR_PAY', prefetch: false })
+
+        expect(global.fetch).not.toHaveBeenCalled()
+        const download = screen.getByRole('button', { name: 'download' })
+        expect(download).toBeEnabled()
+        fireEvent.click(download)
+        await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1))
+        await waitFor(() => expect(mockDownloadBlob).toHaveBeenCalledWith(expect.any(Blob), 'private-receipt.pdf'))
     })
 })

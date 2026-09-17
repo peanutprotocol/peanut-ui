@@ -1977,7 +1977,6 @@
             "issuedOn": "Issued on",
             "pdf": {
                 "title": "Transaction Receipt",
-                "date": "Date",
                 "type": "Type",
                 "status": "Status",
                 "from": "From"
@@ -2113,6 +2112,7 @@
             "cancelRequest": "Cancel request",
             "pay": "Pay",
             "rejectRequest": "Reject request",
+            "moreActions": "More actions",
             "splitBill": "Split this bill",
             "shareReceipt": "Share Receipt",
             "downloadPdf": "Download Receipt (PDF)",

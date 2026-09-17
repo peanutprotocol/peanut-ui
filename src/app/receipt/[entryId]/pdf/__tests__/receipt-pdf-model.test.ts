@@ -84,7 +84,7 @@ describe('buildReceiptPdfModel — completed bank withdraw', () => {
         // formatCurrency mirrors the page: decimal places follow the input string
         expect(model.amountDisplay).toBe('$125.5')
         expect(model.rows[0]).toEqual({
-            label: 'transaction.officialReceipt.pdf.date',
+            label: 'transaction.officialReceipt.issuedOn',
             value: expect.stringContaining('2026'),
         })
         expect(row(model, 'transaction.officialReceipt.pdf.type')).toBe('transaction.type.bank_withdraw')
@@ -104,7 +104,7 @@ describe('buildReceiptPdfModel — completed bank withdraw', () => {
     })
 
     test('completed OFFRAMP uses one Date field at the top', () => {
-        expect(row(model, 'transaction.officialReceipt.pdf.date')).toContain('2026')
+        expect(row(model, 'transaction.officialReceipt.issuedOn')).toContain('2026')
         expect(labels(model)).not.toContain('transaction.rows.completed')
         expect(labels(model)).not.toContain('transaction.rows.created')
     })
@@ -117,7 +117,7 @@ describe('buildReceiptPdfModel — variants', () => {
             t,
             'en'
         )
-        expect(row(model, 'transaction.officialReceipt.pdf.date')).toContain('2026')
+        expect(row(model, 'transaction.officialReceipt.issuedOn')).toContain('2026')
         expect(labels(model)).not.toContain('transaction.rows.created')
         expect(labels(model)).not.toContain('transaction.rows.completed')
         expect(labels(model)).not.toContain('transaction.rows.txId')
@@ -198,7 +198,7 @@ describe('buildReceiptPdfModel — variants', () => {
             t,
             'en'
         )
-        expect(row(model, 'transaction.officialReceipt.pdf.date')).toContain('2026')
+        expect(row(model, 'transaction.officialReceipt.issuedOn')).toContain('2026')
         expect(labels(model)).not.toContain('transaction.rows.cancelled')
         expect(labels(model)).not.toContain('transaction.rows.fee')
         expect(labels(model)).not.toContain('transaction.rows.transferId')
@@ -267,7 +267,7 @@ describe('buildReceiptPdfModel — variants', () => {
             'en'
         )
 
-        expect(row(model, 'transaction.officialReceipt.pdf.date')).toContain('August 22, 2026')
+        expect(row(model, 'transaction.officialReceipt.issuedOn')).toContain('August 22, 2026')
     })
 
     test('closed request pot uses its closure timestamp as Date', () => {
@@ -286,7 +286,7 @@ describe('buildReceiptPdfModel — variants', () => {
             'en'
         )
 
-        expect(row(model, 'transaction.officialReceipt.pdf.date')).toContain('August 23, 2026')
+        expect(row(model, 'transaction.officialReceipt.issuedOn')).toContain('August 23, 2026')
     })
 
     test('unparsable dates fall back to an ASCII marker instead of throwing', () => {
@@ -295,16 +295,18 @@ describe('buildReceiptPdfModel — variants', () => {
             t,
             'en'
         )
-        expect(row(model, 'transaction.officialReceipt.pdf.date')).toBe('-')
+        expect(row(model, 'transaction.officialReceipt.issuedOn')).toBe('-')
     })
 })
 
 describe('buildReceiptPdfModel — app locales', () => {
+    // the leading row is the issuance date since TASK-22452 (relabelled from
+    // the generic Date — same status-branched source timestamp)
     const localizedCopy: ReadonlyArray<[AppLocale, string, string, string]> = [
-        ['en', 'Transaction Receipt', 'Date', 'Reference'],
-        ['es-419', 'Comprobante de la transacción', 'Fecha', 'Referencia'],
-        ['es-AR', 'Comprobante de la transacción', 'Fecha', 'Referencia'],
-        ['pt-BR', 'Comprovante da transação', 'Data', 'Referência'],
+        ['en', 'Transaction Receipt', 'Issued on', 'Reference'],
+        ['es-419', 'Comprobante de la transacción', 'Fecha de emisión', 'Referencia'],
+        ['es-AR', 'Comprobante de la transacción', 'Fecha de emisión', 'Referencia'],
+        ['pt-BR', 'Comprovante da transação', 'Emitido em', 'Referência'],
     ]
 
     test('covers every supported app locale', () => {

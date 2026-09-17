@@ -239,6 +239,14 @@ export function useReceiptViewModel(
             // visible-but-empty (a stray divider in the details card).
             cardPayment: isCardPaymentEntry(transaction) && hasCardPaymentRowsContent(transaction),
             closed: !!(transaction.status === 'closed' && transaction.cancelledDate),
+            // document rows (TASK-22452): the entry id ties any shared or
+            // printed receipt back to the source activity, and the issuance
+            // date is the settlement/creation timestamp — both render only
+            // from real source fields, never fabricated. the Transfer ID row
+            // shows the same id under its own label for bank rails; the user
+            // ruled the Reference fact stays regardless.
+            reference: !!transaction.id,
+            issuedOn: !!(transaction.completedAt ?? transaction.claimedAt ?? transaction.createdAt ?? transaction.date),
         }
     }, [transaction, isPublic, isPendingBankRequest, isPeanutWalletToken, isSendLinkSenderCancelled])
 

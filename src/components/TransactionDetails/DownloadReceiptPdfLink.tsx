@@ -25,8 +25,9 @@ export function DownloadReceiptPdfLink({ entryId, kind }: { entryId: string; kin
     const pdfPath: `/${string}` = `/receipt/${encodeURIComponent(entryId)}/pdf?kind=${encodeURIComponent(kind)}&locale=${encodeURIComponent(locale)}`
 
     return (
+        // purple: download is the public receipt's one primary (TASK-22452)
         <Button
-            variant="stroke"
+            variant="purple"
             href={pdfPath}
             download
             external
