@@ -2301,9 +2301,14 @@
     "badges": {
         "title": "Insignias",
         "yourBadges": "Tus insignias",
+        "earned": "Obtenida",
+        "locked": "Bloqueada",
+        "howToUnlock": "Cómo desbloquearla",
         "emptyTitle": "No se encontraron insignias",
         "emptyDescription": "Gana insignias a medida que usas Peanut. Haz pagos, invita amigos y participa en eventos para desbloquearlas y mostrarlas en tu perfil.",
-        "publicProfileNote": "Estas insignias se muestran en tu perfil público.",
+        "loadErrorTitle": "No pudimos cargar las insignias",
+        "loadErrorDescription": "Revisa tu conexión e intenta de nuevo.",
+        "publicProfileNote": "Solo las insignias obtenidas se muestran en tu perfil público.",
         "collectionLabel": "Colección de insignias",
         "showNext": "Mostrar más insignias",
         "showPrevious": "Mostrar insignias anteriores",
@@ -2316,6 +2321,16 @@
         "toastSingle": "Insignia desbloqueada: {name}",
         "toastMultiple": "¡Desbloqueaste {count, plural, one {# insignia} other {# insignias}}!",
         "toastTapToView": "Toca para ver",
+        "unlock": {
+            "invites": "Invita a {target, plural, one {# amigo} other {# amigos}} que se unan a Peanut.",
+            "rewards": "Gana ${targetUsd} en recompensas.",
+            "identityVerification": "Completa la verificación de identidad.",
+            "cardPurchase": "Haz tu primera compra con la tarjeta Peanut.",
+            "cardSpend": "Gasta ${targetUsd} con la tarjeta Peanut.",
+            "ensPayment": "Envía o recibe un pago usando un nombre ENS.",
+            "campaign": "Participa en una campaña o evento elegible de Peanut.",
+            "specialRecognition": "Obtén esta insignia por un hito, una contribución o un reconocimiento especial en Peanut."
+        },
         "catalog": {
             "FIRST_INVITE": {
                 "name": "Primera invitación",

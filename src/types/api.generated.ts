@@ -337,6 +337,81 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/badge/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            badges: ({
+                                /** @description Stable badge code. Clients must tolerate codes added after SDK generation. */
+                                code: string;
+                                description: string;
+                                iconUrl: string;
+                                name: string;
+                                publicDescription: string;
+                            } & {
+                                unlock: {
+                                    /** @enum {string} */
+                                    kind: "invites";
+                                    target: number;
+                                } | {
+                                    /** @enum {string} */
+                                    kind: "rewards";
+                                    targetUsd: number;
+                                } | {
+                                    /** @enum {string} */
+                                    kind: "identity_verification";
+                                } | {
+                                    /** @enum {string} */
+                                    kind: "card_purchase";
+                                } | {
+                                    /** @enum {string} */
+                                    kind: "card_spend";
+                                    targetUsd: number;
+                                } | {
+                                    /** @enum {string} */
+                                    kind: "ens_payment";
+                                } | {
+                                    /** @enum {string} */
+                                    kind: "campaign";
+                                } | {
+                                    /** @enum {string} */
+                                    kind: "special_recognition";
+                                };
+                            })[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/badge/claims": {
         parameters: {
             query?: never;
@@ -6783,8 +6858,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            /** @enum {string} */
-                            code?: "geo-blocked";
+                            code: "geo-blocked" | "pending-residence-blocked";
                             message: string;
                             /** @enum {string} */
                             status: "error";
@@ -11257,6 +11331,72 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/username/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        username: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            found: boolean;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            retryAfterSeconds: number;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;

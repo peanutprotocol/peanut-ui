@@ -120,6 +120,81 @@ const demoCounterparty = (userId: string) => ({
     isVerified: true,
 })
 
+const DEMO_BADGE_CATALOG = [
+    {
+        code: 'FIRST_INVITE',
+        name: 'First Invite',
+        description: 'Brought a friend to the table.',
+        publicDescription: 'Brought a friend to the table.',
+        iconUrl: '/badges/first_invite.svg',
+        unlock: { kind: 'invites', target: 1 },
+    },
+    {
+        code: 'SECOND_INVITE',
+        name: 'Second Invite',
+        description: 'Word is getting around.',
+        publicDescription: 'Word is getting around.',
+        iconUrl: '/badges/second_invite.svg',
+        unlock: { kind: 'invites', target: 2 },
+    },
+    {
+        code: 'BETA_TESTER',
+        name: 'Beta Tester',
+        description: 'Early enough to be part of the experiment.',
+        publicDescription: 'Early enough to be part of the experiment.',
+        iconUrl: '/badges/beta_tester.svg',
+        unlock: { kind: 'special_recognition' },
+    },
+    {
+        code: 'OG_2025_10_12',
+        name: 'OG',
+        description: 'You were with Peanut before it was cool.',
+        publicDescription: 'They were with Peanut before it was cool.',
+        iconUrl: '/badges/og_v1.svg',
+        unlock: { kind: 'special_recognition' },
+    },
+    {
+        code: 'CARD_FIRST_SWIPE',
+        name: 'First Swipe',
+        description: 'You put your card to work.',
+        publicDescription: 'They put their card to work.',
+        iconUrl: '/badges/happy_card.svg',
+        unlock: { kind: 'card_purchase' },
+    },
+    {
+        code: 'CARD_SPENT_1K',
+        name: '$1K Club',
+        description: '$1K swiped.',
+        publicDescription: '$1K swiped.',
+        iconUrl: '/badges/money_stack.svg',
+        unlock: { kind: 'card_spend', targetUsd: 1000 },
+    },
+    {
+        code: 'VERIFIED',
+        name: 'Verified',
+        description: 'ID checked, identity confirmed.',
+        publicDescription: 'ID checked, identity confirmed.',
+        iconUrl: '/badges/verified.svg',
+        unlock: { kind: 'identity_verification' },
+    },
+    {
+        code: 'ENS',
+        name: 'Name Dropper',
+        description: 'You paid at a name. Or got paid at yours.',
+        publicDescription: 'They moved money with an ENS name.',
+        iconUrl: '/badges/ens.svg',
+        unlock: { kind: 'ens_payment' },
+    },
+    {
+        code: 'SURF_UP',
+        name: "Surf's Up",
+        description: 'You caught the wave early.',
+        publicDescription: 'They caught the wave early.',
+        iconUrl: '/badges/surf_up.svg',
+        unlock: { kind: 'campaign' },
+    },
+]
+
 const demoRequest = (uuid: string, options?: RequestInit) => {
     const body = parseBody(options)
     const tokenAmount = String(body.tokenAmount ?? body.requestProps?.tokenAmount ?? body.local_price?.amount ?? '0')
@@ -700,6 +775,7 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         pattern: '/points/invites',
         handler: () => ({ invitees: [], summary: { totalInvited: 0, totalPointsEarned: 0 } }),
     },
+    { method: 'GET', pattern: '/badge/catalog', handler: () => ({ badges: DEMO_BADGE_CATALOG }) },
 
     // notifications (support unread badge + mark-read only; the list page is gone)
     { method: 'GET', pattern: '/notifications/unread-count', handler: () => ({ count: 0 }) },

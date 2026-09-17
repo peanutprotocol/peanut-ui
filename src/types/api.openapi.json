@@ -463,6 +463,212 @@
 				}
 			}
 		},
+		"/badge/catalog": {
+			"get": {
+				"parameters": [
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"badges": {
+											"items": {
+												"allOf": [
+													{
+														"properties": {
+															"code": {
+																"description": "Stable badge code. Clients must tolerate codes added after SDK generation.",
+																"maxLength": 50,
+																"minLength": 1,
+																"pattern": "^[A-Z][A-Z0-9_]{0,49}$",
+																"type": "string"
+															},
+															"description": {
+																"type": "string"
+															},
+															"iconUrl": {
+																"type": "string"
+															},
+															"name": {
+																"type": "string"
+															},
+															"publicDescription": {
+																"type": "string"
+															}
+														},
+														"required": [
+															"code",
+															"name",
+															"description",
+															"publicDescription",
+															"iconUrl"
+														],
+														"type": "object"
+													},
+													{
+														"properties": {
+															"unlock": {
+																"anyOf": [
+																	{
+																		"properties": {
+																			"kind": {
+																				"enum": [
+																					"invites"
+																				],
+																				"type": "string"
+																			},
+																			"target": {
+																				"type": "number"
+																			}
+																		},
+																		"required": [
+																			"kind",
+																			"target"
+																		],
+																		"type": "object"
+																	},
+																	{
+																		"properties": {
+																			"kind": {
+																				"enum": [
+																					"rewards"
+																				],
+																				"type": "string"
+																			},
+																			"targetUsd": {
+																				"type": "number"
+																			}
+																		},
+																		"required": [
+																			"kind",
+																			"targetUsd"
+																		],
+																		"type": "object"
+																	},
+																	{
+																		"properties": {
+																			"kind": {
+																				"enum": [
+																					"identity_verification"
+																				],
+																				"type": "string"
+																			}
+																		},
+																		"required": [
+																			"kind"
+																		],
+																		"type": "object"
+																	},
+																	{
+																		"properties": {
+																			"kind": {
+																				"enum": [
+																					"card_purchase"
+																				],
+																				"type": "string"
+																			}
+																		},
+																		"required": [
+																			"kind"
+																		],
+																		"type": "object"
+																	},
+																	{
+																		"properties": {
+																			"kind": {
+																				"enum": [
+																					"card_spend"
+																				],
+																				"type": "string"
+																			},
+																			"targetUsd": {
+																				"type": "number"
+																			}
+																		},
+																		"required": [
+																			"kind",
+																			"targetUsd"
+																		],
+																		"type": "object"
+																	},
+																	{
+																		"properties": {
+																			"kind": {
+																				"enum": [
+																					"ens_payment"
+																				],
+																				"type": "string"
+																			}
+																		},
+																		"required": [
+																			"kind"
+																		],
+																		"type": "object"
+																	},
+																	{
+																		"properties": {
+																			"kind": {
+																				"enum": [
+																					"campaign"
+																				],
+																				"type": "string"
+																			}
+																		},
+																		"required": [
+																			"kind"
+																		],
+																		"type": "object"
+																	},
+																	{
+																		"properties": {
+																			"kind": {
+																				"enum": [
+																					"special_recognition"
+																				],
+																				"type": "string"
+																			}
+																		},
+																		"required": [
+																			"kind"
+																		],
+																		"type": "object"
+																	}
+																]
+															}
+														},
+														"required": [
+															"unlock"
+														],
+														"type": "object"
+													}
+												],
+												"type": "object"
+											},
+											"type": "array"
+										}
+									},
+									"required": [
+										"badges"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			}
+		},
 		"/badge/claims": {
 			"post": {
 				"parameters": [
@@ -11503,10 +11709,20 @@
 								"schema": {
 									"properties": {
 										"code": {
-											"enum": [
-												"geo-blocked"
-											],
-											"type": "string"
+											"anyOf": [
+												{
+													"enum": [
+														"geo-blocked"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"pending-residence-blocked"
+													],
+													"type": "string"
+												}
+											]
 										},
 										"message": {
 											"type": "string"
@@ -11520,6 +11736,7 @@
 									},
 									"required": [
 										"status",
+										"code",
 										"message"
 									],
 									"type": "object"
@@ -18374,6 +18591,91 @@
 			"get": {
 				"responses": {
 					"200": {
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/users/username/check": {
+			"post": {
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"username": {
+										"maxLength": 64,
+										"minLength": 1,
+										"type": "string"
+									}
+								},
+								"required": [
+									"username"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"found": {
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"found"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										},
+										"retryAfterSeconds": {
+											"minimum": 1,
+											"type": "integer"
+										}
+									},
+									"required": [
+										"error",
+										"retryAfterSeconds"
+									],
+									"type": "object"
+								}
+							}
+						},
 						"description": "Default Response"
 					}
 				}

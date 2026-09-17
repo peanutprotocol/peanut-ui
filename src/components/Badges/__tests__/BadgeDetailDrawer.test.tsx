@@ -61,6 +61,23 @@ function renderModal(locale: 'en' | 'pt-BR') {
     )
 }
 
+function renderLockedModal() {
+    return render(
+        <NextIntlClientProvider locale="en" messages={en}>
+            <BadgeDetailDrawer
+                isOpen
+                onClose={onClose}
+                code="FIRST_INVITE"
+                title="First Invite"
+                description="Invite a friend"
+                logo="/badges/first_invite.svg"
+                earned={false}
+                unlockText="Invite one friend who joins Peanut."
+            />
+        </NextIntlClientProvider>
+    )
+}
+
 beforeEach(() => {
     jest.clearAllMocks()
 })
@@ -88,5 +105,14 @@ describe('BadgeDetailDrawer', () => {
         expect(text).toContain('Ganhei o selo First Swipe no Peanut!')
         expect(text).toContain('/invite?code=satoshi')
         expect(text).not.toContain('Just put my Peanut card to work')
+    })
+
+    it('shows the unlock requirement instead of sharing for a locked badge', () => {
+        renderLockedModal()
+
+        expect(screen.getByText(en.badges.howToUnlock)).toBeInTheDocument()
+        expect(screen.getByText('Invite one friend who joins Peanut.')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: en.badges.shareAchievement })).not.toBeInTheDocument()
+        expect(mockShareButton).not.toHaveBeenCalled()
     })
 })
