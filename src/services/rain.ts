@@ -27,7 +27,11 @@ export interface RainCardApplicationStatus {
     rainUserId?: string
     /** Collateral proxy address. */
     contractAddress?: string
-    /** Rain Coordinator contract — target of `withdrawAsset`. */
+    /** Rain Coordinator (controller) contract — target of `withdrawAsset`.
+     *  Resolved LIVE by the backend on every overview read; Rain rotates it
+     *  on a controller upgrade, so never pin a grant to a cached copy — the
+     *  grant hook refetches the overview first. Absent when the live read
+     *  failed (UI gates on presence; the grant then reports `no-contracts`). */
     coordinatorAddress?: string
 }
 
@@ -56,7 +60,11 @@ export interface RainCardSummary {
     network: string
     issuedAt: string
     /** Whether the user has granted the one-time session-key permission
-     *  used to submit collateral withdrawals with a single passkey tap. */
+     *  used to submit collateral withdrawals with a single passkey tap — AND
+     *  it still targets the live coordinator. After a Rain controller upgrade
+     *  the backend reports `false` for grants pinned to the old controller, so
+     *  the existing prompts (EnableAutoBalanceBanner, the collateral-only
+     *  spend preflight) drive a re-grant without any new UI. */
     hasWithdrawApproval: boolean
 }
 
@@ -295,6 +303,11 @@ export class StaleCardApprovalError extends Error {
 /** The only path that returns a 409 STALE_CARD_APPROVAL — the withdraw submit.
  *  Gate the branch on it so an unrelated 409 elsewhere stays a generic error. */
 const RAIN_WITHDRAW_SUBMIT_PATH = '/rain/cards/withdraw/submit'
+/** The grant store refuses (400 STALE_CARD_APPROVAL) an approval that does not
+ *  target the live coordinator. Typed so the grant surfaces "try again" copy,
+ *  but NO re-enable event: the caller IS the re-enable flow, and re-dispatching
+ *  from inside it would reopen the modal on top of itself. */
+const RAIN_SESSION_APPROVE_PATH = '/rain/cards/withdraw/session-approve'
 /** Window event the global re-enable modal listens for. */
 export const RAIN_STALE_APPROVAL_EVENT = 'rain:stale-card-approval'
 
@@ -444,6 +457,19 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
                 window.dispatchEvent(new CustomEvent(RAIN_STALE_APPROVAL_EVENT))
             }
             throw new StaleCardApprovalError(message)
+        }
+        throw new ApiError(err.error || err.message || `Request failed: ${response.status}`, {
+            status: response.status,
+            code: err.code,
+        })
+    }
+
+    if (response.status === 400 && opts.path === RAIN_SESSION_APPROVE_PATH) {
+        const err = await response.json().catch(() => ({}))
+        if (err.code === 'STALE_CARD_APPROVAL') {
+            throw new StaleCardApprovalError(
+                err.error || 'This approval targets an outdated card contract — please re-enable your card.'
+            )
         }
         throw new ApiError(err.error || err.message || `Request failed: ${response.status}`, {
             status: response.status,

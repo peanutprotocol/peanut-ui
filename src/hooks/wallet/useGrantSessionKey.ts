@@ -110,12 +110,28 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
      * Shared passkey + serialize step. Produces the serialized permission
      * string but does NOT hit any backend endpoint. Requires the collateral
      * proxy + coordinator addresses (available once Rain has approved KYC).
+     *
+     * The coordinator is read from a FRESH overview fetch, never the cached
+     * one: the backend resolves it live from Rain on every overview read, and
+     * Rain rotates it on a controller upgrade (TASK-22734). A grant pinned to
+     * a stale coordinator is dead on arrival — the backend refuses to store
+     * it (400 STALE_CARD_APPROVAL) and every collateral spend would 409.
      */
     const runSerialize = useCallback(async (): Promise<
         { ok: true; serialized: string } | { ok: false; error: GrantSessionKeyError }
     > => {
-        const collateralProxy = overview?.status?.contractAddress as Address | undefined
-        const coordinatorAddress = overview?.status?.coordinatorAddress as Address | undefined
+        const fresh = await refetch()
+        if (!fresh.isSuccess || !fresh.data) {
+            return {
+                ok: false,
+                error: {
+                    kind: 'unexpected',
+                    message: (fresh.error as Error | null)?.message ?? 'Card overview unavailable',
+                },
+            }
+        }
+        const collateralProxy = fresh.data.status?.contractAddress as Address | undefined
+        const coordinatorAddress = fresh.data.status?.coordinatorAddress as Address | undefined
         if (!collateralProxy || !coordinatorAddress) {
             return { ok: false, error: { kind: 'no-contracts' } }
         }
@@ -315,7 +331,7 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
 
         const serialized = await serializePermissionAccount(sessionKernelAccount, undefined, enableSignature)
         return { ok: true, serialized }
-    }, [overview, ensureClientForChain, getPatchedSudoValidator, handleSendUserOpEncoded, rebuildClientForChain])
+    }, [refetch, ensureClientForChain, getPatchedSudoValidator, handleSendUserOpEncoded, rebuildClientForChain])
 
     const wrap = useCallback(
         async <T>(

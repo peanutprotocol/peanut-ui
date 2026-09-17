@@ -71,6 +71,31 @@ describe('rainApi.submitWithdrawal — stale card approval', () => {
         window.removeEventListener(RAIN_STALE_APPROVAL_EVENT, onEvent)
     })
 
+    it('session-approve 400 STALE_CARD_APPROVAL is typed but fires NO re-enable event (no modal loop)', async () => {
+        mockFetchWithSentry.mockResolvedValue(
+            jsonResponse(400, {
+                error: 'This approval targets an outdated card contract.',
+                code: 'STALE_CARD_APPROVAL',
+            })
+        )
+        const onEvent = jest.fn()
+        window.addEventListener(RAIN_STALE_APPROVAL_EVENT, onEvent)
+
+        const err = await rainApi.submitWithdrawSessionApproval({ serializedApproval: 'blob' }).catch((e) => e)
+        expect(err).toBeInstanceOf(StaleCardApprovalError)
+        expect(err.message).toBe('This approval targets an outdated card contract.')
+        expect(onEvent).not.toHaveBeenCalled()
+
+        window.removeEventListener(RAIN_STALE_APPROVAL_EVENT, onEvent)
+    })
+
+    it('a session-approve 400 WITHOUT the code stays a generic error', async () => {
+        mockFetchWithSentry.mockResolvedValue(jsonResponse(400, { error: 'Invalid approval — could not deserialize' }))
+        const err = await rainApi.submitWithdrawSessionApproval({ serializedApproval: 'blob' }).catch((e) => e)
+        expect(err).not.toBeInstanceOf(StaleCardApprovalError)
+        expect(err.message).toBe('Invalid approval — could not deserialize')
+    })
+
     it('a non-409 failure is unchanged (generic Error, no event)', async () => {
         mockFetchWithSentry.mockResolvedValue(jsonResponse(500, { error: 'boom' }))
         const onEvent = jest.fn()
