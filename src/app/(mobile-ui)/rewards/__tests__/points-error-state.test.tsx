@@ -21,7 +21,7 @@ jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('framer-motion', () => ({ useInView: () => false }))
 jest.mock('@/i18n/app/useAppTranslations', () => ({ useAppTranslations: () => (key: string) => key }))
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { user: { userId: 'user-1', username: 'alice' } }, fetchUser: jest.fn() }),
+    useAuth: () => ({ user: { user: { userId: 'user-1', username: 'alice' } } }),
 }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
 jest.mock('@/hooks/useCountUp', () => ({ useCountUp: (value: number) => value }))
@@ -121,6 +121,16 @@ describe('RewardsPage when the points total fails to load', () => {
 
         expect(screen.getByTestId('loading')).toBeInTheDocument()
         expect(screen.queryByTestId('empty-state-loadPointsFailed')).not.toBeInTheDocument()
+    })
+
+    it('renders the points hero while the invite list is still in flight', () => {
+        mockQueryResults.tierInfo = TIER_INFO_OK
+        mockQueryResults.invites = IN_FLIGHT
+
+        const { container } = render(<RewardsPage />)
+
+        expect(container).toHaveTextContent('150 pointsLabel')
+        expect(screen.queryByTestId('loading')).not.toBeInTheDocument()
     })
 
     it('renders the points total when the request succeeds', () => {

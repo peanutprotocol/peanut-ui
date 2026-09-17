@@ -211,7 +211,10 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 title: t('steps.deposit.title'),
                 description: t('steps.deposit.description'),
                 ctaLabel: t('steps.deposit.cta'),
-                href: '/add-money',
+                // This Home-owned CTA can open the Home drawer directly. Keep
+                // /add-money itself as the external/deep-link compatibility
+                // route for flows that carry return state.
+                href: '/home?drawer=add',
             },
             card: {
                 icon: 'credit-card',

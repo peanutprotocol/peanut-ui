@@ -1,8 +1,7 @@
 'use client'
 
-import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useCardInfo } from '@/hooks/useCardInfo'
-import { useRainCardOverview } from '@/hooks/useRainCardOverview'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 
 export interface CardSurfaceAccess {
@@ -26,10 +25,20 @@ export interface CardSurfaceAccess {
 /** Unknown residence can enter verification; known prohibited residences cannot apply. */
 export const useCardSurfaceAccess = (): CardSurfaceAccess => {
     const { cardInfo } = useCardInfo()
-    const { overview } = useRainCardOverview()
+    const { rails, channelOf } = useCapabilities()
     const restrictions = useResidenceRestrictions()
-    const hasIssuedCard = findActiveCard(overview) !== null
-    const hasCardRelationship = hasIssuedCard || overview?.status?.hasApplication === true
+    // /users/me already carries the backend-normalized capability block. Using
+    // it here avoids calling /rain/cards (and potentially Rain's balance API)
+    // just to decide whether one Profile menu row should be visible. This is
+    // the same relationship boundary used by the Home card offer.
+    const cardRails = rails.filter((rail) => channelOf(rail) === 'card')
+    // The Rain rail status describes the application, so it remains enabled
+    // after a card is canceled. The API refines operations.pay from the actual
+    // card status and enables it only for ACTIVE cards. LOCKED and
+    // NOT_ACTIVATED cards keep the surface reachable through the application
+    // rail but are not presented as a currently spendable card.
+    const hasIssuedCard = cardRails.some((rail) => rail.operations?.pay === 'enabled')
+    const hasCardRelationship = cardRails.length > 0
     const canApply = !restrictions.card && cardInfo?.geoProhibited !== true
 
     return {

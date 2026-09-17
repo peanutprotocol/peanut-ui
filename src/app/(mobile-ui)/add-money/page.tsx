@@ -1,6 +1,5 @@
 'use client'
 
-import AddWithdrawCountriesList from '@/components/AddWithdraw/AddWithdrawCountriesList'
 import { useAddMoneyFlow } from '@/features/add-money/useAddMoneyFlow'
 import { AddMoneyBankCountryListView } from '@/features/add-money/views/AddMoneyBankCountryListView'
 import dynamic from 'next/dynamic'
@@ -10,6 +9,9 @@ import dynamic from 'next/dynamic'
 // real pages over the sibling _onramp-* stub files.
 const OnrampBankPage = dynamic(() => import('./_onramp-bank'), { ssr: false })
 const OnrampMantecaPage = dynamic(() => import('./_onramp-manteca'), { ssr: false })
+const AddWithdrawCountriesList = dynamic(() => import('@/components/AddWithdraw/AddWithdrawCountriesList'), {
+    ssr: false,
+})
 
 export default function AddMoneyPage() {
     const { countryFromQuery, viewFromQuery, isBareRoot, handleBack, handleCountryClick } = useAddMoneyFlow()

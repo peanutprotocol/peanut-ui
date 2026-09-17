@@ -27,6 +27,7 @@ import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
 import { Suspense } from 'react'
 import { PathnamePageviewTracker } from '@/components/Analytics/PathnamePageviewTracker'
+import { ScreenTransitionTracker } from '@/components/Analytics/ScreenTransitionTracker'
 
 // Harness bootstrap ships only in harness builds. In prod bundles the dynamic
 // import is in dead code behind `if (false)` and webpack drops the chunk.
@@ -93,6 +94,9 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
         <OtaUpdateProvider>
             <PathnamePageviewTracker />
             <NuqsAdapter>
+                <Suspense fallback={null}>
+                    <ScreenTransitionTracker />
+                </Suspense>
                 <PeanutProvider>
                     {/* Must sit ABOVE ContextProvider: TokenContextProvider → useWallet
                         → useSendMoney calls useTranslations, so the intl context has to
