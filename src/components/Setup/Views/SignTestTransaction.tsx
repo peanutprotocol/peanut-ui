@@ -314,7 +314,7 @@ const SignTestTransaction = () => {
         <div>
             <div className="flex h-full flex-col justify-between gap-6 p-0 md:min-h-32">
                 <div className="flex h-full flex-col justify-end gap-2">
-                    <p className="text-body-s text-foreground-secondary mb-1">
+                    <p className="mb-1 text-body-s text-foreground-secondary">
                         {t('steps.sign-test-transaction.description')}
                     </p>
                     {displayError && <Notification priority="error">{displayError}</Notification>}
@@ -331,7 +331,7 @@ const SignTestTransaction = () => {
                 <div>
                     {/* In-app explainer instead of a browser redirect — leaving
                         the app mid-signup loses users (full guide inside). */}
-                    <p className="border-border-subtle text-body-xs text-foreground-secondary border-t pt-2 text-center">
+                    <p className="border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary">
                         <LinkButton onClick={() => setIsPasskeyInfoOpen(true)}>{t('passkey.learnMore')}</LinkButton>
                     </p>
                 </div>
@@ -347,7 +347,7 @@ export const PasskeyDocsLink = ({ className }: { className?: string }) => {
         <p
             // ds text tokens stay outside twMerge — unconfigured twMerge groups
             // them as colors and deletes the size (see LinkButton.tsx:40)
-            className={`text-body-xs text-foreground-secondary ${twMerge('border-border-subtle border-t pt-2 text-center', className)}`}
+            className={`text-body-xs text-foreground-secondary ${twMerge('border-t border-border-subtle pt-2 text-center', className)}`}
         >
             <DocsLink href="/en/help/passkeys" className="underline underline-offset-2">
                 {t('passkey.learnMore')}
