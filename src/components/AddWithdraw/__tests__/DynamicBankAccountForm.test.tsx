@@ -149,7 +149,7 @@ const CO_INITIAL_DATA = {
 
 describe('DynamicBankAccountForm — the Colombian corridor', () => {
     it('sends the document, bank code, account type and phone, and no address', async () => {
-        const onSuccess = jest.fn(async () => ({}))
+        const onSuccess = jest.fn(async (_payload: unknown, _rawData: unknown) => ({}))
         const ref = React.createRef<{ handleSubmit: () => void }>()
         render(
             <DynamicBankAccountForm
@@ -167,7 +167,7 @@ describe('DynamicBankAccountForm — the Colombian corridor', () => {
         })
 
         expect(onSuccess).toHaveBeenCalledTimes(1)
-        const payload = onSuccess.mock.calls[0][0] as Record<string, unknown>
+        const payload = onSuccess.mock.calls[0][0] as unknown as Record<string, unknown>
         expect(payload).toMatchObject({
             accountType: 'co_bank_transfer',
             accountNumber: '12345678910',
