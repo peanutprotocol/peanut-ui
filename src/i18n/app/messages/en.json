@@ -1865,15 +1865,15 @@
         },
         "confirm": {
             "recipientReceives": "Recipient receives",
-            "recipientReceivesInfo": "Peanut covers the bridge cost. A small network cost may be deducted on delivery.",
+            "recipientReceivesInfo": "This is what arrives at the destination, after any delivery cost.",
             "tokenAndNetwork": "Token and network",
             "tokenOnChain": "{token} on <c>{chain}</c>",
             "tokenAlt": "token",
             "chainAlt": "chain",
             "to": "To",
             "networkFee": "Network fee",
-            "networkFeeInfo": "Peanut covers the bridge cost. A small network cost may be deducted on delivery.",
-            "networkFeeChargedInfo": "This route quotes a fee. It's already included in the amount you pay.",
+            "networkFeeInfo": "Delivering on this network is free — Peanut covers it. Some networks, like Ethereum, Tron and Solana, charge a fee that comes out of the amount received.",
+            "networkFeeChargedInfo": "Networks charge different amounts to deliver. This one charges, and it comes out of the amount received. Others, like Arbitrum, are free.",
             "youPay": "You pay",
             "highFeeWarning": "Note: the network fee is a large share of this withdrawal. Withdrawing a larger amount or choosing a cheaper network reduces it."
         },
@@ -1991,7 +1991,8 @@
             "ownAccountOnly": "You can only withdraw to accounts under your name.",
             "unexpected": "Withdraw failed unexpectedly. If problem persists contact support",
             "completeAccountSetup": "Please complete your account setup. Go to Settings to update your profile.",
-            "minWithdrawAmount": "Withdraw amount must be at least ${amount}"
+            "minWithdrawAmount": "Withdraw amount must be at least ${amount}",
+            "feeExceedsAmount": "The network fee is more than this withdrawal. Enter a larger amount or pick a cheaper network."
         },
         "resolvesTo": "resolves to",
         "addNewAccount": "Add new account",

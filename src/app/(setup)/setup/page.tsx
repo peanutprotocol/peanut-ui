@@ -23,7 +23,6 @@ import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { useAuth } from '@/context/authContext'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
-import { PeanutWavingHello } from '@/assets/mascot'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
@@ -512,7 +511,7 @@ function SetupPageContent() {
             <SetupWrapper
                 layoutType="signup"
                 screenId="welcome"
-                image={PeanutWavingHello.src}
+                image={{ pose: 'waving-hello' }}
                 title={t('existingSession.title')}
                 description={t('existingSession.description', { username: existingSessionUsername })}
                 contentClassName="flex flex-col items-center justify-center gap-6"

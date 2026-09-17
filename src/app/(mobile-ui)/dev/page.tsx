@@ -52,6 +52,12 @@ const groups: { title: string; tools: DevTool[] }[] = [
                 icon: 'globe-lock',
             },
             {
+                name: 'Lottie native profile',
+                description: 'Measure live mascot frame cadence and long tasks inside the real Capacitor WebView',
+                path: '/dev/lottie-profile',
+                icon: 'processing',
+            },
+            {
                 name: 'Home CTAs',
                 description: 'Every home-screen CTA rendered in isolation, ignoring auth/state gating',
                 path: '/dev/home-ctas',

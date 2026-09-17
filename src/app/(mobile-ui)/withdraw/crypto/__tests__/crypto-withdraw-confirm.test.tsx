@@ -75,8 +75,12 @@ jest.mock('@/utils/token.utils', () => ({
 }))
 
 jest.mock('@/utils/cross-chain-fee.utils', () => ({
-    isWithdrawFeeDisproportionate: () => false,
+    ...jest.requireActual('@/utils/cross-chain-fee.utils'),
+    isWithdrawFeeDisproportionate: (...args: unknown[]) => mockIsWithdrawFeeDisproportionate(...args),
 }))
+// Off by default so the existing cases keep their old behaviour; the fee suite
+// restores the real rule to cover the heads-up the schedule can now trigger.
+const mockIsWithdrawFeeDisproportionate = jest.fn((..._args: unknown[]) => false)
 
 const mockIsAmountWithinBalance = jest.fn((..._args: unknown[]) => true)
 jest.mock('@/utils/balance.utils', () => ({
@@ -122,7 +126,15 @@ jest.mock('@/services/requests', () => ({
 
 jest.mock('@/features/withdraw/views/ConfirmWithdrawView', () => ({
     __esModule: true,
-    default: (props: { onConfirm: () => void; onBack: () => void }) => (
+    default: (props: {
+        onConfirm: () => void
+        onBack: () => void
+        networkFee?: number
+        receiveAmount?: string | null
+        showHighFeeWarning?: boolean
+        belowMinimumMessage?: string | null
+        alreadySpent?: boolean
+    }) => (
         <>
             <button data-testid="back-review" onClick={props.onBack}>
                 Back
@@ -130,6 +142,11 @@ jest.mock('@/features/withdraw/views/ConfirmWithdrawView', () => ({
             <button data-testid="confirm-withdraw" onClick={props.onConfirm}>
                 Confirm
             </button>
+            <span data-testid="network-fee">{String(props.networkFee)}</span>
+            <span data-testid="receive-amount">{String(props.receiveAmount)}</span>
+            <span data-testid="high-fee-warning">{String(!!props.showHighFeeWarning)}</span>
+            <span data-testid="below-minimum">{String(props.belowMinimumMessage)}</span>
+            <span data-testid="already-spent">{String(!!props.alreadySpent)}</span>
         </>
     ),
 }))
@@ -359,7 +376,18 @@ beforeEach(() => {
     mockWithdrawFlow.showCompatibilityModal = false
     jest.clearAllMocks()
     mockRecordPayment.mockResolvedValue(PAYMENT_RESULT)
-    Object.assign(mockCrossChainTransfer, { isXChain: false, isDiffToken: false, quoteExpiresAt: null })
+    Object.assign(mockCrossChainTransfer, {
+        isXChain: false,
+        isDiffToken: false,
+        quoteExpiresAt: null,
+        feeUsd: 0,
+        receiveAmount: '50',
+        isCalculating: false,
+        isFeeEstimationError: false,
+    })
+    chargeDetails.chainId = '42161'
+    withdrawData.token.price = 1
+    mockIsWithdrawFeeDisproportionate.mockImplementation(() => false)
     mockWithdrawFlow.paymentError = null
     mockUrlAmount = '50'
     mockStepper.step = 'review'
@@ -367,6 +395,77 @@ beforeEach(() => {
     mockWalletState.spendableBalance = 100n * 10n ** 6n
     mockIsAmountWithinBalance.mockReset()
     mockIsAmountWithinBalance.mockImplementation(() => true)
+})
+
+// The fee is whatever Rhino's account-bound quote says, re-fetched on every
+// attempt. Nothing in the client decides which networks charge.
+describe('crypto withdraw confirm — network fee', () => {
+    const realRule = jest.requireActual('@/utils/cross-chain-fee.utils').isWithdrawFeeDisproportionate
+
+    it('shows the quoted fee verbatim and the quoted delivery beside it', () => {
+        chargeDetails.chainId = '1'
+        Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 1.53, receiveAmount: '48.47' })
+
+        render(<WithdrawCryptoPage />)
+
+        // pay mode: the quote already took the fee off what arrives
+        expect(screen.getByTestId('network-fee').textContent).toBe('1.53')
+        expect(screen.getByTestId('receive-amount').textContent).toBe('48.47')
+    })
+
+    it('shows the sponsored label when the quote prices the route at zero', () => {
+        chargeDetails.chainId = '1'
+        Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 0, receiveAmount: '50' })
+
+        render(<WithdrawCryptoPage />)
+
+        // a zero quote is Rhino saying this route costs nothing on our account
+        expect(screen.getByTestId('network-fee').textContent).toBe('0')
+        expect(screen.getByTestId('receive-amount').textContent).toBe('50')
+    })
+
+    it('stays sponsored on a same-chain withdrawal', () => {
+        Object.assign(mockCrossChainTransfer, { isXChain: false, isDiffToken: false, feeUsd: 0 })
+
+        render(<WithdrawCryptoPage />)
+
+        expect(screen.getByTestId('network-fee').textContent).toBe('0')
+    })
+
+    it('blocks a withdrawal the quoted fee would swallow whole', () => {
+        chargeDetails.chainId = 'solana'
+        mockUrlAmount = '0.5'
+        Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 0.5, receiveAmount: '0' })
+
+        render(<WithdrawCryptoPage />)
+
+        expect(screen.getByTestId('below-minimum').textContent).toMatch(/leave nothing to deliver/)
+    })
+
+    it('refuses to broadcast when the fee would take the whole withdrawal', async () => {
+        mockUrlAmount = '1'
+        chargeDetails.chainId = 'solana'
+        Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 1, receiveAmount: '0' })
+
+        await confirm()
+
+        await waitFor(() => expect(mockSetWithdrawError).toHaveBeenCalled())
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+        expect(mockSendMoney).not.toHaveBeenCalled()
+    })
+
+    it('raises the heads-up when the quoted fee dominates a small withdrawal', () => {
+        mockIsWithdrawFeeDisproportionate.mockImplementation((...args: unknown[]) =>
+            realRule(...(args as Parameters<typeof realRule>))
+        )
+        chargeDetails.chainId = '1'
+        mockUrlAmount = '5'
+        Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 1.5 })
+
+        render(<WithdrawCryptoPage />)
+
+        expect(screen.getByTestId('high-fee-warning').textContent).toBe('true')
+    })
 })
 
 describe('crypto withdraw preparation', () => {
@@ -700,6 +799,39 @@ describe('crypto withdraw retry — record-only replay (TASK-19581 double-spend)
         expect(mockSendTransactions).not.toHaveBeenCalled()
         // The record ran twice, both times with the ORIGINAL mined hash.
         expect(mockRecordPayment).toHaveBeenCalledTimes(2)
+        expect(mockRecordPayment).toHaveBeenLastCalledWith(expect.objectContaining({ txHash: '0xmined' }))
+    })
+
+    it('keeps the record-only retry available when the spend emptied the wallet', async () => {
+        // Full-balance withdrawal: the on-chain leg lands, the record fails,
+        // and the balance refresh then makes the original spend look
+        // unaffordable. The CTA gates must step aside or the only recovery
+        // from a stuck PENDING charge is greyed out.
+        mockSendMoney.mockResolvedValue({
+            txHash: undefined,
+            userOpHash: '0xuserop',
+            receipt: { transactionHash: '0xmined', status: 'success' },
+            strategy: 'smart-only',
+            intentId: undefined,
+        })
+        mockRecordPayment.mockRejectedValueOnce(new Error('Request timed out after 30000ms'))
+
+        render(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+        await waitFor(() => expect(mockPosthogCapture).toHaveBeenCalledWith('withdraw_failed', expect.anything()))
+
+        // the funds have left, so the view is told this charge is already spent
+        expect(screen.getByTestId('already-spent').textContent).toBe('true')
+
+        // and the wallet now reads empty against that same spend
+        mockWalletState.spendableBalance = 0n
+        mockIsAmountWithinBalance.mockImplementation(() => false)
+
+        // the replay still runs, with the original mined hash and no re-broadcast
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+        await waitFor(() => expect(mockRecordPayment).toHaveBeenCalledTimes(2))
+        expect(mockSendMoney).toHaveBeenCalledTimes(1)
+        expect(mockSendTransactions).not.toHaveBeenCalled()
         expect(mockRecordPayment).toHaveBeenLastCalledWith(expect.objectContaining({ txHash: '0xmined' }))
     })
 

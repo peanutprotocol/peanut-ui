@@ -2,11 +2,11 @@
 
 import { type FC, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { PeanutSad, PeanutCrying, PeanutPointing } from '@/assets/mascot'
+import PeanutMascot from '@/components/Global/PeanutMascot'
+import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import ActionModal, { type ActionModalButtonProps } from '@/components/Global/ActionModal'
@@ -19,18 +19,12 @@ import { DELETION_BALANCE_DUST_UNITS } from '@/utils/balance.utils'
 type ModalState = 'closed' | 'blocked' | 'confirm' | 'done'
 
 type Step = {
-    mascot: string
+    mascotPose: MascotPose
     mascotAlt: string
     title: string
     description: string
     ctas: ActionModalButtonProps[]
 }
-
-// A big animated mascot at the top of the modal instead of the tiny alert icon.
-// `unoptimized` keeps the animated WebP playing (Next's optimizer flattens it).
-const Mascot: FC<{ src: string; alt: string }> = ({ src, alt }) => (
-    <Image src={src} alt={alt} width={128} height={128} unoptimized className="size-32 object-contain" />
-)
 
 const DeleteAccountButton: FC = () => {
     const t = useTranslations('settings.deleteAccount')
@@ -114,7 +108,7 @@ const DeleteAccountButton: FC = () => {
     // the confirm content: the modal is hidden, but it still renders.
     const steps: Record<Exclude<ModalState, 'closed'>, Step> = {
         blocked: {
-            mascot: PeanutPointing.src,
+            mascotPose: 'pointing',
             mascotAlt: t('pointingPeanutAlt'),
             title: t('blockedTitle'),
             description: t('blockedDescription', { amount: blockedAmount ?? formattedSpendableBalance }),
@@ -124,7 +118,7 @@ const DeleteAccountButton: FC = () => {
             ],
         },
         confirm: {
-            mascot: PeanutSad.src,
+            mascotPose: 'sad',
             mascotAlt: t('sadPeanutAlt'),
             title: t('confirmTitle'),
             description: t('confirmDescription'),
@@ -141,7 +135,7 @@ const DeleteAccountButton: FC = () => {
             ],
         },
         done: {
-            mascot: PeanutCrying.src,
+            mascotPose: 'worried',
             mascotAlt: t('cryingPeanutAlt'),
             title: t('doneTitle'),
             description: t('doneDescription'),
@@ -165,7 +159,7 @@ const DeleteAccountButton: FC = () => {
                 onClose={close}
                 preventClose={lockModal}
                 hideModalCloseButton={lockModal}
-                icon={<Mascot src={step.mascot} alt={step.mascotAlt} />}
+                icon={<PeanutMascot pose={step.mascotPose} alt={step.mascotAlt} className="h-full w-auto" />}
                 iconContainerClassName="size-32 rounded-none bg-transparent"
                 title={step.title}
                 description={step.description}

@@ -16,7 +16,11 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { chargesApi } from '@/services/charges'
 import type { CreateChargeRequest, TCharge } from '@/services/services.types'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
-import { isWithdrawFeeDisproportionate, getMinWithdrawUsdForChain } from '@/utils/cross-chain-fee.utils'
+import {
+    isWithdrawFeeDisproportionate,
+    getMinWithdrawUsdForChain,
+    feeConsumesWithdrawal,
+} from '@/utils/cross-chain-fee.utils'
 import { isAmountWithinBalance } from '@/utils/balance.utils'
 import { isBelowRhinoMinDeposit, resolveWithdrawAmount } from '@/utils/withdraw.utils'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
@@ -521,6 +525,14 @@ export default function WithdrawCryptoPage() {
                 return
             }
             broadcastAmount = amountCheck.normalized
+            // The CTA gate is a render-time value and the Retry button sits on
+            // a different branch, so re-check the fee against what is about to
+            // move. A fee that takes the whole amount strands the deposit at
+            // the SDA with nothing delivered.
+            if (isCrossChainWithdrawal && feeConsumesWithdrawal(feeUsd, parseFloat(broadcastAmount))) {
+                setError(t('errors.feeExceedsAmount'))
+                return
+            }
         }
 
         executionInFlightRef.current = true
@@ -726,6 +738,7 @@ export default function WithdrawCryptoPage() {
         address,
         transactions,
         payAmount,
+        feeUsd,
         quoteExpiresAt,
         quoteRoute,
         usdAmount,
@@ -800,7 +813,11 @@ export default function WithdrawCryptoPage() {
     const displayError = paymentError
 
     // Get network fee from Rhino preview. Under SDA the fee is a transparent
-    // bridge-fee in USD — no slippage distinction.
+    // bridge-fee in USD — no slippage distinction. The quote is the only
+    // source: it is account-bound, so it already reflects whichever networks
+    // Peanut sponsors, and it is re-fetched on every attempt. `receiveAmount`
+    // comes from the same quote and already has the fee taken off (withdraw
+    // quotes are pay mode), so the row below needs no arithmetic here.
     const networkFee = useMemo<number>(() => feeUsd ?? 0, [feeUsd])
 
     // Non-blocking heads-up when the bridge fee is a large share of the amount
@@ -847,13 +864,30 @@ export default function WithdrawCryptoPage() {
     // Rhino accepts SDA deposits below the route minimum on-chain but never
     // bridges them — funds strand at the SDA, uncredited. Block the CTA before
     // the user signs. Same-chain USDC transfers have no minimum.
-    const belowMinimumMessage = useMemo<string | null>(
-        () =>
-            isCrossChainWithdrawal && isBelowRhinoMinDeposit(payAmount, minDepositLimitUsd)
-                ? `The minimum withdrawal to this network is $${minDepositLimitUsd}. Enter a larger amount.`
-                : null,
-        [isCrossChainWithdrawal, payAmount, minDepositLimitUsd]
-    )
+    const belowMinimumMessage = useMemo<string | null>(() => {
+        if (!isCrossChainWithdrawal) return null
+        if (isBelowRhinoMinDeposit(payAmount, minDepositLimitUsd)) {
+            return `The minimum withdrawal to this network is $${minDepositLimitUsd}. Enter a larger amount.`
+        }
+        // Rhino's route minimum is about the bridge rejecting a small deposit,
+        // not about the fee. A quote whose fee takes the whole amount leaves
+        // nothing to deliver, so block it rather than show the recipient a
+        // delivery they will never see. Measured against the amount pinned to
+        // the charge — `?amount=` stays editable here and is not what moves.
+        if (feeConsumesWithdrawal(networkFee, parseFloat(quoteAmount))) {
+            return `The network fee to ${withdrawData?.chain.networkName ?? 'this network'} is $${networkFee.toFixed(2)}, which would leave nothing to deliver. Enter a larger amount or pick a cheaper network.`
+        }
+        return null
+    }, [isCrossChainWithdrawal, payAmount, minDepositLimitUsd, networkFee, quoteAmount, withdrawData])
+
+    // Funds already moved for this charge, so the only thing Retry can still do
+    // is replay the bookkeeping — handleConfirmWithdrawal exempts this state
+    // from re-broadcasting and from the amount and fee checks. The CTA gates
+    // have to step aside too: a full-balance withdrawal leaves the wallet
+    // empty, which would otherwise read as insufficient balance and disable
+    // the only recovery the user has. Reading the ref in render is safe here —
+    // the record failure sets error state, and that is what drives this render.
+    const alreadySpent = !!chargeDetails && executedSpendRef.current?.chargeId === chargeDetails.uuid
 
     const amountCheck = validateCryptoWithdrawAmount(liveResolvedAmount, spendableBalance)
     const amountError =
@@ -939,6 +973,7 @@ export default function WithdrawCryptoPage() {
                     showHighFeeWarning={showHighFeeWarning}
                     insufficientBalance={insufficientBalance}
                     belowMinimumMessage={belowMinimumMessage}
+                    alreadySpent={alreadySpent}
                     isFromSendFlow={isFromSendFlow}
                     toNickname={existingSaved?.nickname}
                     confirmDisabled={!existingSaved && saveToBook && !trimmedBookNickname}

@@ -2,7 +2,9 @@ import starImage from '@/assets/icons/star.png'
 import { Button } from '@/components/0_Bruddle/Button'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { type LayoutType, type ScreenId } from '@/components/Setup/Setup.types'
+import PeanutMascot from '@/components/Global/PeanutMascot'
+import { MASCOT_HERO_CLASS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
+import { type LayoutType, type ScreenId, type SetupIllustration } from '@/components/Setup/Setup.types'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
@@ -12,7 +14,7 @@ import Image from 'next/image'
 import { type ReactNode, createContext, memo, useContext, useEffect, useState } from 'react'
 import { twMerge } from '@/utils/tw'
 
-const SetupImageContext = createContext<(src: string | null) => void>(() => {})
+const SetupImageContext = createContext<(illustration: SetupIllustration | null) => void>(() => {})
 
 /**
  * Lets a step's sub-view swap the wrapper's illustration for as long as it is
@@ -20,12 +22,12 @@ const SetupImageContext = createContext<(src: string | null) => void>(() => {})
  * selector it shares a step with keeps the neutral greeting. Sub-views are not
  * steps, so they have no step config of their own to carry an image.
  */
-export const useSetupImageOverride = (src: string | null) => {
+export const useSetupImageOverride = (illustration: SetupIllustration | null) => {
     const setImage = useContext(SetupImageContext)
     useEffect(() => {
-        setImage(src)
+        setImage(illustration)
         return () => setImage(null)
-    }, [src, setImage])
+    }, [illustration, setImage])
 }
 
 /**
@@ -36,7 +38,7 @@ interface SetupWrapperProps {
     layoutType: LayoutType
     screenId: ScreenId
     children: ReactNode
-    image?: string
+    image?: SetupIllustration
     imageClassName?: HTMLDivElement['className']
     title?: string
     description?: string
@@ -153,9 +155,26 @@ const ImageSection = ({
 
     const isSignup = layoutType === 'signup'
     const containerClass = IMAGE_CONTAINER_CLASSES[layoutType]
-    const imageClass = !!imageClassName
-        ? imageClassName
-        : 'w-full max-w-[80%] max-h-[85%] md:max-w-[75%] lg:max-w-xl object-contain relative'
+    const illustration =
+        'pose' in image ? (
+            <PeanutMascot
+                pose={image.pose}
+                alt={t('illustrationAlt')}
+                className={imageClassName || MASCOT_HERO_CLASS}
+            />
+        ) : (
+            <Image
+                src={image.src}
+                alt={t('illustrationAlt')}
+                width={500}
+                height={500}
+                className={
+                    imageClassName ||
+                    'relative max-h-[85%] w-full max-w-[80%] object-contain md:max-w-[75%] lg:max-w-xl'
+                }
+                priority
+            />
+        )
 
     // special rendering for welcome/signup screens with animated decorations
     if (isSignup) {
@@ -180,15 +199,8 @@ const ImageSection = ({
                 ))}
                 {/* animated clouds background */}
                 <CloudsBackground minimal />
-                {/* main illustration image */}
-                <Image
-                    src={image}
-                    alt={t('illustrationAlt')}
-                    width={500}
-                    height={500}
-                    className={imageClass}
-                    priority
-                />
+                {/* main illustration */}
+                {illustration}
             </div>
         )
     }
@@ -202,14 +214,7 @@ const ImageSection = ({
                 screenId === 'success' && 'bg-action-secondary/15'
             )}
         >
-            <Image
-                src={image}
-                alt={t('illustrationAlt')}
-                width={500}
-                height={500}
-                className={twMerge(imageClass)}
-                priority
-            />
+            {illustration}
         </div>
     )
 }
@@ -237,7 +242,7 @@ export const SetupWrapper = memo(function SetupWrapper({
     imageClassName,
     titleClassName,
 }: SetupWrapperProps) {
-    const [imageOverride, setImageOverride] = useState<string | null>(null)
+    const [imageOverride, setImageOverride] = useState<SetupIllustration | null>(null)
     const prefersReducedMotion = useReducedMotion()
     const migrationOn = useMigrationFlag()
     const hasKeepWebBypass = useKeepWebBypass()

@@ -8,7 +8,7 @@ import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
 import { PEANUTMAN } from '@/assets/mascot'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
-import { PeanutWhistling } from '@/assets/mascot'
+import PeanutMascot from '@/components/Global/PeanutMascot'
 
 const NoMoreJailDrawer = ({ onVisibilityChange }: { onVisibilityChange?: (visible: boolean) => void }) => {
     const t = useTranslations('global')
@@ -27,7 +27,6 @@ const NoMoreJailDrawer = ({ onVisibilityChange }: { onVisibilityChange?: (visibl
             setisOpen(true)
             posthog.capture(ANALYTICS_EVENTS.MODAL_SHOWN, { modal_type: MODAL_TYPES.POST_SIGNUP })
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- report once on mount
     }, [])
 
     return (
@@ -41,7 +40,7 @@ const NoMoreJailDrawer = ({ onVisibilityChange }: { onVisibilityChange?: (visibl
                 <div className="flex flex-col items-center pt-1 pb-6 text-center">
                     {/* the whistling mascot leads the sheet — the celebration IS the content */}
                     <div className="relative h-42 w-[90%] md:h-52">
-                        <Image src={PeanutWhistling.src} unoptimized alt="Peanut Man" className="object-contain" fill />
+                        <PeanutMascot pose="waving-chill" alt="Peanut Man" className="size-full" />
                     </div>
                     <DrawerHeader className="mb-3 w-full gap-2 p-0 text-center sm:text-center">
                         <DrawerTitle>{t('noMoreJailModal.title')}</DrawerTitle>

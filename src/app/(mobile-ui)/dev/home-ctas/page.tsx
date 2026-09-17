@@ -6,10 +6,10 @@ import { Notification } from '@/components/0_Bruddle/Notification'
 import { Section } from '@/components/0_Bruddle/Section'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import CarouselCTA from '@/components/Home/HomeCarouselCTA/CarouselCTA'
+import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
 import { type ActivationStep } from '@/hooks/useActivationStatus'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
-import { PeanutWavingHello } from '@/assets/mascot'
 import DevPageShell from '../_components/DevPageShell'
 
 /**
@@ -38,6 +38,7 @@ type CarouselPreview = {
     iconSize?: number
     logo?: StaticImageData
     logoSize?: number
+    mascotPose?: MascotPose
     isPerkClaim?: boolean
 }
 
@@ -106,10 +107,9 @@ const CAROUSEL_PREVIEWS: CarouselPreview[] = [
     },
     {
         id: 'user-interview',
-        label: 'User-interview invite (flag-gated campaign, logo variant)',
+        label: 'User-interview invite (flag-gated campaign, mascot variant)',
         icon: 'peanut-support',
-        logo: PeanutWavingHello,
-        logoSize: 44,
+        mascotPose: 'waving-hello',
         iconContainerClassName: 'size-11',
         title: 'Help shape Peanut',
         description: "You're one of our most active users. Book a 15-min call with the team.",
@@ -164,6 +164,7 @@ export default function HomeCTAsPreviewPage() {
                                 iconContainerClassName={cta.iconContainerClassName}
                                 iconSize={cta.iconSize}
                                 logo={cta.logo}
+                                mascotPose={cta.mascotPose}
                                 logoSize={cta.logoSize}
                                 isPerkClaim={cta.isPerkClaim}
                                 onClose={noop(`close ${cta.id}`)}

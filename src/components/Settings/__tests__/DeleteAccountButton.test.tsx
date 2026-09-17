@@ -1,7 +1,7 @@
 /**
  * DeleteAccountButton — modal state-machine tests.
  * Strategy: mock the deps (auth, wallet, router, toast, service, posthog,
- * mascots) and stub ActionModal to a minimal surface that renders the title +
+ * mascot player) and stub ActionModal to a minimal surface that renders the title +
  * CTA buttons, so we can drive blocked / confirm -> loading -> done -> logout
  * and the error-toast branch.
  */
@@ -37,12 +37,7 @@ jest.mock('@/services/users', () => ({
     },
 }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: (...a: unknown[]) => mockCapture(...a) } }))
-jest.mock('@/assets/mascot', () => ({
-    PeanutSad: { src: 'sad' },
-    PeanutCrying: { src: 'cry' },
-    PeanutPointing: { src: 'point' },
-}))
-jest.mock('next/image', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
 
 // Minimal ActionModal: render title + CTAs as buttons when visible, and surface
 // the lock props (preventClose / hideModalCloseButton) as data-attributes so we

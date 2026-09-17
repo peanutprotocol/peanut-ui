@@ -1,8 +1,7 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
-import { PeanutPointingDown } from '@/assets/mascot'
+import PeanutMascot from '@/components/Global/PeanutMascot'
 import { PROSE_WIDTH } from './constants'
 
 interface CTAProps {
@@ -45,13 +44,10 @@ export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
         return (
             <div className={`mx-auto ${PROSE_WIDTH} px-6 py-10 md:px-4 md:py-14`}>
                 <div className="relative">
-                    <Image
-                        src={PeanutPointingDown}
+                    <PeanutMascot
+                        pose="pointing-down"
                         alt="Peanut mascot"
-                        width={200}
-                        height={200}
                         className="absolute -top-24 left-1/2 -z-0 h-40 w-40 -translate-x-1/2 md:-top-28 md:h-48 md:w-48"
-                        unoptimized
                     />
                     <Card shadowSize="4" className="relative z-10 items-center gap-4 p-6 text-center md:p-10">
                         <a href={href}>

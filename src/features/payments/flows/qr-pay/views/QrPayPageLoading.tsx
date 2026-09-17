@@ -1,10 +1,9 @@
 'use client'
 
-import Image from 'next/image'
 import { Card } from '@/components/0_Bruddle/Card'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { PeanutThinking } from '@/assets/mascot'
+import PeanutMascot from '@/components/Global/PeanutMascot'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 
 /** Captioned waiting card with the thinking mascot peeking over it. */
@@ -14,12 +13,9 @@ export const QrPayPageLoading = ({ message }: { message: string }) => {
         <PageStack>
             <PageStack.Center className="items-center gap-4">
                 <div className="relative">
-                    <Image
-                        src={PeanutThinking}
-                        unoptimized
+                    <PeanutMascot
+                        pose="thinking"
                         alt={t('peanutManAlt')}
-                        width={128}
-                        height={128}
                         // spans the card wrapper (the modern equivalent of the old
                         // layout="fill") so object-contain centers the mascot over
                         // the card instead of parking it at the top-left corner
