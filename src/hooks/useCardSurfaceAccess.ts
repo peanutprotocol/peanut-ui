@@ -32,7 +32,11 @@ export const useCardSurfaceAccess = (): CardSurfaceAccess => {
     // just to decide whether one Profile menu row should be visible. This is
     // the same relationship boundary used by the Home card offer.
     const cardRails = rails.filter((rail) => channelOf(rail) === 'card')
-    const hasIssuedCard = cardRails.some((rail) => rail.status === 'enabled')
+    // The Rain rail status describes the application, so it remains enabled
+    // after a card is canceled. The API refines operations.pay from the actual
+    // non-canceled card row, which lets this fast /users/me-backed selector stay
+    // truthful without restoring the slow /rain/cards request on Profile.
+    const hasIssuedCard = cardRails.some((rail) => rail.operations?.pay === 'enabled')
     const hasCardRelationship = cardRails.length > 0
     const canApply = !restrictions.card && cardInfo?.geoProhibited !== true
 

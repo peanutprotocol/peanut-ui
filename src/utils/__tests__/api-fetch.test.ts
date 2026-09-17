@@ -187,7 +187,7 @@ describe('apiFetch', () => {
             expect(mockCapture).toHaveBeenCalledWith(
                 'api_request_completed',
                 expect.objectContaining({
-                    route: '/users/:id',
+                    route: '/users/:userId',
                     method: 'GET',
                     status_code: 200,
                     server_duration_ms: 12.4,
@@ -214,6 +214,19 @@ describe('apiFetch', () => {
                 })
             )
             expect(JSON.stringify(mockCapture.mock.calls)).not.toContain('private network detail')
+        })
+
+        it('classifies fetchWithSentry timeout errors as timeouts', async () => {
+            jest.spyOn(Math, 'random').mockReturnValueOnce(0.9)
+            const timeout = Object.assign(new Error('private timeout detail'), { name: 'ConnectionTimeoutError' })
+            mockFetchWithSentry.mockRejectedValueOnce(timeout)
+
+            await expect(apiFetch('/points/cash-status')).rejects.toBe(timeout)
+
+            expect(mockCapture).toHaveBeenCalledWith(
+                'api_request_problem',
+                expect.objectContaining({ outcome: 'timeout', problem: 'timeout' })
+            )
         })
     })
 })

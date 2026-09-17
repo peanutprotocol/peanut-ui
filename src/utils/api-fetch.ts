@@ -128,7 +128,10 @@ function captureApiTiming({ route, method, startedAt, authWaitMs, response, erro
     const finishedAt = globalThis.performance?.now?.() ?? Date.now()
     const durationMs = Math.max(0, finishedAt - startedAt)
     const statusCode = typeof response?.status === 'number' ? response.status : undefined
-    const timedOut = error instanceof DOMException && error.name === 'AbortError'
+    // fetchWithSentry converts its internal AbortError to this stable public
+    // error name. Keep AbortError too for alternate/native transports.
+    const errorName = error instanceof Error ? error.name : undefined
+    const timedOut = errorName === 'ConnectionTimeoutError' || errorName === 'AbortError'
     const outcome = error ? (timedOut ? 'timeout' : 'network_error') : response?.ok ? 'success' : 'http_error'
     const serverDurationMs = parseServerTiming(response?.headers?.get?.('server-timing') ?? null)
     const properties = {

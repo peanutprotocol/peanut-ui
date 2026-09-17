@@ -7,7 +7,7 @@ import ProfileHeader from './components/ProfileHeader'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import ProfileMenuItem from './components/ProfileMenuItem'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { LOCALE_LABELS } from '@/i18n/app/config'
 import { useAppLocale } from '@/i18n/app/locale-context'
@@ -33,6 +33,13 @@ export const Profile = () => {
     const [isInviteFriendsDrawerOpen, setIsInviteFriendsDrawerOpen] = useState(false)
     // URL state so the badge-earned toast can deep-link straight into the picker
     const [avatarPickerOpen, setAvatarPickerOpen] = useQueryState(AVATAR_PICKER_PARAM, avatarPickerParser)
+    // Once mounted, keep the picker alive while its drawer is closed. Its save
+    // queue lives in component refs; unmounting here could let an older write
+    // race a newer pick after a close/reopen sequence.
+    const [avatarPickerMounted, setAvatarPickerMounted] = useState(false)
+    useEffect(() => {
+        if (avatarPickerOpen) setAvatarPickerMounted(true)
+    }, [avatarPickerOpen])
     const router = useRouter()
     const onBack = useSafeBack('/home')
     // Profile "verified" reflects identity verification only (the human was ID-verified) — NOT
@@ -80,7 +87,7 @@ export const Profile = () => {
                     isVerified={isUserSumsubKycApproved}
                     onChangeAvatar={() => setAvatarPickerOpen(true)}
                 />
-                {avatarPickerOpen && <AvatarPicker open onOpenChange={setAvatarPickerOpen} />}
+                {avatarPickerMounted && <AvatarPicker open={avatarPickerOpen} onOpenChange={setAvatarPickerOpen} />}
                 <div className="space-y-4">
                     {/* IA from #2834: identity/products first, then social +
                         account, then app settings. Payment limits moved inline

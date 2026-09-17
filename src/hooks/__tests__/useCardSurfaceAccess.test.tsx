@@ -20,10 +20,18 @@ const setup = (
     ;(useCardInfo as jest.Mock).mockReturnValue({
         cardInfo: scenario.loading ? undefined : { geoProhibited: scenario.geoProhibited },
     })
-    const rails = (scenario.cardStatuses ?? []).map((status, index) => ({
+    const rails: Array<{
+        id: string
+        channel: string
+        status: string
+        operations?: { pay: string }
+    }> = (scenario.cardStatuses ?? []).map((status, index) => ({
         id: `rain.card_${index}`,
         channel: 'card',
-        status: status === 'ACTIVE' ? 'enabled' : status === 'CANCELED' ? 'blocked' : status.toLowerCase(),
+        // Rain's application rail stays enabled even after card cancellation;
+        // the operation refinement is the card-level truth.
+        status: 'enabled',
+        operations: { pay: status === 'CANCELED' ? 'blocked' : 'enabled' },
     }))
     if (scenario.hasApplication) rails.push({ id: 'rain.card_application', channel: 'card', status: 'pending' })
     ;(useCapabilities as jest.Mock).mockReturnValue({
@@ -71,11 +79,12 @@ describe('public card surfaces', () => {
         expect(setup().canSpendPathViaCard).toBe(true)
         expect(setup({ geoProhibited: true }).canSpendPathViaCard).toBe(false)
     })
-    it('does not treat a blocked card rail as issued, while preserving access to its status', () => {
+    it('does not treat a canceled card as issued when its application rail stays enabled', () => {
         expect(setup({ cardStatuses: ['CANCELED'], restrictedCard: true })).toMatchObject({
             showCardSurface: true,
             hasCardRelationship: true,
             hasIssuedCard: false,
+            canSpendPathViaCard: false,
         })
     })
 })

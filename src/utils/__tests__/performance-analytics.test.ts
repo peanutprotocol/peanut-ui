@@ -1,10 +1,19 @@
 import { apiRouteTemplate, parseServerTiming, screenTemplate, shouldSampleApiRequest } from '../performance-analytics'
 
 describe('performance analytics templates', () => {
-    it('keeps known API route segments and removes identifiers and queries', () => {
+    it('templates identifiers by position and removes queries', () => {
         expect(apiRouteTemplate('/points/invites?includePending=false')).toBe('/points/invites')
-        expect(apiRouteTemplate('/rain/cards/550e8400-e29b-41d4-a716-446655440000?secret=nope')).toBe('/rain/cards/:id')
-        expect(apiRouteTemplate('/users/alice')).toBe('/users/:id')
+        expect(apiRouteTemplate('/rain/cards/550e8400-e29b-41d4-a716-446655440000?secret=nope')).toBe(
+            '/rain/cards/:cardId'
+        )
+        expect(apiRouteTemplate('/users/alice')).toBe('/users/:userId')
+        expect(apiRouteTemplate('/users/username/bank')).toBe('/users/username/:username')
+    })
+
+    it('preserves explicit static endpoints and collapses unknown shapes', () => {
+        expect(apiRouteTemplate('/bridge/onramp/create')).toBe('/bridge/onramp/create')
+        expect(apiRouteTemplate('/manteca/withdraw/init')).toBe('/manteca/withdraw/init')
+        expect(apiRouteTemplate('/future/secret-user-value')).toBe('/unmatched')
     })
 
     it('names fixed screen states without exporting their dynamic values', () => {
