@@ -7,28 +7,44 @@ import ProfileHeader from './components/ProfileHeader'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import ProfileMenuItem from './components/ProfileMenuItem'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { LOCALE_LABELS } from '@/i18n/app/config'
 import { useAppLocale } from '@/i18n/app/locale-context'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
-import InviteFriendsDrawer from '../Global/InviteFriendsDrawer'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import Image from 'next/image'
 import { useQueryState } from 'nuqs'
-import { AvatarPicker } from '@/components/Avatar/AvatarPicker'
 import { AVATAR_PICKER_PARAM, avatarPickerParser } from '@/components/Avatar/avatar.consts'
 import { useOtaUpdate } from '@/context/OtaUpdateContext'
-import OtaUpdateModal from './components/OtaUpdateModal'
-import StoreUpdateModal from './components/StoreUpdateModal'
+import dynamic from 'next/dynamic'
+
+const AvatarPicker = dynamic(() => import('@/components/Avatar/AvatarPicker').then((m) => m.AvatarPicker), {
+    ssr: false,
+})
+const InviteFriendsDrawer = dynamic(() => import('../Global/InviteFriendsDrawer'), { ssr: false })
+const OtaUpdateModal = dynamic(() => import('./components/OtaUpdateModal'), { ssr: false })
+const StoreUpdateModal = dynamic(() => import('./components/StoreUpdateModal'), { ssr: false })
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
     const [isInviteFriendsDrawerOpen, setIsInviteFriendsDrawerOpen] = useState(false)
+    const [isInviteFriendsDrawerMounted, setIsInviteFriendsDrawerMounted] = useState(false)
+    const openInviteFriendsDrawer = () => {
+        setIsInviteFriendsDrawerMounted(true)
+        setIsInviteFriendsDrawerOpen(true)
+    }
     // URL state so the badge-earned toast can deep-link straight into the picker
     const [avatarPickerOpen, setAvatarPickerOpen] = useQueryState(AVATAR_PICKER_PARAM, avatarPickerParser)
+    // Once mounted, keep the picker alive while its drawer is closed. Its save
+    // queue lives in component refs; unmounting here could let an older write
+    // race a newer pick after a close/reopen sequence.
+    const [avatarPickerMounted, setAvatarPickerMounted] = useState(false)
+    useEffect(() => {
+        if (avatarPickerOpen) setAvatarPickerMounted(true)
+    }, [avatarPickerOpen])
     const router = useRouter()
     const onBack = useSafeBack('/home')
     // Profile "verified" reflects identity verification only (the human was ID-verified) — NOT
@@ -41,13 +57,20 @@ export const Profile = () => {
     const { locale } = useAppLocale()
     const { pendingBundle, storeUpdateRequired } = useOtaUpdate()
     const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
+    const [isUpdateModalMounted, setIsUpdateModalMounted] = useState(false)
     const [isStoreUpdateModalOpen, setIsStoreUpdateModalOpen] = useState(false)
+    const [isStoreUpdateModalMounted, setIsStoreUpdateModalMounted] = useState(false)
     // A staged OTA bundle wins over the store hint: it is already on the device,
     // and the gate only ever stages one this binary can run. Store updates get
     // their own modal — offering a restart for one would reload the same JS.
     const onUpdateTap = () => {
-        if (pendingBundle) setIsUpdateModalOpen(true)
-        else setIsStoreUpdateModalOpen(true)
+        if (pendingBundle) {
+            setIsUpdateModalMounted(true)
+            setIsUpdateModalOpen(true)
+        } else {
+            setIsStoreUpdateModalMounted(true)
+            setIsStoreUpdateModalOpen(true)
+        }
     }
 
     const logout = async () => {
@@ -76,7 +99,7 @@ export const Profile = () => {
                     isVerified={isUserSumsubKycApproved}
                     onChangeAvatar={() => setAvatarPickerOpen(true)}
                 />
-                <AvatarPicker open={avatarPickerOpen} onOpenChange={setAvatarPickerOpen} />
+                {avatarPickerMounted && <AvatarPicker open={avatarPickerOpen} onOpenChange={setAvatarPickerOpen} />}
                 <div className="space-y-4">
                     {/* IA from #2834: identity/products first, then social +
                         account, then app settings. Payment limits moved inline
@@ -107,7 +130,7 @@ export const Profile = () => {
                         <ProfileMenuItem
                             icon="smile"
                             label={t('menu.inviteFriends')}
-                            onClick={() => setIsInviteFriendsDrawerOpen(true)}
+                            onClick={openInviteFriendsDrawer}
                             href="/dummy" // Dummy link, wont be called
                         />
                         <ProfileMenuItem icon="achievements" label={t('menu.yourBadges')} href="/badges" />
@@ -170,14 +193,22 @@ export const Profile = () => {
                 </div>
             </div>
 
-            <InviteFriendsDrawer
-                visible={isInviteFriendsDrawerOpen}
-                onClose={() => setIsInviteFriendsDrawerOpen(false)}
-                username={user?.user.username ?? ''}
-                source="profile"
-            />
-            <OtaUpdateModal visible={isUpdateModalOpen} onClose={() => setIsUpdateModalOpen(false)} />
-            <StoreUpdateModal visible={isStoreUpdateModalOpen} onClose={() => setIsStoreUpdateModalOpen(false)} />
+            {/* Load on first use, then retain the controlled root so visible=false
+                can run Vaul's close transition before the page unmounts. */}
+            {isInviteFriendsDrawerMounted && (
+                <InviteFriendsDrawer
+                    visible={isInviteFriendsDrawerOpen}
+                    onClose={() => setIsInviteFriendsDrawerOpen(false)}
+                    username={user?.user.username ?? ''}
+                    source="profile"
+                />
+            )}
+            {isUpdateModalMounted && (
+                <OtaUpdateModal visible={isUpdateModalOpen} onClose={() => setIsUpdateModalOpen(false)} />
+            )}
+            {isStoreUpdateModalMounted && (
+                <StoreUpdateModal visible={isStoreUpdateModalOpen} onClose={() => setIsStoreUpdateModalOpen(false)} />
+            )}
         </div>
     )
 }

@@ -9,6 +9,14 @@ import { isCapacitor } from './capacitor'
 import { isDemoMode } from './demo'
 import { DEV_TOOLS_ENABLED } from '@/constants/dev-tools.consts'
 import { ensureActiveFixture } from '@/dev/fixtures/active'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import {
+    API_SLOW_THRESHOLD_MS,
+    apiRouteTemplate,
+    parseServerTiming,
+    shouldSampleApiRequest,
+} from './performance-analytics'
 
 type FetchOptions = RequestInit & {
     timeoutMs?: number
@@ -38,12 +46,17 @@ async function callApi(path: string, options?: FetchOptions): Promise<Response> 
     }
 
     const { timeoutMs, includeAuth = true, ...fetchOptions } = options ?? {}
+    const startedAt = globalThis.performance?.now?.() ?? Date.now()
+    let authWaitMs = 0
 
     // Native: token hydrates async from Preferences; gate here so a cold-start
     // request can't go out unauthenticated. Instant on web. An explicitly
     // unauthenticated read skips it — a public rate must not queue behind auth
     // hydration, and it would send no token either way.
-    if (includeAuth) await authReady()
+    if (includeAuth) {
+        await authReady()
+        authWaitMs = (globalThis.performance?.now?.() ?? Date.now()) - startedAt
+    }
 
     const callerHeaders = (fetchOptions.headers as Record<string, string>) ?? {}
 
@@ -72,7 +85,92 @@ async function callApi(path: string, options?: FetchOptions): Promise<Response> 
         { ...fetchOptions, headers, ...(preferNativeTransport && { preferNativeTransport }) },
     ]
     if (timeoutMs !== undefined) args[2] = timeoutMs
-    return fetchWithSentry(...args)
+
+    const method = (fetchOptions.method ?? 'GET').toUpperCase()
+    const route = apiRouteTemplate(path)
+
+    try {
+        const response = await fetchWithSentry(...args)
+        captureApiTiming({
+            route,
+            method,
+            startedAt,
+            authWaitMs,
+            response,
+        })
+        return response
+    } catch (error) {
+        captureApiTiming({
+            route,
+            method,
+            startedAt,
+            authWaitMs,
+            error,
+        })
+        throw error
+    }
+}
+
+interface ApiTimingInput {
+    route: string
+    method: string
+    startedAt: number
+    authWaitMs: number
+    response?: Response
+    error?: unknown
+}
+
+function captureApiTiming({ route, method, startedAt, authWaitMs, response, error }: ApiTimingInput): void {
+    // serverFetch shares this wrapper but can run in server components/actions;
+    // only the browser PostHog client should emit client-performance events.
+    if (typeof window === 'undefined') return
+
+    const finishedAt = globalThis.performance?.now?.() ?? Date.now()
+    const durationMs = Math.max(0, finishedAt - startedAt)
+    const statusCode = typeof response?.status === 'number' ? response.status : undefined
+    // fetchWithSentry converts its internal AbortError to this stable public
+    // error name. Keep AbortError too for alternate/native transports.
+    const errorName = error instanceof Error ? error.name : undefined
+    const timedOut = errorName === 'ConnectionTimeoutError' || errorName === 'AbortError'
+    const outcome = error ? (timedOut ? 'timeout' : 'network_error') : response?.ok ? 'success' : 'http_error'
+    const serverDurationMs = parseServerTiming(response?.headers?.get?.('server-timing') ?? null)
+    const properties = {
+        route,
+        method,
+        duration_ms: Math.round(durationMs),
+        auth_wait_ms: Math.round(authWaitMs),
+        ...(serverDurationMs === undefined
+            ? {}
+            : {
+                  server_duration_ms: serverDurationMs,
+                  client_network_overhead_ms: Math.max(0, Math.round(durationMs - authWaitMs - serverDurationMs)),
+              }),
+        ...(statusCode === undefined
+            ? {}
+            : {
+                  status_code: statusCode,
+                  status_class: `${Math.floor(statusCode / 100)}xx`,
+              }),
+        outcome,
+    }
+
+    if (shouldSampleApiRequest()) {
+        posthog.capture(ANALYTICS_EVENTS.API_REQUEST_COMPLETED, { ...properties, sample_rate: 0.1 })
+    }
+
+    if (error || (statusCode !== undefined && statusCode >= 500) || durationMs >= API_SLOW_THRESHOLD_MS) {
+        posthog.capture(ANALYTICS_EVENTS.API_REQUEST_PROBLEM, {
+            ...properties,
+            problem:
+                error != null
+                    ? timedOut
+                        ? 'timeout'
+                        : 'network_error'
+                    : statusCode !== undefined && statusCode >= 500
+                      ? 'server_error'
+                      : 'slow',
+        })
+    }
 }
 
 export const apiFetch = callApi

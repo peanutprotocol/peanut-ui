@@ -77,6 +77,7 @@ beforeEach(() => {
     const content = document.createElement('div')
     content.id = 'scrollable-content'
     document.body.appendChild(content)
+    window.scrollY = 0
     ;(isCapacitor as jest.Mock).mockReturnValue(true)
     jest.clearAllMocks()
 })
@@ -199,7 +200,7 @@ describe('usePullToRefresh', () => {
         document.querySelector('#scrollable-content')!.scrollTop = 30
         if (phase === 'move') {
             touch('touchmove', 220)
-            // Once cancelled, reaching the top again must not re-arm this gesture.
+            // Once canceled, reaching the top again must not re-arm this gesture.
             document.querySelector('#scrollable-content')!.scrollTop = 0
         }
         touch('touchend', 220)

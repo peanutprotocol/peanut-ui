@@ -8,7 +8,7 @@
  * dangling card step); the reachable Home progress state stays visible.
  */
 import React from 'react'
-import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import GettingStartedChecklist from '@/components/Home/GettingStartedChecklist'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
@@ -23,7 +23,11 @@ const render = () =>
     )
 
 const mockPush = jest.fn()
+const mockSetHomeDrawer = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
+jest.mock('@/features/home/useHomeDrawer', () => ({
+    useHomeDrawer: () => [null, mockSetHomeDrawer],
+}))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
 let mockUser: {
@@ -223,14 +227,9 @@ describe('GettingStartedChecklist', () => {
         expect(screen.queryByText('Make your first payment')).not.toBeInTheDocument()
     })
 
-    it('opens the Add drawer without leaving Home and preserves the return context', async () => {
+    it('opens the Home add-money drawer directly', () => {
         render()
         fireEvent.click(screen.getByText('Add money'))
-
-        await waitFor(() => expect(mockUrlUpdate).toHaveBeenCalled())
-        const { searchParams } = mockUrlUpdate.mock.calls.at(-1)![0]
-        expect(searchParams.get('drawer')).toBe('add')
-        expect(searchParams.get('returnTo')).toBe('/profile')
-        expect(mockPush).not.toHaveBeenCalled()
+        expect(mockSetHomeDrawer).toHaveBeenCalledWith('add')
     })
 })

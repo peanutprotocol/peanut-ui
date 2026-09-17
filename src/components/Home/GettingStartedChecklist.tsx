@@ -50,7 +50,7 @@ interface ChecklistItem {
 const GettingStartedChecklist = () => {
     const t = useTranslations('home.gettingStarted')
     const router = useRouter()
-    const [, setOpenDrawer] = useHomeDrawer()
+    const [, setHomeDrawer] = useHomeDrawer()
     const { user } = useAuth()
     const restrictions = useResidenceRestrictions()
     const depositAccountsEnabled = useDepositAccountsEnabled()
@@ -116,9 +116,7 @@ const GettingStartedChecklist = () => {
                         ? t('addMoneyRoutes')
                         : t('addMoneyRoutesKyc'),
                 done: isFunded,
-                onTap: tap('add-money', () => {
-                    void setOpenDrawer('add')
-                }),
+                onTap: tap('add-money', () => void setHomeDrawer('add')),
             },
             thirdItem,
         ]
@@ -132,7 +130,7 @@ const GettingStartedChecklist = () => {
         milestone,
         restrictions.banking,
         router,
-        setOpenDrawer,
+        setHomeDrawer,
         t,
     ])
 

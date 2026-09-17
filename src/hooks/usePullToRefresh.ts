@@ -198,7 +198,7 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
             if (!axisLock && (Math.abs(dx) > AXIS_LOCK_SLOP_PX || Math.abs(dy) > AXIS_LOCK_SLOP_PX)) {
                 axisLock = Math.abs(dy) >= Math.abs(dx) ? 'y' : 'x'
             }
-            // don't hijack horizontal gestures (carousels) or real scrolls
+            // Don't hijack horizontal gestures (carousels) or real scrolls.
             // An upward swipe belongs to scrolling for the rest of this touch,
             // even if the finger reverses direction after reaching the top.
             if (axisLock === 'x' || dy < -AXIS_LOCK_SLOP_PX) {

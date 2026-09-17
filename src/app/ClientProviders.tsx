@@ -27,6 +27,7 @@ import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
 import { Suspense } from 'react'
 import { PathnamePageviewTracker } from '@/components/Analytics/PathnamePageviewTracker'
+import { ScreenTransitionTracker } from '@/components/Analytics/ScreenTransitionTracker'
 
 /*
  * Harness bootstrap ships only in harness builds. In prod bundles the dynamic
@@ -115,6 +116,9 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
             {harness}
             <PathnamePageviewTracker />
             <NuqsAdapter>
+                <Suspense fallback={null}>
+                    <ScreenTransitionTracker />
+                </Suspense>
                 <PeanutProvider>
                     {/* Must sit ABOVE ContextProvider: TokenContextProvider → useWallet
                         → useSendMoney calls useTranslations, so the intl context has to
