@@ -1,7 +1,7 @@
 /**
  * @jest-environment jsdom
  */
-import { renderHook, act } from '@testing-library/react'
+import { renderHook, act, waitFor } from '@testing-library/react'
 import { withNuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testing'
 
 const mockRouterPush = jest.fn()
@@ -54,7 +54,22 @@ jest.mock('@/constants/analytics.consts', () => ({
     ANALYTICS_EVENTS: { DEPOSIT_METHOD_SELECTED: 'deposit_method_selected' },
 }))
 
+// the corridor resolver and the rail catalogue are the code under test here —
+// only the two answers that come from the user are mocked
+const mockDepositAccountsEnabled = jest.fn(() => true)
+jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
+    useDepositAccountsEnabled: () => mockDepositAccountsEnabled(),
+}))
+
+const mockOfferedCorridors = jest.fn(() => [] as string[])
+jest.mock('@/features/deposit-accounts/useOfferedCorridors', () => ({
+    useOfferedCorridors: () => mockOfferedCorridors(),
+}))
+
 import { useAddMoneyFlow } from '../useAddMoneyFlow'
+
+const GERMANY = { id: 'DEU', type: 'country', title: 'Germany', path: 'germany', iso2: 'DE', currency: 'EUR' }
+const BRAZIL = { id: 'BRA', type: 'country', title: 'Brazil', path: 'brazil', iso2: 'BR', currency: 'BRL' }
 
 const renderFlow = (search = '', onUrlUpdate?: (e: UrlUpdateEvent) => void) =>
     renderHook(() => useAddMoneyFlow(), { wrapper: withNuqsTestingAdapter({ searchParams: search, onUrlUpdate }) })
@@ -64,6 +79,8 @@ describe('useAddMoneyFlow', () => {
         jest.clearAllMocks()
         mockGetStoredRedirect.mockReturnValue(null)
         mockGetFromLocalStorage.mockReturnValue(null)
+        mockDepositAccountsEnabled.mockReturnValue(true)
+        mockOfferedCorridors.mockReturnValue([])
     })
 
     it('bare root redirects to the home add drawer and resets onramp state', () => {
@@ -136,5 +153,58 @@ describe('useAddMoneyFlow', () => {
         act(() => result.current.handleCountryClick({ id: 'TD', path: 'chad' } as any))
         expect(mockRouterPush).toHaveBeenCalledWith('/add-money/chad')
         expect(mockCapture).toHaveBeenCalledTimes(3)
+    })
+
+    it('opens the deposit-accounts flow in place for a corridor the user is offered', async () => {
+        mockOfferedCorridors.mockReturnValue(['SEPA_EU'])
+        const updates: UrlUpdateEvent[] = []
+        const { result } = renderFlow('?method=bank', (e) => updates.push(e))
+
+        act(() => result.current.handleCountryClick(GERMANY as any))
+
+        // nuqs queues its url writes, so the recorded state arrives a tick later
+        await waitFor(() => expect(updates.at(-1)?.searchParams.get('corridor')).toBe('SEPA_EU'))
+        expect(updates.at(-1)?.searchParams.get('step')).toBe('details')
+        // no navigation: the same screens the get-paid route renders open here
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    it('sends a corridor with no standing account to the rail its own catalogue names', () => {
+        mockOfferedCorridors.mockReturnValue(['PIX_BR'])
+        const { result } = renderFlow('?method=bank')
+
+        act(() => result.current.handleCountryClick(BRAZIL as any))
+
+        // from DEPOSIT_RAILS.PIX_BR.topUpHref, not a second copy of the path
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/brazil/manteca')
+    })
+
+    it('keeps the bank flow for a corridor the user has no rail for, and while the flag is off', () => {
+        mockOfferedCorridors.mockReturnValue([])
+        const { result } = renderFlow('?method=bank')
+        act(() => result.current.handleCountryClick(GERMANY as any))
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/germany')
+
+        mockRouterPush.mockClear()
+        mockDepositAccountsEnabled.mockReturnValue(false)
+        mockOfferedCorridors.mockReturnValue(['SEPA_EU'])
+        const { result: r2 } = renderFlow('?method=bank')
+        act(() => r2.current.handleCountryClick(GERMANY as any))
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/germany')
+    })
+
+    it('renders the flow on a corridor, and returns to the countries when it asks for the list', async () => {
+        const { result } = renderFlow('?method=bank&corridor=SEPA_EU&step=details')
+        expect(result.current.showsDepositAccounts).toBe(true)
+        expect(result.current.isBareRoot).toBe(false)
+
+        const updates: UrlUpdateEvent[] = []
+        const { result: r2 } = renderFlow('?method=bank&corridor=SEPA_EU&step=list', (e) => updates.push(e))
+        // the deposit-accounts list is not a second discovery surface here
+        expect(r2.current.showsDepositAccounts).toBe(false)
+        // both params are dropped, so what is left is the country list itself
+        await waitFor(() => expect(updates.at(-1)?.searchParams.get('corridor')).toBeNull())
+        expect(updates.at(-1)?.searchParams.get('step')).toBeNull()
+        expect(updates.at(-1)?.searchParams.get('method')).toBe('bank')
     })
 })

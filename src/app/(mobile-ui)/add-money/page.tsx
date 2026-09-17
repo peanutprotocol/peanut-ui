@@ -3,6 +3,7 @@
 import AddWithdrawCountriesList from '@/components/AddWithdraw/AddWithdrawCountriesList'
 import { useAddMoneyFlow } from '@/features/add-money/useAddMoneyFlow'
 import { AddMoneyBankCountryListView } from '@/features/add-money/views/AddMoneyBankCountryListView'
+import { DepositAccountsFlowContainer } from '@/features/deposit-accounts/components/DepositAccountsFlowContainer'
 import dynamic from 'next/dynamic'
 
 // stubs exist for web build; real components are injected by native build script.
@@ -12,7 +13,22 @@ const OnrampBankPage = dynamic(() => import('./_onramp-bank'), { ssr: false })
 const OnrampMantecaPage = dynamic(() => import('./_onramp-manteca'), { ssr: false })
 
 export default function AddMoneyPage() {
-    const { countryFromQuery, viewFromQuery, isBareRoot, handleBack, handleCountryClick } = useAddMoneyFlow()
+    const {
+        countryFromQuery,
+        viewFromQuery,
+        isBareRoot,
+        showsDepositAccounts,
+        handleBack,
+        handleCountryClick,
+        handleDepositAccountsExit,
+    } = useAddMoneyFlow()
+
+    // a country that resolved to a standing account opens the get-paid screens
+    // here, rather than sending the user to a second flow to read the same
+    // details — they are the same components either way
+    if (showsDepositAccounts) {
+        return <DepositAccountsFlowContainer onExit={handleDepositAccountsExit} />
+    }
 
     // native app: render sub-views based on query params
     if (countryFromQuery && viewFromQuery === 'bank') {

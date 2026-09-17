@@ -1,17 +1,15 @@
 import { parseAsStringEnum } from 'nuqs'
-import type { DepositCorridor } from './types'
+import { DEPOSIT_RAIL_ORDER } from './rails'
 
 export const DEPOSIT_ACCOUNT_SCREENS = ['list', 'claim', 'details'] as const
 export type DepositAccountScreen = (typeof DEPOSIT_ACCOUNT_SCREENS)[number]
 
-const CORRIDORS: DepositCorridor[] = [
-    'ACH_US',
-    'SEPA_EU',
-    'FASTER_PAYMENTS_GB',
-    'SPEI_MX',
-    'PIX_BR',
-    'BANK_TRANSFER_AR',
-]
+/**
+ * The corridors a URL may name — the rail catalogue itself, so a corridor
+ * added to `DEPOSIT_RAILS` is linkable without a second list to update. It was
+ * a second list, and the two were already free to drift.
+ */
+export const DEPOSIT_CORRIDORS = DEPOSIT_RAIL_ORDER
 
 /**
  * Step and corridor live in the URL, so a link opens the flow where the user
@@ -27,5 +25,5 @@ export const DEPOSIT_ACCOUNT_PARAMS = {
     step: parseAsStringEnum([...DEPOSIT_ACCOUNT_SCREENS]).withDefault('list'),
     /** the cursor's former name, rewritten to `step` on read — see DepositAccountsFlow */
     screen: parseAsStringEnum([...DEPOSIT_ACCOUNT_SCREENS]),
-    corridor: parseAsStringEnum(CORRIDORS).withDefault('SEPA_EU'),
+    corridor: parseAsStringEnum(DEPOSIT_CORRIDORS).withDefault('SEPA_EU'),
 }
