@@ -9,7 +9,7 @@ import { ReproduceBootstrap } from '../ReproduceBootstrap'
  * to clear the previous BUILD, not only the previous user.
  */
 
-const reload = jest.fn()
+const replace = jest.fn()
 
 /**
  * The bootstrap reads the URL off `window.location`, not through a router
@@ -17,7 +17,7 @@ const reload = jest.fn()
  * way a real reproduce link arrives.
  *
  * The whole `location` is replaced rather than patched: jsdom marks
- * `location.reload` unforgeable, so defining it on the real Location throws
+ * `location.replace` unforgeable, so defining it on the real Location throws
  * `Cannot redefine property`. The property on `window` has no such rule.
  */
 function openUrl(url: string) {
@@ -30,7 +30,7 @@ function openUrl(url: string) {
             origin: parsed.origin,
             pathname: parsed.pathname,
             search: parsed.search,
-            reload,
+            replace,
         },
     })
 }
@@ -106,12 +106,53 @@ it('applies a second reproduce link opened after the first', async () => {
 
 /*
  * Two runs of the SAME link fetched two manifests, and the second wipe erased
- * what the first had seeded — no cookie, no localStorage, no reload. The
+ * what the first had seeded — no cookie, no localStorage, no navigation. The
  * marker is written before the first await, so the second run never starts.
  */
+/*
+ * A hung browser API is the failure with no log line: `getRegistrations()`,
+ * `caches.keys()` and `indexedDB.databases()` can all sit unresolved while a
+ * worker is mid-update, which is exactly the state a reproduce link arrives
+ * in. The step is skipped, the session is still seeded, and the document still
+ * leaves the reproduce URL.
+ */
+it('seeds and leaves the URL even when a wipe step never answers', async () => {
+    jest.useFakeTimers()
+    const info = jest.spyOn(console, 'info').mockImplementation(() => {})
+    Object.defineProperty(window.navigator, 'serviceWorker', {
+        configurable: true,
+        value: { getRegistrations: () => new Promise(() => {}) },
+    })
+
+    render(<ReproduceBootstrap />)
+    await jest.advanceTimersByTimeAsync(3100)
+
+    expect(info).toHaveBeenCalledWith('[reproduce] step timed out, skipping', 'service workers')
+    expect(localStorage.getItem('harness-pk')).toBe('0xabc')
+    expect(replace).toHaveBeenCalledWith('/home')
+
+    info.mockRestore()
+    jest.useRealTimers()
+})
+
+it('forces the document off a reproduce URL when the whole run stalls', async () => {
+    jest.useFakeTimers()
+    const info = jest.spyOn(console, 'info').mockImplementation(() => {})
+    global.fetch = jest.fn().mockReturnValue(new Promise(() => {})) as unknown as typeof fetch
+
+    render(<ReproduceBootstrap />)
+    await jest.advanceTimersByTimeAsync(8100)
+
+    expect(info).toHaveBeenCalledWith('[reproduce] watchdog', 'session-1', '/home')
+    expect(replace).toHaveBeenCalledWith('/home')
+
+    info.mockRestore()
+    jest.useRealTimers()
+})
+
 it('runs one link exactly once across a remount and a popstate', async () => {
     const first = render(<ReproduceBootstrap />)
-    await waitFor(() => expect(reload).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(replace).toHaveBeenCalledTimes(1))
 
     first.unmount()
     render(<ReproduceBootstrap />)
@@ -121,7 +162,7 @@ it('runs one link exactly once across a remount and a popstate', async () => {
 
     expect(global.fetch).toHaveBeenCalledTimes(1)
     expect(cacheKeys).toHaveBeenCalledTimes(1)
-    expect(reload).toHaveBeenCalledTimes(1)
+    expect(replace).toHaveBeenCalledTimes(1)
     expect(localStorage.getItem('harness-pk')).toBe('0xabc')
 })
 
