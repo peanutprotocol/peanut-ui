@@ -82,13 +82,22 @@ export const ANALYTICS_EVENTS = {
     SEND_LATENCY_BREAKDOWN: 'send_latency_breakdown',
 
     // ── Performance health ──
-    // One event after a client-side screen change has painted twice. Screen
-    // names are route templates (never raw dynamic ids or query values).
+    // Unsampled. duration_ms runs from accepted same-tab link intent, the
+    // actionable interaction attached to router navigation, History API
+    // mutation, or popstate until the committed destination paints twice.
+    // This measures route-shell paint, not completion of async widgets. Screen
+    // names are low-cardinality templates: dynamic ids and query values are
+    // redacted or reduced to enumerated UI states.
     SCREEN_TRANSITION_COMPLETED: 'screen_transition_completed',
-    // Uniform 10% sample used for unbiased endpoint latency percentiles. Slow,
-    // failed and 5xx requests are additionally emitted as API_REQUEST_PROBLEM
-    // so alerting does not depend on the sample.
+    // Uniform 10% sample at response/error completion, used for unbiased
+    // endpoint latency percentiles. `duration_ms` includes `auth_wait_ms`;
+    // readable Server-Timing adds the server and client-network split. API
+    // routes use an allowlisted template: queries/fragments and dynamic ids
+    // are removed, while unknown shapes collapse to `/unmatched`.
     API_REQUEST_COMPLETED: 'api_request_completed',
+    // Unsampled subset for network errors, timeouts, HTTP 5xx responses and
+    // duration_ms >= 2s. A request can also be present in the 10% completed
+    // sample; use this stream for reliability and tail alerts, not volume.
     API_REQUEST_PROBLEM: 'api_request_problem',
 
     // ── Send Link ──

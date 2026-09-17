@@ -1,6 +1,10 @@
 /* eslint-disable @next/next/no-html-link-for-pages -- raw anchors exercise the document-level tracker contract */
 import { fireEvent, render, screen } from '@testing-library/react'
+import Link from 'next/link'
+import type { NextRouter } from 'next/router'
+import { RouterContext } from 'next/dist/shared/lib/router-context.shared-runtime'
 import posthog from 'posthog-js'
+import type { ReactNode } from 'react'
 import { ScreenTransitionTracker } from '../ScreenTransitionTracker'
 
 let pathname = '/home'
@@ -16,6 +20,19 @@ jest.mock('nuqs', () => ({
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
 const capture = posthog.capture as jest.MockedFunction<typeof posthog.capture>
+
+function NextRouterProvider({ children }: { children: ReactNode }) {
+    const router = {
+        push: jest.fn((href: string) => {
+            window.history.pushState({}, '', href)
+            return Promise.resolve(true)
+        }),
+        prefetch: jest.fn(() => Promise.resolve()),
+        beforePopState: jest.fn(),
+    } as unknown as NextRouter
+
+    return <RouterContext.Provider value={router}>{children}</RouterContext.Provider>
+}
 
 beforeEach(() => {
     pathname = '/home'
@@ -73,24 +90,26 @@ describe('ScreenTransitionTracker', () => {
         )
     })
 
-    it('does not carry a canceled link intent into a later transition', () => {
+    it('preserves click-to-commit timing for a Next.js Link navigation', () => {
         const { rerender } = render(
-            <>
+            <NextRouterProvider>
                 <ScreenTransitionTracker />
-                <a href="/rewards" onClick={(event) => event.preventDefault()}>
-                    Rewards
-                </a>
-            </>
+                <Link href="/rewards">Rewards</Link>
+            </NextRouterProvider>
         )
 
         fireEvent.click(screen.getByRole('link', { name: 'Rewards' }))
-        window.history.pushState({}, '', '/rewards')
         pathname = '/rewards'
-        rerender(<ScreenTransitionTracker />)
+        rerender(
+            <NextRouterProvider>
+                <ScreenTransitionTracker />
+                <Link href="/rewards">Rewards</Link>
+            </NextRouterProvider>
+        )
 
         expect(capture).toHaveBeenCalledWith(
             'screen_transition_completed',
-            expect.objectContaining({ from_screen: '/home', to_screen: '/rewards', trigger: 'programmatic' })
+            expect.objectContaining({ from_screen: '/home', to_screen: '/rewards', trigger: 'link' })
         )
     })
 
@@ -118,20 +137,18 @@ describe('ScreenTransitionTracker', () => {
         )
     })
 
-    it('expires a link intent when no route commit follows it', () => {
+    it('expires a genuinely canceled link intent before a later transition', () => {
         jest.useFakeTimers()
-        const lateCancel = (event: MouseEvent) => event.preventDefault()
 
         try {
             const { rerender } = render(
                 <>
                     <ScreenTransitionTracker />
-                    <a href="/rewards">Rewards</a>
+                    <a href="/rewards" onClick={(event) => event.preventDefault()}>
+                        Rewards
+                    </a>
                 </>
             )
-            // Registered after the tracker: this prevents JSDOM navigation but
-            // deliberately leaves the capture-phase intent for its expiry.
-            document.addEventListener('click', lateCancel)
 
             fireEvent.click(screen.getByRole('link', { name: 'Rewards' }))
             jest.advanceTimersByTime(10_001)
@@ -145,7 +162,6 @@ describe('ScreenTransitionTracker', () => {
                 expect.objectContaining({ from_screen: '/home', to_screen: '/rewards', trigger: 'programmatic' })
             )
         } finally {
-            document.removeEventListener('click', lateCancel)
             jest.useRealTimers()
         }
     })

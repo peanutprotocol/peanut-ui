@@ -56,7 +56,6 @@ export function ScreenTransitionTracker() {
     const pendingRef = useRef<PendingTransition | null>(null)
     const interactionRef = useRef<{ fromScreen: string; startedAt: number } | null>(null)
     const pendingExpiryRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const capturedLinkRef = useRef<{ event: MouseEvent; pending: PendingTransition } | null>(null)
 
     useEffect(() => {
         const clearPendingExpiry = () => {
@@ -87,9 +86,10 @@ export function ScreenTransitionTracker() {
             pendingRef.current = nextPending
             interactionRef.current = null
 
-            // A plain anchor can be canceled by a later handler or fail to
-            // navigate without ever mutating history. Never let that stale
-            // intent become the start time for an unrelated later transition.
+            // A link can be canceled or fail to navigate without ever
+            // mutating history. Next.js Link also calls preventDefault() for a
+            // successful SPA navigation, so expiry—not defaultPrevented—is the
+            // safe way to discard an intent that never commits.
             if (trigger === 'link') {
                 pendingExpiryRef.current = setTimeout(() => {
                     if (pendingRef.current === nextPending) pendingRef.current = null
@@ -114,8 +114,7 @@ export function ScreenTransitionTracker() {
                 ) {
                     return
                 }
-                const pending = begin(screenFromUrl(target.href), 'link')
-                if (pending) capturedLinkRef.current = { event, pending }
+                begin(screenFromUrl(target.href), 'link')
                 return
             }
 
@@ -128,16 +127,6 @@ export function ScreenTransitionTracker() {
                     fromScreen: screenTemplate(window.location.pathname, window.location.search),
                     startedAt: now(),
                 }
-            }
-        }
-
-        const onClickSettled = (event: MouseEvent) => {
-            const captured = capturedLinkRef.current
-            if (!captured || captured.event !== event) return
-            capturedLinkRef.current = null
-            if (event.defaultPrevented && pendingRef.current === captured.pending) {
-                pendingRef.current = null
-                clearPendingExpiry()
             }
         }
 
@@ -162,16 +151,13 @@ export function ScreenTransitionTracker() {
         }
 
         document.addEventListener('click', onClickCapture, true)
-        document.addEventListener('click', onClickSettled)
         window.addEventListener('popstate', onPopState)
         return () => {
             document.removeEventListener('click', onClickCapture, true)
-            document.removeEventListener('click', onClickSettled)
             window.removeEventListener('popstate', onPopState)
             window.history.pushState = originalPushState
             window.history.replaceState = originalReplaceState
             clearPendingExpiry()
-            capturedLinkRef.current = null
         }
     }, [])
 
