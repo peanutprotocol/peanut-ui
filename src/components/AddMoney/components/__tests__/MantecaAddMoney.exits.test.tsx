@@ -60,6 +60,9 @@ jest.mock('@/features/limits/hooks/useLimitsValidation', () => ({
     useLimitsValidation: () => ({ currency: 'BRL' }),
 }))
 jest.mock('@/utils/regions.utils', () => ({ isVerifiedForCountry: () => true }))
+// the real hook reads useAuth, which throws with no provider; Brazil is not
+// residence-gated here, so the value only has to be defined
+jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({ useResidenceIso2s: () => ['BR'] }))
 jest.mock('@/utils/provider-rejection.utils', () => ({ deriveProviderRejection: () => ({ state: 'none' }) }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 

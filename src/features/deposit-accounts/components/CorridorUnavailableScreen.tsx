@@ -1,7 +1,6 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
@@ -9,6 +8,7 @@ import { rewriteMethodPath } from '@/utils/native-routes'
 import { withReturnTo } from '@/utils/return-to.utils'
 import type { DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
+import { ResidenceRequiredScreen } from './ResidenceRequiredScreen'
 
 /** the Unlock payments residence row, opened by its own query param */
 const RESIDENCE_CHANGE_HREF = '/profile/identity-verification?open=residence'
@@ -39,15 +39,26 @@ export function CorridorUnavailableScreen({
      */
     requiresResidence?: boolean
 }) {
-    const { t, residenceLine, qrPayLine } = useDepositAccountCopy()
-    const residence = residenceLine(rail.corridor)
-    // Residence closes the account, not the country: Pix and Mercado Pago QR
-    // codes are payable from a Peanut balance wherever the user lives.
-    const qrPay = requiresResidence ? qrPayLine(rail) : undefined
+    const { t, qrPayLine } = useDepositAccountCopy()
     // The Manteca top-up lives at /add-money/[country]/manteca, a dynamic route
     // the native static export does not ship. rewriteMethodPath turns it into
     // the query-backed parent the export does have; on web it is a no-op.
     const topUpHref = rail.topUpHref ? rewriteMethodPath(rail.topUpHref) : undefined
+
+    // The corridor exists and the user does not live there. The shared residence
+    // screen states the rule and offers the residence flow, plus the QR route
+    // where the country takes one.
+    if (requiresResidence && rail.residenceIso2) {
+        return (
+            <ResidenceRequiredScreen
+                // the catalogue only sets residenceIso2 on the AR/BR corridors
+                residenceIso2={rail.residenceIso2 as 'AR' | 'BR'}
+                qrPayHref={qrPayLine(rail) ? QR_PAY_HREF : undefined}
+                residenceChangeHref={withReturnTo(RESIDENCE_CHANGE_HREF, '/add-money?method=bank')}
+                onBack={onBack}
+            />
+        )
+    }
 
     return (
         <PageStack>
@@ -55,39 +66,10 @@ export function CorridorUnavailableScreen({
             <PageStack.Center>
                 <EmptyState
                     icon="globe-lock"
-                    title={
-                        requiresResidence && residence
-                            ? residence.title
-                            : t('details.unavailableTitle', { currency: rail.currency })
-                    }
-                    description={
-                        requiresResidence && residence ? (
-                            <span className="inline">
-                                {residence.requirement}
-                                {qrPay ? ` ${qrPay}` : ''}
-                            </span>
-                        ) : (
-                            t('details.unavailableBody')
-                        )
-                    }
+                    title={t('details.unavailableTitle', { currency: rail.currency })}
+                    description={t('details.unavailableBody')}
                     cta={
-                        requiresResidence && residence ? (
-                            <div className="mt-4 flex w-full flex-col items-center gap-4">
-                                {/* the residence row on Unlock payments, opened on arrival */}
-                                <Button
-                                    variant="purple"
-                                    className="w-full"
-                                    href={withReturnTo(RESIDENCE_CHANGE_HREF, '/add-money?method=bank')}
-                                >
-                                    {t('details.residenceCta')}
-                                </Button>
-                                {qrPay && (
-                                    <LinkButton href={QR_PAY_HREF} data-testid="corridor-qr-pay">
-                                        {t('details.qrPayCta')}
-                                    </LinkButton>
-                                )}
-                            </div>
-                        ) : topUpHref ? (
+                        topUpHref ? (
                             // a closed corridor still has a real way in — send
                             // them to it rather than back
                             <Button variant="purple" className="mt-4 w-full" href={topUpHref}>

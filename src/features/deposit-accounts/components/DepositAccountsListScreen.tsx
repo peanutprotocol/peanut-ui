@@ -19,6 +19,7 @@ import { SearchInput } from '@/components/SearchInput'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import type { GateState } from '@/utils/capability-gate'
 import { rewriteMethodPath } from '@/utils/native-routes'
+import { withReturnTo } from '@/utils/return-to.utils'
 import { twMerge } from '@/utils/tw'
 import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
@@ -253,7 +254,10 @@ export function DepositAccountsListScreen({
         const rail = DEPOSIT_RAILS[corridor]
         const topUp = topUpOnlyHref(rail) ?? standingTopUp(rail, claimableHere)
         if (topUp) {
-            router.push(rewriteMethodPath(topUp))
+            // The Manteca top-up is a page of its own, so it must know where the
+            // user came from — the hub — or leaving verification strands them on
+            // the bare amount route they never knowingly opened.
+            router.push(withReturnTo(rewriteMethodPath(topUp), '/add-money?method=bank'))
             return
         }
         onOpen(corridor)

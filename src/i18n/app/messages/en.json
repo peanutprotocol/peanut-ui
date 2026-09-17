@@ -4049,7 +4049,8 @@
                 "railName": "Bank or Mercado Pago",
                 "residenceTitle": "Residence required",
                 "residenceOnly": "For legal residents of Argentina",
-                "residenceRequired": "Only legal residents of Argentina can add money this way. Your nationality does not matter — where you live does."
+                "residenceRequired": "Only legal residents of Argentina can add money this way. Your nationality does not matter — where you live does.",
+                "qrPay": "You can still pay a Mercado Pago QR code in Argentina from your balance."
             },
             "BANK_TRANSFER_BR": {
                 "arrival": "Within minutes",

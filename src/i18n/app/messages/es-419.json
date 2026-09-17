@@ -4049,7 +4049,8 @@
                 "railName": "Banco o Mercado Pago",
                 "residenceTitle": "Necesitas residencia",
                 "residenceOnly": "Para residentes legales de Argentina",
-                "residenceRequired": "Solo los residentes legales de Argentina pueden agregar dinero así. Tu nacionalidad no importa; el país donde vives, sí."
+                "residenceRequired": "Solo los residentes legales de Argentina pueden agregar dinero así. Tu nacionalidad no importa; el país donde vives, sí.",
+                "qrPay": "De todas formas puedes pagar códigos QR de Mercado Pago en Argentina con tu saldo."
             },
             "BANK_TRANSFER_BR": {
                 "arrival": "En minutos",

@@ -9,6 +9,10 @@ import { DepositAccountsListScreen } from '../components/DepositAccountsListScre
 import { corridorRecord, DEPOSIT_RAIL_ORDER, emptyCorridorRecord } from '../rails'
 import type { DepositAccount, DepositCorridor } from '../types'
 import type { GateState } from '@/utils/capability-gate'
+import { withReturnTo } from '@/utils/return-to.utils'
+
+/** the hub the Manteca top-up returns to — the origin every top-up push carries */
+const HUB_RETURN = '/add-money?method=bank'
 
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
@@ -443,7 +447,9 @@ describe('the residence-gated rows and the tap behind them', () => {
         const { container } = list(false, { corridors: ['SEPA_EU'], onOpen })
 
         fireEvent.click(rowOf(container, 'BANK_TRANSFER_AR') as HTMLElement)
-        expect(mockPush).toHaveBeenCalledWith('/add-money/argentina/manteca')
+        // the top-up push carries a returnTo back to the hub, so leaving
+        // verification lands on the hub, not the bare amount route
+        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/add-money/argentina/manteca', HUB_RETURN))
         expect(onOpen).not.toHaveBeenCalled()
     })
 
@@ -454,7 +460,7 @@ describe('the residence-gated rows and the tap behind them', () => {
         const { container } = list(false, { corridors: ['BANK_TRANSFER_BR'], gates, onOpen })
 
         fireEvent.click(rowOf(container, 'BANK_TRANSFER_BR') as HTMLElement)
-        expect(mockPush).toHaveBeenCalledWith('/add-money/brazil/manteca')
+        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/add-money/brazil/manteca', HUB_RETURN))
         expect(onOpen).not.toHaveBeenCalled()
     })
 

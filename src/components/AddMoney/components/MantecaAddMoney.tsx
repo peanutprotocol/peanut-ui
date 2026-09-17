@@ -1,11 +1,14 @@
 'use client'
+// TODO(deposit-accounts, TASK-22756): fold Manteca AR/BR into the in-place
+// deposit-accounts hub flow (?corridor=&step=) so Bridge corridors and Manteca
+// share ONE residence gate and one back model. This interim patch adds the
+// residence gate and return-to-hub only. Deliberate, tracked.
 import { type FC, useEffect, useMemo, useState, useCallback } from 'react'
 import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
 import MantecaPixQrDeposit from '@/components/AddMoney/components/MantecaPixQrDeposit'
 import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { addMoneyCountryUrl } from '@/utils/native-routes'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { countryData } from '@/components/AddMoney/consts'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
@@ -29,6 +32,10 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useLocale, useTranslations } from 'next-intl'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
+import { useResidenceIso2s } from '@/features/deposit-accounts/useResidenceIso2s'
+import { residenceAllows } from '@/features/deposit-accounts/residenceGate'
+import { ResidenceRequiredScreen } from '@/features/deposit-accounts/components/ResidenceRequiredScreen'
+import { withReturnTo, readReturnTo } from '@/utils/return-to.utils'
 
 // Step type for URL state
 type MantecaStep = 'inputAmount' | 'depositDetails' | 'showQR'
@@ -85,7 +92,16 @@ const MantecaAddMoney: FC = () => {
     // USD stays one toggle away and sticks via the URL param.
     const currentDenomination: CurrencyDenomination =
         urlState.currency ?? (selectedCountry?.currency as CurrencyDenomination) ?? 'USD'
-    const onBack = useSafeBack(addMoneyCountryUrl(selectedCountryPath))
+    // Back leaves to the origin the caller stated (the hub sets `returnTo`), and
+    // otherwise to the hub itself — not the bare `/add-money/argentina` amount
+    // route the user never knowingly opened.
+    const onBack = useSafeBack(readReturnTo(searchParams) ?? '/add-money?method=bank')
+    const residenceIso2s = useResidenceIso2s()
+    // Argentina's Manteca top-up mints a CVU per deposit, and Manteca rejects a
+    // non-resident only after amount + KYC. Gate on residence first. The Bridge
+    // BR corridor already gates residence at the hub; the Manteca BRL/PIX top-up
+    // is left as-is here (see the file-top TODO for the full fold-in).
+    const requiresResidenceGate = selectedCountry?.id === 'AR' && !residenceAllows('BANK_TRANSFER_AR', residenceIso2s)
     // The pool→full upgrade gate asks "did the user clear ID verification?",
     // not "do they have an enabled rail elsewhere?" — read the identity
     // signal directly (Sumsub-cleared the human) instead of the old
@@ -110,11 +126,14 @@ const MantecaAddMoney: FC = () => {
     // Wait for capabilities first — opening while they load flashes the gate at a
     // verified user.
     useEffect(() => {
+        // a non-resident sees the residence screen, not the KYC gate — Manteca
+        // would reject the verification anyway
+        if (requiresResidenceGate) return
         if (areCapabilitiesLoading) return
         if (isUserMantecaKycApprovedForCountry) return
         if (kycGateDismissed) return
         setShowKycModal(true)
-    }, [areCapabilitiesLoading, isUserMantecaKycApprovedForCountry, kycGateDismissed])
+    }, [requiresResidenceGate, areCapabilitiesLoading, isUserMantecaKycApprovedForCountry, kycGateDismissed])
 
     // validates deposit amount against user's limits
     // currency comes from country config - hook normalizes it internally
@@ -274,6 +293,23 @@ const MantecaAddMoney: FC = () => {
     }, [step, depositDetails, setUrlState])
 
     if (!selectedCountry) return null
+
+    // A non-resident of Argentina cannot open the Manteca top-up, so the rule
+    // comes before the amount screen and the KYC drawer — with a back to the
+    // hub, and the QR route that still works from any balance.
+    if (requiresResidenceGate) {
+        return (
+            <ResidenceRequiredScreen
+                residenceIso2="AR"
+                qrPayHref="/qr-pay"
+                residenceChangeHref={withReturnTo(
+                    '/profile/identity-verification?open=residence',
+                    '/add-money?method=bank'
+                )}
+                onBack={onBack}
+            />
+        )
+    }
 
     // While the BRL PIX deposit request is in flight (the QR is being generated),
     // show the branded processing screen — same as when a PIX payment is processing.
