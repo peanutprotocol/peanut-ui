@@ -1190,6 +1190,8 @@
         "bankTransfer": {
             "title": "Pay by bank transfer",
             "description": "Send from your bank to the requester's account.",
+            "payInCurrency": "Pay in {currency} · {rail}",
+            "otherWays": "Pay another way",
             "referenceSection": "Reference",
             "referenceLabel": "Payment reference",
             "referenceNote": "Add this reference to your transfer. Without it the payment is not matched to this request.",

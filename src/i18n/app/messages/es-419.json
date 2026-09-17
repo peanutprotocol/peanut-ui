@@ -1190,6 +1190,8 @@
         "bankTransfer": {
             "title": "Pagar por transferencia bancaria",
             "description": "Envía desde tu banco a la cuenta de quien te pide el pago.",
+            "payInCurrency": "Pagar en {currency} · {rail}",
+            "otherWays": "Pagar de otra forma",
             "referenceSection": "Referencia",
             "referenceLabel": "Referencia del pago",
             "referenceNote": "Agrega esta referencia a tu transferencia. Sin ella, el pago no se asocia a esta solicitud.",

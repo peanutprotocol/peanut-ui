@@ -661,6 +661,8 @@
         },
         "bankTransfer": {
             "description": "Enviá desde tu banco a la cuenta de quien te pide el pago.",
+            "payInCurrency": "Pagar en {currency} · {rail}",
+            "otherWays": "Pagar de otra forma",
             "referenceNote": "Agregá esta referencia a tu transferencia. Sin ella, el pago no se asocia a esta solicitud.",
             "amountNote": "Al tipo de cambio de hoy. Enviá este monto y la solicitud queda pagada.",
             "amountNoteSameCurrency": "Enviá este monto y la solicitud queda pagada."
