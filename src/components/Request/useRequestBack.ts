@@ -1,12 +1,16 @@
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { readReturnTo } from '@/utils/return-to.utils'
+import { usePathname, useRouter } from 'next/navigation'
+import { parseAsString, useQueryState } from 'nuqs'
+import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 
 export function useRequestBack() {
     const router = useRouter()
     const pathname = usePathname()
-    const searchParams = useSearchParams()
+    const [rawReturnTo] = useQueryState(RETURN_TO_PARAM, parseAsString)
 
     // Request can be re-entered from its own bank-details alternative. History
     // can lead back into that loop, so the root exits to its stated origin.
-    return () => router.push(readReturnTo(searchParams, pathname ?? '/request') ?? '/home')
+    return () => {
+        const params = { get: (key: string) => (key === RETURN_TO_PARAM ? rawReturnTo : null) }
+        router.push(readReturnTo(params, pathname ?? '/request') ?? '/home')
+    }
 }

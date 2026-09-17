@@ -333,11 +333,13 @@ function renderPayRequest(params: Record<string, string> = {}) {
     const queryClient = createQueryClient()
 
     return render(
-        <IntlWrapper>
-            <QueryClientProvider client={queryClient}>
-                <PayRequestLink />
-            </QueryClientProvider>
-        </IntlWrapper>
+        <NuqsTestingAdapter searchParams={params}>
+            <IntlWrapper>
+                <QueryClientProvider client={queryClient}>
+                    <PayRequestLink />
+                </QueryClientProvider>
+            </IntlWrapper>
+        </NuqsTestingAdapter>
     )
 }
 
@@ -345,11 +347,13 @@ function renderDirectRequest() {
     const queryClient = createQueryClient()
 
     return render(
-        <IntlWrapper>
-            <QueryClientProvider client={queryClient}>
-                <DirectRequestInitialView username="test-user" />
-            </QueryClientProvider>
-        </IntlWrapper>
+        <NuqsTestingAdapter searchParams={{}}>
+            <IntlWrapper>
+                <QueryClientProvider client={queryClient}>
+                    <DirectRequestInitialView username="test-user" />
+                </QueryClientProvider>
+            </IntlWrapper>
+        </NuqsTestingAdapter>
     )
 }
 
