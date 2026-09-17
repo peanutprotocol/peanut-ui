@@ -1,0 +1,72 @@
+{
+    "title": "Choice overload review",
+    "description": "The strongest candidates for reducing competing actions and clarifying the primary path.",
+    "locales": ["en", "es-419", "es-AR", "pt-BR"],
+    "captureMissing": true,
+    "items": [
+        {
+            "id": "fixture-profile",
+            "note": "Very flat navigation hierarchy; many unrelated destinations compete equally."
+        },
+        {
+            "id": "fixture-card-holder",
+            "note": "Management actions and destructive card actions share one list."
+        },
+        {
+            "id": "fixture-send",
+            "note": "Create link competes with contacts, bank, regional payment, and wallet routes."
+        },
+        {
+            "id": "78-f-choice-guest-claim",
+            "note": "Peanut, bank, regional payment, wallet, and support actions are presented together."
+        },
+        {
+            "id": "79-f-choice-direct-send",
+            "note": "The direct-send alternatives compete at the same decision point."
+        },
+        {
+            "id": "80-f-choice-semantic-request",
+            "note": "The primary request path competes with several alternative payment rails."
+        },
+        {
+            "id": "81-f-choice-request-pot",
+            "note": "Peanut payment and every alternative rail are presented together."
+        },
+        {
+            "id": "fixture-home",
+            "note": "Add, Send, and Request sit beside activation, card, and verification actions."
+        },
+        {
+            "id": "82-f-choice-card-requires-info",
+            "note": "Proof of address, identity documents, and support compete without a recommended path."
+        },
+        {
+            "id": "01-a-landing",
+            "note": "Sign up, log in, and wallet recovery are all visible at entry."
+        },
+        {
+            "id": "83-f-choice-residence-restricted",
+            "note": "Continue anyway, notify me, and change country are presented together."
+        },
+        {
+            "id": "84-f-choice-public-profile-guest",
+            "note": "Send, Request, and Join Peanut compete on a guest profile."
+        },
+        {
+            "id": "85-f-choice-claim-error",
+            "note": "Retry, support, and return home are equally available recovery paths."
+        },
+        {
+            "id": "p58-qr-success",
+            "note": "Home, receipt, and invite actions remain visible after payment."
+        },
+        {
+            "id": "50-d-transactiondetailsdrawer",
+            "note": "Receipt, sharing, invitation, download, split, and issue-reporting actions can accumulate."
+        },
+        {
+            "id": "86-f-choice-not-found",
+            "note": "Two support controls represent the same intent beside the home action."
+        }
+    ]
+}
