@@ -14,7 +14,10 @@ import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
  */
 export default function ProcessingScreen({ title, description }: { title: string; description?: string }) {
     return (
-        <div className="my-auto flex w-full flex-col items-center gap-6 text-center">
+        // motion-reduce halts the loader's descendant spin here, scoped to
+        // this composition: the shared Loading has no reduced-motion rule of
+        // its own and changing it is separate ds debt
+        <div className="my-auto flex w-full flex-col items-center gap-6 text-center motion-reduce:[&_.animate-spin]:animate-none">
             <Loading variant="mascot" />
             <TitleBlock align="center" title={title} description={description} />
         </div>

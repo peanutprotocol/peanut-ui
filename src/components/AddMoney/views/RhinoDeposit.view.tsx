@@ -92,6 +92,21 @@ const RhinoDepositView = ({
         )
     }
 
+    // deposit detected and settling — the processing state owns the whole
+    // screen; the network toggle and instructions must not invite another
+    // deposit while this one confirms
+    if (depositAddressStatus === 'loading') {
+        return (
+            <PageStack>
+                <NavHeader title={headerTitle} onPrev={onBack} />
+                <ProcessingScreen
+                    title={tAddMoney('processingDepositTitle')}
+                    description={tAddMoney('processingDepositBody')}
+                />
+            </PageStack>
+        )
+    }
+
     return (
         <PageStack>
             <NavHeader title={headerTitle} onPrev={onBack} />
@@ -119,18 +134,10 @@ const RhinoDepositView = ({
                     aria-label={t('selectNetworkType')}
                 />
 
-                {(isDepositAddressDataLoading || depositAddressStatus === 'loading') && (
+                {/* address preparation keeps the bare mascot */}
+                {isDepositAddressDataLoading && (
                     <div className="flex h-screen-60 items-center justify-center">
-                        {/* deposit detected and settling — the shared processing
-                            treatment (TASK-22452); address prep keeps the bare mascot */}
-                        {depositAddressStatus === 'loading' ? (
-                            <ProcessingScreen
-                                title={tAddMoney('processingDepositTitle')}
-                                description={tAddMoney('processingDepositBody')}
-                            />
-                        ) : (
-                            <Loading variant="mascot" />
-                        )}
+                        <Loading variant="mascot" />
                     </div>
                 )}
 

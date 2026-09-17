@@ -96,6 +96,20 @@ const CryptoDepositView = ({
         )
     }
 
+    // deposit detected and settling — the processing state owns the whole
+    // screen so the send-instructions cannot invite a second deposit
+    if (status === 'loading') {
+        return (
+            <div className="flex min-h-inherit w-full flex-col gap-8 pb-4 md:pb-0">
+                <NavHeader title={t('title')} onPrev={onBack} />
+                <ProcessingScreen
+                    title={tAddMoney('processingDepositTitle')}
+                    description={tAddMoney('processingDepositBody')}
+                />
+            </div>
+        )
+    }
+
     return (
         <div className="flex min-h-inherit w-full flex-col gap-8 pb-4 md:pb-0">
             <NavHeader title={t('title')} onPrev={onBack} />
@@ -109,19 +123,10 @@ const CryptoDepositView = ({
                     })}
                 </p>
 
-                {/* loading state */}
-                {(isLoading || status === 'loading') && (
+                {/* address preparation keeps the bare mascot */}
+                {isLoading && (
                     <div className="flex h-screen-60 items-center justify-center">
-                        {/* deposit detected and settling — the shared processing
-                            treatment (TASK-22452); address prep keeps the bare mascot */}
-                        {status === 'loading' ? (
-                            <ProcessingScreen
-                                title={tAddMoney('processingDepositTitle')}
-                                description={tAddMoney('processingDepositBody')}
-                            />
-                        ) : (
-                            <Loading variant="mascot" />
-                        )}
+                        <Loading variant="mascot" />
                     </div>
                 )}
 
