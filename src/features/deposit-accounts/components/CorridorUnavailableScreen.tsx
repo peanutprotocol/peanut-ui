@@ -14,6 +14,9 @@ import { RuleWithInfo } from './DepositRuleList'
 /** the Unlock payments residence row, opened by its own query param */
 const RESIDENCE_CHANGE_HREF = '/profile/identity-verification?open=residence'
 
+/** the QR payment flow, which any balance can pay from */
+const QR_PAY_HREF = '/qr-pay'
+
 /**
  * A corridor the user has a rail for that is not a standing account, or one
  * their residence does not reach.
@@ -38,8 +41,11 @@ export function CorridorUnavailableScreen({
      */
     requiresResidence?: boolean
 }) {
-    const { t, unclaimableReason, residenceLine } = useDepositAccountCopy()
+    const { t, unclaimableReason, residenceLine, qrPayLine } = useDepositAccountCopy()
     const residence = residenceLine(rail.corridor)
+    // Residence closes the account, not the country: Pix and Mercado Pago QR
+    // codes are payable from a Peanut balance wherever the user lives.
+    const qrPay = requiresResidence ? qrPayLine(rail) : undefined
     const unclaimable = unclaimableReason(rail.corridor)
     // The Manteca top-up lives at /add-money/[country]/manteca, a dynamic route
     // the native static export does not ship. rewriteMethodPath turns it into
@@ -59,7 +65,10 @@ export function CorridorUnavailableScreen({
                     }
                     description={
                         requiresResidence && residence ? (
-                            residence.requirement
+                            <span className="inline">
+                                {residence.requirement}
+                                {qrPay ? ` ${qrPay}` : ''}
+                            </span>
                         ) : unclaimable ? (
                             <RuleWithInfo text={unclaimable.text} why={unclaimable.why} />
                         ) : (
@@ -68,12 +77,21 @@ export function CorridorUnavailableScreen({
                     }
                     cta={
                         requiresResidence && residence ? (
-                            // the residence row on Unlock payments, opened on arrival
-                            <Link href={withReturnTo(RESIDENCE_CHANGE_HREF, '/add-money?method=bank')}>
-                                <Button variant="stroke" size="small">
-                                    {t('details.residenceCta')}
-                                </Button>
-                            </Link>
+                            <div className="flex flex-col items-center gap-2">
+                                {/* the residence row on Unlock payments, opened on arrival */}
+                                <Link href={withReturnTo(RESIDENCE_CHANGE_HREF, '/add-money?method=bank')}>
+                                    <Button variant="stroke" size="small">
+                                        {t('details.residenceCta')}
+                                    </Button>
+                                </Link>
+                                {qrPay && (
+                                    <Link href={QR_PAY_HREF} data-testid="corridor-qr-pay">
+                                        <Button variant="stroke" size="small">
+                                            {t('details.qrPayCta')}
+                                        </Button>
+                                    </Link>
+                                )}
+                            </div>
                         ) : topUpHref ? (
                             // a corridor with no standing account still has a
                             // real way in — send them to it rather than back

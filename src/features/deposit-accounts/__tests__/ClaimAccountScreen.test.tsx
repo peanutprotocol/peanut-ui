@@ -134,3 +134,38 @@ describe('the claim screen when the backend previewed the terms', () => {
         expect(screen.getByText(/You will see them as soon as the account is open/)).toBeInTheDocument()
     })
 })
+
+/**
+ * What the corridor costs, before the account is opened.
+ *
+ * One sentence for every corridor: Peanut charges nothing, and money that is
+ * not already dollars arrives converted. The rate itself moves, so the line
+ * links to the page that shows it rather than quoting a number.
+ */
+describe('the fee line on the claim screen', () => {
+    it('says only "no fee" on a dollar account, which converts nothing', () => {
+        claim({ rail: DEPOSIT_RAILS.ACH_US })
+
+        expect(screen.getByText(messages.depositAccounts.fees.noFee)).toBeInTheDocument()
+        expect(screen.queryByTestId('deposit-fee-rates')).not.toBeInTheDocument()
+    })
+
+    it('names the conversion and links to the euro rate', () => {
+        claim({ rail: DEPOSIT_RAILS.SEPA_EU })
+
+        expect(screen.getByText(messages.depositAccounts.fees.converted)).toBeInTheDocument()
+        expect(screen.getByTestId('deposit-fee-rates')).toHaveAttribute(
+            'href',
+            '/profile/exchange-rate?from=USD&to=EUR'
+        )
+    })
+
+    it('links each corridor to its own currency', () => {
+        claim({ rail: DEPOSIT_RAILS.SPEI_MX })
+
+        expect(screen.getByTestId('deposit-fee-rates')).toHaveAttribute(
+            'href',
+            '/profile/exchange-rate?from=USD&to=MXN'
+        )
+    })
+})

@@ -49,6 +49,11 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         provider: 'bridge',
         flagIso2: 'br',
         detailRowCount: 3,
+        residenceIso2: 'BR',
+        qrPay: true,
+        // A Brazilian resident with no standing account and no endorsement is
+        // not stuck: the Pix top-up is the same money in, minted per payment.
+        topUpHref: '/add-money/brazil/manteca',
     },
     BANK_TRANSFER_CO: {
         corridor: 'BANK_TRANSFER_CO',
@@ -56,6 +61,7 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         provider: 'bridge',
         flagIso2: 'co',
         detailRowCount: 4,
+        residenceIso2: 'CO',
     },
     PIX_BR: {
         corridor: 'PIX_BR',
@@ -73,6 +79,8 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         flagIso2: 'ar',
         detailRowCount: 5,
         claimable: false,
+        residenceIso2: 'AR',
+        qrPay: true,
         topUpHref: '/add-money/argentina/manteca',
     },
 }

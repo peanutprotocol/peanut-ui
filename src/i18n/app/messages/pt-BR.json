@@ -3910,7 +3910,7 @@
             "searchPlaceholder": "Busque um país, uma moeda ou uma conta",
             "noMatchTitle": "Nenhum resultado para “{query}”",
             "clearSearch": "Limpar busca",
-            "countriesTitle": "Países",
+            "countriesTitle": "Outros países",
             "countriesPitch": "Envie dinheiro para você mesmo de um banco em outro país.",
             "sectionTitle": "Suas contas",
             "accountsPitch": "Dados bancários no seu nome. Compartilhe uma vez e receba direto no Peanut.",
@@ -3955,7 +3955,8 @@
             "topUpCta": "Depositar {currency} de outro jeito",
             "whoCanPay": "Quem pode te pagar",
             "residenceTitle": "Residência necessária",
-            "residenceCta": "Atualizar sua residência"
+            "residenceCta": "Atualizar sua residência",
+            "qrPayCta": "Pagar um código QR"
         },
         "share": {
             "copyCta": "Copiar todos os dados",
@@ -4031,14 +4032,18 @@
                     "line": "Na Argentina o depósito precisa vir de uma conta no seu nome.",
                     "why": "Nosso parceiro bancário vincula sua conta ao país do seu documento legal, um país por vez. Uma pessoa com nacionalidade americana não pode usar transferências bancárias aqui, onde quer que more."
                 },
-                "railName": "Transferência bancária"
+                "railName": "Transferência bancária",
+                "residenceOnly": "Transferência bancária ou Mercado Pago · Para residentes legais na Argentina",
+                "residenceRequired": "Só residentes legais na Argentina podem adicionar dinheiro assim. Sua nacionalidade não importa; o país onde você mora, sim.",
+                "qrPay": "Você ainda pode pagar códigos QR do Mercado Pago na Argentina com o seu saldo."
             },
             "BANK_TRANSFER_BR": {
                 "arrival": "Em minutos",
                 "arrivalDetail": "As transferências Pix costumam chegar em minutos.",
                 "railName": "Pix",
                 "residenceOnly": "Para residentes legais no Brasil",
-                "residenceRequired": "Só residentes legais no Brasil podem abrir esta conta. Sua nacionalidade não importa; o país onde você mora, sim."
+                "residenceRequired": "Só residentes legais no Brasil podem abrir esta conta. Sua nacionalidade não importa; o país onde você mora, sim.",
+                "qrPay": "Você ainda pode pagar códigos Pix no Brasil com o seu saldo."
             },
             "BANK_TRANSFER_CO": {
                 "railName": "Bre-B",
@@ -4166,6 +4171,11 @@
             "notAvailable": "As contas próprias ainda não estão disponíveis para a sua conta.",
             "inFlight": "Um depósito ainda está chegando. Tente de novo quando ele cair.",
             "residenceRestricted": "Os dados bancários não estão disponíveis onde você mora. Atualize sua residência se você mudou."
+        },
+        "fees": {
+            "noFee": "Sem taxa da Peanut.",
+            "converted": "Sem taxa da Peanut. O dinheiro é convertido para USD pela cotação.",
+            "seeRates": "Ver cotações"
         }
     }
 }

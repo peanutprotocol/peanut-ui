@@ -11,6 +11,7 @@ import { instructionRows } from '../instructionRows'
 import type { DepositAccountView, DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { DepositDetailsCard } from './DepositDetailsCard'
+import { DepositFeeLine } from './DepositFeeLine'
 import { DepositRuleList } from './DepositRuleList'
 import { DepositDetailsSkeleton } from './DepositDetailsSkeleton'
 import { DepositShareActions } from './DepositShareActions'
@@ -126,6 +127,10 @@ export function DepositAccountDetailsScreen({
                     <>
                         <Section title={t('details.sectionTitle')}>
                             <DepositDetailsCard rows={rows} />
+                            {/* what the conversion costs, beside the details it applies to */}
+                            <p className="text-body-xs text-foreground-secondary">
+                                <DepositFeeLine rail={rail} />
+                            </p>
                         </Section>
 
                         <Section title={t('details.whoCanPay')}>

@@ -92,21 +92,24 @@ const list = (
         isError?: boolean
         accounts?: Record<DepositCorridor, DepositAccount | undefined>
         onOpen?: (corridor: DepositCorridor) => void
+        /** the hub reads `?method=` to decide whether crypto is still a question */
+        searchParams?: string
     } = {}
 ) =>
     render(
         <NextIntlClientProvider locale="en" messages={messages}>
-            <DepositAccountsListScreen
-                corridors={opts.corridors ?? DEPOSIT_RAIL_ORDER}
-                accounts={opts.accounts ?? NONE}
-                gates={opts.gates ?? allGates()}
-                isLoading={isLoading}
-                isError={opts.isError ?? false}
-                onBack={() => {}}
-                onOpen={opts.onOpen ?? (() => {})}
-                onResolveGate={() => {}}
-                onRetry={() => {}}
-            />
+            <NuqsTestingAdapter searchParams={opts.searchParams ?? ''}>
+                <DepositAccountsListScreen
+                    corridors={opts.corridors ?? DEPOSIT_RAIL_ORDER}
+                    accounts={opts.accounts ?? NONE}
+                    gates={opts.gates ?? allGates()}
+                    isLoading={isLoading}
+                    isError={opts.isError ?? false}
+                    onBack={() => {}}
+                    onOpen={opts.onOpen ?? (() => {})}
+                    onRetry={() => {}}
+                />
+            </NuqsTestingAdapter>
         </NextIntlClientProvider>
     )
 
@@ -216,13 +219,22 @@ describe("DepositAccountsListScreen renders the user's corridors and no others",
         expect(rowOf(container, 'ACH_US')).not.toBeInTheDocument()
     })
 
-    it('shows a European user their Bridge corridors alone', () => {
+    /**
+     * Their own corridors, plus the residence-gated ones everybody sees. The
+     * ARS row is no longer absent for a European user — it is present with the
+     * rule in its body, because the account is worth knowing about before the
+     * move and the screen behind it states what it costs to open.
+     */
+    it('shows a European user their Bridge corridors plus the residence-gated rows', () => {
         const { container } = list(false, { corridors: ['SEPA_EU', 'FASTER_PAYMENTS_GB', 'ACH_US', 'SPEI_MX'] })
 
         for (const corridor of ['SEPA_EU', 'FASTER_PAYMENTS_GB', 'ACH_US', 'SPEI_MX'] as const) {
             expect(rowOf(container, corridor)).toBeInTheDocument()
         }
-        expect(rowOf(container, 'BANK_TRANSFER_AR')).not.toBeInTheDocument()
+        expect(inRow(container, 'BANK_TRANSFER_AR').getByText(/residents of Argentina/i)).toBeInTheDocument()
+        expect(inRow(container, 'BANK_TRANSFER_BR').getByText(/residents of Brazil/i)).toBeInTheDocument()
+        // a corridor with neither a rail nor the residence rule stays absent
+        expect(rowOf(container, 'PIX_BR')).not.toBeInTheDocument()
     })
 
     /**
@@ -353,50 +365,24 @@ describe('DepositAccountsListScreen when a corridor is blocked after the fact', 
         expect(rowOf(container, 'ACH_US')).toHaveAttribute('aria-disabled', 'true')
     })
 
-    it('names a blocker the user can clear, not one that only says to wait', () => {
-        const gates = allGates({ kind: 'waiting-on-provider', userMessage: null })
-        gates.ACH_US = { kind: 'needs-identity' }
-        list(false, { gates, corridors: ['SEPA_EU', 'ACH_US'] })
+    /**
+     * The banner is gone. It told a user holding two Ready accounts to verify
+     * their identity, because the residence-gated rows everybody sees carry a
+     * `needs-identity` gate for anyone without those rails. The gate belongs to
+     * the corridor now: the row stays tappable and the tap explains itself.
+     */
+    it('never puts a gate banner over the list', () => {
+        const gates = allGates({ kind: 'needs-identity' })
+        const { container } = list(false, { gates, corridors: ['SEPA_EU', 'ACH_US'] })
 
-        expect(screen.getByText('Verify your identity first')).toBeInTheDocument()
-        expect(screen.queryByText('We are setting this up')).not.toBeInTheDocument()
+        expect(screen.queryByText('Verify your identity first')).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /verify identity/i })).not.toBeInTheDocument()
+        // and the rows it used to speak for are still there to tap
+        expect(rowOf(container, 'SEPA_EU')).toBeInTheDocument()
     })
 })
 
-/**
- * "Verify your identity first" answers one question: you cannot open any
- * account at all. A user holding a Ready account has already answered it, and
- * telling them to verify again reads as the screen not knowing who they are.
- *
- * The residence-gated rows are on every screen and their gate is
- * `needs-identity` for anyone without a Brazilian or Colombian rail, so
- * counting them is what put the notice over two working accounts.
- */
-describe('the identity notice', () => {
-    const NOTICE = 'Verify your identity first'
-
-    it('stays away from a user who already holds an account', () => {
-        const gates = allGates({ kind: 'needs-identity' })
-        list(false, { gates, corridors: ['SEPA_EU'], accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') } })
-
-        expect(screen.queryByText(NOTICE)).not.toBeInTheDocument()
-    })
-
-    it('stays away while any corridor is still claimable', () => {
-        const gates = allGates({ kind: 'needs-identity' })
-        gates.SEPA_EU = READY
-        list(false, { gates, corridors: ['SEPA_EU', 'ACH_US'] })
-
-        expect(screen.queryByText(NOTICE)).not.toBeInTheDocument()
-    })
-
-    it('appears for an unverified user with nothing held and nothing claimable', () => {
-        const gates = allGates({ kind: 'needs-identity' })
-        list(false, { gates, corridors: ['SEPA_EU', 'ACH_US'] })
-
-        expect(screen.getByText(NOTICE)).toBeInTheDocument()
-    })
-
+describe('the residence-gated rows and the tap behind them', () => {
     /**
      * The BR and CO rows are everybody's. They keep their caveat and stay
      * tappable whatever the identity gate says — the explainer behind them is
@@ -412,6 +398,79 @@ describe('the identity notice', () => {
 
         expect(inRow(container, 'BANK_TRANSFER_BR').getByText(/residents of Brazil/i)).toBeInTheDocument()
         expect(rowOf(container, 'BANK_TRANSFER_BR')).not.toHaveAttribute('aria-disabled', 'true')
+    })
+
+    it('carries an Argentine row for everybody, naming the rails and the rule', () => {
+        const { container } = list(false, { corridors: ['SEPA_EU'] })
+
+        expect(
+            inRow(container, 'BANK_TRANSFER_AR').getByText(
+                messages.depositAccounts.corridors.BANK_TRANSFER_AR.residenceOnly
+            )
+        ).toBeInTheDocument()
+    })
+
+    /**
+     * A corridor with no standing account for this user goes to the top-up its
+     * own rail names, rather than a claim that cannot happen.
+     */
+    it('sends an Argentine resident to the local top-up', () => {
+        residenceIso2s = ['AR']
+        const onOpen = jest.fn()
+        const { container } = list(false, { corridors: ['SEPA_EU'], onOpen })
+
+        fireEvent.click(rowOf(container, 'BANK_TRANSFER_AR') as HTMLElement)
+        expect(mockPush).toHaveBeenCalledWith('/add-money/argentina/manteca')
+        expect(onOpen).not.toHaveBeenCalled()
+    })
+
+    it('sends a non-resident into the corridor screens, where the rule is stated', () => {
+        residenceIso2s = ['DE']
+        const onOpen = jest.fn()
+        const { container } = list(false, { corridors: ['SEPA_EU'], onOpen })
+
+        fireEvent.click(rowOf(container, 'BANK_TRANSFER_AR') as HTMLElement)
+        expect(onOpen).toHaveBeenCalledWith('BANK_TRANSFER_AR')
+        expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('falls back to the Pix top-up for a Brazilian resident with no account and no endorsement', () => {
+        residenceIso2s = ['BR']
+        const gates = allGates({ kind: 'needs-enrollment' })
+        const onOpen = jest.fn()
+        const { container } = list(false, { corridors: ['BANK_TRANSFER_BR'], gates, onOpen })
+
+        fireEvent.click(rowOf(container, 'BANK_TRANSFER_BR') as HTMLElement)
+        expect(mockPush).toHaveBeenCalledWith('/add-money/brazil/manteca')
+        expect(onOpen).not.toHaveBeenCalled()
+    })
+
+    it('opens the claim for a Brazilian resident who is endorsed', () => {
+        residenceIso2s = ['BR']
+        const onOpen = jest.fn()
+        const { container } = list(false, { corridors: ['BANK_TRANSFER_BR'], onOpen })
+
+        fireEvent.click(rowOf(container, 'BANK_TRANSFER_BR') as HTMLElement)
+        expect(onOpen).toHaveBeenCalledWith('BANK_TRANSFER_BR')
+        expect(mockPush).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * The home drawer already asks bank or crypto. Asking again on the screen the
+ * bank answer opens is the question the user just settled.
+ */
+describe('the crypto row', () => {
+    it('is absent when the hub was entered as the bank answer', () => {
+        list(false, { searchParams: '?method=bank' })
+
+        expect(screen.queryByTestId('add-money-crypto')).not.toBeInTheDocument()
+    })
+
+    it('is there on any other way in', () => {
+        list(false, { searchParams: '?corridor=SEPA_EU' })
+
+        expect(screen.getByTestId('add-money-crypto')).toBeInTheDocument()
     })
 })
 
@@ -451,7 +510,7 @@ describe('DepositAccountsFlow when the accounts cannot be read', () => {
  * user has no rail for has to land somewhere true.
  */
 describe('DepositAccountsFlow when a link names a corridor the user has no rail for', () => {
-    it('falls back to the list rather than opening a corridor that is not theirs', () => {
+    it('answers an Argentine link with the residence rule, not the Argentine screens', () => {
         render(
             <NextIntlClientProvider locale="en" messages={messages}>
                 <NuqsTestingAdapter searchParams="?step=details&corridor=BANK_TRANSFER_AR">
@@ -471,10 +530,12 @@ describe('DepositAccountsFlow when a link names a corridor the user has no rail 
             </NextIntlClientProvider>
         )
 
+        // the ARS row is on every screen now, so the link lands on the rule
+        // that governs it rather than bouncing back to the list
         expect(
             screen.queryByText(messages.depositAccounts.details.unavailableTitle.replace('{currency}', 'ARS'))
         ).not.toBeInTheDocument()
-        expect(screen.getByText(messages.depositAccounts.list.addHeading)).toBeInTheDocument()
+        expect(screen.getByText(messages.depositAccounts.details.residenceTitle)).toBeInTheDocument()
     })
 })
 

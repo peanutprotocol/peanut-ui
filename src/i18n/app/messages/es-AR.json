@@ -1701,7 +1701,8 @@
             "timedOutBody": "No se cobró nada. Probá de nuevo en un momento o elegí otra moneda.",
             "revokedBody": "Lo que manden a esos datos vuelve a quien lo envió. Avisale a quien te paga que deje de usarlos y escribí a soporte para reemplazarlos.",
             "topUpCta": "Ingresar {currency} de otra forma",
-            "residenceCta": "Actualizá tu residencia"
+            "residenceCta": "Actualizá tu residencia",
+            "qrPayCta": "Pagá un código QR"
         },
         "share": {
             "textIntroOwn": "Estos son mis datos bancarios para cobrar en {currency}:"
@@ -1749,10 +1750,15 @@
         },
         "corridors": {
             "BANK_TRANSFER_BR": {
-                "residenceRequired": "Solo los residentes legales de Brasil pueden abrir esta cuenta. Tu nacionalidad no importa; el país donde vivís, sí."
+                "residenceRequired": "Solo los residentes legales de Brasil pueden abrir esta cuenta. Tu nacionalidad no importa; el país donde vivís, sí.",
+                "qrPay": "De todas formas podés pagar códigos Pix en Brasil con tu saldo."
             },
             "BANK_TRANSFER_CO": {
                 "residenceRequired": "Solo los residentes legales de Colombia pueden abrir esta cuenta. Tu nacionalidad no importa; el país donde vivís, sí."
+            },
+            "BANK_TRANSFER_AR": {
+                "residenceRequired": "Solo los residentes legales de Argentina pueden agregar plata así. Tu nacionalidad no importa; el país donde vivís, sí.",
+                "qrPay": "De todas formas podés pagar códigos QR de Mercado Pago en Argentina con tu saldo."
             }
         },
         "errors": {

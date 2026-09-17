@@ -6,7 +6,7 @@ import { formatCurrencyAmount } from '@/utils/currency'
 import { claimErrorKey } from './claimErrors'
 import type { RailLabels } from './instructionRows'
 import { depositRuleLines, type DepositRuleKey } from './ruleLines'
-import type { DepositCorridor, DepositRowLabels, DepositRules, DepositSenderTerms } from './types'
+import type { DepositCorridor, DepositRail, DepositRowLabels, DepositRules, DepositSenderTerms } from './types'
 
 /**
  * Catalog keys per corridor, written out rather than built by template so the
@@ -50,6 +50,17 @@ const ARRIVAL_DETAIL_KEYS = {
 const RESIDENCE_KEYS = {
     BANK_TRANSFER_BR: 'corridors.BANK_TRANSFER_BR',
     BANK_TRANSFER_CO: 'corridors.BANK_TRANSFER_CO',
+    BANK_TRANSFER_AR: 'corridors.BANK_TRANSFER_AR',
+} as const
+
+/**
+ * The corridors whose country takes QR payments, written out separately from
+ * the residence keys above: Colombia has the residence rule and no QR flow, so
+ * only these two have a `qrPay` sentence to look up at all.
+ */
+const QR_PAY_KEYS = {
+    BANK_TRANSFER_BR: 'corridors.BANK_TRANSFER_BR.qrPay',
+    BANK_TRANSFER_AR: 'corridors.BANK_TRANSFER_AR.qrPay',
 } as const
 
 /** only the corridors that cannot be held as an account have a reason */
@@ -150,6 +161,19 @@ export function useDepositAccountCopy() {
     const claimErrorBody = (code: string | undefined, status: number | undefined) =>
         t(`errors.${claimErrorKey(code, status)}`)
 
+    /**
+     * What the corridor costs, and where the rate behind it can be read.
+     *
+     * One sentence for every corridor, because the answer is the same one:
+     * Peanut charges nothing and the money arrives as USD. Only a corridor
+     * that actually converts links to the rate — a dollar account converts
+     * nothing, so a rate page would answer a question it never asked.
+     */
+    const feeLine = (rail: DepositRail): { text: string; ratesFor?: string } => {
+        if (rail.currency === 'USD') return { text: t('fees.noFee') }
+        return { text: t('fees.converted'), ratesFor: rail.currency }
+    }
+
     const railName = (corridor: DepositCorridor) => t(RAIL_NAME_KEYS[corridor])
     const arrival = (corridor: DepositCorridor) => t(ARRIVAL_KEYS[corridor])
     const arrivalDetail = (corridor: DepositCorridor) => t(ARRIVAL_DETAIL_KEYS[corridor])
@@ -174,6 +198,16 @@ export function useDepositAccountCopy() {
         return key ? { caveat: t(`${key}.residenceOnly`), requirement: t(`${key}.residenceRequired`) } : undefined
     }
 
+    /**
+     * What a non-resident can still do there: pay a QR code from their
+     * balance. Only the rails whose country takes them say it — Colombia has
+     * no QR payment flow, so its explainer offers nothing it cannot do.
+     */
+    const qrPayLine = (rail: DepositRail): string | undefined => {
+        const key = QR_PAY_KEYS[rail.corridor as keyof typeof QR_PAY_KEYS]
+        return rail.qrPay && key ? t(key) : undefined
+    }
+
     return {
         t,
         rowLabels,
@@ -184,6 +218,8 @@ export function useDepositAccountCopy() {
         arrivalDetail,
         unclaimableReason,
         residenceLine,
+        qrPayLine,
         claimErrorBody,
+        feeLine,
     }
 }

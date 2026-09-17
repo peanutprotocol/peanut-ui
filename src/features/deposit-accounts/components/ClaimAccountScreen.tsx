@@ -13,6 +13,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import type { ClaimableCorridor, DepositDetailRow, DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { DepositDetailsCard } from './DepositDetailsCard'
+import { DepositFeeLine } from './DepositFeeLine'
 import { DepositRuleList } from './DepositRuleList'
 
 /**
@@ -156,6 +157,8 @@ export function ClaimAccountScreen({
                         priority="helper"
                         title={tGlobal('balanceWarningModal.goodToKnow')}
                         items={[
+                            // what it costs, before the account is opened
+                            <DepositFeeLine key="fee" rail={rail} />,
                             // The terms are on the screen now, so promising
                             // them later would contradict the lines above.
                             ...(rules ? [] : [t('claim.conditionTerms', { currency: rail.currency })]),

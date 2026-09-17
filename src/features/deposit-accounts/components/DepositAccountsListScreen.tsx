@@ -18,19 +18,21 @@ import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { SearchInput } from '@/components/SearchInput'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import type { GateState } from '@/utils/capability-gate'
+import { rewriteMethodPath } from '@/utils/native-routes'
 import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
+import { parseAsStringEnum, useQueryStates } from 'nuqs'
 import { useMemo, useState } from 'react'
 import { corridorsForCountry } from '../countryCorridor'
 import { depositGateView } from '../depositGate'
 import { DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, isClaimable } from '../rails'
-import { isResidenceGated, RESIDENCE_GATED_CORRIDORS } from '../residenceGate'
+import { isResidenceGated, residenceAllows, RESIDENCE_GATED_CORRIDORS } from '../residenceGate'
 import { canShare, isHeld } from '../resolveScreen'
 import type { DepositAccountView, DepositCorridor, DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { useDepositAccountsEnabled } from '../useDepositAccountsEnabled'
 import { useDepositCountryRouting } from '../useDepositCountryRouting'
-import { DepositGateNotice } from './DepositGateNotice'
+import { useResidenceIso2s } from '../useResidenceIso2s'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import Image from 'next/image'
 
@@ -67,7 +69,6 @@ export function DepositAccountsListScreen({
     isError,
     onBack,
     onOpen,
-    onResolveGate,
     onRetry,
 }: {
     /** the corridors this user has a rail for, in catalogue order */
@@ -81,7 +82,6 @@ export function DepositAccountsListScreen({
     isError: boolean
     onBack: () => void
     onOpen: (corridor: DepositCorridor) => void
-    onResolveGate: (gate: GateState) => void
     onRetry: () => void
 }) {
     const { t, arrival, railName, residenceLine } = useDepositAccountCopy()
@@ -98,6 +98,10 @@ export function DepositAccountsListScreen({
     // and nothing else — an empty "Your accounts" section under a feature
     // nobody can use yet would only ask a question it cannot answer.
     const accountsEnabled = useDepositAccountsEnabled()
+    const residenceIso2s = useResidenceIso2s()
+    // The home drawer already asked bank or crypto, and `?method=bank` is that
+    // answer. Offering crypto again here is the question the user just settled.
+    const [{ method }] = useQueryStates({ method: parseAsStringEnum(['bank']) })
 
     // The country list opens on a tap, or on a search that has found one.
     // `null` means nobody has decided yet, so the search still can.
@@ -133,7 +137,7 @@ export function DepositAccountsListScreen({
     // The crypto row answers to its own words — "crypto", and whatever its
     // description says in this language about wallets and exchanges.
     const matchesCrypto =
-        !term || `${tMethods('crypto')} ${tMethods('cryptoDescription')} usdc`.toLowerCase().includes(term)
+        !method && (!term || `${tMethods('crypto')} ${tMethods('cryptoDescription')} usdc`.toLowerCase().includes(term))
 
     /**
      * The rows: this user's own corridors, plus the residence-gated ones, which
@@ -148,28 +152,6 @@ export function DepositAccountsListScreen({
     const views = hubCorridors
         .filter((corridor) => matchesCorridor(corridor))
         .map((corridor) => ({ corridor, view: depositGateView(gates[corridor]) }))
-    /**
-     * The identity banner, and the one question it may answer: "you cannot open
-     * any account at all, and here is what to do about it".
-     *
-     * It reads the user's OWN corridors, not the rows. The residence-gated ones
-     * are on every screen, and their gate is `needs-identity` for anyone
-     * without a Brazilian or Colombian rail — so counting them told a user
-     * holding two Ready accounts to go and verify their identity.
-     *
-     * Every corridor normally shares one blocker, so this is one sentence
-     * rather than six; where they differ, a blocker the user can clear outranks
-     * one that only says to wait, and the row's own body carries the rest.
-     */
-    const ownViews = corridors.map((corridor) => ({ corridor, view: depositGateView(gates[corridor]) }))
-    const canOpenSomething = ownViews.some(
-        ({ corridor, view }) => isHeld(accounts[corridor]) || (isClaimable(DEPOSIT_RAILS[corridor]) && view.claimable)
-    )
-    const blockedViews = canOpenSomething
-        ? []
-        : ownViews.filter(({ corridor, view }) => isClaimable(DEPOSIT_RAILS[corridor]) && view.notice)
-    const blocked = blockedViews.find(({ view }) => view.notice?.action !== 'none') ?? blockedViews[0]
-
     // Status lives in the badge on every row, so the body only ever answers
     // "when does the money land". Saying it in both places is how a row ended
     // up reading "Not set up yet" under a "Ready" pill.
@@ -223,6 +205,25 @@ export function DepositAccountsListScreen({
             default:
                 return <StatusBadge status="custom" customText={t('list.badgeNotSetUp')} />
         }
+    }
+
+    /**
+     * Where a row leads.
+     *
+     * A corridor with no standing account for this user — Argentina, which
+     * never has one, or a Brazilian resident who holds none and is not
+     * endorsed yet — follows the top-up its own rail names, rather than a claim
+     * that cannot happen. Everything else opens the corridor screens, which is
+     * also where a non-resident reads the residence rule.
+     */
+    const openRow = (corridor: DepositCorridor, claimableHere: boolean) => {
+        const rail = DEPOSIT_RAILS[corridor]
+        const noStandingAccount = !isHeld(accounts[corridor]) && (!isClaimable(rail) || !claimableHere)
+        if (rail.topUpHref && noStandingAccount && residenceAllows(corridor, residenceIso2s)) {
+            router.push(rewriteMethodPath(rail.topUpHref))
+            return
+        }
+        onOpen(corridor)
     }
 
     /**
@@ -282,13 +283,6 @@ export function DepositAccountsListScreen({
                     </Notification>
                 )}
 
-                {accountsEnabled && !term && !isError && blocked?.view.notice && (
-                    <DepositGateNotice
-                        notice={blocked.view.notice}
-                        onAct={() => onResolveGate(gates[blocked.corridor])}
-                    />
-                )}
-
                 {nothingMatches && (
                     <EmptyState
                         icon="search"
@@ -333,7 +327,7 @@ export function DepositAccountsListScreen({
                                         trailing={rowBadge(rail, account, gates[corridor])}
                                         chevron={!disabled}
                                         disabled={disabled}
-                                        onClick={() => onOpen(corridor)}
+                                        onClick={() => openRow(corridor, view.claimable)}
                                         data-testid={`deposit-account-${corridor}`}
                                     />
                                 )

@@ -147,8 +147,26 @@ export interface DepositRail {
     detailRowCount: number
     /** false where the corridor cannot be held as a reusable account */
     claimable?: false
-    /** where a corridor that cannot be claimed does its real top-up instead */
+    /**
+     * Where this corridor tops up when no standing account is open on it —
+     * because it never has one (Argentina, the one-off Pix code), or because
+     * this user holds none and cannot claim one yet.
+     */
     topUpHref?: string
+    /**
+     * The country a user must legally reside in to open this corridor.
+     *
+     * The provider opens these for residents alone, so the row says the rule
+     * and the screen behind it explains the tap. Residence decides it, never
+     * nationality.
+     */
+    residenceIso2?: string
+    /**
+     * The country takes QR payments from a Peanut balance — Pix in Brazil,
+     * Mercado Pago in Argentina. A non-resident cannot open the account and
+     * can still pay there, so the explainer says both.
+     */
+    qrPay?: true
 }
 
 /** every row a corridor can show; the label for each lives in the catalog */

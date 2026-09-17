@@ -56,6 +56,7 @@ const countryCurrencyMappings: CountryCurrencyMapping[] = [
     // LATAM Countries
     { currencyCode: 'BRL', currencyName: 'Brazilian Real', country: 'Brazil', flagCode: 'br', path: 'brazil' },
     { currencyCode: 'ARS', currencyName: 'Argentine Peso', country: 'Argentina', flagCode: 'ar', path: 'argentina' },
+    { currencyCode: 'COP', currencyName: 'Colombian Peso', country: 'Colombia', flagCode: 'co', path: 'colombia' },
 ]
 
 export default countryCurrencyMappings

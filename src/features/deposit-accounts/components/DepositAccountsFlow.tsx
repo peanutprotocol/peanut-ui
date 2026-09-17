@@ -6,8 +6,9 @@ import { useEffect, useState } from 'react'
 import { trackDetailsViewed, trackGateBlocked } from '../analytics'
 import { DEPOSIT_ACCOUNT_PARAMS } from '../params'
 import { DEPOSIT_RAILS, isClaimable } from '../rails'
+import { depositGateView } from '../depositGate'
 import { isResidenceGated, residenceAllows } from '../residenceGate'
-import { canShare, resolveScreen } from '../resolveScreen'
+import { canShare, isHeld, resolveScreen } from '../resolveScreen'
 import type { ClaimableCorridor, DepositAccountView, DepositCorridor } from '../types'
 import type { DepositClaimError } from '../useDepositAccounts'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -16,6 +17,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { useResidenceIso2s } from '../useResidenceIso2s'
 import { ClaimAccountScreen } from './ClaimAccountScreen'
+import { CorridorGateScreen } from './CorridorGateScreen'
 import { CorridorUnavailableScreen } from './CorridorUnavailableScreen'
 import { DepositDetailsSkeleton } from './DepositDetailsSkeleton'
 import { DepositAccountDetailsScreen } from './DepositAccountDetailsScreen'
@@ -150,6 +152,25 @@ export function DepositAccountsFlow({
         return <CorridorUnavailableScreen rail={rail} requiresResidence onBack={() => setParams({ step: 'list' })} />
     }
 
+    /**
+     * The gate, where the user asked for a corridor they cannot open yet.
+     *
+     * It used to be a banner over the whole list, which told a user holding two
+     * Ready accounts to verify their identity. It belongs here: one corridor,
+     * its own reason, and the button that clears it.
+     */
+    const gateNotice = depositGateView(gate).notice
+    if (screen !== 'list' && !isLoading && !isError && isClaimable(rail) && !isHeld(account) && gateNotice) {
+        return (
+            <CorridorGateScreen
+                rail={rail}
+                notice={gateNotice}
+                onBack={() => setParams({ step: 'list' })}
+                onAct={() => onResolveGate(gate)}
+            />
+        )
+    }
+
     const openCorridor = (next: DepositCorridor) => {
         setOpeningCorridor(undefined)
         const nextAccount = accounts[next]
@@ -233,7 +254,6 @@ export function DepositAccountsFlow({
             isError={isError}
             onBack={onExit}
             onOpen={openCorridor}
-            onResolveGate={onResolveGate}
             onRetry={onRetry}
         />
     )

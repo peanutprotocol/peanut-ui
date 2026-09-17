@@ -3910,7 +3910,7 @@
             "searchPlaceholder": "Search country, currency or account",
             "noMatchTitle": "No match for “{query}”",
             "clearSearch": "Clear search",
-            "countriesTitle": "Countries",
+            "countriesTitle": "Other countries",
             "countriesPitch": "Send yourself money from a bank in another country.",
             "sectionTitle": "Your accounts",
             "accountsPitch": "Bank details in your name. Share them once and get paid straight into Peanut.",
@@ -3955,7 +3955,8 @@
             "topUpCta": "Add {currency} instead",
             "whoCanPay": "Who can pay you",
             "residenceTitle": "Residence required",
-            "residenceCta": "Update your residence"
+            "residenceCta": "Update your residence",
+            "qrPayCta": "Pay a QR code"
         },
         "share": {
             "copyCta": "Copy all details",
@@ -4031,14 +4032,18 @@
                     "line": "Argentine deposits must come from an account in your own name.",
                     "why": "Our banking partner ties your account to the country on your legal ID, one country at a time. A US national cannot use bank transfers here, wherever they live."
                 },
-                "railName": "Bank transfer"
+                "railName": "Bank transfer",
+                "residenceOnly": "Bank transfer or Mercado Pago · For legal residents of Argentina",
+                "residenceRequired": "Only legal residents of Argentina can add money this way. Your nationality does not matter — where you live does.",
+                "qrPay": "You can still pay Mercado Pago QR codes in Argentina from your balance."
             },
             "BANK_TRANSFER_BR": {
                 "arrival": "Within minutes",
                 "arrivalDetail": "Pix transfers usually arrive within minutes.",
                 "railName": "Pix",
                 "residenceOnly": "For legal residents of Brazil",
-                "residenceRequired": "Only legal residents of Brazil can open this account. Your nationality does not matter — where you live does."
+                "residenceRequired": "Only legal residents of Brazil can open this account. Your nationality does not matter — where you live does.",
+                "qrPay": "You can still pay Pix codes in Brazil from your balance."
             },
             "BANK_TRANSFER_CO": {
                 "railName": "Bre-B",
@@ -4166,6 +4171,11 @@
             "notAvailable": "Standing accounts are not open to your account yet.",
             "inFlight": "A deposit is still landing. Try again once it arrives.",
             "residenceRestricted": "Bank details are not available where you live. Update your residence if you have moved."
+        },
+        "fees": {
+            "noFee": "No Peanut fee.",
+            "converted": "No Peanut fee. Money is converted to USD at the exchange rate.",
+            "seeRates": "See exchange rates"
         }
     }
 }
