@@ -93,7 +93,9 @@ function queueOtaWork<T>(task: () => Promise<T>): Promise<T> {
     return result
 }
 
-function queueUpdateCheck(callbacks: OtaUpdateCallbacks = {}): Promise<OtaCheckOutcome> {
+// Exported for the mandatory-update screen, which has to ask for the bundle
+// the launch check has not found yet. Same queue as every other check.
+export function queueUpdateCheck(callbacks: OtaUpdateCallbacks = {}): Promise<OtaCheckOutcome> {
     return queueOtaWork(() => checkAndStageUpdate(callbacks))
 }
 

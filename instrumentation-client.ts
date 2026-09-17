@@ -1,5 +1,6 @@
 import { redactQrTelemetry, redactQrTelemetryString, maskQrReplayRequest } from '@/utils/qr-telemetry-privacy'
 import { APP_RELEASE } from '@/constants/app-release'
+import { getPlatform } from '@/utils/capacitor'
 import { suppressDuplicateLogin } from '@/utils/login-once-per-session'
 import posthog from 'posthog-js'
 import { beforeSendHandler } from './sentry.utils'
@@ -51,8 +52,12 @@ if (
         // captures the initial $pageview during init, and super properties are
         // persisted — so a late register left the first open after an OTA
         // carrying the PREVIOUS bundle's release. `loaded` runs before that
-        // first capture, which is the whole point of the denominator.
-        loaded: (ph) => ph.register({ app_release: APP_RELEASE }),
+        // first capture, which is the whole point of the denominator. The
+        // platform rides along for the same reason: the compatibility report
+        // (mono engineering/compatibility) groups pageviews by app_release AND
+        // platform, and an initial pageview missing either reads as unknown
+        // client activity, which blocks a retirement.
+        loaded: (ph) => ph.register({ app_release: APP_RELEASE, platform: getPlatform() }),
         capture_pageleave: true,
         // The payment explorer contains team-only identity and relationship data.
         // Drop every event on client navigation; direct loads skip init above.

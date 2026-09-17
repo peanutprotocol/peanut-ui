@@ -3665,6 +3665,19 @@
         },
         "continueAnyway": "Continue anyway"
     },
+    "clientSupport": {
+        "title": "Update Peanut to continue",
+        "restart": "This version is no longer supported. The update is ready — restart Peanut to finish installing it.",
+        "check": "This version is no longer supported. Check for the update to keep using Peanut.",
+        "checkForUpdate": "Check for update",
+        "noOtaYet": "No update is available in the app yet. Get the latest version from {store}.",
+        "checkFailed": "Couldn't check for the update. Check your connection and try again.",
+        "storeOnly": "This version is no longer supported. Get the latest version from {store} to keep going.",
+        "reload": "This version is no longer supported. Reload Peanut to get the latest one.",
+        "reloadNow": "Reload Peanut",
+        "unavailableTitle": "Couldn't check this version",
+        "unavailable": "Peanut needs to confirm this version is still supported. Check your connection and try again."
+    },
     "avatar": {
         "title": "Your avatar",
         "change": "Change avatar",

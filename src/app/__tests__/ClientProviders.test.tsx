@@ -50,6 +50,19 @@ function providerChain(node: React.ReactNode, acc: string[] = []): string[] {
     return acc
 }
 
+function findGate(node: React.ReactNode): React.ReactElement<{ enabled: boolean }> | null {
+    if (!React.isValidElement(node)) return null
+    const type = node.type as { name?: string }
+    if (typeof type !== 'string' && type.name === 'ClientSupportGate') {
+        return node as React.ReactElement<{ enabled: boolean }>
+    }
+    for (const child of React.Children.toArray((node.props as { children?: React.ReactNode }).children)) {
+        const found = findGate(child)
+        if (found) return found
+    }
+    return null
+}
+
 describe('ClientProviders provider order', () => {
     const chainFor = (path: string) => {
         pathname = path
@@ -80,6 +93,32 @@ describe('ClientProviders provider order', () => {
     it('mounts the OTA provider above the lazily-loaded app providers', () => {
         const chain = chainFor('/home')
         expect(chain.indexOf('(dynamic)')).toBeGreaterThan(chain.indexOf('OtaUpdateProvider'))
+    })
+
+    // The mandatory-update gate has to see the OTA context (its screen restarts
+    // onto a staged bundle) and has to stand between that and PeanutProvider,
+    // whose lazily-loaded AppStateProviders chunk is where the API-dependent
+    // wallet providers live — an unsupported client must mount none of them.
+    it.each(['/home', '/setup'])(
+        'mounts the client-support gate below OTA and above the app providers on %s',
+        (path) => {
+            const chain = chainFor(path)
+            const gate = chain.indexOf('ClientSupportGate')
+            expect(gate).toBeGreaterThan(chain.indexOf('OtaUpdateProvider'))
+            expect(gate).toBeLessThan(chain.indexOf('PeanutProvider'))
+            expect(gate).toBeLessThan(chain.indexOf('(dynamic)'))
+            // still outermost, so notifyAppReady never waits on the policy read
+            expect(chain[0]).toBe('OtaUpdateProvider')
+        }
+    )
+
+    it('does not gate the marketing site', () => {
+        pathname = '/'
+        const element = ClientProviders({ children: <div data-testid="app" /> }) as React.ReactElement
+        const gate = findGate(element)
+        expect(gate?.props.enabled).toBe(false)
+        pathname = '/home'
+        expect(findGate(ClientProviders({ children: <div /> }) as React.ReactElement)?.props.enabled).toBe(true)
     })
 
     it('mounts the marketing intl provider outside ContextProvider on the landing page', () => {

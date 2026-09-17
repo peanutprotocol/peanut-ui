@@ -1,0 +1,7 @@
+{
+    "schemaVersion": 1,
+    "monoRepository": "peanutprotocol/mono",
+    "monoSha": "99c3e3fe13f8b6b309d9d5aafd85573c17722457",
+    "registryPath": "engineering/compatibility/registry.json",
+    "registrySha256": "c83fb630bd7dbc5299363718b50f54cb44c31f8da7b65d2a12a6292f64f533d1"
+}

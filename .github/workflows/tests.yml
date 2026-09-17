@@ -292,6 +292,146 @@ jobs:
                   path: /tmp/be-baseline.jsonl
                   retention-days: 1
 
+    # public/client-support.json is derived from mono's compatibility registry
+    # at the commit pinned in scripts/client-support-policy.lock.json. Same
+    # split as be-baseline: this job holds the cross-repo secret and runs no
+    # scripts from the PR checkout — it reads the lock through the API (data, not a checkout) and
+    # fetches the pinned registry. The registry is PRIVATE and this repository
+    # is public, so it never leaves this job: not as an artifact, not in a
+    # log. What travels to the check job is a proof — the derived public
+    # policy, the pin and the registry's canonical digest — and nothing else.
+    #
+    # Fails closed. No token, a failed fetch or a bad pin is a red job, which
+    # ci-success turns into a blocked merge: a support-floor snapshot nobody
+    # compared against its source is exactly what this gate exists to stop.
+    client-support-source:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        steps:
+            - name: Derive the public proof from the pinned mono registry
+              env:
+                  GH_TOKEN: ${{ github.token }}
+                  MONO_TOKEN: ${{ secrets.MONO_READ_TOKEN }}
+                  REPO: ${{ github.repository }}
+                  REF: ${{ github.event.pull_request.head.sha || github.sha }}
+              run: |
+                  set -euo pipefail
+                  if [ -z "${MONO_TOKEN:-}" ]; then
+                      echo "::error::MONO_READ_TOKEN is not available; the client-support snapshot cannot be checked against its source."
+                      exit 1
+                  fi
+                  gh api "repos/$REPO/contents/scripts/client-support-policy.lock.json?ref=$REF" \
+                      --template '{{.content}}' | base64 -d > /tmp/client-support-lock.json
+                  # The pin is the only thing read from the PR here, and it is
+                  # validated before it reaches a URL.
+                  MONO_SHA=$(node -e '
+                      const lock = JSON.parse(require("fs").readFileSync("/tmp/client-support-lock.json", "utf8"))
+                      if (!/^[a-f0-9]{40}$/.test(lock.monoSha)) throw new Error("lock.monoSha is not a full sha")
+                      process.stdout.write(lock.monoSha)
+                  ')
+                  # The pin has to be on mono main already: a snapshot derived
+                  # from a registry that mono never merged would publish a
+                  # floor mono never adopted. base=pin, head=main — "ahead" or
+                  # "identical" with the merge base AT the pin is the only
+                  # shape that proves ancestry; behind, diverged, unknown, a
+                  # malformed answer or a failed call all stop here. Only the
+                  # compare status is ever printed. A test executes this block
+                  # (sentinels below) against a stub gh.
+                  # client-support-ancestry-begin
+                  COMPARE=$(GH_TOKEN=$MONO_TOKEN gh api "repos/peanutprotocol/mono/compare/$MONO_SHA...main" \
+                      --template '{{.status}} {{.merge_base_commit.sha}}') || {
+                      echo "::error::Could not compare mono $MONO_SHA with mono main; the registry pin cannot be verified. Check MONO_READ_TOKEN and that the pinned commit exists on mono."
+                      exit 1
+                  }
+                  STATUS=${COMPARE%% *}
+                  MERGE_BASE=${COMPARE#* }
+                  case "$STATUS" in
+                      ahead | identical) ;;
+                      *)
+                          echo "::error::mono $MONO_SHA is not on mono main (compare status: ${STATUS:-unknown}). Merge the mono PR that carries this registry first, then re-run this workflow. If mono squash-merged it, run 'node scripts/client-support-policy.mjs sync' against the merged commit and update the lock."
+                          exit 1
+                          ;;
+                  esac
+                  if [ "$MERGE_BASE" != "$MONO_SHA" ]; then
+                      echo "::error::mono $MONO_SHA is not an ancestor of mono main. Merge the mono PR that carries this registry first, then re-run this workflow. If mono squash-merged it, sync the lock to the merged commit."
+                      exit 1
+                  fi
+                  # client-support-ancestry-end
+                  GH_TOKEN=$MONO_TOKEN gh api \
+                      "repos/peanutprotocol/mono/contents/engineering/compatibility/registry.json?ref=$MONO_SHA" \
+                      --template '{{.content}}' | base64 -d > /tmp/client-support-registry.json
+                  test -s /tmp/client-support-registry.json
+                  # Trusted inline derivation: the same canonical form and hash
+                  # as scripts/client-support-policy.mjs (a test executes this
+                  # block against that script), kept here so the job runs no
+                  # scripts from the PR checkout. Emits the policy, pin and digest only.
+                  # client-support-proof-begin
+                  cat > /tmp/derive-proof.mjs <<'PROOF'
+                  import { createHash } from 'node:crypto'
+                  import { readFileSync, writeFileSync } from 'node:fs'
+                  const canonical = (v) =>
+                      Array.isArray(v)
+                          ? `[${v.map(canonical).join(',')}]`
+                          : v && typeof v === 'object'
+                            ? `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${canonical(v[k])}`).join(',')}}`
+                            : JSON.stringify(v)
+                  const registry = JSON.parse(readFileSync(process.env.REGISTRY_FILE, 'utf8'))
+                  const floors = registry.minimumGeneration
+                  if (registry.schemaVersion !== 1 || !floors) throw new Error('unexpected registry shape')
+                  const policy = { schemaVersion: 1, minimumGeneration: {} }
+                  for (const platform of ['web', 'ios', 'android']) {
+                      if (!Number.isSafeInteger(floors[platform]) || floors[platform] < 0) throw new Error(`bad ${platform} floor`)
+                      policy.minimumGeneration[platform] = floors[platform]
+                  }
+                  const proof = {
+                      schemaVersion: 1,
+                      monoSha: process.env.MONO_SHA,
+                      registrySha256: createHash('sha256').update(canonical(registry)).digest('hex'),
+                      policy,
+                  }
+                  writeFileSync(process.env.PROOF_FILE, JSON.stringify(proof, null, 4) + '\n')
+                  PROOF
+                  # client-support-proof-end
+                  REGISTRY_FILE=/tmp/client-support-registry.json MONO_SHA="$MONO_SHA" PROOF_FILE=/tmp/client-support-proof.json \
+                      node /tmp/derive-proof.mjs
+                  rm -f /tmp/client-support-registry.json
+                  echo "proof for mono $MONO_SHA:"
+                  cat /tmp/client-support-proof.json
+
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: client-support-proof
+                  path: /tmp/client-support-proof.json
+                  retention-days: 1
+
+    # Blocking. The script is dependency-free, so this job never installs —
+    # nothing PR-authored runs here except the script under test, and the
+    # job holds no credential for it to reach. A missing proof fails the
+    # download step, and with it the job: there is no shape-only fallback.
+    client-support-policy:
+        needs: client-support-source
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  persist-credentials: false
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+
+            - name: Download the source proof
+              uses: actions/download-artifact@v4
+              with:
+                  name: client-support-proof
+                  path: /tmp/client-support
+
+            - name: Check the snapshot and lock against the pinned source
+              run: node scripts/client-support-policy.mjs check --proof /tmp/client-support/client-support-proof.json
+
     unit:
         needs: be-baseline
         runs-on: ubuntu-latest
@@ -1048,7 +1188,19 @@ jobs:
     ci-success:
         name: ci-success
         if: always()
-        needs: [format, screen-tests, ds-lint, eslint, typecheck, native-export, unit, report, human-authors]
+        needs:
+            [
+                format,
+                screen-tests,
+                ds-lint,
+                eslint,
+                typecheck,
+                native-export,
+                client-support-policy,
+                unit,
+                report,
+                human-authors,
+            ]
         runs-on: ubuntu-latest
         steps:
             - name: Verify all required jobs passed
@@ -1062,6 +1214,7 @@ jobs:
                       echo "  eslint:    ${{ needs.eslint.result }}"
                       echo "  typecheck: ${{ needs.typecheck.result }}"
                       echo "  native-export: ${{ needs['native-export'].result }}"
+                      echo "  client-support-policy: ${{ needs['client-support-policy'].result }}"
                       echo "  unit:      ${{ needs.unit.result }}"
                       echo "  report:    ${{ needs.report.result }}"
                       echo "  human-authors: ${{ needs['human-authors'].result }}"

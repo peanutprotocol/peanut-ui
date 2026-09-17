@@ -4,7 +4,7 @@ import type { BundleInfo } from '@capgo/capacitor-updater'
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { isSplashVisible } from '@/hooks/useSplashGate'
 import { isAndroidNativeBridge, isCapacitor } from '@/utils/capacitor'
-import type { OtaApplyOutcome } from '@/utils/capgo-updater'
+import type { OtaApplyOutcome, OtaCheckOutcome } from '@/utils/capgo-updater'
 import { importWithChunkRetry } from '@/utils/chunk-error-recovery'
 import { runningBundleOutranksBinary } from '@/utils/ota-native-gate'
 import { markNativeBootComplete } from '@/utils/native-app-ready'
@@ -25,6 +25,12 @@ export interface OtaUpdateContextValue {
     applyState: OtaApplyState
     /** restart onto `pendingBundle` now (native only) */
     applyNow: () => Promise<void>
+    /**
+     * Run one update check now (native only) and report what it found; a
+     * staged bundle lands in `pendingBundle`. `unavailable` off native or when
+     * the updater chunk cannot load.
+     */
+    checkNow: () => Promise<OtaCheckOutcome | 'unavailable'>
 }
 
 // set() and reload() both tear the page down; still being here this long after
@@ -36,6 +42,7 @@ const OtaUpdateContext = createContext<OtaUpdateContextValue>({
     storeUpdateRequired: false,
     applyState: 'idle',
     applyNow: async () => {},
+    checkNow: async () => 'unavailable',
 })
 
 /**
@@ -189,9 +196,25 @@ export function OtaUpdateProvider({ children }: { children: React.ReactNode }) {
         armWatchdog()
     }, [pendingBundle, applyState])
 
+    // The same callbacks init registers, so a bundle this check stages is the
+    // one applyNow restarts onto. The updater serializes checks itself.
+    const checkNow = useCallback(async (): Promise<OtaCheckOutcome | 'unavailable'> => {
+        if (!isCapacitor()) return 'unavailable'
+        try {
+            const updater = await importWithChunkRetry(() => import('@/utils/capgo-updater'))
+            return await updater.queueUpdateCheck({
+                onUpdateAvailable: (bundle) => setPendingBundle(bundle),
+                onStoreUpdateRequired: () => setStoreUpdateRequired(true),
+            })
+        } catch (err) {
+            console.warn('[capgo] update check could not start:', err)
+            return 'unavailable'
+        }
+    }, [])
+
     const value = useMemo(
-        () => ({ pendingBundle, storeUpdateRequired, applyState, applyNow }),
-        [pendingBundle, storeUpdateRequired, applyState, applyNow]
+        () => ({ pendingBundle, storeUpdateRequired, applyState, applyNow, checkNow }),
+        [pendingBundle, storeUpdateRequired, applyState, applyNow, checkNow]
     )
 
     return <OtaUpdateContext.Provider value={value}>{children}</OtaUpdateContext.Provider>

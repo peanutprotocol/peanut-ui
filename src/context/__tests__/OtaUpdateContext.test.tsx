@@ -710,3 +710,80 @@ it('surfaces an incompatible running bundle even without a newer or staged candi
     await waitFor(() => expect(result.current.storeUpdateRequired).toBe(true))
     expect(result.current.pendingBundle).toBeNull()
 })
+
+describe('checkNow — the on-demand check the mandatory-update screen drives', () => {
+    // The screen asks for the bundle the launch check has not found yet. The
+    // check must go through the provider's own callbacks, so what it stages
+    // is what applyNow restarts onto and a store-only verdict reaches the
+    // same flag the profile reads. The launch check's 5 s timer is never
+    // advanced here, so every outcome below is checkNow's alone.
+    const settled = async () => {
+        const rendered = setup()
+        await waitFor(() => expect(mockUpdater.notifyAppReady).toHaveBeenCalled())
+        return rendered
+    }
+
+    it('answers unavailable off native without touching the updater chunk', async () => {
+        platform.capacitor = false
+        const load = jest.spyOn(chunkRecovery, 'importWithChunkRetry')
+        const { result } = setup()
+        await expect(result.current.checkNow()).resolves.toBe('unavailable')
+        expect(load).not.toHaveBeenCalled()
+        expect(mockUpdater.getLatest).not.toHaveBeenCalled()
+    })
+
+    it('stages the bundle it finds into pendingBundle, and applyNow restarts onto that id', async () => {
+        withRestageableBundle()
+        const { result } = await settled()
+        expect(result.current.pendingBundle).toBeNull()
+
+        let outcome: Awaited<ReturnType<typeof result.current.checkNow>> | undefined
+        await act(async () => {
+            outcome = await result.current.checkNow()
+        })
+        expect(outcome).toBe('staged')
+        expect(mockUpdater.next).toHaveBeenCalledWith({ id: 'b-3' })
+        expect(result.current.pendingBundle?.id).toBe('b-3')
+        expect(result.current.storeUpdateRequired).toBe(false)
+
+        act(() => {
+            void result.current.applyNow()
+        })
+        await waitFor(() => expect(mockUpdater.set).toHaveBeenCalledWith({ id: 'b-3' }))
+        expect(window.localStorage.getItem('capgoPendingApply')).toBe('b-3')
+    })
+
+    it('raises storeUpdateRequired when the served bundle needs a newer binary', async () => {
+        mockUpdater.getLatest.mockReset().mockRejectedValue(new Error('disable_auto_update_to_major'))
+        // download is not reset by the shared beforeEach; count only this check's calls
+        mockUpdater.download.mockClear()
+        const { result } = await settled()
+
+        let outcome: Awaited<ReturnType<typeof result.current.checkNow>> | undefined
+        await act(async () => {
+            outcome = await result.current.checkNow()
+        })
+        expect(outcome).toBe('store-update-required')
+        expect(result.current.storeUpdateRequired).toBe(true)
+        expect(result.current.pendingBundle).toBeNull()
+        expect(mockUpdater.download).not.toHaveBeenCalled()
+    })
+
+    it('reports up-to-date and failed without staging anything', async () => {
+        const { result } = await settled()
+        await expect(result.current.checkNow()).resolves.toBe('up-to-date')
+
+        mockUpdater.getLatest.mockReset().mockRejectedValue(new Error('Network request failed'))
+        await expect(result.current.checkNow()).resolves.toBe('failed')
+        expect(result.current.pendingBundle).toBeNull()
+        expect(result.current.storeUpdateRequired).toBe(false)
+    })
+
+    it('answers unavailable when the updater chunk cannot load, and says so', async () => {
+        const { result } = await settled()
+        jest.spyOn(chunkRecovery, 'importWithChunkRetry').mockRejectedValue(new Error('chunk unavailable'))
+        await expect(result.current.checkNow()).resolves.toBe('unavailable')
+        expect(warn).toHaveBeenCalledWith('[capgo] update check could not start:', expect.any(Error))
+        expect(mockUpdater.getLatest).not.toHaveBeenCalled()
+    })
+})

@@ -3665,6 +3665,19 @@
         },
         "continueAnyway": "Continuar de todos modos"
     },
+    "clientSupport": {
+        "title": "Actualiza Peanut para continuar",
+        "restart": "Esta versión ya no es compatible. La actualización está lista: reinicia Peanut para terminar de instalarla.",
+        "check": "Esta versión ya no es compatible. Busca la actualización para seguir usando Peanut.",
+        "checkForUpdate": "Buscar actualización",
+        "noOtaYet": "Todavía no hay una actualización disponible en la app. Descarga la última versión desde {store}.",
+        "checkFailed": "No se pudo buscar la actualización. Revisa tu conexión e inténtalo de nuevo.",
+        "storeOnly": "Esta versión ya no es compatible. Descarga la última versión desde {store} para continuar.",
+        "reload": "Esta versión ya no es compatible. Recarga Peanut para obtener la más reciente.",
+        "reloadNow": "Recargar Peanut",
+        "unavailableTitle": "No se pudo verificar esta versión",
+        "unavailable": "Peanut necesita confirmar que esta versión sigue siendo compatible. Revisa tu conexión e inténtalo de nuevo."
+    },
     "avatar": {
         "title": "Tu avatar",
         "change": "Cambiar avatar",
