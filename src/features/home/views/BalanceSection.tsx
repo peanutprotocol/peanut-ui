@@ -48,7 +48,8 @@ export function BalanceSection({ balance, isFetching, isStale, isHidden, onToggl
 
     return (
         <div className="flex flex-col gap-6 pb-4">
-            <div className="flex items-center justify-center gap-2">
+            {/* Keep the amount's line height while its smaller spinner is visible. */}
+            <div className="flex min-h-[var(--text-heading-xl--line-height)] items-center justify-center gap-2">
                 {isFetching || balance === undefined ? (
                     <Loading />
                 ) : (
