@@ -17,7 +17,7 @@ function capturesIn(root) {
         }))
 }
 
-export async function completeCollection({ collectionId, inputDir, storage, sharpFactory }) {
+export async function completeCollection({ collectionId, inputDir, storage, sharpFactory, attempt }) {
     if (!ID.test(collectionId ?? '')) throw new Error('Invalid collection ID')
     const collectionKey = `collections/${collectionId}/manifest.json`
     const collection = validateCollection(JSON.parse((await storage.read(collectionKey)).toString('utf8')))
@@ -26,6 +26,8 @@ export async function completeCollection({ collectionId, inputDir, storage, shar
         collectionId
     )
     if (collection.capture?.attempt !== request.attempt) throw new Error('Capture attempt is no longer current')
+    if (attempt !== undefined && (attempt !== request.attempt || attempt !== collection.capture?.attempt))
+        throw new Error('Capture attempt is no longer current')
     const sharp = sharpFactory ?? (await import('sharp')).default
     const captures = capturesIn(resolve(inputDir))
     const failedLocales = []
@@ -108,6 +110,7 @@ if (isMain) {
     const updated = await completeCollection({
         collectionId,
         inputDir: process.argv[3],
+        attempt: process.argv[4],
         storage: await createStorage(),
     })
     console.log(`${process.env.SCREEN_LIBRARY_PUBLIC_URL.replace(/\/$/, '')}/collections/${updated.id}/`)

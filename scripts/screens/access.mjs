@@ -2,8 +2,11 @@ export async function verifiedAccessIdentity(context, audience) {
     const access = context?.access
     if (!access || !audience || access.aud !== audience || typeof access.getIdentity !== 'function') return null
     try {
-        const email = (await access.getIdentity())?.email?.toLowerCase()
-        return email?.endsWith('@peanut.me') ? email : null
+        const identity = await access.getIdentity()
+        const email = identity?.email?.toLowerCase()
+        if (email?.endsWith('@peanut.me')) return email
+        const commonName = typeof identity?.common_name === 'string' ? identity.common_name.trim() : ''
+        return identity?.service_token_status === 'active' && commonName ? `service:${commonName}` : null
     } catch {
         return null
     }

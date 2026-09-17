@@ -20,6 +20,7 @@ jobs:
         environment: screen-library-deploy
         outputs:
             target_commit: ${{ steps.request.outputs.target_commit }}
+            attempt: ${{ steps.request.outputs.attempt }}
             matrix: ${{ steps.request.outputs.matrix }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -127,9 +128,10 @@ jobs:
             - name: Publish WebP assets and complete collection
               env:
                   COLLECTION_ID: ${{ inputs.collection_id }}
+                  CAPTURE_ATTEMPT: ${{ needs.request.outputs.attempt }}
                   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
                   CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
                   SCREEN_LIBRARY_R2_BUCKET: ${{ vars.SCREEN_LIBRARY_R2_BUCKET }}
                   SCREEN_LIBRARY_R2_JURISDICTION: ${{ vars.SCREEN_LIBRARY_R2_JURISDICTION }}
                   SCREEN_LIBRARY_PUBLIC_URL: ${{ vars.SCREEN_LIBRARY_PUBLIC_URL }}
-              run: node scripts/screens/complete-collection.mjs "$COLLECTION_ID" incoming
+              run: node scripts/screens/complete-collection.mjs "$COLLECTION_ID" incoming "$CAPTURE_ATTEMPT"

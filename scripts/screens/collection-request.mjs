@@ -62,6 +62,7 @@ export async function prepareCollectionCapture(collectionId, storage) {
     })
     return {
         targetCommit: request.targetCommit,
+        attempt: request.attempt,
         matrix: Object.entries(request.screens).map(([locale, ids]) => ({
             locale,
             only: ids.join(','),
@@ -73,6 +74,7 @@ async function main() {
     const collectionId = process.argv[2]
     const result = await prepareCollectionCapture(collectionId, await createStorage())
     console.log(`target_commit=${result.targetCommit}`)
+    console.log(`attempt=${result.attempt}`)
     console.log(`matrix=${JSON.stringify(result.matrix)}`)
 }
 
