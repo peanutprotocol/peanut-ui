@@ -8644,6 +8644,7 @@ export interface paths {
             requestBody?: {
                 content: {
                     "application/json": {
+                        bankInstructionsShared?: boolean;
                         chainId?: string;
                         recipientAddress: string;
                         reference?: string;
@@ -8654,6 +8655,7 @@ export interface paths {
                         tokenType?: unknown;
                         trackId?: string;
                     } | {
+                        bankInstructionsShared?: boolean;
                         chainId: string;
                         recipientAddress: string;
                         reference?: string;
@@ -8705,7 +8707,41 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            attachmentUrl: string | null;
+                            bankInstructionsShared: boolean;
+                            chainId: string | null;
+                            createdAt: string;
+                            fulfilledByIntentId: string | null;
+                            paidAt: string | null;
+                            receivedAmount: string | null;
+                            recipientAddress: string;
+                            reference: string | null;
+                            status: string;
+                            tokenAddress: string | null;
+                            tokenAmount: string | null;
+                            tokenDecimals: number | null;
+                            tokenSymbol: string | null;
+                            tokenType: string | null;
+                            trackId: string | null;
+                            updatedAt: string;
+                            uuid: string;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
                 };
             };
         };
@@ -8747,6 +8783,7 @@ export interface paths {
             requestBody?: {
                 content: {
                     "application/json": {
+                        bankInstructionsShared?: boolean;
                         chainId?: string;
                         recipientAddress?: string;
                         reference?: string;
@@ -8769,6 +8806,120 @@ export interface paths {
                 };
             };
         };
+        trace?: never;
+    };
+    "/requests/{uuid}/deposit-instructions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    uuid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            depositAccount: {
+                                country: string;
+                                currency: string;
+                                id: string;
+                                instructions?: {
+                                    accountHolderName: string;
+                                    accountNumber?: string;
+                                    bankAddress?: string;
+                                    bankName?: string;
+                                    beneficiaryAddress?: string;
+                                    beneficiaryName?: string;
+                                    bic?: string;
+                                    brCode?: string;
+                                    breBKey?: string;
+                                    clabe?: string;
+                                    iban?: string;
+                                    paymentRails: string[];
+                                    routingNumber?: string;
+                                    sortCode?: string;
+                                };
+                                isPrimary: boolean;
+                                matching: {
+                                    nameOnAccount: "user" | "provider";
+                                    sender: "anyone" | "business-only" | "own-name-only" | "unknown";
+                                };
+                                railId: string;
+                                rules?: {
+                                    max?: {
+                                        amount: string;
+                                        currency: string;
+                                    };
+                                    min?: {
+                                        amount: string;
+                                        currency: string;
+                                    };
+                                    monthlyLimit?: {
+                                        amount: string;
+                                        currency: string;
+                                    };
+                                    ownAccount: {
+                                        allowed: boolean;
+                                        max?: {
+                                            amount: string;
+                                            currency: string;
+                                        };
+                                    };
+                                    /** @enum {string} */
+                                    reason?: "state-restricted";
+                                    thirdPartyBusiness: "allowed" | "unlimited" | "unavailable" | "unknown";
+                                    thirdPartyIndividual: {
+                                        capBelow?: {
+                                            amount: string;
+                                            currency: string;
+                                        };
+                                        familySameSurnameExempt?: boolean;
+                                        policy: "allowed" | "capped" | "unavailable" | "unknown";
+                                        volumeLimit?: {
+                                            amount: string;
+                                            currency: string;
+                                        };
+                                    };
+                                };
+                                status: "provisioning" | "active" | "retiring" | "revoked";
+                            };
+                            paymentReference: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/rhino/bridge/chains": {

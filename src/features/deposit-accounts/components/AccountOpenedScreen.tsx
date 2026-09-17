@@ -1,8 +1,7 @@
 'use client'
 
-import Image from 'next/image'
 import { useEffect, useRef } from 'react'
-import { PeanutCheering } from '@/assets/mascot'
+import PeanutMascot from '@/components/Global/PeanutMascot'
 import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
@@ -24,7 +23,7 @@ export function AccountOpenedScreen({ currency, onContinue }: { currency: string
         <PageStack>
             <NavHeader title={t('title')} onPrev={onContinue} />
             <div className="flex flex-col items-center gap-6 text-center">
-                <Image src={PeanutCheering} alt="" width={200} height={200} unoptimized />
+                <PeanutMascot pose="cheering" alt="" className="size-[200px]" />
                 <TitleBlock
                     size="s"
                     title={<h1>{t('opened.heading', { currency })}</h1>}

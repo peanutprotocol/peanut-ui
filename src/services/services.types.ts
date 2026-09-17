@@ -1,5 +1,6 @@
 import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
+import type { paths } from '@/types/api.generated'
 
 export type TStatus = 'NEW' | 'PENDING' | 'COMPLETED' | 'EXPIRED' | 'FAILED' | 'SIGNED' | 'SUCCESSFUL' | 'CANCELLED'
 
@@ -19,7 +20,17 @@ export interface CreateRequestRequest {
     tokenAddress: string
     tokenDecimals: string
     tokenSymbol: string
+    /** the requester lets a payer settle this request by bank transfer */
+    bankInstructionsShared?: boolean
 }
+
+/**
+ * The requester's standing bank details for one request, plus the reference a
+ * payer must type. Derived from the generated contract rather than restated,
+ * so a field the API drops fails the build at every reader.
+ */
+export type RequestDepositInstructions =
+    paths['/requests/{uuid}/deposit-instructions']['get']['responses'][200]['content']['application/json']
 
 export interface TRequestResponse {
     uuid: string
@@ -35,6 +46,15 @@ export interface TRequestResponse {
     attachmentUrl: string | null
     createdAt: string
     updatedAt: string
+    /**
+     * A bank deposit carrying this request's reference answered it. `paidAt`
+     * is when it landed and `receivedAmount` is what arrived, which can be
+     * less than `tokenAmount` — a part payment leaves the request open.
+     */
+    paidAt: string | null
+    fulfilledByIntentId: string | null
+    receivedAmount: string | null
+    bankInstructionsShared: boolean
     charges: ChargeEntry[]
     history: TRequestHistory[]
     recipientAccount: {

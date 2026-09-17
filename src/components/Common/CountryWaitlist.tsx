@@ -3,8 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
-import Image from 'next/image'
-import { PeanutWalking } from '@/assets/mascot'
+import PeanutMascot from '@/components/Global/PeanutMascot'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
@@ -63,7 +62,7 @@ export function CountryWaitlist({
         >
             <DrawerContent>
                 <div className="flex flex-col items-center gap-6 py-6 text-center">
-                    <Image src={PeanutWalking} unoptimized alt="" aria-hidden className="h-32 w-auto" />
+                    <PeanutMascot pose="walking" alt="" className="h-32 w-auto" />
                     <DrawerHeader className="p-0 text-center sm:text-center">
                         <DrawerTitle>
                             {data?.joinedAt ? t('joinedTitle') : t('title', { country: countryName })}

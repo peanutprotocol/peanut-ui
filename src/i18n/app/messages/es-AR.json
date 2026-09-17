@@ -625,7 +625,10 @@
             "missingRecipientMessage": "No se incluyó un nombre de usuario en la URL. Revisá el enlace e intentalo de nuevo.",
             "createWallet": "Creá tu Peanut Wallet"
         },
-        "bankDetailsAlternative": "Compartí los datos de tu cuenta bancaria"
+        "bankDetailsAlternative": "Compartí los datos de tu cuenta bancaria",
+        "bankInstructions": {
+            "description": "Compartí tus datos bancarios con quien abra este enlace."
+        }
     },
     "payment": {
         "validation": {
@@ -653,6 +656,10 @@
             "userNotFoundDescription": "No encontramos a @{username} en Peanut. Revisá el nombre de usuario e intentá de nuevo.",
             "invalidPaymentUrlDescription": "El enlace está incompleto o mal escrito. Pedile a quien lo envió que lo comparta de nuevo.",
             "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pedile un nuevo enlace a quien la envió."
+        },
+        "bankTransfer": {
+            "description": "Enviá desde tu banco a la cuenta de quien te pide el pago.",
+            "referenceNote": "Agregá esta referencia a tu transferencia. Sin ella, el pago no se asocia a esta solicitud."
         }
     },
     "claim": {

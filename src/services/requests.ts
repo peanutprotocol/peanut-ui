@@ -1,4 +1,4 @@
-import { type CreateRequestRequest, type TRequestResponse } from './services.types'
+import { type CreateRequestRequest, type RequestDepositInstructions, type TRequestResponse } from './services.types'
 import { serverFetch } from '@/utils/api-fetch'
 import { jsonStringify } from '@/utils/general.utils'
 
@@ -47,6 +47,23 @@ export const requestsApi = {
         })
         if (!response.ok) {
             throw new Error(`Failed to fetch request: ${response.statusText}`)
+        }
+        return response.json()
+    },
+
+    /**
+     * The bank details a payer can send this request's amount to.
+     *
+     * 404 is an ordinary answer, not a failure: the requester did not opt in,
+     * or holds no account the money could arrive in. The backend answers the
+     * same 404 for a request that does not exist, so the opt-in cannot be
+     * probed — and `null` here means the same thing to the screen either way.
+     */
+    depositInstructions: async (uuid: string): Promise<RequestDepositInstructions | null> => {
+        const response = await serverFetch(`/requests/${uuid}/deposit-instructions`, { method: 'GET' })
+        if (response.status === 404) return null
+        if (!response.ok) {
+            throw new Error(`Failed to fetch deposit instructions: ${response.statusText}`)
         }
         return response.json()
     },

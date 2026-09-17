@@ -1079,7 +1079,18 @@
             "goToHome": "Ir al inicio",
             "createWallet": "Crea tu Peanut Wallet"
         },
-        "bankDetailsAlternative": "Comparte los datos de tu cuenta bancaria"
+        "bankDetailsAlternative": "Comparte los datos de tu cuenta bancaria",
+        "bankInstructions": {
+            "title": "Permitir el pago por transferencia bancaria",
+            "description": "Comparte tus datos bancarios con quien abra este enlace."
+        },
+        "paidByBank": {
+            "rowLabel": "Transferencia bancaria",
+            "receivedFull": "${received} recibidos",
+            "receivedPartial": "${received} de ${requested} recibidos",
+            "badgePaid": "Pagado",
+            "badgePartial": "Pagado en parte"
+        }
     },
     "payment": {
         "validation": {
@@ -1170,6 +1181,14 @@
             "invalidPaymentUrlDescription": "El enlace está incompleto o mal escrito. Pide a quien lo envió que lo comparta de nuevo.",
             "requestNotFoundTitle": "Solicitud no encontrada",
             "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pide un nuevo enlace a quien la envió."
+        },
+        "bankTransfer": {
+            "title": "Pagar por transferencia bancaria",
+            "description": "Envía desde tu banco a la cuenta de quien te pide el pago.",
+            "referenceSection": "Referencia",
+            "referenceLabel": "Referencia del pago",
+            "referenceNote": "Agrega esta referencia a tu transferencia. Sin ella, el pago no se asocia a esta solicitud.",
+            "unavailable": "La transferencia bancaria no está disponible para esta solicitud."
         }
     },
     "claim": {

@@ -60,6 +60,10 @@ export const useCreateRequestLink = () => {
     const [requestId, setRequestId] = useState<string | null>(null)
     const [isCreatingLink, setIsCreatingLink] = useState(false)
     const [isUpdatingRequest, setIsUpdatingRequest] = useState(false)
+    // Off by default: a request hands out bank details only when the user says
+    // so. Create is the only place it is set, so it stays local state rather
+    // than url state — a shared link must not carry the requester's choice.
+    const [bankInstructionsShared, setBankInstructionsShared] = useState(false)
 
     // Debounced attachment options to prevent rapid API calls during typing
     const debouncedAttachmentOptions = useDebounce(attachmentOptions, 500)
@@ -172,6 +176,7 @@ export const useCreateRequestLink = () => {
                     attachment: attachmentOptions.rawFile || undefined,
                     mimeType: attachmentOptions.rawFile?.type || undefined,
                     filename: attachmentOptions.rawFile?.name || undefined,
+                    bankInstructionsShared,
                 }
 
                 // POST new request
@@ -210,6 +215,7 @@ export const useCreateRequestLink = () => {
             selectedTokenData,
             selectedTokenAddress,
             selectedChainID,
+            bankInstructionsShared,
             toast,
             queryClient,
             setLoadingState,
@@ -377,6 +383,8 @@ export const useCreateRequestLink = () => {
         isUpdatingRequest,
         peanutWalletBalance,
         qrCodeLink,
+        bankInstructionsShared,
+        setBankInstructionsShared,
         handleTokenValueChange,
         handleAttachmentOptionsChange,
         handleTokenAmountSubmit,

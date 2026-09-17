@@ -11,7 +11,9 @@ import { Notification } from '@/components/0_Bruddle/Notification'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useRequestBack } from '@/components/Request/useRequestBack'
 import { withReturnTo } from '@/utils/return-to.utils'
+import { BankInstructionsToggle } from './BankInstructionsToggle'
 import { CreateRequestLinkCta } from './CreateRequestLinkCta'
+import { RequestFulfillmentNotice } from './RequestFulfillmentNotice'
 import { useCreateRequestLink } from './useCreateRequestLink'
 
 export const CreateRequestLinkView = () => {
@@ -30,6 +32,8 @@ export const CreateRequestLinkView = () => {
         isUpdatingRequest,
         peanutWalletBalance,
         qrCodeLink,
+        bankInstructionsShared,
+        setBankInstructionsShared,
         handleTokenValueChange,
         handleAttachmentOptionsChange,
         handleTokenAmountSubmit,
@@ -72,6 +76,18 @@ export const CreateRequestLinkView = () => {
                     maxLength={140}
                     onChange={(e) => handleAttachmentOptionsChange({ ...attachmentOptions, message: e.target.value })}
                 />
+
+                {/* The opt-in belongs before Create: it is what the request is
+                    created with, and it cannot be changed afterwards. */}
+                {depositAccountsEnabled && !requestId && (
+                    <BankInstructionsToggle
+                        checked={bankInstructionsShared}
+                        onChange={setBankInstructionsShared}
+                        disabled={isCreatingLink}
+                    />
+                )}
+
+                {requestId && <RequestFulfillmentNotice requestId={requestId} bankPayable={bankInstructionsShared} />}
 
                 <CreateRequestLinkCta
                     requestId={requestId}

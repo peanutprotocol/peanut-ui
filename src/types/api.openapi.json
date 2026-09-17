@@ -14268,6 +14268,9 @@
 									{
 										"additionalProperties": false,
 										"properties": {
+											"bankInstructionsShared": {
+												"type": "boolean"
+											},
 											"chainId": {
 												"type": "string"
 											},
@@ -14304,6 +14307,9 @@
 									{
 										"additionalProperties": false,
 										"properties": {
+											"bankInstructionsShared": {
+												"type": "boolean"
+											},
 											"chainId": {
 												"type": "string"
 											},
@@ -14394,6 +14400,192 @@
 				],
 				"responses": {
 					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": true,
+									"properties": {
+										"attachmentUrl": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"bankInstructionsShared": {
+											"type": "boolean"
+										},
+										"chainId": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"createdAt": {
+											"type": "string"
+										},
+										"fulfilledByIntentId": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"paidAt": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"receivedAmount": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"recipientAddress": {
+											"type": "string"
+										},
+										"reference": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"status": {
+											"type": "string"
+										},
+										"tokenAddress": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"tokenAmount": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"tokenDecimals": {
+											"anyOf": [
+												{
+													"type": "number"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"tokenSymbol": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"tokenType": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"trackId": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"updatedAt": {
+											"type": "string"
+										},
+										"uuid": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"uuid",
+										"chainId",
+										"recipientAddress",
+										"tokenAmount",
+										"tokenAddress",
+										"tokenDecimals",
+										"tokenType",
+										"tokenSymbol",
+										"trackId",
+										"reference",
+										"attachmentUrl",
+										"status",
+										"createdAt",
+										"updatedAt",
+										"paidAt",
+										"fulfilledByIntentId",
+										"receivedAmount",
+										"bankInstructionsShared"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
 						"description": "Default Response"
 					}
 				}
@@ -14415,6 +14607,9 @@
 							"schema": {
 								"additionalProperties": false,
 								"properties": {
+									"bankInstructionsShared": {
+										"type": "boolean"
+									},
 									"chainId": {
 										"type": "string"
 									},
@@ -14451,6 +14646,407 @@
 				},
 				"responses": {
 					"200": {
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/requests/{uuid}/deposit-instructions": {
+			"get": {
+				"parameters": [
+					{
+						"in": "path",
+						"name": "uuid",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"depositAccount": {
+											"properties": {
+												"country": {
+													"type": "string"
+												},
+												"currency": {
+													"type": "string"
+												},
+												"id": {
+													"type": "string"
+												},
+												"instructions": {
+													"properties": {
+														"accountHolderName": {
+															"type": "string"
+														},
+														"accountNumber": {
+															"type": "string"
+														},
+														"bankAddress": {
+															"type": "string"
+														},
+														"bankName": {
+															"type": "string"
+														},
+														"beneficiaryAddress": {
+															"type": "string"
+														},
+														"beneficiaryName": {
+															"type": "string"
+														},
+														"bic": {
+															"type": "string"
+														},
+														"brCode": {
+															"type": "string"
+														},
+														"breBKey": {
+															"type": "string"
+														},
+														"clabe": {
+															"type": "string"
+														},
+														"iban": {
+															"type": "string"
+														},
+														"paymentRails": {
+															"items": {
+																"type": "string"
+															},
+															"type": "array"
+														},
+														"routingNumber": {
+															"type": "string"
+														},
+														"sortCode": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"accountHolderName",
+														"paymentRails"
+													],
+													"type": "object"
+												},
+												"isPrimary": {
+													"type": "boolean"
+												},
+												"matching": {
+													"properties": {
+														"nameOnAccount": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"user"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"provider"
+																	],
+																	"type": "string"
+																}
+															]
+														},
+														"sender": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"anyone"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"business-only"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"own-name-only"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"unknown"
+																	],
+																	"type": "string"
+																}
+															]
+														}
+													},
+													"required": [
+														"nameOnAccount",
+														"sender"
+													],
+													"type": "object"
+												},
+												"railId": {
+													"type": "string"
+												},
+												"rules": {
+													"properties": {
+														"max": {
+															"properties": {
+																"amount": {
+																	"type": "string"
+																},
+																"currency": {
+																	"type": "string"
+																}
+															},
+															"required": [
+																"amount",
+																"currency"
+															],
+															"type": "object"
+														},
+														"min": {
+															"properties": {
+																"amount": {
+																	"type": "string"
+																},
+																"currency": {
+																	"type": "string"
+																}
+															},
+															"required": [
+																"amount",
+																"currency"
+															],
+															"type": "object"
+														},
+														"monthlyLimit": {
+															"properties": {
+																"amount": {
+																	"type": "string"
+																},
+																"currency": {
+																	"type": "string"
+																}
+															},
+															"required": [
+																"amount",
+																"currency"
+															],
+															"type": "object"
+														},
+														"ownAccount": {
+															"properties": {
+																"allowed": {
+																	"type": "boolean"
+																},
+																"max": {
+																	"properties": {
+																		"amount": {
+																			"type": "string"
+																		},
+																		"currency": {
+																			"type": "string"
+																		}
+																	},
+																	"required": [
+																		"amount",
+																		"currency"
+																	],
+																	"type": "object"
+																}
+															},
+															"required": [
+																"allowed"
+															],
+															"type": "object"
+														},
+														"reason": {
+															"enum": [
+																"state-restricted"
+															],
+															"type": "string"
+														},
+														"thirdPartyBusiness": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"allowed"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"unlimited"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"unavailable"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"unknown"
+																	],
+																	"type": "string"
+																}
+															]
+														},
+														"thirdPartyIndividual": {
+															"properties": {
+																"capBelow": {
+																	"properties": {
+																		"amount": {
+																			"type": "string"
+																		},
+																		"currency": {
+																			"type": "string"
+																		}
+																	},
+																	"required": [
+																		"amount",
+																		"currency"
+																	],
+																	"type": "object"
+																},
+																"familySameSurnameExempt": {
+																	"type": "boolean"
+																},
+																"policy": {
+																	"anyOf": [
+																		{
+																			"enum": [
+																				"allowed"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"capped"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"unavailable"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"unknown"
+																			],
+																			"type": "string"
+																		}
+																	]
+																},
+																"volumeLimit": {
+																	"properties": {
+																		"amount": {
+																			"type": "string"
+																		},
+																		"currency": {
+																			"type": "string"
+																		}
+																	},
+																	"required": [
+																		"amount",
+																		"currency"
+																	],
+																	"type": "object"
+																}
+															},
+															"required": [
+																"policy"
+															],
+															"type": "object"
+														}
+													},
+													"required": [
+														"ownAccount",
+														"thirdPartyBusiness",
+														"thirdPartyIndividual"
+													],
+													"type": "object"
+												},
+												"status": {
+													"anyOf": [
+														{
+															"enum": [
+																"provisioning"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"active"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"retiring"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"revoked"
+															],
+															"type": "string"
+														}
+													]
+												}
+											},
+											"required": [
+												"id",
+												"railId",
+												"country",
+												"currency",
+												"status",
+												"isPrimary",
+												"matching"
+											],
+											"type": "object"
+										},
+										"paymentReference": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"depositAccount",
+										"paymentReference"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
 						"description": "Default Response"
 					}
 				}

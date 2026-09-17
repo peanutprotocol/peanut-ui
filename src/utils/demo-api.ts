@@ -139,6 +139,10 @@ const demoRequest = (uuid: string, options?: RequestInit) => {
         attachmentUrl: null,
         createdAt: CREATED_AT,
         updatedAt: CREATED_AT,
+        paidAt: null,
+        fulfilledByIntentId: null,
+        receivedAmount: null,
+        bankInstructionsShared: false,
         charges: [],
         history: [],
         recipientAccount: {

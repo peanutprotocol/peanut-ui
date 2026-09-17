@@ -1130,6 +1130,21 @@ export const FIXTURES: Record<string, Fixture> = {
         // The alternative sits under the keypad, below the fold on a small phone.
         fullPage: true,
     },
+    'request-pay-by-bank': {
+        // `demo-request` is the uuid demo-api answers every request read with,
+        // so the overrides below key on it.
+        route: '/pay-request?id=demo-request',
+        about: 'Paying a request whose requester shares their bank details, so a bank transfer can settle it.',
+        // The bank-transfer row sits under the other payment methods.
+        fullPage: true,
+        responses: {
+            'GET /requests/demo-request': { bankInstructionsShared: true, tokenAmount: '250' },
+            'GET /requests/demo-request/deposit-instructions': {
+                depositAccount: DEPOSIT_ACCOUNT_EUR,
+                paymentReference: 'demo-req',
+            },
+        },
+    },
 
     // ---------------------------------------------------------------------
     // Error states.
