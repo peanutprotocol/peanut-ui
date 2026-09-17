@@ -13,7 +13,6 @@ jest.mock('next/image', () => ({
     __esModule: true,
     default: (props: Record<string, unknown>) => React.createElement('img', props as Record<string, string>),
 }))
-jest.mock('@/hooks/useChainRollout', () => ({ useChainRollout: () => () => true }))
 // pin the searchable chain set: the wagmi-derived list is env-dependent
 jest.mock('../TokenSelector.consts', () => ({
     ...jest.requireActual('../TokenSelector.consts'),
