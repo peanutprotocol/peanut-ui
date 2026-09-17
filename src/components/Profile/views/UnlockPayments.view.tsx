@@ -9,6 +9,8 @@ import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { DataRow } from '@/components/0_Bruddle/DataRow'
+import Card from '@/components/Global/Card'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
@@ -457,6 +459,11 @@ const UnlockPayments = () => {
             {/* Pending Bridge verification tasks (ToS / hosted re-verification). */}
             <PendingVerificationTasks />
 
+            {/* Held bank accounts lead the payment content: a user who already
+                holds accounts sees them before the region list (or the empty
+                state), so the page reads as their accounts first. */}
+            <HeldDepositAccounts />
+
             {groups.length === 0 && (
                 <EmptyState
                     title={tRegions('empty.title')}
@@ -464,8 +471,6 @@ const UnlockPayments = () => {
                     icon="globe-lock"
                 />
             )}
-
-            <HeldDepositAccounts />
 
             {groups.map((group) => (
                 <UnlockSection
@@ -802,39 +807,62 @@ function MethodLimits({ noLimit, summaries }: { noLimit: boolean; summaries: Row
     const t = useTranslations('profile.unlockPayments')
     if (!noLimit && summaries.length === 0) return null
 
+    // A monthly limit needs the label + used-bar shape (ListItem body + ProgressBar);
+    // a per-transfer bank cap is a plain labelled value, so it reads as a receipt row.
+    const mantecaSummaries = summaries.filter(
+        (s): s is Extract<RowLimitSummary, { kind: 'manteca' }> => s.kind === 'manteca'
+    )
+    const bridgeSummaries = summaries.filter(
+        (s): s is Extract<RowLimitSummary, { kind: 'bridge' }> => s.kind === 'bridge'
+    )
+
     return (
-        <ListGroup>
-            {noLimit && <ListItem title={t('limits.p2pNoLimit')} />}
-            {summaries.map((summary) =>
-                summary.kind === 'manteca' ? (
-                    <ListItem
-                        key={summary.asset}
-                        title={summary.asset}
-                        body={
-                            <div className="flex flex-col gap-2">
-                                <span>
-                                    {t('limits.monthlyLeft', { remaining: summary.remaining, limit: summary.limit })}
-                                </span>
-                                <ProgressBar
-                                    value={summary.usedPercent}
-                                    fillClassName={getLimitColorClass(summary.usedPercent, 'bg')}
-                                />
-                            </div>
-                        }
-                        bodyWrap
-                    />
-                ) : (
-                    <ListItem
-                        key={summary.direction}
-                        title={t(
-                            summary.direction === 'deposit'
-                                ? 'limits.depositPerTransfer'
-                                : 'limits.withdrawalPerTransfer'
-                        )}
-                        trailing={summary.perTransaction}
-                    />
-                )
+        <>
+            {(noLimit || mantecaSummaries.length > 0) && (
+                <ListGroup>
+                    {noLimit && <ListItem title={t('limits.p2pNoLimit')} />}
+                    {mantecaSummaries.map((summary) => (
+                        <ListItem
+                            key={summary.asset}
+                            title={summary.asset}
+                            body={
+                                <div className="flex flex-col gap-2">
+                                    <span>
+                                        {t('limits.monthlyLeft', {
+                                            remaining: summary.remaining,
+                                            limit: summary.limit,
+                                        })}
+                                    </span>
+                                    <ProgressBar
+                                        value={summary.usedPercent}
+                                        fillClassName={getLimitColorClass(summary.usedPercent, 'bg')}
+                                    />
+                                </div>
+                            }
+                            bodyWrap
+                        />
+                    ))}
+                </ListGroup>
             )}
-        </ListGroup>
+            {/* Per-transfer bank caps are labelled values: the DS DataRow-in-Card
+                receipt recipe (same as DepositDetailsCard) — label left, value right —
+                replaces the hand-rolled ListItem title/trailing pair. The card owns the
+                dashed dividers; DataRow draws no border of its own. */}
+            {bridgeSummaries.length > 0 && (
+                <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">
+                    {bridgeSummaries.map((summary) => (
+                        <DataRow
+                            key={summary.direction}
+                            label={t(
+                                summary.direction === 'deposit'
+                                    ? 'limits.depositPerTransfer'
+                                    : 'limits.withdrawalPerTransfer'
+                            )}
+                            value={summary.perTransaction}
+                        />
+                    ))}
+                </Card>
+            )}
+        </>
     )
 }

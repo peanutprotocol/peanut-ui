@@ -439,6 +439,7 @@
                 "dismiss": "Lo intentaré más tarde"
             },
             "accountsTitle": "Tus cuentas bancarias",
+            "accountsSubtitle": "Números de cuenta que puedes compartir para recibir dinero en Peanut.",
             "details": {
                 "p2p": "Envía y recibe dinero de otros usuarios de Peanut.",
                 "saBank": "Paga con QR y transfiere dinero a través de cuentas bancarias en Brasil y Argentina.",

@@ -29,6 +29,7 @@ function HeldAccounts() {
 
     return (
         <Section title={tProfile('accountsTitle')}>
+            <p className="text-body-s text-foreground-secondary">{tProfile('accountsSubtitle')}</p>
             {isError ? (
                 <Notification priority="error" ctas={[{ label: t('list.errorRetry'), onClick: refetch }]}>
                     {t('list.errorBody')}
