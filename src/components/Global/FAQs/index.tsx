@@ -1,10 +1,13 @@
 'use client'
 
 import type { ReactNode } from 'react'
+import { Icon } from '@/components/Global/Icons/Icon'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 
 export type FAQsProps = {
     heading: string
-    /** Translated label for the per-question "learn more" link. */
+    /** Translated label for the per-question "learn more" link. Without it the
+     *  link is not rendered — there is no English fallback to leak. */
     learnMoreLabel?: string
     questions: Array<{
         id: string
@@ -15,14 +18,13 @@ export type FAQsProps = {
         redirectUrl?: string
         redirectText?: string
         calModal?: boolean
+        /** Translated label for the `calModal` control, the way `redirectText`
+         *  labels `redirectUrl`. Both halves are needed or nothing renders. */
+        calLabel?: string
         /** Article that answers this question in full. Renders a "learn more" link under the answer. */
         learnMoreHref?: string
     }>
 }
-
-// Matches the landing page's other "learn more" affordances: right-aligned,
-// underlined at rest, arrow trailing.
-const learnMoreClass = 'text-body-m text-foreground-primary underline hover:no-underline md:text-body-l'
 
 function linkifyText(text: string) {
     const markdownLinkRegex = /\[([^\]]+)\]\(([^\s)]+)\)/g
@@ -38,7 +40,7 @@ function linkifyText(text: string) {
                 key={match.index}
                 href={match[2]}
                 {...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                className="text-black underline hover:text-action-ghost-hover"
+                className="text-foreground-primary underline hover:text-action-ghost-hover"
             >
                 {match[1]}
             </a>
@@ -49,7 +51,7 @@ function linkifyText(text: string) {
     return parts
 }
 
-export function FAQsPanel({ heading, questions, learnMoreLabel = 'Learn more' }: FAQsProps) {
+export function FAQsPanel({ heading, questions, learnMoreLabel }: FAQsProps) {
     return (
         // drift fix: was near-miss hex — snapped to the page-background token
         <section className="relative overflow-hidden bg-background-page px-4 py-24 text-foreground-primary md:py-32">
@@ -65,38 +67,47 @@ export function FAQsPanel({ heading, questions, learnMoreLabel = 'Learn more' }:
                             key={faq.id}
                             className={`group py-4 ${idx > 0 ? 'border-t-2 border-border-default' : ''}`}
                         >
-                            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-heading-card uppercase md:text-heading-xs [&::-webkit-details-marker]:hidden">
+                            {/* native details/summary, deliberately not the DS
+                                Accordion: radix unmounts closed content, and
+                                these answers must stay in the server HTML for
+                                search on ~700 pages. */}
+                            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-sm text-heading-card uppercase focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid md:text-heading-xs [&::-webkit-details-marker]:hidden">
                                 <span>{faq.question}</span>
-                                <span className="shrink-0 text-heading-m leading-none transition-transform duration-fast group-open:rotate-45">
-                                    +
-                                </span>
+                                <Icon
+                                    name="plus"
+                                    size={20}
+                                    className="shrink-0 transition-transform duration-fast group-open:rotate-45"
+                                />
                             </summary>
                             <div className="mt-4 text-body-l text-foreground-primary">
                                 {faq.answerContent ?? <p className="whitespace-pre-line">{linkifyText(faq.answer)}</p>}
-                                {faq.calModal && (
-                                    <a
+                                {faq.calModal && faq.calLabel && (
+                                    // was an <a> with no href: not focusable and
+                                    // not a link. LinkButton with no href is the
+                                    // DS underlined text action — a real button
+                                    // with the focus ring and a 44px hit area.
+                                    <LinkButton
                                         data-cal-link="kkonrad+hugo0/15min?duration=30"
                                         data-cal-config='{"layout":"month_view"}'
-                                        className="underline"
                                     >
-                                        Let&apos;s talk!
-                                    </a>
+                                        {faq.calLabel}
+                                    </LinkButton>
                                 )}
                                 {faq.redirectUrl && faq.redirectText && (
                                     <a
                                         href={faq.redirectUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-black underline"
+                                        className="text-foreground-primary underline"
                                     >
                                         {faq.redirectText}
                                     </a>
                                 )}
-                                {faq.learnMoreHref && (
+                                {faq.learnMoreHref && learnMoreLabel && (
                                     <p className="mt-4 text-right">
-                                        <a href={faq.learnMoreHref} className={learnMoreClass}>
-                                            {learnMoreLabel} →
-                                        </a>
+                                        <LinkButton href={faq.learnMoreHref} icon>
+                                            {learnMoreLabel}
+                                        </LinkButton>
                                     </p>
                                 )}
                             </div>
