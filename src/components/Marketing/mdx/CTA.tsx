@@ -1,6 +1,6 @@
-import Link from 'next/link'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import PeanutMascot from '@/components/Global/PeanutMascot'
 import { PROSE_WIDTH } from './constants'
 
@@ -20,22 +20,19 @@ interface CTAProps {
  * - card: bordered card with button + subtitle — for final/end-of-page CTAs
  *
  * Special: href="#chat" opens Crisp chat via click interceptor (no navigation).
+ * The interceptor matches on the anchor's href, so every variant has to render
+ * a real anchor — Button link mode and LinkButton both do.
  */
 export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
+    // a hash is not a route: keep next/link from treating "#chat" as one
+    const plainAnchor = href.startsWith('#')
+
     if (variant === 'secondary') {
-        const linkClass =
-            'inline-flex items-center gap-1 font-semibold text-foreground-primary underline decoration-foreground-primary/30 underline-offset-2 hover:decoration-foreground-primary'
         return (
             <div className={`mx-auto ${PROSE_WIDTH} px-6 py-4 md:px-4`}>
-                {href.startsWith('#') ? (
-                    <a href={href} className={linkClass}>
-                        {text} <span aria-hidden="true">&rarr;</span>
-                    </a>
-                ) : (
-                    <Link href={href} className={linkClass}>
-                        {text} <span aria-hidden="true">&rarr;</span>
-                    </Link>
-                )}
+                <LinkButton href={href} icon>
+                    {text}
+                </LinkButton>
             </div>
         )
     }
@@ -50,12 +47,16 @@ export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
                         className="absolute -top-24 left-1/2 -z-0 h-40 w-40 -translate-x-1/2 md:-top-28 md:h-48 md:w-48"
                     />
                     <Card shadowSize="4" className="relative z-10 items-center gap-4 p-6 text-center md:p-10">
-                        <a href={href}>
-                            <Button shadowSize="4" variant="purple" className="w-full px-8 sm:w-auto md:px-12">
-                                {text}
-                            </Button>
-                        </a>
-                        {subtitle && <p className="mt-3 text-sm text-foreground-secondary">{subtitle}</p>}
+                        <Button
+                            href={href}
+                            plainAnchor={plainAnchor}
+                            shadowSize="4"
+                            variant="purple"
+                            className="w-full justify-center px-8 sm:w-auto md:px-12"
+                        >
+                            {text}
+                        </Button>
+                        {subtitle && <p className="mt-3 text-body-s text-foreground-secondary">{subtitle}</p>}
                     </Card>
                 </div>
             </div>
@@ -63,12 +64,16 @@ export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
     }
 
     return (
-        <div className={`mx-auto ${PROSE_WIDTH} px-6 py-8 text-center md:px-4 md:py-12`}>
-            <a href={href}>
-                <Button shadowSize="4" variant="purple" className="w-full px-8 sm:w-auto md:px-12">
-                    {text}
-                </Button>
-            </a>
+        <div className={`mx-auto ${PROSE_WIDTH} px-6 py-8 md:px-4 md:py-12`}>
+            <Button
+                href={href}
+                plainAnchor={plainAnchor}
+                shadowSize="4"
+                variant="purple"
+                className="mx-auto w-full justify-center px-8 sm:w-auto md:px-12"
+            >
+                {text}
+            </Button>
         </div>
     )
 }
