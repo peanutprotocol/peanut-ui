@@ -133,6 +133,7 @@ jest.mock('@/features/withdraw/views/ConfirmWithdrawView', () => ({
         receiveAmount?: string | null
         showHighFeeWarning?: boolean
         belowMinimumMessage?: string | null
+        alreadySpent?: boolean
     }) => (
         <>
             <button data-testid="back-review" onClick={props.onBack}>
@@ -145,6 +146,7 @@ jest.mock('@/features/withdraw/views/ConfirmWithdrawView', () => ({
             <span data-testid="receive-amount">{String(props.receiveAmount)}</span>
             <span data-testid="high-fee-warning">{String(!!props.showHighFeeWarning)}</span>
             <span data-testid="below-minimum">{String(props.belowMinimumMessage)}</span>
+            <span data-testid="already-spent">{String(!!props.alreadySpent)}</span>
         </>
     ),
 }))
@@ -760,6 +762,39 @@ describe('crypto withdraw retry — record-only replay (TASK-19581 double-spend)
         expect(mockSendTransactions).not.toHaveBeenCalled()
         // The record ran twice, both times with the ORIGINAL mined hash.
         expect(mockRecordPayment).toHaveBeenCalledTimes(2)
+        expect(mockRecordPayment).toHaveBeenLastCalledWith(expect.objectContaining({ txHash: '0xmined' }))
+    })
+
+    it('keeps the record-only retry available when the spend emptied the wallet', async () => {
+        // Full-balance withdrawal: the on-chain leg lands, the record fails,
+        // and the balance refresh then makes the original spend look
+        // unaffordable. The CTA gates must step aside or the only recovery
+        // from a stuck PENDING charge is greyed out.
+        mockSendMoney.mockResolvedValue({
+            txHash: undefined,
+            userOpHash: '0xuserop',
+            receipt: { transactionHash: '0xmined', status: 'success' },
+            strategy: 'smart-only',
+            intentId: undefined,
+        })
+        mockRecordPayment.mockRejectedValueOnce(new Error('Request timed out after 30000ms'))
+
+        render(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+        await waitFor(() => expect(mockPosthogCapture).toHaveBeenCalledWith('withdraw_failed', expect.anything()))
+
+        // the funds have left, so the view is told this charge is already spent
+        expect(screen.getByTestId('already-spent').textContent).toBe('true')
+
+        // and the wallet now reads empty against that same spend
+        mockWalletState.spendableBalance = 0n
+        mockIsAmountWithinBalance.mockImplementation(() => false)
+
+        // the replay still runs, with the original mined hash and no re-broadcast
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+        await waitFor(() => expect(mockRecordPayment).toHaveBeenCalledTimes(2))
+        expect(mockSendMoney).toHaveBeenCalledTimes(1)
+        expect(mockSendTransactions).not.toHaveBeenCalled()
         expect(mockRecordPayment).toHaveBeenLastCalledWith(expect.objectContaining({ txHash: '0xmined' }))
     })
 

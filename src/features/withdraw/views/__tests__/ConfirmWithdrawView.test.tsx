@@ -97,6 +97,27 @@ describe('ConfirmWithdrawView — the gates hold on both CTAs', () => {
         expect(onConfirm).not.toHaveBeenCalled()
     })
 
+    it('keeps Retry alive once the funds moved — it only replays the record', () => {
+        // a full-balance withdrawal empties the wallet, so the balance gate
+        // would otherwise disable the only recovery from a failed record
+        const onConfirm = jest.fn()
+        renderWithIntl(
+            <ConfirmWithdrawView
+                {...baseProps}
+                onConfirm={onConfirm}
+                insufficientBalance
+                belowMinimumMessage="The network fee would leave nothing to deliver."
+                alreadySpent
+                error="Could not record the payment"
+            />
+        )
+
+        const retry = screen.getByRole('button', { name: /retry/i })
+        expect(retry).toBeEnabled()
+        fireEvent.click(retry)
+        expect(onConfirm).toHaveBeenCalled()
+    })
+
     it('blocks Retry when the balance cannot cover the spend', () => {
         const onConfirm = jest.fn()
         renderWithIntl(

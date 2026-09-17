@@ -887,6 +887,15 @@ export default function WithdrawCryptoPage() {
         return null
     }, [isCrossChainWithdrawal, payAmount, minDepositLimitUsd, networkFee, quoteAmount, withdrawData])
 
+    // Funds already moved for this charge, so the only thing Retry can still do
+    // is replay the bookkeeping — handleConfirmWithdrawal exempts this state
+    // from re-broadcasting and from the amount and fee checks. The CTA gates
+    // have to step aside too: a full-balance withdrawal leaves the wallet
+    // empty, which would otherwise read as insufficient balance and disable
+    // the only recovery the user has. Reading the ref in render is safe here —
+    // the record failure sets error state, and that is what drives this render.
+    const alreadySpent = !!chargeDetails && executedSpendRef.current?.chargeId === chargeDetails.uuid
+
     // Redirect to main withdraw page for amount input. The push must run in an
     // effect — navigating during render is a React violation ("Cannot update
     // Router while rendering WithdrawCryptoPage") that hard-errors the Next 16
@@ -933,6 +942,7 @@ export default function WithdrawCryptoPage() {
                     showHighFeeWarning={showHighFeeWarning}
                     insufficientBalance={insufficientBalance}
                     belowMinimumMessage={belowMinimumMessage}
+                    alreadySpent={alreadySpent}
                     isFromSendFlow={isFromSendFlow}
                     toNickname={existingSaved?.nickname}
                     confirmDisabled={!existingSaved && saveToBook && !trimmedBookNickname}
