@@ -473,10 +473,10 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 const payloadWithCountry = {
                     ...payload,
                     countryCode: threeLetterCountryCode,
-                    address: {
-                        ...payload.address,
-                        country: threeLetterCountryCode,
-                    },
+                    // Only the corridors that carry a beneficiary address have one.
+                    ...(payload.address && {
+                        address: { ...payload.address, country: threeLetterCountryCode },
+                    }),
                     country: threeLetterCountryCode,
                 }
 

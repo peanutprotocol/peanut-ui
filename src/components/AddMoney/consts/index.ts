@@ -2633,7 +2633,9 @@ export const ALL_COUNTRIES_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
     ...MANTECA_ALPHA3_TO_ALPHA2,
 }
 
-const enabledBankWithdrawCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'])
+// Colombia withdraws to a Colombian bank account; the deposit side opens
+// separately, on the standing-account corridor.
+const enabledBankWithdrawCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR', 'CO'])
 
 // exclude non-euro sepa countries from bank deposits, same as withdrawals
 const enabledBankDepositCountries = new Set([...Object.values(BRIDGE_ALPHA3_TO_ALPHA2), 'US', 'MX', 'AR'])
