@@ -39,6 +39,20 @@ export const MASCOT_ART_BOXES: Record<MascotPose, MascotArtBox> = {
     worried: { x: 280.7, y: 131.9, w: 451.6, h: 816.1 },
 }
 
+/** Static Tailwind forms of each artwork ratio; keep in sync with MASCOT_ART_BOXES. */
+export const MASCOT_ASPECT_CLASSES: Record<MascotPose, string> = {
+    cheering: 'aspect-[849.3/980.8]',
+    pointing: 'aspect-[661.6/816]',
+    'pointing-down': 'aspect-[572.9/817.1]',
+    sad: 'aspect-[567.4/822.6]',
+    thinking: 'aspect-[434.3/814.6]',
+    'too-cool': 'aspect-[545.9/785.4]',
+    walking: 'aspect-[772.3/900.8]',
+    'waving-chill': 'aspect-[1014.1/839.7]',
+    'waving-hello': 'aspect-[831.8/796.8]',
+    worried: 'aspect-[451.6/816.1]',
+}
+
 /** Frames each shown frame is held for. The stutter is the look — do not play smoothly. */
 export const MASCOT_HOLD_FRAMES = 2
 

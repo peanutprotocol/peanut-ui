@@ -4,8 +4,13 @@ import type { AnimationItem } from 'lottie-web'
 import { useEffect, useRef, useState } from 'react'
 import { twMerge } from '@/utils/tw'
 
-import { MASCOT_ANIMATION_LOADERS, MASCOT_ART_BOXES, MASCOT_HOLD_FRAMES, MASCOT_SPEED } from './PeanutMascot.consts'
-import type { MascotPlacement, PeanutMascotProps } from './PeanutMascot.types'
+import {
+    MASCOT_ANIMATION_LOADERS,
+    MASCOT_ASPECT_CLASSES,
+    MASCOT_HOLD_FRAMES,
+    MASCOT_SPEED,
+} from './PeanutMascot.consts'
+import type { PeanutMascotProps } from './PeanutMascot.types'
 import { getMascotPlacement, jitterFrame, subscribeToMascotClock } from './PeanutMascot.utils'
 
 export default function PeanutMascot({ pose, className, alt, loop = true }: PeanutMascotProps) {
@@ -15,7 +20,6 @@ export default function PeanutMascot({ pose, className, alt, loop = true }: Pean
     // not restart it — and a loop={false} one-shot must not replay on every re-entry.
     const virtualFrame = useRef(0)
     const [animation, setAnimation] = useState<AnimationItem | null>(null)
-    const [placement, setPlacement] = useState<MascotPlacement | null>(null)
     const [isVisible, setIsVisible] = useState(true)
     const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
 
@@ -58,8 +62,15 @@ export default function PeanutMascot({ pose, className, alt, loop = true }: Pean
     // renders each pose at a different apparent size in the same box.
     useEffect(() => {
         const host = hostRef.current
-        if (!host) return
-        const measure = () => setPlacement(getMascotPlacement(pose, host.clientWidth, host.clientHeight))
+        const stage = stageRef.current
+        if (!host || !stage) return
+        const measure = () => {
+            const placement = getMascotPlacement(pose, host.clientWidth, host.clientHeight)
+            stage.style.width = `${placement.width}px`
+            stage.style.height = `${placement.height}px`
+            stage.style.left = `${placement.left}px`
+            stage.style.top = `${placement.top}px`
+        }
         measure()
         const observer = new ResizeObserver(measure)
         observer.observe(host)
@@ -115,17 +126,14 @@ export default function PeanutMascot({ pose, className, alt, loop = true }: Pean
         return () => stop()
     }, [animation, isVisible, loop, prefersReducedMotion])
 
-    const art = MASCOT_ART_BOXES[pose]
-
     return (
         <div
             ref={hostRef}
-            className={twMerge('relative overflow-hidden', className)}
+            className={twMerge('relative overflow-hidden', MASCOT_ASPECT_CLASSES[pose], className)}
             // The artwork's own aspect, so a call site can give a height alone and get a box
             // the pose actually fits — every pose then renders at that height instead of the
             // wide ones coming out short. Ignored when the classes make both dimensions
             // definite, so square boxes are unaffected.
-            style={{ aspectRatio: art.w / art.h }}
             role={alt ? 'img' : undefined}
             aria-label={alt || undefined}
             aria-hidden={alt ? undefined : true}
@@ -133,7 +141,7 @@ export default function PeanutMascot({ pose, className, alt, loop = true }: Pean
             data-lottie-ready={animation ? 'true' : 'false'}
             data-lottie-running={animation && isVisible && !prefersReducedMotion ? 'true' : 'false'}
         >
-            <div ref={stageRef} className="pointer-events-none absolute" style={placement ?? { width: 0, height: 0 }} />
+            <div ref={stageRef} className="pointer-events-none absolute size-0" />
         </div>
     )
 }

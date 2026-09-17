@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
+import { BaseSelect } from '@/components/0_Bruddle/BaseSelect'
 import { Card } from '@/components/0_Bruddle/Card'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { Notification } from '@/components/0_Bruddle/Notification'
@@ -153,18 +154,15 @@ export default function LottieProfilePage() {
 
             <Section title="Scenario">
                 <Card className="gap-4 p-4">
-                    <label className="flex flex-col gap-1 text-label-m">
-                        Pose
-                        <select
+                    <div className="flex flex-col gap-1 text-label-m">
+                        <span>Pose</span>
+                        <BaseSelect
+                            aria-label="Pose"
                             value={pose}
-                            onChange={(event) => setPose(event.target.value as MascotPose)}
-                            className="h-11 rounded-sm border border-border-default bg-background-default px-3 text-body-m"
-                        >
-                            {POSES.map((value) => (
-                                <option key={value}>{value}</option>
-                            ))}
-                        </select>
-                    </label>
+                            onValueChange={(value) => setPose(value as MascotPose)}
+                            options={POSES.map((value) => ({ label: value, value }))}
+                        />
+                    </div>
                     <div className="flex flex-wrap gap-2">
                         {([1, 3, 10] as const).map((count) => (
                             <Button

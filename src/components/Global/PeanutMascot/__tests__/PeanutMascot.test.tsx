@@ -6,6 +6,7 @@
 import PeanutMascot from '@/components/Global/PeanutMascot'
 import {
     MASCOT_ART_BOXES,
+    MASCOT_ASPECT_CLASSES,
     MASCOT_ART_FILL,
     MASCOT_CANVAS_HEIGHT,
     MASCOT_CANVAS_WIDTH,
@@ -192,8 +193,7 @@ describe('mascot sizing', () => {
 
         await waitFor(() => expect(mockLoadAnimation).toHaveBeenCalled())
         const host = container.firstElementChild as HTMLElement
-        const art = MASCOT_ART_BOXES['waving-chill']
-        expect(parseFloat(host.style.aspectRatio)).toBeCloseTo(art.w / art.h, 6)
+        expect(host).toHaveClass(MASCOT_ASPECT_CLASSES['waving-chill'])
     })
 
     // The reason the aspect above exists: the poses are 0.55 to 1.21 wide-to-tall, so a
