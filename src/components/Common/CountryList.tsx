@@ -62,6 +62,11 @@ interface CountryListViewProps {
      * field of its own and filters on what it is given.
      */
     searchTerm?: string
+    /**
+     * The list continues a card the caller opened above it, so its first row
+     * keeps the square top edge that joins the two into one card.
+     */
+    continuesGroup?: boolean
 }
 
 /**
@@ -89,6 +94,7 @@ export const CountryList = ({
     showLoadingState = true, // true by default to show loading state when clicking a country
     isCountrySupported,
     searchTerm: controlledSearchTerm,
+    continuesGroup = false,
 }: CountryListViewProps) => {
     const t = useTranslations('global')
     const locale = useLocale()
@@ -203,7 +209,11 @@ export const CountryList = ({
                         filteredCountries.map((country, index) => {
                             const twoLetterCountryCode =
                                 ALL_COUNTRIES_ALPHA3_TO_ALPHA2[country.id.toUpperCase()] ?? country.id.toLowerCase()
-                            const position = getCardPosition(index, filteredCountries.length)
+                            const position = continuesGroup
+                                ? index === filteredCountries.length - 1
+                                    ? 'last'
+                                    : 'middle'
+                                : getCardPosition(index, filteredCountries.length)
                             const displayName = countryName(country)
 
                             const isBridgeSupportedCountryResult = isBridgeSupportedCountry(country.id)

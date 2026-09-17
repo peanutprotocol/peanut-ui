@@ -136,3 +136,34 @@ describe('CountryList — which country comes first', () => {
         expect(firstCountry()).toContain('United States')
     })
 })
+
+/**
+ * The add-money hub opens this list inside a card whose first row is the "Other
+ * countries" toggle. The rows have to continue that card rather than open a
+ * second one under it — a rounded top edge mid-card reads as a broken row.
+ */
+describe('CountryList — continuing a card the caller opened', () => {
+    const renderList = (continuesGroup: boolean) =>
+        render(
+            <CountryList
+                viewMode="add-withdraw"
+                flow="add"
+                searchTerm="germany"
+                continuesGroup={continuesGroup}
+                onCountryClick={jest.fn()}
+            />
+        )
+
+    it('squares the first row off, and renders no search field of its own', () => {
+        renderList(true)
+
+        expect(screen.getAllByRole('button')[0]).not.toHaveClass('rounded-t-sm')
+        expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+    })
+
+    it('rounds it as a card of its own otherwise', () => {
+        renderList(false)
+
+        expect(screen.getAllByRole('button')[0]).toHaveClass('rounded-sm')
+    })
+})
