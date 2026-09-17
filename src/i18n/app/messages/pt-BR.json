@@ -2322,7 +2322,7 @@
         "toastMultiple": "Você desbloqueou {count, plural, one {# selo} other {# selos}}",
         "toastTapToView": "Toque para ver",
         "unlock": {
-            "invites": "Convide {target, plural, one {# amigo} other {# amigos}} que entrem no Peanut.",
+            "invites": "Convide {target, plural, one {# amigo que entre no Peanut} other {# amigos que entrem no Peanut}}.",
             "rewards": "Ganhe US$ {targetUsd} em recompensas.",
             "identityVerification": "Conclua a verificação de identidade.",
             "cardPurchase": "Faça sua primeira compra com o cartão Peanut.",

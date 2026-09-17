@@ -2322,7 +2322,7 @@
         "toastMultiple": "You unlocked {count, plural, one {# badge} other {# badges}}",
         "toastTapToView": "Tap to view",
         "unlock": {
-            "invites": "Invite {target, plural, one {# friend} other {# friends}} who join Peanut.",
+            "invites": "Invite {target, plural, one {# friend who joins Peanut} other {# friends who join Peanut}}.",
             "rewards": "Earn ${targetUsd} in rewards.",
             "identityVerification": "Complete identity verification.",
             "cardPurchase": "Make your first purchase with the Peanut Card.",

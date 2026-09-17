@@ -2322,7 +2322,7 @@
         "toastMultiple": "¡Desbloqueaste {count, plural, one {# insignia} other {# insignias}}!",
         "toastTapToView": "Toca para ver",
         "unlock": {
-            "invites": "Invita a {target, plural, one {# amigo} other {# amigos}} que se unan a Peanut.",
+            "invites": "Invita a {target, plural, one {# amigo que se una a Peanut} other {# amigos que se unan a Peanut}}.",
             "rewards": "Gana ${targetUsd} en recompensas.",
             "identityVerification": "Completa la verificación de identidad.",
             "cardPurchase": "Haz tu primera compra con la tarjeta Peanut.",
