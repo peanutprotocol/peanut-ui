@@ -1004,7 +1004,7 @@
             "exchangeOrWalletDescription": "Binance, Metamask e mais"
         },
         "contacts": {
-            "searchPlaceholder": "Digite o usuário exato ou busque contatos...",
+            "searchPlaceholder": "Destinatário",
             "searchLabel": "Usuário do Peanut ou contato",
             "exactUsername": "Usuário exato",
             "usernameFound": "@{username} encontrado",
