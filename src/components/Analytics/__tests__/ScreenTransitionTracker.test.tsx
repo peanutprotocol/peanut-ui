@@ -165,4 +165,31 @@ describe('ScreenTransitionTracker', () => {
             jest.useRealTimers()
         }
     })
+
+    it('expires an unmatched button intent before an unrelated automatic transition', () => {
+        jest.useFakeTimers()
+
+        try {
+            const { rerender } = render(
+                <>
+                    <ScreenTransitionTracker />
+                    <button>Open local control</button>
+                </>
+            )
+
+            fireEvent.click(screen.getByRole('button', { name: 'Open local control' }))
+            jest.advanceTimersByTime(1_001)
+            window.history.pushState({}, '', '/rewards')
+            pathname = '/rewards'
+            rerender(<ScreenTransitionTracker />)
+            jest.advanceTimersByTime(100)
+
+            expect(capture).toHaveBeenCalledWith(
+                'screen_transition_completed',
+                expect.objectContaining({ from_screen: '/home', to_screen: '/rewards', trigger: 'programmatic' })
+            )
+        } finally {
+            jest.useRealTimers()
+        }
+    })
 })

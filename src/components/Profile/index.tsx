@@ -31,6 +31,11 @@ const StoreUpdateModal = dynamic(() => import('./components/StoreUpdateModal'), 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
     const [isInviteFriendsDrawerOpen, setIsInviteFriendsDrawerOpen] = useState(false)
+    const [isInviteFriendsDrawerMounted, setIsInviteFriendsDrawerMounted] = useState(false)
+    const openInviteFriendsDrawer = () => {
+        setIsInviteFriendsDrawerMounted(true)
+        setIsInviteFriendsDrawerOpen(true)
+    }
     // URL state so the badge-earned toast can deep-link straight into the picker
     const [avatarPickerOpen, setAvatarPickerOpen] = useQueryState(AVATAR_PICKER_PARAM, avatarPickerParser)
     // Once mounted, keep the picker alive while its drawer is closed. Its save
@@ -118,7 +123,7 @@ export const Profile = () => {
                         <ProfileMenuItem
                             icon="smile"
                             label={t('menu.inviteFriends')}
-                            onClick={() => setIsInviteFriendsDrawerOpen(true)}
+                            onClick={openInviteFriendsDrawer}
                             href="/dummy" // Dummy link, wont be called
                         />
                         <ProfileMenuItem icon="achievements" label={t('menu.yourBadges')} href="/badges" />
@@ -181,9 +186,11 @@ export const Profile = () => {
                 </div>
             </div>
 
-            {isInviteFriendsDrawerOpen && (
+            {/* Load on first use, then retain the controlled root so visible=false
+                can run Vaul's close transition before the page unmounts. */}
+            {isInviteFriendsDrawerMounted && (
                 <InviteFriendsDrawer
-                    visible
+                    visible={isInviteFriendsDrawerOpen}
                     onClose={() => setIsInviteFriendsDrawerOpen(false)}
                     username={user?.user.username ?? ''}
                     source="profile"

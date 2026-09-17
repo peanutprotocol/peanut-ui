@@ -17,6 +17,10 @@ interface PendingTransition {
 }
 
 const LINK_TRANSITION_TIMEOUT_MS = 10_000
+// Button clicks do not reveal their destination until router.push mutates
+// history. Keep that handoff deliberately short so a local-only interaction
+// cannot become the start of an unrelated automatic navigation much later.
+const INTERACTION_HANDOFF_TIMEOUT_MS = 1_000
 
 const now = () => globalThis.performance?.now?.() ?? Date.now()
 
@@ -56,6 +60,7 @@ export function ScreenTransitionTracker() {
     const pendingRef = useRef<PendingTransition | null>(null)
     const interactionRef = useRef<{ fromScreen: string; startedAt: number } | null>(null)
     const pendingExpiryRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const interactionExpiryRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     useEffect(() => {
         const clearPendingExpiry = () => {
@@ -65,17 +70,26 @@ export function ScreenTransitionTracker() {
             }
         }
 
+        const clearInteraction = () => {
+            if (interactionExpiryRef.current !== null) {
+                clearTimeout(interactionExpiryRef.current)
+                interactionExpiryRef.current = null
+            }
+            interactionRef.current = null
+        }
+
         const begin = (toScreen: string | null, trigger: TransitionTrigger): PendingTransition | null => {
             const fromScreen = screenTemplate(window.location.pathname, window.location.search)
+            const interaction = trigger === 'programmatic' ? interactionRef.current : null
+            clearInteraction()
             if (!toScreen || toScreen === fromScreen) return null
 
             // A link/pointer start is earlier and more representative than the
             // History API call Next makes later for the same transition.
             const pending = pendingRef.current
             if (pending?.fromScreen === fromScreen && pending.toScreen === toScreen) return pending
-            const interaction = trigger === 'programmatic' ? interactionRef.current : null
             const usesRecentInteraction =
-                interaction?.fromScreen === fromScreen && now() - interaction.startedAt < 15_000
+                interaction?.fromScreen === fromScreen && now() - interaction.startedAt < INTERACTION_HANDOFF_TIMEOUT_MS
             clearPendingExpiry()
             const nextPending: PendingTransition = {
                 fromScreen,
@@ -84,7 +98,6 @@ export function ScreenTransitionTracker() {
                 trigger: usesRecentInteraction ? 'interaction' : trigger,
             }
             pendingRef.current = nextPending
-            interactionRef.current = null
 
             // A link can be canceled or fail to navigate without ever
             // mutating history. Next.js Link also calls preventDefault() for a
@@ -123,10 +136,15 @@ export function ScreenTransitionTracker() {
             // interaction start and attach its destination when pushState runs.
             const actionable = event.target instanceof Element ? event.target.closest('button,[role="button"]') : null
             if (actionable) {
+                clearInteraction()
                 interactionRef.current = {
                     fromScreen: screenTemplate(window.location.pathname, window.location.search),
                     startedAt: now(),
                 }
+                interactionExpiryRef.current = setTimeout(() => {
+                    interactionRef.current = null
+                    interactionExpiryRef.current = null
+                }, INTERACTION_HANDOFF_TIMEOUT_MS)
             }
         }
 
@@ -158,6 +176,7 @@ export function ScreenTransitionTracker() {
             window.history.pushState = originalPushState
             window.history.replaceState = originalReplaceState
             clearPendingExpiry()
+            clearInteraction()
         }
     }, [])
 

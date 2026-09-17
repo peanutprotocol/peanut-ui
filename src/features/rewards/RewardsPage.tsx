@@ -23,6 +23,7 @@ import { profileUrl } from '@/utils/native-routes'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
+import { useState } from 'react'
 import { useRewardsFlow } from './useRewardsFlow'
 import { getTierBadge, getTierProgressPercent } from './utils'
 
@@ -33,6 +34,7 @@ export function RewardsPage() {
     const t = useAppTranslations('rewards')
     const router = useRouter()
     const onBack = useSafeBack('/home')
+    const [isInviteDrawerMounted, setIsInviteDrawerMounted] = useState(false)
 
     const {
         user,
@@ -52,6 +54,10 @@ export function RewardsPage() {
         cashStatus,
         animatedTotal,
     } = useRewardsFlow()
+    const openInviteDrawer = () => {
+        setIsInviteDrawerMounted(true)
+        setIsInviteModalOpen(true)
+    }
 
     // Tier data owns the hero and is the only request that blocks first content.
     // Invite rows, cash totals and the graph settle independently below.
@@ -112,12 +118,7 @@ export function RewardsPage() {
                             )
                         })()}
 
-                    <Button
-                        variant="purple"
-                        shadowSize="4"
-                        onClick={() => setIsInviteModalOpen(true)}
-                        className="w-full"
-                    >
+                    <Button variant="purple" shadowSize="4" onClick={openInviteDrawer} className="w-full">
                         {t('inviteNow')}
                     </Button>
 
@@ -320,7 +321,7 @@ export function RewardsPage() {
                                     shadowSize="4"
                                     size="small"
                                     className="mt-2"
-                                    onClick={() => setIsInviteModalOpen(true)}
+                                    onClick={openInviteDrawer}
                                 >
                                     {t('shareInviteLink')}
                                 </Button>
@@ -330,9 +331,11 @@ export function RewardsPage() {
                 )}
 
                 {/* Invite Modal */}
-                {isInviteModalOpen && (
+                {/* Load on first use, then keep the controlled root mounted so
+                    visible=false can animate the drawer closed. */}
+                {isInviteDrawerMounted && (
                     <InviteFriendsDrawer
-                        visible
+                        visible={isInviteModalOpen}
                         onClose={() => setIsInviteModalOpen(false)}
                         username={username ?? ''}
                         source="points_page"
