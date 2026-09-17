@@ -21,8 +21,14 @@ export default function CalendarPage() {
 
             <DocSection title="Range selection">
                 <DocSection.Content>
-                    <div className="max-w-[343px]">
+                    <div className="flex max-w-[343px] flex-col gap-4">
                         <Calendar selected={range} onSelect={setRange} />
+                        <ul className="flex flex-col gap-1 text-body-xs text-foreground-secondary">
+                            <li>Tap: first tap sets the start, second sets the end, in either order.</li>
+                            <li>A tap on a finished range starts a new one. Tapping a single-day range clears it.</li>
+                            <li>Drag: press a day and slide; the range follows the finger and commits on release.</li>
+                            <li>Haptics: heavy on press and on the release of a drag, light per day crossed.</li>
+                        </ul>
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
@@ -30,6 +36,8 @@ export default function CalendarPage() {
                         label="Calendar"
                         code={`import { Calendar } from '@/components/0_Bruddle/Calendar'
 
+// selected is controlled; onSelect only receives committed ranges —
+// a drag in progress previews inside the calendar and reports on release
 <Calendar selected={range} onSelect={setRange} />`}
                     />
                 </DocSection.Code>
