@@ -1,5 +1,6 @@
 import { type IconName } from '@/components/Global/Icons/Icon'
-import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { IconBubble, type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
+import { type StatusType } from '@/components/Global/Badges/StatusBadge'
 import AvatarWithBadge, { type AvatarSize } from '@/components/Profile/AvatarWithBadge'
 import { UserAvatar } from '@/components/Avatar/UserAvatar'
 import { type TransactionType } from '@/components/TransactionDetails/transaction-types'
@@ -13,6 +14,21 @@ import {
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import React from 'react'
 import { isAddress } from 'viem'
+
+/**
+ * link rows (claim links and request links) show the LINK'S STATE, not a fixed
+ * icon — the bubble IS the status. bank rows (flags) and person rows (avatars)
+ * are out of scope and keep their own treatment. a status with no ruled bubble
+ * falls back to the row's previous icon.
+ */
+export const LINK_STATE_BUBBLES: Partial<Record<StatusType, { icon: IconName; color: IconBubbleColor }>> = {
+    pending: { icon: 'clock', color: 'gray' },
+    processing: { icon: 'clock', color: 'gray' },
+    completed: { icon: 'check', color: 'green' },
+    cancelled: { icon: 'ban', color: 'gray' },
+    refunded: { icon: 'ban', color: 'gray' },
+    failed: { icon: 'alert', color: 'red' },
+}
 
 interface TransactionAvatarBadgeProps {
     size?: AvatarSize
@@ -48,6 +64,11 @@ interface TransactionAvatarBadgeProps {
      * initials and is not an address, so nothing else here would catch it.
      */
     isPeer?: boolean
+    /**
+     * The row's transaction status. Read on link rows only, where it picks the
+     * bubble (LINK_STATE_BUBBLES). Omit and those rows keep their fixed icon.
+     */
+    status?: StatusType
 }
 
 /**
@@ -65,6 +86,7 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
     avatarKey,
     avatarName,
     isPeer,
+    status,
 }) => {
     let displayIconName: IconName | undefined = undefined
     let displayInitials: string | undefined = initials
@@ -77,13 +99,26 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
     // determine if the userName represents a user (not address or specific strings)
     const isValidUser = userName ? !isAddress(userName) : false
 
+    const bubbleSize = ({ tiny: 'xs', 'extra-small': 's', small: 'm', medium: 'm', large: 'l' } as const)[size]
+
+    // Claim links and request links are the link rows: every one of them shows
+    // the link's own state. A request always qualifies — with a link it is a
+    // request link, without one it is the counterparty-less request row.
+    const isLinkRow =
+        transactionType === 'request' ||
+        ((transactionType === 'send' || transactionType === 'receive') && isLinkTransaction)
+    const stateBubble = isLinkRow && status ? LINK_STATE_BUBBLES[status] : undefined
+    if (stateBubble) {
+        return <IconBubble icon={stateBubble.icon} size={bubbleSize} color={stateBubble.color} />
+    }
+
     // An unfulfilled request has no counterparty — its display name is the
     // literal "Request", which used to render as an "RE" initials avatar and
     // read like a contact. Per designer QA it is an IconBubble with the
     // transaction-type icon (arrow-down-left, same as the row's action icon).
-    // Link-requests keep the link treatment below.
+    // This is now the fallback for a row whose status has no ruled bubble; a
+    // statused row took the state branch above.
     if (transactionType === 'request' && !isLinkTransaction) {
-        const bubbleSize = ({ tiny: 'xs', 'extra-small': 's', small: 'm', medium: 'm', large: 'l' } as const)[size]
         return <IconBubble icon="arrow-down-left" size={bubbleSize} color="green" />
     }
 

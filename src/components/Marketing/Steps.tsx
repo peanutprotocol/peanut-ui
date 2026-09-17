@@ -14,8 +14,8 @@ export function Steps({ steps }: StepsProps) {
                             {i + 1}
                         </span>
                         <div>
-                            <h3 className="font-bold">{step.title}</h3>
-                            <p className="mt-1 text-sm text-foreground-primary/70">{step.description}</p>
+                            <h3 className="text-heading-card">{step.title}</h3>
+                            <p className="mt-1 text-body-s text-foreground-secondary">{step.description}</p>
                         </div>
                     </Card>
                 </li>

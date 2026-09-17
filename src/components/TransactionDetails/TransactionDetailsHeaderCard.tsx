@@ -309,6 +309,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                             isPeer={isPeer}
                             isLinkTransaction={isLinkTransaction}
                             transactionType={typeForAvatar}
+                            status={status}
                             context="header"
                             size="small"
                             countryCode={countryCode}

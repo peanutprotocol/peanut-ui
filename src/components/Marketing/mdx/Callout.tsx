@@ -1,28 +1,42 @@
 import type { ReactNode } from 'react'
-import { Card } from '@/components/0_Bruddle/Card'
-import { PROSE_WIDTH } from './constants'
+import { Notification } from '@/components/0_Bruddle/Notification'
+import { getTranslations } from '@/i18n'
+import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
+import { PROSE_WIDTH } from '../constants'
+
+type CalloutType = 'info' | 'tip' | 'warning'
 
 interface CalloutProps {
-    type?: 'info' | 'tip' | 'warning'
+    type?: CalloutType
+    /** Injected by createMdxComponents — never authored in MDX. */
+    locale?: Locale
     children: ReactNode
 }
 
-const STYLES: Record<string, { bg: string; border: string; label: string }> = {
-    info: { bg: 'bg-purple-200/20', border: 'border-purple-200', label: 'Info' },
-    tip: { bg: 'bg-green-200', border: 'border-green-400', label: 'Tip' },
-    warning: { bg: 'bg-yellow-200', border: 'border-yellow-400', label: 'Important' },
-}
+const PRIORITIES = {
+    info: 'info',
+    tip: 'success',
+    warning: 'attention',
+} as const
 
-/** Highlighted callout box for tips, warnings, or important info. */
-export function Callout({ type = 'info', children }: CalloutProps) {
-    const style = STYLES[type] ?? STYLES.info
+/**
+ * Highlighted callout for tips, warnings, or important info — the DS
+ * Notification banner. It used to be a hand-rolled tinted box with its own
+ * purple/green/yellow fills and a left rail; the tone belongs to the component.
+ */
+export function Callout({ type = 'info', locale = DEFAULT_LOCALE, children }: CalloutProps) {
+    const t = getTranslations(locale)
+    const labels: Record<CalloutType, string> = {
+        info: t.calloutInfo,
+        tip: t.calloutTip,
+        warning: t.calloutImportant,
+    }
 
     return (
-        <div className={`mx-auto ${PROSE_WIDTH} px-6 md:px-4`}>
-            <Card className={`${style.bg} border-l-4 ${style.border} my-8 p-6`}>
-                <p className="mb-1 text-label-m tracking-wide text-foreground-primary/40 uppercase">{style.label}</p>
-                <div className="text-body-s text-foreground-secondary">{children}</div>
-            </Card>
+        <div className={`mx-auto my-8 ${PROSE_WIDTH} px-6 md:px-4`}>
+            <Notification priority={PRIORITIES[type] ?? 'info'} title={labels[type] ?? labels.info}>
+                {children}
+            </Notification>
         </div>
     )
 }

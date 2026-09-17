@@ -26,6 +26,8 @@ const FIXTURE = 'profile-edit'
 
 const FROZEN_NOW = new Date('2026-08-15T12:00:00.000Z')
 
+const APP_PAGE_SURFACES = new Set(['82-f-choice-card-requires-info', '84-f-choice-public-profile-guest'])
+
 // Two one-time modals are mounted globally and open themselves on a first
 // visit — the high-balance warning and the "You're unlocked" celebration. Left
 // alone they photograph themselves on top of whatever surface is under test.
@@ -116,6 +118,26 @@ for (const [id, surface] of Object.entries(SURFACE_META)) {
                 return offscreen || img.complete
             })
         )
+
+        // The dev gallery is edge-to-edge for overlays, but app-page surfaces
+        // must retain the same 16px horizontal content inset as AppShell. This
+        // catches a bare `w-full` page before the library publishes it as if it
+        // were a real product render.
+        if (APP_PAGE_SURFACES.has(id)) {
+            const content = page.getByTestId('app-page-surface-content')
+            await expect(content).toBeVisible()
+            const frame = await content.evaluate((element) => {
+                const box = element.getBoundingClientRect()
+                return {
+                    left: Math.round(box.left),
+                    right: Math.round(window.innerWidth - box.right),
+                    height: Math.round(box.height),
+                    viewportHeight: window.innerHeight,
+                }
+            })
+            expect(frame).toMatchObject({ left: 16, right: 16 })
+            expect(frame.height).toBe(frame.viewportHeight)
+        }
 
         // Measure the head-to-next gap rather than trusting the class list: a
         // margin that collapses, or a parent gap stacking on top of it, is

@@ -67,6 +67,7 @@ export function useContributePotFlow() {
         address: walletAddress,
         sendMoney,
         formattedSpendableBalance,
+        spendableBalanceDecimal,
         hasSufficientSpendableBalance: hasSufficientBalance,
         isFetchingSpendableBalance,
     } = useWallet()
@@ -284,6 +285,7 @@ export function useContributePotFlow() {
         isConnected,
         walletAddress,
         formattedBalance: formattedSpendableBalance,
+        balanceFillAmount: spendableBalanceDecimal,
 
         // actions
         setAmount: handleSetAmount,

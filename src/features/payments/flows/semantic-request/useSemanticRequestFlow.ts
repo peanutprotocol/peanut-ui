@@ -91,6 +91,7 @@ export function useSemanticRequestFlow() {
         sendMoney,
         sendTransactions,
         formattedSpendableBalance,
+        spendableBalanceDecimal,
         hasSufficientSpendableBalance: hasSufficientBalance,
         isFetchingSpendableBalance,
     } = useWallet()
@@ -673,6 +674,7 @@ export function useSemanticRequestFlow() {
         isLoggedIn,
         walletAddress,
         formattedBalance: formattedSpendableBalance,
+        balanceFillAmount: spendableBalanceDecimal,
         isXChain,
         isDiffToken,
         needsRoute,

@@ -245,22 +245,25 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                                 </div>
                             </div>
                         ) : isError && !showExactUsername ? (
-                            <EmptyState
-                                title={t('contacts.errorTitle')}
-                                icon="alert"
-                                description={t('contacts.errorDescription')}
-                                cta={
-                                    <Button
-                                        shadowSize="4"
-                                        onClick={() => refetch()}
-                                        className="mt-4"
-                                        icon="retry"
-                                        iconSize={12}
-                                    >
-                                        {tCommon('retry')}
-                                    </Button>
-                                }
-                            />
+                            <div className="flex flex-1 items-center justify-center">
+                                <EmptyState
+                                    containerClassName="w-full"
+                                    title={t('contacts.errorTitle')}
+                                    icon="alert"
+                                    description={t('contacts.errorDescription')}
+                                    cta={
+                                        <Button
+                                            shadowSize="4"
+                                            onClick={() => refetch()}
+                                            className="mt-4"
+                                            icon="retry"
+                                            iconSize={12}
+                                        >
+                                            {tCommon('retry')}
+                                        </Button>
+                                    }
+                                />
+                            </div>
                         ) : isSearching && !showExactUsername && hasDefinitiveSearchMiss ? (
                             <EmptyState
                                 title={t('contacts.noResultsTitle')}
@@ -268,22 +271,25 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                                 description={t('contacts.noResultsDescription')}
                             />
                         ) : !isSearching && !showExactUsername ? (
-                            <EmptyState
-                                title={t('contacts.emptyTitle')}
-                                icon="trophy"
-                                description={t('contacts.emptyDescription')}
-                                cta={
-                                    <Button
-                                        shadowSize="4"
-                                        icon="link"
-                                        iconSize={10}
-                                        onClick={handleLinkCtaClick}
-                                        className="mt-4"
-                                    >
-                                        {t('linkCard.cta')}
-                                    </Button>
-                                }
-                            />
+                            <div className="flex flex-1 items-center justify-center">
+                                <EmptyState
+                                    containerClassName="w-full"
+                                    title={t('contacts.emptyTitle')}
+                                    icon="trophy"
+                                    description={t('contacts.emptyDescription')}
+                                    cta={
+                                        <Button
+                                            shadowSize="4"
+                                            icon="link"
+                                            iconSize={10}
+                                            onClick={handleLinkCtaClick}
+                                            className="mt-4"
+                                        >
+                                            {t('linkCard.cta')}
+                                        </Button>
+                                    }
+                                />
+                            </div>
                         ) : null}
                     </>
                 )}

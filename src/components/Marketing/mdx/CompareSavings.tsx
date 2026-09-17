@@ -1,8 +1,19 @@
 'use client'
 
 import { useExchangeRate } from '@/hooks/useExchangeRate'
-import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
-import { PROSE_WIDTH } from './constants'
+import { t } from '@/i18n/interpolate'
+import { DEFAULT_LOCALE, type Locale, type Translations } from '@/i18n/types'
+import { PROSE_LINK, PROSE_WIDTH } from '../constants'
+
+/**
+ * Only the keys this component renders. The whole catalog would cross the
+ * server/client boundary on every compare page, and `@/i18n` pulls all four
+ * catalogs into the client bundle — hence `strings` rather than a lookup here.
+ */
+type CompareSavingsStrings = Pick<
+    Translations,
+    'compareSavingsLive' | 'compareSavingsStatic' | 'compareSavingsUnverified' | 'compareSavingsSource'
+>
 
 interface CompareSavingsProps {
     /** Competitor name as it should read in the sentence, e.g. "Wise". */
@@ -25,6 +36,8 @@ interface CompareSavingsProps {
     sourceUrl?: string
     /** Injected by createMdxComponents — never authored in MDX. */
     locale?: Locale
+    /** Injected by createMdxComponents — never authored in MDX. */
+    strings: CompareSavingsStrings
 }
 
 const MAX_PLAUSIBLE_PCT = 50
@@ -38,10 +51,16 @@ interface Claim {
 }
 
 /**
- * MDX props are string literals — `mdx-security` rejects any expression prop —
- * so every value arrives as text and has to be proven here.
+ * MDX props are authored by hand and arrive as runtime data, so nothing here
+ * can be trusted to match CompareSavingsProps.
  */
 function parseClaim({ markupPct, verifiedAt, baseAmount }: CompareSavingsProps): Claim | null {
+    // A prop can be omitted outright, and mdx-security admits inert literals
+    // such as markupPct={1} — either one reaches a string method as a non
+    // string and throws, which fails the whole static build. A throw is worse
+    // than the wrong claim this function exists to catch, so prove the type
+    // before touching it.
+    if (typeof markupPct !== 'string' || typeof verifiedAt !== 'string') return null
     // A leading minus would split into an empty first part, and Number('') is
     // 0 — so "-2" would quietly publish as the range "0–2".
     if (/^\s*[-–—]/.test(markupPct)) return null
@@ -89,7 +108,7 @@ const formatRange = (min: number, max: number): string =>
  *     currency="ARS" sourceUrl="https://wise.com/pricing/" />
  */
 export function CompareSavings(props: CompareSavingsProps) {
-    const { competitor, markupPct, verifiedAt, currency = 'ARS', sourceUrl, locale = DEFAULT_LOCALE } = props
+    const { competitor, verifiedAt, currency = 'ARS', sourceUrl, strings, locale = DEFAULT_LOCALE } = props
     const claim = parseClaim(props)
 
     const { exchangeRate } = useExchangeRate({
@@ -113,24 +132,24 @@ export function CompareSavings(props: CompareSavingsProps) {
     const source = sourceUrl ? (
         <>
             {' '}
-            <a
-                href={sourceUrl}
-                rel="nofollow noopener"
-                className="underline decoration-foreground-primary/30 underline-offset-2"
-            >
-                Source
+            <a href={sourceUrl} rel="nofollow noopener" className={PROSE_LINK}>
+                {strings.compareSavingsSource}
             </a>
             .
         </>
     ) : null
 
-    // Degraded lane: the claim itself did not parse, so state it without doing
-    // arithmetic on numbers we could not validate.
+    // Degraded lane: the claim itself did not parse. The rejected markupPct is
+    // deliberately absent — repeating it here would publish the exact claim the
+    // guard above refused ("-2%", "lots%").
     if (!claim) {
+        // no fee we can trust and no date to anchor it: there is nothing
+        // truthful left to say, so say nothing.
+        if (typeof verifiedAt !== 'string') return null
         return (
             <Frame>
-                As of {verifiedLabel}, {competitor} charges around {markupPct}% to convert your money. Peanut&apos;s
-                rate is live and indicative.{source}
+                {t(strings.compareSavingsUnverified, { competitor, date: verifiedLabel })}
+                {source}
             </Frame>
         )
     }
@@ -145,8 +164,13 @@ export function CompareSavings(props: CompareSavingsProps) {
     if (!(exchangeRate > 0)) {
         return (
             <Frame>
-                As of {verifiedLabel}, {competitor} charges {rangeLabel}% to convert your money — up to about{' '}
-                {usd(worstCaseUsd)} on a {usd(claim.baseAmount)} transfer. Peanut&apos;s rate is live and indicative.
+                {t(strings.compareSavingsStatic, {
+                    date: verifiedLabel,
+                    competitor,
+                    range: rangeLabel,
+                    worstCase: usd(worstCaseUsd),
+                    base: usd(claim.baseAmount),
+                })}
                 {source}
             </Frame>
         )
@@ -154,10 +178,16 @@ export function CompareSavings(props: CompareSavingsProps) {
 
     return (
         <Frame>
-            {usd(claim.baseAmount)} with Peanut is about {local(claim.baseAmount * exchangeRate)} today. {competitor}
-            &apos;s {rangeLabel}% conversion fee costs you up to about {usd(worstCaseUsd)} (
-            {local(worstCaseUsd * exchangeRate)}) of that. Competitor fees were verified on {verifiedLabel} and change
-            over time.{source}
+            {t(strings.compareSavingsLive, {
+                base: usd(claim.baseAmount),
+                localBase: local(claim.baseAmount * exchangeRate),
+                competitor,
+                range: rangeLabel,
+                worstCase: usd(worstCaseUsd),
+                localWorstCase: local(worstCaseUsd * exchangeRate),
+                date: verifiedLabel,
+            })}
+            {source}
         </Frame>
     )
 }
@@ -165,7 +195,7 @@ export function CompareSavings(props: CompareSavingsProps) {
 function Frame({ children }: { children: React.ReactNode }) {
     return (
         <div className={`mx-auto ${PROSE_WIDTH} px-6 md:px-4`}>
-            <p className="my-6 border-l-4 border-action-primary py-1 pl-4 text-base leading-[1.75] text-foreground-secondary">
+            <p className="my-6 border-l-4 border-action-primary py-1 pl-4 text-body-m leading-7 text-foreground-secondary">
                 {children}
             </p>
         </div>

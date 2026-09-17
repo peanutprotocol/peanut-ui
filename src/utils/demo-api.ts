@@ -122,6 +122,51 @@ const demoCounterparty = (userId: string) => ({
     isVerified: true,
 })
 
+// Keep this to badges the API can currently award (plus active campaigns).
+// Registry metric metadata alone is not an unlock path.
+const DEMO_BADGE_CATALOG = [
+    {
+        code: 'BETA_TESTER',
+        name: 'Beta Tester',
+        description: 'Early enough to be part of the experiment.',
+        publicDescription: 'Early enough to be part of the experiment.',
+        iconUrl: '/badges/beta_tester.svg',
+        unlock: { kind: 'special_recognition' },
+    },
+    {
+        code: 'CARD_FIRST_SWIPE',
+        name: 'First Swipe',
+        description: 'You put your card to work.',
+        publicDescription: 'They put their card to work.',
+        iconUrl: '/badges/happy_card.svg',
+        unlock: { kind: 'card_purchase' },
+    },
+    {
+        code: 'CARD_SPENT_1K',
+        name: '$1K Club',
+        description: '$1K swiped.',
+        publicDescription: '$1K swiped.',
+        iconUrl: '/badges/money_stack.svg',
+        unlock: { kind: 'card_spend', targetUsd: 1000 },
+    },
+    {
+        code: 'ENS',
+        name: 'Name Dropper',
+        description: 'You paid at a name. Or got paid at yours.',
+        publicDescription: 'They moved money with an ENS name.',
+        iconUrl: '/badges/ens.svg',
+        unlock: { kind: 'ens_payment' },
+    },
+    {
+        code: 'SURF_UP',
+        name: "Surf's Up",
+        description: 'You caught the wave early.',
+        publicDescription: 'They caught the wave early.',
+        iconUrl: '/badges/surf_up.svg',
+        unlock: { kind: 'campaign' },
+    },
+]
+
 const demoRequest = (uuid: string, options?: RequestInit) => {
     const body = parseBody(options)
     const tokenAmount = String(body.tokenAmount ?? body.requestProps?.tokenAmount ?? body.local_price?.amount ?? '0')
@@ -754,6 +799,7 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         pattern: '/points/invites',
         handler: () => ({ invitees: [], summary: { totalInvited: 0, totalPointsEarned: 0 } }),
     },
+    { method: 'GET', pattern: '/badge/catalog', handler: () => ({ badges: DEMO_BADGE_CATALOG }) },
 
     // notifications (support unread badge + mark-read only; the list page is gone)
     { method: 'GET', pattern: '/notifications/unread-count', handler: () => ({ count: 0 }) },

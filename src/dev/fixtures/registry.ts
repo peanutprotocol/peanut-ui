@@ -522,7 +522,7 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Invite list with one verified friend.',
         responses: { 'GET /points/invites': INVITES_ONE },
     },
-    badges: { route: '/badges', about: 'Badge wall with three earned badges.' },
+    badges: { route: '/badges', about: 'Three-column badge collection with earned badges first and locked goals.' },
     history: { route: '/history', about: 'Activity list, four entries, both directions.' },
     'add-money': {
         route: '/add-money?method=bank',

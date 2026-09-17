@@ -120,6 +120,22 @@ function SetupScreenBody({ screenId, children }: { screenId: ScreenId; children?
 const noop = () => {}
 const asyncNoop = async () => {}
 
+/**
+ * `/dev/*` deliberately removes AppShell's page padding so the gallery can
+ * stage drawers and overlays edge-to-edge. Full app-page surfaces still need
+ * the production horizontal frame, otherwise their `w-full` content is
+ * captured against the viewport instead of the app's content column.
+ */
+function AppPageSurface({ children }: { children: React.ReactNode }) {
+    return (
+        <div className="min-h-inherit w-full px-4">
+            <div data-testid="app-page-surface-content" className="mx-auto min-h-inherit w-full max-w-md">
+                {children}
+            </div>
+        </div>
+    )
+}
+
 import { AvatarPicker } from '@/components/Avatar/AvatarPicker'
 import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
@@ -716,12 +732,14 @@ export const SURFACES: Record<string, Surface> = {
     '82-f-choice-card-requires-info': {
         ...SURFACE_META['82-f-choice-card-requires-info'],
         render: () => (
-            <ApplicationStatusScreen
-                variant="requires-info"
-                onUploadProofOfAddress={noop}
-                onUploadIdentity={noop}
-                onContactSupport={noop}
-            />
+            <AppPageSurface>
+                <ApplicationStatusScreen
+                    variant="requires-info"
+                    onUploadProofOfAddress={noop}
+                    onUploadIdentity={noop}
+                    onContactSupport={noop}
+                />
+            </AppPageSurface>
         ),
     },
     '83-f-choice-residence-restricted': {
@@ -734,7 +752,11 @@ export const SURFACES: Record<string, Surface> = {
     },
     '84-f-choice-public-profile-guest': {
         ...SURFACE_META['84-f-choice-public-profile-guest'],
-        render: () => <PublicProfile username="ana" isLoggedIn={false} onSendClick={noop} />,
+        render: () => (
+            <AppPageSurface>
+                <PublicProfile username="ana" isLoggedIn={false} onSendClick={noop} />
+            </AppPageSurface>
+        ),
     },
     '85-f-choice-claim-error': {
         ...SURFACE_META['85-f-choice-claim-error'],

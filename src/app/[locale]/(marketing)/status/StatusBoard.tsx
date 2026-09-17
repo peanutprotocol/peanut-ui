@@ -1,13 +1,14 @@
 import { Hero } from '@/components/Marketing/mdx/Hero'
+import { Card } from '@/components/0_Bruddle/Card'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { t } from '@/i18n'
 import { type Translations } from '@/i18n/types'
+import { IncidentList } from './IncidentList'
 import {
-    incidentImpact,
-    incidentReasonLabel,
+    formatTime,
     STATUS_GROUPS,
     type BucketState,
     type StatusBucket,
-    type StatusIncident,
     type StatusProvider,
     type StatusSummary,
 } from './types'
@@ -21,8 +22,8 @@ import {
 const BAR_COLORS: Record<BucketState, string> = {
     operational: 'bg-background-icon-bubble-green',
     degraded: 'bg-background-icon-bubble-yellow',
-    down: 'bg-red-400',
-    unknown: 'bg-gray-200',
+    down: 'bg-background-icon-bubble-red',
+    unknown: 'bg-background-icon-bubble-gray',
 }
 
 const DOT_COLORS = BAR_COLORS
@@ -37,8 +38,8 @@ const SHOW_SUMMARY_CARD: boolean = false
 const RING_STROKES: Record<BucketState, string> = {
     operational: 'stroke-background-icon-bubble-green',
     degraded: 'stroke-background-icon-bubble-yellow',
-    down: 'stroke-red-400',
-    unknown: 'stroke-gray-200',
+    down: 'stroke-background-icon-bubble-red',
+    unknown: 'stroke-background-icon-bubble-gray',
 }
 
 /**
@@ -136,25 +137,18 @@ export function OperationalDonut({
  * whether Peanut is up is a bad state to be in, and a status page that softens
  * it into grey is the reason this page read green through 2026-09-03.
  */
-const BANNER_STYLES: Record<BucketState, string> = {
-    operational: 'border-background-icon-bubble-green bg-white text-foreground-primary',
-    degraded: 'border-background-icon-bubble-yellow bg-background-badge-attention text-foreground-primary',
-    down: 'border-border-error bg-background-badge-error text-foreground-primary',
-    unknown: 'border-border-error bg-background-badge-error text-foreground-primary',
+const BANNER_PRIORITY: Record<BucketState, 'success' | 'attention' | 'error'> = {
+    operational: 'success',
+    degraded: 'attention',
+    down: 'error',
+    unknown: 'error',
 }
 
 export function StatusBanner({ state, title, detail }: { state: BucketState; title: string; detail?: string }) {
     return (
-        <div className={`flex items-start gap-3 rounded-md border p-4 ${BANNER_STYLES[state]}`}>
-            <span className={`mt-2 h-2.5 w-2.5 shrink-0 rounded-full ${DOT_COLORS[state]}`} />
-            <div>
-                {/* heading-card is 1.125rem at weight 700 on its own — the
-                    same result as stacking a weight utility onto a body token,
-                    without minting an off-ramp style to get there. */}
-                <p className="text-heading-card">{title}</p>
-                {detail && <p className="mt-1 text-body-s text-foreground-secondary">{detail}</p>}
-            </div>
-        </div>
+        <Notification priority={BANNER_PRIORITY[state]} title={title}>
+            {detail}
+        </Notification>
     )
 }
 
@@ -163,21 +157,6 @@ function headline(state: BucketState, i18n: Translations): string {
     if (state === 'degraded') return i18n.statusSomeDegraded
     if (state === 'operational') return i18n.statusAllOperational
     return i18n.statusUnknown
-}
-
-/**
- * Rendered on the server, so an unqualified `toLocaleString` would format in
- * whatever zone the host happens to run in and give the reader nothing to
- * interpret it against. Pinned to UTC, and the page states that it is.
- */
-function formatTime(iso: string, locale: string): string {
-    return new Date(iso).toLocaleString(locale, {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone: 'UTC',
-    })
 }
 
 /**
@@ -211,47 +190,6 @@ function UptimeBars({ provider, locale, i18n }: { provider: StatusProvider; loca
                 />
             ))}
         </div>
-    )
-}
-
-function IncidentList({
-    incidents,
-    serviceKey,
-    locale,
-    i18n,
-}: {
-    incidents: StatusIncident[]
-    serviceKey: string
-    locale: string
-    i18n: Translations
-}) {
-    if (incidents.length === 0) return null
-    return (
-        <ul className="space-y-2 mt-3 border-l-2 border-gray-200 pl-3">
-            {incidents.map((incident) => (
-                <li key={incident.id} className="text-body-xs">
-                    <div className="flex flex-wrap items-center gap-2">
-                        <span
-                            className={`rounded px-1.5 py-0.5 text-label-m tracking-wide uppercase ${
-                                incident.resolvedAt
-                                    ? 'bg-gray-100 text-foreground-secondary'
-                                    : 'bg-background-badge-error text-foreground-error'
-                            }`}
-                        >
-                            {incident.resolvedAt ? i18n.statusIncidentResolved : i18n.statusIncidentOngoing}
-                        </span>
-                        <time dateTime={incident.startedAt} className="text-foreground-secondary">
-                            {formatTime(incident.startedAt, locale)}
-                            {incident.resolvedAt ? ` → ${formatTime(incident.resolvedAt, locale)}` : ''}
-                        </time>
-                    </div>
-                    <p className="mt-1 break-words text-foreground-primary">
-                        {incidentImpact(serviceKey, i18n)}{' '}
-                        <span className="text-foreground-secondary">{incidentReasonLabel(incident.reason, i18n)}</span>
-                    </p>
-                </li>
-            ))}
-        </ul>
     )
 }
 
@@ -293,7 +231,7 @@ export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary;
                 )}
 
                 {SHOW_SUMMARY_CARD && (
-                    <div className="flex items-center gap-4 rounded-md border border-gray-200 bg-white p-4">
+                    <Card className="flex-row items-center gap-4 p-4" shadowSize="4">
                         <OperationalDonut
                             operational={operationalCount}
                             total={summary.providers.length}
@@ -310,7 +248,7 @@ export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary;
                                 })}
                             </p>
                         </div>
-                    </div>
+                    </Card>
                 )}
 
                 {STATUS_GROUPS.map((group) => (
@@ -357,7 +295,7 @@ export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary;
                     </section>
                 ))}
 
-                <div className="mt-10 flex flex-wrap items-center gap-4 border-t border-gray-200 pt-4 text-body-xs text-foreground-secondary">
+                <div className="mt-10 flex flex-wrap items-center gap-4 border-t border-border-subtle pt-4 text-body-xs text-foreground-secondary">
                     {(
                         [
                             ['operational', i18n.statusLegendOperational],
@@ -366,7 +304,7 @@ export function StatusBoard({ summary, locale, i18n }: { summary: StatusSummary;
                             ['unknown', i18n.statusLegendNoData],
                         ] as Array<[BucketState, string]>
                     ).map(([state, label]) => (
-                        <span key={state} className="flex items-center gap-1.5">
+                        <span key={state} className="flex items-center gap-1">
                             <span className={`h-2 w-4 rounded-1 ${BAR_COLORS[state]}`} />
                             {label}
                         </span>

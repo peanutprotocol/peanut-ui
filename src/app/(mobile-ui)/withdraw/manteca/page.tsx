@@ -168,7 +168,7 @@ function MantecaBankWithdrawFlow() {
     })
     const step = stepper.step
     const router = useRouter()
-    const { spendableBalance: balance, formattedSpendableBalance } = useWallet()
+    const { spendableBalance: balance, formattedSpendableBalance, spendableBalanceDecimal } = useWallet()
     const { signSpend } = useSignSpendBundle()
     const handleStaleSession = useStaleSessionGuard()
     const { overview: rainCardOverview } = useRainCardOverview()
@@ -919,6 +919,14 @@ function MantecaBankWithdrawFlow() {
                                 decimals: 2,
                             }}
                             walletBalance={balance !== undefined ? formattedSpendableBalance : undefined}
+                            // the amount field is in the local currency while the balance row is
+                            // usd, so the fill converts with currencyPrice.sell — the same
+                            // "1 USD = X" rate this screen already shows on the confirm step
+                            balanceFillAmount={
+                                spendableBalanceDecimal !== undefined && currencyPrice
+                                    ? spendableBalanceDecimal * currencyPrice.sell
+                                    : undefined
+                            }
                         />
                     </FieldColumn>
 

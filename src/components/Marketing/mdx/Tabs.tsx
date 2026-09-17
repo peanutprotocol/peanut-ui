@@ -2,7 +2,7 @@
 
 import { Children, isValidElement, type ReactElement, type ReactNode } from 'react'
 import { Tabs as DsTabs } from '@/components/0_Bruddle/Tabs'
-import { PROSE_WIDTH } from './constants'
+import { PROSE_WIDTH } from '../constants'
 
 interface TabsProps {
     /** Comma-separated tab labels, e.g. "Peanut,Wise,Western Union" */

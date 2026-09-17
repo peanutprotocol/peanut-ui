@@ -38,6 +38,7 @@ export function SendInputView() {
         attachment,
         error,
         formattedBalance,
+        balanceFillAmount,
         canProceed,
         hasSufficientBalance,
         isInsufficientBalance,
@@ -83,6 +84,7 @@ export function SendInputView() {
                         setPrimaryAmount={setAmount}
                         onSubmit={handleSubmit}
                         walletBalance={isLoggedIn ? formattedBalance : undefined}
+                        balanceFillAmount={isLoggedIn ? balanceFillAmount : undefined}
                         hideBalance={!isLoggedIn}
                         hideCurrencyToggle={true}
                     />

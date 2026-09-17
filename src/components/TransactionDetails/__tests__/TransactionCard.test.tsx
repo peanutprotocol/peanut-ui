@@ -17,6 +17,7 @@ import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import TransactionCard from '../TransactionCard'
 import { type TransactionDetails } from '../transactionTransformer'
+import { type StatusPillType } from '@/components/Global/StatusPill'
 
 const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
 
@@ -143,34 +144,55 @@ describe('TransactionCard — clickable counterparty name', () => {
 })
 
 // TASK-21887: a received request is inbound money (the viewer created the
-// request), so the row must carry the inbound arrow and the "+" — it used to
-// render the outbound arrow with a negative amount.
+// request), so the row must carry the "+" — it used to render a negative amount.
+// TASK-22452 moved the leading bubble off a fixed direction arrow onto the
+// link's own state, so the arrow it used to draw is now the state glyph.
 describe('TransactionCard — received request renders as inbound', () => {
-    function requestTx(): TransactionDetails {
+    function requestTx(status: StatusPillType = 'pending'): TransactionDetails {
         const tx = eligibleTx()
         tx.direction = 'request_received'
-        tx.status = 'pending'
+        tx.status = status
         ;(tx.extraDataForDrawer as { transactionCardType: string }).transactionCardType = 'request'
         return tx
     }
 
-    it('draws the inbound arrow and a positive amount', () => {
-        const { container } = render(
+    function renderRequest(status: StatusPillType) {
+        return render(
             <TransactionCard
                 type="request"
                 name="natalia"
                 amount={10}
-                status="pending"
-                transaction={requestTx()}
+                status={status}
+                transaction={requestTx(status)}
                 isSelected={false}
                 onOpen={() => {}}
                 onClose={() => {}}
             />
         )
+    }
 
-        expect(container.querySelector('svg.lucide-arrow-down-left')).not.toBeNull()
+    it('draws a positive amount and never the outbound arrow', () => {
+        const { container } = renderRequest('pending')
+
         expect(container.querySelector('svg.lucide-arrow-up-right')).toBeNull()
         expect(screen.getByText('+$10')).toBeInTheDocument()
+    })
+
+    // the state→bubble map (TASK-22452). one case per ruled row, so a changed
+    // glyph or colour fails here rather than in a screenshot.
+    it.each([
+        ['pending', 'lucide-clock', 'bg-background-icon-bubble-gray'],
+        ['processing', 'lucide-clock', 'bg-background-icon-bubble-gray'],
+        ['completed', 'lucide-check', 'bg-background-icon-bubble-green'],
+        ['cancelled', 'lucide-ban', 'bg-background-icon-bubble-gray'],
+        ['refunded', 'lucide-ban', 'bg-background-icon-bubble-gray'],
+        ['failed', 'lucide-triangle-alert', 'bg-background-icon-bubble-red'],
+    ] as const)('a %s link row shows the %s bubble', (status, iconClass, bgClass) => {
+        const { container } = renderRequest(status)
+
+        const icon = container.querySelector(`svg.${iconClass}`)
+        expect(icon).not.toBeNull()
+        expect(icon!.closest(`.${bgClass}`)).not.toBeNull()
     })
 })
 

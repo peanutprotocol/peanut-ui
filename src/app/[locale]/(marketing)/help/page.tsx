@@ -7,6 +7,10 @@ import { readPageContentLocalizedResolved, listContentSlugs } from '@/lib/conten
 import { notFound } from 'next/navigation'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import { Hero } from '@/components/Marketing/mdx/Hero'
+import { PROSE_WIDTH } from '@/components/Marketing/constants'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { Icon } from '@/components/Global/Icons/Icon'
+import { getCardPosition } from '@/components/Global/Card/card.utils'
 import HelpLanding from '@/components/Marketing/HelpLanding'
 
 interface PageProps {
@@ -56,24 +60,33 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     }
 }
 
-/** Lightweight skeleton shown while HelpLanding JS hydrates */
+const SKELETON_ROWS = 3
+
+/** Lightweight skeleton shown while HelpLanding JS hydrates. Real ListItem rows
+ *  with placeholder spans in the slots, so the swap to the loaded list does not
+ *  jump (design.md skeleton recipe). */
 function HelpLandingSkeleton() {
     return (
-        <div className="mx-auto mt-10 mb-8 max-w-160 px-6 md:mt-12 md:px-4">
-            {/* Search bar placeholder */}
-            <div className="h-12 w-full animate-pulse rounded-sm border border-border-default bg-foreground-primary/10" />
+        <div className={`mx-auto mt-10 mb-8 ${PROSE_WIDTH} px-6 md:mt-12 md:px-4`}>
+            {/* Search bar placeholder — h-10 is SearchInput's height */}
+            <div className="h-10 w-full animate-pulse rounded-sm border border-border-default bg-foreground-primary/10" />
 
             {/* Category / article rows */}
             <div className="mt-10 flex flex-col gap-10">
                 {[1, 2, 3].map((i) => (
                     <div key={i}>
                         <div className="mb-4 h-3 w-32 animate-pulse rounded bg-foreground-primary/10" />
-                        <div className="flex flex-col gap-px overflow-hidden rounded-sm border border-border-default">
-                            {[1, 2, 3].map((j) => (
-                                <div key={j} className="flex flex-col gap-1.5 bg-white px-5 py-4">
-                                    <div className="h-4 w-3/4 animate-pulse rounded bg-foreground-primary/10" />
-                                    <div className="h-3 w-1/2 animate-pulse rounded bg-foreground-primary/10" />
-                                </div>
+                        <div className="flex flex-col">
+                            {Array.from({ length: SKELETON_ROWS }).map((_, j) => (
+                                <ListItem
+                                    key={j}
+                                    position={getCardPosition(j, SKELETON_ROWS)}
+                                    title={<div className="h-4 w-48 animate-pulse rounded bg-foreground-primary/10" />}
+                                    body={<div className="h-3 w-32 animate-pulse rounded bg-foreground-primary/10" />}
+                                    trailing={
+                                        <Icon name="arrow-up-right" size={20} className="text-foreground-secondary" />
+                                    }
+                                />
                             ))}
                         </div>
                     </div>
@@ -127,6 +140,10 @@ export default async function HelpPage({ params }: PageProps) {
                     categories={categories}
                     strings={{
                         searchPlaceholder: i18n.searchHelpArticles,
+                        clearSearch: i18n.clearSearch,
+                        // both hubs say the same sentence, so one key serves
+                        // both rather than a second copy to keep translated.
+                        noResults: i18n.noContentResults,
                         cantFind: i18n.cantFindAnswer,
                         cantFindDesc: i18n.cantFindAnswerDesc,
                     }}

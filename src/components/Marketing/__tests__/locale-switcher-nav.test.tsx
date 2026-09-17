@@ -1,29 +1,25 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { persistLocale } from '@/i18n/app/locale-store'
-import { ArticleLocaleNav } from '../ArticleLocaleNav'
+import { LocaleSwitcher } from '../LocaleSwitcher'
 
 let pathname = '/en/help'
-let search = ''
 
-jest.mock('next/navigation', () => ({
-    usePathname: () => pathname,
-    useSearchParams: () => new URLSearchParams(search),
-}))
+jest.mock('next/navigation', () => ({ usePathname: () => pathname }))
 jest.mock('@/i18n/app/locale-store', () => ({ persistLocale: jest.fn() }))
 
 const mockedPersist = persistLocale as jest.MockedFunction<typeof persistLocale>
 
 const openAndGetOption = (currentLocale: 'en' | 'pt-br' = 'en') => {
-    render(<ArticleLocaleNav currentLocale={currentLocale} />)
+    render(<LocaleSwitcher locale={currentLocale} label="Language" />)
     fireEvent.click(screen.getByRole('button', { name: /^Language:/ }))
     return screen.getByRole('link', { name: 'Português (Brasil)' })
 }
 
-describe('ArticleLocaleNav', () => {
+describe('LocaleSwitcher', () => {
     beforeEach(() => {
         mockedPersist.mockClear()
         pathname = '/en/help'
-        search = ''
+        window.history.replaceState({}, '', '/en/help')
     })
 
     it('persists the picked locale so the app cookie stops being stale', () => {
@@ -35,7 +31,7 @@ describe('ArticleLocaleNav', () => {
 
     it('carries the query string across the locale switch', () => {
         pathname = '/en/content'
-        search = 'type=blog&q=fees'
+        window.history.replaceState({}, '', '/en/content?type=blog&q=fees')
 
         expect(openAndGetOption()).toHaveAttribute('href', '/pt-br/content?type=blog&q=fees')
     })

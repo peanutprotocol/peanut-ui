@@ -8,7 +8,7 @@ import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
 import { useClaimBankFlow } from '@/context/ClaimBankFlowContext'
 import { type ClaimLinkData } from '@/services/sendLinks'
-import { type FC, useEffect, useMemo, useState } from 'react'
+import { type ComponentProps, type FC, useEffect, useMemo, useRef, useState } from 'react'
 import MantecaDetailsStep from './views/MantecaDetailsStep.view'
 import { MercadoPagoStep } from '@/types/manteca.types'
 import MantecaReviewStep from './views/MantecaReviewStep'
@@ -35,6 +35,13 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
     const [currentStep, setCurrentStep] = useState<MercadoPagoStep>(MercadoPagoStep.DETAILS)
     const router = useRouter()
     const [destinationAddress, setDestinationAddress] = useState('')
+    // Lives here, not in the review step: Back to DETAILS unmounts that step,
+    // and the claimed hash (plus the in-flight guard) must outlive it so the
+    // next Withdraw retries the same hash instead of spending the link again.
+    const claimRecovery = useRef<ComponentProps<typeof MantecaReviewStep>['recovery']>({
+        claimed: null,
+        inFlight: false,
+    })
     const { canDo, isKycApproved, rails, nextActions } = useCapabilities()
 
     // MIGRATION-REVIEW: MercadoPago/PIX claim is a `pay` operation over Manteca. Old gate was
@@ -96,6 +103,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
                     destinationAddress={destinationAddress}
                     amount={amount}
                     currency={selectedCurrency}
+                    recovery={claimRecovery.current}
                 />
             )
         }

@@ -1040,7 +1040,7 @@
             "exchangeOrWalletDescription": "Binance, Metamask e mais"
         },
         "contacts": {
-            "searchPlaceholder": "Digite o usuário exato ou busque contatos...",
+            "searchPlaceholder": "Destinatário",
             "searchLabel": "Usuário do Peanut ou contato",
             "exactUsername": "Usuário exato",
             "usernameFound": "@{username} encontrado",
@@ -2389,9 +2389,14 @@
     "badges": {
         "title": "Selos",
         "yourBadges": "Seus selos",
+        "earned": "Ganho",
+        "locked": "Bloqueado",
+        "howToUnlock": "Como desbloquear",
         "emptyTitle": "Nenhum selo encontrado",
         "emptyDescription": "Ganhe selos conforme usa o Peanut. Faça pagamentos, convide amigos e participe de eventos para desbloqueá-los e exibi-los no seu perfil.",
-        "publicProfileNote": "Estes selos aparecem no seu perfil público.",
+        "loadErrorTitle": "Não foi possível carregar os selos",
+        "loadErrorDescription": "Verifique sua conexão e tente de novo.",
+        "publicProfileNote": "Somente os selos conquistados aparecem no seu perfil público.",
         "collectionLabel": "Coleção de selos",
         "showNext": "Mostrar próximos selos",
         "showPrevious": "Mostrar selos anteriores",
@@ -2404,6 +2409,16 @@
         "toastSingle": "Selo desbloqueado: {name}",
         "toastMultiple": "Você desbloqueou {count, plural, one {# selo} other {# selos}}",
         "toastTapToView": "Toque para ver",
+        "unlock": {
+            "invites": "Convide {target, plural, one {# amigo que entre no Peanut} other {# amigos que entrem no Peanut}}.",
+            "rewards": "Ganhe US$ {targetUsd} em recompensas.",
+            "identityVerification": "Conclua a verificação de identidade.",
+            "cardPurchase": "Faça sua primeira compra com o cartão Peanut.",
+            "cardSpend": "Gaste US$ {targetUsd} com o cartão Peanut.",
+            "ensPayment": "Envie ou receba um pagamento usando um nome ENS.",
+            "campaign": "Participe de uma campanha ou evento elegível do Peanut.",
+            "specialRecognition": "Conquiste este selo por um marco, contribuição ou reconhecimento especial no Peanut."
+        },
         "catalog": {
             "FIRST_INVITE": {
                 "name": "Primeiro convite",

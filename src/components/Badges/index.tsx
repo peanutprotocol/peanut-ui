@@ -1,112 +1,159 @@
 'use client'
 
-import type { StaticImageData } from 'next/image'
-import NavHeader from '../Global/NavHeader'
+import { useEffect, useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
+import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
+import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import Loading from '@/components/Global/Loading'
+import NavHeader from '@/components/Global/NavHeader'
+import { BADGE_CATALOG } from '@/constants/query.consts'
+import { displayableBadges } from '@/constants/badges.consts'
+import { useAuth } from '@/context/authContext'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { getBadgeCatalog, type BadgeUnlockRequirement } from '@/services/badges'
+import { twMerge } from '@/utils/tw'
+import { BadgeDetailDrawer } from './BadgeDetailDrawer'
+import { BadgeImage } from './BadgeImage'
+import { buildBadgeCollection, type BadgeView } from './badge.types'
 import { getBadgeIcon } from './badge.utils'
 import { useBadgeCopy } from './useBadgeCopy'
-import { getCardPosition } from '../Global/Card/card.utils'
-import EmptyState from '../Global/EmptyStates/EmptyState'
-import { BadgeDetailDrawer } from './BadgeDetailDrawer'
-import { useMemo, useState, useEffect } from 'react'
-import { useTranslations } from 'next-intl'
-import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { useAuth } from '@/context/authContext'
-import { BadgeImage } from './BadgeImage'
-import { displayableBadges } from '@/constants/badges.consts'
-
-type BadgeView = { code: string; title: string; description: string; logo: string | StaticImageData }
 
 export const Badges = () => {
     const t = useTranslations('badges')
     const badgeCopy = useBadgeCopy()
     const onBack = useSafeBack('/profile')
     const { user: authUser, fetchUser } = useAuth()
-    const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false)
     const [selectedBadge, setSelectedBadge] = useState<BadgeView | null>(null)
 
-    // TODO: fetchUser from context may not be memoized - could cause unnecessary re-renders
     useEffect(() => {
-        fetchUser()
+        void fetchUser()
     }, [fetchUser])
 
-    // map api badges to view badges
-    const badges: BadgeView[] = useMemo(() => {
-        // get badges from user object and map to card fields
-        const raw = displayableBadges(authUser?.user?.badges || [])
-        return raw.map((b) => {
-            const copy = badgeCopy(b.code, b.name, b.description)
-            return {
-                code: b.code,
-                title: copy.name,
-                description: copy.description || '',
-                logo: getBadgeIcon(b.code, b.iconUrl),
-            }
-        })
-    }, [authUser?.user?.badges, badgeCopy])
+    const catalog = useQuery({
+        queryKey: [BADGE_CATALOG],
+        queryFn: getBadgeCatalog,
+        enabled: !!authUser,
+        staleTime: 15 * 60 * 1000,
+    })
+
+    const badges = useMemo(
+        () =>
+            buildBadgeCollection(displayableBadges(authUser?.user?.badges || []), catalog.data || []).map((badge) => {
+                const copy = badgeCopy(badge.code, badge.name, badge.description)
+                return {
+                    ...badge,
+                    name: copy.name,
+                    description: copy.description || '',
+                    logo: getBadgeIcon(badge.code, badge.iconUrl),
+                }
+            }),
+        [authUser?.user?.badges, badgeCopy, catalog.data]
+    )
+
+    const unlockText = (unlock?: BadgeUnlockRequirement) => {
+        if (!unlock) return t('unlock.specialRecognition')
+        switch (unlock.kind) {
+            case 'invites':
+                return t('unlock.invites', { target: unlock.target })
+            case 'rewards':
+                return t('unlock.rewards', { targetUsd: unlock.targetUsd })
+            case 'identity_verification':
+                return t('unlock.identityVerification')
+            case 'card_purchase':
+                return t('unlock.cardPurchase')
+            case 'card_spend':
+                return t('unlock.cardSpend', { targetUsd: unlock.targetUsd })
+            case 'ens_payment':
+                return t('unlock.ensPayment')
+            case 'campaign':
+                return t('unlock.campaign')
+            case 'special_recognition':
+                return t('unlock.specialRecognition')
+        }
+    }
+
+    if (catalog.isPending) {
+        return (
+            <div className="flex min-h-inherit flex-col gap-8">
+                <NavHeader title={t('title')} onPrev={onBack} />
+                <div className="my-auto flex justify-center">
+                    <Loading variant="mascot" />
+                </div>
+            </div>
+        )
+    }
 
     if (!badges.length) {
         return (
-            <div className="flex min-h-inherit flex-col items-center justify-center gap-8">
-                <NavHeader title={t('yourBadges')} onPrev={onBack} />
+            <div className="flex min-h-inherit flex-col gap-8">
+                <NavHeader title={t('title')} onPrev={onBack} />
                 <div className="my-auto">
-                    <EmptyState icon="achievements" title={t('emptyTitle')} description={t('emptyDescription')} />
+                    <EmptyState
+                        icon="achievements"
+                        title={catalog.isError ? t('loadErrorTitle') : t('emptyTitle')}
+                        description={catalog.isError ? t('loadErrorDescription') : t('emptyDescription')}
+                    />
                 </div>
             </div>
         )
     }
 
     return (
-        <div className="space-y-10 h-full w-full">
-            <NavHeader title={t('yourBadges')} onPrev={onBack} />
-            <div className="space-y-4">
-                <div>
-                    {badges.map((badge, idx) => (
-                        <ListItem
-                            key={idx}
-                            title={badge.title}
-                            // string body gets the native one-line truncation (was
-                            // descriptionClassName="truncate"); no chevron (the old
-                            // hidden-div hack suppressed it)
-                            body={badge.description}
-                            onClick={() => {
-                                setSelectedBadge(badge)
-                                setIsBadgeModalOpen(true)
-                            }}
-                            position={getCardPosition(idx, badges.length)}
-                            leading={
-                                <BadgeImage
-                                    src={badge.logo}
-                                    alt={badge.title}
-                                    // object-contain so non-square badge SVGs
-                                    // (e.g. bug_whisperer.svg is ~1.41:1) keep
-                                    // their aspect inside the 40×40 slot
-                                    // instead of getting squished to 1:1.
-                                    className="size-10 min-w-10 object-contain"
-                                    height={100}
-                                    width={100}
-                                    unoptimized
+        <div className="flex h-full w-full flex-col gap-10">
+            <NavHeader title={t('title')} onPrev={onBack} />
+            <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-3 gap-2" aria-label={t('collectionLabel')}>
+                    {badges.map((badge) => (
+                        <button
+                            key={badge.code}
+                            type="button"
+                            aria-label={`${badge.name}, ${badge.earned ? t('earned') : t('locked')}`}
+                            onClick={() => setSelectedBadge(badge)}
+                            className={twMerge(
+                                `relative flex min-w-0 flex-col items-center ${CARD_SURFACE} px-1 pt-6 pb-3 text-center focus-visible:outline-[3px] focus-visible:outline-action-focus`,
+                                !badge.earned && 'bg-background-disabled'
+                            )}
+                        >
+                            {badge.earned && (
+                                <StatusBadge
+                                    status="custom"
+                                    customText={t('earned')}
+                                    className="absolute top-1 right-1"
                                 />
-                            }
-                        />
+                            )}
+                            <BadgeImage
+                                src={badge.logo!}
+                                alt=""
+                                className={twMerge(
+                                    'h-16 w-full object-contain',
+                                    !badge.earned && 'opacity-40 grayscale'
+                                )}
+                                height={100}
+                                width={100}
+                                unoptimized
+                            />
+                            <span className="mt-2 line-clamp-2 h-8 w-full text-label-m">{badge.name}</span>
+                            <span className="line-clamp-3 h-12 w-full text-body-xs text-foreground-secondary">
+                                {badge.description}
+                            </span>
+                        </button>
                     ))}
                 </div>
 
-                <div className="flex items-center justify-center gap-2 text-body-xs text-foreground-secondary">
-                    <span>{t('publicProfileNote')}</span>
-                </div>
+                <p className="text-center text-body-xs text-foreground-secondary">{t('publicProfileNote')}</p>
             </div>
             {selectedBadge && (
                 <BadgeDetailDrawer
-                    isOpen={isBadgeModalOpen}
-                    onClose={() => {
-                        setIsBadgeModalOpen(false)
-                        setSelectedBadge(null)
-                    }}
+                    isOpen
+                    onClose={() => setSelectedBadge(null)}
                     code={selectedBadge.code}
-                    title={selectedBadge.title}
+                    title={selectedBadge.name}
                     description={selectedBadge.description}
-                    logo={selectedBadge.logo}
+                    logo={selectedBadge.logo!}
+                    earned={selectedBadge.earned}
+                    unlockText={selectedBadge.earned ? undefined : unlockText(selectedBadge.unlock)}
                 />
             )}
         </div>

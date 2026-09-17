@@ -1,5 +1,4 @@
 import Eyes from '@/assets/illustrations/eyes.svg'
-import PeanutsBG from '@/assets/illustrations/peanuts-bg.svg'
 import { MarqueeComp } from '@/components/Global/MarqueeWrapper'
 import { FAQsPanel, type FAQsProps } from '../Global/FAQs'
 
@@ -12,15 +11,9 @@ type LocalFAQsProps = FAQsProps & {
 
 export function FAQs({ heading, questions, learnMoreLabel, marquee = { visible: false } }: LocalFAQsProps) {
     return (
-        <div
-            id="faq"
-            className="bg-secondary overflow-x-hidden"
-            style={{
-                backgroundImage: `url(${PeanutsBG.src})`,
-                backgroundSize: '10rem auto',
-                backgroundRepeat: 'repeat',
-            }}
-        >
+        // no background here: FAQsPanel paints its own opaque full-width one on
+        // top, and bg-secondary had no --color-secondary token to resolve.
+        <div id="faq" className="overflow-x-hidden">
             <FAQsPanel heading={heading} questions={questions} learnMoreLabel={learnMoreLabel} />
 
             {marquee.visible && (

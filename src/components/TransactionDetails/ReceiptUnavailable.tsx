@@ -1,12 +1,8 @@
 'use client'
 
-import Image from 'next/image'
-import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-// dark wordmark: the light one is white glyphs on this white page (TASK-22452)
-import PEANUT_LOGO from '@/assets/logos/peanut-logo-dark.svg'
 import { Button } from '@/components/0_Bruddle/Button'
-import Card from '@/components/Global/Card'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 
 /**
  * Branded terminal state for a receipt link that cannot render: 'gone' for
@@ -14,6 +10,12 @@ import Card from '@/components/Global/Card'
  * permanently dead, no retry — and 'loadFailed' for a transient
  * fetch/transform failure, which offers a Retry (the caller's refetch when
  * provided, else a full reload of the same URL for the server route).
+ *
+ * Built on EmptyState so it reads like every other empty/error surface in the
+ * app: one card, centered icon bubble, title, body, CTA inside the card. The
+ * bubble follows the state, the way an activity row's does (TASK-22452): a
+ * dead link is terminal but nobody failed, so it is gray like a cancelled row;
+ * a load that failed is red like a failed one, and it is the one that retries.
  */
 export function ReceiptUnavailable({
     variant = 'gone',
@@ -24,33 +26,32 @@ export function ReceiptUnavailable({
 }) {
     const t = useTranslations('transaction.receiptUnavailable')
     const tCommon = useTranslations('common')
-    const tNav = useTranslations('navigation')
+    const isGone = variant === 'gone'
 
     return (
-        <div className="flex w-full max-w-md flex-col items-center gap-6 text-center">
-            <Image src={PEANUT_LOGO} alt={tNav('peanutLogoAlt')} className="w-28" />
-            <Card position="single" className="space-y-2 w-full px-6 py-8">
-                <h1 className="text-heading-card text-foreground-primary">
-                    {variant === 'gone' ? t('title') : t('loadFailedTitle')}
-                </h1>
-                <p className="text-body-s text-foreground-secondary">
-                    {variant === 'gone' ? t('description') : t('loadFailedDescription')}
-                </p>
-            </Card>
-            {variant === 'loadFailed' && (
-                <Button
-                    variant="purple"
-                    className="w-full print:hidden"
-                    onClick={() => (onRetry ? onRetry() : window.location.reload())}
-                >
-                    {tCommon('retry')}
-                </Button>
-            )}
-            <Link href="/home" className="w-full print:hidden">
-                <Button variant={variant === 'loadFailed' ? 'primary-soft' : 'purple'} className="w-full">
-                    {tCommon('goToHome')}
-                </Button>
-            </Link>
-        </div>
+        <EmptyState
+            containerClassName="w-full max-w-md"
+            icon={isGone ? 'link-slash' : 'alert'}
+            iconColor={isGone ? 'gray' : 'red'}
+            title={isGone ? t('title') : t('loadFailedTitle')}
+            description={isGone ? t('description') : t('loadFailedDescription')}
+            cta={
+                <div className="mt-2 flex flex-col items-center gap-2 print:hidden">
+                    {!isGone && (
+                        <Button
+                            variant="purple"
+                            shadowSize="4"
+                            size="small"
+                            onClick={() => (onRetry ? onRetry() : window.location.reload())}
+                        >
+                            {tCommon('retry')}
+                        </Button>
+                    )}
+                    <Button href="/home" variant={isGone ? 'purple' : 'stroke'} shadowSize="4" size="small">
+                        {tCommon('goToHome')}
+                    </Button>
+                </div>
+            }
+        />
     )
 }

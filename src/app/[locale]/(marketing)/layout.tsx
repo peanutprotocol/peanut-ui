@@ -5,10 +5,11 @@ import { SUPPORTED_LOCALES } from '@/i18n/types'
 import { isValidLocale } from '@/i18n/config'
 import { CRISP_WEBSITE_ID } from '@/constants/crisp'
 import Footer from '@/components/LandingPage/Footer'
-import { ArticleLocaleNav } from '@/components/Marketing/ArticleLocaleNav'
+import { LocaleSwitcher } from '@/components/Marketing/LocaleSwitcher'
 import { HeroBackNav } from '@/components/Marketing/HeroBackNav'
 import { HtmlLang } from '@/components/Marketing/HtmlLang'
 import { LocaleSuggestion } from '@/components/Marketing/LocaleSuggestion'
+import { getTranslations } from '@/i18n'
 
 interface LayoutProps {
     children: React.ReactNode
@@ -28,7 +29,7 @@ export default async function LocalizedMarketingLayout({ children, params }: Lay
     }
 
     return (
-        <main className="relative flex min-h-dvh flex-col bg-white" lang={locale}>
+        <main className="relative flex min-h-dvh flex-col bg-background-default" lang={locale}>
             <HtmlLang locale={locale} />
             <HeroBackNav />
             {/* THE marketing/content top bar (compare-page style, ruled the one
@@ -38,14 +39,14 @@ export default async function LocalizedMarketingLayout({ children, params }: Lay
                 40px band the back circle occupies, so the selector centers on
                 it (min-h on the padded div was border-box and did nothing). */}
             <div className="bg-background-page px-4 pt-[calc(var(--safe-top)_+_1rem)] pb-4">
-                <div className="flex h-10 items-center justify-end">
-                    {/* The nav reads the search params to carry filters across a
-                        locale switch, which bails the subtree to client render —
-                        without this boundary every prerendered marketing route
-                        fails the build. The row is a fixed h-10, so a null
-                        fallback costs no layout shift; only the flag pops in. */}
+                <div className="flex min-h-10 items-center justify-end">
+                    {/* min-h, not h: the picker is a 44px touch target and a
+                        fixed 40px row would clip it. The boundary stays because
+                        anything here that reads search params bails the subtree
+                        to client render, and without it every prerendered
+                        marketing route fails the build. */}
                     <Suspense fallback={null}>
-                        <ArticleLocaleNav currentLocale={locale} />
+                        <LocaleSwitcher locale={locale} label={getTranslations(locale).footerLanguage} />
                     </Suspense>
                 </div>
             </div>

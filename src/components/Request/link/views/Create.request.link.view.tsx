@@ -30,7 +30,6 @@ export const CreateRequestLinkView = () => {
         requestId,
         isCreatingLink,
         isUpdatingRequest,
-        peanutWalletBalance,
         qrCodeLink,
         bankInstructionsShared,
         setBankInstructionsShared,
@@ -52,7 +51,6 @@ export const CreateRequestLinkView = () => {
                     initialAmount={tokenValue}
                     setPrimaryAmount={handleTokenValueChange}
                     onSubmit={handleTokenAmountSubmit}
-                    walletBalance={peanutWalletBalance}
                     disabled={!!requestId}
                 />
 

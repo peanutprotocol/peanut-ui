@@ -1040,7 +1040,7 @@
             "exchangeOrWalletDescription": "Binance, Metamask and more"
         },
         "contacts": {
-            "searchPlaceholder": "Enter exact username or search contacts...",
+            "searchPlaceholder": "Recipient",
             "searchLabel": "Peanut username or contact",
             "exactUsername": "Exact username",
             "usernameFound": "@{username} found",
@@ -2389,9 +2389,14 @@
     "badges": {
         "title": "Badges",
         "yourBadges": "Your Badges",
+        "earned": "Earned",
+        "locked": "Locked",
+        "howToUnlock": "How to unlock",
         "emptyTitle": "No badges found",
         "emptyDescription": "Earn badges as you use Peanut. Make payments, invite friends, and join events to unlock them and display them on your profile.",
-        "publicProfileNote": "These Badges are displayed on your public profile.",
+        "loadErrorTitle": "Couldn't load badges",
+        "loadErrorDescription": "Check your connection and try again.",
+        "publicProfileNote": "Only earned badges are displayed on your public profile.",
         "collectionLabel": "Badge collection",
         "showNext": "Show next badges",
         "showPrevious": "Show previous badges",
@@ -2404,6 +2409,16 @@
         "toastSingle": "Badge unlocked: {name}",
         "toastMultiple": "You unlocked {count, plural, one {# badge} other {# badges}}",
         "toastTapToView": "Tap to view",
+        "unlock": {
+            "invites": "Invite {target, plural, one {# friend who joins Peanut} other {# friends who join Peanut}}.",
+            "rewards": "Earn ${targetUsd} in rewards.",
+            "identityVerification": "Complete identity verification.",
+            "cardPurchase": "Make your first purchase with the Peanut Card.",
+            "cardSpend": "Spend ${targetUsd} with the Peanut Card.",
+            "ensPayment": "Send or receive a payment using an ENS name.",
+            "campaign": "Join an eligible Peanut campaign or event.",
+            "specialRecognition": "Earn this through a Peanut milestone, contribution, or special recognition."
+        },
         "catalog": {
             "FIRST_INVITE": {
                 "name": "First Invite",

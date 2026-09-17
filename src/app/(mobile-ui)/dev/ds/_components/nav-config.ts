@@ -214,6 +214,13 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             status: 'production',
         },
         {
+            label: 'Breadcrumb',
+            icon: 'chevron-right',
+            href: '/dev/ds/primitives/breadcrumb',
+            description: 'Trail of parent pages for marketing and content pages. Current page never links',
+            status: 'production',
+        },
+        {
             label: 'DataRow',
             icon: 'docs',
             href: '/dev/ds/primitives/data-row',
