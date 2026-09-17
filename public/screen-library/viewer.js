@@ -102,7 +102,9 @@ let rows = [],
     renderedCount = 0
 const PAGE_SIZE = 24
 const unavailable = (s) => !s || !s.image
-const availableScreen = (row) => [row?.after, row?.before].find((screen) => !unavailable(screen))
+const availableScreen = (row) =>
+    [row?.after, row?.before].find((screen) => !unavailable(screen)) ??
+    (report?.type === 'collection' ? row?.after : undefined)
 const collectionRows = (collection, locale) =>
     collection.items.map((item) => {
         const variant = item.variants?.[locale]
@@ -194,7 +196,7 @@ function filteredScreenRows() {
         changedMode = report?.type === 'comparison' && viewMode === 'changed' && !explicitNonvisualStatus(status)
     return rows.filter(
         (r) =>
-            availableScreen(r) &&
+            (report?.type === 'collection' || availableScreen(r)) &&
             (!q || `${r.name} ${r.id} ${r.flow}`.toLowerCase().includes(q)) &&
             (!flow || flow === r.flow) &&
             (!changedMode || VISUAL_CHANGE_STATUSES.has(r.status)) &&

@@ -143,7 +143,7 @@ async function queueCapture(collection, env, expectedEtag = null) {
             etag: expectedEtag,
         })
         if (!manifest.ok) throw new Error('Collection changed while queuing a capture.')
-        manifestEtag = manifest.etag ?? expectedEtag
+        manifestEtag = manifest.etag
         await env.REPORTS.put(`collection-requests/${collection.id}.json`, JSON.stringify(request), {
             httpMetadata: {
                 contentType: 'application/json',
@@ -167,13 +167,16 @@ async function queueCapture(collection, env, expectedEtag = null) {
             failedAt: new Date().toISOString(),
             reason: 'The capture workflow could not be dispatched.',
         }
-        await putJson(env.REPORTS, `collections/${collection.id}/manifest.json`, collection, {
-            httpMetadata: {
-                contentType: 'application/json',
-                cacheControl: 'private, max-age=10',
-            },
-            etag: manifestEtag,
-        })
+        // A failed conditional queue write means another request owns the
+        // state. Never roll that winner back with an unconditional write.
+        if (manifestEtag)
+            await putJson(env.REPORTS, `collections/${collection.id}/manifest.json`, collection, {
+                httpMetadata: {
+                    contentType: 'application/json',
+                    cacheControl: 'private, max-age=10',
+                },
+                etag: manifestEtag,
+            })
         throw cause
     }
     return collection

@@ -502,6 +502,33 @@ test('report cards follow explicit journey order instead of manifest or ID order
     )
 })
 
+test('incomplete collection pages keep missing requested entries visible', async () => {
+    const report = {
+        schema: 1,
+        type: 'collection',
+        title: 'Choice overload',
+        locales: ['en'],
+        complete: false,
+        createdAt: '2026-09-16T08:00:00Z',
+        items: [
+            {
+                id: 'profile',
+                name: 'Profile',
+                flow: 'Profile',
+                kind: 'route',
+                order: 0,
+                variants: { en: { status: 'unavailable', reason: 'Capture pending' } },
+            },
+        ],
+    }
+    const elements = await loadLanding('/collections/choice-overload/', { report })
+    assert.deepEqual(
+        elements.get('screens').children.map(({ id }) => id),
+        ['profile']
+    )
+    assert.equal(elements.get('screens').children[0].children[1].children[0].children[1].textContent, 'Capture pending')
+})
+
 test('a restored nonvisual status opens the full catalogue instead of an empty changed view', async () => {
     const image = 'a'.repeat(64) + '.webp'
     const report = {
