@@ -364,7 +364,7 @@ export interface TransactionDetails {
     /** Catalog key (under `transaction`) that replaces the row's type label
      *  when the type alone would be wrong — a deposit going back to the payer
      *  is not "Bank deposit". */
-    actionLabelKey?: 'type.beingReturned'
+    actionLabelKey?: 'type.beingReturned' | 'type.returnedToSender'
     attachmentUrl?: string
     cancelledDate?: string | Date
     txHash?: string
@@ -570,6 +570,15 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     const isDepositBeingReturned = direction === 'bank_deposit' && entry.extraData?.refundInFlight === true
     if (isDepositBeingReturned) uiStatus = 'processing'
 
+    // The return finished: the payer has the money and the intent is terminal.
+    // Bridge rails map RETURNED/REFUNDED to 'failed', which tells the user the
+    // deposit never worked. It did work, and then the bank sent it back — a
+    // different thing to know, and the only one that says what to do next.
+    const returnedStatus = entry.status?.toUpperCase()
+    const isDepositReturned =
+        direction === 'bank_deposit' && (returnedStatus === 'REFUNDED' || returnedStatus === 'RETURNED')
+    if (isDepositReturned) uiStatus = 'refunded'
+
     // Active dispute trumps the underlying spend's status — a card spend
     // that's been contested isn't really "completed" from the user's POV,
     // even though Rain settled it. Flip the pill to `pending` while the
@@ -645,7 +654,11 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         // in the drawer, so a duplicate "Comment" row is just noise. Backend
         // already sets memo=undefined for card entries, but defend in depth.
         memoKey: isTestDeposit ? 'memoTestDeposit' : undefined,
-        actionLabelKey: isDepositBeingReturned ? ('type.beingReturned' as const) : undefined,
+        actionLabelKey: isDepositReturned
+            ? ('type.returnedToSender' as const)
+            : isDepositBeingReturned
+              ? ('type.beingReturned' as const)
+              : undefined,
         memo: (() => {
             if (isTestDeposit) return 'Your peanut wallet is ready to use!'
             const kind = intentKindOf(entry)

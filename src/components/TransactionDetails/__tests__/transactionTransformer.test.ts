@@ -596,6 +596,20 @@ describe('mapTransactionDataForDrawer', () => {
             })
             expect(mapTransactionDataForDrawer(ordinary).transactionDetails.actionLabelKey).toBeUndefined()
         })
+
+        // Bridge rails map both terminal return statuses to 'failed', which
+        // reads as a deposit that never worked. It worked and then went back.
+        it.each([EHistoryStatus.REFUNDED, EHistoryStatus.RETURNED])('names the finished return on %s', (status) => {
+            const returned = baseEntry({
+                userRole: EHistoryUserRole.RECIPIENT,
+                recipientAccount: aliceUser,
+                status,
+                extraData: { kind: 'ONRAMP', provider: 'BRIDGE' },
+            })
+            const result = mapTransactionDataForDrawer(returned).transactionDetails
+            expect(result.actionLabelKey).toBe('type.returnedToSender')
+            expect(result.status).toBe('refunded')
+        })
     })
 
     describe('refund credit rows (status + sign + flag)', () => {

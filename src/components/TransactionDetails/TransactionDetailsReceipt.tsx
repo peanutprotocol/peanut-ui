@@ -189,6 +189,14 @@ export const TransactionDetailsReceipt = ({
                 countryCode={getBankAccountCountryCode(transaction.bankAccountDetails, transaction.currency?.code)}
             />
 
+            {/* Why a deposit went back. The status alone says the money left
+                the balance; only this says what to ask the sender to fix. */}
+            {transaction.actionLabelKey === 'type.returnedToSender' && (
+                <Card position="single" className="p-4">
+                    <span className="text-body-s text-foreground-secondary">{t('returnedReason')}</span>
+                </Card>
+            )}
+
             {/* Perk eligibility banner */}
             {transaction.extraDataForDrawer?.perk?.claimed && transaction.status !== 'pending' && (
                 <Card position="single" className="p-4">

@@ -27,6 +27,13 @@ const returning: TransactionDetails = {
     currency: { amount: '250', code: 'USD' },
 }
 
+const returned: TransactionDetails = {
+    ...returning,
+    id: 'returned-deposit',
+    status: 'refunded',
+    actionLabelKey: 'type.returnedToSender',
+}
+
 it.each([false, true])('names the return in the actual receipt heading (public=%s)', (isPublic) => {
     render(
         <ToastProvider>
@@ -36,4 +43,15 @@ it.each([false, true])('names the return in the actual receipt heading (public=%
     )
     expect(screen.getByRole('heading', { name: 'Being returned to the payer' })).toBeInTheDocument()
     expect(screen.queryByText('Adding from Bank transfer')).not.toBeInTheDocument()
+})
+
+it('names the finished return and says why the money went back', () => {
+    render(
+        <ToastProvider>
+            <TransactionDetailsReceipt transaction={returned} isPublic={false} />
+        </ToastProvider>,
+        { wrapper: IntlWrapper }
+    )
+    expect(screen.getByRole('heading', { name: 'Returned to sender' })).toBeInTheDocument()
+    expect(screen.getByText(/The bank sent this payment back/)).toBeInTheDocument()
 })
