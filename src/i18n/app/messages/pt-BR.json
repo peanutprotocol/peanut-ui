@@ -1677,6 +1677,16 @@
         "transferDetails": "Dados da transferência",
         "selectYourCountry": "Selecione seu país",
         "addMoneyVia": "Adicionar dinheiro com",
+        "routes": {
+            "standing": {
+                "title": "Dados fixos de {rail}",
+                "body": "Dados reutilizáveis que qualquer pessoa pode usar para te pagar"
+            },
+            "top-up": {
+                "title": "Recarga única por {rail}",
+                "body": "Um código para um pagamento, da sua própria conta"
+            }
+        },
         "recentMethods": "Métodos recentes",
         "selectNewMethod": "Escolher outro método",
         "howMuchToAdd": "Quanto você quer adicionar?",
@@ -3105,7 +3115,7 @@
         "countryWaitlist": {
             "title": "Transferências bancárias em {country}",
             "body": "As transferências bancárias ainda não estão disponíveis aqui. Entre na lista e avisaremos quando estiverem.",
-            "join": "Quero ser avisado",
+            "join": "Me avisar",
             "joinedTitle": "Você está na lista",
             "joinedBody": "Avisaremos quando as transferências bancárias estiverem disponíveis em {country}.",
             "error": "Não foi possível atualizar a lista de espera. Tente novamente."

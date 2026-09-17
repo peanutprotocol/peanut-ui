@@ -11,8 +11,6 @@ import { useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
-import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import posthog from 'posthog-js'
 
 type HomeDrawerKey = 'sendToFriends' | 'withdrawToOwnAccounts'
 type HomeDrawerBodyKey = 'sendToFriendsDescription' | 'withdrawToOwnAccountsDescription'
@@ -77,15 +75,24 @@ const DRAWER_OPTIONS: Record<HomeDrawer, DrawerOption[]> = {
  * Both end in bank details. The standing account is reusable, takes any amount
  * and needs no reference, so it is the better answer to "how do I get money in
  * by bank" — but only where the provider will actually open one, which is why
- * it waits on the `deposit-accounts` flag. Until then the row is exactly what
- * it was: the one-off amount flow.
+ * it waits on the `deposit-accounts` flag. Until then the row promises less.
+ *
+ * Both rows lead to the same place. The country selector is the single entry
+ * to every bank route: it already reads the rail catalogue and sends a country
+ * to its standing account, its top-up flow, or the waitlist. A second entry
+ * that skipped the country step could only serve the corridors it knew about.
+ */
+/*
+ * Both bank rows land on the country list, and the country click is the one
+ * place `deposit_method_selected` reports the bank arm. A second capture here
+ * counted the same user twice as soon as the flag went on.
  */
 const BANK_STANDING: DrawerOption = {
     key: 'bank',
     titleKey: ['methods', 'bankTransfer'],
     bodyKey: ['methods', 'bankTransferDescription'],
     icon: 'bank',
-    href: '/get-paid',
+    href: '/add-money?method=bank',
 }
 
 function addOptions(depositAccountsEnabled: boolean): DrawerOption[] {
@@ -118,15 +125,6 @@ export function HomeActionDrawers() {
 
     const navigate = async (option: DrawerOption) => {
         const href = option.href
-        // Funnel continuity across the flag flip. With the flag off, the bank
-        // arm of `deposit_method_selected` fires on the country click inside
-        // /add-money; /get-paid has no country step, so the funnel would show a
-        // cliff at exactly the moment the flag went on. The row that made the
-        // choice reports it instead — once, and only on the arm that skips the
-        // country list.
-        if (option.key === 'bank' && depositAccounts) {
-            posthog.capture(ANALYTICS_EVENTS.DEPOSIT_METHOD_SELECTED, { method_type: 'bank' })
-        }
         // clear the drawer param first so browser-back from the destination
         // lands on a closed home; nuqs queues url updates, so await the reset
         // before routing or the ?drawer entry can survive in history

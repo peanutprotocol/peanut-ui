@@ -1,11 +1,10 @@
 'use client'
 
-import type { CountryData } from '@/components/AddMoney/consts'
+import { countryData, type CountryData } from '@/components/AddMoney/consts'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useOnrampFlow } from '@/context/OnrampFlowContext'
-import { corridorForCountry } from '@/features/deposit-accounts/countryCorridor'
 import { DEPOSIT_ACCOUNT_SCREENS, DEPOSIT_CORRIDORS } from '@/features/deposit-accounts/params'
-import { DEPOSIT_RAILS, isClaimable } from '@/features/deposit-accounts/rails'
+import { addMoneyRoutesForCountry, hasAddMoneyRoute, type AddMoneyRoute } from '@/features/add-money/countryRoutes'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { useOfferedCorridors } from '@/features/deposit-accounts/useOfferedCorridors'
 import { soleLiveRailForCountry } from '@/features/destinations/country-rails'
@@ -40,6 +39,9 @@ export function useAddMoneyFlow() {
         view: parseAsString,
         corridor: parseAsStringEnum([...DEPOSIT_CORRIDORS]),
         step: parseAsStringEnum([...DEPOSIT_ACCOUNT_SCREENS]),
+        // the country whose routes are being chosen between — set only where
+        // one country offers more than one, which today is Brazil
+        routesFor: parseAsString,
         [RETURN_TO_PARAM]: parseAsString,
     })
     const {
@@ -48,6 +50,7 @@ export function useAddMoneyFlow() {
         view: viewFromQuery,
         corridor: corridorFromQuery,
         step: stepFromQuery,
+        routesFor,
         [RETURN_TO_PARAM]: rawReturnTo,
     } = urlParams
 
@@ -97,33 +100,39 @@ export function useAddMoneyFlow() {
         router.push('/home')
     }
 
+    /**
+     * Open one way in. A standing corridor renders the deposit-account screens
+     * in place; a top-up corridor is a flow of its own and navigates.
+     */
+    const openRoute = (route: AddMoneyRoute) => {
+        if (route.kind === 'standing') {
+            void setUrlParams({ corridor: route.corridor, step: 'details', routesFor: null })
+            return
+        }
+        router.push(rewriteMethodPath(route.href))
+    }
+
     const handleCountryClick = (country: CountryData) => {
         posthog.capture(ANALYTICS_EVENTS.DEPOSIT_METHOD_SELECTED, {
             method_type: 'bank',
             country: country.path,
         })
 
-        // What a country leads to is a property of its corridor, and the rail
-        // catalogue already states it: claimable corridors are standing
-        // accounts, the rest name their own top-up route. Reading it here is
-        // what makes this list the single way in — a corridor added to
-        // DEPOSIT_RAILS is routable with no change to this handler.
-        const corridor = corridorForCountry(country)
-        const depositRail = corridor ? DEPOSIT_RAILS[corridor] : undefined
+        // What a country leads to is a property of its corridors, and the rail
+        // catalogue already states it. Reading it here is what makes this list
+        // the single way in — a corridor added to DEPOSIT_RAILS is routable
+        // with no change to this handler.
+        const routes = addMoneyRoutesForCountry(country, offeredCorridors, depositAccountsEnabled)
 
-        // Argentina and Brazil mint coordinates per deposit, so there is no
-        // account to open — the rail's own top-up route is the way in. This
-        // used to be a second copy of those two paths.
-        if (depositRail && !isClaimable(depositRail) && depositRail.topUpHref) {
-            router.push(rewriteMethodPath(depositRail.topUpHref))
+        // Two routes into one country are two different products, so the user
+        // picks. Brazil is the case: a standing Pix account somebody else can
+        // pay into, and a one-off Pix code for the user's own top-up.
+        if (routes.length > 1) {
+            void setUrlParams({ routesFor: country.path })
             return
         }
-
-        // A corridor this user can hold opens the deposit-accounts screens in
-        // place: details if they already have them, the claim step if not —
-        // resolveScreen decides, from the corridor's own gate.
-        if (corridor && depositAccountsEnabled && offeredCorridors.includes(corridor)) {
-            void setUrlParams({ corridor, step: 'details' })
+        if (routes.length === 1) {
+            openRoute(routes[0])
             return
         }
 
@@ -132,6 +141,17 @@ export function useAddMoneyFlow() {
         const rail = soleLiveRailForCountry(country.id, 'add')
         router.push(rail?.path ? rewriteMethodPath(rail.path) : addMoneyCountryUrl(country.path))
     }
+
+    const routesCountry = routesFor ? countryData.find((c) => c.path === routesFor) : undefined
+    const countryRoutes = routesCountry
+        ? addMoneyRoutesForCountry(routesCountry, offeredCorridors, depositAccountsEnabled)
+        : []
+
+    // A `?routesFor=` the user can no longer choose between — a stale link, or
+    // a rail they lost — must not leave a dead param behind the country list.
+    useEffect(() => {
+        if (routesFor && countryRoutes.length < 2) void setUrlParams({ routesFor: null })
+    }, [routesFor, countryRoutes.length, setUrlParams])
 
     // The country list is the only discovery surface on this route, so the
     // deposit-accounts list screen must not appear behind it. The flow asks for
@@ -149,7 +169,7 @@ export function useAddMoneyFlow() {
     // (?drawer=add), so direct links and generic entries (checklists, CTAs,
     // lifecycle emails) land on a surface that offers crypto AND bank. The
     // country list lives on the explicit ?method=bank.
-    const isBareRoot = !method && !countryFromQuery && !corridorFromQuery
+    const isBareRoot = !method && !countryFromQuery && !corridorFromQuery && !routesFor
     useEffect(() => {
         if (!isBareRoot) return
         // carry the caller's origin through the drawer hop — dropping it here
@@ -169,6 +189,16 @@ export function useAddMoneyFlow() {
         countryFromQuery,
         viewFromQuery,
         isBareRoot,
+        /** the country whose two routes are being chosen between, and the routes themselves */
+        routesCountry: countryRoutes.length > 1 ? routesCountry : undefined,
+        countryRoutes,
+        openRoute,
+        /** a country with no corridor and no live rail has nothing behind its row */
+        isCountrySupported: (country: CountryData) =>
+            hasAddMoneyRoute(country, offeredCorridors, depositAccountsEnabled),
+        handleRoutesBack: () => {
+            void setUrlParams({ routesFor: null })
+        },
         /** the picked country resolved to a corridor this user can hold — the flow renders in place */
         showsDepositAccounts,
         handleBack,

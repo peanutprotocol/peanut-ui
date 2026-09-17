@@ -131,6 +131,13 @@ jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => mockUseCapabilities(),
 }))
 
+// Get-paid is flag-gated. Pinned on here so the country pick is decided by the
+// user's rails alone; the flag-off path has its own coverage in
+// features/add-money/__tests__/useAddMoneyFlow.test.ts.
+jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
+    useDepositAccountsEnabled: () => true,
+}))
+
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({
         setIsSupportModalOpen: jest.fn(),
@@ -561,25 +568,33 @@ jest.mock('@/components/AddMoney/hooks/useCryptoDepositPolling', () => ({
 }))
 
 // Country list
-jest.mock('@/components/Common/CountryList', () => ({
-    CountryList: (props: any) => (
-        <div data-testid="country-list">
-            <span>{props.inputTitle}</span>
-            <button
-                data-testid="country-argentina"
-                onClick={() => props.onCountryClick({ path: 'argentina', id: 'AR' })}
-            >
-                Argentina
-            </button>
-            <button data-testid="country-germany" onClick={() => props.onCountryClick({ path: 'germany', id: 'DE' })}>
-                Germany
-            </button>
-            <button data-testid="country-chad" onClick={() => props.onCountryClick({ path: 'chad', id: 'TD' })}>
-                Chad
-            </button>
-        </div>
-    ),
-}))
+jest.mock('@/components/Common/CountryList', () => {
+    // Full country rows: the pick now reads `type`/`iso2`/`currency` to resolve
+    // the country's corridors, so a `{ path, id }` stub would route every
+    // country down the legacy rail branch and test nothing.
+    const COUNTRIES: Record<string, any> = {
+        argentina: { type: 'country', id: 'AR', path: 'argentina', iso2: 'AR', currency: 'ARS' },
+        germany: { type: 'country', id: 'DE', path: 'germany', iso2: 'DE', currency: 'EUR' },
+        chad: { type: 'country', id: 'TD', path: 'chad', iso2: 'TD', currency: 'XAF' },
+    }
+    return {
+        CountryList: (props: any) => (
+            <div data-testid="country-list">
+                <span>{props.inputTitle}</span>
+                {Object.entries(COUNTRIES).map(([path, country]) => (
+                    <button
+                        key={path}
+                        data-testid={`country-${path}`}
+                        data-supported={String(props.isCountrySupported?.(country) ?? true)}
+                        onClick={() => props.onCountryClick(country)}
+                    >
+                        {path}
+                    </button>
+                ))}
+            </div>
+        ),
+    }
+})
 
 // AddWithdrawCountriesList
 jest.mock('@/components/AddWithdraw/AddWithdrawCountriesList', () => ({
@@ -876,6 +891,19 @@ function setGate(kind: Gate) {
     })
 }
 
+/**
+ * Give the user one enabled BANK rail, which is what `useOfferedCorridors`
+ * reads. `setGate('ready')` deliberately leaves `channel` off its fixture rail,
+ * so the default user is offered no standing corridor at all.
+ */
+function setBankRail(id: string) {
+    const base = mockUseCapabilities()
+    mockUseCapabilities.mockReturnValue({
+        ...base,
+        rails: [{ id, provider: 'bridge', channel: 'bank', status: 'enabled' }],
+    })
+}
+
 function createQueryClient() {
     return new QueryClient({
         defaultOptions: {
@@ -1021,17 +1049,19 @@ describe('GROUP 1: Landing', () => {
     })
 
     // TASK-20033: picking a bank-supported country skips the redundant per-country
-    // method list and goes straight to the deposit screen (Manteca for AR/BR,
-    // Bridge bank otherwise). Coming-soon countries keep the per-country screen.
+    // method list and goes straight to the deposit screen. What decides that is
+    // now the rail catalogue: a corridor that cannot be held names its own
+    // top-up route, and a corridor the user IS offered opens in place.
     test('selecting a Manteca country (AR/BR) goes straight to the manteca deposit', () => {
         resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
+        // from DEPOSIT_RAILS.BANK_TRANSFER_AR.topUpHref, not a second copy of it
         fireEvent.click(screen.getByTestId('country-argentina'))
         expect(mockRouterPush).toHaveBeenCalledWith('/add-money/argentina/manteca')
     })
 
-    test('selecting a Bridge-supported country goes straight to the bank deposit', () => {
+    test('a Bridge country the user has no corridor for keeps the bank deposit flow', () => {
         resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
@@ -1039,12 +1069,34 @@ describe('GROUP 1: Landing', () => {
         expect(mockRouterPush).toHaveBeenCalledWith('/add-money/germany/bank')
     })
 
-    test('selecting a coming-soon country keeps the per-country method screen', () => {
+    /*
+     * Behaviour change: a corridor the user IS offered opens the standing
+     * deposit-account screens in place — same components /get-paid renders —
+     * instead of navigating to the one-off amount flow.
+     */
+    test('a Bridge country the user IS offered opens the deposit-account screens in place', () => {
+        setBankRail('bridge.sepa_eu')
         resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
-        fireEvent.click(screen.getByTestId('country-chad'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/chad')
+        fireEvent.click(screen.getByTestId('country-germany'))
+        expect(mockSetQueryState).toHaveBeenCalledWith(
+            expect.objectContaining({ corridor: 'SEPA_EU', step: 'details' })
+        )
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    /*
+     * Behaviour change: a country with no corridor and no live rail is no
+     * longer walked to a per-country screen that can only say "soon" — the
+     * list marks it unsupported and offers the waitlist instead.
+     */
+    test('a coming-soon country is marked unsupported so the list offers the waitlist', () => {
+        resetQueryState({ method: 'bank' })
+        renderWithProviders(<AddMoneyPage />)
+
+        expect(screen.getByTestId('country-chad')).toHaveAttribute('data-supported', 'false')
+        expect(screen.getByTestId('country-germany')).toHaveAttribute('data-supported', 'true')
     })
 
     test('back from the country list navigates to /home', () => {

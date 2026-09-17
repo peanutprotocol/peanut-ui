@@ -17,6 +17,8 @@ const RAIL_NAME_KEYS = {
     FASTER_PAYMENTS_GB: 'corridors.FASTER_PAYMENTS_GB.railName',
     ACH_US: 'corridors.ACH_US.railName',
     SPEI_MX: 'corridors.SPEI_MX.railName',
+    BANK_TRANSFER_BR: 'corridors.BANK_TRANSFER_BR.railName',
+    BANK_TRANSFER_CO: 'corridors.BANK_TRANSFER_CO.railName',
     PIX_BR: 'corridors.PIX_BR.railName',
     BANK_TRANSFER_AR: 'corridors.BANK_TRANSFER_AR.railName',
 } as const satisfies Record<DepositCorridor, string>
@@ -26,6 +28,8 @@ const ARRIVAL_KEYS = {
     FASTER_PAYMENTS_GB: 'corridors.FASTER_PAYMENTS_GB.arrival',
     ACH_US: 'corridors.ACH_US.arrival',
     SPEI_MX: 'corridors.SPEI_MX.arrival',
+    BANK_TRANSFER_BR: 'corridors.BANK_TRANSFER_BR.arrival',
+    BANK_TRANSFER_CO: 'corridors.BANK_TRANSFER_CO.arrival',
     PIX_BR: 'corridors.PIX_BR.arrival',
     BANK_TRANSFER_AR: 'corridors.BANK_TRANSFER_AR.arrival',
 } as const satisfies Record<DepositCorridor, string>
@@ -35,6 +39,8 @@ const ARRIVAL_DETAIL_KEYS = {
     FASTER_PAYMENTS_GB: 'corridors.FASTER_PAYMENTS_GB.arrivalDetail',
     ACH_US: 'corridors.ACH_US.arrivalDetail',
     SPEI_MX: 'corridors.SPEI_MX.arrivalDetail',
+    BANK_TRANSFER_BR: 'corridors.BANK_TRANSFER_BR.arrivalDetail',
+    BANK_TRANSFER_CO: 'corridors.BANK_TRANSFER_CO.arrivalDetail',
     PIX_BR: 'corridors.PIX_BR.arrivalDetail',
     BANK_TRANSFER_AR: 'corridors.BANK_TRANSFER_AR.arrivalDetail',
 } as const satisfies Record<DepositCorridor, string>

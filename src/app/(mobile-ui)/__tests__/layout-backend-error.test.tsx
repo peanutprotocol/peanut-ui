@@ -277,6 +277,47 @@ describe('(mobile-ui) layout — no user', () => {
         })
     })
 
+    /*
+     * The gate had no floor under it. On native `authReady()` can park before
+     * the user query ever fires, so `isFetchingUser` stays true, the /setup
+     * bounce never arms, and the mascot runs forever with no way out.
+     */
+    describe('the protected gate cannot wait forever', () => {
+        it('a gate still working after 15s hands over to the backend error screen', () => {
+            mockUseAuth.mockReturnValue(authState({ isFetchingUser: true }))
+
+            renderLayout()
+
+            expect(screen.getByTestId('loading')).toBeInTheDocument()
+            expect(screen.queryByTestId('backend-error-screen')).not.toBeInTheDocument()
+
+            act(() => {
+                jest.advanceTimersByTime(15000)
+            })
+
+            expect(screen.getByTestId('backend-error-screen')).toBeInTheDocument()
+            expect(screen.queryByTestId('loading')).not.toBeInTheDocument()
+        })
+
+        it('auth settling before 15s disarms the watchdog', () => {
+            mockUseAuth.mockReturnValue(authState({ isFetchingUser: true }))
+            const { rerender } = renderLayout()
+
+            act(() => {
+                jest.advanceTimersByTime(14000)
+            })
+            mockUseAuth.mockReturnValue(authState({ user: CACHED_USER }))
+            act(() => rerenderLayout(rerender))
+
+            act(() => {
+                jest.advanceTimersByTime(30000)
+            })
+
+            expect(screen.queryByTestId('backend-error-screen')).not.toBeInTheDocument()
+            expect(screen.getByTestId('app-shell')).toBeInTheDocument()
+        })
+    })
+
     it('refetch blip over cached data: keeps the app, no error screen, no redirect', () => {
         mockUseAuth.mockReturnValue(authState({ user: CACHED_USER, userFetchError: new Error('blip') }))
 

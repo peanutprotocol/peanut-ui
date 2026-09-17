@@ -48,6 +48,13 @@ interface CountryListViewProps {
     // Send has stricter country support than own-account withdrawal.
     enforceSupportedCountries?: boolean
     showLoadingState?: boolean
+    /**
+     * Whether a country has anything behind its row, when the caller knows
+     * better than the rail table does. Add money asks its own resolver, which
+     * also counts a standing corridor and a top-up flow; without it Brazil and
+     * Colombia read as unsupported and land on the waitlist.
+     */
+    isCountrySupported?: (country: CountryData) => boolean
 }
 
 /**
@@ -73,6 +80,7 @@ export const CountryList = ({
     getRightContent,
     enforceSupportedCountries,
     showLoadingState = true, // true by default to show loading state when clicking a country
+    isCountrySupported,
 }: CountryListViewProps) => {
     const t = useTranslations('global')
     const locale = useLocale()
@@ -196,7 +204,9 @@ export const CountryList = ({
                             // determine if country is supported based on view mode
                             let isSupported = false
 
-                            if (viewMode === 'add-withdraw') {
+                            if (isCountrySupported) {
+                                isSupported = isCountrySupported(country)
+                            } else if (viewMode === 'add-withdraw') {
                                 // send->bank flow: bridge countries, plus Brazil — a PIX send to a
                                 // third-party key rides the Manteca QR-payment endpoint (see the
                                 // method=pix delegation in /withdraw/manteca). Argentina stays

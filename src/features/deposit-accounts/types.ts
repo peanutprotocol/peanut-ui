@@ -26,7 +26,15 @@ export type DepositAccount = DepositAccountsResponse['depositAccounts'][number]
 
 type DepositProvider = 'bridge' | 'manteca'
 
-export type DepositCorridor = 'ACH_US' | 'SEPA_EU' | 'FASTER_PAYMENTS_GB' | 'SPEI_MX' | 'PIX_BR' | 'BANK_TRANSFER_AR'
+export type DepositCorridor =
+    | 'ACH_US'
+    | 'SEPA_EU'
+    | 'FASTER_PAYMENTS_GB'
+    | 'SPEI_MX'
+    | 'BANK_TRANSFER_BR'
+    | 'BANK_TRANSFER_CO'
+    | 'PIX_BR'
+    | 'BANK_TRANSFER_AR'
 
 /**
  * `provisioning` — claimed, the provider has not returned details yet.

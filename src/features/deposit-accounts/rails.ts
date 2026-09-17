@@ -43,6 +43,20 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         flagIso2: 'mx',
         detailRowCount: 3,
     },
+    BANK_TRANSFER_BR: {
+        corridor: 'BANK_TRANSFER_BR',
+        currency: 'BRL',
+        provider: 'bridge',
+        flagIso2: 'br',
+        detailRowCount: 3,
+    },
+    BANK_TRANSFER_CO: {
+        corridor: 'BANK_TRANSFER_CO',
+        currency: 'COP',
+        provider: 'bridge',
+        flagIso2: 'co',
+        detailRowCount: 4,
+    },
     PIX_BR: {
         corridor: 'PIX_BR',
         currency: 'BRL',
@@ -68,9 +82,30 @@ export const DEPOSIT_RAIL_ORDER: DepositCorridor[] = [
     'FASTER_PAYMENTS_GB',
     'ACH_US',
     'SPEI_MX',
+    'BANK_TRANSFER_BR',
+    'BANK_TRANSFER_CO',
     'PIX_BR',
     'BANK_TRANSFER_AR',
 ]
+
+/**
+ * A record with a slot for every corridor, built from the catalogue.
+ *
+ * Each caller used to write the corridor list out again, so adding a corridor
+ * meant finding seven hand-written lists and a typecheck error in each. There
+ * is one list, and it is `DEPOSIT_RAIL_ORDER`.
+ */
+export function corridorRecord<T>(value: (corridor: DepositCorridor) => T): Record<DepositCorridor, T> {
+    return Object.fromEntries(DEPOSIT_RAIL_ORDER.map((corridor) => [corridor, value(corridor)])) as Record<
+        DepositCorridor,
+        T
+    >
+}
+
+/** every corridor present and empty — the starting point of a per-corridor index */
+export function emptyCorridorRecord<T>(): Record<DepositCorridor, T | undefined> {
+    return corridorRecord<T | undefined>(() => undefined)
+}
 
 /** a corridor a user can hold as a reusable account somebody else can pay into */
 export function isClaimable(rail: DepositRail): boolean {

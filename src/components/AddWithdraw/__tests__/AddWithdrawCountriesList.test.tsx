@@ -61,6 +61,13 @@ jest.mock('@/components/AddMoney/consts', () => ({
                     path: '/add-money/testland/bank',
                 },
                 {
+                    id: 'crypto-add',
+                    title: 'Crypto',
+                    description: 'Usually arrives instantly',
+                    icon: 'wallet-outline',
+                    path: '/add-money/crypto',
+                },
+                {
                     id: 'pix-add',
                     title: 'Pix',
                     description: 'Instant transfers',
@@ -320,6 +327,33 @@ describe('AddWithdrawCountriesList — bank gate', () => {
         expect(screen.getByTestId('provide-email-sheet')).toBeInTheDocument()
         expect(screen.queryByTestId('initiate-kyc-modal')).toBeNull()
         expect(mockPush).not.toHaveBeenCalled()
+    })
+})
+
+/*
+ * Crypto is offered before the country is picked — the Add drawer on home, the
+ * crypto row above the withdraw country list — and it does the same thing in
+ * every country. Repeating it inside a country's list made the user answer a
+ * question they had already answered.
+ */
+describe('AddWithdrawCountriesList — crypto is offered once per flow', () => {
+    beforeEach(() => {
+        mockPush.mockClear()
+        setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
+    })
+
+    it('leaves crypto out of a country\u2019s add list while keeping the country\u2019s own rails', () => {
+        render(<AddWithdrawCountriesList flow="add" />)
+
+        expect(screen.queryByTestId('method-crypto')).toBeNull()
+        expect(screen.getByTestId('method-bank')).toBeInTheDocument()
+        expect(screen.getByTestId('method-pix')).toBeInTheDocument()
+    })
+
+    it('leaves the withdraw entry untouched — its sole rail still skips the list', () => {
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+
+        expect(screen.getByTestId('bank-form')).toBeInTheDocument()
     })
 })
 

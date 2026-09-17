@@ -2,7 +2,7 @@
 
 import fixture from './bridge-sandbox-virtual-accounts.json'
 import { fromBridgeVirtualAccounts, type BridgeVirtualAccount } from './bridgeFixtureAdapter'
-import { corridorFromRailId, DEPOSIT_RAIL_ORDER } from '@/features/deposit-accounts/rails'
+import { corridorFromRailId, DEPOSIT_RAIL_ORDER, emptyCorridorRecord } from '@/features/deposit-accounts/rails'
 import type { DepositAccount, DepositAccountView, DepositCorridor } from '@/features/deposit-accounts/types'
 import type { GateState } from '@/utils/capability-gate'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -55,14 +55,7 @@ export function useSandboxDepositAccounts(scenario: SandboxScenario) {
     }, [])
 
     const accounts = useMemo(() => {
-        const byCorridor: Record<DepositCorridor, DepositAccountView | undefined> = {
-            ACH_US: undefined,
-            SEPA_EU: undefined,
-            FASTER_PAYMENTS_GB: undefined,
-            SPEI_MX: undefined,
-            PIX_BR: undefined,
-            BANK_TRANSFER_AR: undefined,
-        }
+        const byCorridor = emptyCorridorRecord<DepositAccountView>()
 
         bridgeAccounts.forEach((account) => {
             const corridor = corridorFromRailId(account.railId)

@@ -1,4 +1,4 @@
-import { corridorForCountry } from '../countryCorridor'
+import { corridorForCountry, corridorsForCountry } from '../countryCorridor'
 import { DEPOSIT_RAILS } from '../rails'
 
 const country = (iso2: string, currency: string) => ({ type: 'country' as const, iso2, currency })
@@ -8,7 +8,9 @@ describe('corridorForCountry', () => {
         expect(corridorForCountry(country('US', 'USD'))).toBe('ACH_US')
         expect(corridorForCountry(country('GB', 'GBP'))).toBe('FASTER_PAYMENTS_GB')
         expect(corridorForCountry(country('MX', 'MXN'))).toBe('SPEI_MX')
-        expect(corridorForCountry(country('BR', 'BRL'))).toBe('PIX_BR')
+        // Brazil has two, and the catalogue order names the standing one first
+        expect(corridorForCountry(country('BR', 'BRL'))).toBe('BANK_TRANSFER_BR')
+        expect(corridorForCountry(country('CO', 'COP'))).toBe('BANK_TRANSFER_CO')
         expect(corridorForCountry(country('AR', 'ARS'))).toBe('BANK_TRANSFER_AR')
     })
 
@@ -26,6 +28,16 @@ describe('corridorForCountry', () => {
     it('is not a corridor for the crypto row or for a country with no code', () => {
         expect(corridorForCountry({ type: 'crypto', iso2: undefined, currency: undefined })).toBeUndefined()
         expect(corridorForCountry(country('', 'EUR'))).toBeUndefined()
+    })
+
+    it('returns both Brazilian corridors, standing account before one-off top-up', () => {
+        expect(corridorsForCountry(country('BR', 'BRL'))).toEqual(['BANK_TRANSFER_BR', 'PIX_BR'])
+    })
+
+    it('returns one corridor where a country has one, and none where it has none', () => {
+        expect(corridorsForCountry(country('CO', 'COP'))).toEqual(['BANK_TRANSFER_CO'])
+        expect(corridorsForCountry(country('DE', 'EUR'))).toEqual(['SEPA_EU'])
+        expect(corridorsForCountry(country('NG', 'NGN'))).toEqual([])
     })
 
     it('resolves only corridors the rail catalogue actually holds', () => {

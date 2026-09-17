@@ -29,7 +29,6 @@ import { type Account } from '@/interfaces/interfaces'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import TokenAndNetworkConfirmationDrawer from '../Global/TokenAndNetworkConfirmationDrawer'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
@@ -115,7 +114,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const [viewParam, setViewParam] = useQueryState('view', parseAsStringEnum(['form', 'bank']))
     const [isKycModalOpen, setIsKycModalOpen] = useState(false)
     const formRef = useRef<{ handleSubmit: () => void }>(null)
-    const [isSupportedTokensModalOpen, setIsSupportedTokensModalOpen] = useState(false)
 
     // read country from path params (web: /add-money/india) or query params (native: /add-money?country=india)
     const countryFromQuery = searchParams.get('country')
@@ -362,10 +360,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     const handleAddMethodClick = (method: SpecificPaymentMethod) => {
         if (method.path) {
-            if (method.id === 'crypto-add') {
-                setIsSupportedTokensModalOpen(true)
-                return
-            }
             if (checkBridgeGate(() => handleAddMethodClick(method))) return
 
             const target = rewriteMethodPath(method.path)
@@ -391,6 +385,13 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
         // filter apple pay and google pay for add flow based on device type
         const filteredAddMethods = (countryMethods.add || []).filter((method) => {
+            // Crypto belongs to the flow, not to a country: the Add drawer
+            // offers it before the country is picked, and it does the same
+            // thing in every country. Listing it again here made the second
+            // row of every country list a repeat of a choice already made.
+            if (method.id === 'crypto-add') {
+                return false
+            }
             if (method.id === 'apple-pay-add') {
                 return deviceType === DeviceType.IOS || deviceType === DeviceType.WEB
             }
@@ -624,17 +625,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                     methods?.withdraw &&
                     renderPaymentMethods(t('chooseWithdrawingMethod'), methods.withdraw)}
             </div>
-            {flow === 'add' && (
-                <TokenAndNetworkConfirmationDrawer
-                    onClose={() => {
-                        setIsSupportedTokensModalOpen(false)
-                    }}
-                    onAccept={() => {
-                        router.push('/add-money/crypto')
-                    }}
-                    isVisible={isSupportedTokensModalOpen}
-                />
-            )}
             {sharedModals}
         </div>
     )

@@ -4,7 +4,7 @@ import messages from '@/i18n/app/messages/en.json'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { DepositAccountsFlow } from '../components/DepositAccountsFlow'
 import { DepositAccountsListScreen } from '../components/DepositAccountsListScreen'
-import { DEPOSIT_RAIL_ORDER } from '../rails'
+import { corridorRecord, DEPOSIT_RAIL_ORDER, emptyCorridorRecord } from '../rails'
 import type { DepositAccount, DepositCorridor } from '../types'
 import type { GateState } from '@/utils/capability-gate'
 
@@ -13,17 +13,9 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 const READY: GateState = { kind: 'ready' }
 
 /** one gate for every corridor, the way a user with every rail enabled looks */
-const allGates = (gate: GateState = READY): Record<DepositCorridor, GateState> =>
-    Object.fromEntries(DEPOSIT_RAIL_ORDER.map((corridor) => [corridor, gate])) as Record<DepositCorridor, GateState>
+const allGates = (gate: GateState = READY): Record<DepositCorridor, GateState> => corridorRecord(() => gate)
 
-const NONE: Record<DepositCorridor, DepositAccount | undefined> = {
-    ACH_US: undefined,
-    SEPA_EU: undefined,
-    FASTER_PAYMENTS_GB: undefined,
-    SPEI_MX: undefined,
-    PIX_BR: undefined,
-    BANK_TRANSFER_AR: undefined,
-}
+const NONE = emptyCorridorRecord<DepositAccount>()
 
 /** a corridor the user already holds, active and receiving money */
 const heldAccount = (corridor: DepositCorridor): DepositAccount => ({

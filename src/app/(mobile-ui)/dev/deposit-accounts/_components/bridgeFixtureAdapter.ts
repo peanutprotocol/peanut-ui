@@ -1,4 +1,5 @@
 import { DEPOSIT_RAIL_POLICY } from '@/features/deposit-accounts/__fixtures__/railPolicy'
+import { corridorRecord, DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
 import type { DepositAccount, DepositCorridor, DepositInstructions } from '@/features/deposit-accounts/types'
 
 /**
@@ -38,14 +39,9 @@ export interface BridgeVirtualAccount {
     }
 }
 
-const COUNTRY_BY_CORRIDOR: Record<DepositCorridor, string> = {
-    ACH_US: 'US',
-    SEPA_EU: 'EU',
-    FASTER_PAYMENTS_GB: 'GB',
-    SPEI_MX: 'MX',
-    PIX_BR: 'BR',
-    BANK_TRANSFER_AR: 'AR',
-}
+// The country a corridor belongs to is already on its rail — `flagIso2` is
+// that code. A second table here only gave it a second chance to be wrong.
+const COUNTRY_BY_CORRIDOR = corridorRecord((corridor) => DEPOSIT_RAILS[corridor].flagIso2.toUpperCase())
 
 const CORRIDOR_BY_CURRENCY: Record<string, DepositCorridor> = {
     usd: 'ACH_US',

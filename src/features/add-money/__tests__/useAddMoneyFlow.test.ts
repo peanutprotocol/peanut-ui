@@ -43,6 +43,7 @@ jest.mock('@/features/destinations/country-rails', () => ({
             AR: { id: 'bank-transfer-add', path: '/add-money/argentina/manteca' },
             DE: { id: 'bank-transfer-add', path: '/add-money/germany/bank' },
         })[id] ?? null,
+    liveRailsForCountry: (id: string) => (id === 'DEU' ? [{ id: 'bank-transfer-add' }] : []),
 }))
 
 jest.mock('@/utils/native-routes', () => ({
@@ -191,6 +192,70 @@ describe('useAddMoneyFlow', () => {
         const { result: r2 } = renderFlow('?method=bank')
         act(() => r2.current.handleCountryClick(GERMANY as any))
         expect(mockRouterPush).toHaveBeenCalledWith('/add-money/germany')
+    })
+
+    /*
+     * Brazil is the one country with two bank routes, and they are different
+     * products: standing Pix details somebody else can pay into, and a one-off
+     * Pix code for the user's own top-up. Picking one for the user would send
+     * half of them to a screen that cannot do what they came for.
+     */
+    it('asks which route when a country offers a standing account AND a top-up', async () => {
+        mockOfferedCorridors.mockReturnValue(['BANK_TRANSFER_BR'])
+        const updates: UrlUpdateEvent[] = []
+        const { result } = renderFlow('?method=bank', (e) => updates.push(e))
+
+        act(() => result.current.handleCountryClick(BRAZIL as any))
+
+        await waitFor(() => expect(updates.at(-1)?.searchParams.get('routesFor')).toBe('brazil'))
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    it('opens the route the user picked from that step', async () => {
+        mockOfferedCorridors.mockReturnValue(['BANK_TRANSFER_BR'])
+        const updates: UrlUpdateEvent[] = []
+        const { result } = renderFlow('?method=bank&routesFor=brazil', (e) => updates.push(e))
+
+        expect(result.current.routesCountry?.path).toBe('brazil')
+        expect(result.current.countryRoutes).toEqual([
+            { corridor: 'BANK_TRANSFER_BR', kind: 'standing' },
+            { corridor: 'PIX_BR', kind: 'top-up', href: '/add-money/brazil/manteca' },
+        ])
+
+        act(() => result.current.openRoute(result.current.countryRoutes[1]))
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/brazil/manteca')
+
+        act(() => result.current.openRoute(result.current.countryRoutes[0]))
+        await waitFor(() => expect(updates.at(-1)?.searchParams.get('corridor')).toBe('BANK_TRANSFER_BR'))
+        expect(updates.at(-1)?.searchParams.get('routesFor')).toBeNull()
+    })
+
+    it('drops a routesFor the user can no longer choose between', async () => {
+        mockOfferedCorridors.mockReturnValue([])
+        const updates: UrlUpdateEvent[] = []
+        const { result } = renderFlow('?method=bank&routesFor=brazil', (e) => updates.push(e))
+
+        expect(result.current.routesCountry).toBeUndefined()
+        await waitFor(() => expect(updates.at(-1)?.searchParams.get('routesFor')).toBeNull())
+    })
+
+    it('offers the waitlist only where a country has no corridor and no live rail', () => {
+        mockOfferedCorridors.mockReturnValue([])
+        const { result } = renderFlow('?method=bank')
+
+        // Brazil's top-up needs no rail of the user's own
+        expect(result.current.isCountrySupported(BRAZIL as any)).toBe(true)
+        expect(result.current.isCountrySupported(GERMANY as any)).toBe(true)
+        expect(
+            result.current.isCountrySupported({
+                id: 'NG',
+                type: 'country',
+                title: 'Nigeria',
+                path: 'nigeria',
+                iso2: 'NG',
+                currency: 'NGN',
+            } as any)
+        ).toBe(false)
     })
 
     it('renders the flow on a corridor, and returns to the countries when it asks for the list', async () => {

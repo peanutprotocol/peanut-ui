@@ -4,11 +4,11 @@
  * Reproduce-from-screenshot bootstrap.
  *
  * When the URL includes `?__reproduce=<sessionId>`, this provider fetches the
- * reproduce manifest from the harness API, clears all user-scoped client
- * state (service-worker caches, harness localStorage, jwt cookie), seeds the
- * new scenario user's state, and reloads — landing the page in the exact
- * authenticated state the screenshot captured, with no carryover from any
- * previous reproduce session.
+ * reproduce manifest from the harness API, clears all client state left by the
+ * previous session AND the previous build (service workers, every cache, both
+ * web storages, IndexedDB, the jwt cookie), seeds the new scenario user's
+ * state, and reloads — landing the page in the exact authenticated state the
+ * screenshot captured, with no carryover from any previous reproduce session.
  *
  * Gated by NEXT_PUBLIC_HARNESS_SKIP_PASSKEY_CHECK=true. In prod this
  * component is dead code.
@@ -19,8 +19,6 @@
  */
 
 import { useEffect } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
-import { USER_DATA_CACHE_PATTERNS } from '@/constants/cache.consts'
 
 const COOKIE_NAME = 'jwt-token'
 const SESSION_STORAGE_KEY = '__reproduce_applied'
@@ -36,39 +34,18 @@ function clearCookie(name: string) {
 }
 
 // Wipe every piece of user-scoped client state BEFORE seeding the new session.
-// Otherwise:
-//   - Service worker serves /users/me from a previous user's cache → the header
-//     pill, balance, etc. render the WRONG user even after the cookie swap.
-//   - localStorage keeps webauthn keys, kernel state, TanStack Query persister
-//     data — any of which can surface the previous user's identity.
-// Mirrors the logout() cleanup in authContext.tsx, minus the redirect.
+//
+// A stale build is as damaging as a stale user here. The service worker of the
+// previous QA build keeps serving its own app shell and its cached /users/me,
+// so a reproduce link opens the old bundle holding a token the API now answers
+// 401 to — and the app spins instead of recovering. Unregister first, then
+// drop EVERY cache (not only the user-data ones: the app shell is the half
+// that pins the old build), then clear both web storages.
+//
+// Order matters: a running worker can repopulate a cache it still owns.
 async function wipeUserScopedClientState() {
     // Cookies — expire the jwt unconditionally. Will be re-set with new value.
     clearCookie(COOKIE_NAME)
-
-    // localStorage — keep harness flags (we're about to set them fresh); wipe
-    // everything else that might carry user identity.
-    try {
-        const preserve = new Set(['__reproduce_applied'])
-        const keys = Object.keys(localStorage)
-        for (const k of keys) {
-            if (preserve.has(k)) continue
-            // Keep a narrow allowlist only — anything else is suspect.
-            try {
-                localStorage.removeItem(k)
-            } catch {}
-        }
-    } catch {}
-
-    // Service-worker caches containing user-specific API responses.
-    if (typeof caches !== 'undefined') {
-        try {
-            const names = await caches.keys()
-            await Promise.all(
-                names.filter((n) => USER_DATA_CACHE_PATTERNS.some((p) => n.includes(p))).map((n) => caches.delete(n))
-            )
-        } catch {}
-    }
 
     // Unregister ALL service workers for this origin. A running SW can serve
     // stale responses from in-memory state even after caches.delete(), and
@@ -80,6 +57,25 @@ async function wipeUserScopedClientState() {
             await Promise.all(regs.map((r) => r.unregister()))
         } catch {}
     }
+
+    // Every Cache Storage entry: cached API responses carry the previous user,
+    // the precache carries the previous build.
+    if (typeof caches !== 'undefined') {
+        try {
+            const names = await caches.keys()
+            await Promise.all(names.map((n) => caches.delete(n)))
+        } catch {}
+    }
+
+    // localStorage — webauthn keys, kernel state, the TanStack Query
+    // persister; sessionStorage — the replay handoff and this bootstrap's own
+    // applied marker. Both are re-seeded below from the new manifest.
+    try {
+        localStorage.clear()
+    } catch {}
+    try {
+        sessionStorage.clear()
+    } catch {}
 
     // IndexedDB — TanStack Query persister and anything else that survived a
     // tab close. Wipe all databases (dev-only, harness-only).
@@ -103,12 +99,15 @@ async function wipeUserScopedClientState() {
 }
 
 export function ReproduceBootstrap() {
-    const params = useSearchParams()
-    const router = useRouter()
-
     useEffect(() => {
         if (process.env.NEXT_PUBLIC_HARNESS_SKIP_PASSKEY_CHECK !== 'true') return
-        const sessionId = params.get('__reproduce')
+        // window.location, not useSearchParams: that hook makes this component
+        // a Suspense-bailout consumer, so the boundary it sits in has to
+        // resolve before the effect can run at all. A reproduce link is always
+        // a full document load, so the URL is right here and needs no hook —
+        // and the bootstrap no longer depends on anything resolving first.
+        if (typeof window === 'undefined') return
+        const sessionId = new URLSearchParams(window.location.search).get('__reproduce')
         if (!sessionId) return
         // Idempotent: sessionStorage flag prevents re-fetch on re-renders.
         if (sessionStorage.getItem(SESSION_STORAGE_KEY) === sessionId) return
@@ -127,7 +126,7 @@ export function ReproduceBootstrap() {
                 const manifest = await res.json()
                 if (cancelled) return
 
-                // Step 1: wipe prior user scope (cookies + caches + localStorage).
+                // Step 1: wipe the prior session AND the prior build.
                 await wipeUserScopedClientState()
 
                 // Step 2: seed localStorage flags from the new manifest. The
@@ -175,7 +174,10 @@ export function ReproduceBootstrap() {
         return () => {
             cancelled = true
         }
-    }, [params, router])
+        // Once per document: the reproduce link is a cold load and this ends in
+        // a hard reload, so there is nothing to re-run on.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     return null
 }

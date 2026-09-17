@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { DepositAccountsFlow, type DepositAccountsFlowProps } from '../components/DepositAccountsFlow'
+import { corridorRecord, emptyCorridorRecord } from '../rails'
 import type { DepositAccountView } from '../types'
 
 jest.mock('nuqs', () => ({
@@ -46,22 +47,9 @@ const active: DepositAccountView = {
 function props(account?: DepositAccountView): DepositAccountsFlowProps {
     return {
         corridors: ['SEPA_EU'],
-        accounts: {
-            SEPA_EU: account,
-            ACH_US: undefined,
-            FASTER_PAYMENTS_GB: undefined,
-            SPEI_MX: undefined,
-            PIX_BR: undefined,
-            BANK_TRANSFER_AR: undefined,
-        },
-        gates: {
-            SEPA_EU: { kind: 'ready' },
-            ACH_US: { kind: 'ready' },
-            FASTER_PAYMENTS_GB: { kind: 'ready' },
-            SPEI_MX: { kind: 'ready' },
-            PIX_BR: { kind: 'ready' },
-            BANK_TRANSFER_AR: { kind: 'ready' },
-        },
+        // built from the catalogue, so a new corridor does not break this file
+        accounts: { ...emptyCorridorRecord<DepositAccountView>(), SEPA_EU: account },
+        gates: corridorRecord(() => ({ kind: 'ready' as const })),
         userName: 'Demo User',
         onExit: jest.fn(),
         onClaim: jest.fn(),

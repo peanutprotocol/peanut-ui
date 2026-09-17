@@ -9,10 +9,16 @@ import { useTranslations } from 'next-intl'
 interface AddMoneyBankCountryListViewProps {
     onBack: () => void
     onCountryClick: (country: CountryData) => void
+    /** a country with nothing behind its row offers the waitlist instead */
+    isCountrySupported: (country: CountryData) => boolean
 }
 
 // ?method=bank: the bank country list (board Page/Add/Bank 17830:77534)
-export function AddMoneyBankCountryListView({ onBack, onCountryClick }: AddMoneyBankCountryListViewProps) {
+export function AddMoneyBankCountryListView({
+    onBack,
+    onCountryClick,
+    isCountrySupported,
+}: AddMoneyBankCountryListViewProps) {
     const t = useTranslations('addMoney')
 
     return (
@@ -23,6 +29,7 @@ export function AddMoneyBankCountryListView({ onBack, onCountryClick }: AddMoney
                 viewMode="add-withdraw"
                 flow="add"
                 onCountryClick={onCountryClick}
+                isCountrySupported={isCountrySupported}
             />
         </PageStack>
     )

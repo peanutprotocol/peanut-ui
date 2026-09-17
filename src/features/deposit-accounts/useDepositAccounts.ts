@@ -12,6 +12,7 @@ import {
     corridorFromRailId,
     corridorsFromRails,
     DEPOSIT_RAIL_ORDER,
+    emptyCorridorRecord,
     DEPOSIT_RAILS,
     isClaimable,
     railIdFor,
@@ -153,14 +154,7 @@ export function useDepositAccounts(): UseDepositAccountsResult {
      * not, or a rotation can put retired details in a payroll form.
      */
     const accounts = useMemo((): Record<DepositCorridor, DepositAccountView | undefined> => {
-        const byCorridor: Record<DepositCorridor, DepositAccountView | undefined> = {
-            ACH_US: undefined,
-            SEPA_EU: undefined,
-            FASTER_PAYMENTS_GB: undefined,
-            SPEI_MX: undefined,
-            PIX_BR: undefined,
-            BANK_TRANSFER_AR: undefined,
-        }
+        const byCorridor = emptyCorridorRecord<DepositAccountView>()
         for (const account of query.data?.accounts ?? []) {
             const corridor = corridorFromRailId(account.railId)
             if (!corridor) continue
@@ -179,14 +173,7 @@ export function useDepositAccounts(): UseDepositAccountsResult {
     }, [query.data, provisioningPolls])
 
     const claimable = useMemo((): Record<DepositCorridor, ClaimableCorridor | undefined> => {
-        const byCorridor: Record<DepositCorridor, ClaimableCorridor | undefined> = {
-            ACH_US: undefined,
-            SEPA_EU: undefined,
-            FASTER_PAYMENTS_GB: undefined,
-            SPEI_MX: undefined,
-            PIX_BR: undefined,
-            BANK_TRANSFER_AR: undefined,
-        }
+        const byCorridor = emptyCorridorRecord<ClaimableCorridor>()
         for (const corridorTerms of query.data?.claimable ?? []) {
             const corridor = corridorFromRailId(corridorTerms.railId)
             if (corridor) byCorridor[corridor] = corridorTerms

@@ -1677,6 +1677,16 @@
         "transferDetails": "Datos de la transferencia",
         "selectYourCountry": "Selecciona tu país",
         "addMoneyVia": "Agregar dinero con",
+        "routes": {
+            "standing": {
+                "title": "Datos fijos de {rail}",
+                "body": "Datos reutilizables que cualquiera puede usar para pagarte"
+            },
+            "top-up": {
+                "title": "Recarga puntual por {rail}",
+                "body": "Un código para un solo pago desde tu propia cuenta"
+            }
+        },
         "recentMethods": "Métodos recientes",
         "selectNewMethod": "Elegir otro método",
         "howMuchToAdd": "¿Cuánto quieres agregar?",

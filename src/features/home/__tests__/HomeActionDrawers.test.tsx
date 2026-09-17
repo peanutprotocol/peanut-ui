@@ -88,10 +88,10 @@ describe('HomeActionDrawers', () => {
     it('opens the add drawer with bank and crypto options only', async () => {
         renderWithUrl('?drawer=add')
 
-        // Bank transfer leads to the standing account, not to the one-off
-        // amount flow — /get-paid hands back the corridors it cannot serve.
+        // Both bank rows lead to the country selector — the single entry to
+        // every bank route, standing account and one-off top-up alike.
         fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/get-paid'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank'))
 
         fireEvent.click(screen.getByTestId('home-drawer-add-crypto'))
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/crypto'))
@@ -121,7 +121,7 @@ describe('HomeActionDrawers', () => {
         expect(last.searchParams.get('returnTo')).toBeNull()
     })
 
-    it('sends the bank row back to the one-off transfer flow while get-paid is off', async () => {
+    it('sends the bank row to the country list while get-paid is off', async () => {
         depositAccountsEnabled = false
         renderWithUrl('?drawer=add')
 
@@ -130,22 +130,12 @@ describe('HomeActionDrawers', () => {
     })
 
     /*
-     * The deposit funnel must not break where the flag flips. With get-paid
-     * off, the bank arm of deposit_method_selected fires on the country click
-     * inside /add-money; get-paid has no country step, so the row reports the
-     * choice itself — and only on that arm, or the flag-off path would count
-     * the same user twice.
+     * Both bank rows land on the country list, so the country click is the one
+     * place the bank arm of deposit_method_selected is reported. A capture
+     * here too counted the same user twice as soon as the flag went on.
      */
-    it('reports the bank arm of the deposit funnel when it routes to get-paid', async () => {
-        renderWithUrl('?drawer=add')
-
-        fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/get-paid'))
-        expect(mockCapture).toHaveBeenCalledWith('deposit_method_selected', { method_type: 'bank' })
-    })
-
-    it('leaves the funnel event to the country click while get-paid is off', async () => {
-        depositAccountsEnabled = false
+    it.each([true, false])('leaves the bank funnel event to the country click (get-paid on: %s)', async (enabled) => {
+        depositAccountsEnabled = enabled
         renderWithUrl('?drawer=add')
 
         fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
@@ -161,7 +151,9 @@ describe('HomeActionDrawers', () => {
         renderWithUrl(`?drawer=add&returnTo=${encodeURIComponent(origin)}`)
 
         fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith(`/get-paid?returnTo=${encodeURIComponent(origin)}`))
+        await waitFor(() =>
+            expect(mockPush).toHaveBeenCalledWith(`/add-money?method=bank&returnTo=${encodeURIComponent(origin)}`)
+        )
     })
 
     it('hides the bottom nav while open and releases the hold once closed', async () => {

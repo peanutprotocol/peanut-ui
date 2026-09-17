@@ -25,7 +25,9 @@ import type { ClaimableCorridor, DepositCorridor, DepositRules, SenderPolicy } f
  *   MXN — the holder up to 1,000,000 MXN, a business unlimited, another
  *     person to a 15,000 MXN volume limit with no period published,
  *     50 MXN floor.
- *   BRL / ARS — own name only.
+ *   BRL (standing) — a business supported, another person unavailable, the
+ *     holder's own transfer fine.
+ *   PIX_BR / ARS — own name only.
  */
 export interface DepositRailPolicy {
     sender: SenderPolicy
@@ -72,6 +74,19 @@ export const DEPOSIT_RAIL_POLICY: Record<DepositCorridor, DepositRailPolicy> = {
             min: { amount: '50', currency: 'MXN' },
         },
     },
+    BANK_TRANSFER_BR: {
+        sender: 'business-only',
+        rules: {
+            ownAccount: { allowed: true },
+            // "supported", not "unlimited": §3 names no ceiling and no volume
+            thirdPartyBusiness: 'allowed',
+            thirdPartyIndividual: { policy: 'unavailable' },
+        },
+    },
+    // Bridge publishes no third-party rule for Bre-B, and silence is not
+    // permission — see the `unknown` note on SenderPolicy. No rules, so the
+    // screens promise nothing until §3 gains a Colombian row.
+    BANK_TRANSFER_CO: { sender: 'unknown' },
     PIX_BR: { sender: 'own-name-only' },
     BANK_TRANSFER_AR: { sender: 'own-name-only' },
 }
