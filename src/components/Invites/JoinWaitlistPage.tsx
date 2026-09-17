@@ -9,7 +9,6 @@ import InvitesPageLayout from './InvitesPageLayout'
 import ValidatedInput from '../Global/ValidatedInput'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import { PeanutWavingHello, PeanutPointing } from '@/assets/mascot'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import Loading from '../Global/Loading'
@@ -291,12 +290,12 @@ const JoinWaitlistPage = () => {
         }
     }, [isFetchingUser, user, router])
 
-    const stepImage = step === 'jail' ? PeanutPointing.src : PeanutWavingHello.src
+    const stepPose = step === 'jail' ? 'pointing' : 'waving-hello'
 
     if (isAutoAccepting) return <Loading variant="mascot" coverFullScreen />
 
     return (
-        <InvitesPageLayout image={stepImage} showRagdoll={step === 'jail'}>
+        <InvitesPageLayout pose={stepPose} showRagdoll={step === 'jail'}>
             <div className="flex flex-grow flex-col items-end justify-center gap-6 overflow-hidden bg-background-default px-6 pt-8 pb-8 md:h-dvh md:justify-center md:gap-4">
                 <div className="mx-auto w-full md:max-w-xs">
                     {/* Step 1: Email Collection */}

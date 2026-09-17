@@ -2,6 +2,8 @@
 
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import IndicatorDot from '@/components/Global/IndicatorDot'
+import PeanutMascot from '@/components/Global/PeanutMascot'
+import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
 import type { StaticImageData } from 'next/image'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
@@ -17,6 +19,7 @@ interface CarouselCTAProps {
     description: string | React.ReactNode
     logo?: StaticImageData
     logoSize?: number
+    mascotPose?: MascotPose
     onClose: () => void
     onClick?: () => void | Promise<void>
     iconContainerClassName?: string
@@ -33,6 +36,7 @@ const CarouselCTA = ({
     onClose,
     onClick,
     logo,
+    mascotPose,
     iconContainerClassName,
     secondaryIcon,
     iconSize = 22,
@@ -102,12 +106,19 @@ const CarouselCTA = ({
             <div
                 className={twMerge(
                     'relative flex size-8 items-center justify-center rounded-full',
-                    logo ? 'bg-transparent' : 'bg-action-primary',
+                    logo || mascotPose ? 'bg-transparent' : 'bg-action-primary',
                     iconContainerClassName
                 )}
             >
-                {/* Show icon only if logo isn't provided. Logo takes precedence over icon. */}
-                {!logo && <Icon name={icon} size={iconSize} />}
+                {/* Artwork takes precedence over the fallback icon. */}
+                {!logo && !mascotPose && <Icon name={icon} size={iconSize} />}
+                {mascotPose && (
+                    <PeanutMascot
+                        pose={mascotPose}
+                        alt={typeof title === 'string' ? title : undefined}
+                        className="size-full"
+                    />
+                )}
                 {logo && (
                     <Image
                         src={logo}

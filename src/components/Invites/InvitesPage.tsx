@@ -4,7 +4,6 @@ import Loading from '../Global/Loading'
 import ValidationErrorView from '../Payment/Views/Error.validation.view'
 import InvitesPageLayout from './InvitesPageLayout'
 import { Button } from '@/components/0_Bruddle/Button'
-import { PeanutWavingHello } from '@/assets/mascot'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { invitesApi } from '@/services/invites'
 import { useQuery } from '@tanstack/react-query'
@@ -319,7 +318,7 @@ function InvitePageContent() {
     const loginLabel = isBadgeCampaignOnly ? t('logIn') : t('alreadyHaveAccount')
 
     return (
-        <InvitesPageLayout image={PeanutWavingHello.src}>
+        <InvitesPageLayout pose="waving-hello">
             <div className="flex flex-grow flex-col items-end justify-center gap-6 overflow-hidden bg-background-default px-6 pt-8 pb-8 md:h-dvh md:justify-center md:gap-4">
                 <div className="mx-auto w-full md:max-w-xs">
                     <div className="flex h-full flex-col justify-between gap-4 md:gap-6 md:pt-6">
