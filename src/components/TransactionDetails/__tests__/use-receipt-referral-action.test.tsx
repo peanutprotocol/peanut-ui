@@ -110,6 +110,12 @@ describe('useReceiptReferralAction', () => {
         // a different transaction in the same mounted drawer fires again
         view.rerender(<Probe transaction={tx({ id: 'tx-2' })} drawerOpen onResult={() => {}} />)
         expect(mockCapture).toHaveBeenCalledTimes(2)
+
+        // bouncing back to an already-seen transaction never re-fires —
+        // the dedup is a set, not a last-id ref
+        view.rerender(<Probe transaction={tx()} drawerOpen onResult={() => {}} />)
+        view.rerender(<Probe transaction={tx({ id: 'tx-2' })} drawerOpen onResult={() => {}} />)
+        expect(mockCapture).toHaveBeenCalledTimes(2)
     })
 
     test('outcome events fire only from the share onSuccess', () => {

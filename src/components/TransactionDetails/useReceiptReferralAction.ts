@@ -29,9 +29,11 @@ const referralNudgeProps = {
  * bystander must not be credited for someone else's payment.
  *
  * the impression fires only while the drawer is OPEN with the row rendered,
- * once per transaction — reopening the drawer or re-rendering cannot double
- * it. outcome events stay outcome-based: they fire from the share hook's
- * onSuccess, so a cancelled share sheet captures nothing.
+ * once per viewer+transaction for the mounted session — reopening the
+ * drawer, re-rendering, or bouncing A→B→A cannot double it. outcome events
+ * fire from the share hook's onSuccess: a completed clipboard copy counts
+ * as success even when the share sheet is then dismissed (the shared
+ * hook's deliberate behavior), so "shared" means the link actually left.
  */
 export function useReceiptReferralAction(
     transaction: TransactionDetails,
@@ -58,15 +60,17 @@ export function useReceiptReferralAction(
         },
     })
 
-    // per transaction, not per open: the details drawer swaps transactions
-    // without remounting, and reopening the same receipt must not re-fire
-    const impressionForId = useRef<string | null>(null)
+    // keyed per viewer+transaction, kept as a set: the details drawer swaps
+    // transactions without remounting, so a single last-id ref would re-fire
+    // on an A→B→A bounce and ignore who is looking
+    const impressionsSent = useRef<Set<string>>(new Set())
+    const impressionKey = `${user?.user.userId ?? ''}:${transaction.id}`
     useEffect(() => {
         if (!drawerOpen || !eligible) return
-        if (impressionForId.current === transaction.id) return
-        impressionForId.current = transaction.id
+        if (impressionsSent.current.has(impressionKey)) return
+        impressionsSent.current.add(impressionKey)
         posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_SHOWN, referralNudgeProps)
-    }, [drawerOpen, eligible, transaction.id])
+    }, [drawerOpen, eligible, impressionKey])
 
     if (!eligible) return null
 
