@@ -120,37 +120,15 @@ const demoCounterparty = (userId: string) => ({
     isVerified: true,
 })
 
+// Keep this to badges the API can currently award (plus active campaigns).
+// Registry metric metadata alone is not an unlock path.
 const DEMO_BADGE_CATALOG = [
-    {
-        code: 'FIRST_INVITE',
-        name: 'First Invite',
-        description: 'Brought a friend to the table.',
-        publicDescription: 'Brought a friend to the table.',
-        iconUrl: '/badges/first_invite.svg',
-        unlock: { kind: 'invites', target: 1 },
-    },
-    {
-        code: 'SECOND_INVITE',
-        name: 'Second Invite',
-        description: 'Word is getting around.',
-        publicDescription: 'Word is getting around.',
-        iconUrl: '/badges/second_invite.svg',
-        unlock: { kind: 'invites', target: 2 },
-    },
     {
         code: 'BETA_TESTER',
         name: 'Beta Tester',
         description: 'Early enough to be part of the experiment.',
         publicDescription: 'Early enough to be part of the experiment.',
         iconUrl: '/badges/beta_tester.svg',
-        unlock: { kind: 'special_recognition' },
-    },
-    {
-        code: 'OG_2025_10_12',
-        name: 'OG',
-        description: 'You were with Peanut before it was cool.',
-        publicDescription: 'They were with Peanut before it was cool.',
-        iconUrl: '/badges/og_v1.svg',
         unlock: { kind: 'special_recognition' },
     },
     {
@@ -168,14 +146,6 @@ const DEMO_BADGE_CATALOG = [
         publicDescription: '$1K swiped.',
         iconUrl: '/badges/money_stack.svg',
         unlock: { kind: 'card_spend', targetUsd: 1000 },
-    },
-    {
-        code: 'VERIFIED',
-        name: 'Verified',
-        description: 'ID checked, identity confirmed.',
-        publicDescription: 'ID checked, identity confirmed.',
-        iconUrl: '/badges/verified.svg',
-        unlock: { kind: 'identity_verification' },
     },
     {
         code: 'ENS',
