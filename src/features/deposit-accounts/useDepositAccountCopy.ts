@@ -49,14 +49,12 @@ const ARRIVAL_DETAIL_KEYS = {
 /** only the corridors a provider opens for residents alone carry these */
 const RESIDENCE_KEYS = {
     BANK_TRANSFER_BR: 'corridors.BANK_TRANSFER_BR',
-    BANK_TRANSFER_CO: 'corridors.BANK_TRANSFER_CO',
     BANK_TRANSFER_AR: 'corridors.BANK_TRANSFER_AR',
 } as const
 
 /**
  * The corridors whose country takes QR payments. Only Brazil is left: Colombia
- * has the residence rule and no QR flow, and Argentina no longer has a screen
- * of its own to say it on.
+ * has no QR flow, and Argentina no longer has a screen of its own to say it on.
  */
 const QR_PAY_KEYS = {
     BANK_TRANSFER_BR: 'corridors.BANK_TRANSFER_BR.qrPay',
@@ -172,18 +170,28 @@ export function useDepositAccountCopy() {
     const arrivalDetail = (corridor: DepositCorridor) => t(ARRIVAL_DETAIL_KEYS[corridor])
     /**
      * What a residence-gated corridor says: `caveat` in the row body, so the
-     * rule is read before the tap, and `requirement` on the screen that
-     * explains the tap that did not open an account.
+     * rule is read before the tap, and `title` + `requirement` on the screen
+     * that explains the tap that did not open an account.
+     *
+     * The title belongs to the corridor because the corridors do not ask for
+     * the same thing: BRL asks for a CPF, and residence is only the pre-check
+     * we can make for it.
      */
-    const residenceLine = (corridor: DepositCorridor): { caveat: string; requirement: string } | undefined => {
+    const residenceLine = (
+        corridor: DepositCorridor
+    ): { title: string; caveat: string; requirement: string } | undefined => {
         const key = RESIDENCE_KEYS[corridor as keyof typeof RESIDENCE_KEYS]
-        return key ? { caveat: t(`${key}.residenceOnly`), requirement: t(`${key}.residenceRequired`) } : undefined
+        if (!key) return undefined
+        return {
+            title: t(`${key}.residenceTitle`),
+            caveat: t(`${key}.residenceOnly`),
+            requirement: t(`${key}.residenceRequired`),
+        }
     }
 
     /**
      * What a non-resident can still do there: pay a QR code from their
-     * balance. Only the rails whose country takes them say it — Colombia has
-     * no QR payment flow, so its explainer offers nothing it cannot do.
+     * balance. Only the rails whose country takes them say it.
      */
     const qrPayLine = (rail: DepositRail): string | undefined => {
         const key = QR_PAY_KEYS[rail.corridor as keyof typeof QR_PAY_KEYS]

@@ -1713,7 +1713,9 @@
             "verifyBody": "Solo podemos abrir una cuenta a tu nombre cuando sabemos quién sos.",
             "waitBody": "No tenés que hacer nada. Esta pantalla se actualiza sola.",
             "emailBody": "Tu identidad está verificada. Nunca recibimos un correo para pasarle a nuestro socio, así que no podemos abrir la cuenta hasta que agregues uno.",
-            "emailCta": "Agregá tu email"
+            "emailCta": "Agregá tu email",
+            "limitTitle": "Ya tenés dos cuentas",
+            "limitBody": "Dos cuentas bancarias es lo normal. Si necesitás otra, soporte puede abrirla."
         },
         "rules": {
             "ownAccount": {
@@ -1751,7 +1753,7 @@
         },
         "corridors": {
             "BANK_TRANSFER_BR": {
-                "residenceRequired": "Solo los residentes legales de Brasil pueden abrir esta cuenta. Tu nacionalidad no importa; el país donde vivís, sí.",
+                "residenceRequired": "Una cuenta en BRL necesita un CPF, la identificación tributaria de Brasil. Primero miramos la residencia de tu cuenta, así que ponela en Brasil si tenés uno.",
                 "qrPay": "De todas formas podés pagar códigos Pix en Brasil con tu saldo."
             },
             "BANK_TRANSFER_AR": {
@@ -1761,7 +1763,8 @@
         "errors": {
             "generic": "No pudimos abrir la cuenta. Probá de nuevo en un momento.",
             "inFlight": "Todavía está llegando un depósito. Probá de nuevo cuando llegue.",
-            "residenceRestricted": "Los datos bancarios no están disponibles donde vivís. Actualizá tu residencia si te mudaste."
+            "residenceRestricted": "Los datos bancarios no están disponibles donde vivís. Actualizá tu residencia si te mudaste.",
+            "accountLimit": "Ya tenés dos cuentas bancarias. Soporte puede abrirte otra."
         }
     }
 }

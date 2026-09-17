@@ -67,6 +67,9 @@ beforeEach(() => {
 
 const READY: GateState = { kind: 'ready' }
 
+/** what the BRL row says instead of an arrival time: the CPF it asks for */
+const BR_CAVEAT = messages.depositAccounts.corridors.BANK_TRANSFER_BR.residenceOnly
+
 /** one gate for every corridor, the way a user with every rail enabled looks */
 const allGates = (gate: GateState = READY): Record<DepositCorridor, GateState> => corridorRecord(() => gate)
 
@@ -192,16 +195,14 @@ describe('DepositAccountsListScreen', () => {
 
     /**
      * "Unavailable" is for a corridor that is truly closed. A residence-gated
-     * row is one residence away, so all three read the same as any corridor
-     * the user has not opened — the screen behind the row carries the reason.
+     * row is one residence away, so it reads the same as any corridor the user
+     * has not opened — the screen behind the row carries the reason.
      */
-    it('badges every residence-gated account row the same, and not as unavailable', () => {
+    it('badges the residence-gated account row the same, and not as unavailable', () => {
         const { container } = list(false)
 
-        for (const corridor of ['BANK_TRANSFER_BR', 'BANK_TRANSFER_CO'] as const) {
-            expect(inRow(container, corridor).getByText('Not set up')).toBeInTheDocument()
-            expect(inRow(container, corridor).queryByText('Unavailable')).not.toBeInTheDocument()
-        }
+        expect(inRow(container, 'BANK_TRANSFER_BR').getByText('Not set up')).toBeInTheDocument()
+        expect(inRow(container, 'BANK_TRANSFER_BR').queryByText('Unavailable')).not.toBeInTheDocument()
     })
 
     // A row that only points at a top-up flow has no account behind it, so it
@@ -249,7 +250,7 @@ describe("DepositAccountsListScreen renders the user's corridors and no others",
             expect(rowOf(container, corridor)).toBeInTheDocument()
         }
         expect(inRow(container, 'BANK_TRANSFER_AR').getByText(/residents of Argentina/i)).toBeInTheDocument()
-        expect(inRow(container, 'BANK_TRANSFER_BR').getByText(/residents of Brazil/i)).toBeInTheDocument()
+        expect(inRow(container, 'BANK_TRANSFER_BR').getByText(BR_CAVEAT)).toBeInTheDocument()
         // a corridor with neither a rail nor the residence rule stays absent
         expect(rowOf(container, 'PIX_BR')).not.toBeInTheDocument()
     })
@@ -264,7 +265,10 @@ describe("DepositAccountsListScreen renders the user's corridors and no others",
 
         expect(rowOf(container, 'SEPA_EU')).not.toBeInTheDocument()
         expect(rowOf(container, 'BANK_TRANSFER_BR')).toBeInTheDocument()
-        expect(rowOf(container, 'BANK_TRANSFER_CO')).toBeInTheDocument()
+        expect(rowOf(container, 'BANK_TRANSFER_AR')).toBeInTheDocument()
+        // COP is not residence-gated, so its row belongs to the users whose
+        // rails name it, like MXN
+        expect(rowOf(container, 'BANK_TRANSFER_CO')).not.toBeInTheDocument()
     })
 })
 
@@ -413,7 +417,7 @@ describe('the residence-gated rows and the tap behind them', () => {
             accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') },
         })
 
-        expect(inRow(container, 'BANK_TRANSFER_BR').getByText(/residents of Brazil/i)).toBeInTheDocument()
+        expect(inRow(container, 'BANK_TRANSFER_BR').getByText(BR_CAVEAT)).toBeInTheDocument()
         expect(rowOf(container, 'BANK_TRANSFER_BR')).not.toHaveAttribute('aria-disabled', 'true')
     })
 
@@ -544,7 +548,9 @@ describe('DepositAccountsFlow when a link names a corridor the user has no rail 
         expect(
             screen.queryByText(messages.depositAccounts.details.unavailableTitle.replace('{currency}', 'ARS'))
         ).not.toBeInTheDocument()
-        expect(screen.queryByText(messages.depositAccounts.details.residenceTitle)).not.toBeInTheDocument()
+        expect(
+            screen.queryByText(messages.depositAccounts.corridors.BANK_TRANSFER_AR.residenceTitle)
+        ).not.toBeInTheDocument()
         expect(screen.getByText(messages.depositAccounts.list.addHeading)).toBeInTheDocument()
     })
 })
@@ -703,16 +709,29 @@ describe('the countries collapsible', () => {
 })
 
 /**
- * Brazil and Colombia are open to residents alone. Everybody sees the row —
+ * Brazil and Argentina are open to residents alone. Everybody sees the row —
  * the account is worth knowing about before you move — and the row says the
  * rule before the tap rather than after a refused claim.
  */
 describe('the residence-gated rows', () => {
-    it('shows BRL and COP to every user, with the residence caveat in the body', () => {
+    it('shows BRL and ARS to every user, with the rule in the body', () => {
         const { container } = list(false, { corridors: ['SEPA_EU'] })
 
-        expect(inRow(container, 'BANK_TRANSFER_BR').getByText(/residents of Brazil/i)).toBeInTheDocument()
-        expect(inRow(container, 'BANK_TRANSFER_CO').getByText(/residents of Colombia/i)).toBeInTheDocument()
+        expect(inRow(container, 'BANK_TRANSFER_BR').getByText(BR_CAVEAT)).toBeInTheDocument()
+        expect(inRow(container, 'BANK_TRANSFER_AR').getByText(/residents of Argentina/i)).toBeInTheDocument()
+    })
+
+    /**
+     * COP is not one of them. Bridge opened a Bre-B account for a resident of
+     * Portugal, so the row reads like MXN: when it arrives, it says when the
+     * money lands.
+     */
+    it('reads the COP row like any ungated corridor', () => {
+        const { container } = list(false, { corridors: ['BANK_TRANSFER_CO'] })
+
+        expect(
+            inRow(container, 'BANK_TRANSFER_CO').getByText(messages.depositAccounts.corridors.BANK_TRANSFER_CO.arrival)
+        ).toBeInTheDocument()
     })
 
     it('keeps them tappable, because the screen behind them states the rule', () => {

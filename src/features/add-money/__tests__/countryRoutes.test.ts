@@ -37,11 +37,13 @@ describe('addMoneyRoutesForCountry', () => {
         ])
     })
 
-    // A residence-gated corridor is offered to everybody: the row exists for
-    // every user, and the flow behind it states the rule.
-    it('offers Colombia its Bre-B account whether or not the rail is the user’s', () => {
+    /**
+     * COP is endorsement-gated, not residence-gated, so Colombia follows the
+     * ordinary rule: the corridor is a route where the user's rails name it.
+     */
+    it('offers Colombia its Bre-B account only where the rail is the user’s', () => {
         expect(routes(CO, ['BANK_TRANSFER_CO'])).toEqual([{ corridor: 'BANK_TRANSFER_CO', kind: 'standing' }])
-        expect(routes(CO)).toEqual([{ corridor: 'BANK_TRANSFER_CO', kind: 'standing' }])
+        expect(routes(CO)).toEqual([])
     })
 
     it('resolves a euro member through the zone rail', () => {
@@ -54,10 +56,15 @@ describe('addMoneyRoutesForCountry', () => {
 })
 
 describe('hasAddMoneyRoute', () => {
-    it('keeps Brazil and Colombia off the waitlist, rail of their own or not', () => {
+    it('keeps Brazil off the waitlist, rail of its own or not', () => {
         expect(hasAddMoneyRoute(BR, [], true)).toBe(true)
-        expect(hasAddMoneyRoute(CO, [], true)).toBe(true)
+    })
+
+    // Colombia has no legacy bank rail behind it, so the COP corridor is the
+    // whole answer: offered, it is a route; not offered, the row waitlists.
+    it('answers Colombia with the corridor the user is offered, and nothing else', () => {
         expect(hasAddMoneyRoute(CO, ['BANK_TRANSFER_CO'], true)).toBe(true)
+        expect(hasAddMoneyRoute(CO, [], true)).toBe(false)
     })
 
     it('offers the waitlist where there is no corridor and no live bank rail', () => {

@@ -1,5 +1,5 @@
 /**
- * Brazil and Colombia open only for a legal resident of that country.
+ * Brazil opens only for a legal resident of that country.
  *
  * The row is there for everybody, so the tap has to explain the rule and point
  * at the one thing that changes it — the residence on the account. Nationality
@@ -32,6 +32,7 @@ jest.mock('../components/DepositAccountsListScreen', () => ({
     DepositAccountsListScreen: () => <div data-testid="hub" />,
 }))
 
+const BR_TITLE = messages.depositAccounts.corridors.BANK_TRANSFER_BR.residenceTitle
 const READY: GateState = { kind: 'ready' }
 const NONE = emptyCorridorRecord<DepositAccountView>()
 
@@ -71,18 +72,22 @@ describe('residenceAllows', () => {
         expect(residenceAllows('BANK_TRANSFER_BR', ['BR'])).toBe(true)
         expect(residenceAllows('BANK_TRANSFER_BR', ['DE'])).toBe(false)
         // a dual resident passes on either country
-        expect(residenceAllows('BANK_TRANSFER_CO', ['DE', 'CO'])).toBe(true)
+        expect(residenceAllows('BANK_TRANSFER_AR', ['DE', 'AR'])).toBe(true)
         expect(residenceAllows('SEPA_EU', [])).toBe(true)
+        // COP is endorsement-gated, not residence-gated: Bridge opened a Bre-B
+        // account for a resident of Portugal.
+        expect(residenceAllows('BANK_TRANSFER_CO', ['DE'])).toBe(true)
     })
 })
 
 describe('tapping a residence-gated corridor', () => {
-    it('explains the rule to a non-resident and offers the residence flow', () => {
+    it('names the CPF to a non-resident and offers the residence flow', () => {
         residenceIso2s = ['DE']
         flow('BANK_TRANSFER_BR')
 
-        expect(screen.getByText(messages.depositAccounts.details.residenceTitle)).toBeInTheDocument()
-        expect(screen.getByText(/only legal residents of brazil/i)).toBeInTheDocument()
+        expect(screen.getByText(BR_TITLE)).toBeInTheDocument()
+        // What Bridge asks for is the tax ID; the residence is our pre-check.
+        expect(screen.getByText(/tax id \(cpf\)/i)).toBeInTheDocument()
 
         const cta = screen.getByRole('link', { name: messages.depositAccounts.details.residenceCta })
         expect(cta).toHaveAttribute('href', expect.stringContaining('/profile/identity-verification?open=residence'))
@@ -101,20 +106,30 @@ describe('tapping a residence-gated corridor', () => {
         expect(screen.getByTestId('corridor-qr-pay')).toHaveAttribute('href', '/qr-pay')
     })
 
-    it('offers nothing of the kind for Colombia, which has no QR payment flow', () => {
+    /**
+     * Colombia is not one of these corridors. Bridge opened a Bre-B account for
+     * a resident of Portugal, so COP behaves like MXN: the rail decides.
+     */
+    it('opens the COP claim for a non-resident whose rail names the corridor', () => {
         residenceIso2s = ['DE']
+        flow('BANK_TRANSFER_CO', ['SEPA_EU', 'BANK_TRANSFER_CO'])
+
+        expect(screen.queryByText(BR_TITLE)).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /open cop account/i })).toBeInTheDocument()
+    })
+
+    it('sends a COP link back to the list where the user has no such rail', () => {
+        residenceIso2s = ['CO']
         flow('BANK_TRANSFER_CO')
 
-        expect(screen.getByText(messages.depositAccounts.details.residenceTitle)).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: messages.depositAccounts.details.residenceCta })).toBeInTheDocument()
-        expect(screen.queryByTestId('corridor-qr-pay')).not.toBeInTheDocument()
+        expect(screen.getByTestId('hub')).toBeInTheDocument()
     })
 
     it('opens the claim for a resident, like any other corridor', () => {
         residenceIso2s = ['BR']
         flow('BANK_TRANSFER_BR', ['SEPA_EU', 'BANK_TRANSFER_BR'])
 
-        expect(screen.queryByText(messages.depositAccounts.details.residenceTitle)).not.toBeInTheDocument()
+        expect(screen.queryByText(BR_TITLE)).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: /open brl account/i })).toBeInTheDocument()
     })
 
@@ -127,7 +142,7 @@ describe('tapping a residence-gated corridor', () => {
         residenceIso2s = ['DE']
         flow('BANK_TRANSFER_BR', ['SEPA_EU'], { step: 'details' })
 
-        expect(screen.getByText(messages.depositAccounts.details.residenceTitle)).toBeInTheDocument()
+        expect(screen.getByText(BR_TITLE)).toBeInTheDocument()
     })
 
     /**
@@ -147,7 +162,7 @@ describe('tapping a residence-gated corridor', () => {
         residenceIso2s = ['CO']
         flow('SEPA_EU')
 
-        expect(screen.queryByText(messages.depositAccounts.details.residenceTitle)).not.toBeInTheDocument()
+        expect(screen.queryByText(BR_TITLE)).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: /open eur account/i })).toBeInTheDocument()
     })
 })

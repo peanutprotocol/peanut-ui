@@ -3953,7 +3953,6 @@
             "revokedCta": "Contactar soporte",
             "topUpCta": "Ingresar {currency} de otra forma",
             "whoCanPay": "Quién puede pagarte",
-            "residenceTitle": "Necesitas residencia",
             "residenceCta": "Actualiza tu residencia",
             "qrPayCta": "Pagar un código QR"
         },
@@ -4024,6 +4023,7 @@
                 "arrival": "En minutos",
                 "arrivalDetail": "Las transferencias en Argentina suelen llegar en minutos.",
                 "railName": "Banco o Mercado Pago",
+                "residenceTitle": "Necesitas residencia",
                 "residenceOnly": "Para residentes legales de Argentina",
                 "residenceRequired": "Solo los residentes legales de Argentina pueden agregar dinero así. Tu nacionalidad no importa; el país donde vives, sí."
             },
@@ -4031,8 +4031,9 @@
                 "arrival": "En minutos",
                 "arrivalDetail": "Las transferencias Pix suelen llegar en minutos.",
                 "railName": "Pix",
-                "residenceOnly": "Para residentes legales de Brasil",
-                "residenceRequired": "Solo los residentes legales de Brasil pueden abrir esta cuenta. Tu nacionalidad no importa; el país donde vives, sí.",
+                "residenceTitle": "Necesitas CPF",
+                "residenceOnly": "Necesita un CPF (identificación tributaria de Brasil)",
+                "residenceRequired": "Una cuenta en BRL necesita un CPF, la identificación tributaria de Brasil. Primero revisamos la residencia de tu cuenta, así que ponla en Brasil si tienes uno.",
                 "qrPay": "De todas formas puedes pagar códigos Pix en Brasil con tu saldo."
             },
             "BANK_TRANSFER_CO": {
@@ -4055,7 +4056,12 @@
             "emailBody": "Tu identidad está verificada. Nunca recibimos un correo para pasarle a nuestro socio, así que no podemos abrir la cuenta hasta que agregues uno.",
             "emailCta": "Agrega tu email",
             "notYetTitle": "Todavía no está disponible para ti",
-            "notYetBody": "Lo estamos abriendo de a poco."
+            "notYetBody": "Lo estamos abriendo de a poco.",
+            "limitTitle": "Ya tienes dos cuentas",
+            "limitBody": "Dos cuentas bancarias es lo normal. Si necesitas otra, soporte puede abrirla.",
+            "reviewTitle": "Estamos creando tu cuenta",
+            "reviewBody": "Suele tardar unos minutos. Te avisamos cuando esté lista.",
+            "reviewCta": "Volver a Agregar dinero"
         },
         "rules": {
             "providerHeld": {
@@ -4158,7 +4164,8 @@
             "generic": "No pudimos abrir la cuenta. Inténtalo de nuevo en un momento.",
             "notAvailable": "Las cuentas propias todavía no están disponibles para tu cuenta.",
             "inFlight": "Todavía está llegando un depósito. Inténtalo de nuevo cuando llegue.",
-            "residenceRestricted": "Los datos bancarios no están disponibles donde vives. Actualiza tu residencia si te mudaste."
+            "residenceRestricted": "Los datos bancarios no están disponibles donde vives. Actualiza tu residencia si te mudaste.",
+            "accountLimit": "Ya tienes dos cuentas bancarias. Soporte puede abrirte otra."
         },
         "fees": {
             "noFee": "Sin comisión de Peanut.",

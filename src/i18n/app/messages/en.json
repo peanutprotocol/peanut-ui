@@ -3953,7 +3953,6 @@
             "revokedCta": "Contact support",
             "topUpCta": "Add {currency} instead",
             "whoCanPay": "Who can pay you",
-            "residenceTitle": "Residence required",
             "residenceCta": "Update your residence",
             "qrPayCta": "Pay a QR code"
         },
@@ -4024,6 +4023,7 @@
                 "arrival": "Within minutes",
                 "arrivalDetail": "Argentine transfers usually arrive within minutes.",
                 "railName": "Bank or Mercado Pago",
+                "residenceTitle": "Residence required",
                 "residenceOnly": "For legal residents of Argentina",
                 "residenceRequired": "Only legal residents of Argentina can add money this way. Your nationality does not matter — where you live does."
             },
@@ -4031,8 +4031,9 @@
                 "arrival": "Within minutes",
                 "arrivalDetail": "Pix transfers usually arrive within minutes.",
                 "railName": "Pix",
-                "residenceOnly": "For legal residents of Brazil",
-                "residenceRequired": "Only legal residents of Brazil can open this account. Your nationality does not matter — where you live does.",
+                "residenceTitle": "CPF required",
+                "residenceOnly": "Needs a Brazilian tax ID (CPF)",
+                "residenceRequired": "A BRL account needs a Brazilian tax ID (CPF). We check the residence on your account first, so set it to Brazil if you have one.",
                 "qrPay": "You can still pay Pix codes in Brazil from your balance."
             },
             "BANK_TRANSFER_CO": {
@@ -4055,7 +4056,12 @@
             "emailBody": "Your identity is verified. We never got an email address to pass on, so the account cannot be opened until you add one.",
             "emailCta": "Add your email",
             "notYetTitle": "Not available to you yet",
-            "notYetBody": "We are opening this gradually."
+            "notYetBody": "We are opening this gradually.",
+            "limitTitle": "You already have two accounts",
+            "limitBody": "Two bank accounts is the default. If you need another, support can turn one on for you.",
+            "reviewTitle": "We're creating your account",
+            "reviewBody": "This usually takes a few minutes. We'll let you know when it's ready.",
+            "reviewCta": "Back to Add money"
         },
         "rules": {
             "providerHeld": {
@@ -4158,7 +4164,8 @@
             "generic": "We could not open the account. Try again in a moment.",
             "notAvailable": "Standing accounts are not open to your account yet.",
             "inFlight": "A deposit is still landing. Try again once it arrives.",
-            "residenceRestricted": "Bank details are not available where you live. Update your residence if you have moved."
+            "residenceRestricted": "Bank details are not available where you live. Update your residence if you have moved.",
+            "accountLimit": "You already have two bank accounts. Support can open another one for you."
         },
         "fees": {
             "noFee": "No Peanut fee.",

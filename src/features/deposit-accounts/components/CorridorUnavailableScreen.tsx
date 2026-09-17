@@ -57,7 +57,7 @@ export function CorridorUnavailableScreen({
                     icon="globe-lock"
                     title={
                         requiresResidence && residence
-                            ? t('details.residenceTitle')
+                            ? residence.title
                             : t('details.unavailableTitle', { currency: rail.currency })
                     }
                     description={

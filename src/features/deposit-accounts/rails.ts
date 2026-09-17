@@ -61,7 +61,6 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         provider: 'bridge',
         flagIso2: 'co',
         detailRowCount: 4,
-        residenceIso2: 'CO',
     },
     PIX_BR: {
         corridor: 'PIX_BR',
