@@ -31,12 +31,12 @@ export default function NotFoundScreen() {
             <div className="flex min-h-dvh flex-col md:h-dvh md:flex-row">
                 <div
                     aria-hidden="true"
-                    className="bg-action-primary relative h-[55dvh] w-full overflow-hidden md:h-full md:w-7/12"
+                    className="relative h-[55dvh] w-full overflow-hidden bg-action-primary md:h-full md:w-7/12"
                 >
                     {PeanutRagdoll && <PeanutRagdoll />}
                 </div>
 
-                <div className="bg-background-default flex flex-grow flex-col justify-center overflow-y-auto px-6 py-8 md:px-12">
+                <div className="flex flex-grow flex-col justify-center overflow-y-auto bg-background-default px-6 py-8 md:px-12">
                     <div className="mx-auto flex w-full max-w-md flex-col gap-8">
                         <div className="flex flex-col gap-3">
                             <h1 className="text-heading-m">{"Hmm, we can't find that page."}</h1>

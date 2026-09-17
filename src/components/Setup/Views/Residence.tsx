@@ -280,7 +280,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
         return (
             <div className="flex h-full w-full flex-col justify-between gap-6">
                 <div className="flex flex-col gap-2">
-                    <h1 className="text-heading-xs w-full text-left leading-tight">
+                    <h1 className="w-full text-left text-heading-xs leading-tight">
                         {t('residenceStep.congrats.title')}
                     </h1>
                     <p className="text-body-m text-foreground-secondary">
@@ -313,7 +313,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
         return (
             <div className="flex h-full w-full flex-col justify-between gap-6">
                 <div className="flex flex-col gap-2">
-                    <h1 className="text-heading-xs w-full text-left leading-tight">
+                    <h1 className="w-full text-left text-heading-xs leading-tight">
                         {t('residenceStep.partial.title')}
                     </h1>
                     <p className="text-body-m text-foreground-secondary">
@@ -343,7 +343,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
         return (
             <div className="flex h-full w-full flex-col justify-between gap-6">
                 <div className="flex flex-col gap-2">
-                    <h1 className="text-heading-xs w-full text-left leading-tight">
+                    <h1 className="w-full text-left text-heading-xs leading-tight">
                         {t('residenceStep.restricted.title')}
                     </h1>
                     <p className="text-body-m text-foreground-secondary">{t('residenceStep.restricted.description')}</p>
@@ -398,8 +398,8 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                 {/* Rendered here, not by the step chrome, so the heads-up
                     sub-views can replace them with their own single heading
                     (titleInView/descriptionInView on the step). */}
-                <h1 className="text-heading-xs w-full text-left leading-tight">{t('steps.residence.title')}</h1>
-                <p className="text-body-s text-foreground-secondary mb-1">{t('steps.residence.description')}</p>
+                <h1 className="w-full text-left text-heading-xs leading-tight">{t('steps.residence.title')}</h1>
+                <p className="mb-1 text-body-s text-foreground-secondary">{t('steps.residence.description')}</p>
                 <CountryCombobox
                     options={countryOptions}
                     placeholder={t('residenceStep.countryPlaceholder')}
@@ -451,9 +451,9 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                                 return (
                                     <div
                                         key={iso2}
-                                        className="border-border-default bg-background-default rounded-sm border p-3"
+                                        className="rounded-sm border border-border-default bg-background-default p-3"
                                     >
-                                        <p className="text-label-m mb-1">
+                                        <p className="mb-1 text-label-m">
                                             {t('residenceStep.compare.cardTitle', { country: label })}
                                         </p>
                                         <BulletList
@@ -474,7 +474,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                                                 into an account on that network — so it is stated
                                                 as a condition, not as a benefit of living here. */}
                                         {summary.multiCurrency && (
-                                            <p className="text-body-xs text-foreground-secondary mt-2">
+                                            <p className="mt-2 text-body-xs text-foreground-secondary">
                                                 {t('residenceStep.compare.multiCurrencyNote')}
                                             </p>
                                         )}
