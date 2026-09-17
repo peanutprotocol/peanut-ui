@@ -596,6 +596,18 @@ jest.mock('@/components/Common/CountryList', () => {
     }
 })
 
+// The merged bank screen — accounts, crypto and the country list — is covered
+// by its own tests. Here the page only has to render it and hand it an exit.
+jest.mock('@/features/deposit-accounts/components/DepositAccountsFlowContainer', () => ({
+    DepositAccountsFlowContainer: ({ variant, onExit }: { variant: string; onExit: () => void }) => (
+        <div data-testid="deposit-accounts-hub" data-variant={variant}>
+            <button data-testid="hub-back" onClick={onExit}>
+                back
+            </button>
+        </div>
+    ),
+}))
+
 // AddWithdrawCountriesList
 jest.mock('@/components/AddWithdraw/AddWithdrawCountriesList', () => ({
     __esModule: true,
@@ -891,19 +903,6 @@ function setGate(kind: Gate) {
     })
 }
 
-/**
- * Give the user one enabled BANK rail, which is what `useOfferedCorridors`
- * reads. `setGate('ready')` deliberately leaves `channel` off its fixture rail,
- * so the default user is offered no standing corridor at all.
- */
-function setBankRail(id: string) {
-    const base = mockUseCapabilities()
-    mockUseCapabilities.mockReturnValue({
-        ...base,
-        rails: [{ id, provider: 'bridge', channel: 'bank', status: 'enabled' }],
-    })
-}
-
 function createQueryClient() {
     return new QueryClient({
         defaultOptions: {
@@ -1009,8 +1008,8 @@ beforeEach(() => {
 })
 
 // ============================================================
-// GROUP 1: Landing (root = bank country list; the old method-selection
-// screen is gone — crypto is linked directly from the home Add drawer)
+// GROUP 1: Landing (root = the merged bank screen; the old method-selection
+// screen is gone — crypto is a row on that screen and on the home Add drawer)
 // ============================================================
 describe('GROUP 1: Landing', () => {
     test('bare /add-money redirects to the home add drawer (nuqs url state)', () => {
@@ -1018,7 +1017,7 @@ describe('GROUP 1: Landing', () => {
 
         // the drawer offers crypto AND bank, so generic entries lose nothing
         expect(mockRouterReplace).toHaveBeenCalledWith('/home?drawer=add')
-        expect(screen.queryByTestId('country-list')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('deposit-accounts-hub')).not.toBeInTheDocument()
     })
 
     test('bare /add-money carries returnTo through the drawer redirect', () => {
@@ -1040,70 +1039,31 @@ describe('GROUP 1: Landing', () => {
         expect(mockRouterReplace).toHaveBeenCalledWith('/home?drawer=add')
     })
 
-    test('?method=bank shows the country list', () => {
-        resetQueryState({ method: 'bank' })
-        renderWithProviders(<AddMoneyPage />)
-
-        expect(screen.getByTestId('country-list')).toBeInTheDocument()
-        expect(screen.getByText('Select your country')).toBeInTheDocument()
-    })
-
-    // TASK-20033: picking a bank-supported country skips the redundant per-country
-    // method list and goes straight to the deposit screen. What decides that is
-    // now the rail catalogue: a corridor that cannot be held names its own
-    // top-up route, and a corridor the user IS offered opens in place.
-    test('selecting a Manteca country (AR/BR) goes straight to the manteca deposit', () => {
-        resetQueryState({ method: 'bank' })
-        renderWithProviders(<AddMoneyPage />)
-
-        // from DEPOSIT_RAILS.BANK_TRANSFER_AR.topUpHref, not a second copy of it
-        fireEvent.click(screen.getByTestId('country-argentina'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/argentina/manteca')
-    })
-
-    test('a Bridge country the user has no corridor for keeps the bank deposit flow', () => {
-        resetQueryState({ method: 'bank' })
-        renderWithProviders(<AddMoneyPage />)
-
-        fireEvent.click(screen.getByTestId('country-germany'))
-        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/germany/bank')
-    })
-
     /*
-     * Behaviour change: a corridor the user IS offered opens the standing
-     * deposit-account screens in place — same components /get-paid renders —
-     * instead of navigating to the one-off amount flow.
+     * Behaviour change: ?method=bank is the merged bank screen — the accounts
+     * this user holds, crypto, and every country they can send from. Which
+     * corridor a country opens is `useDepositCountryRouting`, tested there.
      */
-    test('a Bridge country the user IS offered opens the deposit-account screens in place', () => {
-        setBankRail('bridge.sepa_eu')
+    test('?method=bank shows the merged bank screen, titled for adding money', () => {
         resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
-        fireEvent.click(screen.getByTestId('country-germany'))
-        expect(mockSetQueryState).toHaveBeenCalledWith(
-            expect.objectContaining({ corridor: 'SEPA_EU', step: 'details' })
-        )
-        expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(screen.getByTestId('deposit-accounts-hub')).toHaveAttribute('data-variant', 'add-money')
     })
 
-    /*
-     * Behaviour change: a country with no corridor and no live rail is no
-     * longer walked to a per-country screen that can only say "soon" — the
-     * list marks it unsupported and offers the waitlist instead.
-     */
-    test('a coming-soon country is marked unsupported so the list offers the waitlist', () => {
-        resetQueryState({ method: 'bank' })
+    test('a corridor link opens the same screen without a ?method=', () => {
+        resetQueryState({ corridor: 'SEPA_EU', step: 'details' })
         renderWithProviders(<AddMoneyPage />)
 
-        expect(screen.getByTestId('country-chad')).toHaveAttribute('data-supported', 'false')
-        expect(screen.getByTestId('country-germany')).toHaveAttribute('data-supported', 'true')
+        expect(screen.getByTestId('deposit-accounts-hub')).toBeInTheDocument()
+        expect(mockRouterReplace).not.toHaveBeenCalled()
     })
 
-    test('back from the country list navigates to /home', () => {
+    test('back from the bank screen navigates to /home', () => {
         resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
-        fireEvent.click(screen.getByTestId('nav-header'))
+        fireEvent.click(screen.getByTestId('hub-back'))
         expect(mockRouterPush).toHaveBeenCalledWith('/home')
     })
 
@@ -1114,7 +1074,7 @@ describe('GROUP 1: Landing', () => {
         resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
-        fireEvent.click(screen.getByTestId('nav-header'))
+        fireEvent.click(screen.getByTestId('hub-back'))
         expect(mockRouterPush).toHaveBeenCalledWith('/profile/exchange-rate?from=USD&to=EUR')
         expect(mockRouterPush).not.toHaveBeenCalledWith('/home')
     })
@@ -1124,7 +1084,7 @@ describe('GROUP 1: Landing', () => {
         resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
-        fireEvent.click(screen.getByTestId('nav-header'))
+        fireEvent.click(screen.getByTestId('hub-back'))
         expect(mockRouterPush).toHaveBeenCalledWith('/home')
     })
 })

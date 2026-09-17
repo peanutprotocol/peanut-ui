@@ -9,17 +9,16 @@ import { useRouter } from 'next/navigation'
 import { parseAsString, useQueryState } from 'nuqs'
 import { useEffect } from 'react'
 
-/** the one-off bank deposit, which works today on every corridor this flow serves */
-const ONE_OFF_TRANSFER_HREF = '/add-money?method=bank'
+/** the same hub without the standing accounts — the bank routes that work today */
+const BANK_HUB_HREF = '/add-money?method=bank'
 
 /**
  * Get paid — the deposit-accounts flow entered from the accounts side.
  *
- * Add money enters the same flow from the country side: pick a country, and a
- * corridor you can hold opens these very screens in place. This route is the
- * shortcut for someone who already knows they want their standing details, and
- * for every link already minted at it — `?step=`, `?corridor=` and `?returnTo=`
- * mean the same thing on both entries, because both render the same flow.
+ * It is the same screen `/add-money?method=bank` renders, titled for the job
+ * the user came with and opened on their accounts. `?step=`, `?corridor=` and
+ * `?returnTo=` mean the same thing on both entries, because both render one
+ * flow.
  *
  * Behind the `deposit-accounts` flag: while it is off, anyone who reaches this
  * route by link goes to the bank flow that does work today.
@@ -39,10 +38,15 @@ export default function GetPaidPage() {
     const safeBack = useSafeBack('/home')
 
     useEffect(() => {
-        if (flagsSettled && !enabled) router.replace(ONE_OFF_TRANSFER_HREF)
+        if (flagsSettled && !enabled) router.replace(BANK_HUB_HREF)
     }, [flagsSettled, enabled, router])
 
     if (!enabled) return null
 
-    return <DepositAccountsFlowContainer onExit={() => (returnTo ? router.push(returnTo) : safeBack())} />
+    return (
+        <DepositAccountsFlowContainer
+            variant="get-paid"
+            onExit={() => (returnTo ? router.push(returnTo) : safeBack())}
+        />
+    )
 }

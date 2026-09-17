@@ -7,7 +7,7 @@ import { trackDetailsViewed, trackGateBlocked } from '../analytics'
 import { DEPOSIT_ACCOUNT_PARAMS } from '../params'
 import { DEPOSIT_RAILS, isClaimable } from '../rails'
 import { canShare, resolveScreen } from '../resolveScreen'
-import type { ClaimableCorridor, DepositAccountView, DepositCorridor } from '../types'
+import type { ClaimableCorridor, DepositAccountView, DepositCorridor, DepositHubVariant } from '../types'
 import type { DepositClaimError } from '../useDepositAccounts'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
@@ -36,6 +36,8 @@ export interface DepositAccountsFlowProps {
     isLoading?: boolean
     /** the accounts could not be read; the list says so instead of offering claims */
     isError?: boolean
+    /** which entry point rendered the flow — only the hub reads it */
+    variant?: DepositHubVariant
     userName: string
     claimingCorridor?: DepositCorridor
     claimError?: DepositClaimError
@@ -65,6 +67,7 @@ export function DepositAccountsFlow({
     gates,
     isLoading = false,
     isError = false,
+    variant = 'get-paid',
     userName,
     claimingCorridor,
     claimError,
@@ -122,7 +125,7 @@ export function DepositAccountsFlow({
     if (isLoading && resolved !== 'list') {
         return (
             <PageStack>
-                <NavHeader title={t('title')} onPrev={onExit} />
+                <NavHeader title={variant === 'get-paid' ? t('title') : t('list.addTitle')} onPrev={onExit} />
                 <div className="flex flex-col gap-6">
                     {/* Real heading and status line — only the card underneath is a
                         skeleton, so a claimed corridor reads as "your account is
@@ -211,6 +214,7 @@ export function DepositAccountsFlow({
 
     return (
         <DepositAccountsListScreen
+            variant={variant}
             corridors={corridors}
             accounts={accounts}
             gates={gates}

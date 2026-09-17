@@ -10,6 +10,54 @@ import type { GateState } from '@/utils/capability-gate'
 
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
+const mockPush = jest.fn()
+// The hub renders the app chrome around the accounts now (NavHeader, the
+// banner), and that chrome reads the route — so the mock answers the whole
+// navigation surface, not just the push the rows needed.
+jest.mock('next/navigation', () => ({
+    useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn(), prefetch: jest.fn() }),
+    usePathname: () => '/add-money',
+    useSearchParams: () => new URLSearchParams(),
+    useParams: () => ({}),
+}))
+
+// the country list is covered by its own tests; here it only has to hand a
+// country back to the screen the way a tap does
+jest.mock('@/components/Common/CountryList', () => ({
+    CountryList: (props: any) => (
+        <div data-testid="country-list">
+            <span>{props.inputTitle}</span>
+            <button
+                data-testid="country-germany"
+                data-supported={String(props.isCountrySupported({ type: 'country', iso2: 'DE', currency: 'EUR' }))}
+                onClick={() => props.onCountryClick({ type: 'country', iso2: 'DE', currency: 'EUR', path: 'germany' })}
+            >
+                Germany
+            </button>
+        </div>
+    ),
+}))
+
+const mockOpenCountry = jest.fn()
+const mockIsCountrySupported = jest.fn(() => true)
+jest.mock('../useDepositCountryRouting', () => ({
+    useDepositCountryRouting: () => ({
+        openCountry: mockOpenCountry,
+        isCountrySupported: mockIsCountrySupported,
+    }),
+}))
+
+let depositAccountsEnabled = true
+jest.mock('../useDepositAccountsEnabled', () => ({
+    useDepositAccountsEnabled: () => depositAccountsEnabled,
+}))
+
+beforeEach(() => {
+    jest.clearAllMocks()
+    depositAccountsEnabled = true
+    mockIsCountrySupported.mockReturnValue(true)
+})
+
 const READY: GateState = { kind: 'ready' }
 
 /** one gate for every corridor, the way a user with every rail enabled looks */
@@ -37,11 +85,13 @@ const list = (
         isError?: boolean
         accounts?: Record<DepositCorridor, DepositAccount | undefined>
         onOpen?: (corridor: DepositCorridor) => void
+        variant?: 'add-money' | 'get-paid'
     } = {}
 ) =>
     render(
         <NextIntlClientProvider locale="en" messages={messages}>
             <DepositAccountsListScreen
+                variant={opts.variant ?? 'get-paid'}
                 corridors={opts.corridors ?? DEPOSIT_RAIL_ORDER}
                 accounts={opts.accounts ?? NONE}
                 gates={opts.gates ?? allGates()}
@@ -386,5 +436,86 @@ describe('DepositAccountsFlow accepts the cursor by its old name', () => {
             </NextIntlClientProvider>
         )
         expect(screen.getByRole('button', { name: /open eur account/i })).toBeInTheDocument()
+    })
+})
+
+/**
+ * One screen answers both jobs: the accounts this user holds, and every country
+ * they can send money in from. They were two screens that disagreed about what
+ * a country offered, and a user who wanted bank details had to guess which one
+ * to open.
+ */
+describe('the hub carries the accounts, crypto and the countries together', () => {
+    it('shows the accounts, one crypto row and the country list', () => {
+        const { container } = list(false)
+
+        expect(rowOf(container, 'SEPA_EU')).toBeInTheDocument()
+        expect(screen.getAllByTestId('add-money-crypto')).toHaveLength(1)
+        expect(screen.getByTestId('country-list')).toBeInTheDocument()
+        expect(screen.getByText(messages.depositAccounts.list.countriesTitle)).toBeInTheDocument()
+    })
+
+    it('opens the crypto flow from its own row', () => {
+        list(false)
+
+        fireEvent.click(screen.getByTestId('add-money-crypto'))
+        expect(mockPush).toHaveBeenCalledWith('/add-money/crypto')
+    })
+
+    // A euro-zone country resolves to the EUR corridor in place — the routing
+    // hook owns which corridor, and it is tested on its own.
+    it('hands a picked country to the one country resolver', () => {
+        list(false)
+
+        fireEvent.click(screen.getByTestId('country-germany'))
+        expect(mockOpenCountry).toHaveBeenCalledWith(expect.objectContaining({ iso2: 'DE', path: 'germany' }))
+    })
+
+    it('marks a country with nothing behind it unsupported, so the list offers the waitlist', () => {
+        mockIsCountrySupported.mockReturnValue(false)
+        list(false)
+
+        expect(screen.getByTestId('country-germany')).toHaveAttribute('data-supported', 'false')
+    })
+
+    /**
+     * Standing accounts are dark in production. Until they are not, the hub is
+     * the country list alone: an empty "Your accounts" section would ask a
+     * question the flow cannot answer yet.
+     */
+    it('drops the accounts section while standing accounts are dark', () => {
+        depositAccountsEnabled = false
+        const { container } = list(false)
+
+        expect(screen.queryByTestId('your-accounts')).not.toBeInTheDocument()
+        expect(rowOf(container, 'SEPA_EU')).not.toBeInTheDocument()
+        expect(screen.getByTestId('country-list')).toBeInTheDocument()
+    })
+})
+
+/**
+ * The same screen, titled for the job the user arrived with. Entering by
+ * account opens on the accounts; entering by "add money" says so in the header.
+ */
+describe('the hub titles itself for the entry point', () => {
+    it('names get-paid and scrolls to the accounts', () => {
+        const scrollIntoView = jest.fn()
+        window.HTMLElement.prototype.scrollIntoView = scrollIntoView
+
+        list(false, { variant: 'get-paid' })
+
+        expect(screen.getByText(messages.depositAccounts.list.heading)).toBeInTheDocument()
+        expect(scrollIntoView).toHaveBeenCalled()
+    })
+
+    it('names add money and leaves the scroll alone', () => {
+        const scrollIntoView = jest.fn()
+        window.HTMLElement.prototype.scrollIntoView = scrollIntoView
+
+        list(false, { variant: 'add-money' })
+
+        expect(screen.getByText(messages.depositAccounts.list.addHeading)).toBeInTheDocument()
+        expect(screen.queryByText(messages.depositAccounts.list.heading)).not.toBeInTheDocument()
+        expect(scrollIntoView).not.toHaveBeenCalled()
     })
 })

@@ -1696,16 +1696,6 @@
         "transferDetails": "Transfer details",
         "selectYourCountry": "Select your country",
         "addMoneyVia": "Add money via",
-        "routes": {
-            "standing": {
-                "title": "Standing {rail} details",
-                "body": "Reusable details anyone can pay into"
-            },
-            "top-up": {
-                "title": "One-off {rail} top-up",
-                "body": "A code for one payment from your own account"
-            }
-        },
         "recentMethods": "Recent methods",
         "selectNewMethod": "Select new method",
         "howMuchToAdd": "How much do you want to add?",
@@ -3914,8 +3904,12 @@
         },
         "title": "Get paid",
         "list": {
-            "heading": "Your own accounts. Get paid globally.",
+            "heading": "Your own bank details. Get paid globally.",
             "subheading": "Get personal bank details in euros, dollars and more. Receive your salary or client payments straight into your Peanut balance.",
+            "addTitle": "Add money",
+            "addHeading": "Add money from your own bank, or get bank details other people can pay into.",
+            "addSubheading": "Open your own bank details, or pick the country you are sending from.",
+            "countriesTitle": "Send from any country",
             "sectionTitle": "Your accounts",
             "badgeReady": "Ready",
             "rowBlocked": "Verify your identity to open this account",

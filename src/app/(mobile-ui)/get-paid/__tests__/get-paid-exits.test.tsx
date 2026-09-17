@@ -27,9 +27,14 @@ jest.mock('nuqs', () => ({
 const mockSafeBack = jest.fn()
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => mockSafeBack }))
 
-// the flow itself is covered by its own tests; surface only its exit
+// the flow itself is covered by its own tests; surface only its exit and the
+// variant, which is how this route differs from /add-money?method=bank
 jest.mock('@/features/deposit-accounts/components/DepositAccountsFlow', () => ({
-    DepositAccountsFlow: ({ onExit }: { onExit: () => void }) => <button onClick={onExit}>exit</button>,
+    DepositAccountsFlow: ({ variant, onExit }: { variant: string; onExit: () => void }) => (
+        <button data-variant={variant} onClick={onExit}>
+            exit
+        </button>
+    ),
 }))
 jest.mock('@/features/deposit-accounts/useDepositAccounts', () => ({
     useDepositAccounts: () => ({
@@ -95,6 +100,17 @@ describe('leaving the get-paid flow', () => {
         exitFrom('/get-paid')
         expect(mockSafeBack).toHaveBeenCalled()
         expect(mockPush).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * /get-paid and /add-money?method=bank render one screen. This route is the
+ * alias that titles it for the accounts and opens on them.
+ */
+describe('the get-paid alias', () => {
+    it('renders the shared screen in its get-paid variant', () => {
+        render(<GetPaidPage />)
+        expect(screen.getByText('exit')).toHaveAttribute('data-variant', 'get-paid')
     })
 })
 

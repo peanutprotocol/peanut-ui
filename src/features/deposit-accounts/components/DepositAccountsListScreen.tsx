@@ -6,21 +6,38 @@ import { Notification } from '@/components/0_Bruddle/Notification'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
+import { CountryList } from '@/components/Common/CountryList'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
+import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import type { GateState } from '@/utils/capability-gate'
+import { useTranslations } from 'next-intl'
+import { useRouter } from 'next/navigation'
+import { useEffect, useRef } from 'react'
 import { depositGateView } from '../depositGate'
 import { DEPOSIT_RAILS, isClaimable } from '../rails'
 import { canShare, isHeld } from '../resolveScreen'
-import type { DepositAccountView, DepositCorridor, DepositRail } from '../types'
+import type { DepositAccountView, DepositCorridor, DepositHubVariant, DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
+import { useDepositAccountsEnabled } from '../useDepositAccountsEnabled'
+import { useDepositCountryRouting } from '../useDepositCountryRouting'
 import { DepositGateNotice } from './DepositGateNotice'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import Image from 'next/image'
 
+/** the crypto entry point, reached from this screen and from the home Add drawer */
+const CRYPTO_HREF = '/add-money/crypto'
+
 /**
- * The hub: every corridor this user could hold, and where each one stands.
+ * The hub: the accounts this user holds or can claim, and every country they
+ * can send money in from.
+ *
+ * Both jobs are one screen because they were one question: "how does money get
+ * into my balance by bank". Add money entered by country and get-paid entered
+ * by account, and the two lists disagreed about what a country offered. The
+ * accounts come first — they are the reusable answer — and the country list
+ * below sends every other country to the route its rail catalogue names.
  *
  * The rows come from the user's own rails, so a corridor they have no rail for
  * is absent rather than present and unavailable — a German user reading an
@@ -40,6 +57,7 @@ export function DepositAccountsListScreen({
     gates,
     isLoading,
     isError,
+    variant = 'get-paid',
     onBack,
     onOpen,
     onResolveGate,
@@ -54,12 +72,28 @@ export function DepositAccountsListScreen({
     isLoading: boolean
     /** the accounts could not be read at all */
     isError: boolean
+    /** which job the user came for — it decides the title and the heading, nothing else */
+    variant?: DepositHubVariant
     onBack: () => void
     onOpen: (corridor: DepositCorridor) => void
     onResolveGate: (gate: GateState) => void
     onRetry: () => void
 }) {
     const { t, arrival, railName } = useDepositAccountCopy()
+    const tMethods = useTranslations('addMoney.methods')
+    const router = useRouter()
+    const { openCountry, isCountrySupported } = useDepositCountryRouting()
+    // While standing accounts are dark, this screen is the bank country list
+    // and nothing else — an empty "Your accounts" section under a feature
+    // nobody can use yet would only ask a question it cannot answer.
+    const accountsEnabled = useDepositAccountsEnabled()
+
+    // Entering by account means the accounts are what the user came to read,
+    // so they are what the screen opens on.
+    const accountsRef = useRef<HTMLDivElement>(null)
+    useEffect(() => {
+        if (variant === 'get-paid') accountsRef.current?.scrollIntoView?.({ block: 'start' })
+    }, [variant])
 
     const views = corridors.map((corridor) => ({ corridor, view: depositGateView(gates[corridor]) }))
     // The banner names one corridor the user could hold but cannot. Every
@@ -123,78 +157,120 @@ export function DepositAccountsListScreen({
         }
     }
 
+    const isGetPaid = variant === 'get-paid'
+
     return (
         <PageStack>
-            <NavHeader title={t('title')} onPrev={onBack} />
+            <NavHeader title={isGetPaid ? t('title') : t('list.addTitle')} onPrev={onBack} />
             <div className="flex flex-col gap-6">
-                <TitleBlock size="s" title={t('list.heading')} description={t('list.subheading')} />
+                <TitleBlock
+                    size="s"
+                    title={isGetPaid ? t('list.heading') : t('list.addHeading')}
+                    description={isGetPaid ? t('list.subheading') : t('list.addSubheading')}
+                />
 
-                {/*
-                 * A read that failed is not "you hold nothing". Without this the
-                 * empty fallback map renders as six unclaimed corridors and the
-                 * user is invited to open an account they may already have.
-                 */}
-                {isError && (
-                    <Notification
-                        priority="error"
-                        title={t('list.errorTitle')}
-                        ctas={[{ label: t('list.errorRetry'), onClick: onRetry }]}
-                    >
-                        {t('list.errorBody')}
-                    </Notification>
-                )}
+                {accountsEnabled && (
+                    <div ref={accountsRef} className="flex flex-col gap-6" data-testid="your-accounts">
+                        {/*
+                         * A read that failed is not "you hold nothing". Without this the
+                         * empty fallback map renders as six unclaimed corridors and the
+                         * user is invited to open an account they may already have.
+                         */}
+                        {isError && (
+                            <Notification
+                                priority="error"
+                                title={t('list.errorTitle')}
+                                ctas={[{ label: t('list.errorRetry'), onClick: onRetry }]}
+                            >
+                                {t('list.errorBody')}
+                            </Notification>
+                        )}
 
-                {!isError && blocked?.view.notice && (
-                    <DepositGateNotice
-                        notice={blocked.view.notice}
-                        onAct={() => onResolveGate(gates[blocked.corridor])}
-                    />
-                )}
+                        {!isError && blocked?.view.notice && (
+                            <DepositGateNotice
+                                notice={blocked.view.notice}
+                                onAct={() => onResolveGate(gates[blocked.corridor])}
+                            />
+                        )}
 
-                {/*
-                 * No bank rail at all, so there is no corridor to offer. Saying
-                 * so is the honest answer; an empty list under a section title
-                 * reads as a screen that failed to load.
-                 */}
-                {!isError && !isLoading && corridors.length === 0 ? (
-                    <EmptyState icon="globe-lock" title={t('list.emptyTitle')} description={t('list.emptyBody')} />
-                ) : (
-                    <Section title={t('list.sectionTitle')}>
-                        <ListGroup>
-                            {views.map(({ corridor, view }) => {
-                                const rail = DEPOSIT_RAILS[corridor]
-                                const account = accounts[corridor]
-                                // The gate governs opening a NEW account, not
-                                // reading one that already exists — resolveScreen
-                                // serves those details read-only. A corridor with
-                                // nothing to claim is always open: its details are
-                                // the user's own top-up route.
-                                // Revoked details still explain returned payments and provide support.
-                                const openable = !isClaimable(rail) || view.claimable || isHeld(account)
-                                const disabled = isError || isLoading || !openable
+                        {/*
+                         * No bank rail at all, so there is no corridor to offer. Saying
+                         * so is the honest answer; an empty list under a section title
+                         * reads as a screen that failed to load.
+                         */}
+                        {!isError && !isLoading && corridors.length === 0 ? (
+                            <EmptyState
+                                icon="globe-lock"
+                                title={t('list.emptyTitle')}
+                                description={t('list.emptyBody')}
+                            />
+                        ) : (
+                            <Section title={t('list.sectionTitle')}>
+                                <ListGroup>
+                                    {views.map(({ corridor, view }) => {
+                                        const rail = DEPOSIT_RAILS[corridor]
+                                        const account = accounts[corridor]
+                                        // The gate governs opening a NEW account, not
+                                        // reading one that already exists — resolveScreen
+                                        // serves those details read-only. A corridor with
+                                        // nothing to claim is always open: its details are
+                                        // the user's own top-up route.
+                                        // Revoked details still explain returned payments and provide support.
+                                        const openable = !isClaimable(rail) || view.claimable || isHeld(account)
+                                        const disabled = isError || isLoading || !openable
 
-                                return (
-                                    <ListItem
-                                        key={corridor}
-                                        leading={<CorridorFlag iso2={rail.flagIso2} />}
-                                        /* a ReactNode title wraps; a bare
+                                        return (
+                                            <ListItem
+                                                key={corridor}
+                                                leading={<CorridorFlag iso2={rail.flagIso2} />}
+                                                /* a ReactNode title wraps; a bare
                                            string is truncated to one line, and
                                            "GBP · Faster Payments" does not fit
                                            at 375 */
-                                        title={<span>{`${rail.currency} · ${railName(corridor)}`}</span>}
-                                        body={rowBody(corridor, openable)}
-                                        bodyWrap
-                                        trailing={rowBadge(rail, account, gates[corridor])}
-                                        chevron={!disabled}
-                                        disabled={disabled}
-                                        onClick={() => onOpen(corridor)}
-                                        data-testid={`deposit-account-${corridor}`}
-                                    />
-                                )
-                            })}
-                        </ListGroup>
-                    </Section>
+                                                title={<span>{`${rail.currency} · ${railName(corridor)}`}</span>}
+                                                body={rowBody(corridor, openable)}
+                                                bodyWrap
+                                                trailing={rowBadge(rail, account, gates[corridor])}
+                                                chevron={!disabled}
+                                                disabled={disabled}
+                                                onClick={() => onOpen(corridor)}
+                                                data-testid={`deposit-account-${corridor}`}
+                                            />
+                                        )
+                                    })}
+                                </ListGroup>
+                            </Section>
+                        )}
+                    </div>
                 )}
+
+                {/* the KYC-free way in, and the only one that is not a country */}
+                <ListItem
+                    title={tMethods('crypto')}
+                    body={tMethods('cryptoDescription')}
+                    bodyWrap
+                    chevron
+                    position="single"
+                    leading={
+                        <AvatarWithBadge icon="wallet-outline" size="extra-small" className="bg-action-secondary" />
+                    }
+                    onClick={() => router.push(CRYPTO_HREF)}
+                    data-testid="add-money-crypto"
+                />
+
+                {/*
+                 * Every other way in. A country resolves to the corridor its
+                 * rail catalogue names — the standing account opens above, the
+                 * rest open their own flow — and a country with no live rail
+                 * offers the waitlist rather than a screen that says "soon".
+                 */}
+                <CountryList
+                    inputTitle={t('list.countriesTitle')}
+                    viewMode="add-withdraw"
+                    flow="add"
+                    onCountryClick={openCountry}
+                    isCountrySupported={isCountrySupported}
+                />
             </div>
         </PageStack>
     )

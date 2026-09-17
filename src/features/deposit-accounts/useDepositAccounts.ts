@@ -75,7 +75,7 @@ export interface UseDepositAccountsResult {
  * the end of it. The corridor reads as timed out then, which is the one state
  * with a retry on it.
  */
-export function useDepositAccounts(): UseDepositAccountsResult {
+export function useDepositAccounts({ enabled = true }: { enabled?: boolean } = {}): UseDepositAccountsResult {
     const { userId } = useAuth()
     const queryClient = useQueryClient()
     const { gateFor, rails, isLoading: capabilitiesLoading } = useCapabilities()
@@ -92,7 +92,7 @@ export function useDepositAccounts(): UseDepositAccountsResult {
 
     const query = useQuery({
         queryKey: [...DEPOSIT_ACCOUNTS_QUERY_KEY, userId],
-        enabled: !!userId,
+        enabled: !!userId && enabled,
         queryFn: fetchDepositAccounts,
         refetchInterval: (q) =>
             hasAccountStillWaiting(q.state.data?.accounts, provisioningPolls) ? PROVISIONING_POLL_MS : false,
@@ -189,18 +189,20 @@ export function useDepositAccounts(): UseDepositAccountsResult {
      */
     const corridors = useMemo(
         () =>
-            corridorsFromRails(
-                rails,
-                DEPOSIT_RAIL_ORDER.filter((corridor) => accounts[corridor])
-            ).filter(
-                (corridor) =>
-                    !query.data ||
-                    accounts[corridor] ||
-                    !isClaimable(DEPOSIT_RAILS[corridor]) ||
-                    gateFor('deposit', { railId: railIdFor(corridor) }).kind !== 'ready' ||
-                    claimable[corridor]
-            ),
-        [rails, accounts, query.data, gateFor, claimable]
+            !enabled
+                ? []
+                : corridorsFromRails(
+                      rails,
+                      DEPOSIT_RAIL_ORDER.filter((corridor) => accounts[corridor])
+                  ).filter(
+                      (corridor) =>
+                          !query.data ||
+                          accounts[corridor] ||
+                          !isClaimable(DEPOSIT_RAILS[corridor]) ||
+                          gateFor('deposit', { railId: railIdFor(corridor) }).kind !== 'ready' ||
+                          claimable[corridor]
+                  ),
+        [enabled, rails, accounts, query.data, gateFor, claimable]
     )
 
     const gates = useMemo((): Record<DepositCorridor, GateState> => {
@@ -224,7 +226,8 @@ export function useDepositAccounts(): UseDepositAccountsResult {
         accounts,
         claimable,
         gates,
-        isLoading: !userId || query.isLoading || capabilitiesLoading,
+        // a flow that is not asking for accounts is never waiting for them
+        isLoading: enabled && (!userId || query.isLoading || capabilitiesLoading),
         isError: query.isError,
         claimingCorridor,
         claimError,

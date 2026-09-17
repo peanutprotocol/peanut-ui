@@ -524,7 +524,11 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     badges: { route: '/badges', about: 'Badge wall with three earned badges.' },
     history: { route: '/history', about: 'Activity list, four entries, both directions.' },
-    'add-money': { route: '/add-money?method=bank', about: 'Add money: the bank-transfer country list.' },
+    'add-money': {
+        route: '/add-money?method=bank',
+        about: 'Add money by bank: the same hub /get-paid renders, titled for adding money.',
+        responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
+    },
     'add-money-crypto': { route: '/add-money/crypto', about: 'Crypto deposit: the network picker.' },
     withdraw: {
         route: '/withdraw',
@@ -996,12 +1000,12 @@ export const FIXTURES: Record<string, Fixture> = {
     // ---------------------------------------------------------------------
     'get-paid': {
         route: '/get-paid',
-        about: 'The hub: one euro account held, the rest open to claim.',
+        about: 'The hub: one euro account held, the rest open to claim, every country below.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
     },
     'get-paid-empty': {
         route: '/get-paid',
-        about: 'Nothing claimed yet — every corridor offered, none held.',
+        about: 'Nothing claimed yet — every corridor offered, none held, country list below.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [] } },
     },
     'get-paid-blocked': {

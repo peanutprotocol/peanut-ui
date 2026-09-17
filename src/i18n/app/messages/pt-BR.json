@@ -1696,16 +1696,6 @@
         "transferDetails": "Dados da transferência",
         "selectYourCountry": "Selecione seu país",
         "addMoneyVia": "Adicionar dinheiro com",
-        "routes": {
-            "standing": {
-                "title": "Dados fixos de {rail}",
-                "body": "Dados reutilizáveis que qualquer pessoa pode usar para te pagar"
-            },
-            "top-up": {
-                "title": "Recarga única por {rail}",
-                "body": "Um código para um pagamento, da sua própria conta"
-            }
-        },
         "recentMethods": "Métodos recentes",
         "selectNewMethod": "Escolher outro método",
         "howMuchToAdd": "Quanto você quer adicionar?",
@@ -3914,8 +3904,12 @@
         },
         "title": "Receber",
         "list": {
-            "heading": "Suas próprias contas. Receba do mundo.",
+            "heading": "Seus próprios dados bancários. Receba do mundo.",
             "subheading": "Tenha dados bancários pessoais em euros, dólares e outras moedas. Receba seu salário ou pagamentos de clientes direto no seu saldo do Peanut.",
+            "addTitle": "Adicionar dinheiro",
+            "addHeading": "Adicione dinheiro do seu banco ou tenha dados bancários para receber pagamentos.",
+            "addSubheading": "Abra seus próprios dados bancários ou escolha o país de onde você envia.",
+            "countriesTitle": "Envie de qualquer país",
             "sectionTitle": "Suas contas",
             "badgeReady": "Pronta",
             "rowBlocked": "Verifique sua identidade para abrir esta conta",

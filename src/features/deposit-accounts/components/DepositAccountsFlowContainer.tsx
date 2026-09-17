@@ -4,11 +4,15 @@ import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
 import { DepositAccountsFlow } from './DepositAccountsFlow'
 import { useDepositAccounts } from '../useDepositAccounts'
+import { useDepositAccountsEnabled } from '../useDepositAccountsEnabled'
 import { useDepositGateRemediation } from '../useDepositGateRemediation'
+import type { DepositHubVariant } from '../types'
 
 interface DepositAccountsFlowContainerProps {
     /** leaving the flow entirely — each entry point decides where that goes */
     onExit: () => void
+    /** which entry point this is: it decides the title and the heading, nothing else */
+    variant?: DepositHubVariant
 }
 
 /**
@@ -24,9 +28,12 @@ interface DepositAccountsFlowContainerProps {
  * caller navigates by setting `?corridor=` and `?step=` rather than by passing
  * state down.
  */
-export function DepositAccountsFlowContainer({ onExit }: DepositAccountsFlowContainerProps) {
+export function DepositAccountsFlowContainer({ onExit, variant = 'get-paid' }: DepositAccountsFlowContainerProps) {
+    // While standing accounts are dark, the hub is the country list alone —
+    // asking the backend for accounts nobody can open yet buys nothing.
+    const accountsEnabled = useDepositAccountsEnabled()
     const { corridors, accounts, claimable, gates, isLoading, isError, claimingCorridor, claimError, claim, refetch } =
-        useDepositAccounts()
+        useDepositAccounts({ enabled: accountsEnabled })
     const { user } = useAuth()
     const { resolveGate, modals } = useDepositGateRemediation()
     const { openSupportWithMessage } = useModalsContext()
@@ -34,6 +41,7 @@ export function DepositAccountsFlowContainer({ onExit }: DepositAccountsFlowCont
     return (
         <>
             <DepositAccountsFlow
+                variant={variant}
                 corridors={corridors}
                 accounts={accounts}
                 claimable={claimable}

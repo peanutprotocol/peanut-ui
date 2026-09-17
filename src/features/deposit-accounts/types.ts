@@ -176,3 +176,12 @@ export interface DepositDetailRow {
     /** informational rows opt out of the copy button */
     copyable?: boolean
 }
+
+/**
+ * Which job the user came to the hub for.
+ *
+ * One screen serves both — the accounts they hold and every country they can
+ * send from — so the variant only decides the page title, the heading, and
+ * whether the accounts section is scrolled to on arrival.
+ */
+export type DepositHubVariant = 'add-money' | 'get-paid'
