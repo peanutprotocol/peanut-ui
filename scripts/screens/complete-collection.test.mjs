@@ -237,3 +237,54 @@ test('a late completion cannot overwrite a newer capture attempt', async () => {
         /Capture attempt is no longer current/
     )
 })
+
+test('a capture attempt replaced during conversion cannot be committed', async () => {
+    const initialAttempt = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+    const replacementAttempt = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
+    const collection = composeCollection({
+        id: collectionId,
+        spec: { title: 'Choice overload', items: [{ id: 'profile' }] },
+        reports: {
+            en: {
+                schema: 1,
+                type: 'capture',
+                locale: 'en',
+                commit: oldCommit,
+                screens: [],
+            },
+        },
+        createdAt: '2026-09-16T10:00:00Z',
+    })
+    collection.capture = { status: 'running', targetCommit, attempt: initialAttempt }
+    const requestKey = `collection-requests/${collectionId}.json`
+    const manifestKey = `collections/${collectionId}/manifest.json`
+    const storage = memoryStorage({
+        [manifestKey]: JSON.stringify(collection),
+        [requestKey]: JSON.stringify({
+            schema: 1,
+            collectionId,
+            attempt: initialAttempt,
+            targetCommit,
+            screens: { en: ['profile'] },
+        }),
+    })
+    storage.beforeConditionalPut = async ({ key }) => {
+        if (key !== manifestKey) return
+        const replacement = JSON.parse(storage.objects.get(manifestKey))
+        replacement.capture = { ...replacement.capture, status: 'running', attempt: replacementAttempt }
+        storage.objects.set(manifestKey, Buffer.from(JSON.stringify(replacement)))
+        const replacementRequest = JSON.parse(storage.objects.get(requestKey))
+        replacementRequest.attempt = replacementAttempt
+        storage.objects.set(requestKey, Buffer.from(JSON.stringify(replacementRequest)))
+    }
+
+    await assert.rejects(
+        () => completeCollection({ collectionId, inputDir: tmpdir(), storage, attempt: initialAttempt }),
+        /Precondition failed/
+    )
+    const stored = JSON.parse(storage.objects.get(manifestKey))
+    assert.equal(stored.capture.attempt, replacementAttempt)
+    assert.equal(stored.capture.status, 'running')
+    assert.equal(JSON.parse(storage.objects.get(requestKey)).attempt, replacementAttempt)
+    assert.equal(storage.objects.has(`collection-entries/${collectionId}.json`), false)
+})
