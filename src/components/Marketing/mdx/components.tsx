@@ -5,13 +5,15 @@ import { FAQ, FAQItem } from './FAQ'
 import { CTA } from './CTA'
 import { Callout } from './Callout'
 import { ExchangeWidget } from './ExchangeWidget'
+import { CompareSavings } from './CompareSavings'
 import { RelatedPages, RelatedLink } from './RelatedPages'
 import { CountryGrid } from './CountryGrid'
 import { ProseStars } from './ProseStars'
 import { extractText } from './mdx.utils'
 import { Tabs, TabPanel } from './Tabs'
 import Divider from '@/components/0_Bruddle/Divider'
-import { PROSE_WIDTH } from '../constants'
+import { PROSE_LINK, PROSE_WIDTH } from '../constants'
+import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 import { resolveContentHref } from '@/lib/content'
 
@@ -34,9 +36,25 @@ type MdxComponentMap = Record<string, React.ComponentType<any>>
  * falls back to English.
  */
 export function createMdxComponents(locale: Locale = DEFAULT_LOCALE): MdxComponentMap {
+    const i18n = getTranslations(locale)
     return {
         ...mdxComponents,
         CountryGrid: (props) => <CountryGrid {...props} locale={locale} />,
+        // CompareSavings is a client component, so its copy is picked here key
+        // by key: passing the whole catalog would serialize ~14 KB of unused
+        // strings into every compare page.
+        CompareSavings: (props) => (
+            <CompareSavings
+                {...props}
+                locale={locale}
+                strings={{
+                    compareSavingsLive: i18n.compareSavingsLive,
+                    compareSavingsStatic: i18n.compareSavingsStatic,
+                    compareSavingsUnverified: i18n.compareSavingsUnverified,
+                    compareSavingsSource: i18n.compareSavingsSource,
+                }}
+            />
+        ),
         Steps: (props) => <Steps {...props} locale={locale} />,
         RelatedPages: (props) => <RelatedPages {...props} locale={locale} />,
         FAQ: (props) => <FAQ {...props} locale={locale} />,
@@ -44,11 +62,7 @@ export function createMdxComponents(locale: Locale = DEFAULT_LOCALE): MdxCompone
         // Markdown links are authored with mixed locale prefixes (`/en/help/x`,
         // `/help/x`), so a Spanish page would otherwise link back to English.
         a: ({ href = '', ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
-            <Link
-                href={resolveContentHref(href, locale)}
-                className="text-foreground-primary underline decoration-foreground-primary/30 underline-offset-2 hover:decoration-foreground-primary"
-                {...props}
-            />
+            <Link href={resolveContentHref(href, locale)} className={PROSE_LINK} {...props} />
         ),
     }
 }
@@ -63,6 +77,7 @@ export const mdxComponents: MdxComponentMap = {
     CTA,
     Callout,
     ExchangeWidget,
+    CompareSavings,
     RelatedPages,
     RelatedLink,
     CountryGrid,
@@ -98,11 +113,7 @@ export const mdxComponents: MdxComponentMap = {
         />
     ),
     a: ({ href = '', ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
-        <Link
-            href={href}
-            className="text-foreground-primary underline decoration-foreground-primary/30 underline-offset-2 hover:decoration-foreground-primary"
-            {...props}
-        />
+        <Link href={href} className={PROSE_LINK} {...props} />
     ),
     ul: (props: React.HTMLAttributes<HTMLUListElement>) => (
         <ul className={`mx-auto my-6 ${PROSE_WIDTH} space-y-3 list-disc pr-6 pl-12 md:pr-4 md:pl-10`} {...props} />

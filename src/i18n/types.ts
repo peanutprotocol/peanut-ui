@@ -299,6 +299,13 @@ export interface Translations {
     // Misc
     lastUpdated: string // "Last updated: {date}"
     relatedPages: string // "Related Pages"
+
+    // MDX <CompareSavings> on /compare/* — one whole sentence per render lane,
+    // never fragments: word order differs between these four languages.
+    compareSavingsLive: string // live rate: {base} {localBase} {competitor} {range} {worstCase} {localWorstCase} {date}
+    compareSavingsStatic: string // no rate yet: {date} {competitor} {range} {worstCase} {base}
+    compareSavingsUnverified: string // claim rejected — no fee number: {competitor} {date}
+    compareSavingsSource: string // label on the link to the verified source
     calloutInfo: string // MDX <Callout type="info"> label
     calloutTip: string // MDX <Callout type="tip"> label
     calloutImportant: string // MDX <Callout type="warning"> label
