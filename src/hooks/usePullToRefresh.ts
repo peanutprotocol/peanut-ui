@@ -48,7 +48,7 @@ export function useShouldPullToRefresh(): () => boolean {
     const scrollableContentRef = useRef<Element | null>(null)
     return useCallback(() => {
         if (window.scrollY > 0) return false
-        if (!scrollableContentRef.current) {
+        if (!scrollableContentRef.current?.isConnected) {
             scrollableContentRef.current = document.querySelector(DEFAULT_REFRESH_TARGET)
         }
         const scrollableContent = scrollableContentRef.current
@@ -171,6 +171,8 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
                 ':is([role="dialog"], [role="alertdialog"]):is([data-state="open"], [aria-modal="true"]):not([hidden])'
             )
 
+        const canPull = () => window.scrollY === 0 && (shouldPullToRefreshRef.current?.() ?? true)
+
         const onTouchStart = (e: TouchEvent) => {
             if (refreshing) return
             if (hasOpenDialog() || e.touches.length !== 1) {
@@ -182,8 +184,10 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
                 resetPull()
                 return
             }
-            const allowed = shouldPullToRefreshRef.current ? shouldPullToRefreshRef.current() : window.scrollY === 0
-            if (!allowed) return
+            if (!canPull()) {
+                resetPull()
+                return
+            }
             // a new pull can start inside the retract window — put the arrow back
             // now, so the previous run's checkmark doesn't get swapped mid-gesture
             restoreIdleIndicator()
@@ -197,7 +201,7 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
 
         const onTouchMove = (e: TouchEvent) => {
             if (!pulling || refreshing) return
-            if (hasOpenDialog()) {
+            if (hasOpenDialog() || e.touches.length !== 1 || !canPull()) {
                 resetPull()
                 return
             }
@@ -206,8 +210,10 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
             if (!axisLock && (Math.abs(dx) > AXIS_LOCK_SLOP_PX || Math.abs(dy) > AXIS_LOCK_SLOP_PX)) {
                 axisLock = Math.abs(dy) >= Math.abs(dx) ? 'y' : 'x'
             }
-            // don't hijack horizontal gestures (carousels) or real scrolls
-            if (axisLock === 'x' || window.scrollY > 0) {
+            // Don't hijack horizontal gestures (carousels) or real scrolls.
+            // An upward swipe belongs to scrolling for the rest of this touch,
+            // even if the finger reverses direction after reaching the top.
+            if (axisLock === 'x' || dy < -AXIS_LOCK_SLOP_PX) {
                 resetPull()
                 return
             }
@@ -255,7 +261,7 @@ export const usePullToRefresh = (options: UsePullToRefreshOptions = {}) => {
 
         const onTouchEnd = () => {
             if (!pulling || refreshing) return
-            if (hasOpenDialog()) {
+            if (hasOpenDialog() || !canPull()) {
                 resetPull()
                 return
             }
