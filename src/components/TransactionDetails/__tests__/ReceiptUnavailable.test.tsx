@@ -8,7 +8,7 @@ jest.mock('next/image', () => ({
     default: (props: Record<string, unknown>) => React.createElement('img', props as Record<string, string>),
 }))
 
-jest.mock('@/assets/logos/peanut-logo.svg', () => 'peanut-logo.svg')
+jest.mock('@/assets/logos/peanut-logo-dark.svg', () => 'peanut-logo-dark.svg')
 
 const renderVariant = (variant?: 'gone' | 'loadFailed', onRetry?: () => void) =>
     render(
