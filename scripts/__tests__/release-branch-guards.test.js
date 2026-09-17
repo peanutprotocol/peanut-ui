@@ -45,4 +45,7 @@ it('keeps the scheduled screen harness compatible with historical merge bases', 
     expect(workflow).toContain('const compatible = String.raw`const anchor = /(?:async\\s+)?function callApi')
     expect(workflow).toContain('Unexpected screen adapter shape')
     expect(workflow).toContain('pull-requests: read')
+    expect(workflow).toContain('locale: [en, es-419, es-AR, pt-BR]')
+    expect(workflow).toContain('--locale="${{ matrix.locale }}"')
+    expect(workflow).toContain('screen-library-baseline-${{ matrix.sha }}-${{ matrix.locale }}-${{ github.run_attempt }}')
 })
