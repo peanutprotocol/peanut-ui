@@ -30,6 +30,10 @@ function failedAcceptInvite(retryable: boolean, status?: number): AcceptInviteRe
     }
 }
 
+function isRetryableInviteStatus(status: number): boolean {
+    return status >= 500 || status === 408 || status === 425 || status === 429
+}
+
 export type ValidateInviteResult = {
     success: boolean
     attributionResolved: boolean
@@ -60,7 +64,7 @@ export const invitesApi = {
         try {
             body = await response.json()
         } catch {
-            return failedAcceptInvite(response.status >= 500, response.status)
+            return failedAcceptInvite(isRetryableInviteStatus(response.status), response.status)
         }
         const typedCampaignOnly =
             response.status === 409 &&
@@ -69,10 +73,10 @@ export const invitesApi = {
             typeof body === 'object' &&
             Array.isArray((body as { claims?: unknown }).claims)
         if (!response.ok && !typedCampaignOnly) {
-            // Only transport failures and 5xx responses are safe to retain for
-            // retry. Invalid/forbidden codes are terminal and must not become
-            // a future referral if that username is registered later.
-            return failedAcceptInvite(response.status >= 500, response.status)
+            // Transport failures, server failures, and explicitly transient
+            // throttling/timeouts retain the referral. Invalid/forbidden codes
+            // are terminal so they cannot become a future referral later.
+            return failedAcceptInvite(isRetryableInviteStatus(response.status), response.status)
         }
         const legacyAcquisition = parseLegacyInviteAcquisition(
             body && typeof body === 'object' ? (body as { legacyAcquisition?: unknown }).legacyAcquisition : undefined

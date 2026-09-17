@@ -42,7 +42,11 @@ import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
 import { rescueUserOpReceipt } from '@/utils/userop-rescue.utils'
 import { attachSignupAttribution } from '@/services/signup-attribution'
-import { ensureSignupAttributionForRegistration, markSignupAttributionPending } from '@/utils/signup-attribution'
+import {
+    ensureSignupAttributionForRegistration,
+    markSignupAttributionPending,
+    signupAnalyticsState,
+} from '@/utils/signup-attribution'
 import { settlePendingInviteAttribution } from '@/services/pending-invite-attribution'
 
 // types
@@ -127,6 +131,7 @@ export const useZeroDev = () => {
                         // signup screen displayed ride in a header the backend ledgers.
                         passkeyServerHeaders: {
                             'x-accepted-legal': JSON.stringify(signupConsentDocuments()),
+                            'x-signup-analytics-state': signupAnalyticsState(),
                         },
                         rpID: rpId,
                     })
@@ -135,17 +140,15 @@ export const useZeroDev = () => {
 
             // Keep the new key recoverable even if the API session cannot load yet.
             saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
-            // The ceremony has created the account. This marker lets a native
-            // restart retry the authenticated attribution attach without
-            // allowing ordinary returning-user logins to claim the journey.
-            if (signupAttribution) markSignupAttributionPending()
-
             // Bind the ceremony key to the fresh API session, never the render's previous user.
             // Native cookies may disappear on restart; persist before any RPC-dependent build.
             const registeredUser = await hydrateLoginSession()
             updateUserPreferences(registeredUser.user.userId, { webAuthnKey })
+            // Arm delivery only after hydration supplies the authoritative
+            // registrant. An unbound marker could be consumed by a later login.
+            if (signupAttribution) await markSignupAttributionPending(registeredUser.user.userId)
             try {
-                await attachSignupAttribution()
+                await attachSignupAttribution(registeredUser.user.userId)
             } catch (error) {
                 // Attribution is best-effort for signup UX. The durable device
                 // copy remains for the authenticated retry on the next start.
@@ -155,7 +158,7 @@ export const useZeroDev = () => {
             // Fail-open: a referral never blocks open signup. The shared
             // authenticated recovery path keeps the inviter until the server
             // confirms its immutable reward edge.
-            await settlePendingInviteAttribution()
+            await settlePendingInviteAttribution(registeredUser.user.userId)
 
             // Campaign acquisition is independent from invite attribution. It
             // runs after authentication whether or not an invite was present,

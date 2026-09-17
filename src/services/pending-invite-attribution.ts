@@ -1,20 +1,26 @@
 import posthog from 'posthog-js'
 import { captureException } from '@/utils/sentry-lazy'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { clearInvite, extendInviteForRetry, readInviteCode, readInviteType } from '@/utils/invite-stash'
+import {
+    bindInviteToUser,
+    clearInviteIfOwnedBy,
+    extendInviteForRetry,
+    readInviteCode,
+    readInviteType,
+} from '@/utils/invite-stash'
 import { settleAcceptedInviteAcquisition } from './invite-acquisition'
 import { invitesApi, type AcceptInviteResult } from './invites'
 import type { EInviteType } from './services.types'
 
 export type PendingInviteAttributionOutcome = {
-    status: 'none' | 'attributed' | 'campaign_only' | 'retryable' | 'terminal'
+    status: 'none' | 'attributed' | 'campaign_only' | 'retryable' | 'terminal' | 'account_mismatch'
     inviteCode?: string
     inviteType?: EInviteType
     result?: AcceptInviteResult
     pendingCampaigns?: string[]
 }
 
-let inFlight: Promise<PendingInviteAttributionOutcome> | null = null
+const inFlight = new Map<string, Promise<PendingInviteAttributionOutcome>>()
 
 /**
  * Records a stashed inviter after authentication. The invite cookie is only
@@ -22,26 +28,34 @@ let inFlight: Promise<PendingInviteAttributionOutcome> | null = null
  * terminal legacy campaign-only hand-off. Failures remain durable for the
  * next authenticated app start and never block open signup.
  */
-export function settlePendingInviteAttribution(): Promise<PendingInviteAttributionOutcome> {
-    if (inFlight) return inFlight
+export function settlePendingInviteAttribution(userId: string): Promise<PendingInviteAttributionOutcome> {
+    const inviteCode = readInviteCode().trim()
+    if (!inviteCode) return Promise.resolve({ status: 'none' })
+    if (!bindInviteToUser(userId)) return Promise.resolve({ status: 'account_mismatch', inviteCode })
 
-    const attempt = settlePendingInviteAttributionOnce().catch((error): PendingInviteAttributionOutcome => {
-        // Cookie/storage reads are expected to be safe, but attribution is
-        // never allowed to turn a completed registration into a failed one.
-        captureException(error, { tags: { error_type: 'invite_attribution_recovery_failed' } })
-        return { status: 'retryable' }
-    })
+    const attemptKey = `${userId}:${inviteCode}`
+    const existing = inFlight.get(attemptKey)
+    if (existing) return existing
+
+    const attempt = settlePendingInviteAttributionOnce(userId, inviteCode).catch(
+        (error): PendingInviteAttributionOutcome => {
+            // Cookie/storage reads are expected to be safe, but attribution is
+            // never allowed to turn a completed registration into a failed one.
+            captureException(error, { tags: { error_type: 'invite_attribution_recovery_failed' } })
+            return { status: 'retryable' }
+        }
+    )
     const trackedAttempt = attempt.finally(() => {
-        inFlight = null
+        if (inFlight.get(attemptKey) === trackedAttempt) inFlight.delete(attemptKey)
     })
-    inFlight = trackedAttempt
+    inFlight.set(attemptKey, trackedAttempt)
     return trackedAttempt
 }
 
-async function settlePendingInviteAttributionOnce(): Promise<PendingInviteAttributionOutcome> {
-    const inviteCode = readInviteCode().trim()
-    if (!inviteCode) return { status: 'none' }
-
+async function settlePendingInviteAttributionOnce(
+    userId: string,
+    inviteCode: string
+): Promise<PendingInviteAttributionOutcome> {
     const inviteType = readInviteType()
     try {
         const result = await invitesApi.acceptInvite(inviteCode, inviteType)
@@ -57,7 +71,7 @@ async function settlePendingInviteAttributionOnce(): Promise<PendingInviteAttrib
             }
 
             if (!result.onboardingResolved) {
-                clearInvite()
+                clearInviteIfOwnedBy(inviteCode, userId)
                 return { status: 'campaign_only', inviteCode, inviteType, result, pendingCampaigns }
             }
         }
@@ -67,7 +81,7 @@ async function settlePendingInviteAttributionOnce(): Promise<PendingInviteAttrib
                 invite_code: inviteCode,
                 invite_type: inviteType,
             })
-            clearInvite()
+            clearInviteIfOwnedBy(inviteCode, userId)
             return { status: 'attributed', inviteCode, inviteType, result, pendingCampaigns }
         }
 
@@ -85,11 +99,11 @@ async function settlePendingInviteAttributionOnce(): Promise<PendingInviteAttrib
                 tags: { error_type: 'invite_accept_failed' },
                 extra: { inviteCode, result },
             })
-            extendInviteForRetry(30)
+            extendInviteForRetry(30, { inviteCode, userId })
             return { status: 'retryable', inviteCode, inviteType, result, pendingCampaigns }
         }
 
-        clearInvite()
+        clearInviteIfOwnedBy(inviteCode, userId)
         return { status: 'terminal', inviteCode, inviteType, result, pendingCampaigns }
     } catch (error) {
         posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, {
@@ -100,7 +114,7 @@ async function settlePendingInviteAttributionOnce(): Promise<PendingInviteAttrib
             tags: { error_type: 'invite_accept_failed' },
             extra: { inviteCode },
         })
-        extendInviteForRetry(30)
+        extendInviteForRetry(30, { inviteCode, userId })
         return { status: 'retryable', inviteCode, inviteType }
     }
 }

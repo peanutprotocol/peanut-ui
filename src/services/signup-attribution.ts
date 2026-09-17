@@ -7,7 +7,7 @@ import {
     serializeSignupAttribution,
 } from '@/utils/signup-attribution'
 
-let attachInFlight: Promise<boolean> | null = null
+const attachInFlight = new Map<string, Promise<boolean>>()
 
 /**
  * Deliver source evidence only after the API session exists. The server scopes
@@ -15,17 +15,18 @@ let attachInFlight: Promise<boolean> | null = null
  * Keeping the context until a 2xx acknowledgement makes this safe to retry
  * on the next authenticated app start.
  */
-export function attachSignupAttribution(): Promise<boolean> {
-    if (!attachInFlight) {
-        attachInFlight = doAttachSignupAttribution().finally(() => {
-            attachInFlight = null
-        })
-    }
-    return attachInFlight
+export function attachSignupAttribution(userId: string): Promise<boolean> {
+    const existing = attachInFlight.get(userId)
+    if (existing) return existing
+    const attempt = doAttachSignupAttribution(userId).finally(() => {
+        if (attachInFlight.get(userId) === attempt) attachInFlight.delete(userId)
+    })
+    attachInFlight.set(userId, attempt)
+    return attempt
 }
 
-async function doAttachSignupAttribution(): Promise<boolean> {
-    if (!(await hasPendingSignupAttribution())) return false
+async function doAttachSignupAttribution(userId: string): Promise<boolean> {
+    if (!(await hasPendingSignupAttribution(userId))) return false
     const context = await readSignupAttributionAsync()
     if (!context) return false
     const serialized = serializeSignupAttribution(context)
@@ -44,6 +45,6 @@ async function doAttachSignupAttribution(): Promise<boolean> {
     // The API has acknowledged the evidence, including terminal outcomes such
     // as expiry or analytics opt-out. Stop delivery retries, but retain the
     // bounded context until signup_completed emits the client-side join key.
-    await clearPendingSignupAttribution()
+    await clearPendingSignupAttribution(userId)
     return true
 }

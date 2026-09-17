@@ -3,7 +3,8 @@ import { EInviteType } from '@/services/services.types'
 import { settlePendingInviteAttribution } from '../pending-invite-attribution'
 
 const mockAcceptInvite = jest.fn()
-const mockClearInvite = jest.fn()
+const mockBindInviteToUser = jest.fn()
+const mockClearInviteIfOwnedBy = jest.fn()
 const mockExtendInviteForRetry = jest.fn()
 const mockSettleAcceptedInviteAcquisition = jest.fn()
 const mockCapture = jest.fn()
@@ -20,7 +21,8 @@ jest.mock('../invite-acquisition', () => ({
 jest.mock('@/utils/invite-stash', () => ({
     readInviteCode: () => inviteCode,
     readInviteType: () => inviteType,
-    clearInvite: (...args: unknown[]) => mockClearInvite(...args),
+    bindInviteToUser: (...args: unknown[]) => mockBindInviteToUser(...args),
+    clearInviteIfOwnedBy: (...args: unknown[]) => mockClearInviteIfOwnedBy(...args),
     extendInviteForRetry: (...args: unknown[]) => mockExtendInviteForRetry(...args),
 }))
 jest.mock('posthog-js', () => ({ capture: (...args: unknown[]) => mockCapture(...args) }))
@@ -33,6 +35,8 @@ describe('pending invite attribution', () => {
         jest.clearAllMocks()
         inviteCode = 'alice'
         inviteType = EInviteType.PAYMENT_LINK
+        mockBindInviteToUser.mockReturnValue(true)
+        mockClearInviteIfOwnedBy.mockReturnValue(true)
         mockSettleAcceptedInviteAcquisition.mockReturnValue({ destination: '/home', pending: [] })
     })
 
@@ -44,14 +48,14 @@ describe('pending invite attribution', () => {
             claims: [],
         })
 
-        await expect(settlePendingInviteAttribution()).resolves.toMatchObject({
+        await expect(settlePendingInviteAttribution('user-a')).resolves.toMatchObject({
             status: 'attributed',
             inviteCode: 'alice',
             inviteType: EInviteType.PAYMENT_LINK,
         })
 
         expect(mockAcceptInvite).toHaveBeenCalledWith('alice', EInviteType.PAYMENT_LINK)
-        expect(mockClearInvite).toHaveBeenCalledTimes(1)
+        expect(mockClearInviteIfOwnedBy).toHaveBeenCalledWith('alice', 'user-a')
         expect(mockExtendInviteForRetry).not.toHaveBeenCalled()
         expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.INVITE_ACCEPTED, {
             invite_code: 'alice',
@@ -68,10 +72,10 @@ describe('pending invite attribution', () => {
             claims: [],
         })
 
-        await expect(settlePendingInviteAttribution()).resolves.toMatchObject({ status: 'retryable' })
+        await expect(settlePendingInviteAttribution('user-a')).resolves.toMatchObject({ status: 'retryable' })
 
-        expect(mockClearInvite).not.toHaveBeenCalled()
-        expect(mockExtendInviteForRetry).toHaveBeenCalledWith(30)
+        expect(mockClearInviteIfOwnedBy).not.toHaveBeenCalled()
+        expect(mockExtendInviteForRetry).toHaveBeenCalledWith(30, { inviteCode: 'alice', userId: 'user-a' })
         expect(mockCaptureException).toHaveBeenCalledWith(
             expect.any(Error),
             expect.objectContaining({ tags: { error_type: 'invite_accept_failed' } })
@@ -88,9 +92,9 @@ describe('pending invite attribution', () => {
             claims: [],
         })
 
-        await expect(settlePendingInviteAttribution()).resolves.toMatchObject({ status: 'terminal' })
+        await expect(settlePendingInviteAttribution('user-a')).resolves.toMatchObject({ status: 'terminal' })
 
-        expect(mockClearInvite).toHaveBeenCalledTimes(1)
+        expect(mockClearInviteIfOwnedBy).toHaveBeenCalledWith('alice', 'user-a')
         expect(mockExtendInviteForRetry).not.toHaveBeenCalled()
         expect(mockCaptureException).not.toHaveBeenCalled()
     })
@@ -105,12 +109,12 @@ describe('pending invite attribution', () => {
             claims: [{ badgeCampaign: 'founderhaus', outcome: 'awarded' }],
         })
 
-        await expect(settlePendingInviteAttribution()).resolves.toMatchObject({ status: 'campaign_only' })
+        await expect(settlePendingInviteAttribution('user-a')).resolves.toMatchObject({ status: 'campaign_only' })
 
         expect(mockSettleAcceptedInviteAcquisition).toHaveBeenCalledWith(legacyAcquisition, [
             expect.objectContaining({ badgeCampaign: 'founderhaus', outcome: 'awarded' }),
         ])
-        expect(mockClearInvite).toHaveBeenCalledTimes(1)
+        expect(mockClearInviteIfOwnedBy).toHaveBeenCalledWith('alice', 'user-a')
         expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, expect.anything())
     })
 
@@ -122,8 +126,8 @@ describe('pending invite attribution', () => {
             })
         )
 
-        const registrationAttempt = settlePendingInviteAttribution()
-        const authProviderAttempt = settlePendingInviteAttribution()
+        const registrationAttempt = settlePendingInviteAttribution('user-a')
+        const authProviderAttempt = settlePendingInviteAttribution('user-a')
         expect(mockAcceptInvite).toHaveBeenCalledTimes(1)
 
         resolveAccept({
@@ -137,6 +141,31 @@ describe('pending invite attribution', () => {
             expect.objectContaining({ status: 'attributed' }),
             expect.objectContaining({ status: 'attributed' }),
         ])
-        expect(mockClearInvite).toHaveBeenCalledTimes(1)
+        expect(mockClearInviteIfOwnedBy).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not let another account join or consume the bound retry', async () => {
+        let resolveAccept!: (value: unknown) => void
+        mockBindInviteToUser.mockImplementation((userId: string) => userId === 'user-a')
+        mockAcceptInvite.mockReturnValue(
+            new Promise((resolve) => {
+                resolveAccept = resolve
+            })
+        )
+
+        const accountAAttempt = settlePendingInviteAttribution('user-a')
+        await expect(settlePendingInviteAttribution('user-b')).resolves.toMatchObject({
+            status: 'account_mismatch',
+        })
+        expect(mockAcceptInvite).toHaveBeenCalledTimes(1)
+
+        resolveAccept({
+            success: false,
+            retryable: true,
+            attributionResolved: false,
+            onboardingResolved: false,
+            claims: [],
+        })
+        await expect(accountAAttempt).resolves.toMatchObject({ status: 'retryable' })
     })
 })

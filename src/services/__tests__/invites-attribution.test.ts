@@ -118,7 +118,7 @@ describe('invite attribution contract', () => {
         })
     })
 
-    it('keeps only network and 5xx failures retryable', async () => {
+    it('keeps network, 5xx, and transient throttling failures retryable', async () => {
         mockServerFetch.mockResolvedValueOnce(response(503, { error: 'Unavailable' }))
         await expect(invitesApi.acceptInvite('alice', EInviteType.PAYMENT_LINK)).resolves.toMatchObject({
             success: false,
@@ -130,6 +130,13 @@ describe('invite attribution contract', () => {
         await expect(invitesApi.acceptInvite('alice', EInviteType.PAYMENT_LINK)).resolves.toMatchObject({
             success: false,
             retryable: true,
+        })
+
+        mockServerFetch.mockResolvedValueOnce(response(429, { error: 'Rate limited' }))
+        await expect(invitesApi.acceptInvite('alice', EInviteType.PAYMENT_LINK)).resolves.toMatchObject({
+            success: false,
+            retryable: true,
+            status: 429,
         })
     })
 

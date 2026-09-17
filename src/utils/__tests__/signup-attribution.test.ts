@@ -255,10 +255,13 @@ describe('signup attribution context', () => {
     })
 
     it('limits authenticated finalization retries to a completed signup marker', async () => {
-        expect(await hasPendingSignupAttribution()).toBe(false)
-        markSignupAttributionPending()
-        expect(await hasPendingSignupAttribution()).toBe(true)
-        await clearPendingSignupAttribution()
-        expect(await hasPendingSignupAttribution()).toBe(false)
+        expect(await hasPendingSignupAttribution('user-a')).toBe(false)
+        await markSignupAttributionPending('user-a')
+        expect(await hasPendingSignupAttribution('user-a')).toBe(true)
+        expect(await hasPendingSignupAttribution('user-b')).toBe(false)
+        await clearPendingSignupAttribution('user-b')
+        expect(await hasPendingSignupAttribution('user-a')).toBe(true)
+        await clearPendingSignupAttribution('user-a')
+        expect(await hasPendingSignupAttribution('user-a')).toBe(false)
     })
 })

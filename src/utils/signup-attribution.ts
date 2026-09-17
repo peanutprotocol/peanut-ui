@@ -298,8 +298,17 @@ export function restoreSignupAttribution(context: SignupAttributionContext): Sig
     return restored
 }
 
-function clearPendingSignupAttributionLocally(): void {
+function readPendingSignupAttributionUserIdLocally(): string | null {
     try {
+        return localStorage.getItem(PENDING_SIGNUP_KEY)
+    } catch {
+        return null
+    }
+}
+
+function clearPendingSignupAttributionLocally(expectedUserId?: string): void {
+    try {
+        if (expectedUserId && localStorage.getItem(PENDING_SIGNUP_KEY) !== expectedUserId) return
         localStorage.removeItem(PENDING_SIGNUP_KEY)
     } catch {}
 }
@@ -318,46 +327,56 @@ export async function clearSignupAttribution(): Promise<void> {
     await removeNativeSignupKeys([PENDING_SIGNUP_KEY, NATIVE_STORAGE_KEY])
 }
 
-/** Mark a completed passkey ceremony as eligible for authenticated attribution attach. */
-export function markSignupAttributionPending(): void {
+/** Bind a completed passkey ceremony to the account eligible to attach it. */
+export async function markSignupAttributionPending(userId: string): Promise<void> {
     try {
-        localStorage.setItem(PENDING_SIGNUP_KEY, '1')
+        localStorage.setItem(PENDING_SIGNUP_KEY, userId)
     } catch {}
     if (process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true') {
-        void import('@capacitor/preferences')
-            .then(({ Preferences }) => Preferences.set({ key: PENDING_SIGNUP_KEY, value: '1' }))
-            .catch(() => {})
+        try {
+            const { Preferences } = await import('@capacitor/preferences')
+            await Preferences.set({ key: PENDING_SIGNUP_KEY, value: userId })
+        } catch {}
     }
 }
 
-export async function clearPendingSignupAttribution(): Promise<void> {
-    clearPendingSignupAttributionLocally()
-    await removeNativeSignupKeys([PENDING_SIGNUP_KEY])
+export async function clearPendingSignupAttribution(expectedUserId?: string): Promise<void> {
+    clearPendingSignupAttributionLocally(expectedUserId)
+    if (process.env.NEXT_PUBLIC_CAPACITOR_BUILD !== 'true') return
+    try {
+        const { Preferences } = await import('@capacitor/preferences')
+        if (expectedUserId && (await Preferences.get({ key: PENDING_SIGNUP_KEY })).value !== expectedUserId) return
+        await Preferences.remove({ key: PENDING_SIGNUP_KEY })
+    } catch {}
 }
 
 /** Only a client that just completed registration may finalize a journey. */
-export async function hasPendingSignupAttribution(): Promise<boolean> {
-    try {
-        if (localStorage.getItem(PENDING_SIGNUP_KEY) === '1') return true
-    } catch {}
+export async function hasPendingSignupAttribution(userId: string): Promise<boolean> {
+    const localUserId = readPendingSignupAttributionUserIdLocally()
+    if (localUserId !== null) return localUserId === userId
     if (process.env.NEXT_PUBLIC_CAPACITOR_BUILD !== 'true') return false
     try {
         const { Preferences } = await import('@capacitor/preferences')
-        return (await Preferences.get({ key: PENDING_SIGNUP_KEY })).value === '1'
+        return (await Preferences.get({ key: PENDING_SIGNUP_KEY })).value === userId
     } catch {
         return false
+    }
+}
+
+export function signupAnalyticsState(): 'enabled' | 'disabled' | 'unknown' {
+    // Jest exercises the capture contract without a public build key.
+    if (process.env.NODE_ENV === 'test') return 'enabled'
+    if (!process.env.NEXT_PUBLIC_POSTHOG_KEY) return 'unknown'
+    try {
+        if (typeof posthog.has_opted_out_capturing !== 'function') return 'unknown'
+        return posthog.has_opted_out_capturing() ? 'disabled' : 'enabled'
+    } catch {
+        return 'unknown'
     }
 }
 
 function analyticsCollectionAvailable(): boolean {
-    // Jest exercises the capture contract without a public build key.
-    if (process.env.NODE_ENV === 'test') return true
-    if (!process.env.NEXT_PUBLIC_POSTHOG_KEY) return false
-    try {
-        return typeof posthog.has_opted_out_capturing !== 'function' || !posthog.has_opted_out_capturing()
-    } catch {
-        return false
-    }
+    return signupAnalyticsState() === 'enabled'
 }
 
 async function persistNativeSignupAttribution(context: SignupAttributionContext): Promise<void> {

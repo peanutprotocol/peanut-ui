@@ -152,7 +152,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // Covers a native restart or a transient API outage after signup.
             // The service is idempotent and clears local evidence only after
             // the authenticated endpoint acknowledges it.
-            void attachSignupAttribution().catch((error) =>
+            void attachSignupAttribution(user.user.userId).catch((error) =>
                 captureException(error, { level: 'warning', tags: { error_type: 'signup_attribution_retry_failed' } })
             )
         } else {
@@ -170,7 +170,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (!userId) return
 
         let cancelled = false
-        void settlePendingInviteAttribution().then(async (outcome) => {
+        void settlePendingInviteAttribution(userId).then(async (outcome) => {
             if (cancelled || outcome.status !== 'attributed') return
             try {
                 await fetchUser()
