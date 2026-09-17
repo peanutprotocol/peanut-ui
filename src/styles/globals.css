@@ -82,6 +82,11 @@
     --color-foreground-secondary: #5f646d;
     --color-foreground-inverse: #ffffff;
     --color-foreground-error: #ff3b30;
+    /* the attention tone as TEXT — the badge/surface attention yellows are fills
+       and are unreadable as type. same amber the recipient-card warning already
+       used (yellow-900, 6.4:1 on white). no board defines a foreground tone
+       beyond error yet: flagged for vlad. */
+    --color-foreground-attention: #885b00;
     --color-foreground-over-color-primary: #000000;
     --color-foreground-over-color-secondary: #00000099;
 

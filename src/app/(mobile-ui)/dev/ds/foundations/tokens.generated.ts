@@ -208,6 +208,12 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "previewClass": "bg-foreground-error"
     },
     {
+        "name": "foreground-attention",
+        "value": "#885b00",
+        "section": "semantic",
+        "previewClass": "bg-foreground-attention"
+    },
+    {
         "name": "foreground-over-color-primary",
         "value": "#000000",
         "section": "semantic",
