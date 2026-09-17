@@ -19,7 +19,7 @@ import posthog from 'posthog-js'
 import { storeDeclaredResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { getFromCookie } from '@/utils/general.utils'
-import { clearSignupAttribution, readSignupAttribution } from '@/utils/signup-attribution'
+import { clearSignupAttribution, readSignupAttributionAsync } from '@/utils/signup-attribution'
 import { twMerge } from '@/utils/tw'
 import { useTranslations } from 'next-intl'
 import { signupAnalyticsContext } from '@/features/setup/signup-analytics'
@@ -94,7 +94,10 @@ const SignTestTransaction = () => {
         creatingAccountRef.current = false
         console.log('[SignTestTransaction] Account setup complete')
         const inviteCode = getFromCookie('inviteCode')
-        const signupAttribution = readSignupAttribution()
+        // Native Preferences can be the only surviving copy after a WebView
+        // process restart, so load the durable context before emitting the
+        // terminal event or deleting it.
+        const signupAttribution = await readSignupAttributionAsync()
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_COMPLETED, {
             acquisition_source: inviteCode ? 'referred' : 'organic',
             invite_code: inviteCode || undefined,

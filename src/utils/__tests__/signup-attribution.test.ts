@@ -122,6 +122,22 @@ describe('signup attribution context', () => {
         })
     })
 
+    it('recovers a Preferences-only journey after the native WebView cookie is lost', async () => {
+        process.env.NEXT_PUBLIC_CAPACITOR_BUILD = 'true'
+        const context = {
+            schemaVersion: '1' as const,
+            journeyId: '33333333-3333-4333-8333-333333333333',
+            platform: 'android' as const,
+            analyticsState: 'enabled' as const,
+            captureMethod: 'browser' as const,
+            firstTouch: { occurredAt: new Date().toISOString(), path: '/setup' },
+        }
+        mockPreferencesGet.mockResolvedValue({ value: JSON.stringify(context) })
+
+        expect(readSignupAttribution()).toBeNull()
+        await expect(readSignupAttributionAsync()).resolves.toEqual(context)
+    })
+
     it('rejects identifier-shaped campaign values at capture time', () => {
         window.history.replaceState(
             {},

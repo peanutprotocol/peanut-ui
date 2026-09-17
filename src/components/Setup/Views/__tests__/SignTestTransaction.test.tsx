@@ -14,7 +14,7 @@ const mockRouterPush = jest.fn()
 const mockRouterReplace = jest.fn()
 const mockAddAccount = jest.fn()
 const mockSendUserOp = jest.fn()
-const mockReadSignupAttribution = jest.fn()
+const mockReadSignupAttributionAsync = jest.fn()
 const mockClearSignupAttribution = jest.fn()
 
 let accounts: Array<{ type: AccountType }> = []
@@ -55,7 +55,7 @@ jest.mock('@/app/actions/users', () => ({ updateUserById: jest.fn() }))
 jest.mock('@/utils/passkeyDebug', () => ({ capturePasskeyDebugInfo: jest.fn() }))
 jest.mock('@/utils/auth.utils', () => ({ clearAuthState: jest.fn() }))
 jest.mock('@/utils/signup-attribution', () => ({
-    readSignupAttribution: (...args: unknown[]) => mockReadSignupAttribution(...args),
+    readSignupAttributionAsync: (...args: unknown[]) => mockReadSignupAttributionAsync(...args),
     clearSignupAttribution: (...args: unknown[]) => mockClearSignupAttribution(...args),
 }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), addBreadcrumb: jest.fn() }))
@@ -73,7 +73,7 @@ describe('SignTestTransaction — setup completion', () => {
         localStorage.clear()
         accounts = []
         mockSendUserOp.mockResolvedValue({ userOpHash: '0xhash' })
-        mockReadSignupAttribution.mockReturnValue(null)
+        mockReadSignupAttributionAsync.mockResolvedValue(null)
         mockClearSignupAttribution.mockResolvedValue(undefined)
         // addAccount refetches the user, so the account appears before the
         // completion redirect — the pre-existing-account effect must not race it.
@@ -136,9 +136,9 @@ describe('SignTestTransaction — setup completion', () => {
         expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
-    it('captures the durable journey before clearing its native context', async () => {
+    it('captures a Preferences-only journey after restart before clearing its native context', async () => {
         const order: string[] = []
-        mockReadSignupAttribution.mockReturnValue({
+        mockReadSignupAttributionAsync.mockResolvedValue({
             journeyId: '33333333-3333-4333-8333-333333333333',
             platform: 'android',
             captureMethod: 'browser',
