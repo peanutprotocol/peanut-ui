@@ -74,7 +74,7 @@ export const Badges = () => {
         }
     }
 
-    if (catalog.isPending && !badges.length) {
+    if (catalog.isPending) {
         return (
             <div className="flex min-h-inherit flex-col gap-8">
                 <NavHeader title={t('title')} onPrev={onBack} />
