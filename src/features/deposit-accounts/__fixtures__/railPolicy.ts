@@ -27,7 +27,9 @@ import type { ClaimableCorridor, DepositCorridor, DepositRules, SenderPolicy } f
  *     person to a 15,000 MXN volume limit with no period published,
  *     50 MXN floor.
  *   BRL (standing) — a business supported, another person unavailable, the
- *     holder's own transfer fine.
+ *     holder's own transfer fine; 10 BRL floor, 500,000 USD monthly limit.
+ *   COP (Bre-B) — a business supported, another person unavailable, the
+ *     holder's own transfer fine; 100 COP floor, 11,552,000 COP ceiling.
  *   PIX_BR / ARS — own name only.
  */
 export interface DepositRailPolicy {
@@ -86,12 +88,23 @@ export const DEPOSIT_RAIL_POLICY: Record<DepositCorridor, DepositRailPolicy> = {
             // "supported", not "unlimited": §3 names no ceiling and no volume
             thirdPartyBusiness: 'allowed',
             thirdPartyIndividual: { policy: 'unavailable' },
+            min: { amount: '10', currency: 'BRL' },
+            monthlyLimit: { amount: '500000', currency: 'USD' },
         },
     },
-    // Bridge publishes no third-party rule for Bre-B, and silence is not
-    // permission — see the `unknown` note on SenderPolicy. No rules, so the
-    // screens promise nothing until §3 gains a Colombian row.
-    BANK_TRANSFER_CO: { sender: 'unknown' },
+    // §3 now carries a Colombian row: the `cop` endorsement covers Bre-B both
+    // ways, a business is supported, another person unavailable. "supported",
+    // not "unlimited", for the same reason as BRL — §3 names no ceiling.
+    BANK_TRANSFER_CO: {
+        sender: 'business-only',
+        rules: {
+            ownAccount: { allowed: true },
+            thirdPartyBusiness: 'allowed',
+            thirdPartyIndividual: { policy: 'unavailable' },
+            min: { amount: '100', currency: 'COP' },
+            max: { amount: '11552000', currency: 'COP' },
+        },
+    },
     PIX_BR: { sender: 'own-name-only' },
     BANK_TRANSFER_AR: { sender: 'own-name-only' },
 }
