@@ -143,12 +143,17 @@ export function apiRouteTemplate(path: string): string {
     const rawPathname = path.split('#')[0].split('?')[0]
     const pathname = rawPathname.replace(/\/+$/, '') || '/'
 
+    // Prefer exact routes before parameterized patterns. Several real static
+    // endpoints intentionally overlap shapes such as /users/:userId and
+    // /rain/cards/:cardId and must retain their own latency buckets.
+    if (API_STATIC_ROUTES.has(pathname)) return pathname
+
     for (const [pattern, template] of API_ROUTE_PATTERNS) {
         const match = pathname.match(pattern)
         if (match) return typeof template === 'string' ? template : template(match)
     }
 
-    return API_STATIC_ROUTES.has(pathname) ? pathname : '/unmatched'
+    return '/unmatched'
 }
 
 /** Stable screen name including only UI state whose values are enumerated. */

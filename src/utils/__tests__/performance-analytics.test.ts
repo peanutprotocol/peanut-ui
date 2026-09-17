@@ -13,6 +13,9 @@ describe('performance analytics templates', () => {
     it('preserves explicit static endpoints and collapses unknown shapes', () => {
         expect(apiRouteTemplate('/bridge/onramp/create')).toBe('/bridge/onramp/create')
         expect(apiRouteTemplate('/manteca/withdraw/init')).toBe('/manteca/withdraw/init')
+        expect(apiRouteTemplate('/users/me')).toBe('/users/me')
+        expect(apiRouteTemplate('/users/username/check')).toBe('/users/username/check')
+        expect(apiRouteTemplate('/rain/cards/readiness')).toBe('/rain/cards/readiness')
         expect(apiRouteTemplate('/future/secret-user-value')).toBe('/unmatched')
     })
 
