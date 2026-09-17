@@ -57,7 +57,6 @@ jest.mock('@/components/Global/SupportDrawer', () => ({ __esModule: true, defaul
 jest.mock('@/components/Global/SupportDeepLink', () => ({ __esModule: true, default: () => <div /> }))
 jest.mock('@/components/Global/QRScannerOverlay', () => ({ __esModule: true, default: () => <div /> }))
 jest.mock('@/components/Global/SecurityVerificationOverlay', () => ({ __esModule: true, default: () => <div /> }))
-jest.mock('@/components/Invites/JoinWaitlistPage', () => ({ __esModule: true, default: () => <div /> }))
 jest.mock('@/components/Migration/SunsetScreen', () => ({ __esModule: true, default: () => <div /> }))
 
 import Layout from '../layout'
@@ -283,6 +282,19 @@ describe('(mobile-ui) layout — no user', () => {
         renderLayout()
 
         expect(screen.queryByTestId('backend-error-screen')).not.toBeInTheDocument()
+        expect(screen.getByTestId('app-shell')).toBeInTheDocument()
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+    })
+
+    it('does not render the retired app waitlist for a legacy false access flag', () => {
+        mockUseAuth.mockReturnValue(
+            authState({
+                user: { user: { ...CACHED_USER.user, hasAppAccess: false }, accounts: [] },
+            })
+        )
+
+        renderLayout()
+
         expect(screen.getByTestId('app-shell')).toBeInTheDocument()
         expect(mockRouterReplace).not.toHaveBeenCalled()
     })

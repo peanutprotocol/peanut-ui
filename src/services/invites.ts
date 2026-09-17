@@ -99,22 +99,4 @@ export const invitesApi = {
             return { success: false, attributionResolved: false, onboardingResolved: false, username: '' }
         }
     },
-
-    getWaitlistQueuePosition: async (): Promise<{ success: boolean; position: number }> => {
-        try {
-            const response = await serverFetch('/invites/waitlist-position', {
-                method: 'GET',
-            })
-
-            if (!response.ok) {
-                return { success: false, position: 0 }
-            }
-
-            const data = await response.json()
-            return { success: true, position: Number(data.queuePosition) || 0 }
-        } catch (e) {
-            console.error('Error getting waitlist queue position:', e)
-            return { success: false, position: 0 }
-        }
-    },
 }

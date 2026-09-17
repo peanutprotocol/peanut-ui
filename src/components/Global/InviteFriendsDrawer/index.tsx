@@ -18,9 +18,8 @@ interface InviteFriendsDrawerProps {
 }
 
 /**
- * Shared modal for inviting friends to Peanut. Reframed to "your username
- * IS your invite" — no more raw-code copy line. Friends just need to enter
- * the username on the /setup waitlist gate.
+ * Shared modal for referring friends to Peanut. The username rides in the
+ * shared link and is resolved after signup; friends never type it manually.
  *
  * Used in: CardSuccessScreen, Profile, PointsPage
  */

@@ -158,7 +158,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         catLabel: 'Colour tokens',
         layer: 'tokens',
         role: 'info-blue',
-        usages: 3,
+        usages: 2,
         status: 'variant',
         source: 'src/styles/globals.css:39',
         notes: 'Periwinkle/info blue. Same hex as --color-background-icon-bubble-blue and --color-avatar-blue-border. Also re-typed raw #90A8ED 9x.',
@@ -3592,8 +3592,8 @@ export const AUDIT_ITEMS: AuditItem[] = [
         role: 'Stack-children-on-page using space-y-* instead of gap-* on the outer flex div.',
         usages: 3,
         status: 'adhoc',
-        source: 'src/components/Setup/components/SetupWrapper.tsx:280; src/components/Invites/InvitesPage.tsx:340; src/components/Invites/JoinWaitlistPage.tsx:300',
-        notes: "Was 49 violations, now 3 — the biggest single cleanup in this category. The 3 survivors are all the same md:space-y-4 desktop tweak on a justify-between shell, not the old 'flex h-full flex-col justify-center space-y-4' recipe (0 left).",
+        source: 'src/components/Setup/components/SetupWrapper.tsx:280; src/components/Invites/InvitesPage.tsx:340',
+        notes: "Was 49 violations, now 2 — the biggest single cleanup in this category. The 2 survivors are the same md:space-y-4 desktop tweak on a justify-between shell, not the old 'flex h-full flex-col justify-center space-y-4' recipe (0 left).",
     },
     {
         name: 'Inline outer-shell recipe: h-full base instead of min-h-inherit',
@@ -6459,7 +6459,6 @@ export const AUDIT_CLUSTERS: AuditCluster[] = [
             'src/components/Claim/Link/MantecaFlowManager.tsx (step enum)',
             'src/components/Card/CardPinSetupFlow.tsx (step state)',
             'src/app/(mobile-ui)/card-recovery/page.tsx (step state)',
-            'src/components/Invites/JoinWaitlistPage.tsx (step state)',
         ],
     },
     {

@@ -522,14 +522,10 @@
             "allSetTitle": "You're all set",
             "allSetDescription": "Now send or request money to get started.",
             "joinPeanut": "Join Peanut!",
-            "inviteOnlyLine1": "Peanut is invite-only.",
-            "inviteOnlyLine2": "Go beg your friend for an invite link!",
-            "invitedLine": "Peanut is invite-only — and {username} has an invite for you.",
-            "joinCta": "Claim your invite",
-            "begShareText": "Bro… I'm on my knees. Peanut is invite-only and I'm locked outside. Save my life and send me your invite",
-            "begForInvite": "Beg for an invite",
+            "invitedLine": "{username} invited you to Peanut.",
+            "joinCta": "Create your wallet",
             "activityPrivateNote": "Activity is only visible for you, it is not public.",
-            "noInviteTitle": "No invite, no Peanut",
+            "noInviteTitle": "Join Peanut",
             "requestAction": "Request"
         },
         "iosCopy": {
@@ -707,10 +703,6 @@
                 "title": "Peanut makes dollars easy.",
                 "description": "Create your account in seconds to save, send, or cash out dollars fast, wherever you are in the world."
             },
-            "welcome": {
-                "title": "Peanut is invite-only",
-                "description": "Who invited you? Enter their username to continue, or join the waitlist and we'll reach out when you're eligible."
-            },
             "signup": {
                 "title": "How should we call you?",
                 "description": "Choose your username. You will use it to send and receive money."
@@ -727,12 +719,6 @@
                 "title": "Your account is ready",
                 "description": "Just confirm it's you — one tap and you're in."
             }
-        },
-        "existingSession": {
-            "title": "You're already signed in",
-            "description": "This device is signed in as {username}. Continue with that account, or log out to create a new one.",
-            "continueAs": "Continue as {username}",
-            "logoutAndStartFresh": "Log out & start fresh"
         },
         "navigation": {
             "goBack": "Go back",
@@ -751,9 +737,6 @@
             "recoverWallet": "Need to recover your Peanut account?"
         },
         "waitlist": {
-            "inviterUsernamePlaceholder": "Username",
-            "inviterNotFound": "No Peanut member with that username. Double-check your inviter's exact handle.",
-            "joinWaitlist": "Join waitlist",
             "loginCanceled": "Login was canceled. Please try again.",
             "noPasskey": "No passkey found. Please create a wallet first.",
             "loginUnexpectedError": "An unexpected error occurred during login."
@@ -1212,7 +1195,7 @@
             "devconnectApp": "Devconnect app",
             "devconnectLogoAlt": "Devconnect Logo",
             "starAlt": "star",
-            "invitedBy": "Invited by {username}, you have early access!",
+            "invitedBy": "Invited by {username}",
             "requiresVerification": "REQUIRES VERIFICATION"
         },
         "minAmount": {
@@ -2277,32 +2260,14 @@
         "illustrationAlt": "Section illustration",
         "invalidCodeTitle": "Invalid Invite Code",
         "invalidCodeMessage": "The invite code you are trying to use is invalid. Please check the URL and try again.",
-        "skipTitle": "You're skipping the waitlist",
-        "skipDescription": "Someone at Peanut wants you in. Create your wallet and walk straight past the line — no invite code, no queue.",
-        "skipCta": "Claim your Skip Pass",
         "vanityTitle": "Claim your badge",
         "vanityDescription": "You earned a Peanut badge. To claim it, sign up or log in.",
         "vanityCta": "Sign up",
         "inviterTitle": "{username} invited you to Peanut",
-        "inviterDescription": "Members-only access. Use this invite to open your wallet and start sending and receiving money globally.",
-        "inviterCta": "Claim your spot",
+        "inviterDescription": "Create your wallet through this link and start sending and receiving money globally.",
+        "inviterCta": "Create your wallet",
         "alreadyHaveAccount": "Already have an account? Log in!",
-        "logIn": "Log in",
-        "emailTitle": "Stay in the loop",
-        "emailDescription": "Enter your email so we can reach you when you get access.",
-        "emailLabel": "Email address",
-        "accountNotLoaded": "Account not loaded yet. Please wait a moment and try again.",
-        "emailSavedProfileFailed": "Email saved, but we had trouble loading your profile. Please try again.",
-        "emailSubmitFailed": "Something went wrong. Please try again or skip this step.",
-        "notificationsTitle": "Want instant updates?",
-        "notificationsDescription": "We'll notify you the moment you get access.",
-        "inviteOnlyTitle": "Peanut is invite-only",
-        "inLine": "You're in line",
-        "inLineWithPosition": "You're #{position} in line",
-        "skipTheLine": "Skip the line — drop the username of the member who invited you.",
-        "pleaseWait": "Please wait...",
-        "logInDifferentAccount": "Log in with a different account",
-        "emailPlaceholder": "you@example.com"
+        "logIn": "Log in"
     },
     "badges": {
         "title": "Badges",
@@ -3211,14 +3176,14 @@
             "descriptionNoRewards": "Share your link so friends can join you on Peanut."
         },
         "confirmInviteModal": {
-            "title": "Don't lose your invite!",
-            "description": "This link lets you skip the Peanut waitlist. Using {method} will skip your invite.",
-            "joinCta": "Join",
+            "title": "Create your Peanut wallet?",
+            "description": "Create a wallet to keep this referral attached to your account. Using {method} will continue without signing up.",
+            "joinCta": "Create wallet",
             "continueWithMethod": "Continue with {method}"
         },
         "earlyUserModal": {
             "title": "Earn from invites",
-            "inviteOnly": "Peanut is now invite-only and you're in!",
+            "inviteOnly": "Peanut is open to everyone. Your personal link still tracks referral rewards.",
             "earnRules": "<b>Friends you invite →</b> you earn a cut of their fees. <b>Their invites →</b> you earn a cut of their cut.",
             "shareSheetTitle": "Share your invite link",
             "shareCta": "Share Invite link",

@@ -19,7 +19,6 @@ import { formatUnits } from 'viem'
 // wrapped in error boundaries to gracefully handle chunk load failures
 const BalanceWarningDrawer = lazy(() => import('@/components/Global/BalanceWarningDrawer'))
 const SetupNotificationsModal = lazy(() => import('@/components/Notifications/SetupNotificationsModal'))
-const NoMoreJailDrawer = lazy(() => import('@/components/Global/NoMoreJailDrawer'))
 const EarlyUserDrawer = lazy(() => import('@/components/Global/EarlyUserDrawer'))
 const WelcomeUnlockDrawer = lazy(() => import('@/components/Home/WelcomeUnlockDrawer'))
 const MigrationDownloadModal = lazy(() => import('@/components/Migration/MigrationDownloadModal'))
@@ -50,17 +49,8 @@ export function HomeModals() {
     // migration download prompt outranks every other home modal (self-gating,
     // only during the native-migration notice window)
     const [showMigrationModal, setShowMigrationModal] = useState(false)
-    // Both celebration drawers open themselves (session storage / a user
-    // flag), and a pre-lockup invitee can qualify for both at once — two open
-    // vaul roots would stack overlays and scroll locks. The jail celebration
-    // goes first; the early-user drawer mounts only once it is out of the way.
-    const [jailCelebrationPending, setJailCelebrationPending] = useState(
-        () => typeof window !== 'undefined' && sessionStorage.getItem('showNoMoreJailModal') === 'true'
-    )
-    // Derived synchronously from the user flag, not from the child's effect:
-    // the drawer only reports itself open after mount, and that one-commit gap
-    // let the activation celebration flash open between two drawers. The flag
-    // holds the queue until the drawer reports its dismissal.
+    // Derived synchronously from the user flag, not from the child's effect,
+    // so the activation celebration cannot flash underneath the invite drawer.
     const [earlyUserDone, setEarlyUserDone] = useState(false)
     const [earlyUserOpen, setEarlyUserOpen] = useState(false)
     const earlyUserPending = (!!user?.showEarlyUserModal && !earlyUserDone) || earlyUserOpen
@@ -142,28 +132,18 @@ export function HomeModals() {
                 </LazyLoadErrorBoundary>
             )}
 
-            {/* these modals manage their own state internally */}
+            {/* this modal manages its own state internally */}
             {!showBalanceWarningDrawer && !showMigrationModal && (
-                <>
-                    <LazyLoadErrorBoundary>
-                        <Suspense fallback={null}>
-                            <NoMoreJailDrawer onVisibilityChange={setJailCelebrationPending} />
-                        </Suspense>
-                    </LazyLoadErrorBoundary>
-
-                    {!jailCelebrationPending && (
-                        <LazyLoadErrorBoundary>
-                            <Suspense fallback={null}>
-                                <EarlyUserDrawer
-                                    onVisibilityChange={(visible) => {
-                                        setEarlyUserOpen(visible)
-                                        if (!visible) setEarlyUserDone(true)
-                                    }}
-                                />
-                            </Suspense>
-                        </LazyLoadErrorBoundary>
-                    )}
-                </>
+                <LazyLoadErrorBoundary>
+                    <Suspense fallback={null}>
+                        <EarlyUserDrawer
+                            onVisibilityChange={(visible) => {
+                                setEarlyUserOpen(visible)
+                                if (!visible) setEarlyUserDone(true)
+                            }}
+                        />
+                    </Suspense>
+                </LazyLoadErrorBoundary>
             )}
 
             {/* mount-gated so the ~20-30KB chunk only loads when the modal can show */}
@@ -172,11 +152,7 @@ export function HomeModals() {
                     <Suspense fallback={null}>
                         <WelcomeUnlockDrawer
                             isOpen={
-                                showKycModal &&
-                                !showBalanceWarningDrawer &&
-                                !showMigrationModal &&
-                                !jailCelebrationPending &&
-                                !earlyUserPending
+                                showKycModal && !showBalanceWarningDrawer && !showMigrationModal && !earlyUserPending
                             }
                             onClose={async () => {
                                 // close the modal immediately for better ux

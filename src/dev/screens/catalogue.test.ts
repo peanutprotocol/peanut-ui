@@ -36,9 +36,8 @@ describe('screen catalogue', () => {
 
     it('orders setup screens by their product journey and keeps rewards invites in Rewards', () => {
         const setupIds = SCREENS.filter(({ flow }) => flow === 'Setup and login').map(({ id }) => id)
-        expect(setupIds.slice(0, 10)).toEqual([
+        expect(setupIds.slice(0, 9)).toEqual([
             '01-a-landing',
-            '02-a-joinwaitlist',
             '06-a-signup',
             '03-a-residence-select',
             '07-a-setuppasskey',

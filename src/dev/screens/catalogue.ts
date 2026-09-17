@@ -121,7 +121,6 @@ const flowOrder = [
 ]
 const setupJourney: Record<string, { journey: string; step: number }> = {
     '01-a-landing': { journey: 'Account setup', step: 10 },
-    '02-a-joinwaitlist': { journey: 'Account setup', step: 20 },
     '06-a-signup': { journey: 'Account setup', step: 30 },
     '03-a-residence-select': { journey: 'Account setup', step: 40 },
     '07-a-setuppasskey': { journey: 'Account setup', step: 50 },

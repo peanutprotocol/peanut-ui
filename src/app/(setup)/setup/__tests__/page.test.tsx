@@ -280,6 +280,15 @@ it('suppresses timeout recovery when a completed session starts leaving for home
     expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
 })
 
+it('treats a stale legacy no-access profile as an authenticated account', async () => {
+    mockAuth.user = { user: { username: 'peanutter', hasAppAccess: false } }
+
+    renderWithIntl(<SetupPage />)
+
+    expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+    expect(screen.getByRole('status')).toBeInTheDocument()
+})
+
 it.each([true, false])('preserves the resolved entry flow (native=%s)', async (native) => {
     mockNative = native
     Object.defineProperty(window, 'PublicKeyCredential', {

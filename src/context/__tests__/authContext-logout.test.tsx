@@ -56,6 +56,9 @@ jest.mock('@/components/Invites/badge-campaign-context', () => ({
     getPendingBadgeCampaigns: () => [],
 }))
 jest.mock('@/utils/invite-stash', () => ({ clearInvite: jest.fn() }))
+jest.mock('@/services/pending-invite-attribution', () => ({
+    settlePendingInviteAttribution: jest.fn().mockResolvedValue({ status: 'none' }),
+}))
 jest.mock('posthog-js', () => ({
     __esModule: true,
     default: { identify: jest.fn(), reset: jest.fn(), register: jest.fn() },

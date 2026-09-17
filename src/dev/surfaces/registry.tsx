@@ -146,10 +146,6 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['01-a-landing'],
         render: () => <SetupScreen screenId="landing" />,
     },
-    '02-a-joinwaitlist': {
-        ...SURFACE_META['02-a-joinwaitlist'],
-        render: () => <SetupScreen screenId="welcome" />,
-    },
     '03-a-residence-select': {
         ...SURFACE_META['03-a-residence-select'],
         render: () => <SetupScreen screenId="residence" />,

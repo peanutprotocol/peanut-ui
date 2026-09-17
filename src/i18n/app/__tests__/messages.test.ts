@@ -32,8 +32,7 @@ const CONTEXT_DIVERGENT: Record<string, string> = {
     Failed: 'generic status vs. KYC status agreeing with "verificación" (Fallido / Fallida)',
     Verified: 'badge/KYC status vs. residence chip agreeing with "residencia" (Verificado / Verificada)',
     'Settings → Passwords → Search "Peanut"': 'iOS and Android name the settings app differently',
-    Username:
-        "signup asks for your own new handle (Tu usuario) vs. waitlist asks for the inviter's (Nombre de usuario)",
+    Username: 'signup handles and recipient/profile labels need different regional wording',
     'Mexican peso bank transfers': 'sentence fragment vs. standalone label casing',
     'US dollar bank transfers': 'sentence fragment vs. standalone label casing',
     'Euro bank transfers': 'sentence fragment vs. standalone label casing',

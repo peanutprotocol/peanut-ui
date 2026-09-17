@@ -37,6 +37,7 @@ import { clearInvite } from '@/utils/invite-stash'
 import { attachSignupAttribution } from '@/services/signup-attribution'
 import { clearSignupAttribution } from '@/utils/signup-attribution'
 import { completeAccountSetup, type AccountSetupOutcome } from '@/services/account-setup'
+import { settlePendingInviteAttribution } from '@/services/pending-invite-attribution'
 
 interface AuthContextType {
     user: IUserProfile | null
@@ -161,34 +162,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [user])
 
-    // Returning-user and app-restart recovery. Invite attribution is handled
-    // elsewhere; this only resumes opaque campaign identities after auth. The
-    // claim service de-dupes concurrent registration/page attempts and retains
-    // only retryable tags.
+    // Returning-user and app-restart recovery. Referral attribution and opaque
+    // campaigns are independent durable hand-offs; neither blocks app access.
+    // Both services de-dupe concurrent registration/page attempts.
     useEffect(() => {
         const userId = user?.user.userId
         if (!userId) return
 
-        const badgeCampaigns = getPendingBadgeCampaigns()
-        if (badgeCampaigns.length === 0) return
-
         let cancelled = false
-        void claimAndSettlePendingBadgeCampaigns(badgeCampaigns).then(async (batch) => {
-            if (cancelled) return
-            if (batch.claims.some(isConfirmedBadgeCampaignClaim)) {
-                try {
-                    await fetchUser()
-                } catch (error) {
-                    captureException(error, { tags: { error_type: 'campaign_profile_refresh_failed' } })
-                }
-            }
-            if (batch.pending.length > 0) {
-                captureException(new Error('authenticated campaign claim retained for retry'), {
-                    tags: { error_type: 'campaign_claim_retryable' },
-                    extra: { userId, pendingCampaigns: batch.pending, claims: batch.claims },
-                })
+        void settlePendingInviteAttribution().then(async (outcome) => {
+            if (cancelled || outcome.status !== 'attributed') return
+            try {
+                await fetchUser()
+            } catch (error) {
+                captureException(error, { tags: { error_type: 'invite_profile_refresh_failed' } })
             }
         })
+
+        const badgeCampaigns = getPendingBadgeCampaigns()
+        if (badgeCampaigns.length > 0) {
+            void claimAndSettlePendingBadgeCampaigns(badgeCampaigns).then(async (batch) => {
+                if (cancelled) return
+                if (batch.claims.some(isConfirmedBadgeCampaignClaim)) {
+                    try {
+                        await fetchUser()
+                    } catch (error) {
+                        captureException(error, { tags: { error_type: 'campaign_profile_refresh_failed' } })
+                    }
+                }
+                if (batch.pending.length > 0) {
+                    captureException(new Error('authenticated campaign claim retained for retry'), {
+                        tags: { error_type: 'campaign_claim_retryable' },
+                        extra: { userId, pendingCampaigns: batch.pending, claims: batch.claims },
+                    })
+                }
+            })
+        }
 
         return () => {
             cancelled = true

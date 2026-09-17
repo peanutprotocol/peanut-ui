@@ -440,7 +440,7 @@ describe('invite and badge campaign routing boundaries', () => {
         }
 
         render(<InvitesPage />)
-        fireEvent.click(await screen.findByRole('button', { name: 'Claim your spot' }))
+        fireEvent.click(await screen.findByRole('button', { name: 'Create your wallet' }))
 
         expect(mockStashInvite).toHaveBeenCalledWith('alice', 'PAYMENT_LINK')
         expect(mockQueuePendingBadgeCampaigns).toHaveBeenCalledWith(['Creator/Summer', 'second'])
@@ -463,7 +463,7 @@ describe('invite and badge campaign routing boundaries', () => {
         }
 
         render(<InvitesPage />)
-        fireEvent.click(await screen.findByRole('button', { name: 'Claim your spot' }))
+        fireEvent.click(await screen.findByRole('button', { name: 'Create your wallet' }))
 
         expect(mockStashInvite).toHaveBeenCalledWith('offramp', 'PAYMENT_LINK')
         expect(mockQueuePendingBadgeCampaigns).not.toHaveBeenCalled()
@@ -515,7 +515,7 @@ describe('invite and badge campaign routing boundaries', () => {
 
         expect(await screen.findByText('peanut invited you to Peanut')).toBeInTheDocument()
         expect(screen.queryByText('Claim your badge')).not.toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: 'Claim your spot' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Create your wallet' }))
 
         expect(mockStashInvite).toHaveBeenCalledWith('squirrelinvitesyou', 'PAYMENT_LINK')
         // utm values stopped being badge identities (TASK-21226); nothing queues
@@ -602,7 +602,7 @@ describe('invite and badge campaign routing boundaries', () => {
         expect(mockLogin).toHaveBeenCalledTimes(1)
     })
 
-    it('hands a guest Claim your spot off to the stores during the migration window', async () => {
+    it('hands a guest wallet signup off to the stores during the migration window', async () => {
         mockAuth.user = null
         mockSearch = 'code=alice'
         mockQueryResult.data = {
@@ -614,7 +614,7 @@ describe('invite and badge campaign routing boundaries', () => {
         mockInterceptGuestCta.mockReturnValue(true)
 
         render(<InvitesPage />)
-        fireEvent.click(await screen.findByRole('button', { name: 'Claim your spot' }))
+        fireEvent.click(await screen.findByRole('button', { name: 'Create your wallet' }))
 
         // invite bookkeeping still runs so post-install signup recovers context
         expect(mockStashInvite).toHaveBeenCalledWith('alice', 'PAYMENT_LINK')
