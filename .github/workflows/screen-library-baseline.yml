@@ -94,7 +94,7 @@ jobs:
                       throw new Error('Unexpected screen adapter shape; refusing an unreviewed historical compatibility patch')
                   }
                   const patched = source.replace(strict, compatible)
-                  if (patched === source || !new RegExp(String.raw`(?:async\s+)?function callApi\([^)]*\)`).test(patched)) {
+                  if (patched === source || !patched.includes(compatible)) {
                       throw new Error('Historical API adapter compatibility patch did not apply')
                   }
                   writeFileSync(path, patched)

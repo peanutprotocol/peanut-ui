@@ -1,6 +1,7 @@
 /** @jest-environment node */
 
 const fs = require('node:fs')
+const os = require('node:os')
 const path = require('node:path')
 const { spawnSync } = require('node:child_process')
 
@@ -47,5 +48,30 @@ it('keeps the scheduled screen harness compatible with historical merge bases', 
     expect(workflow).toContain('pull-requests: read')
     expect(workflow).toContain('locale: [en, es-419, es-AR, pt-BR]')
     expect(workflow).toContain('--locale="${{ matrix.locale }}"')
-    expect(workflow).toContain('screen-library-baseline-${{ matrix.sha }}-${{ matrix.locale }}-${{ github.run_attempt }}')
+    expect(workflow).toContain(
+        'screen-library-baseline-${{ matrix.sha }}-${{ matrix.locale }}-${{ github.run_attempt }}'
+    )
+
+    const snippet = workflow.match(/node --input-type=module <<'NODE'\n([\s\S]*?)\n\s+NODE/)[1].replace(/^ {18}/gm, '')
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'screen-library-baseline-'))
+    try {
+        fs.mkdirSync(path.join(tempDir, 'scripts', 'screens'), { recursive: true })
+        fs.writeFileSync(
+            path.join(tempDir, 'scripts', 'screens', 'prepare.mjs'),
+            'const anchor = /async function callApi\\([^)]*\\): Promise<Response> \\{/\n'
+        )
+
+        const result = spawnSync(process.execPath, ['--input-type=module'], {
+            cwd: tempDir,
+            input: snippet,
+            encoding: 'utf8',
+        })
+
+        expect(result.status).toBe(0)
+        expect(fs.readFileSync(path.join(tempDir, 'scripts', 'screens', 'prepare.mjs'), 'utf8')).toContain(
+            'const anchor = /(?:async\\s+)?function callApi'
+        )
+    } finally {
+        fs.rmSync(tempDir, { recursive: true, force: true })
+    }
 })
