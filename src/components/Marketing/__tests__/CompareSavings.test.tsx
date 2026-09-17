@@ -125,4 +125,44 @@ describe('CompareSavings', () => {
 
         expect(screen.getByText(/Wise/).textContent).toContain('whenever')
     })
+
+    // MDX is runtime data: a prop can be omitted, and mdx-security admits inert
+    // literals like markupPct={1}. Either one used to reach .replace() and throw,
+    // which fails the static build of every compare page.
+    it('takes the unverified lane when markupPct is missing', () => {
+        withRate(1500)
+
+        // @ts-expect-error — MDX does not enforce the prop types at runtime
+        expect(() => render(<CompareSavings strings={en} competitor="Wise" verifiedAt="2026-08-10" />)).not.toThrow()
+
+        // the degraded lane has no parsed claim, so it prints the raw date it
+        // was given rather than a formatted one
+        const text = screen.getByText(/Wise/).textContent ?? ''
+        expect(text).toContain('2026-08-10')
+        expect(text).not.toMatch(/\d+\s*%/)
+        expect(text).not.toContain('undefined')
+    })
+
+    it('takes the unverified lane when markupPct is a number literal', () => {
+        withRate(1500)
+
+        expect(() =>
+            // @ts-expect-error — mdx-security allows an inert numeric literal prop
+            render(<CompareSavings strings={en} competitor="Wise" markupPct={1} verifiedAt="2026-08-10" />)
+        ).not.toThrow()
+
+        const text = screen.getByText(/Wise/).textContent ?? ''
+        expect(text).not.toMatch(/\d+\s*%/)
+    })
+
+    it('renders nothing when neither the fee nor the date is usable', () => {
+        withRate(1500)
+
+        const { container } = render(
+            // @ts-expect-error — both hand-authored props omitted
+            <CompareSavings strings={en} competitor="Wise" />
+        )
+
+        expect(container).toBeEmptyDOMElement()
+    })
 })

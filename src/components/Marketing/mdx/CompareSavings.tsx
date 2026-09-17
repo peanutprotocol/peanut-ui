@@ -51,10 +51,16 @@ interface Claim {
 }
 
 /**
- * MDX props are string literals — `mdx-security` rejects any expression prop —
- * so every value arrives as text and has to be proven here.
+ * MDX props are authored by hand and arrive as runtime data, so nothing here
+ * can be trusted to match CompareSavingsProps.
  */
 function parseClaim({ markupPct, verifiedAt, baseAmount }: CompareSavingsProps): Claim | null {
+    // A prop can be omitted outright, and mdx-security admits inert literals
+    // such as markupPct={1} — either one reaches a string method as a non
+    // string and throws, which fails the whole static build. A throw is worse
+    // than the wrong claim this function exists to catch, so prove the type
+    // before touching it.
+    if (typeof markupPct !== 'string' || typeof verifiedAt !== 'string') return null
     // A leading minus would split into an empty first part, and Number('') is
     // 0 — so "-2" would quietly publish as the range "0–2".
     if (/^\s*[-–—]/.test(markupPct)) return null
@@ -137,6 +143,9 @@ export function CompareSavings(props: CompareSavingsProps) {
     // deliberately absent — repeating it here would publish the exact claim the
     // guard above refused ("-2%", "lots%").
     if (!claim) {
+        // no fee we can trust and no date to anchor it: there is nothing
+        // truthful left to say, so say nothing.
+        if (typeof verifiedAt !== 'string') return null
         return (
             <Frame>
                 {t(strings.compareSavingsUnverified, { competitor, date: verifiedLabel })}
