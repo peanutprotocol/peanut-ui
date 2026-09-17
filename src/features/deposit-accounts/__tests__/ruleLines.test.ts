@@ -46,14 +46,11 @@ describe('depositRuleLines', () => {
         expect(keysOf(restricted, undefined)).toEqual(['ownName'])
     })
 
-    it('EUR: own account yes, a business unlimited, another person not yet, with a floor', () => {
+    it('EUR: own account yes, a business unlimited, another person capped like the US rail, with a floor', () => {
         const { sender, rules } = DEPOSIT_RAIL_POLICY.SEPA_EU
-        expect(keysOf(matching({ sender }), rules)).toEqual([
-            'ownAccount',
-            'businessAny',
-            'individualNotYet',
-            'minimum',
-        ])
+        const lines = depositRuleLines(matching({ sender }), rules, money)
+        expect(lines.map((l) => l.key)).toEqual(['ownAccount', 'businessAny', 'individualCapFamily', 'minimum'])
+        expect(lines.find((l) => l.key === 'individualCapFamily')?.values).toEqual({ cap: 'EUR 4000' })
     })
 
     it('GBP: the same shape, with the sterling floor', () => {

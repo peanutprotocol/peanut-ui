@@ -259,7 +259,7 @@ const DEPOSIT_ACCOUNT_USD_STATE_RESTRICTED = {
     },
 } satisfies DepositAccount
 
-/** Euros: businesses only until an individual volume is agreed, 1 EUR floor. */
+/** Euros: mirrors the US rail — individuals capped under 4,000 EUR, family exempt, 1 EUR floor. */
 const DEPOSIT_ACCOUNT_EUR = {
     id: 'fixture-deposit-eur',
     railId: 'bridge.sepa_eu',
