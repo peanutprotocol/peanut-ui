@@ -2,6 +2,8 @@ import React from 'react'
 import { act, render, renderHook, waitFor } from '@testing-library/react'
 import { useZeroDev } from '../useZeroDev'
 import { clearAuthState } from '@/utils/auth.utils'
+import { currentCeremonyId, stashCeremonyVerifyToken } from '@/utils/passkeyCeremony.utils'
+import { PasskeyVerifyRejectedError } from '@/utils/passkey-auth-capture'
 
 const mockSetIsLoggingIn = jest.fn()
 const mockCaptureException = jest.fn()
@@ -10,9 +12,15 @@ const mockHydrateLoginSession = jest.fn()
 const mockSetWebAuthnKey = jest.fn()
 const mockUpdateUserPreferences = jest.fn()
 const mockToPasskeyValidator = jest.fn()
+const mockSetAuthToken = jest.fn()
 let mockUseRealProvider = false
 let mockSavedKey: unknown
-let mockIOSNative = false
+
+type PasskeyTestGlobals = typeof globalThis & {
+    __passkeyTestIOSNative?: boolean
+    __capgoPasskeyShimInstalled?: boolean
+}
+const passkeyTestGlobals = globalThis as PasskeyTestGlobals
 
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
@@ -83,6 +91,7 @@ jest.mock('@/services/badge-campaigns', () => ({
 }))
 jest.mock('@/services/consent', () => ({ signupConsentDocuments: () => [] }))
 jest.mock('@/utils/auth.utils', () => ({ clearAuthState: jest.fn() }))
+jest.mock('@/utils/auth-token', () => ({ setAuthToken: (...args: unknown[]) => mockSetAuthToken(...args) }))
 jest.mock('@/utils/walletCredential.utils', () => ({
     isStaleKeyError: () => false,
     isStaleClientForUser: () => false,
@@ -91,22 +100,35 @@ jest.mock('@/utils/walletCredential.utils', () => ({
 jest.mock('@sentry/nextjs', () => ({
     captureException: (...args: unknown[]) => mockCaptureException(...args),
     captureMessage: jest.fn(),
+    addBreadcrumb: jest.fn(),
 }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@/utils/capacitor', () => ({
-    isCapacitor: () => false,
+    isCapacitor: () =>
+        (globalThis as typeof globalThis & { __passkeyTestIOSNative?: boolean }).__passkeyTestIOSNative === true,
     isAndroidNative: () => false,
-    isIOSNative: () => mockIOSNative,
+    isIOSNative: () =>
+        (globalThis as typeof globalThis & { __passkeyTestIOSNative?: boolean }).__passkeyTestIOSNative === true,
     getNativeRpId: () => 'localhost',
 }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
+
+beforeEach(() => {
+    jest.clearAllMocks()
+    passkeyTestGlobals.__passkeyTestIOSNative = false
+    delete passkeyTestGlobals.__capgoPasskeyShimInstalled
+})
+
+afterEach(() => {
+    passkeyTestGlobals.__passkeyTestIOSNative = false
+    jest.useRealTimers()
+    delete passkeyTestGlobals.__capgoPasskeyShimInstalled
+})
 
 describe('useZeroDev handleLogin — passkey-server failures keep the session', () => {
     let errorSpy: jest.SpyInstance
 
     beforeEach(() => {
-        jest.clearAllMocks()
-        mockIOSNative = false
         errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
     })
 
@@ -180,10 +202,35 @@ describe('useZeroDev handleLogin — passkey-server failures keep the session', 
             expect.objectContaining({ tags: { error_type: 'login_error' } })
         )
     })
-})
 
-beforeEach(() => {
-    jest.clearAllMocks()
+    it('preserves existing auth state after the iOS authorization retry is exhausted', async () => {
+        jest.useFakeTimers()
+        passkeyTestGlobals.__passkeyTestIOSNative = true
+        passkeyTestGlobals.__capgoPasskeyShimInstalled = true
+        mockToWebAuthnKey.mockRejectedValue(
+            new Error(
+                'The operation couldn’t be completed. (com.apple.AuthenticationServices.AuthorizationError error 1004.)'
+            )
+        )
+        const { result } = renderHook(() => useZeroDev())
+        let thrown: unknown
+
+        await act(async () => {
+            const pending = result.current.handleLogin().catch((error) => {
+                thrown = error
+            })
+            await jest.runAllTimersAsync()
+            await pending
+        })
+
+        expect(thrown).toMatchObject({ name: 'PasskeyError', code: 'PASSKEY_INTERRUPTED' })
+        expect(mockToWebAuthnKey).toHaveBeenCalledTimes(2)
+        expect(clearAuthState).not.toHaveBeenCalled()
+        expect(mockCaptureException).toHaveBeenCalledWith(expect.any(Error), {
+            level: 'warning',
+            tags: { error_type: 'login_interrupted' },
+        })
+    })
 })
 it('waits for fresh session hydration before publishing the verified wallet key and blocks a second ceremony', async () => {
     let resolveHydration!: (value: unknown) => void
@@ -210,6 +257,51 @@ it('waits for fresh session hydration before publishing the verified wallet key 
         await pending
     })
     expect(mockSetWebAuthnKey).toHaveBeenCalledWith({ authenticatorId: 'verified' })
+})
+
+it('gives each iOS recovery attempt a fresh ceremony window and persists a success after 60s total', async () => {
+    jest.useFakeTimers()
+    passkeyTestGlobals.__passkeyTestIOSNative = true
+    passkeyTestGlobals.__capgoPasskeyShimInstalled = true
+    const key = { authenticatorId: 'verified-after-recovery' }
+    const rejectAfter = (error: Error) =>
+        new Promise<never>((_, reject) => {
+            setTimeout(() => reject(error), 30_000)
+        })
+    mockToWebAuthnKey
+        .mockReset()
+        .mockImplementationOnce(() =>
+            rejectAfter(
+                new Error(
+                    'The operation couldn’t be completed. (com.apple.AuthenticationServices.AuthorizationError error 1004.)'
+                )
+            )
+        )
+        .mockImplementationOnce(() => rejectAfter(new PasskeyVerifyRejectedError(401)))
+        .mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    setTimeout(() => {
+                        stashCeremonyVerifyToken('jwt-after-recovery', currentCeremonyId())
+                        resolve(key)
+                    }, 30_000)
+                })
+        )
+    mockHydrateLoginSession.mockResolvedValue({ user: { userId: 'verified-user' } })
+    const { result } = renderHook(() => useZeroDev())
+
+    await act(async () => {
+        const pending = result.current.handleLogin()
+        await jest.advanceTimersByTimeAsync(90_500)
+        await pending
+    })
+
+    expect(mockToWebAuthnKey).toHaveBeenCalledTimes(3)
+    expect(mockSetAuthToken).toHaveBeenCalledWith('jwt-after-recovery')
+    expect(mockHydrateLoginSession).toHaveBeenCalledTimes(1)
+    expect(mockSetWebAuthnKey).toHaveBeenCalledWith(key)
+    expect(clearAuthState).not.toHaveBeenCalled()
+    expect(mockCaptureException).not.toHaveBeenCalled()
 })
 
 it.each(['login', 'registration'])(
