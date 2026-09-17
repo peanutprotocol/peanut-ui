@@ -22,7 +22,7 @@ import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
 import { upliftTriggerFromGate, upliftTriggerFromAdvisory } from '@/utils/eea-uplift.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { isVerifiableGate } from '@/utils/capability-gate'
-import { isBridgeSupportedCountry } from '@/utils/regions.utils'
+import { hasBridgeBankCorridor } from '@/components/AddWithdraw/bank-corridors'
 import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import posthog from 'posthog-js'
@@ -178,7 +178,7 @@ export function useBridgeOfframpFlow() {
     useEffect(() => {
         if (country) {
             const countryInfo = getCountryFromPath(country)
-            if (!countryInfo || !isBridgeSupportedCountry(countryInfo.id)) {
+            if (!countryInfo || !hasBridgeBankCorridor(countryInfo.id)) {
                 router.replace(`/withdraw${fromSendFlow ? '?method=bank' : ''}`)
             }
         }

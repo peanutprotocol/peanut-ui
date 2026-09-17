@@ -104,6 +104,16 @@ describe('CountryList — enforceSupportedCountries (send->bank flow)', () => {
         fireEvent.click(germany)
         expect(onCountryClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'germany' }))
     })
+
+    // Colombia is a Bridge bank corridor (co_bank_transfer), so the send->bank
+    // list must offer it, not the waitlist — the picker reads the same corridor
+    // table the form does. This is the drift this consolidation closed.
+    test('Colombia is selectable — its Bridge corridor is wired', () => {
+        const colombia = row('Colombia')
+        expect(colombia).not.toHaveAttribute('aria-disabled')
+        fireEvent.click(colombia)
+        expect(onCountryClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'colombia' }))
+    })
 })
 
 describe('CountryList — which country comes first', () => {

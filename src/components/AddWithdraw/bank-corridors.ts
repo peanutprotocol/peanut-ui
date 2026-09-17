@@ -1,7 +1,7 @@
 import { BridgeAccountType } from '@/app/actions/types/users.types'
 import { BRIDGE_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import { isValidRoutingNumber, isValidSortCode, isValidUKAccountNumber } from '@/utils/bridge-accounts.utils'
-import { validateMXCLabeAccount, validateUSBankAccount } from '@/utils/withdraw.utils'
+import { getCountryCodeForWithdraw, validateMXCLabeAccount, validateUSBankAccount } from '@/utils/withdraw.utils'
 import { MX_STATES, US_STATES } from '@/constants/stateCodes.consts'
 
 /**
@@ -198,4 +198,23 @@ export function bankCorridorFor(country: string): BankCorridorSpec | null {
     const spec = SPECS[code]
     if (spec) return spec
     return BRIDGE_ALPHA3_TO_ALPHA2[code] !== undefined ? IBAN_SPEC : null
+}
+
+/**
+ * Does this country have a live Bridge bank corridor?
+ *
+ * This is the single answer every money-out picker and the offramp route read
+ * for "is a bank withdrawal wired here" — the corridor table decides it once,
+ * so a corridor added above (Colombia's `co_bank_transfer`, a future SPEC, any
+ * SEPA member) shows up in the withdraw list, the send-to-bank list, the claim
+ * list and the `/withdraw/<country>/bank` gate at the same time, instead of
+ * each keeping its own country list that forgets the new one. Manteca-only
+ * countries (Argentina, Brazil) have no Bridge corridor and answer false; their
+ * own rails gate them elsewhere.
+ *
+ * The id may be 2- or 3-letter, so it is normalised the same way the form does
+ * before the lookup.
+ */
+export function hasBridgeBankCorridor(countryId: string): boolean {
+    return bankCorridorFor(getCountryCodeForWithdraw(countryId)) !== null
 }

@@ -3,7 +3,6 @@ import {
     type CountryData,
     countryData,
     ALL_COUNTRIES_ALPHA3_TO_ALPHA2,
-    BRIDGE_ALPHA3_TO_ALPHA2,
     PREFERRED_COUNTRY_ISO2,
 } from '@/components/AddMoney/consts'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
@@ -25,18 +24,7 @@ import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { matchesCountryQuery } from './country-search'
-
-// precompute bridge alpha2 values for O(1) lookup
-const BRIDGE_ALPHA2_SET = new Set(Object.values(BRIDGE_ALPHA3_TO_ALPHA2))
-
-// MIGRATION-REVIEW: `isBridgeSupportedCountry` was sourced from `useIdentityVerification`, but it
-// is a PURE static lookup over BRIDGE_ALPHA3_TO_ALPHA2 — it never read any KYC/Sumsub state (the
-// migration map's "selectedLevel" note for CountryList was stale; this file never used it).
-// Inlined verbatim so the file no longer depends on the legacy hook. Behavior is identical.
-const isBridgeSupportedCountry = (code: string): boolean => {
-    const upper = code.toUpperCase()
-    return upper === 'US' || upper === 'MX' || upper in BRIDGE_ALPHA3_TO_ALPHA2 || BRIDGE_ALPHA2_SET.has(upper)
-}
+import { hasBridgeBankCorridor } from '@/components/AddWithdraw/bank-corridors'
 
 interface CountryListViewProps {
     inputTitle?: string
@@ -216,7 +204,12 @@ export const CountryList = ({
                                 : getCardPosition(index, filteredCountries.length)
                             const displayName = countryName(country)
 
-                            const isBridgeSupportedCountryResult = isBridgeSupportedCountry(country.id)
+                            // "Does this country have a live Bridge bank corridor" is read from
+                            // the one corridor table (bank-corridors.ts) that the offramp route
+                            // and the withdraw form read too — so Colombia's `co_bank_transfer`,
+                            // and any future corridor, reach every list without a second country
+                            // list to keep in step. See the parity test in bank-corridors.test.ts.
+                            const hasBankCorridor = hasBridgeBankCorridor(country.id)
                             const isMantecaSupportedCountry = isMantecaSupportedCountryCode(country.id)
 
                             // determine if country is supported based on view mode
@@ -231,7 +224,7 @@ export const CountryList = ({
                                 // gated: its Manteca rails here are own-account offramps, same
                                 // ruling that keeps Mercado Pago off the send list (PR #2813).
                                 if (enforceSupportedCountries) {
-                                    isSupported = isBridgeSupportedCountryResult || country.path === 'brazil'
+                                    isSupported = hasBankCorridor || country.path === 'brazil'
                                 } else {
                                     isSupported = liveRailsForCountry(country.id, flow ?? 'withdraw').length > 0
                                 }
@@ -240,9 +233,9 @@ export const CountryList = ({
                                 // withdraw
                                 isSupported = true
                             } else if (viewMode === 'claim-request') {
-                                // support bridge or manteca supported countries, but temporarily disable sepa corridors
-                                // where local currency is not eur (show as soon)
-                                isSupported = isBridgeSupportedCountryResult || isMantecaSupportedCountry
+                                // a Bridge bank corridor or a Manteca country; non-euro SEPA
+                                // members have no corridor and stay on the waitlist.
+                                isSupported = hasBankCorridor || isMantecaSupportedCountry
                             } else {
                                 // support all countries
                                 isSupported = true

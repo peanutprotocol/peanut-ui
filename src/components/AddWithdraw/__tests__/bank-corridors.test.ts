@@ -1,7 +1,8 @@
-import { bankCorridorFor } from '../bank-corridors'
+import { bankCorridorFor, hasBridgeBankCorridor } from '../bank-corridors'
 import { BridgeAccountType } from '@/app/actions/types/users.types'
-import { COUNTRY_SPECIFIC_METHODS } from '@/components/AddMoney/consts'
+import { COUNTRY_SPECIFIC_METHODS, countryData } from '@/components/AddMoney/consts'
 import { liveRailsForCountry } from '@/features/destinations/country-rails'
+import { isMantecaCountry } from '@/constants/manteca.consts'
 
 const fieldNames = (country: string) => bankCorridorFor(country)?.fields.map((field) => field.name)
 const fieldFor = (country: string, name: string) =>
@@ -96,5 +97,52 @@ describe('the corridors the table absorbed', () => {
     it('sends a SEPA country to the IBAN corridor and an unknown one nowhere', () => {
         expect(bankCorridorFor('DEU')?.accountType).toBe(BridgeAccountType.IBAN)
         expect(bankCorridorFor('ZZ')).toBeNull()
+    })
+})
+
+/**
+ * The corridor table is the one source for "is a bank withdrawal wired here".
+ * `hasBridgeBankCorridor` reads it, and so does the money-out picker's own list
+ * (`enabledBankWithdrawCountries` → the "To Bank" rail). These are two encodings
+ * of the same fact, so they must agree on every country or a Colombia-shaped
+ * gap opens again — the picker offers a waitlist for a country whose form works,
+ * or the reverse.
+ */
+describe('hasBridgeBankCorridor — the single bank-withdraw predicate', () => {
+    it('is true for Colombia now that co_bank_transfer is wired', () => {
+        expect(hasBridgeBankCorridor('CO')).toBe(true)
+    })
+
+    it('is true for a Bridge country by 2- or 3-letter id', () => {
+        expect(hasBridgeBankCorridor('DEU')).toBe(true)
+        expect(hasBridgeBankCorridor('SE')).toBe(true) // non-euro SEPA still reaches the IBAN corridor
+        expect(hasBridgeBankCorridor('US')).toBe(true)
+        expect(hasBridgeBankCorridor('MX')).toBe(true)
+    })
+
+    it('is false for Manteca-only countries — their own rails gate them', () => {
+        expect(hasBridgeBankCorridor('AR')).toBe(false)
+        expect(hasBridgeBankCorridor('BR')).toBe(false)
+    })
+
+    it('is false for a country with no rail', () => {
+        expect(hasBridgeBankCorridor('IN')).toBe(false)
+    })
+})
+
+describe('the withdraw picker and the withdraw form agree on every country', () => {
+    it('picker "supported" set equals the form/offramp "allowed" set', () => {
+        const disagreements: string[] = []
+        for (const country of countryData) {
+            if (country.type !== 'country') continue
+            // picker: a country is shown when it has a live withdraw rail
+            const pickerSupported = liveRailsForCountry(country.id, 'withdraw').length > 0
+            // form/offramp: a Bridge corridor exists, or the Manteca flow serves it
+            const formAllowed = hasBridgeBankCorridor(country.id) || isMantecaCountry(country.path)
+            if (pickerSupported !== formAllowed) {
+                disagreements.push(`${country.id} (${country.currency}): picker=${pickerSupported} form=${formAllowed}`)
+            }
+        }
+        expect(disagreements).toEqual([])
     })
 })
