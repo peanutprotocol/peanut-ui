@@ -181,6 +181,9 @@ export const ANALYTICS_EVENTS = {
     QR_NOTIFY_ME_CLICKED: 'qr_notify_me_clicked',
     QR_DECODING_ERROR_SHOWN: 'qr_decoding_error_shown',
     QR_MERCHANT_CHARGE_EXPIRED_SHOWN: 'qr_merchant_charge_expired_shown',
+    // Per-stage latency of one signed QR payment attempt; shared client/server
+    // contract (TASK-22692). Properties: qr-payment-telemetry.ts.
+    QR_PAYMENT_STAGE: 'qr_payment_stage',
 
     // ── Home ──
     BALANCE_VISIBILITY_TOGGLED: 'balance_visibility_toggled',

@@ -10,6 +10,8 @@
  */
 import React from 'react'
 import { act, render, waitFor } from '@testing-library/react'
+import { custom } from 'viem'
+import { createBundlerClient, type SmartAccount } from 'viem/account-abstraction'
 
 const mockDispatch = jest.fn()
 const mockLogoutUser = jest.fn()
@@ -127,7 +129,8 @@ jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 jest.mock('@/dev/fixtures/active', () => ({ ensureActiveFixture: () => null }))
 jest.mock('@/constants/harness.consts', () => ({ HARNESS_ENABLED: false }))
 
-import { KernelClientProvider, useKernelClient } from '../kernelClient.context'
+import { KernelClientProvider, createKernelClientForChain, useKernelClient } from '../kernelClient.context'
+import { PAYMASTER_PREVIEW_CONTEXT } from '@/hooks/wallet/paymasterSponsorship'
 
 const renderProvider = () =>
     render(
@@ -402,6 +405,107 @@ it('persists the new account key after success and ignores the old account build
         webAuthnKey: expect.objectContaining({ authenticatorId: 'auth-1' }),
     })
     expect(mockUpdateUserPreferences).not.toHaveBeenCalledWith('u1', expect.anything())
+})
+
+// The real paymaster config handed to createKernelAccountClient (TASK-22692):
+// a single `getPaymasterData` callback — viem's prepareUserOperation then
+// invokes it exactly once per preparation — forwarding the per-request
+// `context` to ZeroDev as `shouldConsume`: a preview never consumes the
+// sponsorship policy, a normal request consumes.
+it('paymaster config: one callback, invoked once per viem preparation; preview never consumes, normal consumes', async () => {
+    const sdk = jest.requireMock('@zerodev/sdk')
+    const ACCOUNT = '0x1111111111111111111111111111111111111111'
+    const mockSponsor = jest.fn(
+        async (_args: {
+            shouldConsume: boolean
+            shouldOverrideFee: boolean
+            userOperation: { context?: unknown; [key: string]: unknown }
+        }) => ({
+            paymaster: '0x2a1c0c8d0c0f0c8d0c0f0c8d0c0f0c8d0c0f0c8d',
+            paymasterData: '0x',
+            callGasLimit: 1n,
+            verificationGasLimit: 1n,
+            preVerificationGas: 1n,
+            paymasterVerificationGasLimit: 1n,
+            paymasterPostOpGasLimit: 1n,
+        })
+    )
+    sdk.createZeroDevPaymasterClient.mockReturnValue({ sponsorUserOperation: mockSponsor })
+    sdk.createKernelAccount.mockResolvedValue({ address: ACCOUNT })
+    sdk.createKernelAccountClient.mockImplementation((config: { account: object; paymaster: unknown }) => ({
+        account: config.account,
+        paymaster: config.paymaster,
+        sendUserOperation: jest.fn(),
+    }))
+    mockToPasskeyValidator.mockResolvedValue({ address: 'validator' })
+    const { PEANUT_WALLET_CHAIN } = jest.requireActual('@/constants/zerodev.consts')
+
+    const client = await createKernelClientForChain(
+        {} as never,
+        PEANUT_WALLET_CHAIN,
+        true,
+        mockCookieKey as never,
+        undefined,
+        {
+            bundlerUrl: 'https://bundler.test',
+            paymasterUrl: 'https://paymaster.test',
+        }
+    )
+    const paymaster = client.paymaster as {
+        getPaymasterStubData?: unknown
+        getPaymasterData: (op: object) => Promise<unknown>
+    }
+    // the pre-existing single-callback setup, which viem collapses to one call
+    expect(paymaster.getPaymasterStubData).toBeUndefined()
+    expect(typeof paymaster.getPaymasterData).toBe('function')
+
+    const consumptions = () => mockSponsor.mock.calls.map(([args]) => args.shouldConsume)
+
+    // direct forwarding
+    const op = { sender: ACCOUNT, nonce: 1n, callData: '0x' }
+    await paymaster.getPaymasterData({ ...op, context: PAYMASTER_PREVIEW_CONTEXT })
+    await paymaster.getPaymasterData({ ...op, context: undefined })
+    expect(consumptions()).toEqual([false, true])
+    expect(
+        mockSponsor.mock.calls.every(([args]) => args.shouldOverrideFee === true && 'sender' in args.userOperation)
+    ).toBe(true)
+
+    // viem's REAL prepareUserOperation over this exact config: one paymaster
+    // invocation per preparation, context per request, no RPC.
+    mockSponsor.mockClear()
+    const account = {
+        address: ACCOUNT,
+        type: 'smart',
+        client: {},
+        entryPoint: { address: '0x0000000071727De22E5E9d8BAf0edAc6f37da032', version: '0.7', abi: [] },
+        getFactoryArgs: async () => ({ factory: undefined, factoryData: undefined }),
+        getNonce: async () => 1n,
+        getStubSignature: async () => '0x57',
+        encodeCalls: async () => '0x',
+        signUserOperation: async () => '0x51',
+    } as unknown as SmartAccount
+    const bundler = createBundlerClient({
+        account,
+        chain: PEANUT_WALLET_CHAIN,
+        transport: custom({
+            request: async ({ method }: { method: string }) => {
+                throw new Error(`unexpected RPC ${method}`)
+            },
+        }),
+        paymaster: paymaster as never,
+        userOperation: { estimateFeesPerGas: async () => ({ maxFeePerGas: 0n, maxPriorityFeePerGas: 0n }) },
+    })
+    await bundler.prepareUserOperation({
+        account,
+        callData: '0x',
+        paymasterContext: PAYMASTER_PREVIEW_CONTEXT,
+    })
+    expect(mockSponsor).toHaveBeenCalledTimes(1)
+    expect(mockSponsor.mock.calls[0][0].userOperation.context).toBe(PAYMASTER_PREVIEW_CONTEXT)
+    await bundler.prepareUserOperation({ account, callData: '0x' })
+    expect(mockSponsor).toHaveBeenCalledTimes(2)
+    expect(consumptions()).toEqual([false, true])
+    expect(bundler.paymasterContext).toBeUndefined()
 })
 
 it.each([
