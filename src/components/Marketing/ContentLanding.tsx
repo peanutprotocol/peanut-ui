@@ -5,11 +5,16 @@ import Link from 'next/link'
 import Fuse from 'fuse.js'
 import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { getCardPosition } from '@/components/Global/Card/card.utils'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import { SearchInput } from '@/components/SearchInput'
 import type { ContentItem, ContentItemType } from '@/lib/content'
 import type { Locale } from '@/i18n/types'
 
-const PROSE_WIDTH = 'max-w-[720px]'
+// the hub runs wider than the prose column in Marketing/mdx/constants — it holds
+// rows, not paragraphs. named apart so nobody reads the two as the same value.
+const HUB_WIDTH = 'max-w-[720px]'
 const TYPE_VALUES: ContentItemType[] = ['blog', 'stories', 'use-cases', 'compare']
 
 export interface ContentLandingStrings {
@@ -52,22 +57,21 @@ function typeLabelsFor(strings: ContentLandingStrings): Record<ContentItemType, 
     }
 }
 
+// rows are anchors, not onClick handlers: this list is the crawlable half of the
+// hub, so ListItem sits inside a Link (which is also why ListGroup, whose
+// cloneElement would put `position` on the anchor, cannot own the grouping here).
 function renderLinkRows(items: ContentItem[]) {
     return (
-        <div className="flex flex-col gap-px overflow-hidden rounded-sm border border-border-default">
-            {items.map((item) => (
-                <Link
-                    key={`${item.type}/${item.slug}`}
-                    href={item.href}
-                    className="group flex items-center justify-between border-b border-border-default/10 bg-background-default px-4 py-4 transition-colors last:border-b-0 hover:bg-purple-200/20"
-                >
-                    <div className="flex flex-col gap-0.5">
-                        <h3 className="text-body-m-semibold text-foreground-primary group-hover:underline">
-                            {displayTitle(item.title)}
-                        </h3>
-                        <p className="line-clamp-1 text-body-s text-foreground-secondary">{item.description}</p>
-                    </div>
-                    <Icon name="arrow-up-right" size={16} className="shrink-0 text-foreground-secondary" />
+        <div className="flex flex-col">
+            {items.map((item, i) => (
+                <Link key={`${item.type}/${item.slug}`} href={item.href} className="group block">
+                    <ListItem
+                        position={getCardPosition(i, items.length)}
+                        title={<h3 className="truncate group-hover:underline">{displayTitle(item.title)}</h3>}
+                        body={item.description}
+                        trailing={<Icon name="arrow-up-right" size={20} className="text-foreground-secondary" />}
+                        className="transition-colors duration-instant group-hover:bg-background-disabled"
+                    />
                 </Link>
             ))}
         </div>
@@ -83,7 +87,7 @@ export function ContentLinkList({ items, strings, grouped }: ContentLinkListProp
     const typeLabels = typeLabelsFor(strings)
 
     return (
-        <div className={`mx-auto ${PROSE_WIDTH} px-6 pb-12 md:px-4`}>
+        <div className={`mx-auto ${HUB_WIDTH} px-6 pb-12 md:px-4`}>
             {grouped ? (
                 <div className="flex flex-col gap-10">
                     {TYPE_VALUES.map((t) => {
@@ -143,23 +147,17 @@ export default function ContentLanding({ items, strings }: Props) {
 
     return (
         <>
-            <div className={`mx-auto mt-10 mb-6 ${PROSE_WIDTH} px-6 md:mt-12 md:px-4`}>
-                <div className="relative">
-                    <div className="absolute top-1/2 left-3 -translate-y-1/2 text-foreground-secondary">
-                        <Icon name="search" size={18} />
-                    </div>
-                    <input
-                        type="text"
-                        aria-label={strings.searchPlaceholder}
-                        placeholder={strings.searchPlaceholder}
-                        value={q ?? ''}
-                        onChange={(e) => setFilters({ q: e.target.value || null })}
-                        className={`${CARD_SURFACE} h-12 w-full pr-4 pl-10 text-base caret-action-primary focus:ring-1 focus:ring-border-default focus:outline-none`}
-                    />
-                </div>
+            <div className={`mx-auto mt-10 mb-6 ${HUB_WIDTH} px-6 md:mt-12 md:px-4`}>
+                <SearchInput
+                    value={q ?? ''}
+                    onChange={(value) => setFilters({ q: value || null })}
+                    onClear={() => setFilters({ q: null })}
+                    placeholder={strings.searchPlaceholder}
+                    aria-label={strings.searchPlaceholder}
+                />
             </div>
 
-            <div className={`mx-auto mb-4 ${PROSE_WIDTH} px-6 md:px-4`}>
+            <div className={`mx-auto mb-4 ${HUB_WIDTH} px-6 md:px-4`}>
                 <div className="flex flex-wrap gap-2">
                     <button
                         type="button"
@@ -182,8 +180,8 @@ export default function ContentLanding({ items, strings }: Props) {
             </div>
 
             {filtered.length === 0 ? (
-                <div className={`mx-auto ${PROSE_WIDTH} px-6 pb-12 md:px-4`}>
-                    <p className="py-12 text-center text-foreground-secondary">{strings.noResults}</p>
+                <div className={`mx-auto ${HUB_WIDTH} px-6 pb-12 md:px-4`}>
+                    <EmptyState icon="search" title={strings.noResults} />
                 </div>
             ) : (
                 <ContentLinkList items={filtered} strings={strings} grouped={groupResults} />

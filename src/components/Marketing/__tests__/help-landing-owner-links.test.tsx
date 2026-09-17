@@ -1,13 +1,15 @@
-import { render } from '@testing-library/react'
+import { renderWithIntl } from '@/test-utils/intl'
 import HelpLanding from '../HelpLanding'
 
 jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
+    // HelpLanding reads the marketing locale off the url (useUrlLocale)
+    usePathname: () => '/en/help',
 }))
 
 describe('HelpLanding owner links', () => {
     it('renders the server-provided href instead of reconstructing it from the hub locale', () => {
-        const { container } = render(
+        const { container } = renderWithIntl(
             <HelpLanding
                 articles={[
                     {

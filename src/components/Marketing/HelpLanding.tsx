@@ -4,7 +4,14 @@ import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { getCardPosition } from '@/components/Global/Card/card.utils'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import { Notification } from '@/components/0_Bruddle/Notification'
+import { SearchInput } from '@/components/SearchInput'
+import { PROSE_WIDTH } from './mdx/constants'
+import { getTranslations } from '@/i18n'
+import { useUrlLocale } from '@/i18n/useUrlLocale'
 
 interface HelpArticle {
     slug: string
@@ -26,11 +33,34 @@ interface HelpLandingProps {
     strings?: HelpLandingStrings
 }
 
-const PROSE_WIDTH = 'max-w-[640px]'
+// rows are anchors, not onClick handlers: help articles have to stay crawlable,
+// so ListItem sits inside a Link — which is also why ListGroup, whose cloneElement
+// would put `position` on the anchor, cannot own the grouping here.
+function CategoryRows({ articles }: { articles: HelpArticle[] }) {
+    return (
+        <div className="flex flex-col">
+            {articles.map((article, i) => (
+                <Link key={article.slug} href={article.href} className="group block">
+                    <ListItem
+                        position={getCardPosition(i, articles.length)}
+                        title={<h3 className="truncate group-hover:underline">{article.title}</h3>}
+                        body={article.description}
+                        trailing={<Icon name="arrow-up-right" size={20} className="text-foreground-secondary" />}
+                        className="transition-colors duration-instant group-hover:bg-background-disabled"
+                    />
+                </Link>
+            ))}
+        </div>
+    )
+}
 
 export default function HelpLanding({ articles, categories, strings }: HelpLandingProps) {
     const [searchTerm, setSearchTerm] = useState('')
     const searchParams = useSearchParams()
+    // the page passes `strings`, but this is a localized surface and the hub is
+    // also reachable without them — read the same dictionary the page reads
+    // instead of falling back to english.
+    const i18n = getTranslations(useUrlLocale())
 
     // Auto-open Crisp chat when ?chat=open (e.g. redirected from /support)
     useEffect(() => {
@@ -65,19 +95,13 @@ export default function HelpLanding({ articles, categories, strings }: HelpLandi
         <>
             {/* Search */}
             <div className={`mx-auto mt-10 mb-8 ${PROSE_WIDTH} px-6 md:mt-12 md:px-4`}>
-                <div className="relative">
-                    <div className="absolute top-1/2 left-3 -translate-y-1/2 text-foreground-secondary">
-                        <Icon name="search" size={18} />
-                    </div>
-                    <input
-                        type="text"
-                        aria-label={strings?.searchPlaceholder ?? 'Search help articles'}
-                        placeholder={strings?.searchPlaceholder ?? 'Search help articles...'}
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className={`${CARD_SURFACE} h-12 w-full pr-4 pl-10 text-base caret-action-primary focus:ring-1 focus:ring-border-default focus:outline-none`}
-                    />
-                </div>
+                <SearchInput
+                    value={searchTerm}
+                    onChange={setSearchTerm}
+                    onClear={() => setSearchTerm('')}
+                    placeholder={strings?.searchPlaceholder ?? i18n.searchHelpArticles}
+                    aria-label={strings?.searchPlaceholder ?? i18n.searchHelpArticles}
+                />
             </div>
 
             {/* Articles by category */}
@@ -89,50 +113,18 @@ export default function HelpLanding({ articles, categories, strings }: HelpLandi
                                 <h2 className="mb-4 text-label-m tracking-widest text-foreground-secondary uppercase">
                                     {category}
                                 </h2>
-                                <div className="flex flex-col gap-px overflow-hidden rounded-sm border border-border-default">
-                                    {filteredArticles
-                                        .filter((a) => a.category === category)
-                                        .map((article) => (
-                                            <Link
-                                                key={article.slug}
-                                                href={article.href}
-                                                className="group flex items-center justify-between border-b border-border-default/10 bg-background-default px-4 py-4 transition-colors last:border-b-0 hover:bg-purple-200/20"
-                                            >
-                                                <div className="flex flex-col gap-0.5">
-                                                    <h3 className="text-body-m-semibold text-foreground-primary group-hover:underline">
-                                                        {article.title}
-                                                    </h3>
-                                                    <p className="line-clamp-1 text-body-s text-foreground-secondary">
-                                                        {article.description}
-                                                    </p>
-                                                </div>
-                                                <Icon
-                                                    name="arrow-up-right"
-                                                    size={16}
-                                                    className="shrink-0 text-foreground-secondary"
-                                                />
-                                            </Link>
-                                        ))}
-                                </div>
+                                <CategoryRows articles={filteredArticles.filter((a) => a.category === category)} />
                             </section>
                         ))}
                     </div>
                 ) : (
-                    <div className="py-12 text-center text-foreground-secondary">
-                        <p className="text-base">No articles match your search.</p>
-                    </div>
+                    <EmptyState icon="search" title={i18n.noContentResults} />
                 )}
 
                 {/* Contact CTA */}
-                <div className="my-8 border-l-4 border-action-primary py-1 pl-6">
-                    <p className="font-semibold text-foreground-primary">
-                        {strings?.cantFind ?? "Can't find what you need?"}
-                    </p>
-                    <p className="mt-1 text-base leading-[1.75] text-foreground-secondary">
-                        {strings?.cantFindDesc ??
-                            'Click the chat bubble in the bottom-right corner to talk to our support team. We typically reply within minutes.'}
-                    </p>
-                </div>
+                <Notification priority="helper" title={strings?.cantFind ?? i18n.cantFindAnswer} className="my-8">
+                    {strings?.cantFindDesc ?? i18n.cantFindAnswerDesc}
+                </Notification>
             </div>
         </>
     )
