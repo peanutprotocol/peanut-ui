@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { Card } from '@/components/0_Bruddle/Card'
+import { Icon } from '@/components/Global/Icons/Icon'
 import { COUNTRIES_SEO, getCountryName } from '@/data/seo'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { localizedPath } from '@/i18n/config'
@@ -25,7 +26,7 @@ export function DestinationGrid({ countries, exclude, title, locale = DEFAULT_LO
 
     return (
         <section className="py-10 md:py-14">
-            {heading && <h2 className="mb-6 text-heading-l md:text-h1">{heading}</h2>}
+            {heading && <h2 className="mb-6 text-heading-l md:text-heading-xl">{heading}</h2>}
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
                 {slugs.map((slug) => {
                     const seo = COUNTRIES_SEO[slug]
@@ -49,9 +50,9 @@ export function DestinationGrid({ countries, exclude, title, locale = DEFAULT_LO
                                         className="rounded-sm"
                                     />
                                 )}
-                                <div>
-                                    <span className="font-semibold">{countryName}</span>
-                                    <span className="ml-1 text-sm text-foreground-primary/50">&rarr;</span>
+                                <div className="flex items-center gap-1">
+                                    <span className="text-body-m-semibold">{countryName}</span>
+                                    <Icon name="arrow-up-right" size={16} className="text-foreground-secondary" />
                                 </div>
                             </Card>
                         </Link>
