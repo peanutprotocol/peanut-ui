@@ -67,7 +67,7 @@ describe('post-auth redirect consumers', () => {
         expect(getRedirectUrl()).toBeNull()
     })
 
-    it('finalizing the account does not navigate — the account-ready screen owns the redirect', async () => {
+    it('finalizing the account does not navigate — the setup view owns the redirect', async () => {
         mockAddAccount.mockResolvedValue({ status: 'created', requestAttempts: 1 })
         saveToLocalStorage('redirect', CAMPAIGN_REDIRECT)
         const { result } = renderHook(() => useAccountSetup())
@@ -79,7 +79,7 @@ describe('post-auth redirect consumers', () => {
         expect(mockAddAccount).toHaveBeenCalled()
         expect(mockRouterPush).not.toHaveBeenCalled()
         expect(mockRouterReplace).not.toHaveBeenCalled()
-        // the redirect is still queued for the CTA to consume
+        // the redirect is still queued for the setup view to consume
         expect(getRedirectUrl()).toBe(CAMPAIGN_REDIRECT)
     })
 
