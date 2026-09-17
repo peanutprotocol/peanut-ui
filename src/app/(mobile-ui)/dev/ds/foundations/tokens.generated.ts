@@ -88,6 +88,12 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "previewClass": "bg-background-brand"
     },
     {
+        "name": "background-setup-hero",
+        "value": "#90a8ed",
+        "section": "semantic",
+        "previewClass": "bg-background-setup-hero"
+    },
+    {
         "name": "background-icon-bubble-green",
         "value": "#29cc6a",
         "section": "semantic",
