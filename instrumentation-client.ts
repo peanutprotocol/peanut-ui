@@ -38,7 +38,7 @@ if (
     // Web journeys begin at the first pageview. Native journeys are created
     // at registration unless a deferred store handoff restores this context
     // first; the native app cannot observe the pre-install browser page.
-    const signupAttribution = isNativeBuild ? null : captureSignupAttribution()
+    const signupAttribution = isNativeBuild ? null : captureSignupAttribution({ includeDocumentReferrer: true })
 
     posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
         // Web posts through the `/relay` Next.js rewrite — the path is intentionally

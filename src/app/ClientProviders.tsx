@@ -26,7 +26,7 @@ import { captureSignupAttribution } from '@/utils/signup-attribution'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
-import { Suspense, useEffect, useRef } from 'react'
+import { Suspense, useEffect } from 'react'
 import { PathnamePageviewTracker } from '@/components/Analytics/PathnamePageviewTracker'
 
 // Harness bootstrap ships only in harness builds. In prod bundles the dynamic
@@ -123,13 +123,14 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     )
 }
 
-/** Capture every App Router entry, including client navigations. */
+/** Capture every App Router entry after the document-level bootstrap. */
 export function SignupAttributionNavigationCapture({ pathname }: { pathname: string | null }) {
-    const capturedDocumentEntry = useRef(false)
     useEffect(() => {
         if (!isCapacitor()) {
-            captureSignupAttribution({ includeDocumentReferrer: !capturedDocumentEntry.current })
-            capturedDocumentEntry.current = true
+            // instrumentation-client owns the one document-referrer capture.
+            // Every React entry is therefore referrer-free, including hydration
+            // of the initial URL and all later SPA transitions.
+            captureSignupAttribution()
         }
     }, [pathname])
     return null

@@ -163,6 +163,23 @@ describe('invite and badge campaign routing boundaries', () => {
         expect(mockClaimBadgeCampaigns).not.toHaveBeenCalled()
     })
 
+    it('auto-routes an authenticated visitor even when the legacy app-access flag is false', async () => {
+        mockAuth.user = { user: { userId: 'user-1', username: 'member', hasAppAccess: false } }
+        mockSearch = 'code=alice'
+        mockQueryResult.data = {
+            success: true,
+            attributionResolved: true,
+            onboardingResolved: true,
+            username: 'alice',
+        }
+
+        render(<InvitesPage />)
+
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/profile/alice'))
+        expect(screen.queryByRole('button', { name: 'Create your wallet' })).not.toBeInTheDocument()
+        expect(mockClaimBadgeCampaigns).not.toHaveBeenCalled()
+    })
+
     it('uses backend validation metadata for an authenticated code-only Offramp journey', async () => {
         mockSearch = 'code=offramp'
         mockQueryResult.data = {

@@ -96,21 +96,17 @@ describe('ClientProviders provider order', () => {
         expect(intl).toBeLessThan(context)
     })
 
-    it('uses the document referrer only for the initial navigation entry', async () => {
+    it('keeps React navigation entries referrer-free after instrumentation bootstrap', async () => {
         mockCaptureSignupAttribution.mockClear()
         Object.defineProperty(window, 'Capacitor', { configurable: true, value: undefined })
 
         const { rerender } = render(<SignupAttributionNavigationCapture pathname="/blog/creator-guide" />)
 
-        await waitFor(() =>
-            expect(mockCaptureSignupAttribution).toHaveBeenLastCalledWith({ includeDocumentReferrer: true })
-        )
+        await waitFor(() => expect(mockCaptureSignupAttribution).toHaveBeenLastCalledWith())
 
         rerender(<SignupAttributionNavigationCapture pathname="/signup" />)
 
-        await waitFor(() =>
-            expect(mockCaptureSignupAttribution).toHaveBeenLastCalledWith({ includeDocumentReferrer: false })
-        )
+        await waitFor(() => expect(mockCaptureSignupAttribution).toHaveBeenLastCalledWith())
         expect(mockCaptureSignupAttribution).toHaveBeenCalledTimes(2)
     })
 })
