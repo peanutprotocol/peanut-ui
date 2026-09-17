@@ -1264,6 +1264,8 @@
         "youArePaying": "Você está pagando",
         "paymentMethodAlt": "Método de pagamento",
         "peanutManAlt": "Peanut Man",
+        "processingPaymentTitle": "Processando seu pagamento",
+        "processingPaymentBody": "Estamos confirmando seu pagamento.",
         "waitingForMerchant": "Aguardando o lojista definir o valor",
         "havingTrouble": "Está com problemas?",
         "orderNotReady": {
@@ -1743,6 +1745,8 @@
             "minDepositAmount": "O valor do depósito precisa ser de pelo menos ${amount}",
             "etaInstant": "Os depósitos costumam chegar em minutos."
         },
+        "processingDepositTitle": "Processando seu depósito",
+        "processingDepositBody": "Estamos confirmando seu depósito.",
         "pix": {
             "payWithPix": "Pagar com PIX",
             "depositReceived": "Depósito recebido!",
@@ -1977,7 +1981,6 @@
             "issuedOn": "Emitido em",
             "pdf": {
                 "title": "Comprovante da transação",
-                "date": "Data",
                 "type": "Tipo",
                 "status": "Status",
                 "from": "De"
@@ -2113,6 +2116,7 @@
             "cancelRequest": "Cancelar cobrança",
             "pay": "Pagar",
             "rejectRequest": "Recusar cobrança",
+            "moreActions": "Mais ações",
             "splitBill": "Dividir essa conta",
             "shareReceipt": "Compartilhar comprovante",
             "downloadPdf": "Baixar comprovante (PDF)",
@@ -3088,6 +3092,7 @@
             "noFeesWithToken": "Sem taxas com este token.",
             "drawerTitle": "Escolha token e rede",
             "crossChainUnavailable": "As transações entre redes estão temporariamente indisponíveis. Você pode usar USDC na Arbitrum.",
+            "allNetworks": "Todas",
             "selectANetwork": "Escolha uma rede",
             "moreNetworksButton": "mais",
             "searchTokenPlaceholder": "Token ou endereço",
@@ -3104,8 +3109,7 @@
             "noNetworksFoundTitle": "Nenhuma rede encontrada para {search}",
             "noNetworksFoundDescription": "Tente buscar outra rede",
             "searchPlaceholder": "Buscar...",
-            "clearSearch": "Limpar busca",
-            "clearNetworkSelection": "Limpar rede selecionada"
+            "clearSearch": "Limpar busca"
         },
         "qrScanner": {
             "scanToPay": "Escaneie para pagar",

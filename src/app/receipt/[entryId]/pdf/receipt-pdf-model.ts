@@ -3,6 +3,7 @@ import { type TransactionDetails } from '@/components/TransactionDetails/transac
 import { isFxBearingFlow, isSendLinkEntry } from '@/components/TransactionDetails/transaction-predicates'
 import {
     bankAccountLabelKey,
+    receiptIssuedAt,
     type BankAccountLabelKey,
 } from '@/components/TransactionDetails/transaction-details.utils'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
@@ -114,19 +115,10 @@ export function buildReceiptPdfModel(
     const allowCancelledSenderFields =
         !isCancelled || (isSendLinkEntry(transaction) && role === EHistoryUserRole.SENDER)
 
-    // One canonical receipt date is always the first field. Prefer the final
-    // lifecycle timestamp, then fall back to the creation/display date for
-    // transactions that are still pending or have older history shapes.
-    const receiptDate = isCancelled
-        ? transaction.cancelledDate || transaction.createdAt || transaction.date
-        : status === 'closed'
-          ? transaction.cancelledDate || transaction.date || transaction.createdAt
-          : status === 'refunded'
-            ? transaction.date || transaction.completedAt || transaction.createdAt
-            : status === 'completed'
-              ? transaction.claimedAt || transaction.completedAt || transaction.date || transaction.createdAt
-              : transaction.createdAt || transaction.date
-    push(t('transaction.officialReceipt.pdf.date'), formatDate(receiptDate, locale))
+    // One canonical issuance date is always the first field — the shared
+    // status-branched rule (receiptIssuedAt), so page and pdf can never
+    // disagree; never the download time.
+    push(t('transaction.officialReceipt.issuedOn'), formatDate(receiptIssuedAt(transaction), locale))
 
     const cardType = drawer?.transactionCardType
     push(t('transaction.officialReceipt.pdf.type'), cardType ? t(`transaction.type.${cardType}`) : undefined)

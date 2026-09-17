@@ -9,7 +9,7 @@ import ChainChip from '../components/ChainChip'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import SegmentedControl from '@/components/0_Bruddle/SegmentedControl'
 import Loading from '@/components/Global/Loading'
-import CyclingLoading from '@/components/Global/Loading/CyclingLoading'
+import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useCryptoDepositPolling } from '../hooks/useCryptoDepositPolling'
 import type { CreateDepositAddressResponse, RhinoChainType } from '@/services/services.types'
@@ -45,6 +45,7 @@ const RhinoDepositView = ({
     identifier,
 }: RhinoDepositViewProps) => {
     const t = useTranslations('addMoney.crypto')
+    const tAddMoney = useTranslations('addMoney')
     const tCommon = useTranslations('common')
     const tPayment = useTranslations('payment')
     const {
@@ -91,6 +92,21 @@ const RhinoDepositView = ({
         )
     }
 
+    // deposit detected and settling — the processing state owns the whole
+    // screen; the network toggle and instructions must not invite another
+    // deposit while this one confirms
+    if (depositAddressStatus === 'loading') {
+        return (
+            <PageStack>
+                <NavHeader title={headerTitle} onPrev={onBack} />
+                <ProcessingScreen
+                    title={tAddMoney('processingDepositTitle')}
+                    description={tAddMoney('processingDepositBody')}
+                />
+            </PageStack>
+        )
+    }
+
     return (
         <PageStack>
             <NavHeader title={headerTitle} onPrev={onBack} />
@@ -118,93 +134,82 @@ const RhinoDepositView = ({
                     aria-label={t('selectNetworkType')}
                 />
 
-                {(isDepositAddressDataLoading || depositAddressStatus === 'loading') && (
+                {/* address preparation keeps the bare mascot */}
+                {isDepositAddressDataLoading && (
                     <div className="flex h-screen-60 items-center justify-center">
-                        {depositAddressStatus === 'loading' ? <CyclingLoading /> : <Loading variant="mascot" />}
+                        <Loading variant="mascot" />
                     </div>
                 )}
 
-                {depositAddressData &&
-                    !isDepositAddressDataLoading &&
-                    depositAddressStatus !== 'loading' &&
-                    isBelowMinDeposit && (
-                        <Card>
-                            <div className="flex w-full flex-col items-center justify-center gap-2">
-                                <IconBubble icon="alert" color="yellow" size="s" />
-                                <h1 className="text-heading-card">{tPayment('minAmount.title')}</h1>
-                                <p className="text-center text-body-s text-foreground-secondary">
-                                    {tPayment('minAmount.description', {
-                                        minAmount: depositAddressData.minDepositLimitUsd,
-                                    })}
+                {depositAddressData && !isDepositAddressDataLoading && isBelowMinDeposit && (
+                    <Card>
+                        <div className="flex w-full flex-col items-center justify-center gap-2">
+                            <IconBubble icon="alert" color="yellow" size="s" />
+                            <h1 className="text-heading-card">{tPayment('minAmount.title')}</h1>
+                            <p className="text-center text-body-s text-foreground-secondary">
+                                {tPayment('minAmount.description', {
+                                    minAmount: depositAddressData.minDepositLimitUsd,
+                                })}
+                            </p>
+                        </div>
+                    </Card>
+                )}
+
+                {depositAddressData && !isDepositAddressDataLoading && !isBelowMinDeposit && (
+                    <>
+                        <div className="flex items-center justify-center">
+                            <QRCodeWrapper url={depositAddressData?.depositAddress} />
+                        </div>
+
+                        <CopyField text={depositAddressData.depositAddress} />
+
+                        <Notification priority="attention">
+                            <div className="flex items-center gap-2">
+                                <p>{t('supportedTokensInline')}</p>
+                                {getSupportedTokens(chainType).map((token) => (
+                                    <ChainChip key={token.name} chainName={token.name} chainSymbol={token.logoUrl} />
+                                ))}
+                            </div>
+                        </Notification>
+
+                        <div className="flex w-full flex-col gap-1">
+                            <div className="flex w-full items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <p className="text-body-s text-foreground-secondary">
+                                        {t('minDepositForLabel', { network: amountLimitsTitle })}
+                                    </p>
+                                </div>
+
+                                <p className="text-body-s text-foreground-secondary">
+                                    {depositAddressData.minDepositLimitUsd} USD
                                 </p>
                             </div>
-                        </Card>
-                    )}
 
-                {depositAddressData &&
-                    !isDepositAddressDataLoading &&
-                    depositAddressStatus !== 'loading' &&
-                    !isBelowMinDeposit && (
-                        <>
-                            <div className="flex items-center justify-center">
-                                <QRCodeWrapper url={depositAddressData?.depositAddress} />
-                            </div>
-
-                            <CopyField text={depositAddressData.depositAddress} />
-
-                            <Notification priority="attention">
+                            <div className="flex w-full items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                    <p>{t('supportedTokensInline')}</p>
-                                    {getSupportedTokens(chainType).map((token) => (
-                                        <ChainChip
-                                            key={token.name}
-                                            chainName={token.name}
-                                            chainSymbol={token.logoUrl}
-                                        />
+                                    <p className="text-body-s text-foreground-secondary">
+                                        {t('maxDepositForLabel', { network: amountLimitsTitle })}
+                                    </p>
+                                </div>
+
+                                <p className="text-body-s text-foreground-secondary">
+                                    {depositAddressData.maxDepositLimitUsd} USD
+                                </p>
+                            </div>
+                        </div>
+
+                        {chainType === 'EVM' && (
+                            <Card className="flex flex-col gap-2 p-4">
+                                <h3 className="text-label-l text-foreground-primary">{t('supportedEvmNetworks')}</h3>
+                                <div className="flex flex-wrap gap-2">
+                                    {SUPPORTED_EVM_CHAINS.map((chain) => (
+                                        <ChainChip key={chain} chainName={chain} chainSymbol={CHAIN_LOGOS[chain]} />
                                     ))}
                                 </div>
-                            </Notification>
-
-                            <div className="flex w-full flex-col gap-1">
-                                <div className="flex w-full items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <p className="text-body-s text-foreground-secondary">
-                                            {t('minDepositForLabel', { network: amountLimitsTitle })}
-                                        </p>
-                                    </div>
-
-                                    <p className="text-body-s text-foreground-secondary">
-                                        {depositAddressData.minDepositLimitUsd} USD
-                                    </p>
-                                </div>
-
-                                <div className="flex w-full items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <p className="text-body-s text-foreground-secondary">
-                                            {t('maxDepositForLabel', { network: amountLimitsTitle })}
-                                        </p>
-                                    </div>
-
-                                    <p className="text-body-s text-foreground-secondary">
-                                        {depositAddressData.maxDepositLimitUsd} USD
-                                    </p>
-                                </div>
-                            </div>
-
-                            {chainType === 'EVM' && (
-                                <Card className="flex flex-col gap-2 p-4">
-                                    <h3 className="text-label-l text-foreground-primary">
-                                        {t('supportedEvmNetworks')}
-                                    </h3>
-                                    <div className="flex flex-wrap gap-2">
-                                        {SUPPORTED_EVM_CHAINS.map((chain) => (
-                                            <ChainChip key={chain} chainName={chain} chainSymbol={CHAIN_LOGOS[chain]} />
-                                        ))}
-                                    </div>
-                                </Card>
-                            )}
-                        </>
-                    )}
+                            </Card>
+                        )}
+                    </>
+                )}
             </PageStack.Center>
         </PageStack>
     )

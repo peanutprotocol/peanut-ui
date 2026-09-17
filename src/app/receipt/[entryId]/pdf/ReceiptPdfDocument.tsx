@@ -62,12 +62,13 @@ const styles = StyleSheet.create({
         paddingHorizontal: 56,
     },
     header: {
-        flexDirection: 'column',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'flex-start',
         marginBottom: 28,
     },
-    issuer: { textAlign: 'left', fontSize: 8, color: grey, marginTop: 7 },
-    issuerName: { fontWeight: 600 },
+    issuer: { textAlign: 'right', fontSize: 8, color: grey },
+    issuerName: { fontWeight: 600, color: '#000000' },
     title: { fontSize: 14, fontWeight: 600, marginBottom: 14 },
     amountCard: {
         borderWidth: 1.5,
@@ -98,25 +99,23 @@ const styles = StyleSheet.create({
     lastRow: { borderBottomWidth: 0 },
     rowLabel: { color: grey, maxWidth: 88 },
     rowValue: { width: 370, textAlign: 'right', fontSize: 8.5, fontWeight: 600 },
-    footer: {
-        position: 'absolute',
-        left: 56,
-        right: 56,
-        bottom: 40,
-    },
-    footerRule: { borderTopWidth: 1, borderTopColor: border, marginBottom: 10 },
-    legalName: { fontSize: 8, fontWeight: 600 },
-    legalAddress: { fontSize: 7, color: grey, marginTop: 2 },
 })
 
 export function ReceiptPdfDocument({ model }: { model: ReceiptPdfModel }) {
     return (
         <Document title={model.title} author={model.companyName} creator="Peanut" producer="peanut.me">
             <Page size="A4" style={styles.page}>
+                {/* one issuer block, top only (TASK-22452): wordmark left,
+                    issued-by (carries the company name) + address + site
+                    right. the old bottom company footer is gone — the facts
+                    appear once. */}
                 <View style={styles.header}>
-                    <ReceiptPdfWordmark width={110} />
+                    <ReceiptPdfWordmark width={84} />
                     <View style={styles.issuer}>
                         <Text style={styles.issuerName}>{model.issuedBy}</Text>
+                        {model.companyAddressLines.map((line) => (
+                            <Text key={line}>{line}</Text>
+                        ))}
                         <Text>{model.site}</Text>
                     </View>
                 </View>
@@ -140,12 +139,6 @@ export function ReceiptPdfDocument({ model }: { model: ReceiptPdfModel }) {
                             <Text style={styles.rowValue}>{breakableIdentifier(row.value)}</Text>
                         </View>
                     ))}
-                </View>
-
-                <View style={styles.footer} fixed>
-                    <View style={styles.footerRule} />
-                    <Text style={styles.legalName}>{model.companyName}</Text>
-                    <Text style={styles.legalAddress}>{model.companyAddressLines.join(' · ')}</Text>
                 </View>
             </Page>
         </Document>

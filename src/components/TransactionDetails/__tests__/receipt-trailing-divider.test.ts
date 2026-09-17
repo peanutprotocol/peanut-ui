@@ -2,11 +2,13 @@
  * The details card underlines every row with a dashed rule and drops it on the
  * last one, so the rule doesn't double up with the card's own black border.
  *
- * `shouldHideBorder` can only reach rows the receipt renders itself. These cases
- * end on a row the receipt delegates to a sub-component that renders its own
- * rows — which is why the row container also carries
- * `[&>*:last-child]:border-b-0`. If a future change makes the delegating rows
- * unreachable as "last", this test is the thing that says so.
+ * Since TASK-22452 the card always ends on the document rows (reference, then
+ * issued-on): both render directly in the card with no extra runtime gate, so
+ * a delegated sub-component row (MantecaDepositInfo, BridgeDepositInstructions)
+ * can never be the DOM's last row and the `[&>*:last-child]:border-b-0`
+ * container rule is only a belt for the delegated rows' own internals. If a
+ * future change removes or gates the document rows, this test is the thing
+ * that says the trailing-divider analysis must be redone.
  */
 import { readFileSync } from 'fs'
 import { join } from 'path'
@@ -19,50 +21,28 @@ import type { HistoryEntry } from '@/utils/history.utils'
 jest.mock('@/assets', () => ({}))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
 
-// Rows the receipt hands to a sub-component (MantecaDepositInfo,
-// BridgeDepositInstructions) that expands into rows of its own. Those rows never
-// see `hideBottomBorder`, so the container rule is what clears the last one.
-// `cardPayment` is absent on purpose: CardPaymentRows takes an `isLastRow` prop.
-const DELEGATED_ROWS = ['mantecaDepositInfo', 'depositInstructions']
-
 type Case = { name: string; entry: HistoryEntry }
 
 const cases = JSON.parse(readFileSync(join(__dirname, 'fixtures', 'render-baseline.json'), 'utf8')) as Case[]
 
-const lastVisibleRow = (entry: HistoryEntry): string | undefined => {
+const visibleRows = (entry: HistoryEntry): string[] => {
     const { transactionDetails } = mapTransactionDataForDrawer(entry)
     const { result } = renderHook(() => useReceiptViewModel(transactionDetails, { isPublic: false }))
-    const visible = transactionDetailsRowKeys.filter((key) => result.current.rowVisibilityConfig[key])
-    return visible[visible.length - 1]
+    return transactionDetailsRowKeys.filter((key) => result.current.rowVisibilityConfig[key])
 }
 
 describe('receipt details card — trailing dashed rule', () => {
-    const byName = (name: string) => {
-        const found = cases.find((c) => c.name === name)
-        if (!found) throw new Error(`fixture ${name} missing from render-baseline.json`)
-        return found.entry
-    }
-
-    it('the bridge pending deposit ends on a delegated row', () => {
-        expect(lastVisibleRow(byName('onramp-bridge-awaiting_funds-recipient'))).toBe('depositInstructions')
+    it('every fixture ends on the ungated issued-on document row', () => {
+        for (const c of cases) {
+            const rows = visibleRows(c.entry)
+            expect({ name: c.name, last: rows[rows.length - 1] }).toEqual({ name: c.name, last: 'issuedOn' })
+        }
     })
 
-    it('no other fixture ends on a delegated row', () => {
-        const delegated = cases
-            .map((c) => ({ name: c.name, last: lastVisibleRow(c.entry) }))
-            .filter(({ last }) => !!last && DELEGATED_ROWS.includes(last))
-            .map(({ name }) => name)
-
-        expect(delegated).toEqual(['onramp-bridge-awaiting_funds-recipient'])
-    })
-
-    // The second way the flag misses: a row the config calls visible carries an
-    // extra runtime gate in the JSX and doesn't reach the DOM, so the row above it
-    // keeps its rule and ends up last. These two are the live examples.
-    it('records the rows that can be config-visible but absent from the DOM', () => {
-        const doubleGated = ['tokenAndNetwork', 'exchangeRate']
-        const atRisk = cases.map((c) => lastVisibleRow(c.entry)).filter((last) => !!last && doubleGated.includes(last))
-
-        expect(atRisk.length).toBeGreaterThan(0)
+    it('the reference row precedes issued-on on every fixture', () => {
+        for (const c of cases) {
+            const rows = visibleRows(c.entry)
+            expect(rows[rows.length - 2]).toBe('reference')
+        }
     })
 })

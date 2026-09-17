@@ -163,7 +163,7 @@ const ImageSection = ({
             <div
                 className={twMerge(
                     containerClass,
-                    'relative flex w-full flex-row items-center justify-center overflow-hidden bg-blue-300 px-4 md:h-dvh md:w-7/12 md:px-6'
+                    'relative flex w-full flex-row items-center justify-center overflow-hidden bg-background-setup-hero px-4 md:h-dvh md:w-7/12 md:px-6'
                 )}
             >
                 {/* render animated star decorations */}
@@ -198,7 +198,7 @@ const ImageSection = ({
         <div
             className={twMerge(
                 containerClass,
-                'flex w-full flex-row items-center justify-center bg-blue-300 md:h-dvh md:w-7/12',
+                'flex w-full flex-row items-center justify-center bg-background-setup-hero md:h-dvh md:w-7/12',
                 screenId === 'success' && 'bg-action-secondary/15'
             )}
         >

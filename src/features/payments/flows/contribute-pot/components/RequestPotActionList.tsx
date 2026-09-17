@@ -195,7 +195,7 @@ export function RequestPotActionList({
                             }
                             onClick={() => handleMethodClick(method)}
                             disabled={method.soon || !isAmountEntered}
-                            trailing={<IconStack icons={method.icons} iconSize={method.id === 'bank' ? 80 : 24} />}
+                            trailing={<IconStack icons={method.icons} iconSize={24} />}
                         />
                     )
                 })}

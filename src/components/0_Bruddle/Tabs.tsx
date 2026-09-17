@@ -24,7 +24,9 @@ import { twMerge } from '@/utils/tw'
 
 interface TabDef {
     value: string
-    label: string
+    /** widened to ReactNode with TASK-22452 so a tab can carry an icon
+     *  beside its name (the network tabs) — string labels stay valid */
+    label: ReactNode
     content: ReactNode
 }
 
@@ -36,6 +38,10 @@ interface TabsProps {
      * on marketing pages: tab prose must stay in the server HTML for crawlers.
      */
     forceMount?: boolean
+    /** controlled mode (TASK-22452): pass value + onValueChange together;
+     *  omit both and the first tab is the uncontrolled default */
+    value?: string
+    onValueChange?: (value: string) => void
 }
 
 // the one focus treatment (matches .btn in globals.css). radix Content has
@@ -48,8 +54,10 @@ const focusRing =
 // list spans the scrolled width (w-max min-w-full).
 const scrollWrap = '-m-1 overflow-x-auto p-1'
 
-export const Tabs = ({ tabs, 'aria-label': ariaLabel, forceMount }: TabsProps) => (
-    <Root defaultValue={tabs[0]?.value}>
+export const Tabs = ({ tabs, 'aria-label': ariaLabel, forceMount, value, onValueChange }: TabsProps) => (
+    // radix ignores defaultValue when value is set but warns on both — pass
+    // exactly one
+    <Root value={value} onValueChange={onValueChange} defaultValue={value === undefined ? tabs[0]?.value : undefined}>
         <div className={scrollWrap}>
             <List aria-label={ariaLabel} className="flex w-max min-w-full px-2">
                 {tabs.map((tab) => (

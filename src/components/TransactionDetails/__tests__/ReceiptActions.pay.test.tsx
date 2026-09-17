@@ -12,6 +12,7 @@ import type { ReceiptViewModel } from '../useReceiptViewModel'
 
 const mockPush = jest.fn()
 
+jest.mock('next-intl', () => ({ useLocale: () => 'en' }))
 jest.mock('@/i18n/app/useAppTranslations', () => ({ useAppTranslations: () => (key: string) => key }))
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
 // isCapacitor() runs at module load deep in the import chain, so the mocks
@@ -39,7 +40,15 @@ jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 jest.mock('@/components/Global/ShareButton', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Setup/Views/SignTestTransaction', () => ({ PasskeyDocsLink: () => null }))
 jest.mock('../provider-actions/CancelDepositActions', () => ({ CancelDepositActions: () => null }))
-jest.mock('../ReceiptReferralNudge', () => ({ ReceiptReferralNudge: () => null }))
+jest.mock('../useReceiptReferralAction', () => ({ useReceiptReferralAction: () => null }))
+jest.mock('@/context/ModalsContext', () => ({
+    useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }),
+}))
+jest.mock('../useReceiptPdfFile', () => ({
+    useReceiptPdfFile: () => ({ share: jest.fn(), download: jest.fn(), busy: null, unavailable: false, error: false }),
+}))
+jest.mock('@/components/Global/ShareButton/useShareAction', () => ({ useShareAction: () => jest.fn() }))
+jest.mock('../ReceiptMoreActionsDrawer', () => ({ ReceiptMoreActionsDrawer: () => null }))
 jest.mock('../ReceiptSupportLink', () => ({ ReceiptSupportLink: () => null }))
 jest.mock('../DownloadReceiptPdfLink', () => ({ DownloadReceiptPdfLink: () => null }))
 
