@@ -101,6 +101,7 @@ export default function HelpLanding({ articles, categories, strings }: HelpLandi
                     onClear={() => setSearchTerm('')}
                     placeholder={strings?.searchPlaceholder ?? i18n.searchHelpArticles}
                     aria-label={strings?.searchPlaceholder ?? i18n.searchHelpArticles}
+                    clearLabel={i18n.clearSearch}
                 />
             </div>
 

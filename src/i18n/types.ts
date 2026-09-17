@@ -302,6 +302,7 @@ export interface Translations {
     calloutInfo: string // MDX <Callout type="info"> label
     calloutTip: string // MDX <Callout type="tip"> label
     calloutImportant: string // MDX <Callout type="warning"> label
+    clearSearch: string // clear-button label on the marketing search fields
 
     // Content hub
     content: string // "Content" (nav label)

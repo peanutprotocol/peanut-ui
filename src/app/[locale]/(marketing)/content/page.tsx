@@ -9,6 +9,7 @@ import { listAllContent, type ContentItem } from '@/lib/content'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import { Hero } from '@/components/Marketing/mdx/Hero'
 import ContentLanding, { ContentLinkList, type ContentLandingStrings } from '@/components/Marketing/ContentLanding'
+import { HUB_WIDTH } from '@/components/Marketing/mdx/constants'
 
 interface PageProps {
     params: Promise<{ locale: string }>
@@ -48,12 +49,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 function LandingFallback({ items, strings }: { items: ContentItem[]; strings: ContentLandingStrings }) {
     return (
         <>
-            {/* max-w-180 is 720px — ContentLanding's own HUB_WIDTH, not the 640px the
-                mdx element map uses. It has to stay equal to ContentLinkList's column
-                below or the search box jumps width on hydration. The real fix is to
-                export HUB_WIDTH from ContentLanding and import it here.
-                h-10 is SearchInput's height — the skeleton renders the loaded layout. */}
-            <div className="mx-auto mt-10 mb-6 max-w-180 px-6 md:mt-12 md:px-4">
+            {/* the hub column, shared with ContentLanding so the search box cannot
+                jump width on hydration. h-10 is SearchInput's height — the skeleton
+                renders the loaded layout. */}
+            <div className={`mx-auto mt-10 mb-6 ${HUB_WIDTH} px-6 md:mt-12 md:px-4`}>
                 <div className="h-10 w-full animate-pulse rounded-sm border border-border-default bg-foreground-primary/10" />
             </div>
             <ContentLinkList items={items} strings={strings} grouped />
@@ -71,6 +70,7 @@ export default async function ContentHubPage({ params }: PageProps) {
 
     const strings: ContentLandingStrings = {
         searchPlaceholder: i18n.contentSearchPlaceholder,
+        clearSearch: i18n.clearSearch,
         noResults: i18n.noContentResults,
         filterAll: i18n.filterAll,
         filterBlog: i18n.filterBlog,

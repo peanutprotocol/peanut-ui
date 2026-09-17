@@ -9,16 +9,15 @@ import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { SearchInput } from '@/components/SearchInput'
+import { HUB_WIDTH } from './mdx/constants'
 import type { ContentItem, ContentItemType } from '@/lib/content'
 import type { Locale } from '@/i18n/types'
 
-// the hub runs wider than the prose column in Marketing/mdx/constants — it holds
-// rows, not paragraphs. named apart so nobody reads the two as the same value.
-const HUB_WIDTH = 'max-w-[720px]'
 const TYPE_VALUES: ContentItemType[] = ['blog', 'stories', 'use-cases', 'compare']
 
 export interface ContentLandingStrings {
     searchPlaceholder: string
+    clearSearch: string
     noResults: string
     filterAll: string
     filterBlog: string
@@ -154,6 +153,7 @@ export default function ContentLanding({ items, strings }: Props) {
                     onClear={() => setFilters({ q: null })}
                     placeholder={strings.searchPlaceholder}
                     aria-label={strings.searchPlaceholder}
+                    clearLabel={strings.clearSearch}
                 />
             </div>
 

@@ -1,6 +1,10 @@
 /** Prose content column width class. Matches Wise's ~600px content width for readability. */
 export const PROSE_WIDTH = 'max-w-[640px]'
 
+/** Content-hub column. Wider than the prose column because the hub lists rows,
+ *  not sentences. Two constants, two roles — they are not interchangeable. */
+export const HUB_WIDTH = 'max-w-[720px]'
+
 /** Standard hover/active classes for interactive cards with Bruddle shadow.
  *  Hover: card lifts up-left, shadow grows to compensate (appears stationary).
  *  Active: card presses into shadow.
