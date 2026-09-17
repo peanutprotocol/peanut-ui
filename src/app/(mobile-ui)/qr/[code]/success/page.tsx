@@ -50,10 +50,7 @@ export default function RedirectQrSuccessPage() {
         <PageStack>
             <NavHeader title={t('claimSuccess.navTitle')} />
             <PageStack.Center className="gap-4">
-                <div className="space-y-1 text-center">
-                    <h1 className="text-heading-s">{t('claimSuccess.title')}</h1>
-                    <p className="text-body-m text-foreground-secondary">{t('claimSuccess.description')}</p>
-                </div>
+                <h1 className="text-center text-heading-s">{t('claimSuccess.title')}</h1>
 
                 <div className="flex justify-center py-4">
                     <QRCodeWrapper url={qrUrl} />
