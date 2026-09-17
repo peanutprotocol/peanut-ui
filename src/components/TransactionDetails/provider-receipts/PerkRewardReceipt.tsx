@@ -10,6 +10,7 @@ import { type HistoryEntryPerkReward } from '@/services/services.types'
 import { STATUS_LABEL_KEYS } from '@/components/Global/Badges/StatusBadge'
 import { useTranslations } from 'next-intl'
 import { useReceiptDateFormatter } from '@/components/TransactionDetails/useReceiptDateFormatter'
+import { receiptDataRowCardClassName } from '@/components/TransactionDetails/receipt-data-row-layout'
 
 /**
  * Self-contained receipt for PERK_REWARD entries. Replaces the early-return
@@ -68,7 +69,7 @@ export function PerkRewardReceipt({
                 stripped because PerkUsage uses it for idempotency (purchase-
                 listener.ts) and shouldn't surface to users. Backend follow-up:
                 add requestPaymentUuid column so reason can be clean. */}
-            <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">
+            <Card position="single" className={receiptDataRowCardClassName}>
                 <DataRow label={t('perk.received')} value={formatDate(new Date(transaction.date))} />
                 <DataRow
                     label={t('rows.reason')}

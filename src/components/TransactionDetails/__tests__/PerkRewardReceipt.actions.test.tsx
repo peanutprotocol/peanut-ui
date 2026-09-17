@@ -25,5 +25,7 @@ describe('PerkRewardReceipt actions', () => {
         )
 
         expect(screen.getByTestId('receipt-actions')).toBeInTheDocument()
+        expect(screen.getByText('Sep 12, 2026')).toBeInTheDocument()
+        expect(screen.getByText('11:21')).toBeInTheDocument()
     })
 })

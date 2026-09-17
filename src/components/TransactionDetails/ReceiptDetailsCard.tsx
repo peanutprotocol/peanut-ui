@@ -11,6 +11,7 @@ import { STAR_STRAIGHT_ICON } from '@/assets/icons'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { ReceiptTokenRows } from '@/components/TransactionDetails/ReceiptTokenRows'
+import { receiptDataRowCardClassName } from '@/components/TransactionDetails/receipt-data-row-layout'
 import { type ReceiptViewModel } from '@/components/TransactionDetails/useReceiptViewModel'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useReceiptDateFormatter } from '@/components/TransactionDetails/useReceiptDateFormatter'
@@ -82,10 +83,7 @@ export function ReceiptDetailsCard({
     const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
 
     return (
-        <Card
-            position={shouldShowQrShare ? 'first' : 'single'}
-            className="divide-y divide-dashed divide-border-default px-4 py-0"
-        >
+        <Card position={shouldShowQrShare ? 'first' : 'single'} className={receiptDataRowCardClassName}>
             {/* Request-pot progress (board): first row of the card. */}
             <RequestPotProgressRow transaction={transaction} />
 
@@ -150,10 +148,10 @@ export function ReceiptDetailsCard({
                                 href={transaction.explorerUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-2 hover:underline"
+                                className="flex max-w-full min-w-0 items-center gap-2 hover:underline"
                             >
-                                <span>{shortenStringLong(transaction.txHash)}</span>
-                                <Icon name="external-link" size={14} />
+                                <span className="min-w-0 truncate">{shortenStringLong(transaction.txHash)}</span>
+                                <Icon name="external-link" size={14} className="shrink-0" />
                             </Link>
                         ) : (
                             shortenStringLong(transaction.txHash)
