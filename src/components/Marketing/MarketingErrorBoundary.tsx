@@ -1,6 +1,7 @@
 'use client'
 
 import { Component, type ReactNode } from 'react'
+import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { recoverFromChunkError } from '@/utils/chunk-error-recovery'
 
 interface Props {
@@ -35,9 +36,13 @@ export class MarketingErrorBoundary extends Component<Props, State> {
         if (this.state.hasError) {
             return (
                 this.props.fallback || (
-                    <div className="mx-auto max-w-2xl px-6 py-16 text-center">
-                        <h2 className="text-heading-s text-foreground-primary">{this.props.strings?.title}</h2>
-                        <p className="mt-4 text-foreground-secondary">{this.props.strings?.body}</p>
+                    <div className="mx-auto max-w-2xl px-6 py-16">
+                        <TitleBlock
+                            align="center"
+                            size="s"
+                            title={this.props.strings?.title}
+                            description={this.props.strings?.body}
+                        />
                     </div>
                 )
             )

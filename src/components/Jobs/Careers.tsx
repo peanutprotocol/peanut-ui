@@ -40,14 +40,14 @@ export function Careers() {
                     <section className="flex flex-col gap-4">
                         <h2 className="text-heading-xs text-foreground-primary">How the work works</h2>
                         <div className="grid gap-4 md:grid-cols-3">
-                            <Card className="gap-2 p-6">
+                            <Card className="gap-2 p-6" shadowSize="4">
                                 <h3 className="text-label-l text-foreground-secondary">The product is live</h3>
                                 <p className="text-body-s text-foreground-primary">
                                     Invite-only doesn&apos;t mean quiet. What you ship this week lands on people who are
                                     moving real money this week, in a currency that isn&apos;t the one they earn in.
                                 </p>
                             </Card>
-                            <Card className="gap-2 p-6">
+                            <Card className="gap-2 p-6" shadowSize="4">
                                 <h3 className="text-label-l text-foreground-secondary">The map is the job</h3>
                                 <p className="text-body-s text-foreground-primary">
                                     MercadoPago QR in Argentina. PIX in Brazil. Bank transfers in 40+ countries. Every
@@ -55,7 +55,7 @@ export function Careers() {
                                     another group of people who&apos;d rather not think about either.
                                 </p>
                             </Card>
-                            <Card className="gap-2 p-6">
+                            <Card className="gap-2 p-6" shadowSize="4">
                                 <h3 className="text-label-l text-foreground-secondary">Who you&apos;d be joining</h3>
                                 <p className="text-body-s text-foreground-primary">
                                     Hugo Montenegro and Konrad co-founded Peanut. Peanut is a trading name of Squirrel
@@ -85,7 +85,7 @@ export function Careers() {
                                 </div>
                             </>
                         ) : (
-                            <Card className="gap-2 p-6">
+                            <Card className="gap-2 p-6" shadowSize="4">
                                 <h3 className="text-heading-card text-foreground-primary">
                                     Nothing&apos;s open right now.
                                 </h3>
