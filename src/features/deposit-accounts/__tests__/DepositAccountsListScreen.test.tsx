@@ -356,10 +356,62 @@ describe('DepositAccountsListScreen when a corridor is blocked after the fact', 
     it('names a blocker the user can clear, not one that only says to wait', () => {
         const gates = allGates({ kind: 'waiting-on-provider', userMessage: null })
         gates.ACH_US = { kind: 'needs-identity' }
-        list(false, { gates })
+        list(false, { gates, corridors: ['SEPA_EU', 'ACH_US'] })
 
         expect(screen.getByText('Verify your identity first')).toBeInTheDocument()
         expect(screen.queryByText('We are setting this up')).not.toBeInTheDocument()
+    })
+})
+
+/**
+ * "Verify your identity first" answers one question: you cannot open any
+ * account at all. A user holding a Ready account has already answered it, and
+ * telling them to verify again reads as the screen not knowing who they are.
+ *
+ * The residence-gated rows are on every screen and their gate is
+ * `needs-identity` for anyone without a Brazilian or Colombian rail, so
+ * counting them is what put the notice over two working accounts.
+ */
+describe('the identity notice', () => {
+    const NOTICE = 'Verify your identity first'
+
+    it('stays away from a user who already holds an account', () => {
+        const gates = allGates({ kind: 'needs-identity' })
+        list(false, { gates, corridors: ['SEPA_EU'], accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') } })
+
+        expect(screen.queryByText(NOTICE)).not.toBeInTheDocument()
+    })
+
+    it('stays away while any corridor is still claimable', () => {
+        const gates = allGates({ kind: 'needs-identity' })
+        gates.SEPA_EU = READY
+        list(false, { gates, corridors: ['SEPA_EU', 'ACH_US'] })
+
+        expect(screen.queryByText(NOTICE)).not.toBeInTheDocument()
+    })
+
+    it('appears for an unverified user with nothing held and nothing claimable', () => {
+        const gates = allGates({ kind: 'needs-identity' })
+        list(false, { gates, corridors: ['SEPA_EU', 'ACH_US'] })
+
+        expect(screen.getByText(NOTICE)).toBeInTheDocument()
+    })
+
+    /**
+     * The BR and CO rows are everybody's. They keep their caveat and stay
+     * tappable whatever the identity gate says — the explainer behind them is
+     * where the residence rule is stated.
+     */
+    it('leaves the residence-gated rows alone when residence is unknown', () => {
+        const gates = allGates({ kind: 'needs-identity' })
+        const { container } = list(false, {
+            gates,
+            corridors: ['SEPA_EU'],
+            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') },
+        })
+
+        expect(inRow(container, 'BANK_TRANSFER_BR').getByText(/residents of Brazil/i)).toBeInTheDocument()
+        expect(rowOf(container, 'BANK_TRANSFER_BR')).not.toHaveAttribute('aria-disabled', 'true')
     })
 })
 

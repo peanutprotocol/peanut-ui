@@ -148,14 +148,26 @@ export function DepositAccountsListScreen({
     const views = hubCorridors
         .filter((corridor) => matchesCorridor(corridor))
         .map((corridor) => ({ corridor, view: depositGateView(gates[corridor]) }))
-    // The banner names one corridor the user could hold but cannot. Every
-    // corridor normally shares one blocker (identity), so this is one sentence
-    // rather than six; where they differ, the row's own body says so.
-    //
-    // Where they differ, a blocker the user can clear outranks one that only
-    // says to wait — otherwise a SEPA queue hides the button that would unlock
-    // the other five corridors.
-    const blockedViews = views.filter(({ corridor, view }) => isClaimable(DEPOSIT_RAILS[corridor]) && view.notice)
+    /**
+     * The identity banner, and the one question it may answer: "you cannot open
+     * any account at all, and here is what to do about it".
+     *
+     * It reads the user's OWN corridors, not the rows. The residence-gated ones
+     * are on every screen, and their gate is `needs-identity` for anyone
+     * without a Brazilian or Colombian rail — so counting them told a user
+     * holding two Ready accounts to go and verify their identity.
+     *
+     * Every corridor normally shares one blocker, so this is one sentence
+     * rather than six; where they differ, a blocker the user can clear outranks
+     * one that only says to wait, and the row's own body carries the rest.
+     */
+    const ownViews = corridors.map((corridor) => ({ corridor, view: depositGateView(gates[corridor]) }))
+    const canOpenSomething = ownViews.some(
+        ({ corridor, view }) => isHeld(accounts[corridor]) || (isClaimable(DEPOSIT_RAILS[corridor]) && view.claimable)
+    )
+    const blockedViews = canOpenSomething
+        ? []
+        : ownViews.filter(({ corridor, view }) => isClaimable(DEPOSIT_RAILS[corridor]) && view.notice)
     const blocked = blockedViews.find(({ view }) => view.notice?.action !== 'none') ?? blockedViews[0]
 
     // Status lives in the badge on every row, so the body only ever answers
