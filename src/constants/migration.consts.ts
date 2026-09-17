@@ -10,6 +10,14 @@
 
 export const PWA_SUNSET_FLAG = 'pwa-sunset'
 
+/**
+ * Marks the already-native-associated `/home` route as an app-download entry
+ * point. On web, the proxy sends it to the `/app` smart-store page. In an
+ * installed app, useNativeAppLinks consumes the same URL and applies any
+ * deferred payload directly.
+ */
+export const APP_ENTRY_QUERY_PARAM = 'app_entry'
+
 // ponytail: cutover date is a constant; move to flag payload only if the date
 // needs to move without a deploy. placeholder — set the real date before flag-on.
 export const MIGRATION_CUTOVER_DATE = new Date('2026-12-31T00:00:00Z')

@@ -4,9 +4,9 @@
  * claimed on one platform only opens the app on that platform, and the bug
  * looks like "deep links are flaky on Android"), so parity is pinned here.
  *
- * /app gets its own case: it is the smart download link every QR encodes, and
- * an installed user who scans one must land in the app — that is the whole
- * point of claiming it (TASK-21788).
+ * /app gets its own negative case: it is a web-only smart-store route and must
+ * not expand the native surface. Download QRs enter through the already-shipped
+ * /home association and use an app_entry query marker (TASK-21788).
  */
 import { readFileSync } from 'fs'
 import { join } from 'path'
@@ -23,17 +23,17 @@ const androidPaths = [...manifest.matchAll(/android:path="([^"]+)"/g)].map((m) =
 const androidPrefixes = [...manifest.matchAll(/android:pathPrefix="([^"]+)"/g)].map((m) => m[1])
 
 describe('App Links', () => {
-    it('claims /app and /app/* for every iOS appID', () => {
+    it('keeps the web-only /app route out of every iOS appID', () => {
         expect(details.length).toBeGreaterThan(0)
         for (const detail of details) {
-            expect(detail.paths).toContain('/app')
-            expect(detail.paths).toContain('/app/*')
+            expect(detail.paths).not.toContain('/app')
+            expect(detail.paths).not.toContain('/app/*')
         }
     })
 
-    it('claims /app on Android with the same exact-plus-prefix shape', () => {
-        expect(androidPaths).toContain('/app')
-        expect(androidPrefixes).toContain('/app/')
+    it('keeps the web-only /app route out of Android', () => {
+        expect(androidPaths).not.toContain('/app')
+        expect(androidPrefixes).not.toContain('/app/')
     })
 
     it('lists the same paths for every iOS appID', () => {

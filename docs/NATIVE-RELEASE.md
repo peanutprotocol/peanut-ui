@@ -375,6 +375,21 @@ release**, never a side effect of pushing code:
 | **App Release OTA** from `dev`, `main`, or `release/android-kyc` | `production` | `<major>.<build>.<ota+1>` |
 | **App Staging OTA** from `dev` | `staging`    | `<major>.<build>.<commit count>` |
 
+### App-download QR links do not expand the native surface
+
+Generated download QRs use `https://peanut.me/home?app_entry=1`, not `/app`.
+`/home` is already present in the Android intent filter and every iOS AASA entry
+shipped with v1.6. In a browser, `src/proxy.ts` removes `app_entry` and redirects
+to the `/app` smart-store page while preserving the deferred-link payload. In an
+installed app, `useNativeAppLinks` consumes the marker, applies that payload, and
+opens its sanitized destination or `/home`.
+
+Keep `/app` out of `AndroidManifest.xml` and the AASA file. Adding it there is a
+native-surface change and requires a coordinated store release; server-side App
+Link configuration cannot make an Android binary claim paths outside its
+manifest. Existing `/app` links remain valid web smart links, while newly
+generated QRs get installed-app opening without a native rebuild.
+
 Shipping an OTA to everyone is therefore two steps — land the code, then run **App Release
 OTA** (§6). The workflow only accepts a dispatch from `dev`, `main`, or
 `release/android-kyc`; it resolves the next production bundle version from the current
