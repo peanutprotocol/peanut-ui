@@ -2301,8 +2301,8 @@
     "badges": {
         "title": "Insignias",
         "yourBadges": "Tus insignias",
-        "earned": "Obtenida",
-        "locked": "Bloqueada",
+        "earned": "Ganado",
+        "locked": "Bloqueado",
         "howToUnlock": "Cómo desbloquearla",
         "emptyTitle": "No se encontraron insignias",
         "emptyDescription": "Gana insignias a medida que usas Peanut. Haz pagos, invita amigos y participa en eventos para desbloquearlas y mostrarlas en tu perfil.",
