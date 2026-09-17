@@ -14,15 +14,19 @@ import { useAppLocale } from '@/i18n/app/locale-context'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
-import InviteFriendsDrawer from '../Global/InviteFriendsDrawer'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
 import Image from 'next/image'
 import { useQueryState } from 'nuqs'
-import { AvatarPicker } from '@/components/Avatar/AvatarPicker'
 import { AVATAR_PICKER_PARAM, avatarPickerParser } from '@/components/Avatar/avatar.consts'
 import { useOtaUpdate } from '@/context/OtaUpdateContext'
-import OtaUpdateModal from './components/OtaUpdateModal'
-import StoreUpdateModal from './components/StoreUpdateModal'
+import dynamic from 'next/dynamic'
+
+const AvatarPicker = dynamic(() => import('@/components/Avatar/AvatarPicker').then((m) => m.AvatarPicker), {
+    ssr: false,
+})
+const InviteFriendsDrawer = dynamic(() => import('../Global/InviteFriendsDrawer'), { ssr: false })
+const OtaUpdateModal = dynamic(() => import('./components/OtaUpdateModal'), { ssr: false })
+const StoreUpdateModal = dynamic(() => import('./components/StoreUpdateModal'), { ssr: false })
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
@@ -63,7 +67,7 @@ export const Profile = () => {
     const displayName = user?.user.showFullName && user?.user.fullName ? user.user.fullName : ''
 
     return (
-        <div className="h-full w-full bg-background-page">
+        <div className="bg-background-page h-full w-full">
             <NavHeader hideLabel showLogoutBtn onPrev={onBack} />
             <div className="space-y-8">
                 {/* the share pill is the profile's one share affordance — the
@@ -76,7 +80,7 @@ export const Profile = () => {
                     isVerified={isUserSumsubKycApproved}
                     onChangeAvatar={() => setAvatarPickerOpen(true)}
                 />
-                <AvatarPicker open={avatarPickerOpen} onOpenChange={setAvatarPickerOpen} />
+                {avatarPickerOpen && <AvatarPicker open onOpenChange={setAvatarPickerOpen} />}
                 <div className="space-y-4">
                     {/* IA from #2834: identity/products first, then social +
                         account, then app settings. Payment limits moved inline
@@ -170,14 +174,16 @@ export const Profile = () => {
                 </div>
             </div>
 
-            <InviteFriendsDrawer
-                visible={isInviteFriendsDrawerOpen}
-                onClose={() => setIsInviteFriendsDrawerOpen(false)}
-                username={user?.user.username ?? ''}
-                source="profile"
-            />
-            <OtaUpdateModal visible={isUpdateModalOpen} onClose={() => setIsUpdateModalOpen(false)} />
-            <StoreUpdateModal visible={isStoreUpdateModalOpen} onClose={() => setIsStoreUpdateModalOpen(false)} />
+            {isInviteFriendsDrawerOpen && (
+                <InviteFriendsDrawer
+                    visible
+                    onClose={() => setIsInviteFriendsDrawerOpen(false)}
+                    username={user?.user.username ?? ''}
+                    source="profile"
+                />
+            )}
+            {isUpdateModalOpen && <OtaUpdateModal visible onClose={() => setIsUpdateModalOpen(false)} />}
+            {isStoreUpdateModalOpen && <StoreUpdateModal visible onClose={() => setIsStoreUpdateModalOpen(false)} />}
         </div>
     )
 }

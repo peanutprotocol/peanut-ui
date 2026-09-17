@@ -4,14 +4,13 @@
 import { renderHook, act } from '@testing-library/react'
 import { useRewardsFlow } from '../useRewardsFlow'
 
-const mockFetchUser = jest.fn()
 const mockCapture = jest.fn()
 
 let mockUser: any = { user: { userId: 'u1', username: 'kush' } }
 let mockQueries: Record<string, any> = {}
 
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: mockUser, fetchUser: mockFetchUser }),
+    useAuth: () => ({ user: mockUser }),
 }))
 jest.mock('@tanstack/react-query', () => ({
     useQuery: ({ queryKey }: { queryKey: [string, ...unknown[]] }) =>
@@ -36,10 +35,9 @@ describe('useRewardsFlow', () => {
         mockQueries = {}
     })
 
-    it('captures the page view and re-fetches the user on mount', () => {
+    it('captures the page view without duplicating the existing user request', () => {
         renderHook(() => useRewardsFlow())
         expect(mockCapture).toHaveBeenCalledWith('points_page_viewed')
-        expect(mockFetchUser).toHaveBeenCalledTimes(1)
     })
 
     it('feeds the hero counter from tier info total points', () => {

@@ -7,6 +7,7 @@ import { apiFetch, serverFetch } from '../api-fetch'
 import { fetchWithSentry } from '@/utils/sentry.utils'
 import { getAuthHeaders, getAuthToken } from '@/utils/auth-token'
 import { isCapacitor } from '@/utils/capacitor'
+import posthog from 'posthog-js'
 
 jest.mock('@/utils/sentry.utils', () => ({
     fetchWithSentry: jest.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve({}) })),
@@ -25,15 +26,22 @@ jest.mock('@/utils/capacitor', () => ({
     isCapacitor: jest.fn(() => false),
 }))
 
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+
 jest.mock('@/constants/general.consts', () => ({
     PEANUT_API_URL: 'https://api.test.com',
 }))
 
 const mockFetchWithSentry = fetchWithSentry as jest.MockedFunction<typeof fetchWithSentry>
+const mockCapture = posthog.capture as jest.MockedFunction<typeof posthog.capture>
 
 describe('apiFetch', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+    })
+
+    afterEach(() => {
+        jest.restoreAllMocks()
     })
 
     describe('url', () => {
@@ -162,6 +170,50 @@ describe('apiFetch', () => {
                     body,
                 })
             )
+        })
+    })
+
+    describe('performance telemetry', () => {
+        it('captures a sampled route template with server duration', async () => {
+            jest.spyOn(Math, 'random').mockReturnValueOnce(0.01)
+            mockFetchWithSentry.mockResolvedValueOnce({
+                ok: true,
+                status: 200,
+                headers: new Headers({ 'Server-Timing': 'app;dur=12.4' }),
+            } as Response)
+
+            await apiFetch('/users/alice?token=secret')
+
+            expect(mockCapture).toHaveBeenCalledWith(
+                'api_request_completed',
+                expect.objectContaining({
+                    route: '/users/:id',
+                    method: 'GET',
+                    status_code: 200,
+                    server_duration_ms: 12.4,
+                    outcome: 'success',
+                })
+            )
+            expect(JSON.stringify(mockCapture.mock.calls)).not.toContain('alice')
+            expect(JSON.stringify(mockCapture.mock.calls)).not.toContain('secret')
+        })
+
+        it('captures every network failure outside the uniform sample', async () => {
+            jest.spyOn(Math, 'random').mockReturnValueOnce(0.9)
+            mockFetchWithSentry.mockRejectedValueOnce(new Error('private network detail'))
+
+            await expect(apiFetch('/points/cash-status')).rejects.toThrow('private network detail')
+
+            expect(mockCapture).toHaveBeenCalledTimes(1)
+            expect(mockCapture).toHaveBeenCalledWith(
+                'api_request_problem',
+                expect.objectContaining({
+                    route: '/points/cash-status',
+                    outcome: 'network_error',
+                    problem: 'network_error',
+                })
+            )
+            expect(JSON.stringify(mockCapture.mock.calls)).not.toContain('private network detail')
         })
     })
 })

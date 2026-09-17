@@ -81,6 +81,16 @@ export const ANALYTICS_EVENTS = {
     // in demo mode.
     SEND_LATENCY_BREAKDOWN: 'send_latency_breakdown',
 
+    // ── Performance health ──
+    // One event after a client-side screen change has painted twice. Screen
+    // names are route templates (never raw dynamic ids or query values).
+    SCREEN_TRANSITION_COMPLETED: 'screen_transition_completed',
+    // Uniform 10% sample used for unbiased endpoint latency percentiles. Slow,
+    // failed and 5xx requests are additionally emitted as API_REQUEST_PROBLEM
+    // so alerting does not depend on the sample.
+    API_REQUEST_COMPLETED: 'api_request_completed',
+    API_REQUEST_PROBLEM: 'api_request_problem',
+
     // ── Send Link ──
     SEND_LINK_CREATED: 'send_link_created',
     SEND_LINK_FAILED: 'send_link_failed',

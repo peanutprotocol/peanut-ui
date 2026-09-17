@@ -12,6 +12,7 @@ import { useAuth } from '@/context/authContext'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { findActiveCard } from '@/components/Card/cardState.utils'
+import { useHomeDrawer } from '@/features/home/useHomeDrawer'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import posthog from 'posthog-js'
 import { useRouter } from 'next/navigation'
@@ -48,6 +49,7 @@ interface ChecklistItem {
 const GettingStartedChecklist = () => {
     const t = useTranslations('home.gettingStarted')
     const router = useRouter()
+    const [, setHomeDrawer] = useHomeDrawer()
     const { user } = useAuth()
     const restrictions = useResidenceRestrictions()
     const { isEligible } = useCardInfo()
@@ -108,11 +110,22 @@ const GettingStartedChecklist = () => {
                       ? t('addMoneyRoutes')
                       : t('addMoneyRoutesKyc'),
                 done: isFunded,
-                onTap: tap('add-money', () => router.push('/add-money')),
+                onTap: tap('add-money', () => void setHomeDrawer('add')),
             },
             thirdItem,
         ]
-    }, [cardAvailable, hasActiveCard, hasSentPayment, isFunded, isVerified, milestone, restrictions.banking, router, t])
+    }, [
+        cardAvailable,
+        hasActiveCard,
+        hasSentPayment,
+        isFunded,
+        isVerified,
+        milestone,
+        restrictions.banking,
+        router,
+        setHomeDrawer,
+        t,
+    ])
 
     const completionPercent = Math.round((items.filter((item) => item.done).length / items.length) * 100)
     const progressLabel = t('title')

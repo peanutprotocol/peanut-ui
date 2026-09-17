@@ -15,7 +15,11 @@ import GettingStartedChecklist from '@/components/Home/GettingStartedChecklist'
 const render = () => rtlRender(<GettingStartedChecklist />, { wrapper: IntlWrapper })
 
 const mockPush = jest.fn()
+const mockSetHomeDrawer = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
+jest.mock('@/features/home/useHomeDrawer', () => ({
+    useHomeDrawer: () => [null, mockSetHomeDrawer],
+}))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
 let mockUser: {
@@ -185,9 +189,9 @@ describe('GettingStartedChecklist', () => {
         expect(screen.queryByText('Make your first payment')).not.toBeInTheDocument()
     })
 
-    it('add money taps into /add-money', () => {
+    it('opens the Home add-money drawer directly', () => {
         render()
         fireEvent.click(screen.getByText('Add money'))
-        expect(mockPush).toHaveBeenCalledWith('/add-money')
+        expect(mockSetHomeDrawer).toHaveBeenCalledWith('add')
     })
 })
