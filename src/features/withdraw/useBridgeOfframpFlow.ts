@@ -117,7 +117,13 @@ export function useBridgeOfframpFlow() {
     const minNeedsRate = bankWithdrawMinNeedsRate(countryIso2)
     const { exchangeRate } = useGetExchangeRate({
         accountType:
-            countryIso2 === 'GB' ? AccountType.GB : countryIso2 === 'MX' ? AccountType.CLABE : AccountType.IBAN,
+            countryIso2 === 'GB'
+                ? AccountType.GB
+                : countryIso2 === 'MX'
+                  ? AccountType.CLABE
+                  : countryIso2 === 'CO'
+                    ? AccountType.CO_BANK_TRANSFER
+                    : AccountType.IBAN,
         enabled: minNeedsRate,
     })
     const minUsd = bankWithdrawMinUsd(countryIso2, exchangeRate)

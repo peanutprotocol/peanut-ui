@@ -150,6 +150,7 @@ export function useWithdrawRootFlow() {
             if (iso2 === 'US') accountType = AccountType.US
             else if (iso2 === 'GB') accountType = AccountType.GB
             else if (iso2 === 'MX') accountType = AccountType.CLABE
+            else if (iso2 === 'CO') accountType = AccountType.CO_BANK_TRANSFER
             return { countryIso2: iso2, rateAccountType: accountType }
         }
         return { countryIso2: '', rateAccountType: AccountType.US }

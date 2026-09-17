@@ -120,6 +120,10 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                     </>
                 ) : bankAccount?.type === AccountType.CLABE ? (
                     <PaymentInfoRow label={t('bank.clabe')} value={bankAccount?.identifier.toUpperCase()} />
+                ) : bankAccount?.type === AccountType.CO_BANK_TRANSFER ? (
+                    // A Colombian account is named by its number alone; the bank
+                    // code is not shown back to the user.
+                    <PaymentInfoRow label={t('bank.accountNumber')} value={bankAccount?.identifier} />
                 ) : bankAccount?.type === AccountType.GB ? (
                     <>
                         <PaymentInfoRow label={t('bank.accountNumber')} value={bankAccount?.identifier} />

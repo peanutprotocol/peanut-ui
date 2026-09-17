@@ -78,6 +78,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                     acc.type === AccountType.US ||
                     acc.type === AccountType.CLABE ||
                     acc.type === AccountType.GB ||
+                    acc.type === AccountType.CO_BANK_TRANSFER ||
                     acc.type === AccountType.MANTECA
             ) ?? []
         return bankAccounts as unknown as Account[]
