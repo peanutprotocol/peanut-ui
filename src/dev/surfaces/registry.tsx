@@ -128,8 +128,8 @@ const asyncNoop = async () => {}
  */
 function AppPageSurface({ children }: { children: React.ReactNode }) {
     return (
-        <div className="w-full px-4">
-            <div data-testid="app-page-surface-content" className="mx-auto w-full max-w-md">
+        <div className="min-h-inherit w-full px-4">
+            <div data-testid="app-page-surface-content" className="mx-auto min-h-inherit w-full max-w-md">
                 {children}
             </div>
         </div>

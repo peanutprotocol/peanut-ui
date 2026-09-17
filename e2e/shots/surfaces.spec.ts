@@ -126,14 +126,17 @@ for (const [id, surface] of Object.entries(SURFACE_META)) {
         if (APP_PAGE_SURFACES.has(id)) {
             const content = page.getByTestId('app-page-surface-content')
             await expect(content).toBeVisible()
-            const inset = await content.evaluate((element) => {
+            const frame = await content.evaluate((element) => {
                 const box = element.getBoundingClientRect()
                 return {
                     left: Math.round(box.left),
                     right: Math.round(window.innerWidth - box.right),
+                    height: Math.round(box.height),
+                    viewportHeight: window.innerHeight,
                 }
             })
-            expect(inset).toEqual({ left: 16, right: 16 })
+            expect(frame).toMatchObject({ left: 16, right: 16 })
+            expect(frame.height).toBe(frame.viewportHeight)
         }
 
         // Measure the head-to-next gap rather than trusting the class list: a
