@@ -2024,7 +2024,8 @@
             "ownAccountOnly": "Solo puedes retirar a cuentas a tu nombre.",
             "unexpected": "El retiro falló inesperadamente. Si el problema continúa, contacta a soporte",
             "completeAccountSetup": "Completa la configuración de tu cuenta. Ve a Ajustes para actualizar tu perfil.",
-            "minWithdrawAmount": "El monto del retiro debe ser de al menos ${amount}"
+            "minWithdrawAmount": "El monto del retiro debe ser de al menos ${amount}",
+            "feeExceedsAmount": "La comisión de red supera este retiro. Ingresá un monto mayor o elegí una red más barata."
         },
         "resolvesTo": "se resuelve a",
         "addNewAccount": "Agregar nueva cuenta",

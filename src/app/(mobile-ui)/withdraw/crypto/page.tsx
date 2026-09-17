@@ -17,7 +17,11 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { chargesApi } from '@/services/charges'
 import type { CreateChargeRequest, TCharge } from '@/services/services.types'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
-import { isWithdrawFeeDisproportionate, getMinWithdrawUsdForChain } from '@/utils/cross-chain-fee.utils'
+import {
+    isWithdrawFeeDisproportionate,
+    getMinWithdrawUsdForChain,
+    feeConsumesWithdrawal,
+} from '@/utils/cross-chain-fee.utils'
 import { isAmountWithinBalance } from '@/utils/balance.utils'
 import { isBelowRhinoMinDeposit, resolveWithdrawAmount } from '@/utils/withdraw.utils'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
@@ -528,6 +532,14 @@ export default function WithdrawCryptoPage() {
                 return
             }
             broadcastAmount = amountCheck.normalized
+            // The CTA gate is a render-time value and the Retry button sits on
+            // a different branch, so re-check the fee against what is about to
+            // move. A fee that takes the whole amount strands the deposit at
+            // the SDA with nothing delivered.
+            if (isCrossChainWithdrawal && feeConsumesWithdrawal(feeUsd, parseFloat(broadcastAmount))) {
+                setError(t('errors.feeExceedsAmount'))
+                return
+            }
         }
 
         executionInFlightRef.current = true
@@ -733,6 +745,7 @@ export default function WithdrawCryptoPage() {
         address,
         transactions,
         payAmount,
+        feeUsd,
         quoteExpiresAt,
         quoteRoute,
         usdAmount,
@@ -866,13 +879,13 @@ export default function WithdrawCryptoPage() {
         // Rhino's route minimum is about the bridge rejecting a small deposit,
         // not about the fee. A quote whose fee takes the whole amount leaves
         // nothing to deliver, so block it rather than show the recipient a
-        // delivery they will never see.
-        const amountUsdValue = parseFloat(usdAmount)
-        if (networkFee > 0 && Number.isFinite(amountUsdValue) && networkFee >= amountUsdValue) {
-            return `The network fee to ${withdrawData?.chain.networkName ?? 'this network'} is $${networkFee.toFixed(2)}, which is more than you are withdrawing. Enter a larger amount or pick a cheaper network.`
+        // delivery they will never see. Measured against the amount pinned to
+        // the charge — `?amount=` stays editable here and is not what moves.
+        if (feeConsumesWithdrawal(networkFee, parseFloat(quoteAmount))) {
+            return `The network fee to ${withdrawData?.chain.networkName ?? 'this network'} is $${networkFee.toFixed(2)}, which would leave nothing to deliver. Enter a larger amount or pick a cheaper network.`
         }
         return null
-    }, [isCrossChainWithdrawal, payAmount, minDepositLimitUsd, networkFee, usdAmount, withdrawData])
+    }, [isCrossChainWithdrawal, payAmount, minDepositLimitUsd, networkFee, quoteAmount, withdrawData])
 
     // Redirect to main withdraw page for amount input. The push must run in an
     // effect — navigating during render is a React violation ("Cannot update

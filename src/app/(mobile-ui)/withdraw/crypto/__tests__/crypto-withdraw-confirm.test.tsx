@@ -410,7 +410,19 @@ describe('crypto withdraw confirm — network fee', () => {
 
         render(<WithdrawCryptoPage />)
 
-        expect(screen.getByTestId('below-minimum').textContent).toMatch(/more than you are withdrawing/)
+        expect(screen.getByTestId('below-minimum').textContent).toMatch(/leave nothing to deliver/)
+    })
+
+    it('refuses to broadcast when the fee would take the whole withdrawal', async () => {
+        mockUrlAmount = '1'
+        chargeDetails.chainId = 'solana'
+        Object.assign(mockCrossChainTransfer, { isXChain: true, feeUsd: 1, receiveAmount: '0' })
+
+        await confirm()
+
+        await waitFor(() => expect(mockSetWithdrawError).toHaveBeenCalled())
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+        expect(mockSendMoney).not.toHaveBeenCalled()
     })
 
     it('raises the heads-up when the quoted fee dominates a small withdrawal', () => {

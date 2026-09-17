@@ -2024,7 +2024,8 @@
             "ownAccountOnly": "Você só pode sacar para contas no seu nome.",
             "unexpected": "O saque falhou inesperadamente. Se o problema continuar, fale com o suporte",
             "completeAccountSetup": "Complete a configuração da sua conta. Vá em Configurações para atualizar seu perfil.",
-            "minWithdrawAmount": "O valor do saque precisa ser de pelo menos ${amount}"
+            "minWithdrawAmount": "O valor do saque precisa ser de pelo menos ${amount}",
+            "feeExceedsAmount": "A taxa de rede é maior que este saque. Informe um valor maior ou escolha uma rede mais barata."
         },
         "resolvesTo": "resolve para",
         "addNewAccount": "Adicionar nova conta",

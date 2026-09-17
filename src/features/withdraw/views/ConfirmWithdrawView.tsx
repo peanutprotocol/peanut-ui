@@ -215,10 +215,15 @@ export default function ConfirmWithdrawView({
                         // quotes are pay-mode (useCrossChainTransfer), so the
                         // fee comes out of what the recipient receives — it is
                         // never added on top of You pay.
+                        // A failed quote shows a dash, and neither string is
+                        // true then — one promises free delivery, the other
+                        // describes a fee nobody quoted.
                         moreInfoText={
-                            isCrossChain && (networkFee ?? 0) > 0
-                                ? t('confirm.networkFeeChargedInfo')
-                                : t('confirm.networkFeeInfo')
+                            isCrossChain && quoteFailed
+                                ? undefined
+                                : isCrossChain && (networkFee ?? 0) > 0
+                                  ? t('confirm.networkFeeChargedInfo')
+                                  : t('confirm.networkFeeInfo')
                         }
                     />
                     {isCrossChain && (isCalculating || totalPayDisplay) && (
@@ -242,7 +247,10 @@ export default function ConfirmWithdrawView({
                                 onConfirm()
                             }
                         }}
-                        disabled={confirmDisabled}
+                        // Retry replaces the confirm CTA, so it has to carry the
+                        // same gates — otherwise a failed send is a way past
+                        // them, and the money moves anyway.
+                        disabled={insufficientBalance || !!belowMinimumMessage || confirmDisabled}
                         loading={false}
                         className="w-full"
                         icon="retry"
