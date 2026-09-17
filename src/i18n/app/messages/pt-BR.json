@@ -2220,6 +2220,7 @@
         "yesterday": "Ontem",
         "range": {
             "title": "Filtrar por data",
+            "titleActive": "Filtrar por data: {range}",
             "description": "Escolha o período que você quer ver.",
             "allTime": "Todo o histórico",
             "last7d": "Últimos 7 dias",

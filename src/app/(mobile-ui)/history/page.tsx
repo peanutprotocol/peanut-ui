@@ -26,6 +26,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { ExportActivityDrawer } from '@/components/History/ExportActivityDrawer'
 import { HistoryRangeDrawer } from '@/components/History/HistoryRangeDrawer'
 import { useHistoryRange } from '@/hooks/useHistoryRange'
+import { useHistoryRangeLabel } from '@/hooks/useHistoryRangeLabel'
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
@@ -56,6 +57,7 @@ const HistoryPage = () => {
 
     // timeframe filter (URL state) + the two drawers it feeds
     const { fromIso, toIso, hasActiveRange, isInRange } = useHistoryRange()
+    const rangeLabel = useHistoryRangeLabel()
     const [rangeDrawerOpen, setRangeDrawerOpen] = useState(false)
     const [exportDrawerOpen, setExportDrawerOpen] = useState(false)
 
@@ -237,14 +239,21 @@ const HistoryPage = () => {
     const filterButton = (
         <Button
             variant="stroke"
-            // nav circle recipe (board 17802:61534): 40px visual, pseudo-element to 44px
-            className="relative size-10 w-10 p-0 shadow-none after:absolute after:-inset-0.5"
-            aria-label={t('range.title')}
+            className={twMerge(
+                // nav circle recipe (board 17802:61534): 40px visual, pseudo-element to 44px
+                'relative size-10 w-10 p-0 shadow-none after:absolute after:-inset-0.5',
+                // an applied range borrows SegmentedControl's selected recipe:
+                // action-primary border + the app's 10% selected tint, glyph stays
+                // black. not-active: lets the stroke button's own full-pink press
+                // show through (law 7) — a plain utility would override it.
+                // No navigation-board row covers this; flagged ❓ in the PR body.
+                hasActiveRange && 'border-action-primary not-active:bg-action-primary/10'
+            )}
+            aria-label={hasActiveRange ? t('range.titleActive', { range: rangeLabel }) : t('range.title')}
             onClick={() => setRangeDrawerOpen(true)}
             data-testid="history-filters"
         >
-            {/* an applied range tints the glyph brand pink */}
-            <Icon name="list-filter" size={20} className={hasActiveRange ? 'text-action-primary' : undefined} />
+            <Icon name="list-filter" size={20} />
         </Button>
     )
 

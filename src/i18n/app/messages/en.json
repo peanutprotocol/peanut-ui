@@ -2220,6 +2220,7 @@
         "yesterday": "Yesterday",
         "range": {
             "title": "Filter by date",
+            "titleActive": "Filter by date: {range}",
             "description": "Pick the period you want to see.",
             "allTime": "All time",
             "last7d": "Last 7 days",
