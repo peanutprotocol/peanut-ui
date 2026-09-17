@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -14,19 +15,45 @@ const collectionId = 'choice-overload-20260916-abc123'
 
 function memoryStorage(initial) {
     const objects = new Map(Object.entries(initial).map(([key, value]) => [key, Buffer.from(value)]))
-    return {
+    const etag = (value) => `"${createHash('sha256').update(value).digest('hex')}"`
+    const storage = {
         objects,
+        beforeConditionalPut: null,
         async read(key) {
             const value = objects.get(key)
             if (!value) throw new Error('missing')
             return value
         },
+        async readWithMetadata(key) {
+            const body = await storage.read(key)
+            return { body, etag: etag(body) }
+        },
         async put(key, value, options = {}) {
+            if (options.ifMatch) {
+                await storage.beforeConditionalPut?.({ key, options })
+                const current = objects.get(key)
+                if (!current || etag(current) !== options.ifMatch) throw new Error('Precondition failed')
+            }
             if (!options.allowOverwrite && objects.has(key)) throw new Error('exists')
             objects.set(key, Buffer.isBuffer(value) ? value : Buffer.from(value))
         },
     }
+    return storage
 }
+
+test('memory storage rejects a stale completion ETag', async () => {
+    const storage = memoryStorage({ 'manifest.json': 'first' })
+    const initial = await storage.readWithMetadata('manifest.json')
+    storage.objects.set('manifest.json', Buffer.from('replacement'))
+    await assert.rejects(
+        () =>
+            storage.put('manifest.json', 'stale completion', {
+                allowOverwrite: true,
+                ifMatch: initial.etag,
+            }),
+        /Precondition failed/
+    )
+})
 
 test('focused completion publishes WebP only and fills the requested collection variant', async () => {
     const root = mkdtempSync(join(tmpdir(), 'complete-screen-collection-'))

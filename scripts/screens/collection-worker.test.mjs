@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
 import worker from './collection-worker/index.mjs'
 
 const sha = 'a'.repeat(40)
@@ -68,19 +69,27 @@ function bucket() {
             }),
         ],
     ])
-    return {
+    const etag = (value) => `"${createHash('sha256').update(String(value)).digest('hex')}"`
+    const storage = {
         objects,
+        beforeConditionalPut: null,
         async get(key) {
             const value = objects.get(key)
-            return value === undefined ? null : { json: async () => JSON.parse(value) }
+            return value === undefined ? null : { json: async () => JSON.parse(value), httpEtag: etag(value) }
         },
         async head(key) {
             return objects.has(key) ? {} : null
         },
-        async put(key, value) {
+        async put(key, value, options = {}) {
+            if (options.onlyIf?.etagMatches) {
+                await storage.beforeConditionalPut?.({ key, options })
+                if (etag(objects.get(key)) !== options.onlyIf.etagMatches) return null
+            }
             objects.set(key, String(value))
+            return { httpEtag: etag(value) }
         },
     }
+    return storage
 }
 const accessContext = {
     access: {
@@ -334,4 +343,65 @@ test('an abandoned queued capture gets a new retry attempt', async () => {
     assert.notEqual(body.collection.capture.attempt, stale.capture.attempt)
     const request = JSON.parse(REPORTS.objects.get(`collection-requests/${collection.id}.json`))
     assert.equal(request.attempt, body.collection.capture.attempt)
+})
+
+test('a stale retry loses an R2 conditional-write race without dispatching a duplicate workflow', async () => {
+    const REPORTS = bucket()
+    const calls = []
+    const env = {
+        REPORTS,
+        SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.peanut.me',
+        SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access',
+        GITHUB_REPOSITORY: 'peanutprotocol/peanut-ui',
+        GITHUB_ACTIONS_TOKEN: 'github-token',
+        GITHUB_FETCH: async (url) => {
+            calls.push(url)
+            if (url.endsWith('/git/ref/heads/dev')) return Response.json({ object: { sha } })
+            return new Response(null, { status: 204 })
+        },
+    }
+    const created = await worker.fetch(
+        new Request('https://api.example/v1/collections', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title: 'Conditional retry',
+                items: [{ id: 'send' }],
+            }),
+        }),
+        env,
+        accessContext
+    )
+    const { collection } = await created.json()
+    const key = `collections/${collection.id}/manifest.json`
+    const stale = JSON.parse(REPORTS.objects.get(key))
+    stale.capture = {
+        status: 'queued',
+        requestedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        attempt: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    }
+    REPORTS.objects.set(key, JSON.stringify(stale))
+    REPORTS.beforeConditionalPut = ({ key: attemptedKey }) => {
+        if (attemptedKey !== key) return
+        const winner = JSON.parse(REPORTS.objects.get(key))
+        winner.capture = {
+            status: 'queued',
+            requestedAt: new Date().toISOString(),
+            attempt: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        }
+        REPORTS.objects.set(key, JSON.stringify(winner))
+    }
+
+    const response = await worker.fetch(
+        new Request(`https://api.example/v1/collections/${collection.id}/capture`, {
+            method: 'POST',
+        }),
+        env,
+        accessContext
+    )
+    assert.equal(response.status, 200)
+    const body = await response.json()
+    assert.equal(body.queued, false)
+    assert.equal(body.collection.capture.attempt, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb')
+    assert.deepEqual(calls, [])
 })
