@@ -51,7 +51,7 @@ import { TAB_ORDER, type TabId } from './tab-order'
  * a finger holds the pill the transition is suspended and the transform
  * tracks the pointer 1:1 (clamped to the tab range); release snaps to the
  * nearest tab with the same transition and navigates. Support is an overlay,
- * so releasing on it opens the drawer and the pill glides home.
+ * so its pill stays selected until the drawer closes.
  */
 
 // tab pressable: px-6 py-4 + 20px icon = the 68x52 area annotated on the board
@@ -132,13 +132,7 @@ export const BottomNav = () => {
         return () => observer.disconnect()
     }, [])
 
-    // one active tab at a time so the shared pill has a single home. The pill
-    // tracks the ROUTE only — the support drawer is an overlay, not
-    // navigation, so opening it must not move the pill (it used to slide over
-    // and spring back / vanish on close).
-    // `/card` stays a middle-slot route even when the slot shows exchange
-    // rates: a holder deep-linked there must still light the pill, and the
-    // /card gate is what decides whether they may be there at all.
+    // The route selection survives support, which temporarily owns the pill.
     const isMiddleRoute = (pathname?.startsWith('/card') ?? false) || isSameRoute(pathname, middleTab.href)
     const routeTab: TabId | null = isMiddleRoute ? 'middle' : isSameRoute(pathname, '/home') ? 'home' : null
 
@@ -146,10 +140,7 @@ export const BottomNav = () => {
     // below), and this effect only reconciles EXTERNAL navigation — deep
     // links, hardware back, programmatic pushes.
     const [activeTab, setActiveTab] = useState<TabId | null>(routeTab)
-    // which tab a finger is currently down on, for the icon squash. The pill
-    // overlays the ACTIVE tab and captures its pointer events (drag path), so
-    // this only ever fires for the tabs you can switch to — no squash-under-
-    // drag conflict by construction.
+    // The active pill captures pointers, so its drag path also supplies press feedback.
     const [pressedTab, setPressedTab] = useState<TabId | null>(null)
     const releasePress = (id: TabId) => () => setPressedTab((prev) => (prev === id ? null : prev))
     // native timing: feedback lands on finger-down, not after the click resolves
@@ -173,7 +164,9 @@ export const BottomNav = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [routeTab])
 
-    const activeBox = activeTab ? boxes[activeTab] : undefined
+    const selectedTab = isSupportModalOpen ? 'support' : activeTab
+    const activeBox = selectedTab ? boxes[selectedTab] : undefined
+    const pressOrigin = (pressedTab ? boxes[pressedTab] : undefined) ?? activeBox
 
     const clampX = (x: number) => {
         const first = boxes[TAB_ORDER[0]]
@@ -184,6 +177,8 @@ export const BottomNav = () => {
 
     const onPillPointerDown = (e: React.PointerEvent<HTMLSpanElement>) => {
         if (!activeBox || !pillRef.current) return
+        triggerHaptic()
+        setPressedTab(selectedTab)
         // optional call: jsdom has no pointer capture
         pillRef.current.setPointerCapture?.(e.pointerId)
         dragRef.current = { pointerId: e.pointerId, startClientX: e.clientX, baseX: restingX(activeBox), moved: false }
@@ -203,6 +198,7 @@ export const BottomNav = () => {
         const drag = dragRef.current
         if (!drag || !pillRef.current || e.pointerId !== drag.pointerId) return
         dragRef.current = null
+        setPressedTab(null)
         // hand the transform back to the transition — and RESTORE the resting
         // position imperatively: clearing it left the pill at x=0 on a no-op
         // release (tap, cancel, same-tab), because React saw no prop change
@@ -225,15 +221,15 @@ export const BottomNav = () => {
                 nearest = id
             }
         }
-        if (!nearest || nearest === activeTab) return
+        if (!nearest || nearest === selectedTab) return
         triggerHaptic()
         if (nearest === 'support') {
-            // overlay, not a route — the drawer opens and the pill glides home
             setIsSupportModalOpen(true)
             return
         }
         const targetBox = boxes[nearest]
         if (targetBox) pillRef.current.style.transform = `translateX(${restingX(targetBox)}px)`
+        setIsSupportModalOpen(false)
         setActiveTab(nearest)
         router.push(nearest === 'home' ? '/home' : middleTab.href)
     }
@@ -248,14 +244,24 @@ export const BottomNav = () => {
                 // Hard offset shadow (contrast study "Hard offset shadow"),
                 // carried by the bar AND the QR circle so the pair reads as one
                 // plane. shadow-4 is the DS token for it (Kush's ruling).
-                className="relative flex flex-1 items-center justify-between rounded-round border border-border-default bg-background-page shadow-4"
+                className={`relative flex flex-1 items-center justify-between rounded-round border border-border-default bg-background-page shadow-4 motion-safe:transition-transform ${
+                    pressedTab
+                        ? 'motion-safe:scale-x-[0.985] motion-safe:scale-y-[0.96] motion-safe:duration-instant motion-safe:ease-out'
+                        : 'motion-safe:scale-100 motion-safe:duration-nav-pop motion-safe:ease-nav-pop'
+                }`}
+                style={{
+                    transformOrigin: pressOrigin ? `${pressOrigin.left + pressOrigin.width / 2}px center` : undefined,
+                }}
             >
                 <Link
                     href="/home"
                     draggable={false}
                     aria-label={t('home')}
                     {...tabPressHandlers('home')}
-                    onClick={() => setActiveTab('home')}
+                    onClick={() => {
+                        setIsSupportModalOpen(false)
+                        setActiveTab('home')
+                    }}
                     className={tabClass}
                     ref={(el) => {
                         tabRefs.current.home = el
@@ -268,7 +274,10 @@ export const BottomNav = () => {
                     draggable={false}
                     aria-label={middleTab.label}
                     {...tabPressHandlers('middle')}
-                    onClick={() => setActiveTab('middle')}
+                    onClick={() => {
+                        setIsSupportModalOpen(false)
+                        setActiveTab('middle')
+                    }}
                     className={tabClass}
                     ref={(el) => {
                         tabRefs.current.middle = el
@@ -276,14 +285,13 @@ export const BottomNav = () => {
                 >
                     <Icon name={middleTab.icon} size={20} className={iconPopClass(pressedTab === 'middle')} />
                 </Link>
-                {/* while the drawer is open the tab shows a static pressed
-                    state (white fill) instead of borrowing the route pill */}
                 <button
                     type="button"
                     aria-label={t('support')}
+                    aria-expanded={isSupportModalOpen}
                     {...tabPressHandlers('support')}
                     onClick={() => setIsSupportModalOpen(true)}
-                    className={`${tabClass} ${isSupportModalOpen ? 'bg-background-default' : ''}`}
+                    className={tabClass}
                     ref={(el) => {
                         tabRefs.current.support = el
                     }}
