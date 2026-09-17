@@ -112,6 +112,41 @@ describe('buildDeferredPayload / parseDeferredPayload round-trip', () => {
         })
     })
 
+    it('preserves the inviter when a maximum-size attribution cannot fit the Play referrer', () => {
+        const maxTag = 'x'.repeat(64)
+        saveToCookie('inviteCode', 'alice')
+        saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, {
+            schemaVersion: '1',
+            journeyId: '33333333-3333-4333-8333-333333333333',
+            platform: 'android',
+            analyticsState: 'enabled',
+            captureMethod: 'browser',
+            firstTouch: {
+                occurredAt: new Date().toISOString(),
+                utmSource: maxTag,
+                utmMedium: maxTag,
+                utmCampaign: maxTag,
+                utmContent: maxTag,
+                referrerHost: `${maxTag}.example`,
+                path: `/en/${maxTag}`,
+            },
+            lastTouch: {
+                occurredAt: new Date().toISOString(),
+                utmSource: maxTag,
+                utmMedium: maxTag,
+                utmCampaign: maxTag,
+                utmContent: maxTag,
+                referrerHost: `${maxTag}.example`,
+                path: `/en/${maxTag}`,
+            },
+        })
+
+        const payload = buildDeferredPayload('/home')
+        expect(encodeURIComponent(payload).length).toBeLessThanOrEqual(512)
+        expect(parseDeferredPayload(payload)).toMatchObject({ invite: 'alice' })
+        expect(parseDeferredPayload(payload)?.attribution).toBeUndefined()
+    })
+
     it('round-trips a full payload including an encoded dest with query', () => {
         window.history.replaceState({}, '', '/es-419/some-page')
         saveToCookie('inviteCode', 'abc123')

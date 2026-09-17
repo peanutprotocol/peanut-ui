@@ -227,12 +227,17 @@ export function buildDeferredPayload(dest?: string, invite?: string): string {
     if (destination && destination !== '/' && !secretOnPage) params.set('dest', destination)
 
     if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH) {
-        // Destination and badge identities are useful but optional. Never drop
-        // source attribution; if this still exceeds Play's limit, the caller
-        // uses the bare store URL instead of a broken handoff.
+        // Destination and badge identities are useful but optional. Preserve
+        // the inviter ahead of marketing attribution: the invite creates the
+        // durable person-to-person rewards edge, while attribution can still
+        // be captured directly by the newly installed app.
         params.delete('dest')
         params.delete('badge_campaign')
         params.delete('badgeCampaign')
+    }
+
+    if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH && params.has('invite')) {
+        params.delete(ATTRIBUTION_PARAM)
     }
 
     const result = params.toString()
