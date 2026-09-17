@@ -1977,11 +1977,12 @@
     "transaction": {
         "drawerTitle": "Detalhes da transação",
         "officialReceipt": {
-            "issuedBy": "Emitido pela Squirrel Labs Ltd",
+            "issuedBy": "Emitido por:",
             "reference": "Referência",
             "issuedOn": "Emitido em",
             "pdf": {
                 "title": "Comprovante da transação",
+                "issuedBy": "Emitido pela Squirrel Labs Ltd",
                 "type": "Tipo",
                 "status": "Status",
                 "from": "De"
