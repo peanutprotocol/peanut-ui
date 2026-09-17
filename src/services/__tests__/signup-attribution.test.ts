@@ -2,6 +2,7 @@ import { attachSignupAttribution } from '../signup-attribution'
 
 const mockApiFetch = jest.fn()
 const mockClearSignupAttribution = jest.fn()
+const mockClearPendingSignupAttribution = jest.fn()
 const mockHasPendingSignupAttribution = jest.fn()
 const mockReadSignupAttributionAsync = jest.fn()
 const mockSerializeSignupAttribution = jest.fn()
@@ -11,6 +12,7 @@ jest.mock('@/utils/api-fetch', () => ({
 }))
 jest.mock('@/utils/signup-attribution', () => ({
     clearSignupAttribution: (...args: unknown[]) => mockClearSignupAttribution(...args),
+    clearPendingSignupAttribution: (...args: unknown[]) => mockClearPendingSignupAttribution(...args),
     hasPendingSignupAttribution: (...args: unknown[]) => mockHasPendingSignupAttribution(...args),
     readSignupAttributionAsync: (...args: unknown[]) => mockReadSignupAttributionAsync(...args),
     serializeSignupAttribution: (...args: unknown[]) => mockSerializeSignupAttribution(...args),
@@ -21,6 +23,7 @@ beforeEach(() => {
     mockHasPendingSignupAttribution.mockResolvedValue(true)
     mockReadSignupAttributionAsync.mockResolvedValue({ journeyId: 'journey-1' })
     mockSerializeSignupAttribution.mockReturnValue('{"journeyId":"journey-1"}')
+    mockClearPendingSignupAttribution.mockResolvedValue(undefined)
 })
 
 describe('signup attribution attachment', () => {
@@ -32,7 +35,7 @@ describe('signup attribution attachment', () => {
         expect(mockClearSignupAttribution).not.toHaveBeenCalled()
     })
 
-    it('clears the device copy only after an acknowledged terminal response', async () => {
+    it('stops retries but retains the context through signup completion after acknowledgement', async () => {
         mockApiFetch.mockResolvedValue({ ok: true, status: 200 })
 
         await expect(attachSignupAttribution()).resolves.toBe(true)
@@ -42,7 +45,8 @@ describe('signup attribution attachment', () => {
             body: JSON.stringify({ attribution: '{"journeyId":"journey-1"}' }),
             redactTelemetry: true,
         })
-        expect(mockClearSignupAttribution).toHaveBeenCalledTimes(1)
+        expect(mockClearPendingSignupAttribution).toHaveBeenCalledTimes(1)
+        expect(mockClearSignupAttribution).not.toHaveBeenCalled()
     })
 
     it('clears an invalid stored payload without entering a POST retry loop', async () => {
@@ -71,6 +75,7 @@ describe('signup attribution attachment', () => {
         resolveResponse({ ok: true, status: 200 })
 
         await expect(Promise.all([registrationAttempt, authProviderAttempt])).resolves.toEqual([true, true])
-        expect(mockClearSignupAttribution).toHaveBeenCalledTimes(1)
+        expect(mockClearPendingSignupAttribution).toHaveBeenCalledTimes(1)
+        expect(mockClearSignupAttribution).not.toHaveBeenCalled()
     })
 })

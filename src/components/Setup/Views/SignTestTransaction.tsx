@@ -19,7 +19,7 @@ import posthog from 'posthog-js'
 import { storeDeclaredResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { getFromCookie } from '@/utils/general.utils'
-import { readSignupAttribution } from '@/utils/signup-attribution'
+import { clearSignupAttribution, readSignupAttribution } from '@/utils/signup-attribution'
 import { twMerge } from '@/utils/tw'
 import { useTranslations } from 'next-intl'
 import { signupAnalyticsContext } from '@/features/setup/signup-analytics'
@@ -90,7 +90,7 @@ const SignTestTransaction = () => {
         handleRedirect({ isNewAccount: true })
     }
 
-    const completeSignup = () => {
+    const completeSignup = async () => {
         creatingAccountRef.current = false
         console.log('[SignTestTransaction] Account setup complete')
         const inviteCode = getFromCookie('inviteCode')
@@ -107,6 +107,10 @@ const SignTestTransaction = () => {
                   }
                 : {}),
         })
+        // The authenticated API attachment only clears its retry marker. Keep
+        // the bounded context through this capture so signup_completed carries
+        // the same journey join key, then remove both web and native copies.
+        await clearSignupAttribution()
 
         // Persist the residence answer from the residence step, now that
         // the account exists. Fire-and-forget: prequalification data,
@@ -258,7 +262,7 @@ const SignTestTransaction = () => {
                 }
 
                 // addAccount() already fetched and verified user data.
-                completeSignup()
+                await completeSignup()
             } else {
                 if (creatingAccountRef.current) {
                     // A prior ambiguous request can commit after both immediate
@@ -266,7 +270,7 @@ const SignTestTransaction = () => {
                     // marker and presents the same success state as the direct
                     // response instead of leaving the button loading forever.
                     console.log('[SignTestTransaction] Reconciled account from an earlier setup request')
-                    completeSignup()
+                    await completeSignup()
                 } else {
                     // Login flow: the account-exists effect owns navigation.
                     console.log('[SignTestTransaction] Account exists, redirecting to the app')

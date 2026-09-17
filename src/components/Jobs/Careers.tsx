@@ -42,8 +42,8 @@ export function Careers() {
                             <Card className="gap-2 p-6" shadowSize="4">
                                 <h3 className="text-label-l text-foreground-secondary">The product is live</h3>
                                 <p className="text-body-s text-foreground-primary">
-                                    Invite-only doesn&apos;t mean quiet. What you ship this week lands on people who are
-                                    moving real money this week, in a currency that isn&apos;t the one they earn in.
+                                    What you ship this week lands on people who are moving real money this week, in a
+                                    currency that isn&apos;t the one they earn in.
                                 </p>
                             </Card>
                             <Card className="gap-2 p-6" shadowSize="4">

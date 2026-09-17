@@ -1,5 +1,6 @@
 import { apiFetch } from '@/utils/api-fetch'
 import {
+    clearPendingSignupAttribution,
     clearSignupAttribution,
     hasPendingSignupAttribution,
     readSignupAttributionAsync,
@@ -41,7 +42,8 @@ async function doAttachSignupAttribution(): Promise<boolean> {
     if (!response.ok) throw new Error(`signup attribution attach failed: ${response.status}`)
 
     // The API has acknowledged the evidence, including terminal outcomes such
-    // as expiry or analytics opt-out. Only now may the device copy be removed.
-    await clearSignupAttribution()
+    // as expiry or analytics opt-out. Stop delivery retries, but retain the
+    // bounded context until signup_completed emits the client-side join key.
+    await clearPendingSignupAttribution()
     return true
 }
