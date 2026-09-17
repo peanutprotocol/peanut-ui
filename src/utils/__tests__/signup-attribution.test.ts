@@ -2,6 +2,7 @@ import {
     buildSignupAttributionHeader,
     captureSignupAttribution,
     clearPendingSignupAttribution,
+    ensureSignupAttributionForRegistration,
     hasPendingSignupAttribution,
     markSignupAttributionPending,
     parseSignupAttribution,
@@ -9,6 +10,18 @@ import {
     restoreSignupAttribution,
     signupAttributionPosthogProperties,
 } from '../signup-attribution'
+
+const mockPreferencesGet = jest.fn()
+const mockPreferencesSet = jest.fn()
+const mockPreferencesRemove = jest.fn()
+
+jest.mock('@capacitor/preferences', () => ({
+    Preferences: {
+        get: (...args: unknown[]) => mockPreferencesGet(...args),
+        set: (...args: unknown[]) => mockPreferencesSet(...args),
+        remove: (...args: unknown[]) => mockPreferencesRemove(...args),
+    },
+}))
 
 const clearAttributionCookie = () => {
     document.cookie = 'signupAttribution=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'
@@ -20,6 +33,9 @@ beforeEach(() => {
     clearAttributionCookie()
     window.history.replaceState({}, '', '/')
     Object.defineProperty(document, 'referrer', { configurable: true, value: '' })
+    mockPreferencesGet.mockResolvedValue({ value: null })
+    mockPreferencesSet.mockResolvedValue(undefined)
+    mockPreferencesRemove.mockResolvedValue(undefined)
 })
 
 describe('signup attribution context', () => {
@@ -88,6 +104,19 @@ describe('signup attribution context', () => {
             captureMethod: 'deferred_link',
         })
         expect(readSignupAttribution()).toEqual(restored)
+    })
+
+    it('creates and persists a journey for a direct native registration', async () => {
+        process.env.NEXT_PUBLIC_CAPACITOR_BUILD = 'true'
+        window.history.replaceState({}, '', '/setup')
+
+        const context = await ensureSignupAttributionForRegistration()
+
+        expect(context).toMatchObject({ platform: 'android', captureMethod: 'browser', firstTouch: { path: '/setup' } })
+        expect(mockPreferencesSet).toHaveBeenCalledWith({
+            key: 'signup-attribution',
+            value: JSON.stringify(context),
+        })
     })
 
     it('rejects identifier-shaped campaign values at capture time', () => {

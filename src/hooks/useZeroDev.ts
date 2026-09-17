@@ -42,7 +42,7 @@ import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
 import { rescueUserOpReceipt } from '@/utils/userop-rescue.utils'
 import { attachSignupAttribution } from '@/services/signup-attribution'
-import { markSignupAttributionPending } from '@/utils/signup-attribution'
+import { ensureSignupAttributionForRegistration, markSignupAttributionPending } from '@/utils/signup-attribution'
 import { settlePendingInviteAttribution } from '@/services/pending-invite-attribution'
 
 // types
@@ -111,6 +111,7 @@ export const useZeroDev = () => {
                 const { restoreDeferredContext } = await import('@/utils/deferred-link')
                 await restoreDeferredContext()
             }
+            const signupAttribution = await ensureSignupAttributionForRegistration()
             // @capgo/capacitor-passkey shim patches navigator.credentials on native,
             // so toWebAuthnKey works on all platforms (web, android, ios).
             // Same TASK-21782 guard as login: native shim gate + 60s bound —
@@ -137,7 +138,7 @@ export const useZeroDev = () => {
             // The ceremony has created the account. This marker lets a native
             // restart retry the authenticated attribution attach without
             // allowing ordinary returning-user logins to claim the journey.
-            markSignupAttributionPending()
+            if (signupAttribution) markSignupAttributionPending()
 
             // Bind the ceremony key to the fresh API session, never the render's previous user.
             // Native cookies may disappear on restart; persist before any RPC-dependent build.

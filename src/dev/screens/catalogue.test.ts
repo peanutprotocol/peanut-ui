@@ -15,6 +15,8 @@ describe('screen catalogue', () => {
                 'p66-bank-local',
                 'h01-notifications',
                 'h02-settings',
+                'fixture-setup-pending',
+                'p50-setup-session',
             ].filter((id) => ids.has(id))
         ).toEqual([])
         expect(

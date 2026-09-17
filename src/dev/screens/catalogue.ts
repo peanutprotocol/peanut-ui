@@ -129,8 +129,6 @@ const setupJourney: Record<string, { journey: string; step: number }> = {
     '05-a-signtesttransaction': { journey: 'Account setup', step: 60 },
     '20-a-setupnotificationsmodal': { journey: 'Account setup', step: 70 },
     'p51-setup-finish': { journey: 'Account setup', step: 80 },
-    'fixture-setup-pending': { journey: 'Resume setup', step: 110 },
-    'p50-setup-session': { journey: 'Resume setup', step: 120 },
     'fixture-guest-invite': { journey: 'Invite entry', step: 210 },
     'p68-invite': { journey: 'Invite entry', step: 220 },
     '10-a-confirminvitemodal': { journey: 'Invite entry', step: 230 },

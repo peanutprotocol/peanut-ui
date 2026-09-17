@@ -303,6 +303,26 @@ export async function readSignupAttributionAsync(): Promise<SignupAttributionCon
     }
 }
 
+/**
+ * Ensure a registration has a durable attribution journey before its passkey
+ * ceremony starts. Deferred-link restoration runs first on native; a direct
+ * install falls back to a first-party browser touch for the current /setup
+ * route. Persisting the result in Preferences lets a killed WebView finish the
+ * authenticated attachment after restart.
+ */
+export async function ensureSignupAttributionForRegistration(): Promise<SignupAttributionContext | null> {
+    if (!analyticsCollectionAvailable()) {
+        clearSignupAttribution()
+        return null
+    }
+
+    const context = (await readSignupAttributionAsync()) ?? captureSignupAttribution()
+    if (!context) return null
+
+    await persistSignupAttribution(context)
+    return context
+}
+
 export function serializeSignupAttribution(
     context: SignupAttributionContext | null = readSignupAttribution()
 ): string | null {
