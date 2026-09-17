@@ -154,6 +154,22 @@ describe('ICU message compilation', () => {
     })
 })
 
+describe('badge invite requirement agreement', () => {
+    const EXPECTED = {
+        en: ['Invite 1 friend who joins Peanut.', 'Invite 2 friends who join Peanut.'],
+        'es-419': ['Invita a 1 amigo que se una a Peanut.', 'Invita a 2 amigos que se unan a Peanut.'],
+        'es-AR': ['Invita a 1 amigo que se una a Peanut.', 'Invita a 2 amigos que se unan a Peanut.'],
+        'pt-BR': ['Convide 1 amigo que entre no Peanut.', 'Convide 2 amigos que entrem no Peanut.'],
+    } satisfies Record<AppLocale, [string, string]>
+
+    it.each(APP_LOCALES)('%s uses singular and plural relative verbs', async (locale) => {
+        const messages = await loadMessages(locale)
+        const t = createTranslator({ locale, messages, namespace: 'badges' })
+
+        expect([t('unlock.invites', { target: 1 }), t('unlock.invites', { target: 2 })]).toEqual(EXPECTED[locale])
+    })
+})
+
 // TASK-22143: the ENS badge reached production with no `badges.catalog` entry, so
 // `useBadgeCopy` fell back to the backend's English name and the Spanish and
 // Portuguese Badges screens rendered "Name Dropper" in the middle of translated

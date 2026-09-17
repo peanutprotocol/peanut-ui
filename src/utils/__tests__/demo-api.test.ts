@@ -64,6 +64,16 @@ describe('demoRespond — routing', () => {
         expect(data.user.username).toBe(DEMO_USER.user.username)
     })
 
+    it('only advertises badges with live unlock paths in the demo catalog', async () => {
+        const { data } = await body('/badge/catalog')
+        const codes = data.badges.map(({ code }: { code: string }) => code)
+
+        expect(codes).toEqual(expect.arrayContaining(['CARD_FIRST_SWIPE', 'CARD_SPENT_1K', 'ENS', 'SURF_UP']))
+        expect(codes).not.toEqual(
+            expect.arrayContaining(['FIRST_INVITE', 'SECOND_INVITE', 'VERIFIED', 'OG_2025_10_12'])
+        )
+    })
+
     it('returns populated contacts for GET /users/contacts', async () => {
         const { data } = await body('/users/contacts?limit=20&offset=0')
         expect(data.contacts).toHaveLength(DEMO_CONTACTS.length)
