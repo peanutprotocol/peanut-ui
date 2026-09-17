@@ -81,7 +81,8 @@ it('clears the previous build before applying the session', async () => {
     await waitFor(() => expect(localStorage.getItem('harness-pk')).toBe('0xabc'))
     expect(localStorage.getItem('stale-user-key')).toBeNull()
     expect(sessionStorage.getItem('stale-session-key')).toBeNull()
-    // the session is applied AFTER the wipe, so its own marker survives it
+    // written before the first await and put back by the wipe, so nothing can
+    // find the document unmarked and start the same link a second time
     expect(sessionStorage.getItem('__reproduce_applied')).toBe('session-1')
     expect(document.cookie).toContain('jwt-token=fresh-jwt')
 })
@@ -101,6 +102,27 @@ it('applies a second reproduce link opened after the first', async () => {
 
     await waitFor(() => expect(global.fetch).toHaveBeenCalledWith('http://api.test/dev/reproduce/session-2'))
     expect(global.fetch).toHaveBeenCalledTimes(2)
+})
+
+/*
+ * Two runs of the SAME link fetched two manifests, and the second wipe erased
+ * what the first had seeded — no cookie, no localStorage, no reload. The
+ * marker is written before the first await, so the second run never starts.
+ */
+it('runs one link exactly once across a remount and a popstate', async () => {
+    const first = render(<ReproduceBootstrap />)
+    await waitFor(() => expect(reload).toHaveBeenCalledTimes(1))
+
+    first.unmount()
+    render(<ReproduceBootstrap />)
+    window.dispatchEvent(new Event('popstate'))
+    window.dispatchEvent(new Event('pageshow'))
+    await Promise.resolve()
+
+    expect(global.fetch).toHaveBeenCalledTimes(1)
+    expect(cacheKeys).toHaveBeenCalledTimes(1)
+    expect(reload).toHaveBeenCalledTimes(1)
+    expect(localStorage.getItem('harness-pk')).toBe('0xabc')
 })
 
 it('re-reads the URL when a reproduce link arrives without a fresh mount', async () => {

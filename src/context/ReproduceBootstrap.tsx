@@ -43,7 +43,11 @@ function clearCookie(name: string) {
 // that pins the old build), then clear both web storages.
 //
 // Order matters: a running worker can repopulate a cache it still owns.
-async function wipeUserScopedClientState() {
+//
+// `sessionId` is the one thing this deliberately puts back: clearing
+// sessionStorage would take the applied marker with it, and a second run that
+// found no marker would wipe everything the first run had just seeded.
+async function wipeUserScopedClientState(sessionId: string) {
     // Cookies — expire the jwt unconditionally. Will be re-set with new value.
     clearCookie(COOKIE_NAME)
 
@@ -75,6 +79,7 @@ async function wipeUserScopedClientState() {
     } catch {}
     try {
         sessionStorage.clear()
+        sessionStorage.setItem(SESSION_STORAGE_KEY, sessionId)
     } catch {}
 
     // IndexedDB — TanStack Query persister and anything else that survived a
@@ -104,26 +109,20 @@ export function ReproduceBootstrap() {
         if (typeof window === 'undefined') return
 
         let cancelled = false
-        // The id being applied right now. The FIRST reproduce link used to be
-        // the only one this document would ever honour: the effect read the
-        // URL once and never looked again, so a second link opened in the same
-        // tab left the app on its loader forever. The session id is the guard,
-        // not the fact that the effect has run before.
-        let applying: string | null = null
 
         const apply = async (sessionId: string, apiBase: string) => {
             try {
                 const res = await fetch(`${apiBase}/dev/reproduce/${encodeURIComponent(sessionId)}`)
                 if (!res.ok) {
                     console.error('[reproduce] manifest fetch failed', res.status, sessionId)
-                    applying = null
+                    sessionStorage.removeItem(SESSION_STORAGE_KEY)
                     return
                 }
                 const manifest = await res.json()
                 if (cancelled) return
 
                 // Step 1: wipe the prior session AND the prior build.
-                await wipeUserScopedClientState()
+                await wipeUserScopedClientState(sessionId)
 
                 // Step 2: seed localStorage flags from the new manifest. The
                 // manifest.localStorage map carries harness flags (ecdsa pk
@@ -147,8 +146,6 @@ export function ReproduceBootstrap() {
                 // signed in as the scenario's user.
                 if (manifest.token) setCookie(COOKIE_NAME, manifest.token, 1800)
 
-                sessionStorage.setItem(SESSION_STORAGE_KEY, sessionId)
-
                 // Step 4: strip the ?__reproduce=... query param so the reload
                 // (and any future refresh) doesn't retrigger the bootstrap. Use
                 // history.replaceState directly — Next.js's router.replace is
@@ -167,7 +164,11 @@ export function ReproduceBootstrap() {
                 // the loader that never resolves, and the QA log is the only
                 // place anyone can tell the two apart.
                 console.error('[reproduce] bootstrap failed', sessionId, err)
-                applying = null
+                // Let a later attempt at the same link through: a half-applied
+                // session is worse than one that says it never started.
+                try {
+                    sessionStorage.removeItem(SESSION_STORAGE_KEY)
+                } catch {}
             }
         }
 
@@ -177,9 +178,12 @@ export function ReproduceBootstrap() {
         // means a second link reaching this same document is seen.
         const run = () => {
             const sessionId = new URLSearchParams(window.location.search).get('__reproduce')
-            if (!sessionId || applying === sessionId) return
-            // Idempotent across reloads: the applied marker survives the hard
-            // reload this ends in, so the same link is not replayed.
+            if (!sessionId) return
+            // The marker is the ONE guard, and it is written below before any
+            // side effect: a remount, a popstate and a pageshow all land here,
+            // and two runs of the same link fetched two manifests and wiped
+            // each other's seeded state. It also survives the hard reload this
+            // ends in, so the link is not replayed afterwards.
             if (sessionStorage.getItem(SESSION_STORAGE_KEY) === sessionId) return
 
             const apiBase = process.env.NEXT_PUBLIC_PEANUT_API_URL || ''
@@ -188,7 +192,8 @@ export function ReproduceBootstrap() {
                 return
             }
 
-            applying = sessionId
+            // Synchronously, before the first await: anything later is a race.
+            sessionStorage.setItem(SESSION_STORAGE_KEY, sessionId)
             console.info('[reproduce] bootstrap start', sessionId)
             void apply(sessionId, apiBase)
         }
