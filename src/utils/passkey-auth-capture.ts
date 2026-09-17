@@ -14,6 +14,25 @@ import { currentCeremonyId, stashCeremonyStepUpToken, stashCeremonyVerifyToken }
 // the ceremony caller owns the single exception report.
 const PASSKEY_URL_PATTERN = /\/passkeys\/(login|register)\/(options|verify)/
 
+/**
+ * The passkey sheet returned a credential, but the API rejected its assertion.
+ *
+ * ZeroDev otherwise reads the non-2xx JSON as a success body and crashes on
+ * `verification.verified`, erasing the HTTP status and making a stale credential
+ * indistinguishable from an application bug. Keeping this as a small typed
+ * error lets the native login flow offer one fresh chooser without trusting or
+ * exposing the server body.
+ */
+export class PasskeyVerifyRejectedError extends Error {
+    readonly status: number
+
+    constructor(status: number) {
+        super('Passkey verification was rejected')
+        this.name = 'PasskeyVerifyRejectedError'
+        this.status = status
+    }
+}
+
 function reportPasskeyHttpFailure(path: string, status: number, body: string): void {
     Sentry.addBreadcrumb({
         category: 'passkey.http',
@@ -84,6 +103,7 @@ export function installPasskeyVerifyCapture(): void {
             }
         }
 
+        let verifyRejection: PasskeyVerifyRejectedError | null = null
         try {
             if (passkeyPath && !response.ok) {
                 const body = await response
@@ -91,6 +111,14 @@ export function installPasskeyVerifyCapture(): void {
                     .text()
                     .catch(() => '')
                 reportPasskeyHttpFailure(passkeyPath, response.status, body)
+                // An assertion was produced, but it did not authenticate. On
+                // native iOS this commonly means the user chose an old Peanut
+                // credential from a device that holds several. Throw before
+                // ZeroDev decodes the error body as `{ verification: ... }`;
+                // the login recovery wrapper decides whether to re-prompt.
+                if (passkeyPath === '/passkeys/login/verify' && (response.status === 400 || response.status === 401)) {
+                    verifyRejection = new PasskeyVerifyRejectedError(response.status)
+                }
             }
             // The token is only STASHED here (keyed to the issuing ceremony);
             // guardPasskeyCeremony persists it when the owning ceremony resolves
@@ -109,6 +137,7 @@ export function installPasskeyVerifyCapture(): void {
         } catch {
             // capture is best-effort; never break the original request
         }
+        if (verifyRejection) throw verifyRejection
         return response
     }
 }

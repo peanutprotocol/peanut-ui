@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { isIOSNative } from '@/utils/capacitor'
 
 /**
  * Retry configuration for WebAuthn operations
@@ -18,6 +19,57 @@ const WEBAUTHN_RETRY_CONFIG = {
     maxRetries: 2, // Limited to prevent infinite loops
     retryDelay: 1000, // 1s - balance between UX and OS recovery time
     retriableErrors: ['NotReadableError'], // ONLY NotReadableError (transient Android issue)
+}
+
+const IOS_LOGIN_RECOVERY_DELAY_MS = 250
+const IOS_AUTHORIZATION_FAILED = /AuthenticationServices\.AuthorizationError error 1004/
+
+type IOSLoginRetryReason = 'authorization_failed' | 'verification_rejected'
+
+function iosLoginRetryReason(error: unknown): IOSLoginRetryReason | null {
+    if (!(error instanceof Error)) return null
+    if (IOS_AUTHORIZATION_FAILED.test(error.message)) return 'authorization_failed'
+    if (error.name === 'PasskeyVerifyRejectedError') return 'verification_rejected'
+    return null
+}
+
+/**
+ * Recover the two bounded iOS failures seen in the same cold-start login:
+ *
+ * - AuthenticationServices 1004 before the credential chooser appears.
+ * - A server-rejected assertion after the user selects a stale credential from
+ *   a device that holds several Peanut passkeys.
+ *
+ * Each reason has its own one-retry budget, so the observed 1004 -> stale key ->
+ * valid key sequence can complete from one Log In tap. A real cancellation
+ * (1001 / NotAllowedError) is never retried, and no reason can loop.
+ */
+export async function withIOSPasskeyLoginRecovery<T>(operation: () => Promise<T>): Promise<T> {
+    if (!isIOSNative()) return operation()
+
+    const usedReasons = new Set<IOSLoginRetryReason>()
+    while (true) {
+        try {
+            return await operation()
+        } catch (error) {
+            const reason = iosLoginRetryReason(error)
+            if (!reason || usedReasons.has(reason)) throw error
+            usedReasons.add(reason)
+
+            Sentry.addBreadcrumb({
+                category: 'passkey.login',
+                message: 'Retrying recoverable iOS passkey login failure',
+                level: 'info',
+                data: { reason, retryNumber: usedReasons.size },
+            })
+            posthog.capture(ANALYTICS_EVENTS.PASSKEY_LOGIN_RETRY, {
+                retry_reason: reason,
+                retry_number: usedReasons.size,
+                native: true,
+            })
+            await delay(IOS_LOGIN_RECOVERY_DELAY_MS)
+        }
+    }
 }
 
 export enum WebAuthnErrorName {
@@ -177,11 +229,14 @@ export function classifyPasskeyError(error: unknown): PasskeyErrorClassification
     const err = normalized instanceof Error ? normalized : new Error(String(normalized))
     let code: PasskeyErrorCode = 'LOGIN_ERROR'
     // iOS surfaces ceremony failures as a bare Error whose message carries the
-    // ASAuthorizationError code, not a DOMException name: 1001 = user canceled,
-    // 1004 = failed (typically no usable passkey on this device). Both mean
-    // "no login happened" — route to the copy that offers creating a wallet.
-    if (/AuthenticationServices\.AuthorizationError error 100[14]/.test(err.message)) {
+    // ASAuthorizationError code, not a DOMException name. 1001 is an actual
+    // cancellation; 1004 is a platform failure and, after its bounded retry is
+    // exhausted, must not falsely tell a user with passkeys that none exist.
+    if (/AuthenticationServices\.AuthorizationError error 1001/.test(err.message)) {
         return { code: 'LOGIN_CANCELED', message: PASSKEY_LOGIN_MESSAGES['LOGIN_CANCELED'] }
+    }
+    if (IOS_AUTHORIZATION_FAILED.test(err.message)) {
+        return { code: 'PASSKEY_INTERRUPTED', message: PASSKEY_LOGIN_MESSAGES['PASSKEY_INTERRUPTED'] }
     }
     switch (err.name) {
         case WebAuthnErrorName.NotAllowed:

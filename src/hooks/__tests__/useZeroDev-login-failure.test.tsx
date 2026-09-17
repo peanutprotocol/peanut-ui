@@ -12,6 +12,7 @@ const mockUpdateUserPreferences = jest.fn()
 const mockToPasskeyValidator = jest.fn()
 let mockUseRealProvider = false
 let mockSavedKey: unknown
+let mockIOSNative = false
 
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
@@ -95,6 +96,7 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: () => false,
     isAndroidNative: () => false,
+    isIOSNative: () => mockIOSNative,
     getNativeRpId: () => 'localhost',
 }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
@@ -104,6 +106,7 @@ describe('useZeroDev handleLogin — passkey-server failures keep the session', 
 
     beforeEach(() => {
         jest.clearAllMocks()
+        mockIOSNative = false
         errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
     })
 

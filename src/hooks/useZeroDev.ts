@@ -20,6 +20,7 @@ import {
     classifyPasskeyError,
     normalizeNativePasskeyError,
     normalizePasskeyServerError,
+    withIOSPasskeyLoginRecovery,
 } from '@/utils/webauthn.utils'
 import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 import {
@@ -319,13 +320,15 @@ export const useZeroDev = () => {
             // captured (ceremony window closed) — see passkeyCeremony.utils.
             const webAuthnKey = await withCeremonyPurpose('login', () =>
                 guardPasskeyCeremony(() =>
-                    toWebAuthnKey({
-                        passkeyName: '[]',
-                        passkeyServerUrl: PASSKEY_SERVER_URL as string,
-                        mode: WebAuthnMode.Login,
-                        passkeyServerHeaders,
-                        rpID: rpId,
-                    })
+                    withIOSPasskeyLoginRecovery(() =>
+                        toWebAuthnKey({
+                            passkeyName: '[]',
+                            passkeyServerUrl: PASSKEY_SERVER_URL as string,
+                            mode: WebAuthnMode.Login,
+                            passkeyServerHeaders,
+                            rpID: rpId,
+                        })
+                    )
                 )
             )
 
