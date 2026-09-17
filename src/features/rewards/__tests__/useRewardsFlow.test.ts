@@ -8,13 +8,16 @@ const mockCapture = jest.fn()
 
 let mockUser: any = { user: { userId: 'u1', username: 'kush' } }
 let mockQueries: Record<string, any> = {}
+let mockQueryInputs: Array<{ queryKey: [string, ...unknown[]]; enabled?: boolean }> = []
 
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockUser }),
 }))
 jest.mock('@tanstack/react-query', () => ({
-    useQuery: ({ queryKey }: { queryKey: [string, ...unknown[]] }) =>
-        mockQueries[queryKey[0]] ?? { data: undefined, isPending: false, isError: false, error: null },
+    useQuery: (input: { queryKey: [string, ...unknown[]]; enabled?: boolean }) => {
+        mockQueryInputs.push(input)
+        return mockQueries[input.queryKey[0]] ?? { data: undefined, isPending: false, isError: false, error: null }
+    },
 }))
 jest.mock('@/services/invites', () => ({ invitesApi: { getInvites: jest.fn() } }))
 jest.mock('@/services/points', () => ({
@@ -33,6 +36,7 @@ describe('useRewardsFlow', () => {
         jest.clearAllMocks()
         mockUser = { user: { userId: 'u1', username: 'kush' } }
         mockQueries = {}
+        mockQueryInputs = []
     })
 
     it('captures the page view without duplicating the existing user request', () => {
@@ -57,6 +61,21 @@ describe('useRewardsFlow', () => {
         expect(result.current.invites).toEqual({ invitees: [] })
         expect(result.current.username).toBe('kush')
         expect(result.current.inviteesInView).toBe(true)
+    })
+
+    it('defers the graph for a truly single-node user', () => {
+        mockQueries.tierInfo = { data: { success: true, data: {} }, isPending: false, isError: false, error: null }
+        mockQueries.invites = { data: { invitees: [] }, isPending: false, isError: false, error: null }
+        renderHook(() => useRewardsFlow())
+        expect(mockQueryInputs.find((input) => input.queryKey[0] === 'myInviteGraph')?.enabled).toBe(false)
+    })
+
+    it('preserves the graph for a user who only has an upstream inviter', () => {
+        mockUser = { user: { userId: 'u1', username: 'kush' }, invitedBy: 'satoshi' }
+        mockQueries.tierInfo = { data: { success: true, data: {} }, isPending: false, isError: false, error: null }
+        mockQueries.invites = { data: { invitees: [] }, isPending: false, isError: false, error: null }
+        renderHook(() => useRewardsFlow())
+        expect(mockQueryInputs.find((input) => input.queryKey[0] === 'myInviteGraph')?.enabled).toBe(true)
     })
 
     it('toggles the invite modal', () => {

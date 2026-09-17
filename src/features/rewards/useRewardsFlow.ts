@@ -54,7 +54,7 @@ export function useRewardsFlow() {
             !!tierInfo?.data &&
             !isInvitesPending &&
             !isInvitesError &&
-            (invites?.invitees?.length ?? 0) > 0,
+            ((invites?.invitees?.length ?? 0) > 0 || !!user?.invitedBy),
         staleTime: 5 * 60 * 1000,
     })
 
