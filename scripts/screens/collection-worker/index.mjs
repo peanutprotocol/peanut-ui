@@ -30,9 +30,28 @@ async function actor(request, env, ctx) {
 }
 
 async function readJson(bucket, key) {
+    const stored = await readJsonWithMetadata(bucket, key)
+    return stored?.value ?? null
+}
+
+async function readJsonWithMetadata(bucket, key) {
     const object = await bucket.get(key)
     if (!object) return null
-    return object.json()
+    return {
+        value: await object.json(),
+        etag: object.httpEtag ?? object.etag ?? null,
+    }
+}
+
+async function putJson(bucket, key, value, options = {}) {
+    const result = await bucket.put(key, JSON.stringify(value), {
+        httpMetadata: options.httpMetadata,
+        ...(options.etag ? { onlyIf: { etagMatches: options.etag } } : {}),
+    })
+    return {
+        ok: result !== null,
+        etag: result?.httpEtag ?? result?.etag ?? null,
+    }
 }
 
 async function requestBody(request) {
@@ -93,7 +112,7 @@ async function github(requestPath, env, options = {}) {
     return response.status === 204 ? null : response.json()
 }
 
-async function queueCapture(collection, env) {
+async function queueCapture(collection, env, expectedEtag = null) {
     if (!collection.missing.length) return collection
     const ref = await github('/git/ref/heads/dev', env)
     const targetCommit = ref?.object?.sha
@@ -114,17 +133,21 @@ async function queueCapture(collection, env) {
         targetCommit,
         requestedAt: request.requestedAt,
     }
+    let manifestEtag = null
     try {
+        const manifest = await putJson(env.REPORTS, `collections/${collection.id}/manifest.json`, collection, {
+            httpMetadata: {
+                contentType: 'application/json',
+                cacheControl: 'private, max-age=10',
+            },
+            etag: expectedEtag,
+        })
+        if (!manifest.ok) throw new Error('Collection changed while queuing a capture.')
+        manifestEtag = manifest.etag ?? expectedEtag
         await env.REPORTS.put(`collection-requests/${collection.id}.json`, JSON.stringify(request), {
             httpMetadata: {
                 contentType: 'application/json',
                 cacheControl: 'no-store',
-            },
-        })
-        await env.REPORTS.put(`collections/${collection.id}/manifest.json`, JSON.stringify(collection), {
-            httpMetadata: {
-                contentType: 'application/json',
-                cacheControl: 'private, max-age=10',
             },
         })
         await github('/actions/workflows/screen-library-collection.yml/dispatches', env, {
@@ -144,11 +167,12 @@ async function queueCapture(collection, env) {
             failedAt: new Date().toISOString(),
             reason: 'The capture workflow could not be dispatched.',
         }
-        await env.REPORTS.put(`collections/${collection.id}/manifest.json`, JSON.stringify(collection), {
+        await putJson(env.REPORTS, `collections/${collection.id}/manifest.json`, collection, {
             httpMetadata: {
                 contentType: 'application/json',
                 cacheControl: 'private, max-age=10',
             },
+            etag: manifestEtag,
         })
         throw cause
     }
@@ -232,8 +256,9 @@ async function createCollection(request, actorEmail, env) {
 async function collectionRoute(request, id, action, env) {
     if (!safeId.test(id)) return error('Invalid collection ID', 400)
     const key = `collections/${id}/manifest.json`
-    const collection = await readJson(env.REPORTS, key)
-    if (!collection) return error('Collection not found', 404)
+    const stored = await readJsonWithMetadata(env.REPORTS, key)
+    if (!stored) return error('Collection not found', 404)
+    const collection = stored.value
     const validated = validateCollection(collection)
     if (request.method === 'GET' && !action)
         return json({
@@ -259,15 +284,22 @@ async function collectionRoute(request, id, action, env) {
                     reason: 'The previous capture attempt expired before completion.',
                 },
             }
-            await env.REPORTS.put(key, JSON.stringify(recovered), {
+            const recovery = await putJson(env.REPORTS, key, recovered, {
                 httpMetadata: {
                     contentType: 'application/json',
                     cacheControl: 'private, max-age=10',
                 },
+                etag: stored.etag,
             })
-            const latest = await readJson(env.REPORTS, key)
-            if (!latest) return error('Collection not found', 404)
-            candidate = validateCollection(latest)
+            if (!recovery.ok) {
+                const latest = await readJson(env.REPORTS, key)
+                if (!latest) return error('Collection not found', 404)
+                return json({ collection: validateCollection(latest), queued: false })
+            }
+            const latestStored = await readJsonWithMetadata(env.REPORTS, key)
+            if (!latestStored) return error('Collection not found', 404)
+            candidate = validateCollection(latestStored.value)
+            stored.etag = latestStored.etag
             if (!candidate.missing.length || candidate.capture?.status === 'complete')
                 return json({ collection: candidate, queued: false })
             if (candidate.capture?.status === 'queued' || candidate.capture?.status === 'running')
@@ -285,21 +317,37 @@ async function collectionRoute(request, id, action, env) {
                     reason: 'The queued capture expired before the workflow started.',
                 },
             }
-            await env.REPORTS.put(key, JSON.stringify(recovered), {
+            const recovery = await putJson(env.REPORTS, key, recovered, {
                 httpMetadata: {
                     contentType: 'application/json',
                     cacheControl: 'private, max-age=10',
                 },
+                etag: stored.etag,
             })
-            const latest = await readJson(env.REPORTS, key)
-            if (!latest) return error('Collection not found', 404)
-            candidate = validateCollection(latest)
+            if (!recovery.ok) {
+                const latest = await readJson(env.REPORTS, key)
+                if (!latest) return error('Collection not found', 404)
+                return json({ collection: validateCollection(latest), queued: false })
+            }
+            const latestStored = await readJsonWithMetadata(env.REPORTS, key)
+            if (!latestStored) return error('Collection not found', 404)
+            candidate = validateCollection(latestStored.value)
+            stored.etag = latestStored.etag
             if (!candidate.missing.length || candidate.capture?.status === 'complete')
                 return json({ collection: candidate, queued: false })
             if (candidate.capture?.status === 'queued' || candidate.capture?.status === 'running')
                 return json({ collection: candidate, queued: false })
         }
-        const queued = await queueCapture(candidate, env)
+        let queued
+        try {
+            queued = await queueCapture(candidate, env, stored.etag)
+        } catch (cause) {
+            if (!(cause instanceof Error) || cause.message !== 'Collection changed while queuing a capture.')
+                throw cause
+            const latest = await readJson(env.REPORTS, key)
+            if (!latest) return error('Collection not found', 404)
+            return json({ collection: validateCollection(latest), queued: false })
+        }
         return json({ collection: queued, queued: true }, 202)
     }
     return error('Not found', 404)

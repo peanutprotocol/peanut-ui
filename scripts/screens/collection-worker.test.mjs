@@ -283,3 +283,55 @@ test('an abandoned running capture gets a new retry attempt', async () => {
     const request = JSON.parse(REPORTS.objects.get(`collection-requests/${collection.id}.json`))
     assert.equal(request.attempt, body.collection.capture.attempt)
 })
+
+test('an abandoned queued capture gets a new retry attempt', async () => {
+    const REPORTS = bucket()
+    const env = {
+        REPORTS,
+        SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.peanut.me',
+        SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access',
+        GITHUB_REPOSITORY: 'peanutprotocol/peanut-ui',
+        GITHUB_ACTIONS_TOKEN: 'github-token',
+        GITHUB_FETCH: async (url) => {
+            if (url.endsWith('/git/ref/heads/dev')) return Response.json({ object: { sha } })
+            return new Response(null, { status: 204 })
+        },
+    }
+    const created = await worker.fetch(
+        new Request('https://api.example/v1/collections', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title: 'Abandoned queued capture',
+                items: [{ id: 'send' }],
+            }),
+        }),
+        env,
+        accessContext
+    )
+    const { collection } = await created.json()
+    const key = `collections/${collection.id}/manifest.json`
+    const stale = JSON.parse(REPORTS.objects.get(key))
+    stale.capture = {
+        status: 'queued',
+        targetCommit: sha,
+        requestedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        attempt: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    }
+    REPORTS.objects.set(key, JSON.stringify(stale))
+
+    const retried = await worker.fetch(
+        new Request(`https://api.example/v1/collections/${collection.id}/capture`, {
+            method: 'POST',
+        }),
+        env,
+        accessContext
+    )
+    assert.equal(retried.status, 202)
+    const body = await retried.json()
+    assert.equal(body.queued, true)
+    assert.equal(body.collection.capture.status, 'queued')
+    assert.notEqual(body.collection.capture.attempt, stale.capture.attempt)
+    const request = JSON.parse(REPORTS.objects.get(`collection-requests/${collection.id}.json`))
+    assert.equal(request.attempt, body.collection.capture.attempt)
+})
