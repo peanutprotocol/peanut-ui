@@ -5,6 +5,7 @@ import { createStorage } from './cloudflare-storage.mjs'
 
 const ID = /^[a-z0-9][a-z0-9-]{0,119}$/
 const SHA = /^[a-f0-9]{40}$/
+const ATTEMPT = /^[a-f0-9-]{36}$/
 
 export function validateCollectionRequest(input, collectionId) {
     if (
@@ -16,6 +17,8 @@ export function validateCollectionRequest(input, collectionId) {
         !input.screens
     )
         throw new Error('Invalid collection capture request')
+    if (input.attempt !== undefined && !ATTEMPT.test(input.attempt ?? ''))
+        throw new Error('Invalid collection capture attempt')
     const screens = {}
     for (const [locale, values] of Object.entries(input.screens)) {
         if (!COLLECTION_LOCALES.includes(locale) || !Array.isArray(values) || !values.length || values.length > 200)
@@ -26,7 +29,11 @@ export function validateCollectionRequest(input, collectionId) {
         screens[locale] = unique
     }
     if (!Object.keys(screens).length) throw new Error('Collection capture request is empty')
-    return { ...input, screens }
+    return {
+        ...input,
+        ...(input.attempt === undefined ? {} : { attempt: input.attempt }),
+        screens,
+    }
 }
 
 export async function prepareCollectionCapture(collectionId, storage) {
@@ -42,7 +49,12 @@ export async function prepareCollectionCapture(collectionId, storage) {
     for (const [locale, ids] of Object.entries(request.screens))
         if (ids.some((id) => !expected[locale]?.includes(id)))
             throw new Error('Capture request does not match collection gaps')
-    collection.capture = { ...collection.capture, status: 'running', startedAt: new Date().toISOString() }
+    collection.capture = {
+        ...collection.capture,
+        status: 'running',
+        startedAt: new Date().toISOString(),
+        ...(request.attempt ? { attempt: request.attempt } : {}),
+    }
     await storage.put(`collections/${collectionId}/manifest.json`, JSON.stringify(collection), {
         allowOverwrite: true,
         contentType: 'application/json',
@@ -50,7 +62,10 @@ export async function prepareCollectionCapture(collectionId, storage) {
     })
     return {
         targetCommit: request.targetCommit,
-        matrix: Object.entries(request.screens).map(([locale, ids]) => ({ locale, only: ids.join(',') })),
+        matrix: Object.entries(request.screens).map(([locale, ids]) => ({
+            locale,
+            only: ids.join(','),
+        })),
     }
 }
 

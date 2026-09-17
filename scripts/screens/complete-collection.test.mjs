@@ -100,7 +100,11 @@ test('focused completion publishes WebP only and fills the requested collection 
                 screens: { en: ['profile'] },
             }),
         })
-        const completed = await completeCollection({ collectionId, inputDir: root, storage })
+        const completed = await completeCollection({
+            collectionId,
+            inputDir: root,
+            storage,
+        })
         assert.equal(completed.complete, true)
         assert.equal(completed.capture.status, 'complete')
         assert.match(completed.items[0].variants.en.image, /^[a-f0-9]{64}\.webp$/)
@@ -161,4 +165,48 @@ test('focused completion persists a retriable partial collection when a locale a
     } finally {
         rmSync(root, { recursive: true, force: true })
     }
+})
+
+test('a late completion cannot overwrite a newer capture attempt', async () => {
+    const collection = composeCollection({
+        id: collectionId,
+        spec: { title: 'Choice overload', items: [{ id: 'profile' }] },
+        reports: {
+            en: {
+                schema: 1,
+                type: 'capture',
+                locale: 'en',
+                commit: oldCommit,
+                screens: [
+                    {
+                        id: 'profile',
+                        name: 'Profile',
+                        flow: 'Profile',
+                        kind: 'route',
+                        status: 'unavailable',
+                    },
+                ],
+            },
+        },
+        createdAt: '2026-09-16T10:00:00Z',
+    })
+    collection.capture = {
+        status: 'running',
+        targetCommit,
+        attempt: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    }
+    const storage = memoryStorage({
+        [`collections/${collectionId}/manifest.json`]: JSON.stringify(collection),
+        [`collection-requests/${collectionId}.json`]: JSON.stringify({
+            schema: 1,
+            collectionId,
+            attempt: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+            targetCommit,
+            screens: { en: ['profile'] },
+        }),
+    })
+    await assert.rejects(
+        () => completeCollection({ collectionId, inputDir: tmpdir(), storage }),
+        /Capture attempt is no longer current/
+    )
 })

@@ -4,7 +4,7 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createHash } from 'node:crypto'
-import { createLocalCollection } from './collection-cli.mjs'
+import { createHostedCollection, createLocalCollection } from './collection-cli.mjs'
 
 const webp = Buffer.from('RIFF0000WEBPscreen-library-test')
 
@@ -24,12 +24,25 @@ test('local CLI emits a self-contained collection viewer from selected capture a
                 locale: 'en',
                 commit: 'a'.repeat(40),
                 screens: [
-                    { id: 'profile', name: 'Profile', flow: 'Profile', kind: 'route', status: 'captured', image },
+                    {
+                        id: 'profile',
+                        name: 'Profile',
+                        flow: 'Profile',
+                        kind: 'route',
+                        status: 'captured',
+                        image,
+                    },
                 ],
             })
         )
         const spec = join(root, 'spec.json')
-        writeFileSync(spec, JSON.stringify({ title: 'Review', items: [{ id: 'profile', note: 'Flat menu' }] }))
+        writeFileSync(
+            spec,
+            JSON.stringify({
+                title: 'Review',
+                items: [{ id: 'profile', note: 'Flat menu' }],
+            })
+        )
         const collection = await createLocalCollection({
             specPath: spec,
             outDir: out,
@@ -53,4 +66,41 @@ test('local CLI emits a self-contained collection viewer from selected capture a
     } finally {
         rmSync(root, { recursive: true, force: true })
     }
+})
+
+test('hosted CLI authenticates through a Cloudflare Access service token', async () => {
+    let request
+    const result = await createHostedCollection(
+        'https://screen-collections.peanut.me',
+        { title: 'Review', items: [{ id: 'profile' }] },
+        {
+            env: {
+                CLOUDFLARE_ACCESS_CLIENT_ID: 'client-id',
+                CLOUDFLARE_ACCESS_CLIENT_SECRET: 'client-secret',
+            },
+            fetchImpl: async (url, options) => {
+                request = { url: String(url), options }
+                return Response.json({ url: 'https://screens.peanut.me/collections/review' }, { status: 201 })
+            },
+        }
+    )
+    assert.equal(result.url.endsWith('/review'), true)
+    assert.equal(request.options.headers['CF-Access-Client-Id'], 'client-id')
+    assert.equal(request.options.headers['CF-Access-Client-Secret'], 'client-secret')
+    assert.equal(request.options.headers.Authorization, undefined)
+})
+
+test('hosted CLI refuses to send the private Worker service token', async () => {
+    await assert.rejects(
+        () =>
+            createHostedCollection(
+                'https://screen-collections.peanut.me',
+                { title: 'Review', items: [{ id: 'profile' }] },
+                {
+                    env: { COLLECTION_SERVICE_TOKEN: 'private-only' },
+                    fetchImpl: async () => Response.json({}),
+                }
+            ),
+        /CLOUDFLARE_ACCESS_CLIENT_ID and CLOUDFLARE_ACCESS_CLIENT_SECRET are required/
+    )
 })

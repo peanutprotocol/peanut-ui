@@ -37,7 +37,14 @@ function bucket() {
                 locale: 'en',
                 commit: sha,
                 screens: [
-                    { id: 'profile', name: 'Profile', flow: 'Profile', kind: 'route', status: 'captured', image },
+                    {
+                        id: 'profile',
+                        name: 'Profile',
+                        flow: 'Profile',
+                        kind: 'route',
+                        status: 'captured',
+                        image,
+                    },
                 ],
             }),
         ],
@@ -90,7 +97,9 @@ test('collection API requires Access identity or the private service token', asy
     assert.equal(
         (
             await worker.fetch(
-                new Request('https://api.example/v1/screens', { headers: { Authorization: 'Bearer secret' } }),
+                new Request('https://api.example/v1/screens', {
+                    headers: { Authorization: 'Bearer secret' },
+                }),
                 env
             )
         ).status,
@@ -113,7 +122,10 @@ test('collection API searches screens and creates an ordered reusable collection
         new Request('https://api.example/v1/collections', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: 'Choice overload', items: [{ id: 'profile', note: 'Flat menu' }] }),
+            body: JSON.stringify({
+                title: 'Choice overload',
+                items: [{ id: 'profile', note: 'Flat menu' }],
+            }),
         }),
         env,
         accessContext
@@ -145,7 +157,11 @@ test('captureMissing queues the exact missing matrix against the current dev rev
         new Request('https://api.example/v1/collections', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: 'Missing state', items: [{ id: 'send' }], captureMissing: true }),
+            body: JSON.stringify({
+                title: 'Missing state',
+                items: [{ id: 'send' }],
+                captureMissing: true,
+            }),
         }),
         env,
         accessContext
@@ -185,7 +201,11 @@ test('a failed workflow dispatch leaves the collection retriable', async () => {
         new Request('https://api.example/v1/collections', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: 'Retry dispatch', items: [{ id: 'send' }], captureMissing: true }),
+            body: JSON.stringify({
+                title: 'Retry dispatch',
+                items: [{ id: 'send' }],
+                captureMissing: true,
+            }),
         }),
         env,
         accessContext
@@ -210,4 +230,56 @@ test('a failed workflow dispatch leaves the collection retriable', async () => {
     assert.equal(retried.status, 202)
     assert.equal((await retried.json()).queued, true)
     assert.equal(JSON.parse(REPORTS.objects.get(manifestKey)).capture.status, 'queued')
+})
+
+test('an abandoned running capture gets a new retry attempt', async () => {
+    const REPORTS = bucket()
+    const env = {
+        REPORTS,
+        SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.peanut.me',
+        SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access',
+        GITHUB_REPOSITORY: 'peanutprotocol/peanut-ui',
+        GITHUB_ACTIONS_TOKEN: 'github-token',
+        GITHUB_FETCH: async (url) => {
+            if (url.endsWith('/git/ref/heads/dev')) return Response.json({ object: { sha } })
+            return new Response(null, { status: 204 })
+        },
+    }
+    const created = await worker.fetch(
+        new Request('https://api.example/v1/collections', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title: 'Abandoned capture',
+                items: [{ id: 'send' }],
+            }),
+        }),
+        env,
+        accessContext
+    )
+    const { collection } = await created.json()
+    const key = `collections/${collection.id}/manifest.json`
+    const stale = JSON.parse(REPORTS.objects.get(key))
+    stale.capture = {
+        status: 'running',
+        targetCommit: sha,
+        startedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        attempt: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    }
+    REPORTS.objects.set(key, JSON.stringify(stale))
+
+    const retried = await worker.fetch(
+        new Request(`https://api.example/v1/collections/${collection.id}/capture`, {
+            method: 'POST',
+        }),
+        env,
+        accessContext
+    )
+    assert.equal(retried.status, 202)
+    const body = await retried.json()
+    assert.equal(body.queued, true)
+    assert.equal(body.collection.capture.status, 'queued')
+    assert.notEqual(body.collection.capture.attempt, stale.capture.attempt)
+    const request = JSON.parse(REPORTS.objects.get(`collection-requests/${collection.id}.json`))
+    assert.equal(request.attempt, body.collection.capture.attempt)
 })

@@ -77,14 +77,20 @@ export async function createLocalCollection({ specPath, outDir, id, reportArgs }
     return collection
 }
 
-async function createHostedCollection(api, spec) {
+export async function createHostedCollection(api, spec, { env = process.env, fetchImpl = fetch } = {}) {
     const origin = new URL(api)
     if (origin.protocol !== 'https:') throw new Error('Collection API must use HTTPS')
-    const token = process.env.COLLECTION_SERVICE_TOKEN
-    if (!token) throw new Error('COLLECTION_SERVICE_TOKEN is required for CLI API access')
-    const response = await fetch(new URL('/v1/collections', origin), {
+    const clientId = env.CLOUDFLARE_ACCESS_CLIENT_ID
+    const clientSecret = env.CLOUDFLARE_ACCESS_CLIENT_SECRET
+    if (!clientId || !clientSecret)
+        throw new Error('CLOUDFLARE_ACCESS_CLIENT_ID and CLOUDFLARE_ACCESS_CLIENT_SECRET are required')
+    const response = await fetchImpl(new URL('/v1/collections', origin), {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: {
+            'CF-Access-Client-Id': clientId,
+            'CF-Access-Client-Secret': clientSecret,
+            'Content-Type': 'application/json',
+        },
         body: JSON.stringify(spec),
     })
     const body = await response.json()

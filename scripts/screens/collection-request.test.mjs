@@ -66,7 +66,12 @@ test('focused capture requests contain only bounded safe screen IDs and locales'
     assert.throws(
         () =>
             validateCollectionRequest(
-                { schema: 1, collectionId, targetCommit: 'a'.repeat(40), screens: { en: ['../secret'] } },
+                {
+                    schema: 1,
+                    collectionId,
+                    targetCommit: 'a'.repeat(40),
+                    screens: { en: ['../secret'] },
+                },
                 collectionId
             ),
         /screen ID/

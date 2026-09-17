@@ -41,15 +41,19 @@ pnpm screens:collection -- \
   --out=/tmp/choice-overload
 ```
 
-Or create the hosted page through the collection API. The CLI service token is
-for automation only; interactive users and MCP clients authenticate through
-Cloudflare Access:
+Or create the hosted page through the collection API. The CLI uses Cloudflare
+Access service credentials, while interactive users and MCP clients authenticate
+through Cloudflare Access:
 
 ```sh
-COLLECTION_SERVICE_TOKEN=... pnpm screens:collection -- \
+CLOUDFLARE_ACCESS_CLIENT_ID=... \
+CLOUDFLARE_ACCESS_CLIENT_SECRET=... pnpm screens:collection -- \
   --spec=docs/screen-collections/choice-overload.json \
   --api=https://screen-collections.peanut.me
 ```
+
+The CLI's Access service-token headers authenticate the public API origin; it
+must never send the Worker's private `COLLECTION_SERVICE_TOKEN` to that origin.
 
 Hosted links use `/collections/<immutable-id>/` and keep the selected locale in
 the URL. The manifest may change from queued to complete while focused capture

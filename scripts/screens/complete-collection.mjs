@@ -25,6 +25,7 @@ export async function completeCollection({ collectionId, inputDir, storage, shar
         JSON.parse((await storage.read(`collection-requests/${collectionId}.json`)).toString('utf8')),
         collectionId
     )
+    if (collection.capture?.attempt !== request.attempt) throw new Error('Capture attempt is no longer current')
     const sharp = sharpFactory ?? (await import('sharp')).default
     const captures = capturesIn(resolve(inputDir))
     const failedLocales = []
@@ -42,11 +43,18 @@ export async function completeCollection({ collectionId, inputDir, storage, shar
             const png = verifyAsset(join(capture.dir, 'assets'), screen.image)
             const webp = await sharp(png, { limitInputPixels: 393 * 852 })
                 .resize({ width: 393, height: 852, fit: 'fill' })
-                .webp({ quality: 90, alphaQuality: 100, smartSubsample: true, effort: 4 })
+                .webp({
+                    quality: 90,
+                    alphaQuality: 100,
+                    smartSubsample: true,
+                    effort: 4,
+                })
                 .toBuffer()
             const name = `${hash(webp)}.webp`
             try {
-                await storage.put(`assets/${name}`, webp, { contentType: 'image/webp' })
+                await storage.put(`assets/${name}`, webp, {
+                    contentType: 'image/webp',
+                })
             } catch (cause) {
                 const current = await storage.read(`assets/${name}`).catch(() => null)
                 if (!current?.equals(webp)) throw cause
@@ -84,7 +92,11 @@ export async function completeCollection({ collectionId, inputDir, storage, shar
             createdAt: updated.createdAt,
             complete: updated.complete,
         }),
-        { allowOverwrite: true, contentType: 'application/json', cacheControlMaxAge: 10 }
+        {
+            allowOverwrite: true,
+            contentType: 'application/json',
+            cacheControlMaxAge: 10,
+        }
     )
     if (!updated.complete) throw new Error(`${updated.missing.length} collection variants could not be captured`)
     return updated

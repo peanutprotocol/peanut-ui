@@ -17,6 +17,7 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), { status
 const error = (message, status) => json({ error: message }, status)
 const safeId = /^[a-z0-9][a-z0-9-]{0,119}$/
 const safeRepository = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/
+const CAPTURE_STALE_AFTER_MS = 90 * 60 * 1000
 
 async function actor(request, env, ctx) {
     const internal = request.headers.get('authorization')
@@ -97,26 +98,42 @@ async function queueCapture(collection, env) {
     const ref = await github('/git/ref/heads/dev', env)
     const targetCommit = ref?.object?.sha
     if (!/^[a-f0-9]{40}$/.test(targetCommit ?? '')) throw new Error('GitHub returned an invalid dev revision')
+    const attempt = crypto.randomUUID()
     const request = {
         schema: 1,
         collectionId: collection.id,
+        attempt,
         targetCommit,
         requestedAt: new Date().toISOString(),
         screens: missingByLocale(collection),
     }
     const previousCapture = collection.capture
-    collection.capture = { status: 'queued', targetCommit, requestedAt: request.requestedAt }
+    collection.capture = {
+        status: 'queued',
+        attempt,
+        targetCommit,
+        requestedAt: request.requestedAt,
+    }
     try {
         await env.REPORTS.put(`collection-requests/${collection.id}.json`, JSON.stringify(request), {
-            httpMetadata: { contentType: 'application/json', cacheControl: 'no-store' },
+            httpMetadata: {
+                contentType: 'application/json',
+                cacheControl: 'no-store',
+            },
         })
         await env.REPORTS.put(`collections/${collection.id}/manifest.json`, JSON.stringify(collection), {
-            httpMetadata: { contentType: 'application/json', cacheControl: 'private, max-age=10' },
+            httpMetadata: {
+                contentType: 'application/json',
+                cacheControl: 'private, max-age=10',
+            },
         })
         await github('/actions/workflows/screen-library-collection.yml/dispatches', env, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ref: 'dev', inputs: { collection_id: collection.id } }),
+            body: JSON.stringify({
+                ref: 'dev',
+                inputs: { collection_id: collection.id },
+            }),
         })
     } catch (cause) {
         collection.capture = {
@@ -128,7 +145,10 @@ async function queueCapture(collection, env) {
             reason: 'The capture workflow could not be dispatched.',
         }
         await env.REPORTS.put(`collections/${collection.id}/manifest.json`, JSON.stringify(collection), {
-            httpMetadata: { contentType: 'application/json', cacheControl: 'private, max-age=10' },
+            httpMetadata: {
+                contentType: 'application/json',
+                cacheControl: 'private, max-age=10',
+            },
         })
         throw cause
     }
@@ -166,12 +186,25 @@ async function createCollection(request, actorEmail, env) {
         createdAt: new Date(),
     })
     await env.REPORTS.put(`collections/${id}/manifest.json`, JSON.stringify(collection), {
-        httpMetadata: { contentType: 'application/json', cacheControl: 'private, max-age=10' },
+        httpMetadata: {
+            contentType: 'application/json',
+            cacheControl: 'private, max-age=10',
+        },
     })
     await env.REPORTS.put(
         `collection-entries/${id}.json`,
-        JSON.stringify({ id, title: collection.title, createdAt: collection.createdAt, complete: collection.complete }),
-        { httpMetadata: { contentType: 'application/json', cacheControl: 'no-store' } }
+        JSON.stringify({
+            id,
+            title: collection.title,
+            createdAt: collection.createdAt,
+            complete: collection.complete,
+        }),
+        {
+            httpMetadata: {
+                contentType: 'application/json',
+                cacheControl: 'no-store',
+            },
+        }
     )
     if (spec.captureMissing && collection.missing.length) {
         try {
@@ -209,9 +242,40 @@ async function collectionRoute(request, id, action, env) {
         })
     if (request.method === 'POST' && action === 'capture') {
         if (!validated.missing.length) return json({ collection: validated, queued: false })
-        if (validated.capture?.status === 'queued' || validated.capture?.status === 'running')
+        let candidate = validated
+        if (validated.capture?.status === 'running') {
+            const startedAt = Date.parse(validated.capture.startedAt ?? '')
+            if (!Number.isFinite(startedAt) || Date.now() - startedAt <= CAPTURE_STALE_AFTER_MS)
+                return json({ collection: validated, queued: false })
+            // The capture workflow has a 60-minute timeout. A longer-running
+            // attempt is therefore treated as abandoned, but receives a new
+            // attempt ID so a late completion cannot overwrite the retry.
+            const recovered = {
+                ...validated,
+                capture: {
+                    ...validated.capture,
+                    status: 'failed',
+                    failedAt: new Date().toISOString(),
+                    reason: 'The previous capture attempt expired before completion.',
+                },
+            }
+            await env.REPORTS.put(key, JSON.stringify(recovered), {
+                httpMetadata: {
+                    contentType: 'application/json',
+                    cacheControl: 'private, max-age=10',
+                },
+            })
+            const latest = await readJson(env.REPORTS, key)
+            if (!latest) return error('Collection not found', 404)
+            candidate = validateCollection(latest)
+            if (!candidate.missing.length || candidate.capture?.status === 'complete')
+                return json({ collection: candidate, queued: false })
+            if (candidate.capture?.status === 'queued' || candidate.capture?.status === 'running')
+                return json({ collection: candidate, queued: false })
+        } else if (validated.capture?.status === 'queued') {
             return json({ collection: validated, queued: false })
-        const queued = await queueCapture(validated, env)
+        }
+        const queued = await queueCapture(candidate, env)
         return json({ collection: queued, queued: true }, 202)
     }
     return error('Not found', 404)
