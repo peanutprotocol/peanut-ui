@@ -15,7 +15,9 @@ import React, { type ReactNode, useCallback, useContext, useMemo, useRef, useSta
 import { twMerge } from '@/utils/tw'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import Divider from '@/components/0_Bruddle/Divider'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { Tabs } from '@/components/0_Bruddle/Tabs'
+import DisplayIcon from '@/components/Global/DisplayIcon'
 import {
     PEANUT_WALLET_CHAIN,
     PEANUT_WALLET_TOKEN,
@@ -29,7 +31,6 @@ import { areEvmAddressesEqual, isNativeCurrency, getChainName } from '@/utils/ge
 import { NATIVE_TOKEN_PROXY_ADDRESS } from '@/utils/token.utils'
 import EmptyState from '../EmptyStates/EmptyState'
 import { Icon, type IconName } from '../Icons/Icon'
-import NetworkButton from './Components/NetworkButton'
 import NetworkListView from './Components/NetworkListView'
 import ScrollableList from './Components/ScrollableList'
 import { SearchInput } from '@/components/SearchInput'
@@ -54,13 +55,16 @@ interface SectionProps {
     className?: string
     icon?: IconName
     titleClassName?: string
+    /** right-aligned header action (the More-networks link, TASK-22452) */
+    trailing?: ReactNode
 }
 
-const Section: React.FC<SectionProps> = ({ title, icon, children, className, titleClassName }) => (
+const Section: React.FC<SectionProps> = ({ title, icon, children, className, titleClassName, trailing }) => (
     <div className={twMerge('space-y-2', className)}>
         <div className="flex items-center gap-2">
             {icon && <Icon name={icon} size={16} className="text-foreground-secondary" />}
             <h2 className={twMerge('text-body-m-semibold text-foreground-primary', titleClassName)}>{title}</h2>
+            {trailing && <div className="ml-auto">{trailing}</div>}
         </div>
         {children}
     </div>
@@ -389,26 +393,16 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
         return t('tokenSelector.popularTokens')
     }, [searchValue, selectedChainID, selectedNetworkName, t])
 
-    const handleClearSelectedToken = useCallback(() => {
-        setSelectedChainID('')
-    }, [setSelectedChainID])
-
-    const clearChainSelection = () => {
-        return (
-            <div className="absolute -top-4 right-0">
-                <Button
-                    variant="transparent"
-                    aria-label={t('tokenSelector.clearNetworkSelection')}
-                    className="relative h-fit w-fit p-0 after:absolute after:-inset-3"
-                    onClick={handleClearSelectedToken}
-                >
-                    <div className="flex size-6 items-center justify-center">
-                        <Icon name="cancel" className="h-4 w-4" />
-                    </div>
-                </Button>
-            </div>
-        )
-    }
+    // the network tabs (TASK-22452, user ruling: Tabs over the tile grid).
+    // '' keeps its meaning — the All panel shows popular tokens across the
+    // popular chains. selecting a tab does NOT clear the picked token, same
+    // as the old tiles; only the More-networks list path clears it. a chain
+    // picked from that list may not be popular, so it gets its own tab.
+    const activeNetworkTab = selectedChainID || 'all'
+    const handleNetworkTabChange = useCallback(
+        (value: string) => setSelectedChainID(value === 'all' ? '' : value),
+        [setSelectedChainID]
+    )
 
     return (
         <>
@@ -491,106 +485,148 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ classNameButton, viewT
                                 comingSoonNetworks={restrictToRhino ? [] : TOKEN_SELECTOR_COMING_SOON_NETWORKS}
                             />
                         ) : (
-                            <div className="relative space-y-4 flex flex-col">
-                                {/* Info banner when cross-chain is disabled */}
-                                {isCrossChainDisabled && (
-                                    <div className="flex items-center gap-2 rounded-sm bg-background-badge-attention p-3 text-body-s text-foreground-primary">
-                                        <span>{t('tokenSelector.crossChainUnavailable')}</span>
-                                    </div>
-                                )}
-
-                                {/* Popular chains section - hidden when cross-chain is disabled */}
-                                {!isCrossChainDisabled && (
-                                    <>
-                                        <Section title={t('tokenSelector.selectANetwork')}>
-                                            <div className="flex flex-col gap-4">
-                                                <div className="space-x-2 flex items-stretch justify-between">
-                                                    {popularChainsForButtons.map((chain) => (
-                                                        <NetworkButton
-                                                            key={chain.chainId}
-                                                            chainName={chain.name}
-                                                            chainIconURI={chain.iconURI}
-                                                            onClick={() => {
-                                                                if (selectedChainID === chain.chainId) {
-                                                                    setSelectedChainID('') // clear selection if already selected
-                                                                } else {
-                                                                    setSelectedChainID(chain.chainId) //otherwise, select it
-                                                                }
-                                                            }}
-                                                            isSelected={chain.chainId === selectedChainID}
-                                                        />
-                                                    ))}
-                                                    <NetworkButton
-                                                        chainName="Search"
-                                                        isSearch={true}
-                                                        onClick={handleSearchNetwork}
-                                                    />
+                            (() => {
+                                // one token block; with tabs it renders as the
+                                // active panel, without them it stands alone
+                                const tokenListBlock = (
+                                    <div className="flex flex-col gap-4">
+                                        {/* Hide search when cross-chain functionality is disabled (withdraw or send) - only one option available */}
+                                        {!isCrossChainDisabled && (
+                                            <div className="sticky -top-1 z-10 space-y-2 bg-background-default py-3">
+                                                <SearchInput
+                                                    value={searchValue}
+                                                    onChange={setSearchValue}
+                                                    onClear={() => setSearchValue('')}
+                                                    placeholder={t('tokenSelector.searchTokenPlaceholder')}
+                                                />
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <span className="text-body-xs text-foreground-secondary">
+                                                        {t('tokenSelector.sponsoredHint')}
+                                                    </span>
                                                 </div>
                                             </div>
-                                        </Section>
-                                        <Divider className="p-0" dividerClassname="border-border-subtle" />
-                                    </>
-                                )}
-
-                                {/* Hide search when cross-chain functionality is disabled (withdraw or send) - only one option available */}
-                                {!isCrossChainDisabled && (
-                                    <div className="sticky -top-1 z-10 space-y-2 bg-background-page py-3">
-                                        <SearchInput
-                                            value={searchValue}
-                                            onChange={setSearchValue}
-                                            onClear={() => setSearchValue('')}
-                                            placeholder={t('tokenSelector.searchTokenPlaceholder')}
-                                        />
-                                        <div className="flex items-center justify-center gap-2">
-                                            <span className="text-body-xs text-foreground-secondary">
-                                                {t('tokenSelector.sponsoredHint')}
-                                            </span>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Popular tokens section */}
-                                <Section
-                                    title={
-                                        isCrossChainDisabled
-                                            ? t('tokenSelector.availableToken')
-                                            : popularTokensListTitle
-                                    }
-                                    icon={searchValue ? 'search' : 'star'}
-                                    titleClassName="text-foreground-secondary font-medium"
-                                    className="relative space-y-4"
-                                >
-                                    {selectedNetworkName && !isCrossChainDisabled && clearChainSelection()}
-                                    <ScrollableList>
-                                        {filteredPopularTokensToDisplay.length > 0 ? (
-                                            filteredPopularTokensToDisplay.map((token) => {
-                                                const isSelected =
-                                                    selectedTokenAddress?.toLowerCase() ===
-                                                        token.address.toLowerCase() &&
-                                                    selectedChainID === String(token.chainId)
-
-                                                return (
-                                                    <TokenListItem
-                                                        key={`${token.address}_${String(token.chainId)}_popular`}
-                                                        balance={token}
-                                                        onClick={() => handleTokenSelect(token)}
-                                                        isSelected={isSelected}
-                                                        isPopularToken={true}
-                                                    />
-                                                )
-                                            })
-                                        ) : searchValue ? (
-                                            <EmptyState
-                                                title={t('tokenSelector.noMatchingTokensTitle')}
-                                                icon="search"
-                                                description={t('tokenSelector.noMatchingTokensDescription')}
-                                            />
-                                        ) : (
-                                            <EmptyState title={t('tokenSelector.noPopularTokensTitle')} icon="star" />
                                         )}
-                                    </ScrollableList>
-                                </Section>
-                            </div>
+
+                                        {/* Popular tokens section */}
+                                        <Section
+                                            title={
+                                                isCrossChainDisabled
+                                                    ? t('tokenSelector.availableToken')
+                                                    : popularTokensListTitle
+                                            }
+                                            icon={searchValue ? 'search' : 'star'}
+                                            titleClassName="text-foreground-secondary font-medium"
+                                            className="relative space-y-4"
+                                        >
+                                            <ScrollableList>
+                                                {filteredPopularTokensToDisplay.length > 0 ? (
+                                                    filteredPopularTokensToDisplay.map((token) => {
+                                                        const isSelected =
+                                                            selectedTokenAddress?.toLowerCase() ===
+                                                                token.address.toLowerCase() &&
+                                                            selectedChainID === String(token.chainId)
+
+                                                        return (
+                                                            <TokenListItem
+                                                                key={`${token.address}_${String(token.chainId)}_popular`}
+                                                                balance={token}
+                                                                onClick={() => handleTokenSelect(token)}
+                                                                isSelected={isSelected}
+                                                                isPopularToken={true}
+                                                            />
+                                                        )
+                                                    })
+                                                ) : searchValue ? (
+                                                    <EmptyState
+                                                        title={t('tokenSelector.noMatchingTokensTitle')}
+                                                        icon="search"
+                                                        description={t('tokenSelector.noMatchingTokensDescription')}
+                                                    />
+                                                ) : (
+                                                    <EmptyState
+                                                        title={t('tokenSelector.noPopularTokensTitle')}
+                                                        icon="star"
+                                                    />
+                                                )}
+                                            </ScrollableList>
+                                        </Section>
+                                    </div>
+                                )
+
+                                if (isCrossChainDisabled) {
+                                    return (
+                                        <div className="relative space-y-4 flex flex-col">
+                                            {/* Info banner when cross-chain is disabled */}
+                                            <div className="flex items-center gap-2 rounded-sm bg-background-badge-attention p-3 text-body-s text-foreground-primary">
+                                                <span>{t('tokenSelector.crossChainUnavailable')}</span>
+                                            </div>
+                                            {tokenListBlock}
+                                        </div>
+                                    )
+                                }
+
+                                // network tabs (TASK-22452): an explicit All
+                                // panel + one tab per popular chain, each
+                                // showing the same filtered token block. a
+                                // non-popular chain picked from the More list
+                                // gets its own tab so the selection stays
+                                // visible and the panel keeps rendering.
+                                const chainTabLabel = (name: string, iconURI?: string) => (
+                                    <span className="flex items-center gap-1">
+                                        {iconURI && (
+                                            <DisplayIcon
+                                                iconUrl={iconURI}
+                                                altText={name}
+                                                fallbackName={name}
+                                                sizeClass="h-4 w-4"
+                                            />
+                                        )}
+                                        {name}
+                                    </span>
+                                )
+                                const isPopularSelected = popularChainsForButtons.some(
+                                    (chain) => chain.chainId === selectedChainID
+                                )
+                                const networkTabs = [
+                                    {
+                                        value: 'all',
+                                        label: t('tokenSelector.allNetworks'),
+                                        content: tokenListBlock,
+                                    },
+                                    ...popularChainsForButtons.map((chain) => ({
+                                        value: chain.chainId,
+                                        label: chainTabLabel(chain.name, chain.iconURI),
+                                        content: tokenListBlock,
+                                    })),
+                                    ...(selectedChainID && !isPopularSelected
+                                        ? [
+                                              {
+                                                  value: selectedChainID,
+                                                  label: chainTabLabel(selectedNetworkName ?? selectedChainID),
+                                                  content: tokenListBlock,
+                                              },
+                                          ]
+                                        : []),
+                                ]
+
+                                return (
+                                    <Section
+                                        title={t('tokenSelector.selectANetwork')}
+                                        trailing={
+                                            <LinkButton onClick={handleSearchNetwork}>
+                                                {t('tokenSelector.moreNetworksTitle')}
+                                            </LinkButton>
+                                        }
+                                    >
+                                        <Tabs
+                                            aria-label={t('tokenSelector.selectANetwork')}
+                                            value={activeNetworkTab}
+                                            onValueChange={handleNetworkTabChange}
+                                            tabs={networkTabs}
+                                        />
+                                    </Section>
+                                )
+                            })()
                         )}
                     </div>
                 </DrawerContent>

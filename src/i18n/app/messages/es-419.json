@@ -3092,6 +3092,7 @@
             "noFeesWithToken": "Sin comisiones con este token.",
             "drawerTitle": "Elige token y red",
             "crossChainUnavailable": "Las transacciones entre cadenas no están disponibles temporalmente. Puedes usar USDC en Arbitrum.",
+            "allNetworks": "Todas",
             "selectANetwork": "Elige una red",
             "moreNetworksButton": "más",
             "searchTokenPlaceholder": "Token o dirección",
@@ -3108,8 +3109,7 @@
             "noNetworksFoundTitle": "No se encontraron redes que coincidan con {search}",
             "noNetworksFoundDescription": "Intenta buscar otra red",
             "searchPlaceholder": "Buscar...",
-            "clearSearch": "Borrar búsqueda",
-            "clearNetworkSelection": "Quitar la red seleccionada"
+            "clearSearch": "Borrar búsqueda"
         },
         "qrScanner": {
             "scanToPay": "Escanea para pagar",
