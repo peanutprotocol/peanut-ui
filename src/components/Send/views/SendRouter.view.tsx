@@ -1,6 +1,7 @@
 'use client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import PIX from '@/assets/payment-apps/pix.svg'
+import { PEANUTMAN } from '@/assets/mascot'
 import LinkSendFlowManager from '../link/LinkSendFlowManager'
 import NavHeader from '@/components/Global/NavHeader'
 import Card from '@/components/Global/Card'
@@ -142,7 +143,9 @@ export const SendRouterView = () => {
     const sendOptions = useMemo(() => {
         const peanutContactsOption: PaymentMethod = {
             id: 'peanut-contacts',
-            identifierIcon: <IconBubble icon="user" size="s" color="green" />,
+            identifierIcon: (
+                <IconBubble icon={<Image src={PEANUTMAN} alt="" className="h-5 w-auto" />} size="s" color="yellow" />
+            ),
             title: t('methods.contactsTitle'),
             description: t('methods.contactsDescription'),
             icons: [],
