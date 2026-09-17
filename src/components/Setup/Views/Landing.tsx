@@ -77,7 +77,7 @@ const LandingStep = () => {
             ) : (
                 <Button
                     shadowSize="4"
-                    // native only: mid-ceremony Sign Up taps flashed the waitlist
+                    // native only: mid-ceremony Sign Up taps flashed the next setup
                     // step (TASK-21782). On web an abandoned hybrid/QR ceremony can
                     // pend minutes — Sign Up must stay an escape hatch there, and a
                     // mid-ceremony register fails cleanly as CeremonyConflictError.

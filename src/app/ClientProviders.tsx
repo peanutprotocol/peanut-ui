@@ -22,10 +22,11 @@ import { useSplashGate } from '@/hooks/useSplashGate'
 import { useZeroLegacyAndroidSafeAreaInsets } from '@/hooks/useZeroLegacyAndroidSafeAreaInsets'
 import { applyLegacyAndroidSafeAreaZeroFromUserAgent, isCapacitor, isWebViewCssSupported } from '@/utils/capacitor'
 import { isMarketingRoute } from '@/utils/marketing-routes'
+import { captureSignupAttribution } from '@/utils/signup-attribution'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 import dynamic from 'next/dynamic'
 import { usePathname } from 'next/navigation'
-import { Suspense } from 'react'
+import { Suspense, useEffect } from 'react'
 import { PathnamePageviewTracker } from '@/components/Analytics/PathnamePageviewTracker'
 import { ScreenTransitionTracker } from '@/components/Analytics/ScreenTransitionTracker'
 
@@ -69,7 +70,9 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     // The marketing site renders without the wallet provider tree, so the
     // globals that depend on it are not mounted there either. `isMarketingRoute`
     // fails safe: an unrecognised path gets the full app tree.
-    const marketing = isMarketingRoute(usePathname())
+    const pathname = usePathname()
+    const marketing = isMarketingRoute(pathname)
+
     const IntlProvider = marketing ? MarketingIntlProvider : AppIntlProvider
 
     if (UNSUPPORTED_WEBVIEW) {
@@ -92,6 +95,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
            only through the dynamically-imported AppStateProviders chunk, and a
            chunk that loads slowly or fails would take readiness down with it. */
         <OtaUpdateProvider>
+            <SignupAttributionNavigationCapture pathname={pathname} />
             <PathnamePageviewTracker />
             <NuqsAdapter>
                 <Suspense fallback={null}>
@@ -121,4 +125,17 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
             </NuqsAdapter>
         </OtaUpdateProvider>
     )
+}
+
+/** Capture every App Router entry after the document-level bootstrap. */
+export function SignupAttributionNavigationCapture({ pathname }: { pathname: string | null }) {
+    useEffect(() => {
+        if (!isCapacitor()) {
+            // instrumentation-client owns the one document-referrer capture.
+            // Every React entry is therefore referrer-free, including hydration
+            // of the initial URL and all later SPA transitions.
+            captureSignupAttribution()
+        }
+    }, [pathname])
+    return null
 }

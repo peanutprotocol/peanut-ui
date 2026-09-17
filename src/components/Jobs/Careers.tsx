@@ -28,8 +28,7 @@ export function Careers() {
                         <p className="text-body-m text-foreground-primary">
                             Peanut is a money app for people who cross borders. You send money to anyone, pay into local
                             systems like MercadoPago and PIX, and settle up with friends — instantly, without needing
-                            local ID or a bank account. Bank transfers reach 40+ countries. It&apos;s invite-only for
-                            now.
+                            local ID or a bank account. Bank transfers reach 40+ countries. Anyone can create a wallet.
                         </p>
                         <p className="text-body-m text-foreground-secondary">
                             That&apos;s the product. The rest of this page is what it&apos;s like to work on it, and
@@ -43,8 +42,8 @@ export function Careers() {
                             <Card className="gap-2 p-6" shadowSize="4">
                                 <h3 className="text-label-l text-foreground-secondary">The product is live</h3>
                                 <p className="text-body-s text-foreground-primary">
-                                    Invite-only doesn&apos;t mean quiet. What you ship this week lands on people who are
-                                    moving real money this week, in a currency that isn&apos;t the one they earn in.
+                                    What you ship this week lands on people who are moving real money this week, in a
+                                    currency that isn&apos;t the one they earn in.
                                 </p>
                             </Card>
                             <Card className="gap-2 p-6" shadowSize="4">

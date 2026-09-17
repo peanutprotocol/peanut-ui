@@ -1,6 +1,5 @@
 import type { ISetupStep } from '@/components/Setup/Setup.types'
 import { SetupPasskey, SignupStep, LandingStep, ResidenceStep, SignTestTransaction } from '@/components/Setup/Views'
-import JoinWaitlist from './Views/JoinWaitlist'
 
 export const setupSteps: ISetupStep[] = [
     {
@@ -9,15 +8,6 @@ export const setupSteps: ISetupStep[] = [
         image: { pose: 'waving-chill' },
         component: LandingStep,
         showBackButton: false,
-        showSkipButton: false,
-        contentClassName: 'flex flex-col items-center justify-center gap-6',
-    },
-    {
-        screenId: 'welcome',
-        layoutType: 'signup',
-        image: { pose: 'pointing' },
-        component: JoinWaitlist,
-        showBackButton: true,
         showSkipButton: false,
         contentClassName: 'flex flex-col items-center justify-center gap-6',
     },

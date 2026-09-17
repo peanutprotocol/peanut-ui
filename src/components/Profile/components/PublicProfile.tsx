@@ -23,7 +23,6 @@ import { useAuth } from '@/context/authContext'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
-import ShareButton from '@/components/Global/ShareButton'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import BadgesRow from '@/components/Badges/BadgesRow'
@@ -110,8 +109,8 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                 onboardingResolved: false,
                 username: '',
             }))
-            // Credit ONLY the profile owner: the API's typo-fallback resolves a
-            // waitlisted handle to a DIFFERENT real user (`maria23` → `maria`).
+            // Credit ONLY the profile owner: the API's legacy-code fallback can
+            // resolve a mistyped handle to a DIFFERENT real user (`maria23` → `maria`).
             // Session scope, no expiryDays — a poisoned cookie outlives this page
             // and locks setup past the only screen with Log In (PR #2346).
             const resolvedToOwner = !!onboardingResolved && inviterUsername === code
@@ -206,7 +205,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
 
                         <Button
                             onClick={() => {
-                                if (isLoggedIn && user?.user.hasAppAccess) {
+                                if (isLoggedIn) {
                                     router.push(requestUrl(username))
                                 } else {
                                     setShowInviteModal(true)
@@ -264,9 +263,9 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
 
                 {storeHandoffModal}
 
-                {/* A logged-out guest gets the crediting door; the beg flow stays for
-                    the logged-in-without-access case, where the owner's code can no
-                    longer credit them through signup. */}
+                {/* Logged-out guests get the same crediting door as the profile
+                    card. Registered users route directly above; app access is no
+                    longer invite-gated. */}
                 <Drawer
                     open={showInviteModal}
                     onOpenChange={(isOpen) => {
@@ -278,22 +277,9 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
                             <IconBubble icon="user" className="bg-action-primary" />
                             <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                                 <DrawerTitle>{t('noInviteTitle')}</DrawerTitle>
-                                <DrawerDescription>
-                                    {isLoggedIn
-                                        ? `${t('inviteOnlyLine1')}\n${t('inviteOnlyLine2')}`
-                                        : t('invitedLine', { username })}
-                                </DrawerDescription>
+                                <DrawerDescription>{t('invitedLine', { username })}</DrawerDescription>
                             </DrawerHeader>
-                            {isLoggedIn ? (
-                                <ShareButton
-                                    generateText={() => Promise.resolve(t('begShareText'))}
-                                    title={t('begForInvite')}
-                                >
-                                    {t('begForInvite')}
-                                </ShareButton>
-                            ) : (
-                                joinCtaButton
-                            )}
+                            {joinCtaButton}
                         </div>
                     </DrawerContent>
                 </Drawer>

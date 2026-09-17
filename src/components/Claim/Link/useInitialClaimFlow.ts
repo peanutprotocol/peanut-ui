@@ -13,7 +13,7 @@ import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { sendLinksApi } from '@/services/sendLinks'
-import { areEvmAddressesEqual, toInviteCode } from '@/utils/general.utils'
+import { areEvmAddressesEqual } from '@/utils/general.utils'
 import { useRecipientDisplay } from '@/hooks/useRecipientDisplay'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { apiFetch } from '@/utils/api-fetch'
@@ -37,8 +37,6 @@ import { evmChainIdToRhinoName } from '@/constants/rhino.consts'
 import { getTokenSymbol, getChainName } from '@/utils/general.utils'
 import { belowClaimBridgeMinimum } from '@/utils/claim-min-guard'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { invitesApi } from '@/services/invites'
-import { EInviteType } from '@/services/services.types'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { ROUTE_NOT_FOUND_ERROR } from '@/constants/general.consts'
 import posthog from 'posthog-js'
@@ -146,7 +144,7 @@ export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: strin
     const { claimLink, claimLinkXchain, removeParamStep } = useClaimLink()
     const { isConnected: isPeanutWallet, address, fetchBalance } = useWallet()
     const router = useRouter()
-    const { user, fetchUser } = useAuth()
+    const { user } = useAuth()
     const queryClient = useQueryClient()
     const prevRecipientType = useRef<string | null>(null)
     const prevUser = useRef(user)
@@ -290,49 +288,6 @@ export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: strin
             })
 
             if (!isPeanutWallet && recipient.address === '') return
-
-            // If the user doesn't have app access, accept the invite before claiming the link
-            if (!user?.user.hasAppAccess) {
-                try {
-                    const inviterUsername = claimLinkData.sender?.username
-                    if (!inviterUsername) {
-                        setErrorState({
-                            showError: true,
-                            errorMessage: t('errors.missingInviter'),
-                        })
-                        setLoadingState('Idle')
-                        return
-                    }
-                    const inviteCode = toInviteCode(inviterUsername)
-                    const result = await invitesApi.acceptInvite(
-                        inviteCode,
-                        EInviteType.PAYMENT_LINK,
-                        campaignTag ?? undefined
-                    )
-                    if (!result.success || !result.onboardingResolved) {
-                        console.error('Failed to accept invite')
-                        setErrorState({
-                            showError: true,
-                            errorMessage: tCommon('genericError'),
-                        })
-                        setLoadingState('Idle')
-                        return
-                    }
-
-                    // fetch user so that we have the latest state and user can access the app.
-                    // We dont need to wait for this, can happen in background.
-                    fetchUser()
-                } catch (error) {
-                    Sentry.captureException(error)
-                    console.error('Failed to accept invite', error)
-                    setErrorState({
-                        showError: true,
-                        errorMessage: tCommon('genericError'),
-                    })
-                    setLoadingState('Idle')
-                    return
-                }
-            }
 
             try {
                 setLoadingState('Executing transaction')
@@ -523,7 +478,6 @@ export const useInitialClaimFlow = (props: IClaimScreenProps, campaignTag: strin
             isXChain,
             address,
             campaignTag,
-            fetchUser,
             t,
             tCommon,
             toFriendlyError,

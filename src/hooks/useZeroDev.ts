@@ -6,13 +6,7 @@ import { loadingStateContext } from '@/context/loadingStates.context'
 import { useAuth } from '@/context/authContext'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { useZeroDevFlow, zeroDevFlowActions } from '@/hooks/useZeroDevFlow'
-import {
-    getFromCookie,
-    removeFromCookie,
-    saveToCookie,
-    setRedirectUrl,
-    updateUserPreferences,
-} from '@/utils/general.utils'
+import { removeFromCookie, saveToCookie, updateUserPreferences } from '@/utils/general.utils'
 import { clearAuthState } from '@/utils/auth.utils'
 import { isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
 import {
@@ -34,13 +28,11 @@ import { toWebAuthnKey, WebAuthnMode } from '@zerodev/passkey-validator'
 import { useCallback, useContext } from 'react'
 import type { TransactionReceipt, Hex, Hash } from 'viem'
 import { captureException } from '@sentry/nextjs'
-import { invitesApi } from '@/services/invites'
 import {
     claimAndSettlePendingBadgeCampaigns,
     isConfirmedBadgeCampaignClaim,
     isUnavailableBadgeCampaignClaim,
 } from '@/services/badge-campaigns'
-import { settleAcceptedInviteAcquisition } from '@/services/invite-acquisition'
 import { getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { settleShhhhhCampaignContinuation } from '@/app/shhhhh/shhhhh-acquisition'
 import { signupConsentDocuments } from '@/services/consent'
@@ -49,7 +41,13 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
 import { isDemoMode } from '@/utils/demo'
 import { rescueUserOpReceipt } from '@/utils/userop-rescue.utils'
-import { clearInvite, extendInviteForRetry, readInviteCode, readInviteType } from '@/utils/invite-stash'
+import { attachSignupAttribution } from '@/services/signup-attribution'
+import {
+    ensureSignupAttributionForRegistration,
+    markSignupAttributionPending,
+    signupAnalyticsState,
+} from '@/utils/signup-attribution'
+import { settlePendingInviteAttribution } from '@/services/pending-invite-attribution'
 
 // types
 type UserOpEncodedParams = {
@@ -79,10 +77,6 @@ export const useZeroDev = () => {
     const { isKernelClientReady, isRegistering, isLoggingIn, isSendingUserOp, address } = useZeroDevFlow()
     const { setWebAuthnKey, getClientForChain, ensureClientForChain } = useKernelClient()
     const { setLoadingState } = useContext(loadingStateContext)
-    // invite hand-off lives in cookies so it survives app navigation — TASK-21460
-    const inviteCode = readInviteCode()
-    const inviteType = readInviteType()
-
     // Future note: could be `${username}.${process.env.NEXT_PUBLIC_JUSTANAME_ENS_DOMAIN || 'peanut.me'}` (have to change BE too)
     const _getPasskeyName = (username: string) => `${username}.peanut.wallet`
 
@@ -113,7 +107,15 @@ export const useZeroDev = () => {
         zeroDevFlowActions.setIsRegistering(true)
         try {
             const rpId = isCapacitor() ? getNativeRpId() : window.location.hostname.replace(/^www\./, '')
-
+            // Native store hand-off restoration is intentionally started in the
+            // app-link listener without blocking app boot. Join the same
+            // in-flight promise here so a fast signup tap cannot outrun the
+            // Android referrer read or iOS paste hand-off.
+            if (isCapacitor()) {
+                const { restoreDeferredContext } = await import('@/utils/deferred-link')
+                await restoreDeferredContext()
+            }
+            const signupAttribution = await ensureSignupAttributionForRegistration()
             // @capgo/capacitor-passkey shim patches navigator.credentials on native,
             // so toWebAuthnKey works on all platforms (web, android, ios).
             // Same TASK-21782 guard as login: native shim gate + 60s bound —
@@ -127,7 +129,10 @@ export const useZeroDev = () => {
                         // Consent-ledger echo (tos-v1 phase 2): the ZeroDev SDK owns the
                         // register/verify request body, so the terms+privacy versions the
                         // signup screen displayed ride in a header the backend ledgers.
-                        passkeyServerHeaders: { 'x-accepted-legal': JSON.stringify(signupConsentDocuments()) },
+                        passkeyServerHeaders: {
+                            'x-accepted-legal': JSON.stringify(signupConsentDocuments()),
+                            'x-signup-analytics-state': signupAnalyticsState(),
+                        },
                         rpID: rpId,
                     })
                 )
@@ -135,103 +140,25 @@ export const useZeroDev = () => {
 
             // Keep the new key recoverable even if the API session cannot load yet.
             saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
-
             // Bind the ceremony key to the fresh API session, never the render's previous user.
             // Native cookies may disappear on restart; persist before any RPC-dependent build.
             const registeredUser = await hydrateLoginSession()
             updateUserPreferences(registeredUser.user.userId, { webAuthnKey })
-
-            const inviteCodeFromCookie = getFromCookie('inviteCode')
-
-            // invite code can also be store in cookies, so we need to check both
-            const userInviteCode = inviteCode || inviteCodeFromCookie
-            const badgeCampaigns = getPendingBadgeCampaigns()
-
-            if (userInviteCode?.trim().length > 0) {
-                /*
-                 * Fail-open by design: a broken accept must not block signup. But a
-                 * failure here strands the user in the waitlist, so (1) persist the
-                 * code in the cookie — JoinWaitlistPage auto-retries from it, even
-                 * after an app restart — and (2) report to Sentry, not just PostHog:
-                 * a systematic accept failure looks like a completed signup otherwise.
-                 * The cookie is only cleared on confirmed success.
-                 */
-                const keepInviteCodeForRetry = () => extendInviteForRetry(30)
-                const clearAcceptedInviteCode = () => {
-                    clearInvite()
-                }
-                try {
-                    const result = await invitesApi.acceptInvite(userInviteCode, inviteType)
-                    let campaignOnlyProcessed = false
-                    if (result.success) {
-                        if (result.legacyAcquisition) {
-                            const acceptedBadgeCampaigns = [result.legacyAcquisition.campaignTag]
-                            const { destination, pending } = settleAcceptedInviteAcquisition(
-                                result.legacyAcquisition,
-                                result.claims
-                            )
-
-                            // Keep an already-published migration continuation
-                            // through setup only after the matching claim confirms.
-                            if (destination !== '/home') setRedirectUrl(destination)
-                            if (pending.some((tag) => tag.toLowerCase() === acceptedBadgeCampaigns[0].toLowerCase())) {
-                                captureException(new Error('accept-time legacy acquisition retained for retry'), {
-                                    tags: { error_type: 'invite_accept_campaign_retryable' },
-                                    extra: {
-                                        inviteCode: userInviteCode,
-                                        pendingCampaigns: pending,
-                                        claims: result.claims,
-                                    },
-                                })
-                            }
-                            if (!result.onboardingResolved) {
-                                // A NONE adapter is not an invite retry. Its
-                                // terminal claim is done; any retryable state is
-                                // now carried solely by the versioned campaign queue.
-                                campaignOnlyProcessed = true
-                                clearAcceptedInviteCode()
-                            }
-                        }
-                    }
-
-                    if (result.success && result.onboardingResolved) {
-                        posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, {
-                            invite_code: userInviteCode,
-                            invite_type: inviteType,
-                            campaign_tag: badgeCampaigns[0],
-                            campaign_tags: badgeCampaigns,
-                        })
-                        clearAcceptedInviteCode()
-                    } else if (campaignOnlyProcessed) {
-                        // Deliberately no onboarding-failed analytics/Sentry:
-                        // campaign-only compatibility resolved as designed.
-                    } else {
-                        posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, {
-                            invite_code: userInviteCode,
-                            error_message: result.success
-                                ? 'Invite did not resolve onboarding'
-                                : 'API returned unsuccessful',
-                        })
-                        captureException(new Error('register-time invite onboarding unresolved'), {
-                            tags: { error_type: 'invite_accept_failed' },
-                            extra: { inviteCode: userInviteCode, result },
-                        })
-                        keepInviteCodeForRetry()
-                        console.error('Error accepting invite', result)
-                    }
-                } catch (e) {
-                    posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, {
-                        invite_code: userInviteCode,
-                        error_message: String(e),
-                    })
-                    captureException(e, {
-                        tags: { error_type: 'invite_accept_failed' },
-                        extra: { inviteCode: userInviteCode },
-                    })
-                    keepInviteCodeForRetry()
-                    console.error('Error accepting invite', e)
-                }
+            // Arm delivery only after hydration supplies the authoritative
+            // registrant. An unbound marker could be consumed by a later login.
+            if (signupAttribution) await markSignupAttributionPending(registeredUser.user.userId)
+            try {
+                await attachSignupAttribution(registeredUser.user.userId)
+            } catch (error) {
+                // Attribution is best-effort for signup UX. The durable device
+                // copy remains for the authenticated retry on the next start.
+                captureException(error, { level: 'warning', tags: { error_type: 'signup_attribution_attach_failed' } })
             }
+
+            // Fail-open: a referral never blocks open signup. The shared
+            // authenticated recovery path keeps the inviter until the server
+            // confirms its immutable reward edge.
+            await settlePendingInviteAttribution(registeredUser.user.userId)
 
             // Campaign acquisition is independent from invite attribution. It
             // runs after authentication whether or not an invite was present,

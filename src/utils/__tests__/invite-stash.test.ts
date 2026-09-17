@@ -5,11 +5,20 @@
 // from an earlier flow misclassify the invite. These run the REAL cookie
 // round trip — every other spec mocks this module.
 import { EInviteType } from '@/services/services.types'
-import { stashInvite, readInviteCode, readInviteType, extendInviteForRetry, clearInvite } from '@/utils/invite-stash'
+import {
+    bindInviteToUser,
+    clearInvite,
+    clearInviteIfOwnedBy,
+    extendInviteForRetry,
+    readInviteCode,
+    readInviteType,
+    readInviteUserId,
+    stashInvite,
+} from '@/utils/invite-stash'
 import { getFromCookie } from '@/utils/general.utils'
 
 const wipeCookies = () => {
-    for (const name of ['inviteCode', 'inviteType']) {
+    for (const name of ['inviteCode', 'inviteType', 'inviteAttributionUserId']) {
         document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT`
     }
 }
@@ -38,6 +47,15 @@ describe('invite-stash', () => {
         stashInvite('bob', EInviteType.DIRECT)
         expect(readInviteCode()).toBe('bob')
         expect(readInviteType()).toBe(EInviteType.DIRECT)
+        expect(readInviteUserId()).toBe('')
+    })
+
+    it('binds a pending invite to only the first authenticated account', () => {
+        stashInvite('alice', EInviteType.DIRECT)
+        expect(bindInviteToUser('user-a')).toBe(true)
+        expect(readInviteUserId()).toBe('user-a')
+        expect(bindInviteToUser('user-b')).toBe(false)
+        expect(readInviteUserId()).toBe('user-a')
     })
 
     it('extendInviteForRetry keeps code AND type together', () => {
@@ -55,8 +73,21 @@ describe('invite-stash', () => {
 
     it('clearInvite blanks both fields', () => {
         stashInvite('alice', EInviteType.PAYMENT_LINK)
+        bindInviteToUser('user-a')
         clearInvite()
         expect(readInviteCode()).toBe('')
         expect(readInviteType()).toBe(EInviteType.DIRECT)
+        expect(readInviteUserId()).toBe('')
+    })
+
+    it('an older request cannot clear a newer account hand-off', () => {
+        stashInvite('alice', EInviteType.DIRECT)
+        bindInviteToUser('user-a')
+        stashInvite('bob', EInviteType.DIRECT)
+        bindInviteToUser('user-b')
+
+        expect(clearInviteIfOwnedBy('alice', 'user-a')).toBe(false)
+        expect(readInviteCode()).toBe('bob')
+        expect(readInviteUserId()).toBe('user-b')
     })
 })

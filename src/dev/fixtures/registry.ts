@@ -195,11 +195,6 @@ const PEER_CONTACT = (peer: (typeof AVATAR_PEERS)[number], relationship: string)
 })
 
 export const FIXTURES: Record<string, Fixture> = {
-    'setup-pending': {
-        route: '/setup',
-        about: 'Resume an unfinished account setup',
-        responses: { 'GET /users/me': { user: { hasAppAccess: false }, accounts: [] } },
-    },
     // ---------------------------------------------------------------------
     // One per screen — the known-good default for each.
     // ---------------------------------------------------------------------
