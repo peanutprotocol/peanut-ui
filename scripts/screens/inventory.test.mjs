@@ -21,4 +21,8 @@ test('the current catalogue accounts for every app route', () => {
     const aliases = result.filter((entry) => routingAliases.has(entry.route))
     assert.equal(aliases.length, routingAliases.size)
     assert.ok(aliases.every((entry) => entry.status === 'excluded' && entry.reason.includes('Routing alias')))
+
+    const setup = result.find((entry) => entry.route === '/setup')
+    assert.equal(setup?.status, 'excluded')
+    assert.match(setup?.reason ?? '', /setup view/i)
 })
