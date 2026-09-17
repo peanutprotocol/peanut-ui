@@ -5,13 +5,14 @@ import { FAQ, FAQItem } from './FAQ'
 import { CTA } from './CTA'
 import { Callout } from './Callout'
 import { ExchangeWidget } from './ExchangeWidget'
+import { CompareSavings } from './CompareSavings'
 import { RelatedPages, RelatedLink } from './RelatedPages'
 import { CountryGrid } from './CountryGrid'
 import { ProseStars } from './ProseStars'
 import { extractText } from './mdx.utils'
 import { Tabs, TabPanel } from './Tabs'
 import Divider from '@/components/0_Bruddle/Divider'
-import { PROSE_WIDTH } from '../constants'
+import { PROSE_LINK, PROSE_WIDTH } from '../constants'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 import { resolveContentHref } from '@/lib/content'
 
@@ -37,6 +38,7 @@ export function createMdxComponents(locale: Locale = DEFAULT_LOCALE): MdxCompone
     return {
         ...mdxComponents,
         CountryGrid: (props) => <CountryGrid {...props} locale={locale} />,
+        CompareSavings: (props) => <CompareSavings {...props} locale={locale} />,
         Steps: (props) => <Steps {...props} locale={locale} />,
         RelatedPages: (props) => <RelatedPages {...props} locale={locale} />,
         FAQ: (props) => <FAQ {...props} locale={locale} />,
@@ -44,11 +46,7 @@ export function createMdxComponents(locale: Locale = DEFAULT_LOCALE): MdxCompone
         // Markdown links are authored with mixed locale prefixes (`/en/help/x`,
         // `/help/x`), so a Spanish page would otherwise link back to English.
         a: ({ href = '', ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
-            <Link
-                href={resolveContentHref(href, locale)}
-                className="text-foreground-primary underline decoration-foreground-primary/30 underline-offset-2 hover:decoration-foreground-primary"
-                {...props}
-            />
+            <Link href={resolveContentHref(href, locale)} className={PROSE_LINK} {...props} />
         ),
     }
 }
@@ -63,6 +61,7 @@ export const mdxComponents: MdxComponentMap = {
     CTA,
     Callout,
     ExchangeWidget,
+    CompareSavings,
     RelatedPages,
     RelatedLink,
     CountryGrid,
@@ -98,11 +97,7 @@ export const mdxComponents: MdxComponentMap = {
         />
     ),
     a: ({ href = '', ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
-        <Link
-            href={href}
-            className="text-foreground-primary underline decoration-foreground-primary/30 underline-offset-2 hover:decoration-foreground-primary"
-            {...props}
-        />
+        <Link href={href} className={PROSE_LINK} {...props} />
     ),
     ul: (props: React.HTMLAttributes<HTMLUListElement>) => (
         <ul className={`mx-auto my-6 ${PROSE_WIDTH} space-y-3 list-disc pr-6 pl-12 md:pr-4 md:pl-10`} {...props} />
