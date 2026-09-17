@@ -256,6 +256,35 @@ describe('TransactionCard — settlement-adjusted flag', () => {
     })
 })
 
+// The Rain-enriched merchant logo replaces the generic yellow card icon in the
+// row's leading slot. A missing logo or a broken URL falls back to the generic
+// icon (never a broken-image glyph).
+describe('TransactionCard — merchant logo', () => {
+    const img = (container: HTMLElement) => container.querySelector('img')
+
+    it('renders the merchant logo as the row image when present', () => {
+        const { container } = renderCard(cardSpendTx({ merchantLogo: 'https://logos.example/uber.png' }))
+        expect(img(container)).toHaveAttribute('src', 'https://logos.example/uber.png')
+    })
+
+    it('renders the generic card icon (no image) when there is no logo', () => {
+        const { container } = renderCard(cardSpendTx({ merchantLogo: null }))
+        expect(img(container)).toBeNull()
+        expect(container.querySelector('svg')).not.toBeNull()
+    })
+
+    it('falls back to the generic card icon when the logo URL fails to load', () => {
+        const { container } = renderCard(cardSpendTx({ merchantLogo: 'https://logos.example/broken.png' }))
+        const logo = img(container)
+        expect(logo).not.toBeNull()
+
+        fireEvent.error(logo!)
+
+        expect(img(container)).toBeNull()
+        expect(container.querySelector('svg')).not.toBeNull()
+    })
+})
+
 // States board 17966:12128: failed amounts strike through — EXCEPT a failed
 // card REFUND (credit still owed to the user; striking it reads as "this
 // credit never counted"). Locks the carve-out kept from isDeclinedCardSpend.

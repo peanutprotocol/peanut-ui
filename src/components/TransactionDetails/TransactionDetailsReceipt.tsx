@@ -21,6 +21,7 @@ import { PerkRewardReceipt } from './provider-receipts/PerkRewardReceipt'
 import {
     hasUserProfile,
     hasUserProfileAvatar,
+    isCardPaymentEntry,
     isPerkReward as isPerkRewardTransaction,
     isRequestEntry,
     isSendLinkEntry,
@@ -178,6 +179,9 @@ export const TransactionDetailsReceipt = ({
                 isLinkTransaction={transaction.extraDataForDrawer?.isLinkTransaction}
                 transactionType={transaction.extraDataForDrawer?.transactionCardType}
                 avatarUrl={avatarUrl ?? getAvatarUrl(transaction)}
+                merchantLogo={
+                    isCardPaymentEntry(transaction) ? transaction.extraDataForDrawer?.cardPayment?.merchantLogo : null
+                }
                 avatarKey={transaction.avatarKey}
                 isPeer={transaction.isPeerActuallyUser}
                 haveSentMoneyToUser={transaction.haveSentMoneyToUser}

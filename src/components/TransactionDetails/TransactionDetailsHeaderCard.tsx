@@ -3,6 +3,7 @@
 import StatusBadge, { type StatusType } from '@/components/Global/Badges/StatusBadge'
 import { isOpenRequestDisplay, isTestTransaction, PENDING_AMOUNT_STATUSES } from '@/utils/history.utils'
 import TransactionAvatarBadge from '@/components/TransactionDetails/TransactionAvatarBadge'
+import { MerchantLogoIcon } from '@/components/TransactionDetails/MerchantLogoIcon'
 import { type TransactionDirection, type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import {
     SELF_DESCRIBING_NAME_KEYS,
@@ -44,6 +45,9 @@ interface TransactionDetailsHeaderCardProps {
     isLinkTransaction?: boolean
     transactionType?: TransactionType
     avatarUrl?: string
+    /** Rain-enriched merchant brand logo for a card spend. Shown when there is
+     *  no `avatarUrl`; the generic card badge is the fallback. */
+    merchantLogo?: string | null
     /** The counterparty's picked profile avatar (TASK-22625). A merchant
      *  `avatarUrl` still wins — it identifies the payee more precisely. */
     avatarKey?: string | null
@@ -220,6 +224,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     isLinkTransaction = false,
     transactionType,
     avatarUrl,
+    merchantLogo,
     avatarKey,
     isPeer,
     haveSentMoneyToUser = false,
@@ -265,6 +270,22 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     const isPendingFamily = !!status && status !== 'custom' && PENDING_AMOUNT_STATUSES.has(status)
     const showBadge = !!status && status !== 'completed' && !(isOpenRequest && isPendingFamily)
 
+    const genericBadge = (
+        <TransactionAvatarBadge
+            initials={initials}
+            userName={nameForAvatar}
+            avatarName={avatarNameForAvatar}
+            avatarKey={avatarKey}
+            isPeer={isPeer}
+            isLinkTransaction={isLinkTransaction}
+            transactionType={typeForAvatar}
+            status={status}
+            context="header"
+            size="small"
+            countryCode={countryCode}
+        />
+    )
+
     return (
         <div className="flex flex-col items-center gap-3 text-center">
             {isTest ? (
@@ -300,20 +321,10 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                                 height={160}
                             />
                         </div>
+                    ) : merchantLogo ? (
+                        <MerchantLogoIcon src={merchantLogo} fallback={genericBadge} size="md" />
                     ) : (
-                        <TransactionAvatarBadge
-                            initials={initials}
-                            userName={nameForAvatar}
-                            avatarName={avatarNameForAvatar}
-                            avatarKey={avatarKey}
-                            isPeer={isPeer}
-                            isLinkTransaction={isLinkTransaction}
-                            transactionType={typeForAvatar}
-                            status={status}
-                            context="header"
-                            size="small"
-                            countryCode={countryCode}
-                        />
+                        genericBadge
                     )}
                 </div>
             )}

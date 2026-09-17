@@ -36,6 +36,7 @@ import { normalizeEnsName } from '@/utils/ens-name.utils'
 import StatusPill, { type StatusPillType } from '../Global/StatusPill'
 import { VerifiedUserLabel } from '../UserHeader'
 import { PerkIcon } from './PerkIcon'
+import { MerchantLogoIcon } from './MerchantLogoIcon'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
 import { PEANUTMAN } from '@/assets/mascot'
@@ -253,18 +254,14 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         Boolean(transaction.extraDataForDrawer?.cardPayment?.settlementAdjusted) &&
         !transaction.extraDataForDrawer?.cardPayment?.isRefund
 
-    // txn avatar handles icon/initials/colors — the row's leading slot
-    const leading = isTest ? (
-        <div className={'relative flex size-7 items-center justify-center rounded-full p-0.5'}>
-            <Image src={PEANUTMAN} alt="Peanut Logo" className="size-8 object-contain" width={30} height={30} />
-        </div>
-    ) : isPerkRewardEntry ? (
-        <PerkIcon size="extra-small" />
-    ) : avatarUrl ? (
-        <div className={'relative flex size-8 items-center justify-center rounded-full'}>
-            <Image src={avatarUrl} alt="Icon" className="size-8 object-contain" width={30} height={30} />
-        </div>
-    ) : (
+    // Rain enriches a card spend with the merchant's own brand logo. Show it
+    // in the row's leading slot when present; the generic card badge stays as
+    // the fallback (used when there is no logo, and when the URL fails to load).
+    const merchantLogo = isCardPaymentEntry(transaction)
+        ? transaction.extraDataForDrawer?.cardPayment?.merchantLogo
+        : null
+
+    const genericBadge = (
         <TransactionAvatarBadge
             initials={initials}
             userName={userNameForAvatar}
@@ -278,6 +275,23 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
             size="extra-small"
             countryCode={getBankAccountCountryCode(transaction.bankAccountDetails, transaction.currency?.code)}
         />
+    )
+
+    // txn avatar handles icon/initials/colors — the row's leading slot
+    const leading = isTest ? (
+        <div className={'relative flex size-7 items-center justify-center rounded-full p-0.5'}>
+            <Image src={PEANUTMAN} alt="Peanut Logo" className="size-8 object-contain" width={30} height={30} />
+        </div>
+    ) : isPerkRewardEntry ? (
+        <PerkIcon size="extra-small" />
+    ) : avatarUrl ? (
+        <div className={'relative flex size-8 items-center justify-center rounded-full'}>
+            <Image src={avatarUrl} alt="Icon" className="size-8 object-contain" width={30} height={30} />
+        </div>
+    ) : merchantLogo ? (
+        <MerchantLogoIcon src={merchantLogo} fallback={genericBadge} />
+    ) : (
+        genericBadge
     )
 
     return (
