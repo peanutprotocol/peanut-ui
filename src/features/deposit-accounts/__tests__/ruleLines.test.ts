@@ -118,3 +118,26 @@ describe('depositRuleLines', () => {
         ])
     })
 })
+
+it('states business support with separate per-payment and monthly limits', () => {
+    const lines = depositRuleLines(
+        { sender: 'business-only' },
+        {
+            ownAccount: { allowed: true },
+            thirdPartyBusiness: 'allowed',
+            thirdPartyIndividual: { policy: 'unavailable' },
+            min: { amount: '100', currency: 'COP' },
+            max: { amount: '11552000', currency: 'COP' },
+            monthlyLimit: { amount: '500000', currency: 'USD' },
+        },
+        (amount, currency) => `${currency} ${amount}`
+    )
+    expect(lines).toEqual([
+        { key: 'ownAccount' },
+        { key: 'businessAllowed' },
+        { key: 'individualNotYet' },
+        { key: 'minimum', values: { min: 'COP 100' } },
+        { key: 'maximum', values: { max: 'COP 11552000' } },
+        { key: 'monthlyLimit', values: { limit: 'USD 500000' } },
+    ])
+})

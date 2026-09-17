@@ -15,6 +15,7 @@ export type DepositRuleKey =
     | 'ownAccount'
     | 'ownAccountMax'
     | 'ownAccountNo'
+    | 'businessAllowed'
     | 'businessAny'
     | 'businessNotYet'
     | 'businessUnconfirmed'
@@ -25,6 +26,8 @@ export type DepositRuleKey =
     | 'individualNotYet'
     | 'individualUnconfirmed'
     | 'minimum'
+    | 'maximum'
+    | 'monthlyLimit'
     | 'stateRestricted'
     | 'ownName'
 
@@ -78,6 +81,16 @@ export function depositRuleLines(
         lines.push({ key: 'minimum', values: { min: formatMoney(rules.min.amount, rules.min.currency) } })
     }
 
+    if (rules?.max) {
+        lines.push({ key: 'maximum', values: { max: formatMoney(rules.max.amount, rules.max.currency) } })
+    }
+    if (rules?.monthlyLimit) {
+        lines.push({
+            key: 'monthlyLimit',
+            values: { limit: formatMoney(rules.monthlyLimit.amount, rules.monthlyLimit.currency) },
+        })
+    }
+
     return lines
 }
 
@@ -98,6 +111,8 @@ function ownAccountLine(rules: DepositRules | undefined, formatMoney: FormatMone
 /** what a company transfer may do on this corridor */
 function businessKey(matching: DepositSenderTerms, rules: DepositRules | undefined): DepositRuleKey {
     switch (rules?.thirdPartyBusiness) {
+        case 'allowed':
+            return 'businessAllowed'
         case 'unlimited':
             return 'businessAny'
         case 'unavailable':

@@ -3960,8 +3960,11 @@
                 "spei": "SPEI",
                 "pix": "Pix",
                 "transfer_ar": "Bank transfer",
-                "fallback": "Bank transfer"
-            }
+                "fallback": "Bank transfer",
+                "bre_b": "Bre-B"
+            },
+            "brCode": "Pix code",
+            "breBKey": "Bre-B key"
         },
         "corridors": {
             "SEPA_EU": {
@@ -4001,6 +4004,16 @@
                     "why": "Our banking partner ties your account to the country on your legal ID, one country at a time. A US national cannot use bank transfers here, wherever they live."
                 },
                 "railName": "Bank transfer"
+            },
+            "BANK_TRANSFER_BR": {
+                "arrival": "Within minutes",
+                "arrivalDetail": "Pix transfers usually arrive within minutes.",
+                "railName": "Pix"
+            },
+            "BANK_TRANSFER_CO": {
+                "railName": "Bre-B",
+                "arrival": "Within minutes",
+                "arrivalDetail": "Bre-B transfers usually arrive within minutes."
             }
         },
         "gate": {
@@ -4099,6 +4112,21 @@
                 "line": "Top up from a bank account in your own name.",
                 "payer": "Only the account holder can pay into this account.",
                 "why": "Our banking partner only credits a transfer that comes from an account in your own name. A payment from anyone else is returned to them."
+            },
+            "businessAllowed": {
+                "line": "From a business: supported.",
+                "payer": "From a business: supported.",
+                "why": "Registered businesses can pay you. The limits shown here still apply."
+            },
+            "maximum": {
+                "line": "Maximum payment: {max}.",
+                "payer": "Maximum payment: {max}.",
+                "why": "This is the maximum amount accepted in one payment on this rail."
+            },
+            "monthlyLimit": {
+                "line": "Monthly limit: {limit} equivalent.",
+                "payer": "Monthly limit: {limit} equivalent.",
+                "why": "This limit applies across payments to your account. Contact support if you need a higher limit."
             }
         }
     }

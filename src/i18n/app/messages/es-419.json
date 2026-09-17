@@ -3960,8 +3960,11 @@
                 "spei": "SPEI",
                 "pix": "Pix",
                 "transfer_ar": "Transferencia bancaria",
-                "fallback": "Transferencia bancaria"
-            }
+                "fallback": "Transferencia bancaria",
+                "bre_b": "Bre-B"
+            },
+            "brCode": "Código Pix",
+            "breBKey": "Llave Bre-B"
         },
         "corridors": {
             "SEPA_EU": {
@@ -4001,6 +4004,16 @@
                     "why": "Nuestro socio bancario vincula tu cuenta al país de tu documento legal, un país a la vez. Una persona con nacionalidad estadounidense no puede usar transferencias bancarias acá, viva donde viva."
                 },
                 "railName": "Transferencia bancaria"
+            },
+            "BANK_TRANSFER_BR": {
+                "arrival": "En minutos",
+                "arrivalDetail": "Las transferencias Pix suelen llegar en minutos.",
+                "railName": "Pix"
+            },
+            "BANK_TRANSFER_CO": {
+                "railName": "Bre-B",
+                "arrival": "En minutos",
+                "arrivalDetail": "Las transferencias Bre-B suelen llegar en minutos."
             }
         },
         "gate": {
@@ -4099,6 +4112,21 @@
                 "line": "Ingresa dinero desde una cuenta bancaria a tu nombre.",
                 "payer": "Solo el titular puede pagar a esta cuenta.",
                 "why": "Nuestro socio bancario solo acredita una transferencia que venga de una cuenta a tu nombre. Un pago de cualquier otra persona se le devuelve."
+            },
+            "businessAllowed": {
+                "line": "De una empresa: permitido.",
+                "payer": "De una empresa: permitido.",
+                "why": "Las empresas registradas pueden pagarte. Se aplican los límites indicados aquí."
+            },
+            "maximum": {
+                "line": "Monto máximo por pago: {max}.",
+                "payer": "Monto máximo por pago: {max}.",
+                "why": "Este es el monto máximo aceptado por pago con este medio."
+            },
+            "monthlyLimit": {
+                "line": "Límite mensual: equivalente a {limit}.",
+                "payer": "Límite mensual: equivalente a {limit}.",
+                "why": "Este límite se aplica al total de pagos recibidos en tu cuenta. Contacta a soporte si necesitas un límite mayor."
             }
         }
     }

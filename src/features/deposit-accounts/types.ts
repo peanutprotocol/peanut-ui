@@ -153,6 +153,8 @@ export type DepositRowKey =
     | 'accountNumber'
     | 'routingNumber'
     | 'clabe'
+    | 'brCode'
+    | 'breBKey'
     | 'bankAddress'
     | 'beneficiaryAddress'
     | 'accepts'

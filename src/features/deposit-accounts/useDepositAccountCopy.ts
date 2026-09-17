@@ -50,7 +50,17 @@ const UNCLAIMABLE_KEYS = {
  * the corridor keys above: a rail Bridge starts returning without its copy
  * fails the build instead of reaching a user as `transfer_ar`.
  */
-const RAIL_LABEL_KEYS = ['ach_push', 'fednow', 'wire', 'sepa', 'faster_payments', 'spei', 'pix', 'transfer_ar'] as const
+const RAIL_LABEL_KEYS = [
+    'ach_push',
+    'fednow',
+    'wire',
+    'sepa',
+    'faster_payments',
+    'spei',
+    'pix',
+    'bre_b',
+    'transfer_ar',
+] as const
 
 /** one rule, in the three voices the screens and the shared text need */
 export interface ResolvedRuleLine {
@@ -80,6 +90,8 @@ export function useDepositAccountCopy() {
             accountNumber: t('rows.accountNumber'),
             routingNumber: t('rows.routingNumber'),
             clabe: t('rows.clabe'),
+            brCode: t('rows.brCode'),
+            breBKey: t('rows.breBKey'),
             bankAddress: t('rows.bankAddress'),
             beneficiaryAddress: t('rows.beneficiaryAddress'),
             accepts: t('rows.accepts'),

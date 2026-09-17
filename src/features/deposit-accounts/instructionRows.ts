@@ -54,6 +54,8 @@ export function instructionRowKeys(
     push('accountNumber', instructions.accountNumber)
     push('routingNumber', instructions.routingNumber)
     push('clabe', instructions.clabe)
+    push('brCode', instructions.brCode)
+    push('breBKey', instructions.breBKey)
     push('bankAddress', instructions.bankAddress)
     // the recipient's address, not the bank's — some payroll and bank forms
     // have a field for it, and without a row here a payer pastes the bank's

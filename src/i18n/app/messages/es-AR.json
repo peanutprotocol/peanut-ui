@@ -1732,6 +1732,9 @@
             },
             "ownName": {
                 "line": "Ingresá plata desde una cuenta bancaria a tu nombre."
+            },
+            "monthlyLimit": {
+                "why": "Este límite se aplica al total de pagos recibidos en tu cuenta. Contactá a soporte si necesitás un límite mayor."
             }
         }
     }

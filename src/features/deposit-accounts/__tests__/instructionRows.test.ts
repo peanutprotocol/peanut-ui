@@ -121,3 +121,15 @@ describe('instructionRows labels the rows and says which can be copied', () => {
         expect(copyable('accepts')).toBe(false)
     })
 })
+
+it.each([
+    ['brCode', '000201-example-pix-code'],
+    ['breBKey', '@DEMO123'],
+])('shows %s as a copyable provider instruction', (field, value) => {
+    const rows = instructionRows(
+        { accountHolderName: 'Demo User', paymentRails: [], [field]: value },
+        labels,
+        railLabels
+    )
+    expect(rows).toContainEqual({ key: field, label: `label:${field}`, value, copyable: true })
+})
