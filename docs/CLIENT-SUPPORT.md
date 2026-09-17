@@ -53,15 +53,25 @@ node scripts/client-support-policy.mjs sync \
 node scripts/client-support-policy.mjs check --registry ../mono/engineering/compatibility/registry.json
 ```
 
-Commit `public/client-support.json` and the lock together. The pinned commit
-must be pushed to mono before the UI PR runs CI.
+Commit `public/client-support.json` and the lock together.
+
+**The pinned commit must be on mono `main` before UI CI can pass.** CI
+compares the pin with mono `main` and accepts only an ancestor (compare status
+`ahead` or `identical`, merge base at the pin). Merge order:
+
+1. Merge the mono PR that carries the registry change (for the foundation,
+   mono PR 194 carrying `99c3e3fe…`).
+2. If mono squash-merged it, the pinned commit is not on `main`. Re-run `sync`
+   against the merged commit and update the lock and snapshot here.
+3. Re-run the UI workflow (`ci-success` stays red until then).
 
 CI (`client-support-source` and `client-support-policy` in
-`.github/workflows/tests.yml`) fetches the pinned registry with
-`MONO_READ_TOKEN`, derives a public proof (policy, pin, digest) in the job that
-holds the credential, and checks the snapshot and lock against that proof. It
-fails closed: no token, no fetch, or a mismatch blocks `ci-success`. The
-registry never becomes an artifact and is never printed.
+`.github/workflows/tests.yml`) verifies the pin's ancestry, fetches the pinned
+registry with `MONO_READ_TOKEN`, derives a public proof (policy, pin, digest)
+in the job that holds the credential, and checks the snapshot and lock against
+that proof. It fails closed: no token, an unmerged or unknown pin, no fetch,
+or a mismatch blocks `ci-success`. The registry never becomes an artifact and
+is never printed; only the compare status reaches the log.
 
 ## Rollout order for a non-zero floor
 

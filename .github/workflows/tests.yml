@@ -330,6 +330,34 @@ jobs:
                       if (!/^[a-f0-9]{40}$/.test(lock.monoSha)) throw new Error("lock.monoSha is not a full sha")
                       process.stdout.write(lock.monoSha)
                   ')
+                  # The pin has to be on mono main already: a snapshot derived
+                  # from a registry that mono never merged would publish a
+                  # floor mono never adopted. base=pin, head=main — "ahead" or
+                  # "identical" with the merge base AT the pin is the only
+                  # shape that proves ancestry; behind, diverged, unknown, a
+                  # malformed answer or a failed call all stop here. Only the
+                  # compare status is ever printed. A test executes this block
+                  # (sentinels below) against a stub gh.
+                  # client-support-ancestry-begin
+                  COMPARE=$(GH_TOKEN=$MONO_TOKEN gh api "repos/peanutprotocol/mono/compare/$MONO_SHA...main" \
+                      --template '{{.status}} {{.merge_base_commit.sha}}') || {
+                      echo "::error::Could not compare mono $MONO_SHA with mono main; the registry pin cannot be verified. Check MONO_READ_TOKEN and that the pinned commit exists on mono."
+                      exit 1
+                  }
+                  STATUS=${COMPARE%% *}
+                  MERGE_BASE=${COMPARE#* }
+                  case "$STATUS" in
+                      ahead | identical) ;;
+                      *)
+                          echo "::error::mono $MONO_SHA is not on mono main (compare status: ${STATUS:-unknown}). Merge the mono PR that carries this registry first, then re-run this workflow. If mono squash-merged it, run 'node scripts/client-support-policy.mjs sync' against the merged commit and update the lock."
+                          exit 1
+                          ;;
+                  esac
+                  if [ "$MERGE_BASE" != "$MONO_SHA" ]; then
+                      echo "::error::mono $MONO_SHA is not an ancestor of mono main. Merge the mono PR that carries this registry first, then re-run this workflow. If mono squash-merged it, sync the lock to the merged commit."
+                      exit 1
+                  fi
+                  # client-support-ancestry-end
                   GH_TOKEN=$MONO_TOKEN gh api \
                       "repos/peanutprotocol/mono/contents/engineering/compatibility/registry.json?ref=$MONO_SHA" \
                       --template '{{.content}}' | base64 -d > /tmp/client-support-registry.json

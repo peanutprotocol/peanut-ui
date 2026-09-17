@@ -202,6 +202,88 @@ describe('client-support-policy check', () => {
             expect(run(root, 'check', '--proof', path.join(root, 'missing.json')).status).toBe(1)
         })
 
+        describe('CI refuses a pin that mono main does not contain', () => {
+            // The credential-holding job verifies ancestry with the compare
+            // endpoint before it touches the registry. Execute that shell
+            // block as written, against a stub `gh` that answers what the
+            // test dictates and records what it was asked.
+            const workflow = fs.readFileSync(
+                path.join(__dirname, '..', '..', '.github', 'workflows', 'tests.yml'),
+                'utf8'
+            )
+            const block = workflow
+                .split('# client-support-ancestry-begin\n')[1]
+                .split('# client-support-ancestry-end')[0]
+                .split('\n')
+            const indent = Math.min(...block.filter((l) => l.trim()).map((l) => l.match(/^ */)[0].length))
+            const body = block.map((l) => l.slice(indent)).join('\n')
+
+            function runAncestry({ response, exit = 0 }) {
+                const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'client-support-ancestry-'))
+                const stubDir = path.join(dir, 'bin')
+                fs.mkdirSync(stubDir)
+                const calls = path.join(dir, 'gh-calls.txt')
+                fs.writeFileSync(
+                    path.join(stubDir, 'gh'),
+                    `#!/usr/bin/env bash\nprintf '%s\\n' "token=$GH_TOKEN" "$@" >> "${calls}"\nprintf '%s' "$GH_STUB_RESPONSE"\nexit "$GH_STUB_EXIT"\n`,
+                    { mode: 0o755 }
+                )
+                const script = path.join(dir, 'ancestry.sh')
+                fs.writeFileSync(script, `set -euo pipefail\n${body}\necho ancestry-ok\n`)
+                const result = spawnSync('bash', [script], {
+                    encoding: 'utf8',
+                    env: {
+                        PATH: `${stubDir}:${process.env.PATH}`,
+                        MONO_SHA,
+                        MONO_TOKEN: 'stub-mono-token',
+                        GH_STUB_RESPONSE: response,
+                        GH_STUB_EXIT: String(exit),
+                    },
+                })
+                return { ...result, calls: fs.existsSync(calls) ? fs.readFileSync(calls, 'utf8') : '' }
+            }
+
+            it('asks mono for base=pin, head=main with the mono token, and passes when main is ahead', () => {
+                const result = runAncestry({ response: `ahead ${MONO_SHA}` })
+                expect(result.stderr).toBe('')
+                expect(result.status).toBe(0)
+                expect(result.stdout).toContain('ancestry-ok')
+                expect(result.calls).toContain('token=stub-mono-token')
+                expect(result.calls).toContain(`repos/peanutprotocol/mono/compare/${MONO_SHA}...main`)
+                expect(result.calls).toContain('{{.status}} {{.merge_base_commit.sha}}')
+            })
+
+            it('passes when the pin is main itself', () => {
+                const result = runAncestry({ response: `identical ${MONO_SHA}` })
+                expect(result.status).toBe(0)
+            })
+
+            it.each([
+                ['behind', `behind ${'b'.repeat(40)}`],
+                ['diverged', `diverged ${'b'.repeat(40)}`],
+                ['unknown', `unknown ${MONO_SHA}`],
+                ['an empty answer', ''],
+                ['a malformed answer', '<no value> <no value>'],
+                ['a matching status but a foreign merge base', `ahead ${'c'.repeat(40)}`],
+            ])('rejects %s and names the operator fix', (_label, response) => {
+                const result = runAncestry({ response })
+                expect(result.status).toBe(1)
+                expect(result.stdout).toContain('::error::')
+                expect(result.stdout).toContain('Merge the mono PR')
+                expect(result.stdout).not.toContain('ancestry-ok')
+                // no commit data beyond the pin itself reaches the log
+                expect(result.stdout).not.toContain('b'.repeat(40))
+                expect(result.stdout).not.toContain('c'.repeat(40))
+            })
+
+            it('rejects a failed API call instead of assuming ancestry', () => {
+                const result = runAncestry({ response: '', exit: 22 })
+                expect(result.status).toBe(1)
+                expect(result.stdout).toContain('::error::Could not compare mono')
+                expect(result.stdout).not.toContain('ancestry-ok')
+            })
+        })
+
         it('is what the CI source job derives inline, byte for byte', () => {
             // The credential-holding job cannot run PR code, so it carries its
             // own copy of the derivation. Execute that copy and compare it
