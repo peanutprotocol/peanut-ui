@@ -34,8 +34,9 @@ export const useCardSurfaceAccess = (): CardSurfaceAccess => {
     const cardRails = rails.filter((rail) => channelOf(rail) === 'card')
     // The Rain rail status describes the application, so it remains enabled
     // after a card is canceled. The API refines operations.pay from the actual
-    // non-canceled card row, which lets this fast /users/me-backed selector stay
-    // truthful without restoring the slow /rain/cards request on Profile.
+    // card status and enables it only for ACTIVE cards. LOCKED and
+    // NOT_ACTIVATED cards keep the surface reachable through the application
+    // rail but are not presented as a currently spendable card.
     const hasIssuedCard = cardRails.some((rail) => rail.operations?.pay === 'enabled')
     const hasCardRelationship = cardRails.length > 0
     const canApply = !restrictions.card && cardInfo?.geoProhibited !== true

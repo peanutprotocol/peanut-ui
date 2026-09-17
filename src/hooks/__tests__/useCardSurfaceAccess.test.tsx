@@ -31,7 +31,7 @@ const setup = (
         // Rain's application rail stays enabled even after card cancellation;
         // the operation refinement is the card-level truth.
         status: 'enabled',
-        operations: { pay: status === 'CANCELED' ? 'blocked' : 'enabled' },
+        operations: { pay: status === 'ACTIVE' ? 'enabled' : 'blocked' },
     }))
     if (scenario.hasApplication) rails.push({ id: 'rain.card_application', channel: 'card', status: 'pending' })
     ;(useCapabilities as jest.Mock).mockReturnValue({
@@ -81,6 +81,14 @@ describe('public card surfaces', () => {
     })
     it('does not treat a canceled card as issued when its application rail stays enabled', () => {
         expect(setup({ cardStatuses: ['CANCELED'], restrictedCard: true })).toMatchObject({
+            showCardSurface: true,
+            hasCardRelationship: true,
+            hasIssuedCard: false,
+            canSpendPathViaCard: false,
+        })
+    })
+    it.each(['LOCKED', 'NOT_ACTIVATED'])('keeps a %s card manageable without promising spend', (status) => {
+        expect(setup({ cardStatuses: [status], restrictedCard: true })).toMatchObject({
             showCardSurface: true,
             hasCardRelationship: true,
             hasIssuedCard: false,
