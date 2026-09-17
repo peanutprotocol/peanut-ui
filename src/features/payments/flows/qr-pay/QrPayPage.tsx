@@ -2,7 +2,6 @@
 
 import { useTranslations } from 'next-intl'
 import Loading from '@/components/Global/Loading'
-import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { loadingStateKey } from '@/i18n/app/loading-states'
 import { QrPayFlowProvider, useQrPayFlow } from './QrPayFlowContext'
@@ -14,6 +13,7 @@ import { QrPayKycGateView } from './views/QrPayKycGateView'
 import { QrPayProviderRejectionView } from './views/QrPayProviderRejectionView'
 import { QrPayBlockedView } from './views/QrPayBlockedView'
 import { QrPayPageLoading } from './views/QrPayPageLoading'
+import { QrPayProcessingView } from './views/QrPayProcessingView'
 
 // internal component that switches views — the precedence itself lives in
 // deriveQrPayView, so this stays a flat map from view to component
@@ -36,10 +36,7 @@ function QrPayFlowContent() {
         case 'AWAITING_MERCHANT':
             return <QrPayPageLoading message={t('waitingForMerchant')} />
         case 'LOADING':
-            // the shared processing treatment (TASK-22452) — the payment was
-            // submitted, so "confirming" is the truthful word
-            if (loadingState === 'Paying')
-                return <ProcessingScreen title={t('processingPaymentTitle')} description={t('processingPaymentBody')} />
+            if (loadingState === 'Paying') return <QrPayProcessingView />
             /*
              * Captioned only for the retry window. A scan being retried after a
              * stalled request is otherwise pixel-identical to a slow first attempt,
