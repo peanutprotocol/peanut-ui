@@ -139,7 +139,7 @@ describe('AdditionalVerificationView', () => {
         expect(mockReservedTab.close).not.toHaveBeenCalled()
     })
 
-    it('no usable tab (pop-up blocked / standalone PWA) falls back to same-tab navigation', async () => {
+    it('a blocked pop-up falls back to same-tab navigation', async () => {
         // A post-await window.open would be blocked and its null return is
         // unobservable; same-tab navigation is never gesture-gated.
         mockWindowOpen.mockReturnValue(null)

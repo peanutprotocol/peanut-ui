@@ -1,13 +1,23 @@
-import { act, fireEvent, screen } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import type { ISetupStep } from '@/components/Setup/Setup.types'
 import SetupPage from '../page'
 import * as Sentry from '@sentry/nextjs'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
+import { markDeepLinkNavigated, resetDeepLinkStateForTests } from '@/utils/deep-link-state'
 
 const mockSupport = jest.fn()
 const mockResolve = jest.fn()
 const mockRouter = { replace: jest.fn(), push: jest.fn() }
+const mockQueuePendingBadgeCampaigns = jest.fn((campaigns: readonly string[]) => [...campaigns])
+const mockGetPendingBadgeCampaigns = jest.fn(() => [] as string[])
+const mockClaimAndSettlePendingBadgeCampaigns = jest.fn((_campaigns: readonly string[]) =>
+    Promise.resolve({
+        claims: [{ badgeCampaign: 'bug_whisperer', outcome: 'awarded' }],
+        pending: [],
+        transport: 'canonical',
+    })
+)
 const mockFlow = {
     step: undefined as ISetupStep | undefined,
     handleNext: jest.fn(),
@@ -15,16 +25,41 @@ const mockFlow = {
     setScreenId: jest.fn(),
 }
 const mockStore = { steps: [] as ISetupStep[], inviteCode: undefined }
-const mockAuth = { user: undefined, isFetchingUser: false, logoutUser: jest.fn(), isLoggingOut: false }
+type MockAuthUser = { user?: { username?: string; hasAppAccess?: boolean } }
+const mockAuth = {
+    user: undefined as MockAuthUser | undefined,
+    isFetchingUser: false,
+    logoutUser: jest.fn(),
+    isLoggingOut: false,
+    fetchUser: jest.fn().mockResolvedValue(undefined),
+}
 let mockNative = true
+let mockPwaSunsetOn = false
+let mockSearchParams = new URLSearchParams()
+let mockStoredRedirect: {
+    destination: string
+    origin: 'deep-link' | 'session-end' | null
+    generationId: string | null
+} | null = null
 
 jest.mock('@/features/setup/SetupFlowContext', () => ({
-    useSetupFlowContext: () => ({ ...mockStore, resetSetupFlow: jest.fn(), setNoBackLockScreenId: jest.fn() }),
-}))
-jest.mock('@/hooks/useIosPwaInstallGate', () => ({
-    useIosPwaInstallGate: () => ({ setShowIosPwaInstallScreen: jest.fn() }),
+    useSetupFlowContext: () => ({
+        ...mockStore,
+        resetSetupFlow: jest.fn(),
+        setNoBackLockScreenId: jest.fn(),
+        setSignupEntryFlow: jest.fn(),
+    }),
 }))
 jest.mock('@/utils/invite-stash', () => ({ readInviteCode: jest.fn(), stashInvite: jest.fn() }))
+jest.mock('@/components/Invites/badge-campaign-context', () => ({
+    badgeCampaignsFromSearchParams: (params: URLSearchParams) => params.getAll('badge_campaign'),
+    getPendingBadgeCampaigns: () => mockGetPendingBadgeCampaigns(),
+    queuePendingBadgeCampaigns: (campaigns: readonly string[]) => mockQueuePendingBadgeCampaigns(campaigns),
+}))
+jest.mock('@/services/badge-campaigns', () => ({
+    claimAndSettlePendingBadgeCampaigns: (campaigns: readonly string[]) =>
+        mockClaimAndSettlePendingBadgeCampaigns(campaigns),
+}))
 jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => mockFlow }))
 jest.mock('@/features/setup/useSetupStepAnalytics', () => ({ useSetupStepAnalytics: jest.fn() }))
 jest.mock('@/hooks/useSetupBackHandler', () => ({ useSetupBackHandler: jest.fn() }))
@@ -35,11 +70,12 @@ jest.mock('@/hooks/useGetDeviceType', () => ({
 }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => mockAuth }))
 jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSupportModalOpen: mockSupport }) }))
-jest.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams(), useRouter: () => mockRouter }))
+jest.mock('next/navigation', () => ({ useSearchParams: () => mockSearchParams, useRouter: () => mockRouter }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => mockNative }))
-jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => false }))
+jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => mockPwaSunsetOn }))
 jest.mock('@/utils/general.utils', () => ({
     getFromCookie: jest.fn(),
+    getStoredRedirect: () => mockStoredRedirect,
     saveToCookie: jest.fn(),
     toInviteCode: jest.fn(),
 }))
@@ -47,7 +83,6 @@ jest.mock('@/components/Setup/setup-entry', () => ({
     hasKnownDeviceCredentials: () => false,
     resolveSetupEntryStep: (...args: unknown[]) => mockResolve(...args),
 }))
-jest.mock('@/components/Setup/Setup.consts', () => ({ setupSteps: [{ screenId: 'unsupported-browser' }] }))
 jest.mock('@/components/Setup/Setup.utils', () => ({ isLikelyWebview: () => false, isDeviceOsSupported: () => true }))
 jest.mock('@/components/Setup/components/SetupWrapper', () => ({
     SetupWrapper: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -59,7 +94,11 @@ jest.mock('@/components/Global/UnsupportedBrowserModal', () => ({
 }))
 jest.mock('@/assets/mascot', () => ({ PeanutWavingHello: { src: '' } }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
-jest.mock('@sentry/nextjs', () => ({ captureMessage: jest.fn() }))
+jest.mock('@sentry/nextjs', () => ({
+    captureException: jest.fn(),
+    captureMessage: jest.fn(),
+    addBreadcrumb: jest.fn(),
+}))
 
 const landing: ISetupStep = {
     screenId: 'landing',
@@ -79,7 +118,20 @@ beforeEach(() => {
     mockStore.steps = [landing]
     mockFlow.step = landing
     mockAuth.isFetchingUser = false
+    mockAuth.user = undefined
+    mockAuth.fetchUser.mockResolvedValue(undefined)
+    mockGetPendingBadgeCampaigns.mockReturnValue([])
+    mockQueuePendingBadgeCampaigns.mockImplementation((campaigns: readonly string[]) => [...campaigns])
+    mockClaimAndSettlePendingBadgeCampaigns.mockResolvedValue({
+        claims: [{ badgeCampaign: 'bug_whisperer', outcome: 'awarded' }],
+        pending: [],
+        transport: 'canonical',
+    })
+    resetDeepLinkStateForTests()
     mockNative = true
+    mockPwaSunsetOn = false
+    mockSearchParams = new URLSearchParams()
+    mockStoredRedirect = null
 })
 afterEach(() => {
     jest.useRealTimers()
@@ -93,7 +145,9 @@ it('shows retry and support when no current setup step can render', async () => 
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
     expect(mockSupport).toHaveBeenCalledWith(true)
-    expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
+    expect(Sentry.addBreadcrumb).toHaveBeenCalledWith(
+        expect.objectContaining({ category: 'setup.recovery', level: 'info', message: 'Setup recovery required' })
+    )
     expect(useSetupStepAnalytics).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: false }))
 })
 
@@ -103,7 +157,7 @@ it.each([true, false])('does not select the wrong step when the entry step is ab
         configurable: true,
         value: { isUserVerifyingPlatformAuthenticatorAvailable: async () => true },
     })
-    mockResolve.mockReturnValue('pwa-install')
+    mockResolve.mockReturnValue('signup')
     renderWithIntl(<SetupPage />)
     await advance(100)
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
@@ -134,6 +188,11 @@ it('recovers from an initialization exception', async () => {
     renderWithIntl(<SetupPage />)
     await advance(100)
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+        'Setup initialization failed',
+        expect.objectContaining({ level: 'error', tags: { reason: 'initialization_failed' } })
+    )
+    expect(Sentry.addBreadcrumb).not.toHaveBeenCalled()
 })
 
 it('ignores an authenticator check that completes after initialization timed out', async () => {
@@ -151,6 +210,11 @@ it('ignores an authenticator check that completes after initialization timed out
     renderWithIntl(<SetupPage />)
     await advance(15000)
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+        'Setup initialization failed',
+        expect.objectContaining({ level: 'error', tags: { reason: 'initialization_timeout' } })
+    )
+    expect(Sentry.addBreadcrumb).not.toHaveBeenCalled()
     await act(async () => {
         resolveSupport(true)
     })
@@ -170,11 +234,51 @@ it('preserves the unsupported-device recovery on web', async () => {
     expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
 })
 
+it('routes sunset web guests to landing before unsupported-browser capability gates', async () => {
+    mockNative = false
+    mockPwaSunsetOn = true
+    Object.defineProperty(window, 'PublicKeyCredential', {
+        configurable: true,
+        value: { isUserVerifyingPlatformAuthenticatorAvailable: jest.fn().mockResolvedValue(false) },
+    })
+
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+
+    expect(screen.getByText('Landing step')).toBeInTheDocument()
+    expect(screen.queryByText('Unsupported device')).not.toBeInTheDocument()
+    expect(PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable).not.toHaveBeenCalled()
+    expect(mockResolve).toHaveBeenCalledWith(
+        expect.objectContaining({
+            webSignupClosed: true,
+        })
+    )
+    expect(mockFlow.setScreenId).toHaveBeenCalledWith('landing', { history: 'replace' })
+})
+
 it('bounds waiting for session hydration', async () => {
     mockAuth.isFetchingUser = true
     renderWithIntl(<SetupPage />)
     await advance(15000)
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+})
+
+it('suppresses timeout recovery when a completed session starts leaving for home', async () => {
+    mockAuth.isFetchingUser = true
+    const view = renderWithIntl(<SetupPage />)
+    await advance(100)
+    await advance(15000)
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+
+    mockAuth.isFetchingUser = false
+    mockAuth.user = { user: { username: 'peanutter', hasAppAccess: true } }
+    await act(async () => {
+        view.rerender(<SetupPage />)
+    })
+
+    expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+    expect(screen.getByRole('status')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
 })
 
 it.each([true, false])('preserves the resolved entry flow (native=%s)', async (native) => {
@@ -189,9 +293,226 @@ it.each([true, false])('preserves the resolved entry flow (native=%s)', async (n
     expect(mockFlow.setScreenId).toHaveBeenCalledWith('landing', { history: 'replace' })
 })
 
+it('attributes bare setup to an unconsumed stored deep-link intent', async () => {
+    mockStoredRedirect = {
+        destination: '/card',
+        origin: 'deep-link',
+        generationId: 'card-entry',
+    }
+
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+
+    expect(useSetupStepAnalytics).toHaveBeenLastCalledWith(expect.objectContaining({ signupEntryFlow: 'card' }))
+})
+
+it('does not attribute a stored session-end page to a new signup', async () => {
+    mockStoredRedirect = {
+        destination: '/card',
+        origin: 'session-end',
+        generationId: 'previous-session',
+    }
+
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+
+    expect(useSetupStepAnalytics).toHaveBeenLastCalledWith(expect.objectContaining({ signupEntryFlow: 'default' }))
+})
+
+it('settles a native badge campaign before redirecting an authenticated user home', async () => {
+    mockAuth.user = { user: { username: 'alice', hasAppAccess: true } }
+    mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer')
+
+    renderWithIntl(<SetupPage />)
+
+    await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledWith(['bug_whisperer']))
+    expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(mockAuth.fetchUser).toHaveBeenCalledTimes(1))
+    expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+    expect(mockRouter.replace.mock.invocationCallOrder[0]).toBeGreaterThan(
+        mockClaimAndSettlePendingBadgeCampaigns.mock.invocationCallOrder[0]
+    )
+})
+
+it('does not redirect home when setup unmounts before the native claim settles', async () => {
+    mockAuth.user = { user: { username: 'alice', hasAppAccess: true } }
+    mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer')
+    type ClaimResult = Awaited<ReturnType<typeof mockClaimAndSettlePendingBadgeCampaigns>>
+    let resolveClaim!: (result: ClaimResult) => void
+    mockClaimAndSettlePendingBadgeCampaigns.mockImplementation(
+        (_campaigns: readonly string[]) =>
+            new Promise<ClaimResult>((resolve) => {
+                resolveClaim = resolve
+            })
+    )
+
+    const view = renderWithIntl(<SetupPage />)
+    await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledWith(['bug_whisperer']))
+    view.unmount()
+
+    await act(async () => {
+        resolveClaim({
+            claims: [{ badgeCampaign: 'bug_whisperer', outcome: 'awarded' }],
+            pending: [],
+            transport: 'canonical',
+        })
+    })
+
+    expect(mockRouter.replace).not.toHaveBeenCalledWith('/home')
+})
+
+it('does not redirect home after a newer native deep link is accepted', async () => {
+    mockAuth.user = { user: { username: 'alice', hasAppAccess: true } }
+    mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer')
+    type ClaimResult = Awaited<ReturnType<typeof mockClaimAndSettlePendingBadgeCampaigns>>
+    let resolveClaim!: (result: ClaimResult) => void
+    mockClaimAndSettlePendingBadgeCampaigns.mockImplementation(
+        (_campaigns: readonly string[]) =>
+            new Promise<ClaimResult>((resolve) => {
+                resolveClaim = resolve
+            })
+    )
+
+    renderWithIntl(<SetupPage />)
+    await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledWith(['bug_whisperer']))
+    markDeepLinkNavigated('/pay-request')
+
+    await act(async () => {
+        resolveClaim({
+            claims: [{ badgeCampaign: 'bug_whisperer', outcome: 'awarded' }],
+            pending: [],
+            transport: 'canonical',
+        })
+    })
+
+    expect(mockRouter.replace).not.toHaveBeenCalledWith('/home')
+})
+
+it('restarts native badge settlement when the same invite is accepted again', async () => {
+    mockAuth.user = { user: { username: 'alice', hasAppAccess: true } }
+    mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer')
+    type ClaimResult = Awaited<ReturnType<typeof mockClaimAndSettlePendingBadgeCampaigns>>
+    const resolveClaims: Array<(result: ClaimResult) => void> = []
+    mockClaimAndSettlePendingBadgeCampaigns.mockImplementation(
+        (_campaigns: readonly string[]) =>
+            new Promise<ClaimResult>((resolve) => {
+                resolveClaims.push(resolve)
+            })
+    )
+
+    renderWithIntl(<SetupPage />)
+    await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledTimes(1))
+    markDeepLinkNavigated('/setup?step=signup&badge_campaign=bug_whisperer')
+
+    await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledTimes(2))
+    expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenNthCalledWith(2, ['bug_whisperer'])
+
+    await act(async () => {
+        resolveClaims[0]({
+            claims: [{ badgeCampaign: 'bug_whisperer', outcome: 'awarded' }],
+            pending: [],
+            transport: 'canonical',
+        })
+    })
+    expect(mockRouter.replace).not.toHaveBeenCalledWith('/home')
+
+    await act(async () => {
+        resolveClaims[1]({
+            claims: [{ badgeCampaign: 'bug_whisperer', outcome: 'awarded' }],
+            pending: [],
+            transport: 'canonical',
+        })
+    })
+    await waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith('/home'))
+})
+
+it('restarts native badge settlement when a newer invite replaces the setup URL', async () => {
+    mockAuth.user = { user: { username: 'alice', hasAppAccess: true } }
+    mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer')
+    type ClaimResult = Awaited<ReturnType<typeof mockClaimAndSettlePendingBadgeCampaigns>>
+    const resolveClaims: Array<(result: ClaimResult) => void> = []
+    mockClaimAndSettlePendingBadgeCampaigns.mockImplementation(
+        (_campaigns: readonly string[]) =>
+            new Promise<ClaimResult>((resolve) => {
+                resolveClaims.push(resolve)
+            })
+    )
+
+    const view = renderWithIntl(<SetupPage />)
+    await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledTimes(1))
+
+    markDeepLinkNavigated('/setup?step=signup&badge_campaign=bug_whisperer_v2')
+    await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledTimes(1))
+    mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer_v2')
+    view.rerender(<SetupPage />)
+
+    await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledTimes(2))
+    expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenNthCalledWith(2, ['bug_whisperer_v2'])
+
+    await act(async () => {
+        resolveClaims[0]({
+            claims: [{ badgeCampaign: 'bug_whisperer', outcome: 'awarded' }],
+            pending: [],
+            transport: 'canonical',
+        })
+    })
+    expect(mockRouter.replace).not.toHaveBeenCalledWith('/home')
+
+    await act(async () => {
+        resolveClaims[1]({
+            claims: [{ badgeCampaign: 'bug_whisperer_v2', outcome: 'awarded' }],
+            pending: [],
+            transport: 'canonical',
+        })
+    })
+    await waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith('/home'))
+})
+
+it('redirects home for a newer setup invite without a badge campaign', async () => {
+    mockAuth.user = { user: { username: 'alice', hasAppAccess: true } }
+    mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer')
+    type ClaimResult = Awaited<ReturnType<typeof mockClaimAndSettlePendingBadgeCampaigns>>
+    mockClaimAndSettlePendingBadgeCampaigns.mockImplementation(
+        (_campaigns: readonly string[]) => new Promise<ClaimResult>(() => {})
+    )
+
+    const view = renderWithIntl(<SetupPage />)
+    await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledTimes(1))
+
+    markDeepLinkNavigated('/setup?step=signup')
+    mockSearchParams = new URLSearchParams('step=signup')
+    view.rerender(<SetupPage />)
+
+    await waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith('/home'))
+})
+
 it('does not initialize after unmount', async () => {
     const view = renderWithIntl(<SetupPage />)
     view.unmount()
     await advance(100)
     expect(mockFlow.setScreenId).not.toHaveBeenCalled()
+})
+
+/*
+ * Back after a completed signup lands here: the flow leaves a history entry
+ * per step on web, and the post-signup redirect only replaces the last one.
+ * The session effect already bounces such a visit to /home — while that soft
+ * nav is in flight the page must keep waiting, not report a fault it is
+ * already recovering from (PEANUT-UI-T3A, reason=missing_step).
+ */
+it('bounces a completed session home without showing the recovery screen', async () => {
+    mockAuth.user = { user: { username: 'peanutter', hasAppAccess: true } }
+    mockFlow.step = undefined
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+    expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+    expect(screen.getByRole('status')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+    expect(Sentry.addBreadcrumb).not.toHaveBeenCalled()
+    expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    // the initialization bound must not turn the pending bounce into a fault either
+    await advance(15000)
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+    expect(Sentry.addBreadcrumb).not.toHaveBeenCalled()
+    expect(Sentry.captureMessage).not.toHaveBeenCalled()
 })

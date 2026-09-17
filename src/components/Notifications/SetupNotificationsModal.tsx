@@ -7,7 +7,6 @@ import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 
 export default function SetupNotificationsModal() {
-    const t = useTranslations('notifications')
     // migration-era copy ("Get money alerts") only ships when the pwa-sunset
     // flag is on — flag off keeps today's prompt byte-for-byte (TASK-20771)
     const migrationOn = useMigrationFlag()
@@ -45,10 +44,36 @@ export default function SetupNotificationsModal() {
     }
 
     return (
+        <SetupNotificationsPrompt
+            visible={showPermissionModal}
+            onAllow={handleAllowClick}
+            onClose={handleCloseNotifsSetupModal}
+            isRequestingPermission={isRequestingPermission}
+            migrationOn={migrationOn}
+        />
+    )
+}
+
+/** Presentational prompt, shared with the deterministic screen catalogue. */
+export function SetupNotificationsPrompt({
+    visible,
+    onAllow,
+    onClose,
+    isRequestingPermission = false,
+    migrationOn = false,
+}: {
+    visible: boolean
+    onAllow: (event?: React.MouseEvent) => void
+    onClose: (event?: React.MouseEvent) => void
+    isRequestingPermission?: boolean
+    migrationOn?: boolean
+}) {
+    const t = useTranslations('notifications')
+    return (
         <>
             <ActionModal
-                visible={showPermissionModal}
-                onClose={handleCloseNotifsSetupModal}
+                visible={visible}
+                onClose={onClose}
                 title={t(migrationOn ? 'migrationSetupTitle' : 'setupTitle')}
                 description={t(migrationOn ? 'migrationSetupDescription' : 'setupDescription')}
                 icon="bell"
@@ -58,7 +83,7 @@ export default function SetupNotificationsModal() {
                 ctas={[
                     {
                         text: isRequestingPermission ? t('requesting') : t('enable'),
-                        onClick: handleAllowClick,
+                        onClick: onAllow,
                         variant: 'purple',
                         shadowSize: '4',
                         className: 'sm:flex-none',
@@ -67,7 +92,7 @@ export default function SetupNotificationsModal() {
                     },
                     {
                         text: t('notNow'),
-                        onClick: handleCloseNotifsSetupModal,
+                        onClick: onClose,
                         variant: 'stroke',
                         className: 'sm:flex-none',
                     },

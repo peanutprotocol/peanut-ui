@@ -21,7 +21,7 @@ import { KycFailedModal } from '@/components/Kyc/modals/KycFailedModal'
 import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 import ActionModal from '@/components/Global/ActionModal'
 import { useModalsContext } from '@/context/ModalsContext'
-import { getRegionIntent, providerForRegionIntent, regionIntentForResidence, type Region } from '@/utils/regions.utils'
+import { getRegionIntent, providerForRegionIntent, type Region } from '@/utils/regions.utils'
 import { deriveRegionAccess, isBridgeSupportedCountry, pendingBankRailRegionPaths } from '@/utils/regions.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useQueryClient } from '@tanstack/react-query'
@@ -58,6 +58,7 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import { useRouter } from 'next/navigation'
+import { parseAsString, useQueryState } from 'nuqs'
 
 type ModalVariant = 'start' | 'processing' | 'action_required' | 'rejected'
 
@@ -136,12 +137,13 @@ const UnlockPayments = () => {
     const locale = useLocale()
     const onBack = useSafeBack('/profile', { replace: true })
     const router = useRouter()
+    const [openView, setOpenView] = useQueryState('open', parseAsString)
     const { user, fetchUser } = useAuth()
     const { rails, isKycApproved, railsForProvider, nextActionsForRail } = useCapabilities()
     const restrictions = useResidenceRestrictions()
     const { identity, isProcessing: isIdentityInReview, isRegionRestricted } = useIdentityVerification()
     const isKycDegraded = useKycDegraded()
-    const { isEligible } = useCardInfo()
+    const { cardInfo } = useCardInfo()
     const queryClient = useQueryClient()
     const { overview } = useRainCardOverview()
     const { mantecaLimits, bridgeLimits } = useLimits()
@@ -224,23 +226,39 @@ const UnlockPayments = () => {
                     argentina: unlockedRegions.some((region) => region.path === 'argentina'),
                 },
                 restrictions,
-                // Eligibility (residence-driven) decides availability here; the
-                // waitlist grant only gates activation and is handled on /card.
-                card: hasActiveCard ? 'active' : isEligible === false ? 'notAvailable' : 'get',
+                // New applications are public; retain known residence restrictions.
+                card: hasActiveCard ? 'active' : restrictions.card || cardInfo?.geoProhibited ? 'notAvailable' : 'get',
                 residenceIso2,
                 secondResidenceIso2: declaredSecondIso2,
                 isEuropeResidence: isEuropeIso2(residenceIso2) || isEuropeIso2(declaredSecondIso2),
             }),
-        [regionChipFor, unlockedRegions, restrictions, hasActiveCard, isEligible, residenceIso2, declaredSecondIso2]
+        [
+            regionChipFor,
+            unlockedRegions,
+            restrictions,
+            hasActiveCard,
+            cardInfo?.geoProhibited,
+            residenceIso2,
+            declaredSecondIso2,
+        ]
     )
 
     // ── modal machinery (carried over from the retired UnlockedRegions view) ──
     const [selectedRegion, setSelectedRegion] = useState<Region | null>(null)
     const [selectedMethodLabel, setSelectedMethodLabel] = useState<string | null>(null)
+    // Card recovery deep-links here when only a pending residence change is
+    // blocking issuance. Keep the deep link live rather than snapshotting it,
+    // and clear it when the drawer closes so refresh/native restore cannot
+    // reopen a completed recovery flow.
     const [isChangeModalOpen, setIsChangeModalOpen] = useState(false)
+    const isResidenceChangeVisible = isChangeModalOpen || openView === 'residence'
+    const closeResidenceChange = useCallback(() => {
+        setIsChangeModalOpen(false)
+        void setOpenView(null, { history: 'replace' })
+    }, [setOpenView])
     const [activeRegionIntent, setActiveRegionIntent] = useState<KYCRegionIntent | undefined>(undefined)
     const [errorAcknowledged, setErrorAcknowledged] = useState(false)
-    const [reverifyRequested, setReverifyRequested] = useState(false)
+    const [reverifyTarget, setReverifyTarget] = useState<string | null>(null)
 
     const clickedRegionIntent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
     const clickedRegionProvider = providerForRegionIntent(clickedRegionIntent)
@@ -291,7 +309,7 @@ const UnlockPayments = () => {
     const handleStartKyc = useCallback(async () => {
         const intent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
         if (intent) setActiveRegionIntent(intent)
-        setReverifyRequested(false)
+        setReverifyTarget(null)
         setErrorAcknowledged(false)
         setSelectedRegion(null)
         // Always cross-region: a locked method has no functional rail behind it,
@@ -320,7 +338,7 @@ const UnlockPayments = () => {
 
     // A residence re-verification never sets a region intent, so without the
     // flag its failure would read as "Not available yet" instead of retriable.
-    const failedRegionRetriable = reverifyRequested || providerForRegionIntent(activeRegionIntent) !== null
+    const failedRegionRetriable = reverifyTarget !== null || providerForRegionIntent(activeRegionIntent) !== null
 
     const countryDisplayName = (iso2: string | null): string | null =>
         iso2
@@ -330,7 +348,7 @@ const UnlockPayments = () => {
               })
             : null
     const residenceCountryName = countryDisplayName(residenceIso2)
-    const declaredCountryName = countryDisplayName(residence?.declared ?? null)
+    const pendingCountryName = countryDisplayName(residence?.pending ?? null)
 
     // In-review line: submittedAt drives both the date and the 7-day
     // escalation. reviewedAt/updatedAt deliberately not used — the user cares
@@ -376,9 +394,9 @@ const UnlockPayments = () => {
                     onClick={() => setIsChangeModalOpen(true)}
                     aria-label={residenceIso2 ? t('residence.change') : t('residence.set')}
                 />
-                {residence?.verified && residence?.declared && residence.declared !== residence.verified && (
+                {residence?.verified && residence?.pending && (
                     <p className="text-center text-body-xs text-foreground-secondary">
-                        {t('residence.pendingReverify', { country: declaredCountryName ?? residence.declared })}
+                        {t('residence.pendingReverify', { country: pendingCountryName ?? residence.pending })}
                     </p>
                 )}
             </div>
@@ -462,13 +480,13 @@ const UnlockPayments = () => {
             )}
 
             <ResidenceChangeDrawer
-                visible={isChangeModalOpen}
-                onClose={() => setIsChangeModalOpen(false)}
+                visible={isResidenceChangeVisible}
+                onClose={closeResidenceChange}
                 userId={user?.user?.userId}
                 declared={residence?.declared ?? null}
                 declaredSecond={declaredSecondIso2}
                 verified={residence?.verified ?? null}
-                nextChangeAllowedAt={residence?.nextChangeAllowedAt ?? null}
+                pending={residence?.pending ?? null}
                 onSaved={async () => {
                     // A residence change shifts everything derived from it:
                     // card eligibility (server recomputes from the declared
@@ -479,14 +497,10 @@ const UnlockPayments = () => {
                         queryClient.invalidateQueries({ queryKey: [LIMITS] }),
                     ])
                 }}
-                onReverify={(iso2) => {
-                    // The new residence decides which provider level the fresh
-                    // Sumsub token targets, and whether the SDK runs a second level.
-                    const intent = regionIntentForResidence(iso2)
-                    setActiveRegionIntent(intent)
-                    setReverifyRequested(true)
+                onReverify={(targetCountry) => {
+                    setReverifyTarget(targetCountry)
                     setErrorAcknowledged(false)
-                    void flow.handleRestartIdentity(intent)
+                    void flow.handleResidenceChange(targetCountry)
                 }}
             />
 
@@ -534,6 +548,22 @@ const UnlockPayments = () => {
                               text: tRegions('providerRejection.uploadDocument'),
                               onClick: () => {
                                   handleModalClose()
+                                  // This IS the surface the residence cohort reaches.
+                                  // REQUIRES_SUPPORT maps to a top-level rail status of
+                                  // `blocked`, and `hasFunctionalRail` tests that field,
+                                  // so their region is LOCKED, they tap it, and this
+                                  // modal opens with copy asking for their address over
+                                  // a button that 404s.
+                                  //
+                                  // Gated on the one reason code rather than routing
+                                  // everything through the handler: that would also
+                                  // divert every Manteca fixable rejection here from
+                                  // resubmit to start-action, which is a change this has
+                                  // no reason to make.
+                                  if (providerRejectionForRegion.reasonCode === 'residence_unresolved') {
+                                      void flow.handleFixableRejection(providerRejectionForRegion)
+                                      return
+                                  }
                                   flow.handleSelfHealResubmit(providerRejectionForRegion.provider)
                               },
                               variant: 'purple' as const,
@@ -580,7 +610,7 @@ const UnlockPayments = () => {
                                   shadowSize: '4',
                                   disabled: flow.isLoading,
                                   onClick: () => {
-                                      if (reverifyRequested) void flow.handleRestartIdentity(activeRegionIntent)
+                                      if (reverifyTarget) void flow.handleResidenceChange(reverifyTarget)
                                       else void flow.handleInitiateKyc(activeRegionIntent, undefined, true)
                                   },
                               },

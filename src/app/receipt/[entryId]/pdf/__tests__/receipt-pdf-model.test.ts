@@ -4,6 +4,9 @@
 import { buildReceiptPdfModel, type PdfTranslate } from '../receipt-pdf-model'
 import { EHistoryUserRole } from '@/utils/history.utils'
 import type { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { createTranslator } from 'next-intl'
+import { APP_LOCALES, type AppLocale } from '@/i18n/app/config'
+import { loadMessages } from '@/i18n/app/messages'
 
 jest.mock('@/assets', () => ({}))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
@@ -49,36 +52,41 @@ describe('buildReceiptPdfModel — completed bank withdraw', () => {
     // The filename lands in a quoted Content-Disposition header, and ids are
     // arbitrary backend strings — a quote would inject header tokens and a
     // CR/LF would make the Headers constructor throw (a 500 per receipt).
-    test('sanitizes the download filename without touching the reference', () => {
+    test('sanitizes the download filename', () => {
         const nasty = { ...baseTx, id: 'ab"cd\r\nX-Injected: 1' }
         const m = buildReceiptPdfModel(nasty, t, 'en')
         expect(m.fileName).toBe('peanut-receipt-abcdX-Injected1.pdf')
         expect(m.fileName).not.toMatch(/["\r\n]/)
-        // the human-facing reference still carries the id verbatim
-        expect(m.reference).toBe('ab"cd\r\nX-Injected: 1')
     })
 
-    // Manteca synthetic ids are case-sensitive lookup keys: a reference that
-    // was uppercased could not be used to find the entry it belongs to.
-    test('keeps a mixed-case receipt id verbatim in both PDF fields', () => {
+    // Manteca synthetic ids are case-sensitive lookup keys: an id that was
+    // uppercased could not be used to find the entry it belongs to.
+    test('keeps a mixed-case receipt id verbatim in its reference row', () => {
         const mixed = { ...baseTx, id: 'MaNtEcA-Qr-7f3B-AbCd' }
         const m = buildReceiptPdfModel(mixed, t, 'en')
-        expect(m.reference).toBe('MaNtEcA-Qr-7f3B-AbCd')
-        expect(row(m, 'transaction.rows.transferId')).toBe('MaNtEcA-Qr-7f3B-AbCd')
+        expect(row(m, 'transaction.officialReceipt.reference')).toBe('MaNtEcA-Qr-7f3B-AbCd')
     })
 
     test('carries the official-document header and footer facts', () => {
         expect(model.title).toBe('transaction.officialReceipt.pdf.title')
         expect(model.issuedBy).toBe('transaction.officialReceipt.issuedBy')
+        expect(model.companyName).toBe('Squirrel Labs Ltd')
+        expect(model.companyAddressLines).toEqual([
+            'Office One',
+            '1 Coldbath Square',
+            'Farringdon, London, EC1R 5HL, UK',
+        ])
         expect(model.site).toBe('peanut.me')
-        expect(model.reference).toBe(baseTx.id)
         expect(model.fileName).toBe(`peanut-receipt-${baseTx.id}.pdf`)
     })
 
     test('renders amount, status, and the core rows', () => {
         // formatCurrency mirrors the page: decimal places follow the input string
         expect(model.amountDisplay).toBe('$125.5')
-        expect(model.statusLabel).toBe('common.status.completed')
+        expect(model.rows[0]).toEqual({
+            label: 'transaction.officialReceipt.pdf.date',
+            value: expect.stringContaining('2026'),
+        })
         expect(row(model, 'transaction.officialReceipt.pdf.type')).toBe('transaction.type.bank_withdraw')
         expect(row(model, 'transaction.officialReceipt.pdf.status')).toBe('common.status.completed')
         expect(row(model, 'transaction.rows.to')).toBe('kkonrad')
@@ -86,22 +94,31 @@ describe('buildReceiptPdfModel — completed bank withdraw', () => {
         expect(row(model, 'transaction.rows.txId')).toBe(baseTx.txHash)
         // bank_withdraw carries its transfer reference
         expect(row(model, 'transaction.rows.transferId')).toBe(baseTx.id)
+        expect(row(model, 'transaction.officialReceipt.reference')).toBe(baseTx.id)
+        expect(labels(model).slice(-3)).toEqual([
+            'transaction.rows.txId',
+            'transaction.rows.transferId',
+            'transaction.officialReceipt.reference',
+        ])
+        expect(labels(model)).not.toContain('transaction.rows.pointsEarned')
     })
 
-    test('completed OFFRAMP uses the Completed timestamp label and drops Created', () => {
-        expect(row(model, 'transaction.rows.completed')).toContain('2026')
+    test('completed OFFRAMP uses one Date field at the top', () => {
+        expect(row(model, 'transaction.officialReceipt.pdf.date')).toContain('2026')
+        expect(labels(model)).not.toContain('transaction.rows.completed')
         expect(labels(model)).not.toContain('transaction.rows.created')
     })
 })
 
 describe('buildReceiptPdfModel — variants', () => {
-    test('pending entry keeps the Created row and skips settlement rows', () => {
+    test('pending entry uses its creation timestamp for the Date field', () => {
         const model = buildReceiptPdfModel(
             withOverrides({ status: 'pending', completedAt: undefined, txHash: undefined }),
             t,
             'en'
         )
-        expect(row(model, 'transaction.rows.created')).toContain('2026')
+        expect(row(model, 'transaction.officialReceipt.pdf.date')).toContain('2026')
+        expect(labels(model)).not.toContain('transaction.rows.created')
         expect(labels(model)).not.toContain('transaction.rows.completed')
         expect(labels(model)).not.toContain('transaction.rows.txId')
     })
@@ -132,7 +149,13 @@ describe('buildReceiptPdfModel — variants', () => {
 
     test('bank account identifiers are always masked — the PDF is shareable', () => {
         const model = buildReceiptPdfModel(
-            withOverrides({ bankAccountDetails: { identifier: 'ES9121000418450200051332', type: 'BANK_IBAN' } }),
+            withOverrides(
+                {
+                    bankAccountDetails: { identifier: 'ES9121000418450200051332', type: 'BANK_IBAN' },
+                    currency: { amount: '113250.75', code: 'ARS' },
+                },
+                { receipt: { exchange_rate: '902.4' } }
+            ),
             t,
             'en'
         )
@@ -140,9 +163,31 @@ describe('buildReceiptPdfModel — variants', () => {
         expect(value).toBeDefined()
         expect(value).not.toBe('ES9121000418450200051332')
         expect(value).toContain('1332')
+        expect(labels(model).slice(-5)).toEqual([
+            'IBAN',
+            'common.exchangeRate',
+            'transaction.rows.txId',
+            'transaction.rows.transferId',
+            'transaction.officialReceipt.reference',
+        ])
     })
 
-    test('cancelled entries drop fee/bank/transfer rows but keep the Cancelled timestamp', () => {
+    test('keeps a reference when transaction and transfer ids are unavailable', () => {
+        const model = buildReceiptPdfModel(
+            withOverrides({ direction: 'card', txHash: undefined }, { transactionCardType: 'card_payment' }),
+            t,
+            'en'
+        )
+
+        expect(labels(model)).not.toContain('transaction.rows.txId')
+        expect(labels(model)).not.toContain('transaction.rows.transferId')
+        expect(model.rows.at(-1)).toEqual({
+            label: 'transaction.officialReceipt.reference',
+            value: baseTx.id,
+        })
+    })
+
+    test('cancelled entries drop fee/bank/transfer rows but keep the Date field', () => {
         const model = buildReceiptPdfModel(
             withOverrides({
                 status: 'cancelled',
@@ -153,10 +198,15 @@ describe('buildReceiptPdfModel — variants', () => {
             t,
             'en'
         )
-        expect(row(model, 'transaction.rows.cancelled')).toContain('2026')
+        expect(row(model, 'transaction.officialReceipt.pdf.date')).toContain('2026')
+        expect(labels(model)).not.toContain('transaction.rows.cancelled')
         expect(labels(model)).not.toContain('transaction.rows.fee')
         expect(labels(model)).not.toContain('transaction.rows.transferId')
         expect(labels(model)).not.toContain('IBAN')
+        expect(model.rows.at(-1)).toEqual({
+            label: 'transaction.officialReceipt.reference',
+            value: baseTx.id,
+        })
     })
 
     test('memo renders as the comment row, memoKey preferred over raw memo', () => {
@@ -167,12 +217,107 @@ describe('buildReceiptPdfModel — variants', () => {
         expect(row(withKey, 'common.comment')).toBe('transaction.memoTestDeposit')
     })
 
-    test('unparsable dates fall back to an em dash instead of throwing', () => {
+    test('goal-less request pot renders the collected total, not its zero goal', () => {
+        const model = buildReceiptPdfModel(
+            withOverrides(
+                {
+                    amount: 0,
+                    isRequestPotLink: true,
+                    totalAmountCollected: 47.25,
+                    status: 'closed',
+                },
+                { kind: 'P2P_REQUEST_FULFILL' }
+            ),
+            t,
+            'en'
+        )
+
+        expect(model.amountDisplay).toBe('$47.25')
+    })
+
+    test('goal-set request pot renders the collected total, not its requested goal', () => {
+        const model = buildReceiptPdfModel(
+            withOverrides(
+                {
+                    amount: 100,
+                    isRequestPotLink: true,
+                    totalAmountCollected: 40,
+                    status: 'closed',
+                },
+                { kind: 'P2P_REQUEST_FULFILL' }
+            ),
+            t,
+            'en'
+        )
+
+        expect(model.amountDisplay).toBe('$40.00')
+    })
+
+    test('claimed send link uses its claim timestamp as Date', () => {
+        const model = buildReceiptPdfModel(
+            withOverrides(
+                {
+                    direction: 'send',
+                    completedAt: '2026-08-20T15:22:00.000Z',
+                    claimedAt: '2026-08-22T09:30:00.000Z',
+                },
+                { kind: 'SEND_LINK' }
+            ),
+            t,
+            'en'
+        )
+
+        expect(row(model, 'transaction.officialReceipt.pdf.date')).toContain('August 22, 2026')
+    })
+
+    test('closed request pot uses its closure timestamp as Date', () => {
+        const model = buildReceiptPdfModel(
+            withOverrides(
+                {
+                    amount: 100,
+                    isRequestPotLink: true,
+                    totalAmountCollected: 40,
+                    status: 'closed',
+                    cancelledDate: '2026-08-23T17:45:00.000Z',
+                },
+                { kind: 'P2P_REQUEST_FULFILL' }
+            ),
+            t,
+            'en'
+        )
+
+        expect(row(model, 'transaction.officialReceipt.pdf.date')).toContain('August 23, 2026')
+    })
+
+    test('unparsable dates fall back to an ASCII marker instead of throwing', () => {
         const model = buildReceiptPdfModel(
             withOverrides({ status: 'pending', createdAt: 'not-a-date', completedAt: undefined }),
             t,
             'en'
         )
-        expect(row(model, 'transaction.rows.created')).toBe('—')
+        expect(row(model, 'transaction.officialReceipt.pdf.date')).toBe('-')
+    })
+})
+
+describe('buildReceiptPdfModel — app locales', () => {
+    const localizedCopy: ReadonlyArray<[AppLocale, string, string, string]> = [
+        ['en', 'Transaction Receipt', 'Date', 'Reference'],
+        ['es-419', 'Comprobante de la transacción', 'Fecha', 'Referencia'],
+        ['es-AR', 'Comprobante de la transacción', 'Fecha', 'Referencia'],
+        ['pt-BR', 'Comprovante da transação', 'Data', 'Referência'],
+    ]
+
+    test('covers every supported app locale', () => {
+        expect(localizedCopy.map(([locale]) => locale)).toEqual(APP_LOCALES)
+    })
+
+    test.each(localizedCopy)('renders receipt copy in %s', async (locale, title, dateLabel, referenceLabel) => {
+        const messages = await loadMessages(locale)
+        const translate = createTranslator({ locale, messages }) as PdfTranslate
+        const model = buildReceiptPdfModel(baseTx, translate, locale)
+
+        expect(model.title).toBe(title)
+        expect(model.rows[0].label).toBe(dateLabel)
+        expect(model.rows.at(-1)?.label).toBe(referenceLabel)
     })
 })

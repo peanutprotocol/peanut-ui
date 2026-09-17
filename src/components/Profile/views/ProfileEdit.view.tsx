@@ -1,6 +1,5 @@
 'use client'
-import { updateUserById } from '@/app/actions/users'
-import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
+import { updateUserById, requestEmailChange } from '@/app/actions/users'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
@@ -8,17 +7,26 @@ import { useAuth } from '@/context/authContext'
 import * as Sentry from '@sentry/nextjs'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { Controller, useForm } from 'react-hook-form'
+import isEmail from 'validator/lib/isEmail'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { Icon } from '@/components/Global/Icons/Icon'
 import DeleteAccountButton from '@/components/Settings/DeleteAccountButton'
 import ShowNameToggle from '../components/ShowNameToggle'
 import ProfileEditField from '../components/ProfileEditField'
 import ProfileHeader from '../components/ProfileHeader'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { invalidateCrispTokenId } from '@/hooks/useCrispTokenId'
+import { resetCrispProxySessions } from '@/utils/crisp'
 
-// Bio / phone / website have no backend yet. Kept as dead code behind a switch
-// (same pattern as OPEN_GATED) so the fields come back with the feature.
-const SHOW_COMING_SOON_FIELDS = false
+interface ProfileFields {
+    name: string
+    surname: string
+    email: string
+    code: string
+}
 
 export const ProfileEditView = () => {
     const t = useTranslations('profile.edit')
@@ -27,262 +35,228 @@ export const ProfileEditView = () => {
     const router = useRouter()
     const onBack = useSafeBack('/profile')
     const { user, fetchUser } = useAuth()
-    // Verified badge + name/surname lock reflect *identity* verification (the human is ID-verified),
-    // not rail approval. Switched from `useCapabilities().isKycApproved` (any enabled rail, including
-    // Rain) to the provider-blind identityVerification projection — a rail-only approval must NOT
-    // lock the legal-name fields because the rail's KYC was external to our identity flow.
-    const { isVerified: isKycApproved } = useIdentityVerification()
-
-    const [isLoading, setIsLoading] = useState(false)
-    // backend/API failures — rendered in the Notification. client-side name
-    // validation renders as the name field's own error instead.
+    const { isVerified: isKycApproved, isLoading: isIdentityLoading } = useIdentityVerification()
+    const nameLocked = user?.profileNameLocked ?? isKycApproved
+    const canEditName = !nameLocked
+    const [codeSentTo, setCodeSentTo] = useState('')
+    const [isSendingCode, setIsSendingCode] = useState(false)
     const [errorMessage, setErrorMessage] = useState('')
-    const [nameError, setNameError] = useState('')
-    // Mirrors `showFullName` so the header above updates the moment the toggle
-    // flips, instead of waiting for the background user refetch to land.
     const [showFullName, setShowFullName] = useState(user?.user.showFullName ?? false)
-
-    useEffect(() => {
-        setShowFullName(user?.user.showFullName ?? false)
-    }, [user?.user.showFullName])
-
-    // split the full name into name and surname
-    const splitName = useCallback((fullName: string) => {
-        const parts = fullName.trim().split(' ')
-        if (parts.length === 1) return { name: parts[0], surname: '' }
-        const surname = parts.pop() || ''
-        const name = parts.join(' ')
-        return { name, surname }
-    }, [])
-
-    // form state for all fields
-    const [formData, setFormData] = useState({
-        name: '',
-        surname: '',
-        bio: '',
-        email: user?.user.email || '',
-        phone: '',
-        website: '',
+    const {
+        control,
+        watch,
+        handleSubmit,
+        reset,
+        resetField,
+        setError,
+        formState: { dirtyFields, isSubmitting },
+    } = useForm<ProfileFields>({
+        defaultValues: { name: '', surname: '', email: '', code: '' },
+        mode: 'onChange',
     })
-
-    // check if email is already set
-    const isEmailSet = !!user?.user.email
-
-    // once identity-verified the name is provider-owned, so the name/surname
-    // fields are locked and never sent. one source of truth for that invariant.
-    const canEditName = !isKycApproved
-
-    // the saved values, and the only fields the user can actually change
-    const initial = useMemo(() => {
-        const { name, surname } = splitName(user?.user.fullName || '')
-        return { name, surname, email: user?.user.email || '' }
-    }, [user?.user.fullName, user?.user.email, splitName])
-
-    // What was in the fields when the form loaded. The dirty check compares
-    // against THIS, not against `initial`: `initial` re-derives on every auth
-    // refresh, so if the saved name changed elsewhere while this screen was
-    // open, an untouched form went dirty and Save wrote the stale values back
-    // over the newer ones. The baseline and the fields have to move together.
-    const [baseline, setBaseline] = useState(() => ({ name: '', surname: '', email: user?.user.email || '' }))
-
-    // Hydrate once, when the saved values first arrive. Re-applying `initial`
-    // on a later refresh would wipe whatever the user had already typed, since
-    // this screen is reachable before auth resolves.
     const hydrated = useRef(false)
     useEffect(() => {
-        if (hydrated.current || !user) return
+        setShowFullName(user?.user.showFullName ?? false)
+        // Keep the fields and their baseline together. Background auth refreshes
+        // must not overwrite edits or make untouched values dirty.
+        if (!user || (hydrated.current && !nameLocked)) return
+        const parts = (user.user.fullName || '').trim().split(/\s+/)
+        const surname = parts.length > 1 ? parts.pop()! : ''
+        if (hydrated.current) {
+            // Once verified, show the provider-owned name even if verification
+            // finished during an edit. Keep the user's email draft untouched.
+            resetField('name', { defaultValue: parts.join(' ') })
+            resetField('surname', { defaultValue: surname })
+            return
+        }
         hydrated.current = true
-        setFormData((prev) => ({ ...prev, ...initial }))
-        setBaseline(initial)
-    }, [user, initial])
+        reset({ name: parts.join(' '), surname, email: user.user.email || '', code: '' })
+    }, [user, nameLocked, reset, resetField])
 
-    // Save stays disabled until something the user may edit actually changed.
-    // bio / phone / website are "Soon!" placeholders — always disabled, never
-    // sent, so they can never make the form dirty.
-    const isDirty =
-        (canEditName && (formData.name !== baseline.name || formData.surname !== baseline.surname)) ||
-        (!isEmailSet && formData.email !== baseline.email)
+    const nameChanged = canEditName && !!(dirtyFields.name || dirtyFields.surname)
+    const isDirty = nameChanged || !!dirtyFields.email
+    const disabled = !user || isIdentityLoading || isSubmitting || isSendingCode
 
-    // handle input field changes
-    const handleChange = useCallback((field: string, value: string) => {
-        setFormData((prev) => ({
-            ...prev,
-            [field]: value,
-        }))
-        // typing in the name field releases its validation error
-        if (field === 'name') setNameError('')
-    }, [])
+    const emailValue = watch('email').trim()
+    const needsEmailCode = !!user?.user.email && !!dirtyFields.email
+    const hasCode = needsEmailCode && codeSentTo === emailValue
 
-    // handle form submission
-    const handleSave = useCallback(async () => {
+    const save = handleSubmit(async (values) => {
+        if (!user || !isDirty || isIdentityLoading) return
+        setErrorMessage('')
         try {
-            setIsLoading(true)
-            setErrorMessage('')
-            setNameError('')
-
-            // only require the name when the field is editable — requiring it
-            // while it's locked (verified user, provider owns the name) would
-            // trap users whose fullName is empty at load (can't type, can't
-            // save) when all they want is to set their email.
-            if (canEditName && !formData.name?.trim()) {
-                setNameError(t('errors.nameRequired'))
+            if (needsEmailCode && !hasCode) {
+                const result = await requestEmailChange(values.email.trim())
+                if (result.error) {
+                    if (result.error === 'This email is already associated with another account') {
+                        setError('email', { type: 'server', message: t('errors.emailInUse') }, { shouldFocus: true })
+                    } else setErrorMessage(result.error)
+                } else {
+                    resetField('code')
+                    setCodeSentTo(values.email.trim())
+                }
                 return
             }
-
-            // prepare request payload
-            const payload: { userId?: string; fullName?: string; email?: string } = {
-                userId: user?.user.userId,
-            }
-
-            // only include name when the field is editable (not provider-locked)
-            if (canEditName) {
-                payload.fullName = `${formData.name} ${formData.surname}`.trim()
-            }
-
-            // only include email if it's not already set and has a value
-            if (!isEmailSet && formData.email?.trim()) {
-                payload.email = formData.email.trim()
-            }
-
-            if (!user?.user.userId) {
-                throw new Error('User ID is undefined.')
-            }
-
-            // nothing substantive to update (e.g. a verified user with email
-            // already set clicking Save unchanged) — skip the no-op round-trip.
-            if (payload.fullName === undefined && payload.email === undefined) {
-                router.replace('/profile')
-                return
-            }
-
-            // updateUserById resolves with { error } on a non-2xx response
-            // instead of throwing (e.g. 400 invalid email, 409 email already in
-            // use). Surface it instead of navigating away as a false success.
-            const result = await updateUserById(payload)
+            // Send only changed fields. An email-only edit must neither require
+            // a missing name nor overwrite a name changed by a KYC webhook.
+            const result = await updateUserById({
+                userId: user.user.userId,
+                ...(nameChanged ? { fullName: `${values.name.trim()} ${values.surname.trim()}`.trim() } : {}),
+                ...(dirtyFields.email ? { email: values.email.trim() } : {}),
+                ...(hasCode ? { emailVerificationCode: values.code } : {}),
+            })
             if (result?.error) {
+                if (result.error === 'This email is already associated with another account') {
+                    setError('email', { type: 'server', message: t('errors.emailInUse') }, { shouldFocus: true })
+                    return
+                }
                 setErrorMessage(result.error)
                 return
             }
-
-            // refresh user data
+            if (hasCode) {
+                // The API rotates the server-issued Crisp bearer in the same
+                // transaction as a verified replacement. Invalidate it before
+                // any best-effort device reset so support hooks fail closed even
+                // when native Crisp cannot unbind its former session.
+                invalidateCrispTokenId(user.user.userId)
+                try {
+                    await resetCrispProxySessions()
+                } catch (error) {
+                    // The email replacement is already committed. Keep showing
+                    // the committed profile instead of turning a support-session
+                    // cleanup failure into a false save failure.
+                    Sentry.captureException(error)
+                }
+            }
             await fetchUser()
-
             router.replace('/profile')
         } catch (error) {
-            console.error('Error updating profile:', error)
             setErrorMessage(tCommon('genericError'))
             Sentry.captureException(error)
-        } finally {
-            setIsLoading(false)
         }
-    }, [formData, user, fetchUser, router, isEmailSet, canEditName, t, tCommon])
+    })
 
     const username = user?.user.username || ''
-    // The header shows what the rest of the world sees: the full name only
-    // while it is public, the username otherwise.
     const displayName = showFullName && user?.user.fullName ? user.user.fullName : username
 
     return (
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-6">
             <NavHeader title={t('title')} onPrev={onBack} />
-
             <ProfileHeader name={displayName} username={username} isVerified={isKycApproved} showShareButton={false} />
-
-            {/* two groups — who you are, then how we reach you. gap-6 (XL,
-                the section step) against gap-4 (L) inside a group, so the
-                rhythm reads 8 (label → field) < 16 (field → field) < 24. */}
-            <div className="flex flex-col gap-6">
+            <form onSubmit={save} noValidate className="flex flex-col gap-6">
                 <div className="flex flex-col gap-4">
-                    <FieldColumn error={nameError}>
-                        <ProfileEditField
-                            label={t('fields.name')}
-                            value={formData.name}
-                            onChange={(value) => handleChange('name', value)}
-                            disabled={!canEditName}
-                        />
-                    </FieldColumn>
-
-                    <ProfileEditField
-                        label={t('fields.surname')}
-                        value={formData.surname}
-                        onChange={(value) => handleChange('surname', value)}
-                        disabled={!canEditName}
+                    <Controller
+                        name="name"
+                        control={control}
+                        rules={{ validate: (value) => !nameChanged || !!value.trim() || t('errors.nameRequired') }}
+                        render={({ field, fieldState }) => (
+                            <ProfileEditField
+                                {...field}
+                                label={t('fields.name')}
+                                error={fieldState.error?.message}
+                                disabled={disabled || !canEditName}
+                                autoComplete="given-name"
+                            />
+                        )}
                     />
-
-                    {SHOW_COMING_SOON_FIELDS && (
+                    <Controller
+                        name="surname"
+                        control={control}
+                        render={({ field }) => (
+                            <ProfileEditField
+                                {...field}
+                                label={t('fields.surname')}
+                                disabled={disabled || !canEditName}
+                                autoComplete="family-name"
+                            />
+                        )}
+                    />
+                    {!canEditName && <p className="text-body-s text-foreground-secondary">{t('verifiedNameHelp')}</p>}
+                </div>
+                <Controller
+                    name="email"
+                    control={control}
+                    rules={{
+                        validate: (value) => !dirtyFields.email || isEmail(value.trim()) || t('errors.invalidEmail'),
+                    }}
+                    render={({ field, fieldState }) => (
                         <ProfileEditField
-                            label={t('fields.bio')}
-                            value={formData.bio}
-                            onChange={(value) => handleChange('bio', value)}
-                            badge={t('soonBadge')}
-                            disabled
+                            {...field}
+                            label={t('fields.email')}
+                            type="email"
+                            autoComplete="email"
+                            error={fieldState.error?.message}
+                            disabled={disabled}
                         />
                     )}
-                </div>
-
-                <div className="flex flex-col gap-4">
-                    <ProfileEditField
-                        label={t('fields.email')}
-                        value={formData.email}
-                        onChange={(value) => handleChange('email', value)}
-                        type="email"
-                        disabled={isEmailSet}
-                    />
-
-                    {SHOW_COMING_SOON_FIELDS && (
-                        <>
-                            <ProfileEditField
-                                label={t('fields.phoneNumber')}
-                                value={formData.phone}
-                                onChange={(value) => handleChange('phone', value)}
-                                type="tel"
-                                badge={t('soonBadge')}
-                                disabled
-                            />
-
-                            <ProfileEditField
-                                label={t('fields.website')}
-                                value={formData.website}
-                                onChange={(value) => handleChange('website', value)}
-                                type="url"
-                                badge={t('soonBadge')}
-                                disabled
-                            />
-                        </>
-                    )}
-                </div>
-
-                {/* Name visibility belongs with the name itself; only shown
-                    once there is a name to show or hide. */}
-                {!!user?.user.fullName?.trim() && (
-                    <div className="flex items-center justify-between gap-4 py-2">
-                        <span className="text-body-m-semibold text-foreground-primary">{tMenu('showMyFullName')}</span>
-                        <div className="shrink-0">
-                            <ShowNameToggle checked={showFullName} onChange={setShowFullName} />
-                        </div>
+                />
+                {hasCode && (
+                    <div className="flex flex-col gap-4">
+                        <p className="text-body-s text-foreground-secondary">
+                            {t('emailCodeHelp', { email: codeSentTo })}
+                        </p>
+                        <Controller
+                            name="code"
+                            control={control}
+                            rules={{
+                                validate: (value) => !hasCode || /^\d{6}$/.test(value) || t('errors.invalidCode'),
+                            }}
+                            render={({ field, fieldState }) => (
+                                <ProfileEditField
+                                    {...field}
+                                    label={t('emailCode')}
+                                    autoComplete="one-time-code"
+                                    inputMode="numeric"
+                                    maxLength={6}
+                                    error={fieldState.error?.message}
+                                    disabled={disabled}
+                                />
+                            )}
+                        />
+                        <Button
+                            type="button"
+                            variant="transparent"
+                            disabled={disabled}
+                            onClick={async () => {
+                                setIsSendingCode(true)
+                                setErrorMessage('')
+                                try {
+                                    const result = await requestEmailChange(emailValue)
+                                    if (result.error) setErrorMessage(result.error)
+                                    else resetField('code')
+                                } catch {
+                                    setErrorMessage(tCommon('genericError'))
+                                } finally {
+                                    setIsSendingCode(false)
+                                }
+                            }}
+                        >
+                            {t('requestNewCode')}
+                        </Button>
                     </div>
                 )}
-            </div>
-
-            {/* Save renders inline at the end of the form and scrolls with it.
-                A sticky footer here covered the Website field, which is the
-                last row — the field was unreachable behind the button. Save
-                stays gated on `isDirty`, so an untouched form cannot submit. */}
-            <div className="flex flex-col gap-4">
-                {errorMessage && <Notification priority="error">{errorMessage}</Notification>}
-
-                <Button
-                    disabled={isLoading || !isDirty}
-                    onClick={handleSave}
-                    className="w-full"
-                    shadowSize="4"
-                    loading={isLoading}
-                >
-                    {t('saveChanges')}
-                </Button>
-
-                <DeleteAccountButton />
-            </div>
+                {!!user?.user.fullName?.trim() && (
+                    <ListItem
+                        position="single"
+                        leading={<Icon name="eye" size={24} />}
+                        title={tMenu('showMyFullName')}
+                        trailing={<ShowNameToggle checked={showFullName} onChange={setShowFullName} />}
+                    />
+                )}
+                <div className="flex flex-col gap-4">
+                    {errorMessage && <Notification priority="error">{errorMessage}</Notification>}
+                    <Button
+                        type="submit"
+                        disabled={disabled || !isDirty}
+                        className="w-full"
+                        shadowSize="4"
+                        loading={isSubmitting}
+                    >
+                        {t(needsEmailCode && !hasCode ? 'sendCode' : 'saveChanges')}
+                    </Button>
+                </div>
+            </form>
+            <DeleteAccountButton />
         </div>
     )
 }

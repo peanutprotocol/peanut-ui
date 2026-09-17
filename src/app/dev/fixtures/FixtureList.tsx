@@ -1,7 +1,7 @@
 'use client'
 
-import Card from '@/components/Global/Card'
-import DevNoteCard from '@/app/(mobile-ui)/dev/_components/DevNoteCard'
+import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import DevPageShell from '@/app/(mobile-ui)/dev/_components/DevPageShell'
 import { clearFixture, FIXTURE_PARAM, fixtureHref } from '@/dev/fixtures/active'
 import { FIXTURES } from '@/dev/fixtures/registry'
@@ -22,33 +22,34 @@ export default function FixtureList() {
                     // React Query cache, so the screen would show stale state.
                     const href = fixtureHref(fixture.route, name)
                     return (
-                        <a key={name} href={href}>
-                            <Card className="cursor-pointer p-4">
-                                <div className="flex items-start justify-between gap-3">
-                                    <div className="min-w-0">
-                                        <h3 className="text-h8">{name}</h3>
-                                        <p className="text-body-xs text-grey-1">{fixture.about}</p>
-                                    </div>
-                                    <span className="shrink-0 text-body-xs text-grey-1">{fixture.route}</span>
-                                </div>
-                            </Card>
+                        <a key={name} href={href} className="block">
+                            <ListItem
+                                className="cursor-pointer"
+                                title={name}
+                                body={fixture.about}
+                                bodyWrap
+                                trailing={
+                                    <span className="max-w-32 truncate text-body-xs text-foreground-secondary">
+                                        {fixture.route}
+                                    </span>
+                                }
+                                chevron
+                            />
                         </a>
                     )
                 })}
             </div>
 
-            <DevNoteCard title="Info">
-                <ul className="space-y-0.5">
-                    <li>{names.length} fixtures. Names are stable — they become screenshot filenames.</li>
-                    <li>An unknown name logs the valid list to the console and serves the defaults.</li>
-                    <li>
-                        <button className="underline" onClick={clearFixture}>
-                            Clear the fixture session
-                        </button>{' '}
-                        to sign out of the fake user. `?{FIXTURE_PARAM}=off` does the same.
-                    </li>
-                </ul>
-            </DevNoteCard>
+            <Notification
+                priority="info"
+                title="Info"
+                items={[
+                    `${names.length} fixtures. Names are stable because they become screenshot filenames.`,
+                    'An unknown name logs the valid list and serves the defaults.',
+                    `Use ?${FIXTURE_PARAM}=off to clear the fixture session.`,
+                ]}
+                ctas={[{ label: 'Clear fixture session', onClick: clearFixture }]}
+            />
         </DevPageShell>
     )
 }

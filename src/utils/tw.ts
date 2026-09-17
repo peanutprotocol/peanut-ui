@@ -36,7 +36,7 @@ const DS_TYPE_TOKEN =
 // is the same silent-loss family as the type tokens, just in the other
 // direction (nothing is deleted, the override is ignored instead). Registering
 // them makes the caller win, which is the whole point of merging.
-const DS_RADIUS_TOKEN = /^(?:round|1)$/
+const DS_RADIUS_TOKEN = /^(?:round|1|card)$/
 
 // The remaining custom-token families from globals.css. tw.test.ts parses
 // globals.css and asserts every declared token is covered here, so these lists
@@ -60,11 +60,9 @@ const DS_ANIMATE_TOKENS = [
 ]
 const DS_SAFE_SPACING_TOKENS = ['safe-top', 'safe-right', 'safe-bottom', 'safe-left']
 // the brutalist offset shadows from @layer components / @utility shadow-4
-const DS_SHADOW_TOKENS = ['2', '4', 'primary-4', 'primary-6', 'primary-8', 'secondary-4', 'secondary-6', 'secondary-8']
+const DS_SHADOW_TOKENS = ['2', '4', 'primary-6', 'primary-8']
 
-export const twMerge = extendTailwindMerge<
-    'ds-text-link' | 'ds-text-link-decoration' | 'ds-border-rounded' | 'ds-bg-peanut-repeat'
->({
+export const twMerge = extendTailwindMerge({
     extend: {
         theme: {
             ease: DS_EASE_TOKENS,
@@ -91,16 +89,6 @@ export const twMerge = extendTailwindMerge<
             'rounded-bl': [{ 'rounded-bl': [(value: string) => DS_RADIUS_TOKEN.test(value)] }],
             'rounded-br': [{ 'rounded-br': [(value: string) => DS_RADIUS_TOKEN.test(value)] }],
             duration: [{ duration: DS_DURATION_TOKENS }],
-            // component classes whose tailwind-shaped names land in color/bg
-            // groups by default, so a colour class deleted them: text-link lost
-            // to text-foreground-secondary, bg-peanut-repeat-normal lost to bg-white even
-            // though they compose in css. Own group each = no cross-conflicts;
-            // the peanut patterns still conflict among themselves (an exact
-            // class-name entry beats the colour groups' validators).
-            'ds-text-link': ['text-link'],
-            'ds-text-link-decoration': ['text-link-decoration'],
-            'ds-border-rounded': ['border-rounded'],
-            'ds-bg-peanut-repeat': [{ 'bg-peanut-repeat': ['normal', 'large', 'small'] }],
         },
     },
 })

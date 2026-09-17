@@ -69,6 +69,8 @@ beforeEach(() => {
     localStorage.clear()
     mockFlagEnabled = false
     mockIsCapacitor = false
+    delete process.env.NEXT_PUBLIC_VERCEL_ENV
+    delete process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF
 })
 
 describe('isPwaSunsetOn', () => {
@@ -78,6 +80,29 @@ describe('isPwaSunsetOn', () => {
 
     it('follows the posthog flag', () => {
         mockFlagEnabled = true
+        expect(isPwaSunsetOn()).toBe(true)
+    })
+
+    it('keeps web signup enabled on ad-hoc Vercel PR previews', () => {
+        process.env.NEXT_PUBLIC_VERCEL_ENV = 'preview'
+        process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF = 'feat/review-this-change'
+        mockFlagEnabled = true
+
+        expect(isPwaSunsetOn()).toBe(false)
+    })
+
+    it('still follows the migration flag on the dev branch staging deployment', () => {
+        process.env.NEXT_PUBLIC_VERCEL_ENV = 'preview'
+        process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_REF = 'dev'
+        mockFlagEnabled = true
+
+        expect(isPwaSunsetOn()).toBe(true)
+    })
+
+    it('does not mistake local preview-mode fixture builds for Vercel PR previews', () => {
+        process.env.NEXT_PUBLIC_VERCEL_ENV = 'preview'
+        mockFlagEnabled = true
+
         expect(isPwaSunsetOn()).toBe(true)
     })
 
@@ -102,7 +127,6 @@ describe('isPwaSunsetOn', () => {
         try {
             jest.isolateModules(() => {
                 // IS_PROD_DOMAIN is computed at module load, so re-require it
-                // eslint-disable-next-line @typescript-eslint/no-require-imports
                 const fresh = require('@/utils/migration.utils') as typeof import('@/utils/migration.utils')
                 expect(fresh.isPwaSunsetOn()).toBe(expected)
             })

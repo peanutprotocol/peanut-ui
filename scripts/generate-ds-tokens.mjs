@@ -19,7 +19,6 @@ const OUT_PATH = path.join(ROOT, 'src/app/(mobile-ui)/dev/ds/foundations/tokens.
 // the @theme block is organized by banner comments; tokens are classified by
 // which banner they appear under. if a banner is renamed the parse fails loud.
 const SECTION_BANNERS = [
-    ['legacy', 'LEGACY PALETTE'],
     ['semantic', 'SEMANTIC TOKENS'],
     ['parity', 'v3-parity theme values'],
 ]
@@ -99,11 +98,11 @@ export function parseThemeTokens(css) {
         const rest = rawName === ns ? '' : rawName.slice(ns.length + 1)
 
         if (ns === 'color') {
-            colors.push({ name: rest, value, section })
+            colors.push({ name: rest, value, section, previewClass: `bg-${rest}` })
         } else if (ns === 'text') {
             // --text-<name> plus --text-<name>--<modifier> lines form one style
             const [name, modifier] = rest.split('--')
-            const style = textByName.get(name) ?? { name, section }
+            const style = textByName.get(name) ?? { name, section, previewClass: `text-${name}` }
             if (!modifier) style.fontSize = value
             else if (modifier === 'line-height') style.lineHeight = value
             else if (modifier === 'font-weight') style.fontWeight = value
@@ -111,12 +110,17 @@ export function parseThemeTokens(css) {
             textByName.set(name, style)
         } else if (ns === 'font') {
             const [name, modifier] = rest.split('--')
-            const font = fontByName.get(name) ?? { name, section }
+            const font = fontByName.get(name) ?? { name, section, previewClass: `font-${name}` }
             if (!modifier) font.stack = value
             else font[modifier.replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = value
             fontByName.set(name, font)
         } else {
-            ;(groups[ns] ??= []).push({ name: rest, value, section })
+            ;(groups[ns] ??= []).push({
+                name: rest,
+                value,
+                section,
+                ...(ns === 'spacing' ? { previewClass: `w-${rest}` } : {}),
+            })
         }
     }
 
@@ -144,14 +148,15 @@ export function renderTokensModule(tokens) {
 // a jest drift test (scripts/__tests__/ds-tokens-drift.test.js) fails CI when
 // this file is stale.
 
-/** which @theme banner the token sits under: legacy palette (v3 port, do not
- * use in new code), semantic (figma-verified, use these), or v3-parity shims. */
-export type TokenSection = 'legacy' | 'semantic' | 'parity'
+/** which @theme banner the token sits under: semantic (figma-verified, use
+ * these) or v3-parity shims. The legacy palette section no longer exists. */
+export type TokenSection = 'semantic' | 'parity'
 
 export interface ThemeToken {
     name: string
     value: string
     section: TokenSection
+    previewClass?: string
 }
 
 export interface TextStyle {
@@ -160,6 +165,7 @@ export interface TextStyle {
     fontSize?: string
     lineHeight?: string
     fontWeight?: string
+    previewClass?: string
     [modifier: string]: string | undefined
 }
 
@@ -167,6 +173,7 @@ export interface FontToken {
     name: string
     section: TokenSection
     stack?: string
+    previewClass?: string
     [modifier: string]: string | undefined
 }
 

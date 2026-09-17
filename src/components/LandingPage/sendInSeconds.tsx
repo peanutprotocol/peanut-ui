@@ -42,7 +42,10 @@ export function SendInSeconds({ locale = DEFAULT_LOCALE }: { locale?: Locale }) 
     const i18n = getTranslations(locale)
 
     return (
-        <section id="send-in-seconds" className="relative overflow-hidden bg-secondary-1 px-4 py-16 text-n-1 md:py-32">
+        <section
+            id="send-in-seconds"
+            className="relative overflow-hidden bg-yellow-500 px-4 py-16 text-foreground-primary md:py-32"
+        >
             <CloudsCss clouds={sendInSecondsClouds} />
 
             {starConfigs.map((config, i) => (
@@ -87,10 +90,7 @@ export function SendInSeconds({ locale = DEFAULT_LOCALE }: { locale?: Locale }) 
                     />
                 </div>
 
-                <p
-                    className="mb-6 hidden font-roboto text-base leading-tight font-medium md:mb-8 md:block md:text-4xl"
-                    style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
-                >
+                <p className="mb-6 hidden font-roboto text-body-m md:mb-8 md:block md:text-heading-l">
                     {i18n.landingSendTagline1}
                     <br />
                     {i18n.landingSendTagline2}

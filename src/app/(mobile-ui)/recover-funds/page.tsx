@@ -15,6 +15,7 @@ import { areEvmAddressesEqual, isTxReverted, getExplorerUrl, getChainName } from
 import { type RecipientState } from '@/components/Global/GeneralRecipientInput/types'
 import GeneralRecipientInput, { type GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import Card from '@/components/Global/Card'
 import Image from 'next/image'
 import AddressLink from '@/components/Global/AddressLink'
@@ -25,7 +26,6 @@ import { useRouter } from 'next/navigation'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { captureException } from '@sentry/nextjs'
 import { getPublicClient, type ChainId } from '@/app/actions/clients'
-import { Icon } from '@/components/Global/Icons/Icon'
 import { useFormatter, useTranslations } from 'next-intl'
 import { loadingStateKey } from '@/i18n/app/loading-states'
 
@@ -176,6 +176,7 @@ export default function RecoverFundsPage() {
                             <h1 className="text-body-s font-normal text-foreground-secondary">
                                 {t('youWillReceiveTo')}{' '}
                                 <AddressLink
+                                    inline
                                     address={recipient.address}
                                     className="text-body-s font-normal text-foreground-secondary"
                                 />
@@ -231,6 +232,7 @@ export default function RecoverFundsPage() {
                             <h1 className="text-body-s font-normal text-foreground-secondary">
                                 {t('sentTo')}{' '}
                                 <AddressLink
+                                    inline
                                     address={recipient.address}
                                     className="text-body-s font-normal text-foreground-secondary"
                                 />
@@ -244,15 +246,9 @@ export default function RecoverFundsPage() {
                                         t('unknownChain', { chainId: selectedBalance!.chainId }),
                                 })}
                             </h2>
-                            <a
-                                href={`${getExplorerUrl(selectedBalance!.chainId)}/tx/${txHash}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="flex items-center gap-2 hover:underline"
-                            >
-                                <span>{t('viewOnExplorer')}</span>
-                                <Icon name="external-link" size={24} />
-                            </a>
+                            <LinkButton href={`${getExplorerUrl(selectedBalance!.chainId)}/tx/${txHash}`} external icon>
+                                {t('viewOnExplorer')}
+                            </LinkButton>
                         </div>
                     </Card>
                     <Button

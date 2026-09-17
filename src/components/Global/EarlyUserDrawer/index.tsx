@@ -5,6 +5,7 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import ShareButton from '../ShareButton'
 import DocsLink from '@/components/Global/DocsLink'
+import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
 import { generateInviteCodeLink } from '@/utils/general.utils'
 import { useAuth } from '@/context/authContext'
 import { updateUserById } from '@/app/actions/users'
@@ -63,7 +64,8 @@ const EarlyUserDrawer = ({ onVisibilityChange }: { onVisibilityChange?: (visible
                         <ShareButton url={inviteLink} title={t('earlyUserModal.shareSheetTitle')}>
                             {t('earlyUserModal.shareCta')}
                         </ShareButton>
-                        <DocsLink href="/en/help" className="text-body-s text-foreground-secondary underline">
+                        {/* DocsLink keeps the locale + native behavior; the chrome is LinkButton's. */}
+                        <DocsLink href="/en/help" className={LINK_BUTTON_CLASSES}>
                             {t('earlyUserModal.learnMore')}
                         </DocsLink>
                     </div>

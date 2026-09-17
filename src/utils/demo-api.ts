@@ -48,6 +48,8 @@ type DemoRequestBody = {
     reference?: string
     dismissActivationCelebration?: boolean
     username?: string
+    /** card apply (demo): true submits, false/absent asks for terms */
+    termsAccepted?: boolean
 }
 
 function parseBody(options?: RequestInit): DemoRequestBody {
@@ -366,6 +368,9 @@ const stampDemoActivationCelebrated = (): void => {
 // demo state: a pick made through the picker must survive the next
 // GET /users/me or the tile snaps back. Fixtures still override on top.
 let demoAvatarKey: string | null = null
+// demo state: applying for the card flips the overview to a PENDING
+// application so the entry screen advances like the real flow
+let demoCardApplied = false
 
 // ---- routes (ordered: literal paths before :param paths) ----
 
@@ -399,6 +404,16 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'POST', pattern: '/users/bridge-tos-confirm', handler: () => ({ accepted: true }) },
     { method: 'POST', pattern: '/users/initiate-kyc', handler: () => ({}) },
     { method: 'POST', pattern: '/users/interaction-status', handler: () => ({}) },
+    {
+        method: 'POST',
+        pattern: '/users/username/check',
+        handler: ({ options }) => {
+            const username = String(parseBody(options).username ?? '').toLowerCase()
+            const found =
+                username === DEMO_USER.user.username || DEMO_CONTACTS.some((contact) => contact.username === username)
+            return { found }
+        },
+    },
     { method: 'POST', pattern: '/users/accounts', handler: () => ({ id: 'demo-bank' }) },
     {
         method: 'GET',
@@ -694,29 +709,7 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     {
         method: 'GET',
         pattern: '/card',
-        handler: () => ({
-            hasPurchased: false,
-            hasCardAccess: false,
-            isEligible: false,
-            eligibilityReason: 'demo',
-            price: 50,
-            currentTier: 1,
-            slotsRemaining: 100,
-            recentPurchases: 0,
-        }),
-    },
-    {
-        method: 'POST',
-        pattern: '/card/purchase',
-        handler: () => ({
-            chargeUuid: 'demo-charge',
-            paymentUrl: '',
-            price: 50,
-            recipientAddress: DEMO_ADDRESS,
-            chainId: CHAIN_ID,
-            tokenAmount: '50',
-            tokenSymbol: PEANUT_WALLET_TOKEN_SYMBOL,
-        }),
+        handler: () => ({ isEligible: true, geoProhibited: false }),
     },
     // useRainCardOverview polls this for every logged-in user; the fallback {}
     // has no `status`/`cards` and crashes consumers that deref them
@@ -724,7 +717,33 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     {
         method: 'GET',
         pattern: '/rain/cards',
-        handler: () => ({ status: { hasApplication: false }, balance: null, cards: [] }),
+        handler: () =>
+            demoCardApplied
+                ? { status: { hasApplication: true, railStatus: 'PENDING' }, balance: null, cards: [] }
+                : { status: { hasApplication: false }, balance: null, cards: [] },
+    },
+    // per-card limits read — without this the card-limit fixture (and any
+    // demo/capture render of /card/limit) 404s into the error state.
+    {
+        method: 'GET',
+        pattern: '/rain/cards/:cardId/limits',
+        handler: () => ({ limits: [{ amount: 50000, frequency: 'perAuthorization' }] }),
+    },
+    // Demo apply mirrors the real two-step contract: first call asks for
+    // terms, the accepting call submits and the overview flips to PENDING —
+    // without this, Get your card fell through to the {} fallback and the
+    // entry screen never advanced.
+    {
+        method: 'POST',
+        pattern: '/rain/cards',
+        handler: ({ options }) => {
+            const body = parseBody(options)
+            if (body.termsAccepted === true) {
+                demoCardApplied = true
+                return { status: 'pending' }
+            }
+            return { status: 'terms-required', isUsResident: false, termsVersion: 'demo' }
+        },
     },
 
     // rhino (crypto deposit / cross-chain) — return a believable deposit address
@@ -771,13 +790,34 @@ function defaultShape(pathname: string): unknown {
     return LIST_HINTS.test(last) ? [] : {}
 }
 
-export async function demoRespond(path: string, options?: RequestInit): Promise<Response> {
+export async function demoRespond(
+    path: string,
+    options?: RequestInit,
+    capture?: { offline: boolean; strict?: boolean }
+): Promise<Response> {
     const method = (options?.method ?? 'GET').toUpperCase()
     const pathname = path.split('?')[0].replace(/\/+$/, '') || '/'
 
+    // Capture mode never calls live rates or support sessions.
+    if (capture?.offline && method === 'GET') {
+        if (pathname === '/tokens/price') {
+            const query = new URL(path, 'http://capture.invalid').searchParams
+            return json({
+                chainId: query.get('chainId') ?? CHAIN_ID,
+                address: query.get('address') ?? PEANUT_WALLET_TOKEN,
+                name: 'Synthetic USD Coin',
+                symbol: 'USDC',
+                price: 1,
+            })
+        }
+        if (pathname === '/users/consent/status') return json({ documents: [], needsReConsent: false })
+        if (pathname === '/user/crisp-token')
+            return json({ userId: 'demo-user', crispTokenId: 'synthetic-screen-session' })
+    }
+
     // Live-rate passthrough to the real backend (best-effort).
     let passthroughFailed = false
-    if (method === 'GET' && PASSTHROUGH_GET.has(pathname)) {
+    if (!capture?.offline && method === 'GET' && PASSTHROUGH_GET.has(pathname)) {
         const controller = new AbortController()
         const timeout = setTimeout(() => controller.abort(), PASSTHROUGH_TIMEOUT_MS)
         try {
@@ -822,5 +862,6 @@ export async function demoRespond(path: string, options?: RequestInit): Promise<
     if (process.env.NODE_ENV !== 'production') {
         console.debug('[demo-api] unmocked', method, pathname)
     }
+    if (capture?.strict) throw new Error(`Unmapped capture API: ${method} ${pathname}`)
     return json(defaultShape(pathname))
 }

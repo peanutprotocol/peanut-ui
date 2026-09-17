@@ -60,9 +60,7 @@ const LOADERS = '.animate-spin img[alt="Peanut mascot"], .animate-pulse'
 test.describe.configure({ mode: 'parallel' })
 
 for (const [id, surface] of Object.entries(SURFACE_META)) {
-    test(id, async ({ page }) => {
-        await page.setViewportSize({ width: 375, height: 900 })
-
+    test(id, async ({ page }, testInfo) => {
         // Third-party beacons add network races and nothing visible.
         await page.route('**/*', (route) => {
             const { hostname } = new URL(route.request().url())
@@ -83,9 +81,8 @@ for (const [id, surface] of Object.entries(SURFACE_META)) {
             })
             .toBe(surface.shotFixture ?? FIXTURE)
 
-        // A surface that redirects (InstallPWA pushes /home when signed in) would
-        // otherwise be photographed as whatever it landed on, under this id's
-        // filename — which is how a home screen ended up labelled InstallPWA.
+        // A redirecting surface would otherwise be photographed under the
+        // wrong id and filename.
         expect(new URL(page.url()).pathname, 'the surface navigated away from the harness').toBe('/dev/surfaces')
 
         // A staged surface mounts closed and opens on an in-surface action —
@@ -154,7 +151,7 @@ for (const [id, surface] of Object.entries(SURFACE_META)) {
         await mkdir(OUT_DIR, { recursive: true })
         await writeFile(join(OUT_DIR, `${id}.gaps.json`), JSON.stringify(gaps))
         await page.screenshot({
-            path: join(OUT_DIR, `${id}.png`),
+            path: join(OUT_DIR, `${id}@${testInfo.project.name}.png`),
             animations: 'disabled',
             caret: 'hide',
             scale: 'css',

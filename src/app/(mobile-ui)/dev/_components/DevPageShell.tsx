@@ -1,7 +1,9 @@
 'use client'
 
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import NavHeader from '@/components/Global/NavHeader'
-import Link from 'next/link'
 import { twMerge } from '@/utils/tw'
 
 /**
@@ -39,31 +41,29 @@ export default function DevPageShell({
 }) {
     return (
         <div className={twMerge('flex w-full min-w-0 flex-col gap-6 px-4 py-4 md:px-8 md:py-6', className)}>
-            <header className="flex w-full flex-col gap-2">
-                {/* NavHeader is the mobile back affordance; it renders nothing useful on md+ */}
-                <div className="md:hidden">
-                    <NavHeader href={backHref} hideLabel />
-                </div>
-                <Link
-                    href={backHref}
-                    className="hidden w-max text-label-m tracking-wide text-foreground-secondary uppercase underline-offset-2 hover:text-foreground-primary hover:underline md:block"
-                >
-                    ← {backHref === '/dev' ? 'dev tools' : 'back'}
-                </Link>
-                <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-                    <div className="flex min-w-0 flex-col gap-1">
-                        <h1 className="text-heading-s md:text-heading-m">{title}</h1>
-                        {description && (
-                            <p className="max-w-3xl text-body-s text-foreground-secondary">{description}</p>
-                        )}
+            <PageStack gap="6">
+                <header className="flex w-full flex-col gap-2">
+                    <div className="md:hidden">
+                        <NavHeader href={backHref} hideLabel />
                     </div>
-                    {actions}
-                </div>
-            </header>
+                    <LinkButton href={backHref} className="hidden w-max md:inline-flex">
+                        {backHref === '/dev' ? 'dev tools' : 'back'}
+                    </LinkButton>
+                    <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+                        <TitleBlock
+                            className="max-w-3xl min-w-0"
+                            title={<h1>{title}</h1>}
+                            description={description}
+                            size="m"
+                        />
+                        {actions}
+                    </div>
+                </header>
 
-            <div className={twMerge('flex w-full min-w-0 flex-col gap-8', width === 'prose' && 'max-w-3xl')}>
-                {children}
-            </div>
+                <div className={twMerge('flex w-full min-w-0 flex-col gap-8', width === 'prose' && 'max-w-3xl')}>
+                    {children}
+                </div>
+            </PageStack>
         </div>
     )
 }

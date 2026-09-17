@@ -58,7 +58,7 @@ export default function SavedAddressesList({ savedAddresses, onSelect, onEdit }:
                             <button
                                 type="button"
                                 aria-label={t('savedAddresses.editAria', { nickname: saved.nickname })}
-                                className="flex h-8 w-8 items-center justify-center rounded-full transition-colors duration-instant hover:bg-background-disabled active:bg-background-disabled"
+                                className="relative flex size-10 items-center justify-center rounded-full transition-colors duration-instant after:absolute after:-inset-0.5 hover:bg-background-disabled focus-visible:outline-[3px] focus-visible:outline-action-focus active:bg-background-disabled"
                                 onClick={(e) => {
                                     e.stopPropagation()
                                     onEdit(saved)

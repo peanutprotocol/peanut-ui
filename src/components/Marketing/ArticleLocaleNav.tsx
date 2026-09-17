@@ -2,22 +2,34 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { SUPPORTED_LOCALES, type Locale } from '@/i18n/types'
 import { LOCALE_META } from '@/i18n/localeMeta'
+import { toAppLocale } from '@/i18n/localeBridge'
+import { persistLocale } from '@/i18n/app/locale-store'
+import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
+import { localeHref } from './LocaleSwitcher'
 
 interface Props {
     /** Current URL locale. */
     currentLocale: Locale
-    /** Map of every supported locale → this article's URL at that locale. */
-    localizedHrefs: Record<Locale, string>
 }
 
 /**
- * Article-top language switcher. Back navigation is NOT here — that is
- * HeroBackNav, mounted once in the (marketing) layout for every content
- * page (was ArticleBackNav until the two affordances were unified).
+ * Top-bar language switcher for every marketing/content page — mounted once
+ * in the (marketing) layout, next to HeroBackNav. Hrefs are the current
+ * pathname with its locale segment swapped (marketing routes are all
+ * `/{locale}/rest`), which is exactly what the per-article maps used to
+ * hardcode before this moved into the layout.
+ *
+ * The query string rides along: /content and the help landing keep their
+ * filters there (`?type=blog&q=fees`), so dropping it would silently reset
+ * the list the reader is looking at.
  */
-export function ArticleLocaleNav({ currentLocale, localizedHrefs }: Props) {
+export function ArticleLocaleNav({ currentLocale }: Props) {
+    const pathname = usePathname() ?? '/'
+    const query = useSearchParams()?.toString() ?? ''
+    const suffix = query ? `?${query}` : ''
     const [open, setOpen] = useState(false)
     const wrapperRef = useRef<HTMLDivElement | null>(null)
     const current = LOCALE_META[currentLocale]
@@ -39,7 +51,7 @@ export function ArticleLocaleNav({ currentLocale, localizedHrefs }: Props) {
     }, [open])
 
     return (
-        <nav aria-label="Language" className="mb-6 flex items-center justify-end">
+        <nav aria-label="Language" className="flex items-center justify-end">
             <div ref={wrapperRef} className="relative">
                 <button
                     type="button"
@@ -47,18 +59,18 @@ export function ArticleLocaleNav({ currentLocale, localizedHrefs }: Props) {
                     aria-expanded={open}
                     aria-label={`Language: ${current.label}`}
                     onClick={() => setOpen((v) => !v)}
-                    className="inline-flex items-center gap-1.5 rounded-sm border border-n-1 bg-white px-2 py-1 text-xs font-semibold transition-colors hover:bg-primary-3/30"
+                    className={`${CARD_SURFACE} inline-flex items-center gap-1 px-2 py-1 text-label-m transition-colors hover:bg-purple-200/30`}
                 >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={current.flag} alt="" width={18} height={18} className="rounded-full" />
-                    <span aria-hidden className="text-grey-1">
+                    <span aria-hidden className="text-foreground-secondary">
                         ▾
                     </span>
                 </button>
                 {open && (
                     <ul
                         role="listbox"
-                        className="absolute right-0 z-20 mt-1 flex flex-col overflow-hidden rounded-sm border border-n-1 bg-white shadow-[2px_2px_0_0_#000]"
+                        className={`${CARD_SURFACE} shadow-2 absolute right-0 z-20 mt-1 flex flex-col overflow-hidden`}
                     >
                         {SUPPORTED_LOCALES.map((loc) => {
                             const meta = LOCALE_META[loc]
@@ -66,12 +78,18 @@ export function ArticleLocaleNav({ currentLocale, localizedHrefs }: Props) {
                             return (
                                 <li key={loc} role="option" aria-selected={isCurrent}>
                                     <Link
-                                        href={localizedHrefs[loc]}
-                                        onClick={() => setOpen(false)}
+                                        href={`${localeHref(pathname, loc)}${suffix}`}
+                                        // Same cookie the product UI reads, so a choice made
+                                        // here carries into the app and back. Without it the
+                                        // next visit to `/` redirects to the old locale.
+                                        onClick={() => {
+                                            persistLocale(toAppLocale(loc))
+                                            setOpen(false)
+                                        }}
                                         aria-label={meta.label}
                                         title={meta.label}
                                         className={`flex items-center justify-center px-3 py-2 transition-colors ${
-                                            isCurrent ? 'bg-primary-1/20' : 'hover:bg-primary-3/30'
+                                            isCurrent ? 'bg-action-primary/20' : 'hover:bg-purple-200/30'
                                         }`}
                                     >
                                         {/* eslint-disable-next-line @next/next/no-img-element */}

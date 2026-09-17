@@ -25,6 +25,9 @@ export type ApiUser = {
     firstName: string
     lastName: string
     showFullName?: boolean
+    /** Picked profile avatar, `basic.<slug>` / `badge.<CODE>.<slug>` / `letter.<a-z>`;
+     *  null (or absent, on an older API) means the username-letter fallback. */
+    avatarKey?: string | null
     totalUsdSentToCurrentUser: string
     totalUsdReceivedFromCurrentUser: string
     /**
@@ -56,7 +59,35 @@ export class AccountHasBalanceError extends Error {
     }
 }
 
+export type UsernameCheckResult =
+    | { status: 'found' }
+    | { status: 'not-found' }
+    | { status: 'invalid' }
+    | { status: 'rate-limited'; retryAfterSeconds: number }
+
 export const usersApi = {
+    checkUsername: async (username: string): Promise<UsernameCheckResult> => {
+        const response = await serverFetch('/users/username/check', {
+            method: 'POST',
+            body: JSON.stringify({ username }),
+        })
+        if (response.status === 429) {
+            const body = await response.json().catch(() => null)
+            return {
+                status: 'rate-limited',
+                retryAfterSeconds:
+                    typeof body?.retryAfterSeconds === 'number'
+                        ? body.retryAfterSeconds
+                        : Number(response.headers.get('Retry-After')) || 1,
+            }
+        }
+        if (response.status === 400) return { status: 'invalid' }
+        if (!response.ok) throw new Error('Failed to check username')
+
+        const body = (await response.json()) as { found: boolean }
+        return { status: body.found ? 'found' : 'not-found' }
+    },
+
     getByUsername: async (username: string): Promise<ApiUser> => {
         const response = await serverFetch(`/users/username/${username}`, {
             method: 'GET',

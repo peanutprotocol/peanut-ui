@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="robots" content="noindex,nofollow" />
+        <title>Peanut · Screen library</title>
+        <link rel="stylesheet" href="/screen-library/viewer.css" />
+        <script defer src="/screen-library/viewer.js"></script>
+    </head>
+    <body>
+        <header>
+            <a class="brand" href="/screens/">peanut <span>Screen library</span></a>
+        </header>
+        <main>
+            <h1 id="title">Every screen.<br />Every change.</h1>
+            <p id="description">Browse app states and compare versions of Peanut.</p>
+            <details>
+                <summary>Capture details and exact revisions</summary>
+                <div id="provenance"></div>
+            </details>
+            <p id="coverage" role="status">Loading library…</p>
+            <section id="auth-preview" class="auth-preview" hidden aria-hidden="true">
+                <div class="auth-preview-card"><span></span><i></i><b></b></div>
+                <div class="auth-preview-card"><span></span><i></i><b></b></div>
+                <div class="auth-preview-card"><span></span><i></i><b></b></div>
+                <div class="auth-preview-card"><span></span><i></i><b></b></div>
+                <div class="auth-preview-card"><span></span><i></i><b></b></div>
+            </section>
+            <section id="empty-state" class="empty-state" hidden aria-live="polite" aria-labelledby="empty-title">
+                <div class="empty-art" aria-hidden="true">
+                    <div class="empty-orbit empty-orbit-one"></div>
+                    <div class="empty-orbit empty-orbit-two"></div>
+                    <div class="empty-card empty-card-back"></div>
+                    <div class="empty-card empty-card-front"><span></span><span></span><span></span></div>
+                </div>
+                <div class="empty-copy">
+                    <p id="empty-kicker" class="empty-kicker">SCREEN LIBRARY · COMING TO LIFE</p>
+                    <h2 id="empty-title">Your gallery is almost here.</h2>
+                    <p id="empty-message">
+                        Screenshots are generated in the background and will appear here after the first capture is
+                        published.
+                    </p>
+                    <div class="empty-actions">
+                        <button id="empty-retry" type="button">Check again</button>
+                        <span id="empty-status" class="empty-status">No published captures yet</span>
+                    </div>
+                </div>
+            </section>
+            <div class="filters-stack">
+                <div id="view-mode-row" class="mode-row" hidden>
+                    <label id="view-mode-control" class="switch-control"
+                        ><span>See all screens</span
+                        ><input id="view-mode" type="checkbox" role="switch" aria-label="See all screens" /><span
+                            class="switch"
+                            aria-hidden="true"
+                        ></span
+                    ></label>
+                </div>
+                <div id="filters-row" class="filters-row">
+                    <nav id="dashboard-filters" class="filters" aria-label="Filter published versions" hidden>
+                        <label id="source-control">Source<select id="source"></select></label>
+                        <label id="locale-control">Locale<select id="locale"></select></label>
+                    </nav>
+                    <nav id="screen-filters" class="filters" aria-label="Filter screens">
+                        <label id="search-control"
+                            >Search<input id="search" type="search" placeholder="Screen, state or flow" /></label
+                        ><label id="flow-control"
+                            >Flow<select id="flow">
+                                <option value="">All flows</option>
+                            </select></label
+                        ><label id="status-control"
+                            >Show<select id="status">
+                                <option value="">All screens</option>
+                                <option value="differences">Visual changes</option>
+                                <option value="changed">Changed pixels</option>
+                                <option value="added">Added</option>
+                                <option value="removed">Removed</option>
+                                <option value="unchanged">Unchanged</option>
+                                <option value="unavailable">Unavailable</option>
+                                <option value="captured">Captured (library)</option>
+                                <option value="passed">Journey passed</option>
+                                <option value="failed">Capture failed</option>
+                                <option value="excluded">Excluded</option>
+                                <option value="absent">Absent in revision</option>
+                            </select></label
+                        >
+                    </nav>
+                </div>
+                <section id="date-filter" class="date-filter" aria-labelledby="date-filter-title" hidden>
+                    <div class="date-filter-head">
+                        <h2 id="date-filter-title">Capture date</h2>
+                    </div>
+                    <div class="date-carousel">
+                        <button
+                            id="date-prev"
+                            class="date-nav"
+                            type="button"
+                            aria-label="Show newer capture dates"
+                            hidden
+                        >
+                            ‹
+                        </button>
+                        <div id="date-strip" class="date-strip" role="group" aria-label="Filter by capture date"></div>
+                        <button
+                            id="date-next"
+                            class="date-nav"
+                            type="button"
+                            aria-label="Show older capture dates"
+                            hidden
+                        >
+                            ›
+                        </button>
+                    </div>
+                </section>
+            </div>
+            <section id="versions" aria-label="Versions"></section>
+            <section id="screens" aria-label="Screens"></section>
+            <div id="screen-load-more" class="load-more" hidden aria-live="polite">Scroll to load more screens</div>
+        </main>
+        <dialog id="zoom">
+            <div class="dialog-head">
+                <h2 id="zoom-title"></h2>
+                <button id="close" aria-label="Close enlarged screen">Close ×</button>
+            </div>
+            <div class="zoom-controls">
+                <button id="side">Side by side</button><button id="overlay">Overlay</button
+                ><button id="difference">Pixel difference</button
+                ><label id="slider-label" hidden
+                    >Before / after<input id="slider" type="range" min="0" max="100" value="50"
+                /></label>
+            </div>
+            <div id="zoom-images"></div>
+        </dialog>
+        <footer id="footer">English · 393 × 852 · Synthetic data</footer>
+        <section id="auth-gate" class="auth-gate" hidden role="dialog" aria-modal="true" aria-labelledby="auth-title">
+            <div class="auth-card">
+                <div class="auth-mark" aria-hidden="true"><span></span></div>
+                <p class="auth-product">PEANUT SCREEN LIBRARY</p>
+                <h2 id="auth-title">Your product,<br />frame by frame.</h2>
+                <p class="auth-description">A private view of every Peanut screen, locale and product change.</p>
+                <a id="google-sign-in" class="google-sign-in" href="/screens/latest/">
+                    <svg aria-hidden="true" viewBox="0 0 24 24">
+                        <path
+                            fill="#4285f4"
+                            d="M21.6 12.23c0-.71-.06-1.4-.18-2.07H12v3.91h5.38a4.6 4.6 0 0 1-2 3.02v2.54h3.24c1.9-1.75 2.98-4.33 2.98-7.4Z"
+                        />
+                        <path
+                            fill="#34a853"
+                            d="M12 22c2.7 0 4.97-.9 6.62-2.43l-3.24-2.54c-.9.6-2.05.96-3.38.96-2.61 0-4.82-1.76-5.61-4.13H3.05v2.62A10 10 0 0 0 12 22Z"
+                        />
+                        <path
+                            fill="#fbbc05"
+                            d="M6.39 13.86A6 6 0 0 1 6.08 12c0-.65.11-1.28.31-1.86V7.52H3.05A10 10 0 0 0 2 12c0 1.61.38 3.14 1.05 4.48l3.34-2.62Z"
+                        />
+                        <path
+                            fill="#ea4335"
+                            d="M12 6.01c1.47 0 2.79.5 3.83 1.5l2.87-2.87A9.64 9.64 0 0 0 12 2a10 10 0 0 0-8.95 5.52l3.34 2.62C7.18 7.77 9.39 6.01 12 6.01Z"
+                        />
+                    </svg>
+                    <span>Continue with Google</span>
+                </a>
+                <p class="auth-domain"><span aria-hidden="true">✓</span> Available to <strong>@peanut.me</strong></p>
+            </div>
+        </section>
+    </body>
+</html>

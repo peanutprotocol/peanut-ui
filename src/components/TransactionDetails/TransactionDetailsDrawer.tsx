@@ -1,6 +1,6 @@
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useTranslations } from 'next-intl'
-import React, { useCallback, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Drawer, DrawerContent } from '../Global/Drawer'
 import { TransactionDetailsReceipt } from './TransactionDetailsReceipt'
 
@@ -27,6 +27,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
     const t = useTranslations('transaction')
     // ref for the main content area to calculate dynamic height
     const contentRef = useRef<HTMLDivElement>(null)
+    const scrollAreaRef = useRef<HTMLDivElement>(null)
     const [isLoading, setIsLoading] = useState<boolean>(false)
     const [isModalOpen, setIsModalOpen] = useState(false)
 
@@ -35,6 +36,13 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
             onClose()
         }
     }, [onClose])
+
+    // A reused drawer can retain its previous scroll offset. Reset whenever a
+    // receipt opens or changes so the top avatar/flag never starts underneath
+    // the scroll clip.
+    useEffect(() => {
+        if (isOpen && scrollAreaRef.current) scrollAreaRef.current.scrollTop = 0
+    }, [isOpen, transaction?.id])
 
     if (!transaction) return null
 
@@ -56,7 +64,7 @@ export const TransactionDetailsDrawer: React.FC<TransactionDetailsDrawerProps> =
                 No z-index shuffle for the cancel confirmation any more: it is a vaul
                 NestedRoot now, so vaul stacks it above this drawer and scales this one
                 back on its own. */}
-            <DrawerContent accessibleTitle={t('drawerTitle')}>
+            <DrawerContent accessibleTitle={t('drawerTitle')} scrollAreaRef={scrollAreaRef}>
                 <TransactionDetailsReceipt
                     isLoading={isLoading}
                     transaction={transaction}

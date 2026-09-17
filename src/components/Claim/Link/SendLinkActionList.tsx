@@ -235,7 +235,7 @@ export default function SendLinkActionList({
             {showDevconnectMethod && (
                 <>
                     <Button
-                        variant="primary-soft"
+                        variant="stroke"
                         shadowSize="4"
                         icon="arrow-down"
                         onClick={() => {
@@ -328,7 +328,7 @@ export default function SendLinkActionList({
                     method: minAmountErrorInfo?.title ?? t('minAmount.thisPaymentMethod'),
                     amount: minAmountErrorInfo?.amount ?? 0,
                 })}
-                icon="alert"
+                tone="warning"
                 ctas={[
                     {
                         text: tCommon('close'),
@@ -336,9 +336,7 @@ export default function SendLinkActionList({
                         onClick: () => setShowMinAmountError(false),
                     },
                 ]}
-                iconContainerClassName="bg-action-secondary"
                 preventClose={false}
-                modalPanelClassName="max-w-md mx-8"
             />
 
             <ConfirmInviteModal
@@ -381,7 +379,7 @@ const MethodCard = ({
     return (
         <ListItem
             position="single"
-            body={<div className="text-[12px]">{method.description}</div>}
+            body={<div className="text-body-xs">{method.description}</div>}
             title={
                 <div className="flex items-center gap-2">
                     {method.title}

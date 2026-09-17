@@ -10,7 +10,7 @@ import {
     getFromCookie,
     removeFromCookie,
     saveToCookie,
-    saveToLocalStorage,
+    setRedirectUrl,
     updateUserPreferences,
 } from '@/utils/general.utils'
 import { clearAuthState } from '@/utils/auth.utils'
@@ -78,7 +78,7 @@ export const useZeroDev = () => {
     const { isKernelClientReady, isRegistering, isLoggingIn, isSendingUserOp, address } = useZeroDevFlow()
     const { setWebAuthnKey, getClientForChain, ensureClientForChain } = useKernelClient()
     const { setLoadingState } = useContext(loadingStateContext)
-    // invite hand-off lives in cookies (survives the PWA-install hop) — TASK-21460
+    // invite hand-off lives in cookies so it survives app navigation — TASK-21460
     const inviteCode = readInviteCode()
     const inviteType = readInviteType()
 
@@ -172,7 +172,7 @@ export const useZeroDev = () => {
 
                             // Keep an already-published migration continuation
                             // through setup only after the matching claim confirms.
-                            if (destination !== '/home') saveToLocalStorage('redirect', destination)
+                            if (destination !== '/home') setRedirectUrl(destination)
                             if (pending.some((tag) => tag.toLowerCase() === acceptedBadgeCampaigns[0].toLowerCase())) {
                                 captureException(new Error('accept-time legacy acquisition retained for retry'), {
                                     tags: { error_type: 'invite_accept_campaign_retryable' },
@@ -238,17 +238,12 @@ export const useZeroDev = () => {
             // Re-read after `/invites/accept`: a confirmed legacy adapter may
             // have settled the same tag, while a malformed/missing result may
             // have queued it for an immediate canonical retry.
+            settleShhhhhCampaignContinuation()
             const pendingBadgeCampaigns = getPendingBadgeCampaigns()
             if (pendingBadgeCampaigns.length > 0) {
                 const batch = await claimAndSettlePendingBadgeCampaigns(pendingBadgeCampaigns)
                 const confirmed = batch.claims.filter(isConfirmedBadgeCampaignClaim)
                 const unavailable = batch.claims.filter(isUnavailableBadgeCampaignClaim)
-
-                // Explicit badge campaigns do not pass through `/invites/accept`.
-                // Shhhhh owns the one remaining compatibility continuation: only a
-                // confirmed Skip Pass replaces its safe /home marker with /card.
-                // Bespoke campaign destinations retired with TASK-21226.
-                settleShhhhhCampaignContinuation(batch.claims)
 
                 if (confirmed.length > 0) {
                     posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, {

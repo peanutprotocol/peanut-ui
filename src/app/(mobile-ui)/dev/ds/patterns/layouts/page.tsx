@@ -1,6 +1,7 @@
 'use client'
 
 import { Icon } from '@/components/Global/Icons/Icon'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
@@ -30,7 +31,7 @@ export default function LayoutsPage() {
                         <div className="flex h-80 flex-col p-3">
                             <div className="rounded-sm bg-background-disabled px-3 py-1">
                                 <div className="flex items-center gap-1">
-                                    <Icon name="chevron-up" size={12} className="-rotate-90" />
+                                    <Icon name="chevron-up" size={16} className="-rotate-90" />
                                     <span className="text-body-xs text-foreground-secondary">
                                         NavHeader (hideLabel)
                                     </span>
@@ -85,7 +86,7 @@ export default function LayoutsPage() {
                             <div className="rounded-sm bg-background-disabled px-3 py-1">
                                 <span className="text-body-xs text-foreground-secondary">NavHeader</span>
                             </div>
-                            <div className="space-y-1.5 mt-2">
+                            <div className="space-y-2 mt-2">
                                 <div className="rounded-sm bg-background-badge-accent/20 px-3 py-2">
                                     <span className="text-body-xs">Form Field 1</span>
                                 </div>
@@ -191,53 +192,33 @@ export default function LayoutsPage() {
             {/* Common Mistakes */}
             <DocSection title="Common Mistakes">
                 <DocSection.Content>
-                    {/* Error callout */}
-                    <div className="space-y-2 rounded-sm border border-border-error bg-background-badge-error/30 p-3">
-                        <div className="flex items-center gap-1">
-                            <Icon name="cancel" size={14} className="text-foreground-error" />
-                            <span className="text-label-m text-foreground-error">Wrong</span>
-                        </div>
-                        <p className="text-body-xs text-foreground-secondary">
+                    <Notification priority="error" title="Wrong">
+                        <p>
                             Without h-full the flex container collapses to content height. The CTA sits right below
                             content instead of at the bottom.
                         </p>
-                    </div>
+                    </Notification>
 
-                    {/* Success callout */}
-                    <div className="space-y-2 rounded-sm border border-background-icon-bubble-green bg-background-badge-success/40 p-3">
-                        <div className="flex items-center gap-1">
-                            <Icon name="success" size={14} className="text-background-icon-bubble-green" />
-                            <span className="text-label-m text-background-icon-bubble-green">Correct</span>
-                        </div>
-                        <p className="text-body-xs text-foreground-secondary">
+                    <Notification priority="success" title="Correct">
+                        <p>
                             h-full ensures the flex column fills the available height from PageContainer. flex-1 on the
                             content area pushes the CTA to the bottom.
                         </p>
-                    </div>
+                    </Notification>
 
-                    {/* Error callout 2 */}
-                    <div className="space-y-2 rounded-sm border border-border-error bg-background-badge-error/30 p-3">
-                        <div className="flex items-center gap-1">
-                            <Icon name="cancel" size={14} className="text-foreground-error" />
-                            <span className="text-label-m text-foreground-error">Wrong</span>
-                        </div>
-                        <p className="text-body-xs text-foreground-secondary">
+                    <Notification priority="error" title="Wrong">
+                        <p>
                             overflow-y-auto alone does nothing unless the element has a bounded height. Use flex-1
                             inside a flex-col container, or set an explicit max-height.
                         </p>
-                    </div>
+                    </Notification>
 
-                    {/* Success callout 2 */}
-                    <div className="space-y-2 rounded-sm border border-background-icon-bubble-green bg-background-badge-success/40 p-3">
-                        <div className="flex items-center gap-1">
-                            <Icon name="success" size={14} className="text-background-icon-bubble-green" />
-                            <span className="text-label-m text-background-icon-bubble-green">Correct</span>
-                        </div>
-                        <p className="text-body-xs text-foreground-secondary">
+                    <Notification priority="success" title="Correct">
+                        <p>
                             Inside a flex column with h-full, flex-1 fills remaining space and provides the bounded
                             height that overflow-y-auto needs to actually scroll.
                         </p>
-                    </div>
+                    </Notification>
                 </DocSection.Content>
                 <DocSection.Code>
                     <CodeBlock

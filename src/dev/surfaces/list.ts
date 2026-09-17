@@ -24,12 +24,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '01-a-landing': { name: 'Landing', path: 'Setup/Views/Landing.tsx' },
     '02-a-joinwaitlist': { name: 'JoinWaitlist', path: 'Setup/Views/JoinWaitlist.tsx' },
     '03-a-residence-select': { name: 'Residence — select', path: 'Setup/Views/Residence.tsx' },
-    '04-a-installpwa': {
-        name: 'InstallPWA',
-        path: 'Setup/Views/InstallPWA.tsx',
-        blocked:
-            'Redirects to /home when a session exists (InstallPWA.tsx:75), and the harness is signed in — the shot lands on the home screen, not this step.',
-    },
     '05-a-signtesttransaction': {
         name: 'SignTestTransaction — account ready',
         path: 'Setup/Views/SignTestTransaction.tsx',
@@ -48,7 +42,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '13-a-guestloginmodal': { name: 'GuestLoginModal', path: 'Global/GuestLoginModal/index.tsx' },
     '14-a-guestverificationmodal': { name: 'GuestVerificationModal', path: 'Global/GuestVerificationModal/index.tsx' },
     '15-a-invitefriendsmodal': { name: 'InviteFriendsDrawer', path: 'Global/InviteFriendsDrawer/index.tsx' },
-    '16-a-iospwainstallmodal': { name: 'IosPwaInstallDrawer', path: 'Global/IosPwaInstallDrawer/index.tsx' },
     '17-a-nomorejailmodal': { name: 'NoMoreJailDrawer', path: 'Global/NoMoreJailDrawer/index.tsx' },
     '18-a-reconsentmodal': {
         name: 'ReConsentModal',
@@ -63,8 +56,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '20-a-setupnotificationsmodal': {
         name: 'SetupNotificationsModal',
         path: 'Notifications/SetupNotificationsModal.tsx',
-        blocked:
-            'Driven by a module-level notifications store whose setter is not exported, off the browser push-permission state.',
     },
     '21-b-advisorypreemptmodal': { name: 'AdvisoryPreemptModal', path: 'Kyc/AdvisoryPreemptModal.tsx' },
     '22-b-initiatekycmodal': { name: 'InitiateKycModal (default)', path: 'Kyc/InitiateKycModal.tsx' },
@@ -88,7 +79,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '32-c-cancelcardmodal': { name: 'CancelCardModal (confirm phase)', path: 'Card/CancelCardModal.tsx' },
     '33-c-cardlimiteditmodal': { name: 'CardLimitEditDrawer', path: 'Card/CardLimitEditDrawer.tsx' },
     '34-c-lockcardmodal': { name: 'LockCardModal (lock)', path: 'Card/LockCardModal.tsx' },
-    '35-c-cardunlockdrawer': { name: 'CardUnlockDrawer', path: 'Card/CardUnlockDrawer.tsx' },
     '36-c-badgedetailmodal': { name: 'BadgeDetailDrawer', path: 'Badges/BadgeDetailDrawer.tsx' },
     '37-c-badgestatusdrawer': { name: 'BadgeStatusDrawer', path: 'Badges/BadgeStatusDrawer.tsx' },
     '38-c-howtodepositmodal': { name: 'HowToDepositDrawer', path: 'AddMoney/components/HowToDepositDrawer.tsx' },
@@ -132,14 +122,10 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '54-d-qrbottomdrawer': {
         name: 'QRBottomDrawer',
         path: 'Global/QRBottomDrawer/index.tsx',
-        blocked:
-            'Always-open snap-point drawer: it starts at its peek snap and is positioned against the screen behind it, so on an empty harness page it sits off-frame.',
     },
     '55-d-supportdrawer': {
         name: 'SupportDrawer (chat-failed)',
         path: 'Global/SupportDrawer/index.tsx',
-        blocked:
-            'Renders its real loading state: the Crisp chat host is an external origin the capture blocks, and the chat-failed state needs that request to time out.',
     },
     '56-d-camerapermissionmodal': {
         name: 'CameraPermissionDrawer',
@@ -168,6 +154,24 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '63-d-emptystate': { name: 'EmptyState', path: 'Global/EmptyStates/EmptyState.tsx' },
     '64-d-nodataemptystate': { name: 'NoDataEmptyState', path: 'Global/EmptyStates/NoDataEmptyState.tsx' },
     '65-d-faqs': { name: 'FAQs', path: 'Global/FAQs/index.tsx' },
+    '66-e-avatarpicker': { name: 'Avatar picker', path: 'Avatar/AvatarPicker.tsx' },
+    '67-e-provideemailstep': { name: 'Provide email', path: 'Kyc/ProvideEmailStep.tsx' },
+    '68-e-bridgetosstep': { name: 'Bridge terms', path: 'Kyc/BridgeTosStep.tsx' },
+    '69-e-kycprepchecklist-standard': { name: 'Verification checklist — standard', path: 'Kyc/KycPrepChecklist.tsx' },
+    '70-e-kycprepchecklist-extended': { name: 'Verification checklist — extended', path: 'Kyc/KycPrepChecklist.tsx' },
+    '71-e-kycprepchecklist-hosted': { name: 'Verification checklist — hosted', path: 'Kyc/KycPrepChecklist.tsx' },
+    '72-e-kycfailedcontent-terminal': { name: 'Verification — terminal failure', path: 'Kyc/KycFailedContent.tsx' },
+    '73-e-rejectlabelslist': { name: 'Verification rejection reasons', path: 'Kyc/RejectLabelsList.tsx' },
+    '74-e-kycactionrequired': { name: 'Verification — action required', path: 'Kyc/states/KycActionRequired.tsx' },
+    '75-e-rateunavailable': { name: 'Exchange rate unavailable', path: 'Global/RateUnavailable/index.tsx' },
+    '76-e-limitswarningcard-warning': {
+        name: 'Transaction limits — warning',
+        path: 'features/limits/components/LimitsWarningCard.tsx',
+    },
+    '77-e-limitswarningcard-error': {
+        name: 'Transaction limits — error',
+        path: 'features/limits/components/LimitsWarningCard.tsx',
+    },
     '69-d-perkclaimsuccess': { name: 'PerkClaimSuccessDrawer', path: 'Home/PerkClaimSuccessDrawer.tsx' },
     '70-d-activationctas-outbound': {
         name: 'ActivationCTAs (outbound)',

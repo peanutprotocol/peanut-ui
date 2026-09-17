@@ -145,10 +145,7 @@ export const viewport: Viewport = {
     userScalable: false,
     colorScheme: 'light',
     viewportFit: 'cover',
-    // Renders <meta name="theme-color">, which Android Chrome applies
-    // immediately (browser tab AND installed PWA) and which overrides a
-    // cached manifest theme_color — the manifest alone left the status
-    // strip black until Chrome's day-scale manifest refresh.
+    // Android Chrome applies this to the browser toolbar immediately.
     themeColor: '#FAF4F0',
 }
 
@@ -194,17 +191,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     />
                 )}
 
-                {/* Service Worker Registration: Register early for offline support and caching */}
-                {/* CRITICAL: Must run before React hydration to enable offline-first PWA */}
+                {/* Register early for browser caching, notifications, and cache invalidation. */}
                 {process.env.NODE_ENV !== 'development' && (
                     <Script id="sw-registration" strategy="beforeInteractive">
                         {`
                             /*
-                             * Native: builds before 2026-04 registered the PWA service worker
-                             * inside the Capacitor WebView, and those registrations persist in
-                             * WebView storage across app updates (the native bundle ships no
-                             * sw.js, so they can never self-update — they sit frozen in front of
-                             * all GET traffic). Actively evict them; takes effect next launch.
+                             * Native builds before 2026-04 registered the web service worker
+                             * inside the Capacitor WebView. Those registrations persist across
+                             * app updates, while the native bundle has no sw.js to update them.
+                             * Keep this idempotent eviction until that upgrade lineage expires.
                              */
                             if ('serviceWorker' in navigator && window.Capacitor) {
                                 navigator.serviceWorker.getRegistrations()
@@ -221,8 +216,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                                         console.log('SW registered:', registration.scope);
 
                                         // Check for SW updates when user returns to app/tab.
-                                        // Without this, PWA users can stay on stale SWs indefinitely
-                                        // (browser's 24h auto-check is unreliable for backgrounded PWAs).
+                                        // Browser auto-checks can be delayed in background tabs.
                                         document.addEventListener('visibilitychange', () => {
                                             if (!document.hidden) {
                                                 registration.update();
@@ -237,11 +231,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                                 // Guards: (1) refreshing prevents double-reloads, (2) hadController
                                 // skips first-ever install (no previous SW = initial registration, not
                                 // an update — reloading on first visit would flash/reload for every new
-                                // user and SEO crawler), (3) isStandalone skips PWA mode because
-                                // window.location.reload() in Android PWA standalone context can break
-                                // the standalone session and bounce the user back to Chrome — causing
-                                // a PWA ↔ Chrome redirect loop (the new SW still activates via
-                                // skipWaiting + clientsClaim, so the user gets new code on next navigation).
+                                // user and SEO crawler), (3) standalone mode avoids an Android
+                                // PWA-to-Chrome bounce loop. Existing installs remain reachable
+                                // until the native migration cutoff.
                                 let refreshing = false;
                                 const hadController = !!navigator.serviceWorker.controller;
                                 navigator.serviceWorker.addEventListener('controllerchange', () => {

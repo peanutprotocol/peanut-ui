@@ -12,6 +12,8 @@
 
 import { notFound } from 'next/navigation'
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
+import { Button } from '@/components/0_Bruddle/Button'
 import { DEV_TOOLS_ENABLED } from '@/constants/dev-tools.consts'
 
 // ---------------------------------------------------------------------------
@@ -162,36 +164,35 @@ function Harness() {
 
     return (
         <div style={S.root}>
-            <header style={S.bar}>
-                <span style={S.brand}>viewport harness</span>
+            <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border-default bg-background-default p-3">
+                <span className="text-label-m text-foreground-secondary">Viewport harness</span>
 
-                <input
-                    style={S.input}
-                    value={pathInput}
-                    onChange={(e) => setPathInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && go()}
-                    spellCheck={false}
-                    aria-label="Path"
-                />
-                <button style={S.btn} onClick={go}>
+                <div className="min-w-48 flex-1 sm:max-w-64">
+                    <BaseInput
+                        variant="sm"
+                        value={pathInput}
+                        onChange={(event) => setPathInput(event.target.value)}
+                        onKeyDown={(event) => event.key === 'Enter' && go()}
+                        spellCheck={false}
+                        aria-label="Path"
+                    />
+                </div>
+                <Button variant="stroke" size="small" className="w-auto" onClick={go}>
                     Go
-                </button>
+                </Button>
 
-                <span style={S.sep} />
-
-                <button style={S.btn} onClick={() => setOneToOne((v) => !v)}>
-                    {oneToOne ? 'Fit' : '1:1'} <kbd style={S.kbd}>1</kbd>
-                </button>
-                <button style={S.btn} onClick={() => post({ t: 'scan' })}>
-                    Scan overflow <kbd style={S.kbd}>o</kbd>
-                </button>
-                <span style={{ ...S.meta, color: totalOverflow ? SIGNAL : MUTED }}>
+                <Button variant="stroke" size="small" className="w-auto" onClick={() => setOneToOne((value) => !value)}>
+                    {oneToOne ? 'Fit panes' : 'Show 1:1'}
+                </Button>
+                <Button variant="stroke" size="small" className="w-auto" onClick={() => post({ t: 'scan' })}>
+                    Scan overflow
+                </Button>
+                <span className="text-body-xs text-foreground-secondary">
                     {totalOverflow ? `${totalOverflow} overflowing` : 'no overflow'}
                 </span>
 
-                <span style={S.sep} />
-                <span style={S.meta}>scale {(scale * 100).toFixed(0)}%</span>
-                <span style={S.meta} title={hoverSel ?? ''}>
+                <span className="text-body-xs text-foreground-secondary">scale {(scale * 100).toFixed(0)}%</span>
+                <span className="max-w-full truncate text-body-xs text-foreground-secondary" title={hoverSel ?? ''}>
                     {hoverSel ? truncate(hoverSel, 44) : 'hover an element to measure'}
                 </span>
             </header>
@@ -213,9 +214,9 @@ function Harness() {
                 <footer style={S.console}>
                     <div style={S.consoleHead}>
                         <span>errors</span>
-                        <button style={S.btnGhost} onClick={() => setLogs([])}>
+                        <Button variant="transparent" size="small" className="w-auto" onClick={() => setLogs([])}>
                             Clear
-                        </button>
+                        </Button>
                     </div>
                     {logs.map((l, i) => (
                         <div key={i} style={S.logRow}>
@@ -272,7 +273,7 @@ function Pane({
                         width: p.w,
                         height: p.h,
                         border: 'none',
-                        background: '#fff',
+                        background: 'var(--color-background-default)',
                         transform: `scale(${scale})`,
                         transformOrigin: '0 0',
                     }}
@@ -303,32 +304,22 @@ const truncate = (s: string, n: number) => (s.length <= n ? s : `...${s.slice(-(
 // Colorless chrome. The only hue in the whole file is SIGNAL, and it only
 // renders when something is actually wrong.
 // ---------------------------------------------------------------------------
-const SIGNAL = '#e5484d'
-const INK = '#1a1a1a'
-const MUTED = '#6b6b6b'
-const FAINT = '#a8a8a8'
-const LINE = '#e0e0e0'
-const MONO = 'ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, monospace'
+const SIGNAL = 'var(--color-foreground-error)'
+const INK = 'var(--color-foreground-primary)'
+const MUTED = 'var(--color-foreground-secondary)'
+const FAINT = 'var(--color-border-subtle)'
+const LINE = 'var(--color-border-disabled)'
+const MONO = 'var(--font-roboto), ui-sans-serif, system-ui, sans-serif'
 
 const S: Record<string, CSSProperties> = {
     root: {
         height: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        background: '#f2f2f2',
+        background: 'var(--color-background-disabled)',
         color: INK,
         fontFamily: MONO,
         fontSize: 11,
-    },
-    bar: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: '0 16px',
-        height: 40,
-        background: '#fff',
-        borderBottom: `1px solid ${LINE}`,
-        flexShrink: 0,
     },
     brand: {
         fontWeight: 600,
@@ -338,39 +329,18 @@ const S: Record<string, CSSProperties> = {
         color: MUTED,
         marginRight: 8,
     },
-    input: {
-        fontFamily: MONO,
-        fontSize: 11,
-        padding: '4px 8px',
-        width: 220,
-        border: `1px solid ${LINE}`,
-        borderRadius: 3,
-        background: '#fafafa',
-        outlineColor: INK,
-    },
-    btn: {
-        fontFamily: MONO,
-        fontSize: 11,
-        padding: '4px 9px',
-        border: `1px solid ${LINE}`,
-        borderRadius: 3,
-        background: '#fff',
-        cursor: 'pointer',
-        color: INK,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 5,
-    },
-    btnGhost: { fontFamily: MONO, fontSize: 10, border: 'none', background: 'none', color: MUTED, cursor: 'pointer' },
-    kbd: { fontSize: 9, color: FAINT, border: `1px solid ${LINE}`, borderRadius: 2, padding: '0 3px' },
-    sep: { width: 1, height: 18, background: LINE, margin: '0 4px' },
-    meta: { color: MUTED, whiteSpace: 'nowrap' },
     stage: { flex: 1, display: 'flex', gap: GAP, padding: 24, overflow: 'auto', alignItems: 'flex-start' },
     paneHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6, gap: 8 },
     paneLabel: { color: MUTED, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
     paneDims: { color: INK, fontVariantNumeric: 'tabular-nums' },
     paneFoot: { display: 'flex', justifyContent: 'space-between', marginTop: 6, fontVariantNumeric: 'tabular-nums' },
-    console: { maxHeight: 160, overflow: 'auto', background: '#fff', borderTop: `1px solid ${LINE}`, flexShrink: 0 },
+    console: {
+        maxHeight: 160,
+        overflow: 'auto',
+        background: 'var(--color-background-default)',
+        borderTop: `1px solid ${LINE}`,
+        flexShrink: 0,
+    },
     consoleHead: {
         display: 'flex',
         justifyContent: 'space-between',
@@ -381,10 +351,10 @@ const S: Record<string, CSSProperties> = {
         letterSpacing: '0.04em',
         position: 'sticky',
         top: 0,
-        background: '#fff',
+        background: 'var(--color-background-default)',
         borderBottom: `1px solid ${LINE}`,
     },
-    logRow: { display: 'flex', gap: 10, padding: '3px 16px', borderBottom: `1px solid #f5f5f5` },
+    logRow: { display: 'flex', gap: 10, padding: '3px 16px', borderBottom: `1px solid ${LINE}` },
     logPane: { color: FAINT, minWidth: 92, flexShrink: 0 },
     logText: { color: SIGNAL, whiteSpace: 'pre-wrap', wordBreak: 'break-word' },
 }

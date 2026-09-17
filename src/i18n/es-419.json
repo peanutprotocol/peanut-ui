@@ -103,7 +103,7 @@
     "content": "Contenido",
     "contentHubTitle": "Explora Peanut",
     "contentHubSubtitle": "Artículos, historias, guías y comparaciones.",
-    "contentSearchPlaceholder": "Buscar artículos, historias, guías...",
+    "contentSearchPlaceholder": "Buscar artículos",
     "filterAll": "Todos",
     "filterBlog": "Blog",
     "filterStories": "Historias",
@@ -219,6 +219,7 @@
     "exchangeFree": "¡Gratis!",
     "exchangeArrivesHours": "Debería llegar en unas horas.",
     "exchangeArrivesMinutes": "Debería llegar en minutos.",
+    "exchangeSelectCurrency": "Seleccionar moneda",
     "legalHeroSubtitlePrivacy": "Cómo tratamos tus datos",
     "legalHeroSubtitleTerms": "El acuerdo entre tú y Peanut"
 }

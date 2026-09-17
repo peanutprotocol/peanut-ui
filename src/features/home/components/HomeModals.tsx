@@ -22,7 +22,6 @@ const SetupNotificationsModal = lazy(() => import('@/components/Notifications/Se
 const NoMoreJailDrawer = lazy(() => import('@/components/Global/NoMoreJailDrawer'))
 const EarlyUserDrawer = lazy(() => import('@/components/Global/EarlyUserDrawer'))
 const WelcomeUnlockDrawer = lazy(() => import('@/components/Home/WelcomeUnlockDrawer'))
-const IosPwaInstallDrawer = lazy(() => import('@/components/Global/IosPwaInstallDrawer'))
 const MigrationDownloadModal = lazy(() => import('@/components/Migration/MigrationDownloadModal'))
 const ScanToDownloadModal = lazy(() => import('@/components/Migration/ScanToDownloadModal'))
 
@@ -36,11 +35,11 @@ const BALANCE_WARNING_EXPIRY = Number.isNaN(parsedExpiry) ? 1814400 : parsedExpi
 /**
  * home modal orchestration — the priority chain the old home page carried
  * inline. migration download outranks everything, then notifications, kyc
- * celebration, post-signup, ios pwa, balance warning.
+ * celebration, post-signup, and balance warning.
  */
 export function HomeModals() {
     const { showPermissionModal } = useNotifications()
-    const { isGetAppModalOpen, setIsGetAppModalOpen, isIosPwaInstallDrawerOpen } = useModalsContext()
+    const { isGetAppModalOpen, setIsGetAppModalOpen } = useModalsContext()
     const { balance, isFetchingBalance } = useWallet()
     const { user, fetchUser } = useAuth()
     const { isKycApproved } = useCapabilities()
@@ -49,7 +48,7 @@ export function HomeModals() {
     const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
     const [showKycModal, setShowKycModal] = useState(false)
     // migration download prompt outranks every other home modal (self-gating,
-    // only during the pwa-sunset notice window)
+    // only during the native-migration notice window)
     const [showMigrationModal, setShowMigrationModal] = useState(false)
     // Both celebration drawers open themselves (session storage / a user
     // flag), and a pre-lockup invitee can qualify for both at once — two open
@@ -216,19 +215,8 @@ export function HomeModals() {
                 </Suspense>
             </LazyLoadErrorBoundary>
 
-            {/* mount-gated: the modal is purely context-driven, so the chunk
-                only loads once something opens it */}
-            {isIosPwaInstallDrawerOpen && (
-                <LazyLoadErrorBoundary>
-                    <Suspense fallback={null}>
-                        <IosPwaInstallDrawer />
-                    </Suspense>
-                </LazyLoadErrorBoundary>
-            )}
-
-            {/* card pioneer modal — eligibility check happens during the flow (geo
-                screen), not here. unmounted while the migration prompt shows (it
-                re-checks on remount); the effect above clears its stuck state */}
+            {/* Post-signup actions are unmounted while the migration prompt shows.
+                The effect above clears their visibility state before remounting. */}
             {!showMigrationModal && (
                 <PostSignupActionManager onActionModalVisibilityChange={setIsPostSignupActionModalVisible} />
             )}

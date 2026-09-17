@@ -1,6 +1,7 @@
 'use client'
 
 import { useLocale } from 'next-intl'
+import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
 import { shareableUrl } from '@/utils/url.utils'
@@ -24,21 +25,22 @@ export function DownloadReceiptPdfLink({ entryId, kind }: { entryId: string; kin
     const pdfPath: `/${string}` = `/receipt/${encodeURIComponent(entryId)}/pdf?kind=${encodeURIComponent(kind)}&locale=${encodeURIComponent(locale)}`
 
     return (
-        <a
+        <Button
+            variant="stroke"
             href={pdfPath}
             download
-            target="_blank"
-            rel="noopener noreferrer"
+            external
+            shadowSize="4"
             onClick={(e) => {
                 if (isCapacitor()) {
                     e.preventDefault()
                     void openExternalUrl(shareableUrl(pdfPath))
                 }
             }}
-            className="flex w-full items-center justify-center gap-2 text-body-s text-foreground-secondary underline transition-colors duration-fast hover:text-foreground-primary print:hidden"
+            className="justify-center print:hidden"
         >
-            <Icon name="download" size={16} className="text-foreground-secondary" />
+            <Icon name="download" size={20} />
             {t('actions.downloadPdf')}
-        </a>
+        </Button>
     )
 }

@@ -1,6 +1,7 @@
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import AvatarWithBadge, { type AvatarSize } from '@/components/Profile/AvatarWithBadge'
+import { UserAvatar } from '@/components/Avatar/UserAvatar'
 import { type TransactionType } from '@/components/TransactionDetails/transaction-types'
 import {
     AVATAR_LINK_BG,
@@ -25,6 +26,28 @@ interface TransactionAvatarBadgeProps {
      * the badge renders the country flag instead of the generic bank icon.
      */
     countryCode?: string | null
+    /**
+     * The counterparty's picked profile avatar (TASK-22625). Only read on the
+     * person branch — a bank, link, wallet or card row keeps its icon whatever
+     * this holds.
+     */
+    avatarKey?: string | null
+    /**
+     * The counterparty's handle, when the row has one. The letter sticker
+     * follows it so a peer without a pick looks the same here as on their
+     * profile, even though `userName` above honours their showFullName choice
+     * (it also has to stay the display name — it is the address discriminator).
+     * Falls back to `userName`.
+     */
+    avatarName?: string
+    /**
+     * The authoritative "there is a person behind this row" flag, when the
+     * caller has one. `undefined` keeps this component's own heuristic (a named
+     * row that is not an address). Pass `false` for a row whose name is system
+     * copy — a reaper-failed transfer reads "Send didn't complete", which has
+     * initials and is not an address, so nothing else here would catch it.
+     */
+    isPeer?: boolean
 }
 
 /**
@@ -39,6 +62,9 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
     transactionType,
     context,
     countryCode,
+    avatarKey,
+    avatarName,
+    isPeer,
 }) => {
     let displayIconName: IconName | undefined = undefined
     let displayInitials: string | undefined = initials
@@ -126,11 +152,20 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
                 displayInitials = undefined
                 calculatedBgColor = AVATAR_WALLET_BG
                 iconFillColor = AVATAR_TEXT_DARK
-            } else if (displayInitials) {
+            } else if (displayInitials && isPeer === false) {
+                // Named, but nobody is behind it — the transformer rewrote the
+                // name to system copy. Keep the initials circle: a sticker here
+                // would draw a face for a failure message.
                 const colors = getColorForUsername(userName)
                 calculatedBgColor = colors.lightShade
                 textColor = colors.darkShade
                 displayIconName = undefined
+            } else if (displayInitials) {
+                // The one branch with a person behind it, so it shows who they
+                // are: their picked avatar, or the letter sticker drawn from
+                // the name this row already displays (TASK-22625). `decorative`
+                // because that name is on screen right next to it.
+                return <UserAvatar name={avatarName || userName} avatarKey={avatarKey} size={size} decorative />
             } else {
                 // fallback for send/request if no initials and not link/address
                 displayIconName = 'wallet-outline'

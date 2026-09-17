@@ -51,8 +51,9 @@ export function verifyBundle(bundle, env) {
     const ios = required(env, 'FLOOR_IOS')
     const nativeFloor = required(env, 'NATIVE_FLOOR')
     const sha = required(env, 'GITHUB_SHA')
-    // Native .0 records may be shared: both floors must equal that binary.
-    // OTA records are distinct even when their web assets are identical.
+    // Native .0 records are shared, so their one server floor must be the
+    // stricter of the two compatible platform floors. OTA records are distinct
+    // even when their web assets are identical and use their platform floor.
     const native = CORE.test(version) && version.endsWith('.0')
     if (
         !CORE.test(core) ||
@@ -70,9 +71,16 @@ export function verifyBundle(bundle, env) {
         )
             throw new Error('invalid native floor')
     }
-    if (native && (android !== version || ios !== version))
-        throw new Error('native bundle floors must match the binary')
-    if (nativeFloor !== (target === 'ios' ? ios : android))
+    const sharedNativeFloor = [android, ios]
+        .sort((a, b) => {
+            const [aMajor, aBuild] = a.split('.').map(Number)
+            const [bMajor, bBuild] = b.split('.').map(Number)
+            return aMajor - bMajor || aBuild - bBuild
+        })
+        .at(-1)
+    if (native && nativeFloor !== sharedNativeFloor)
+        throw new Error('shared native bundle must use the stricter platform floor')
+    if (!native && nativeFloor !== (target === 'ios' ? ios : android))
         throw new Error('server floor must match the delivery platform')
     if (bundle?.name !== version || bundle.app_id !== required(env, 'CAPGO_APP_ID') || bundle.deleted !== false) {
         throw new Error(`bundle identity mismatch for ${version}`)

@@ -8,6 +8,13 @@ import { readSecondResidence, storeSecondResidence } from '@/utils/declared-resi
 
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@/app/actions/users', () => ({ updateUserById: jest.fn() }))
+jest.mock('@/hooks/useResidenceRestrictionSets', () => ({
+    useResidenceRestrictionSets: () => ({
+        full: new Set(['RU']),
+        cardOnly: new Set<string>(),
+        bankingOnly: new Set<string>(),
+    }),
+}))
 const mockedUpdate = updateUserById as jest.MockedFunction<typeof updateUserById>
 
 const render = (props?: Partial<React.ComponentProps<typeof ResidenceChangeDrawer>>) => {
@@ -37,7 +44,7 @@ describe('ResidenceChangeDrawer', () => {
         mockedUpdate.mockResolvedValue({ data: undefined })
     })
 
-    it('saves the declared residence, refetches, and closes', async () => {
+    it('saves the requested residence, refetches, and closes without starting verification', async () => {
         const { onClose, onSaved, onReverify } = render()
         fireEvent.click(screen.getByText('Save'))
         await waitFor(() => expect(onClose).toHaveBeenCalled())
@@ -46,17 +53,20 @@ describe('ResidenceChangeDrawer', () => {
         expect(onReverify).not.toHaveBeenCalled()
     })
 
-    it('the change cooldown shows its date and blocks changing to another country, not re-saving', () => {
-        const future = new Date(Date.now() + 60 * 60 * 1000).toISOString()
-        render({ declared: 'BR', verified: 'BR', nextChangeAllowedAt: future })
-        // The note is visible before any pick, so nobody discovers the wait late.
-        expect(screen.getByText(/You can change it again after/)).toBeInTheDocument()
-        // Re-saving the current country stays allowed.
+    it('changing the dropdown only updates the selection; Save persists without starting verification', async () => {
+        const { onClose, onReverify } = render({ declared: 'BR', verified: 'BR' })
+        for (const country of ['France', 'Germany']) {
+            fireEvent.click(screen.getByRole('combobox'))
+            fireEvent.click(screen.getByText(country))
+        }
+        expect(mockedUpdate).not.toHaveBeenCalled()
+        expect(onReverify).not.toHaveBeenCalled()
+        expect(screen.queryByText(/You can change it again after/)).not.toBeInTheDocument()
         expect(screen.getByText('Save').closest('button')).not.toBeDisabled()
-        // Picking a different country under cooldown disables saving.
-        fireEvent.click(screen.getByRole('combobox'))
-        fireEvent.click(screen.getByText('France'))
-        expect(screen.getByText('Save').closest('button')).toBeDisabled()
+        fireEvent.click(screen.getByText('Save'))
+        await waitFor(() => expect(onClose).toHaveBeenCalled())
+        expect(mockedUpdate).toHaveBeenCalledWith({ userId: 'u1', residenceCountry: 'DE' })
+        expect(onReverify).not.toHaveBeenCalled()
     })
 
     it('offers re-verification only when the pick differs from the verified residence', () => {
@@ -64,7 +74,7 @@ describe('ResidenceChangeDrawer', () => {
         expect(screen.getByText('Submit documents')).toBeInTheDocument()
     })
 
-    it('hands the newly declared residence to the re-verification after saving', async () => {
+    it('starts the dedicated residence action after saving', async () => {
         const { onClose, onReverify } = render()
         fireEvent.click(screen.getByText('Submit documents'))
         await waitFor(() => expect(onClose).toHaveBeenCalled())
@@ -112,7 +122,8 @@ describe('ResidenceChangeDrawer', () => {
             residenceCountry: 'FR',
             secondResidenceCountry: 'ES',
         })
-        expect(readSecondResidence('u1')).toBe('ES')
+        // The active pair does not move until the new primary is GREEN.
+        expect(readSecondResidence('u1')).toBe('FR')
     })
 
     it('moving to a country in neither slot leaves the second document alone', async () => {
@@ -154,6 +165,14 @@ describe('ResidenceChangeDrawer', () => {
             residenceCountry: 'FR',
             secondResidenceCountry: 'ES',
         })
+    })
+
+    it('preselects an existing pending residence without treating it as active', async () => {
+        const { onClose } = render({ declared: 'BR', verified: 'BR', pending: 'ES' })
+        expect(screen.getByText('Submit documents')).toBeInTheDocument()
+        fireEvent.click(screen.getByText('Save'))
+        await waitFor(() => expect(onClose).toHaveBeenCalled())
+        expect(mockedUpdate).toHaveBeenCalledWith({ userId: 'u1', residenceCountry: 'ES' })
     })
 
     it('warns when the picked country is restricted', () => {

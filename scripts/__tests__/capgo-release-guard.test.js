@@ -303,15 +303,16 @@ it.each(['ios', 'android'])('verifies a distinct %s artifact with its own native
 it('allows reuse only of a verified native .0 record from the exact source', () => {
     const native = {
         ...goodBundle,
-        name: '1.7.0',
+        name: '1.8.0',
         min_update_version: '1.7.0',
-        comment: '[ota-floors: android=1.7.0 ios=1.7.0]',
+        comment: '[ota-floors: android=1.7.0 ios=1.6.0]',
     }
-    const overrides = { VERSION: '1.7.0', FLOOR_ANDROID: '1.7.0', FLOOR_IOS: '1.7.0', NATIVE_FLOOR: '1.7.0' }
+    const overrides = { VERSION: '1.8.0', FLOOR_ANDROID: '1.7.0', FLOOR_IOS: '1.6.0', NATIVE_FLOOR: '1.7.0' }
     expect(invoke('existing-native', [{ body: [] }], overrides).result).toBe('missing')
-    expect(invoke('existing-native', [{ body: [native] }], overrides).result).toBe('1.7.0')
+    expect(invoke('existing-native', [{ body: [native] }], overrides).result).toBe('1.8.0')
     expect(invoke('existing-native', [{ body: [{ ...native, checksum: null }] }], overrides).status).toBe(1)
     expect(invoke('existing-native', [{ body: [{ ...native, link: 'wrong-source' }] }], overrides).status).toBe(1)
+    expect(invoke('existing-native', [{ body: [native] }], { ...overrides, NATIVE_FLOOR: '1.6.0' }).status).toBe(1)
     expect(invoke('existing-native', [], { VERSION: '1.7.1-ios' }).status).toBe(1)
 })
 
@@ -417,7 +418,16 @@ it('never assigns a prerelease .0 identity that sorts below its native binary', 
 
 // Execute the native publisher with deterministic command responses. Assertions
 // cover the ordering and failures that can otherwise promote an absent artifact.
-function publishNative({ existing = 'missing', raceWinner = 'missing', failure = '', platform = 'ios' } = {}) {
+function publishNative({
+    existing = 'missing',
+    raceWinner = 'missing',
+    failure = '',
+    platform = 'ios',
+    androidFloor = '1.7.0',
+    iosFloor = '1.7.0',
+    sharedFloor = '1.7.0',
+    isRebuild = false,
+} = {}) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'native-ota-publish-'))
     const log = path.join(dir, 'calls')
     fs.mkdirSync(path.join(dir, 'out'))
@@ -429,6 +439,20 @@ function publishNative({ existing = 'missing', raceWinner = 'missing', failure =
                 '-c',
                 `
           node() {
+            if [ "$1" = scripts/ota-platform-floor.mjs ]; then
+              if [ "$2" = --platform ]; then
+                MODE="floor-$3"
+                if [ "$3" = android ]; then RESULT="$ANDROID_FLOOR"; else RESULT="$IOS_FLOOR"; fi
+              else
+                MODE=floor-shared
+                RESULT="$SHARED_FLOOR"
+              fi
+              printf '%s\\n' "$MODE" >> "$CALL_LOG"
+              printf 'floor-args:%s\\n' "$*" >> "$CALL_LOG"
+              [ "$FAILURE" != "$MODE" ] || return 1
+              printf '%s\\n' "$RESULT"
+              return
+            fi
             printf '%s\\n' "$2" >> "$CALL_LOG"
             [ "$FAILURE" != "$2" ] || return 1
             if [ "$2" = existing-native ]; then
@@ -449,9 +473,13 @@ function publishNative({ existing = 'missing', raceWinner = 'missing', failure =
                 env: {
                     ...process.env,
                     ...env,
-                    VERSION: '1.7.0',
+                    VERSION: '1.8.0',
                     PLATFORM: platform,
                     CAPGO_PRIVATE_KEY: 'test-private-key',
+                    ANDROID_FLOOR: androidFloor,
+                    IOS_FLOOR: iosFloor,
+                    SHARED_FLOOR: sharedFloor,
+                    IS_REBUILD: isRebuild ? 'true' : 'false',
                     CALL_LOG: log,
                     EXISTING: existing,
                     RACE_WINNER: raceWinner,
@@ -476,24 +504,54 @@ it.each(['ios', 'android'])('native publisher verifies before promoting %s', (pl
     expect(promote).toBeGreaterThan(calls.indexOf('verify-bundle'))
     expect(calls.at(-1)).toBe('verify-production')
 })
+it('native publisher uses the stricter compatible floor when platform floors differ', () => {
+    const { status, calls } = publishNative({ androidFloor: '1.8.0', iosFloor: '1.7.0', sharedFloor: '1.8.0' })
+    expect(status).toBe(0)
+    const upload = calls.find((line) => line.includes('bundle upload'))
+    expect(upload).toContain('--min-update-version 1.8.0')
+    expect(upload).toContain('[ota-floors: android=1.8.0 ios=1.7.0]')
+})
+it('native publisher explicitly validates a same-version replacement', () => {
+    const { status, calls } = publishNative({
+        platform: 'android',
+        androidFloor: '1.8.0',
+        iosFloor: '1.7.0',
+        sharedFloor: '1.8.0',
+        isRebuild: true,
+    })
+    expect(status).toBe(0)
+    expect(calls).toContain(
+        'floor-args:scripts/ota-platform-floor.mjs --platform android --prospective-version 1.8.0 --replacement-platform android'
+    )
+    expect(calls).toContain(
+        'floor-args:scripts/ota-platform-floor.mjs --shared --prospective-version 1.8.0 --replacement-platform android'
+    )
+    expect(calls.find((line) => line.includes('bundle upload'))).toContain('--min-update-version 1.8.0')
+})
 it('native publisher skips uploading only an already verified record', () => {
-    const { status, calls } = publishNative({ existing: '1.7.0' })
+    const { status, calls } = publishNative({ existing: '1.8.0' })
     expect(status).toBe(0)
     expect(calls.some((line) => line.includes('bundle upload'))).toBe(false)
     expect(calls).toContain('verify-bundle')
 })
 it('native publisher recovers only when a concurrent upload verifies exactly', () => {
-    const { status, calls } = publishNative({ failure: 'upload', raceWinner: '1.7.0' })
+    const { status, calls } = publishNative({ failure: 'upload', raceWinner: '1.8.0' })
     expect(status).toBe(0)
     expect(calls.filter((line) => line === 'existing-native')).toHaveLength(2)
     expect(calls.indexOf('verify-bundle')).toBeLessThan(calls.indexOf('promote-production'))
 })
-it.each(['existing-native', 'upload', 'verify-bundle', 'verify-promotion', 'promote-production'])(
-    'native publisher cannot promote after %s fails',
-    (failure) => {
-        const { status, calls } = publishNative({ failure })
-        expect(status).toBe(1)
-        if (failure !== 'promote-production') expect(calls).not.toContain('promote-production')
-        expect(calls).not.toContain('verify-production')
-    }
-)
+it.each([
+    'floor-android',
+    'floor-ios',
+    'floor-shared',
+    'existing-native',
+    'upload',
+    'verify-bundle',
+    'verify-promotion',
+    'promote-production',
+])('native publisher cannot promote after %s fails', (failure) => {
+    const { status, calls } = publishNative({ failure })
+    expect(status).toBe(1)
+    if (failure !== 'promote-production') expect(calls).not.toContain('promote-production')
+    expect(calls).not.toContain('verify-production')
+})

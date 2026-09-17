@@ -19,6 +19,7 @@ import { buildOgImageUrl } from '@/utils/og.utils'
 import getOrigin from '@/lib/hosting/get-origin'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { generateReceiptTitle, generateReceiptDescription } from './receipt-metadata.utils'
+import { getReceiptAuthorization } from './receipt-auth'
 
 // Helper function to map transaction card type to OG image type
 function mapTransactionTypeToOGType(transactionType: string): 'send' | 'request' {
@@ -60,7 +61,8 @@ export async function generateMetadata({
 
     let transactionDetails: TransactionDetails
     try {
-        const entry = await getHistoryEntry(entryId, kind)
+        const authorization = await getReceiptAuthorization()
+        const entry = await getHistoryEntry(entryId, kind, authorization)
         if (!entry) {
             return basicMetadata
         }
@@ -124,7 +126,8 @@ export default async function ReceiptPage({
     }
     let entry: HistoryEntry | null
     try {
-        entry = await getHistoryEntry(entryId, kind)
+        const authorization = await getReceiptAuthorization()
+        entry = await getHistoryEntry(entryId, kind, authorization)
     } catch (error) {
         // A BE hiccup was crashing the whole Server Components render
         // (PEANUT-UI-4S9); keep the Sentry signal but render a retryable state.
@@ -155,12 +158,18 @@ export default async function ReceiptPage({
 
 function ReceiptShell({ state, children }: { state?: 'gone' | 'loadFailed'; children?: React.ReactNode }) {
     return (
-        <PageContainer className="receipt-page flex min-h-dvh flex-col items-center justify-center p-4">
-            <div className="md:hidden print:hidden">
+        <PageContainer className="receipt-page flex min-h-dvh flex-col items-center p-4">
+            <div className="print:hidden">
                 <NavHeader titleKey="receipt" />
             </div>
-            <div className="flex flex-1 flex-col items-center justify-center">
-                {state ? <ReceiptUnavailable variant={state} /> : children}
+            <div className="flex min-h-0 flex-1 flex-col items-center py-4">
+                {state ? (
+                    <div className="m-auto">
+                        <ReceiptUnavailable variant={state} />
+                    </div>
+                ) : (
+                    <div className="my-auto w-full">{children}</div>
+                )}
             </div>
         </PageContainer>
     )

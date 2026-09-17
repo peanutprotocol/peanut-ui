@@ -429,6 +429,12 @@ describe('native-routes', () => {
                 expect(deepLinkToNativePath('/invite')).toBe('/setup?step=signup')
             })
 
+            it('preserves badge campaigns while rewriting /invite to signup', () => {
+                expect(
+                    deepLinkToNativePath('https://peanut.me/invite?code=kushagra&badge_campaign=bug_whisperer')
+                ).toBe('/setup?step=signup&code=kushagra&badge_campaign=bug_whisperer')
+            })
+
             // The claim-link password lives in the fragment and is never sent to
             // the server (see peanut-link.utils.ts), so dropping it here yields a
             // link that resolves to a claim page with no way to claim.

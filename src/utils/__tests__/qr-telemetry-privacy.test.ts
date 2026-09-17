@@ -3,6 +3,8 @@ import { beforeSendHandler, beforeSendRouteAwareTransaction } from '../../../sen
 
 const secret = 'private-payee@example.test'
 const qrUrl = `/qr-pay?qrCode=${encodeURIComponent(secret)}&pixKey=${encodeURIComponent(secret)}`
+const traceSpanId = '0123456789abcdef'
+const traceId = `${traceSpanId}${traceSpanId}`
 
 it.each([
     qrUrl,
@@ -60,7 +62,7 @@ it('redacts Sentry errors and transactions across URL, breadcrumb, message, stac
         breadcrumbs: [{ message: qrUrl, data: { from: qrUrl, to: '/home' } }],
         exception: { values: [{ type: 'Error', value: qrUrl, stacktrace: { frames: [{ filename: qrUrl }] } }] },
         contexts: {
-            trace: { span_id: '1234567812345678', trace_id: '12345678123456781234567812345678', data: { url: qrUrl } },
+            trace: { span_id: traceSpanId, trace_id: traceId, data: { url: qrUrl } },
         },
     }
     const result = beforeSendHandler(event)

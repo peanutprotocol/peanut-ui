@@ -5,6 +5,8 @@ type BaseInputVariant = 'sm' | 'md'
 
 interface BaseInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
     variant?: BaseInputVariant
+    /** 40px leading slot per the input board */
+    leftContent?: React.ReactNode
     rightContent?: React.ReactNode
     /** visual state, owned by the component per the input board (17360:4441).
         error paints the border/error border via aria-invalid — callers never
@@ -13,7 +15,7 @@ interface BaseInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 const BaseInput = forwardRef<HTMLInputElement, BaseInputProps>(
-    ({ className, variant = 'md', rightContent, state = 'default', ...props }, ref) => {
+    ({ className, variant = 'md', leftContent, rightContent, state = 'default', ...props }, ref) => {
         const variants: Record<BaseInputVariant, string> = {
             sm: 'h-10 px-3',
             md: 'h-12 px-4',
@@ -26,9 +28,12 @@ const BaseInput = forwardRef<HTMLInputElement, BaseInputProps>(
                 <input
                     ref={ref}
                     aria-invalid={state === 'error' ? true : undefined}
-                    className={twMerge(c, !!rightContent && 'pr-15 md:pr-18')}
+                    className={twMerge(c, !!leftContent && 'pl-10', !!rightContent && 'pr-15 md:pr-18')}
                     {...props}
                 />
+                {leftContent && (
+                    <div className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2">{leftContent}</div>
+                )}
                 {rightContent && (
                     <div className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2">{rightContent}</div>
                 )}

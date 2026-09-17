@@ -32,6 +32,13 @@ const FREEZE_CSS = `
     caret-color: transparent !important;
     scroll-behavior: auto !important;
 }
+/* the freeze cancels the fade-in-up-spring reveal, which would leave
+   .animate-on-view wrappers at opacity 0 and hide their text from the
+   scan — force them visible instead */
+.animate-on-view {
+    opacity: 1 !important;
+    transform: none !important;
+}
 `
 
 // Known intentional clips — CSS selectors matched against the offending
@@ -40,6 +47,10 @@ const FREEZE_CSS = `
 const EXEMPT: string[] = [
     // react-fast-marquee tickers: the text scrolls through the clip by design
     '.rfm-marquee-container',
+    // PixelatedCardFace: decorative card art — the pixel-font "????" line box
+    // deliberately overhangs the rounded card frame's clip; no locale copy
+    // renders inside it
+    '[data-decorative-clip]',
 ]
 
 async function settle(page: Page): Promise<void> {

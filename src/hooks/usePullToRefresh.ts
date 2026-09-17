@@ -16,8 +16,8 @@ const CHECK_POP_MS = 260
 const CONTENT_SETTLE_MS = 340
 const DEFAULT_REFRESH_TARGET = '#scrollable-content'
 
-const IDLE_BG = '#ffffff'
-const SUCCESS_BG = '#98E9AB' // green-1
+const IDLE_BG = 'var(--color-background-default)'
+const SUCCESS_BG = 'var(--color-background-badge-success)'
 
 const SVG_OPEN =
     '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" ' +

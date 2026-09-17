@@ -11,10 +11,10 @@ export const ReceiptSupportLink = () => {
     const t = useAppTranslations('transaction')
 
     return (
-        // board Link Button (17980:18031) with the peanut-support trailing icon
+        // Keep the support mark before the question so the action scans icon-first.
         <LinkButton onClick={() => setIsSupportModalOpen(true)} className="w-full justify-center print:hidden">
-            {t('actions.reportIssue')}
             <Icon name="peanut-support" size={14} className="text-foreground-secondary" />
+            {t('actions.reportIssue')}
         </LinkButton>
     )
 }

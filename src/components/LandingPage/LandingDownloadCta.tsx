@@ -22,12 +22,16 @@ export function LandingDownloadCta({ subtext }: { subtext?: string }) {
                 <Button
                     shadowSize="4"
                     icon={isDesktop ? 'qr-code' : store === 'ios' ? 'apple-logo' : 'google-play'}
-                    className="bg-white px-8 py-3 text-base font-extrabold hover:bg-white/90 active:bg-white/90 md:px-8 md:py-8 md:text-xl"
+                    className="bg-white px-8 hover:bg-white/90 active:bg-white/90"
                 >
                     {t('downloadNow')}
                 </Button>
             </a>
-            {subtext && <span className="mt-2 block text-center text-sm text-n-1 italic md:text-base">{subtext}</span>}
+            {subtext && (
+                <span className="mt-2 block text-center text-body-s text-foreground-primary italic md:text-body-m">
+                    {subtext}
+                </span>
+            )}
         </div>
     )
 }

@@ -3,6 +3,7 @@ import {
     CeremonyTimeoutError,
     PasskeyShimFailedError,
     PasskeyShimNotReadyError,
+    captureCeremonyGuardError,
     currentCeremonyId,
     guardPasskeyCeremony,
     isCeremonyGuardError,
@@ -17,12 +18,15 @@ import {
 import { clearCachedStepUpToken, getCachedStepUpToken } from '@/services/step-up-cache'
 import { isCapacitor } from '@/utils/capacitor'
 import { setAuthToken } from '@/utils/auth-token'
+import { addBreadcrumb, captureException } from '@/utils/sentry-lazy'
 
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: jest.fn(() => false) }))
 jest.mock('@/utils/auth-token', () => ({ setAuthToken: jest.fn() }))
-jest.mock('@/utils/sentry-lazy', () => ({ captureException: jest.fn() }))
+jest.mock('@/utils/sentry-lazy', () => ({ captureException: jest.fn(), addBreadcrumb: jest.fn() }))
 const mockIsCapacitor = isCapacitor as jest.Mock
 const mockSetAuthToken = setAuthToken as jest.Mock
+const mockCaptureException = captureException as jest.Mock
+const mockAddBreadcrumb = addBreadcrumb as jest.Mock
 
 const SHIM_INSTALLED = '__capgoPasskeyShimInstalled'
 const SHIM_FAILED = '__capgoPasskeyShimFailed'
@@ -37,6 +41,8 @@ afterEach(() => {
     mockIsCapacitor.mockReset()
     mockIsCapacitor.mockReturnValue(false)
     mockSetAuthToken.mockReset()
+    mockCaptureException.mockReset()
+    mockAddBreadcrumb.mockReset()
     jest.useRealTimers()
 })
 
@@ -210,6 +216,41 @@ describe('guardPasskeyCeremony', () => {
         expect(isCeremonyStillActive(idA)).toBe(true)
         resolveA('done')
         await pendingA
+    })
+
+    it('reports only the first conflict while one ceremony owns the window', async () => {
+        let resolveA!: (v: string) => void
+        const pendingA = guardPasskeyCeremony(
+            () =>
+                new Promise<string>((resolve) => {
+                    resolveA = resolve
+                })
+        )
+        await Promise.resolve()
+        expect(currentCeremonyId()).not.toBeNull()
+
+        captureCeremonyGuardError(new CeremonyConflictError(), 'register')
+        captureCeremonyGuardError(new CeremonyConflictError(), 'register')
+        captureCeremonyGuardError(new CeremonyConflictError(), 'register')
+
+        expect(mockCaptureException).toHaveBeenCalledTimes(1)
+        expect(mockAddBreadcrumb).toHaveBeenCalledTimes(2)
+
+        resolveA('done')
+        await pendingA
+
+        let resolveB!: (v: string) => void
+        const pendingB = guardPasskeyCeremony(
+            () =>
+                new Promise<string>((resolve) => {
+                    resolveB = resolve
+                })
+        )
+        await Promise.resolve()
+        captureCeremonyGuardError(new CeremonyConflictError(), 'register')
+        expect(mockCaptureException).toHaveBeenCalledTimes(2)
+        resolveB('done')
+        await pendingB
     })
 
     it('persists a stashed verify token only when the ceremony resolves', async () => {

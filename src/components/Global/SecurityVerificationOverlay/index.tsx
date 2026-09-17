@@ -25,7 +25,7 @@ export default function SecurityVerificationOverlay() {
             // stop under the black status-bar strip instead of painting beige over it.
             // no role/aria here: the Loading mascot inside already renders its own
             // role="status" live region — nesting two would announce twice.
-            className="fixed inset-x-0 top-safe-top bottom-0 z-50 flex items-center justify-center bg-background"
+            className="fixed inset-x-0 top-safe-top bottom-0 z-50 flex items-center justify-center bg-background-page"
         >
             <Loading
                 variant="mascot"

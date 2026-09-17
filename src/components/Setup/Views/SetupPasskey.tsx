@@ -1,4 +1,5 @@
 import DocsLink from '@/components/Global/DocsLink'
+import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { Button } from '@/components/0_Bruddle/Button'
 import { isCapacitor } from '@/utils/capacitor'
@@ -276,7 +277,7 @@ const SetupPasskey = () => {
                             <Button
                                 loading={isLoggingIn}
                                 disabled={isLoggingIn}
-                                variant="primary-soft"
+                                variant="stroke"
                                 onClick={onLogInClick}
                                 className="text-nowrap"
                                 shadowSize="4"
@@ -289,7 +290,8 @@ const SetupPasskey = () => {
                 </div>
                 <div>
                     <p className="border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary">
-                        <DocsLink href="/en/help/passkeys" className="underline underline-offset-2">
+                        {/* DocsLink keeps the locale + native behavior; the chrome is LinkButton's. */}
+                        <DocsLink href="/en/help/passkeys" className={LINK_BUTTON_CLASSES}>
                             {t('passkey.learnMore')}
                         </DocsLink>{' '}
                     </p>

@@ -1,11 +1,12 @@
 'use client'
-import FileUploadInput from '@/components/Global/FileUploadInput'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
 import NavHeader from '@/components/Global/NavHeader'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import AmountInput from '@/components/Global/AmountInput'
 import { useTranslations } from 'next-intl'
 import { Notification } from '@/components/0_Bruddle/Notification'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { CreateRequestLinkCta } from './CreateRequestLinkCta'
 import { useCreateRequestLink } from './useCreateRequestLink'
@@ -32,9 +33,9 @@ export const CreateRequestLinkView = () => {
     } = useCreateRequestLink()
 
     return (
-        <div className="flex min-h-inherit w-full flex-col justify-start gap-8">
+        <PageStack>
             <NavHeader onPrev={onBack} title={tNav('request')} />
-            <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
+            <PageStack.Center className="gap-4 md:my-0">
                 {/* board order (17831:78719): card, amount, helper note, qr, message, cta */}
                 <PeanutActionCard type="request" />
 
@@ -61,11 +62,11 @@ export const CreateRequestLinkView = () => {
                     isLoading={isCreatingLink || isUpdatingRequest}
                 />
 
-                <FileUploadInput
-                    className="h-11"
+                <BaseInput
                     placeholder={tCommon('comment')}
-                    attachmentOptions={attachmentOptions}
-                    setAttachmentOptions={handleAttachmentOptionsChange}
+                    value={attachmentOptions.message}
+                    maxLength={140}
+                    onChange={(e) => handleAttachmentOptionsChange({ ...attachmentOptions, message: e.target.value })}
                 />
 
                 <CreateRequestLinkCta
@@ -84,7 +85,7 @@ export const CreateRequestLinkView = () => {
                         </label>
                     </div>
                 )}
-            </div>
-        </div>
+            </PageStack.Center>
+        </PageStack>
     )
 }

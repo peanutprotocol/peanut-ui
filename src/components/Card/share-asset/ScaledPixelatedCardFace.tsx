@@ -3,9 +3,9 @@
 /**
  * <ScaledPixelatedCardFace /> — wraps <PixelatedCardFace /> with
  * auto-fit-to-container-width scaling. Used wherever the card needs to
- * sit inside a flex column (eligibility-check screen, /shhhhh hero).
+ * sit inside a flex column (application preview, card landing).
  *
- * Reuses the same useFitToWidth hook ScaledShareAsset uses, so the
+ * Uses the shared useFitToWidth hook so the
  * scaling math + measure timing stays consistent across the surface.
  */
 

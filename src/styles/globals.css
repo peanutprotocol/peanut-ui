@@ -9,16 +9,10 @@
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 @theme {
-    /* ───────────────────────────────────────────────────────────────────────
-       LEGACY PALETTE — ported verbatim from tailwind.config.js (v3) for visual
-       parity. consumer migration to the semantic tokens below is DS 06+.
-       deprecated pairs (do not use in new code):
-       - grey.* and gray.* are duplicate scales (same hex at index 1)
-       - purple.* was marked "todo: remove" in the old config
-       ─────────────────────────────────────────────────────────────────────── */
-
-    /* scales replaced (not extended) in v3 — disable v4 defaults so stock
-       shades like purple-500 stay non-existent, exactly like v3 */
+    /* the v3 legacy palette is GONE — every token had its consumers migrated.
+       these resets are all that survives it: a family reset to `initial`
+       leaves only the indices declared below, so an undeclared one like
+       gray-500 or blue-400 renders nothing instead of a stock v4 color. */
     --color-red-*: initial;
     --color-gray-*: initial;
     --color-purple-*: initial;
@@ -30,52 +24,7 @@
     --color-blue-*: initial;
     --color-pink-*: initial;
     --color-orange-*: initial;
-
-    --color-primary-1: #ff90e8;
-    --color-primary-3: #efe4ff;
-
-    --color-secondary-1: #ffc900;
-    --color-secondary-3: #90a8ed;
-    --color-secondary-4: #fff4cc;
-    --color-secondary-7: #5883ff;
-
-    --color-grey-1: #5f646d;
-    --color-grey-2: #e7e8e9;
-    --color-grey-4: #efeff0;
-
-    --color-purple-1: #ff90e8;
-    --color-purple-3: #fffae8;
-
-    --color-yellow-1: #ffc900;
-    --color-yellow-7: #ffe6b3;
-    --color-yellow-8: #fae184;
-
-    --color-green-1: #98e9ab;
-
-    --color-teal-1: #23a094;
-
-    --color-gray-1: #5f646d;
-    --color-gray-2: #9ca3af;
-    --color-gray-3: #e5e7eb;
-    --color-gray-4: #d1d5db;
-
-    --color-n-1: #000000;
-    --color-n-2: #161616;
-
-    --color-violet-3: #6340df;
-
-    --color-success-1: #16b413;
-    --color-success-3: #29cc6a;
-
-    --color-white: #ffffff;
-    --color-red: #ff0000;
-    --color-kyc-red: #c80000;
-    --color-black: #000000;
-    --color-kyc-green: #00c800;
-    --color-background: #faf4f0;
-
-    --color-error-1: #ffd8d8;
-    --color-error-4: #fc5555;
+    --color-amber-*: initial;
 
     /* ───────────────────────────────────────────────────────────────────────
        SEMANTIC TOKENS — 1:1 with vlad's figma variables (Peanut-UI file
@@ -172,8 +121,7 @@
        the semantic tokens point at. names + values mirror figma exactly; use a
        semantic token when one exists, a primitive when it doesn't. every family
        here is reset above, so only these indices exist (a typo like gray-500
-       or blue-400 renders nothing instead of a stock color). amber is
-       deliberately NOT reset — landing still paints stock amber. */
+       or blue-400 renders nothing instead of a stock color). */
     --color-gray-0: #ffffff;
     --color-gray-50: #faf4f0;
     --color-gray-100: #efeff0;
@@ -284,6 +232,9 @@
        emit .border-s/.border-l width utilities that hijack the core logical
        border-inline-start/left utilities (tooltip arrows use bare border-l). */
     --radius-round: 999px;
+    /* physical-card geometry (CardFace) — deliberately off the ui radius
+       scale, like the id-1 aspect ratio. visual-qa verdict ui#3201. */
+    --radius-card: 0.75rem;
 
     /* motion tokens — durations from real app usage, spring from the gift
        arrival curve. respect prefers-reduced-motion in consumers.
@@ -651,15 +602,6 @@
         margin-top: 1rem;
     }
 }
-@utility space-y-5 {
-    > :not(:last-child) {
-        margin-block-start: 0;
-        margin-block-end: 0;
-    }
-    > :not([hidden]) ~ :not([hidden]) {
-        margin-top: 1.25rem;
-    }
-}
 @utility space-y-6 {
     > :not(:last-child) {
         margin-block-start: 0;
@@ -788,10 +730,10 @@
 
 /* shadow-4 is used with variants (sm:shadow-4, hover:shadow-4) — a plain
    @layer components class can't take variants in v4, so it lives here as a
-   real utility. its siblings (shadow-2, shadow-primary/secondary-*) stay in
-   the components layer below; promote one only when a variant needs it. */
+   real utility. its siblings (shadow-2, shadow-primary-*) stay in the
+   components layer below; promote one only when a variant needs it. */
 @utility shadow-4 {
-    @apply shadow-[0.25rem_0.25rem_0_#000000] dark:shadow-[0.25rem_0.25rem_0_rgba(255,255,255,.25)];
+    @apply shadow-[0.25rem_0.25rem_0_#000000];
 }
 
 @layer base {
@@ -824,7 +766,7 @@
     }
 
     body {
-        @apply bg-background text-base antialiased dark:bg-n-2;
+        @apply bg-background-page text-base antialiased;
         /* disable text selection */
         @apply select-none;
         /* disable tap highlight */
@@ -860,12 +802,6 @@
    `@apply btn` are expanded inline (v4 @apply can't reference component
    classes). these are the legacy component API — new code uses DS components. ── */
 @layer components {
-    .row {
-        @apply flex flex-row items-center gap-2;
-    }
-    .col {
-        @apply flex flex-col gap-2;
-    }
     /* ds-06 restyle to vlad's button board (17802:61527): pill shape, M=44px default
        (touch-target law), Roboto Flex bold via text-button-*, blue focus ring,
        disabled = 40% opacity (was gray fill). */
@@ -888,9 +824,9 @@
     /* variant classes are deltas on top of .btn (the component always pairs them;
        the few raw call-sites all write "btn btn-purple"). board mapping:
        purple = button.type.primary, stroke = button.type.secondary,
-       transparent* = button.type.ghost. dark/purple-2/yellow are off-board
-       legacy — shape/type restyle inherited from .btn, colors kept until page
-       rebuilds migrate them. */
+       transparent* = button.type.ghost. primary-soft is the last off-board
+       variant — shape/type restyle inherited from .btn, colors kept until a
+       rebuild migrates it. */
     .btn-transparent-light {
         @apply border-transparent fill-white text-white hover:fill-action-ghost-hover hover:text-action-ghost-hover active:fill-action-ghost-hover active:text-action-ghost-hover;
     }
@@ -901,14 +837,8 @@
         /* board 17311:135055: hover drops the offset shadow (flat) */
         @apply bg-action-primary shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] hover:bg-action-primary-hover hover:shadow-none active:bg-action-primary-hover disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
     }
-    .btn-dark {
-        @apply bg-n-1 fill-white text-white hover:bg-n-1/80;
-    }
     .btn-stroke {
         @apply bg-background-default shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] hover:shadow-none active:bg-action-primary disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
-    }
-    .btn-shadow {
-        @apply shadow-[0.25rem_0.25rem_0_#000000] dark:shadow-[0.25rem_0.25rem_0_rgba(255,255,255,.25)];
     }
     .btn-square {
         @apply !px-0;
@@ -919,7 +849,7 @@
     /* board sizes: l=48px, m=44px (default, on .btn), s=40px visual with a
        pseudo-element extending the hit area to 44px (touch-target law). */
     .btn-small {
-        @apply relative h-10 px-2 text-button-s after:absolute after:inset-x-0 after:-inset-y-0.5;
+        @apply relative h-10 px-2 text-button-s after:absolute after:-inset-0.5;
     }
     .btn-medium {
         @apply h-11 px-3 text-button-m;
@@ -942,66 +872,8 @@
     .btn-square.btn-medium {
         @apply w-11;
     }
-    .label {
-        @apply inline-flex h-6 items-center justify-center rounded-md border px-3 text-center text-xs font-bold text-n-1;
-    }
-    .label-stroke {
-        @apply inline-flex h-6 items-center justify-center rounded-md border px-3 text-center text-xs font-bold text-n-1;
-        @apply border-n-1 dark:border-white dark:text-white;
-    }
-    .label-stroke-yellow {
-        @apply inline-flex h-6 items-center justify-center rounded-md border px-3 text-center text-xs font-bold text-n-1;
-        @apply border-secondary-1 text-secondary-1;
-    }
-    .label-stroke-pink {
-        @apply inline-flex h-6 items-center justify-center rounded-md border px-3 text-center text-xs font-bold text-n-1;
-        @apply border-primary-1 text-primary-1;
-    }
-    .label-stroke-purple {
-        @apply inline-flex h-6 items-center justify-center rounded-md border px-3 text-center text-xs font-bold text-n-1;
-        @apply border-primary-1 text-primary-1;
-    }
-    .label-stroke-teal {
-        @apply inline-flex h-6 items-center justify-center rounded-md border px-3 text-center text-xs font-bold text-n-1;
-        @apply border-teal-1 text-teal-1;
-    }
-    .label-purple {
-        @apply inline-flex h-6 items-center justify-center rounded-md border px-3 text-center text-xs font-bold text-n-1;
-        @apply border-primary-1 bg-primary-1;
-    }
-    .label-teal {
-        @apply inline-flex h-6 items-center justify-center rounded-md border px-3 text-center text-xs font-bold text-n-1;
-        @apply border-teal-1 bg-teal-1;
-    }
-    .label-yellow {
-        @apply inline-flex h-6 items-center justify-center rounded-md border px-3 text-center text-xs font-bold text-n-1;
-        @apply border-secondary-1 bg-secondary-1;
-    }
-    .label-black {
-        @apply inline-flex h-6 items-center justify-center rounded-md border px-3 text-center text-xs font-bold text-n-1;
-        @apply border-n-1 bg-n-1 text-white dark:bg-white/10;
-    }
-    .table-custom {
-        @apply table w-full border-2 border-n-1 bg-white shadow-md ring-2 ring-white dark:border-white dark:bg-n-1 dark:ring-n-1;
-    }
-    .table-select {
-        @apply table w-full border-2 border-n-1 bg-white shadow-md ring-2 ring-white dark:border-white dark:bg-n-1 dark:ring-n-1;
-        @apply [&>tbody>tr>*:nth-child(1)]:w-13 [&>tbody>tr>*:nth-child(1)]:px-0 [&>tbody>tr>*:nth-child(1)]:text-center [&>tbody>tr>*:nth-child(1)]:text-0 [&>tbody>tr>*:nth-child(2)]:pl-0 [&>thead>tr>*:nth-child(1)]:w-13 [&>thead>tr>*:nth-child(1)]:px-0 [&>thead>tr>*:nth-child(1)]:text-center [&>thead>tr>*:nth-child(1)]:text-0 [&>thead>tr>*:nth-child(2)]:pl-0;
-    }
-    .th-custom {
-        @apply table-cell h-12 px-3 py-2 text-left align-middle first:pl-5 last:pr-5;
-    }
-    .th-custom-skeleton {
-        @apply table-cell h-12 px-3 py-2 text-left align-middle;
-    }
-    .td-custom {
-        @apply table-cell h-[3.875rem] border-t border-n-1 px-3 py-2.5 align-middle text-sm first:pl-5 last:pr-5 dark:border-white;
-    }
-    .td-custom-skeleton {
-        @apply table-cell h-[3.875rem] border-t border-n-1 px-3 py-2.5 align-middle text-sm dark:border-white;
-    }
-    .card {
-        @apply relative mx-auto flex w-11/12 max-w-[27rem] flex-col items-center justify-center border border-n-1 bg-white px-4 py-6 lg:w-2/3 xl:w-1/2 dark:border-white dark:bg-n-1;
+    .shadow-2 {
+        @apply shadow-[0.125rem_0.125rem_0_#000000];
     }
     .card-head {
         @apply flex min-h-[4rem] flex-col items-start justify-between border-b border-border-default px-3 py-3 sm:px-5;
@@ -1009,108 +881,28 @@
     .card-content {
         @apply px-3 py-3 sm:px-5;
     }
-    .card-title {
-        @apply border-b border-n-1 p-5 text-h6 dark:border-white;
-    }
-    .shadow-2 {
-        @apply shadow-[0.125rem_0.125rem_0_#000000] dark:shadow-[0.125rem_0.125rem_0_rgba(255,255,255,.25)];
-    }
-    .shadow-primary-4 {
-        @apply shadow-[0.25rem_0.25rem_0_#000000] dark:shadow-[0.25rem_0.25rem_0_rgba(255,255,255,.25)];
-    }
     .shadow-primary-6 {
-        @apply shadow-[0.375rem_0.375rem_0_#000000] dark:shadow-[0.375rem_0.375rem_0_rgba(255,255,255,.25)];
+        @apply shadow-[0.375rem_0.375rem_0_#000000];
     }
     .shadow-primary-8 {
-        @apply shadow-[0.5rem_0.5rem_0_#000000] dark:shadow-[0.5rem_0.5rem_0_rgba(255,255,255,.25)];
-    }
-    .shadow-secondary-4 {
-        @apply shadow-[0.25rem_-0.25rem_0_#000000] dark:shadow-[0.25rem_-0.25rem_0_rgba(255,255,255,.25)];
-    }
-    .shadow-secondary-6 {
-        @apply shadow-[0.375rem_-0.375rem_0_#000000] dark:shadow-[0.375rem_-0.375rem_0_rgba(255,255,255,.25)];
-    }
-    .shadow-secondary-8 {
-        @apply shadow-[0.5rem_-0.5rem_0_#000000] dark:shadow-[0.5rem_-0.5rem_0_rgba(255,255,255,.25)];
-    }
-    .brutal-border {
-        @apply border-2 border-black;
-    }
-    .custom-input {
-        @apply h-12 w-full rounded-none border border-n-1 bg-transparent bg-white px-4 text-h8 font-medium transition-colors outline-none placeholder:text-sm focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1;
-    }
-    .custom-input-xs {
-        @apply h-8;
+        @apply shadow-[0.5rem_0.5rem_0_#000000];
     }
     .btn-shadow-primary-3 {
-        @apply shadow-[0.1875rem_0.1875rem_0_#000000] dark:shadow-[0.1875rem_0.1875rem_0_rgba(255,255,255,.25)];
+        @apply shadow-[0.1875rem_0.1875rem_0_#000000];
     }
     .btn-shadow-primary-4 {
-        @apply shadow-[0.25rem_0.25rem_0_#000000] dark:shadow-[0.25rem_0.25rem_0_rgba(255,255,255,.25)];
+        @apply shadow-[0.25rem_0.25rem_0_#000000];
     }
     .btn-shadow-primary-6 {
-        @apply shadow-[0.375rem_0.375rem_0_#000000] dark:shadow-[0.375rem_0.375rem_0_rgba(255,255,255,.25)];
+        @apply shadow-[0.375rem_0.375rem_0_#000000];
     }
     .btn-shadow-primary-8 {
-        @apply shadow-[0.5rem_0.5rem_0_#000000] dark:shadow-[0.5rem_0.5rem_0_rgba(255,255,255,.25)];
+        @apply shadow-[0.5rem_0.5rem_0_#000000];
     }
-    .btn-shadow-secondary-3 {
-        @apply shadow-[0.1875rem_-0.1875rem_0_#000000] dark:shadow-[0.1875rem_-0.1875rem_0_rgba(255,255,255,.25)];
-    }
-    .btn-shadow-secondary-4 {
-        @apply shadow-[0.25rem_-0.25rem_0_#000000] dark:shadow-[0.25rem_-0.25rem_0_rgba(255,255,255,.25)];
-    }
-    .btn-shadow-secondary-6 {
-        @apply shadow-[0.375rem_-0.375rem_0_#000000] dark:shadow-[0.375rem_-0.375rem_0_rgba(255,255,255,.25)];
-    }
-    .btn-shadow-secondary-8 {
-        @apply shadow-[0.5rem_-0.5rem_0_#000000] dark:shadow-[0.5rem_-0.5rem_0_rgba(255,255,255,.25)];
-    }
-    /* input board 17802:61538 / set 17360:4441: pink action-primary border
-       on pointer focus, 3px blue action-focus ring on keyboard focus, red on
-       aria-invalid, gray fill + subtle border when disabled. The keyboard ring
-       replaces the border so the states never stack. */
+    /* input board 17802:61538: every text-input focus uses the same 3px blue
+       action-focus ring. The ring replaces the border so states never stack. */
     .input {
-        @apply h-12 w-full rounded-sm border border-border-default bg-background-default px-4 text-sm font-bold text-foreground-primary transition-colors outline-none placeholder:text-foreground-secondary focus:border-action-primary focus:outline-none disabled:border-border-subtle disabled:bg-background-disabled disabled:text-foreground-secondary aria-invalid:border-border-error;
-    }
-    /* :focus-visible is not a reliable pointer/keyboard discriminator for text
-       inputs: Chromium also matches it after tapping an editable control. The
-       provider records the last modality on the root so both states remain
-       reachable. */
-    :root[data-input-modality='pointer'] .input:focus {
-        border-color: var(--color-action-primary);
-        outline: none;
-    }
-    :root[data-input-modality='keyboard'] .input:focus {
-        border-color: transparent;
-        outline: 3px solid var(--color-action-focus);
-        outline-style: solid;
-    }
-    :root[data-input-modality='pointer'] [data-input-container]:focus-within {
-        border-color: var(--color-action-primary);
-        outline: none;
-    }
-    :root[data-input-modality='keyboard'] [data-input-container]:focus-within {
-        border-color: transparent;
-        outline: 3px solid var(--color-action-focus);
-        outline-style: solid;
-    }
-    :root[data-input-modality='pointer'] [data-input-clear]:focus,
-    :root[data-input-modality='pointer'] [data-input-clear]:focus-visible {
-        outline: none;
-    }
-    :root[data-input-modality='keyboard'] [data-input-clear]:focus {
-        outline: 3px solid var(--color-action-focus);
-        outline-style: solid;
-    }
-    .bg-peanut-repeat-normal {
-        @apply bg-[url('../assets/bg/peanut-bg.svg')] bg-[length:100px_100px] bg-repeat;
-    }
-    .bg-peanut-repeat-large {
-        @apply bg-[url('../assets/bg/peanut-bg.svg')] bg-[length:200px_200px] bg-repeat;
-    }
-    .bg-peanut-repeat-small {
-        @apply bg-[url('../assets/bg/peanut-bg.svg')] bg-[length:50px_50px] bg-repeat;
+        @apply h-12 w-full rounded-sm border border-border-default bg-background-default px-4 text-sm font-bold text-foreground-primary outline-action-focus transition-colors placeholder:text-foreground-secondary focus:border-transparent focus:outline-[3px] focus:outline-action-focus focus:outline-solid disabled:border-border-subtle disabled:bg-background-disabled disabled:text-foreground-secondary aria-invalid:border-border-error;
     }
 }
 
@@ -1281,24 +1073,6 @@
     }
 }
 
-@layer components {
-    .splide__pagination.splide__pagination-cards {
-        @apply static mt-2;
-    }
-
-    .splide__pagination.splide__pagination-crypto {
-        @apply -top-10 right-0 bottom-auto left-auto;
-    }
-
-    .splide__pagination .splide__pagination__page {
-        @apply mx-1 bg-purple-3;
-    }
-
-    .splide__pagination .splide__pagination__page.is-active {
-        @apply scale-100 bg-primary-1;
-    }
-}
-
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
     -webkit-appearance: none;
@@ -1310,55 +1084,33 @@ Firefox input[type='number'] {
     -moz-appearance: textfield;
 }
 
-.scroller {
-    height: 3.5rem;
-    line-height: 3.5rem;
-    position: relative;
-    overflow: hidden;
-    font-size: 3rem;
-    text-align: left;
-
-    @media (min-width: 768px) {
-        height: 4rem;
-        line-height: 4rem;
+/* landing page cloud drift animations */
+@keyframes cloud-drift-ltr {
+    from {
+        transform: translateX(-300px);
     }
-
-    @media (min-width: 1024px) {
-        height: 4.5rem;
-        line-height: 4.5rem;
+    to {
+        transform: translateX(100vw);
     }
 }
 
-.scroller > span {
-    position: absolute;
-    top: 0;
-    animation: slide 10s infinite;
-    font-weight: 900;
-}
-
-@keyframes slide {
-    0% {
-        top: 0;
+@keyframes cloud-drift-rtl {
+    from {
+        transform: translateX(100vw);
     }
-
-    25% {
-        /* top: -3rem; */
-        top: -100%;
-    }
-
-    50% {
-        /* top: -6rem; */
-        top: -200%;
-    }
-
-    75% {
-        /* top: -9rem; */
-        top: -300%;
+    to {
+        transform: translateX(-300px);
     }
 }
 
-.spin-on-hover:hover {
-    animation: spin 2s linear infinite;
+.cloud-ltr {
+    animation: cloud-drift-ltr var(--cloud-speed, 35s) linear infinite;
+    animation-delay: var(--cloud-delay, 0s);
+}
+
+.cloud-rtl {
+    animation: cloud-drift-rtl var(--cloud-speed, 35s) linear infinite;
+    animation-delay: var(--cloud-delay, 0s);
 }
 
 .cloud-drift {
@@ -1378,96 +1130,10 @@ Firefox input[type='number'] {
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .cloud-ltr,
+    .cloud-rtl,
     .cloud-drift {
         animation: none;
-    }
-}
-
-.animate-gradient {
-    background-size: 300%;
-    -webkit-animation: animatedgradient 6s ease infinite alternate;
-    -moz-animation: animatedgradient 6s ease infinite alternate;
-    animation: animatedgradient 6s ease infinite alternate;
-}
-
-@keyframes animatedgradient {
-    0% {
-        background-position: 0% 50%;
-    }
-
-    50% {
-        background-position: 100% 50%;
-    }
-
-    100% {
-        background-position: 0% 50%;
-    }
-}
-
-.gradient-text {
-    font-size: 2rem;
-    /* Adjust font size as needed */
-    font-weight: bold;
-    /* Make the text bold */
-    height: auto;
-    width: 100%;
-    background: linear-gradient(to right, #9747ff, #ff90e8);
-    /* Gradient direction and colors */
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    /* Make the text color transparent */
-    animation: slide 3s linear infinite;
-    /* Animation named 'slide', adjust timing as needed */
-}
-
-.testimonial-0-bg {
-    top: 0.8rem;
-    left: -0.7rem;
-    transform: rotate(-4deg);
-}
-
-.testimonial-1-bg {
-    top: 1rem;
-    left: 0.6rem;
-    transform: rotate(3deg);
-}
-
-.testimonial-2-bg {
-    top: 0.75rem;
-    left: 0.65rem;
-    transform: rotate(3deg);
-}
-
-.testimonial-3-bg {
-    top: -0.5rem;
-    left: 0.5rem;
-    transform: rotate(4deg);
-}
-
-@media (min-width: 768px) {
-    .testimonial-0-bg {
-        top: 1.5rem;
-        left: -1rem;
-        transform: rotate(-6deg);
-    }
-
-    .testimonial-1-bg {
-        top: 1.3rem;
-        left: 0.6rem;
-        transform: rotate(4deg);
-    }
-
-    .testimonial-2-bg {
-        top: 0.75rem;
-        left: 0.65rem;
-        transform: rotate(3deg);
-    }
-
-    .testimonial-3-bg {
-        top: -0.5rem;
-        left: 0.5rem;
-        transform: rotate(-4deg);
     }
 }
 
@@ -1527,20 +1193,6 @@ Firefox input[type='number'] {
 
 .animation-thumbsUp {
     animation: thumbsUp 1.2s infinite;
-}
-
-@keyframes faceSpin {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(-360deg);
-    }
-}
-
-.animation-faceSpin {
-    animation: faceSpin 2s infinite ease-in-out;
 }
 
 .animation-rock {
@@ -1656,66 +1308,8 @@ Firefox input[type='number'] {
     transform-origin: center center;
 }
 
-.text-link-decoration {
-    @apply underline decoration-neutral-400 decoration-2 underline-offset-4 transition-colors duration-200 hover:decoration-primary-1;
-}
-
-.text-link {
-    @apply font-black text-black underline decoration-neutral-400 decoration-2 underline-offset-4 transition-colors duration-200 hover:decoration-primary-1;
-}
-
 .text-h2 {
     @apply text-2xl md:text-3xl lg:text-4xl;
-}
-
-/* Panel styling */
-.panel {
-    @apply rounded-md border-2 border-n-1 bg-white shadow-lg shadow-md ring-2 ring-white dark:border-white dark:bg-n-1 dark:ring-n-1;
-}
-
-.panel-sm {
-    @apply px-4 py-6 md:p-8;
-}
-
-.panel-center {
-    @apply relative mx-auto w-11/12 max-w-[27rem] items-center justify-center lg:w-2/3 xl:w-1/2;
-}
-
-/* Feature styling */
-.feature {
-    @apply mx-auto flex w-auto justify-center rounded-full border-2 border-violet-3 bg-white px-5 py-3 text-center text-[1.375rem] font-black text-violet-3 uppercase shadow-md ring-2 ring-white md:mr-auto;
-}
-
-.feature-primary {
-    @apply bg-primary-1 text-white;
-}
-
-.feature-secondary {
-    @apply border-violet-3 bg-violet-3 text-white;
-}
-
-/* Form styling */
-.input-text {
-    @apply h-12 w-full border border-n-1 bg-white px-3 font-medium ring-2 ring-white transition-colors outline-none focus:border-primary-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-primary-1;
-}
-
-.input-text-inset {
-    @apply px-6 pl-9;
-}
-
-/* Decoration */
-.border-rounded {
-    @apply rounded-md border-2 border-n-1 dark:border-white;
-}
-
-.ring-sm {
-    @apply shadow-md ring-2 ring-white dark:ring-n-1;
-}
-
-.font-roboto-400-50 {
-    @apply font-sans;
-    font-stretch: 50;
-    font-weight: 400;
 }
 
 /* elements that shouldn't be translated */
@@ -1751,37 +1345,6 @@ input::placeholder {
 .embla__slide {
     flex: 0 0 100%;
     min-width: 0;
-}
-
-/* Slide animations for perk claim transitions */
-@keyframes slideOutLeft {
-    from {
-        transform: translateX(0);
-        opacity: 1;
-    }
-    to {
-        transform: translateX(-100%);
-        opacity: 0;
-    }
-}
-
-@keyframes slideInRight {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-.animate-slide-out-left {
-    animation: slideOutLeft 0.3s ease-out forwards;
-}
-
-.animate-slide-in-right {
-    animation: slideInRight 0.3s ease-out forwards;
 }
 
 /* Cycling loading word + dots (used by CyclingLoading) */
@@ -1865,17 +1428,6 @@ input::placeholder {
     }
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
 .animate-gift-opening {
     animation: giftOpening 0.12s ease-in-out infinite;
     transform-origin: center center;
@@ -1887,78 +1439,6 @@ input::placeholder {
 
 .animate-gift-exit {
     animation: giftExit 0.4s ease-out forwards;
-}
-
-.animate-fade-in {
-    animation: fadeIn 0.5s ease-out forwards;
-}
-
-/* Gift arrival animation - gentle fade in with subtle scale (for initial page load) */
-@keyframes giftArriveGentle {
-    0% {
-        transform: scale(0.95);
-        opacity: 0;
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-.animate-gift-arrive-gentle {
-    animation: giftArriveGentle 0.4s ease-out forwards;
-}
-
-/* Gift arrival animation - drops in from above with a bounce (for WebSocket real-time) */
-@keyframes giftArrive {
-    0% {
-        transform: translateY(-50px) scale(0.9);
-        opacity: 0;
-    }
-    60% {
-        transform: translateY(5px) scale(1.02);
-        opacity: 1;
-    }
-    80% {
-        transform: translateY(-3px) scale(0.99);
-    }
-    100% {
-        transform: translateY(0) scale(1);
-        opacity: 1;
-    }
-}
-
-.animate-gift-arrive {
-    animation: giftArrive 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-
-/* Gift attention animation - very subtle pulse to draw attention after idle */
-@keyframes giftAttention {
-    /* Gentle pulsate - very subtle */
-    0% {
-        transform: scale(1);
-    }
-    15% {
-        transform: scale(1.02);
-    }
-    30% {
-        transform: scale(1);
-    }
-    45% {
-        transform: scale(1.02);
-    }
-    60% {
-        transform: scale(1);
-    }
-    /* Rest before loop */
-    100% {
-        transform: scale(1);
-    }
-}
-
-.animate-gift-attention {
-    animation: giftAttention 4s ease-in-out infinite;
-    transform-origin: center center;
 }
 
 /* Gift box holographic shine effect */
@@ -1986,33 +1466,17 @@ input::placeholder {
     border-radius: inherit;
 }
 
-/* ── Landing page: CSS cloud drift animations ── */
-@keyframes cloud-drift-ltr {
-    from {
-        transform: translateX(-300px);
+@media (prefers-reduced-motion: reduce) {
+    .perk-shake-weak,
+    .perk-shake-medium,
+    .perk-shake-strong,
+    .perk-shake-intense,
+    .animate-gift-opening,
+    .animate-gift-revealed,
+    .animate-gift-exit,
+    .gift-box-shine::before {
+        animation: none;
     }
-    to {
-        transform: translateX(100vw);
-    }
-}
-
-@keyframes cloud-drift-rtl {
-    from {
-        transform: translateX(100vw);
-    }
-    to {
-        transform: translateX(-300px);
-    }
-}
-
-.cloud-ltr {
-    animation: cloud-drift-ltr var(--cloud-speed, 35s) linear infinite;
-    animation-delay: var(--cloud-delay, 0s);
-}
-
-.cloud-rtl {
-    animation: cloud-drift-rtl var(--cloud-speed, 35s) linear infinite;
-    animation-delay: var(--cloud-delay, 0s);
 }
 
 /* ── Landing page: entrance animations (replaces framer-motion whileInView) ── */
@@ -2137,7 +1601,7 @@ input::placeholder {
  */
 
 .content-page tbody tr:nth-child(even) {
-    @apply bg-primary-3/30;
+    @apply bg-background-badge-accent/30;
 }
 
 /* ── Print (public receipt) ── */

@@ -55,8 +55,11 @@ function release({ dir, git }, tag) {
     git('tag', '-a', tag, '-m', `Native release ${tag.slice(1)}`)
 }
 
-function floors(dir, ref = 'HEAD') {
-    const out = execFileSync('node', [SCRIPT, '--root', dir, '--ref', ref], { cwd: dir, encoding: 'utf8' })
+function floors(dir, ref = 'HEAD', prospectiveVersion, replacementPlatform) {
+    const args = [SCRIPT, '--root', dir, '--ref', ref]
+    if (prospectiveVersion) args.push('--prospective-version', prospectiveVersion)
+    if (replacementPlatform) args.push('--replacement-platform', replacementPlatform)
+    const out = execFileSync('node', args, { cwd: dir, encoding: 'utf8' })
     return Object.fromEntries(
         out
             .trim()
@@ -67,6 +70,13 @@ function floors(dir, ref = 'HEAD') {
 
 function lowest(dir) {
     return execFileSync('node', [SCRIPT, '--root', dir, '--lowest'], { cwd: dir, encoding: 'utf8' }).trim()
+}
+
+function shared(dir, prospectiveVersion, replacementPlatform) {
+    const args = [SCRIPT, '--root', dir, '--shared']
+    if (prospectiveVersion) args.push('--prospective-version', prospectiveVersion)
+    if (replacementPlatform) args.push('--replacement-platform', replacementPlatform)
+    return execFileSync('node', args, { cwd: dir, encoding: 'utf8' }).trim()
 }
 
 function floorsFail(dir, platform) {
@@ -155,6 +165,102 @@ it('uses a pre-split v2 same-version replacement as the platform baseline', () =
     expect(floors(repo.dir)).toEqual({
         NEXT_PUBLIC_OTA_FLOOR_ANDROID: '1.5.0',
         NEXT_PUBLIC_OTA_FLOOR_IOS: '1.5.0',
+    })
+})
+
+describe('prospective native release', () => {
+    it('keeps the previous binary eligible for the exact .0 bundle when neither native surface changed', () => {
+        const repo = makeRepo()
+        release(repo, 'v1.7.0')
+
+        expect(floors(repo.dir, 'HEAD', '1.8.0')).toEqual({
+            NEXT_PUBLIC_OTA_FLOOR_ANDROID: '1.7.0',
+            NEXT_PUBLIC_OTA_FLOOR_IOS: '1.7.0',
+        })
+        expect(shared(repo.dir, '1.8.0')).toBe('1.7.0')
+    })
+
+    it('uses the stricter platform floor for the shared .0 record', () => {
+        const repo = makeRepo()
+        release(repo, 'v1.7.0')
+        write(repo.dir, 'android/app/src/main/AndroidManifest.xml', 'android v2\n')
+        repo.git('add', '-A')
+        repo.git('commit', '-q', '-m', 'prospective 1.8.0')
+
+        expect(floors(repo.dir, 'HEAD', '1.8.0')).toEqual({
+            NEXT_PUBLIC_OTA_FLOOR_ANDROID: '1.8.0',
+            NEXT_PUBLIC_OTA_FLOOR_IOS: '1.7.0',
+        })
+        expect(shared(repo.dir, '1.8.0')).toBe('1.8.0')
+    })
+
+    it('rejects a prospective version behind an attested native release', () => {
+        const repo = makeRepo()
+        release(repo, 'v1.8.0')
+
+        const result = require('node:child_process').spawnSync(
+            'node',
+            [SCRIPT, '--root', repo.dir, '--shared', '--prospective-version', '1.7.0'],
+            { cwd: repo.dir, encoding: 'utf8' }
+        )
+        expect(result.status).toBe(1)
+        expect(result.stderr).toContain('is older than native release 1.8.0')
+    })
+
+    it('accepts an explicitly gated same-version Android replacement and keeps the shared floor safe', () => {
+        const repo = makeRepo()
+        release(repo, 'v1.7.0')
+        release(repo, 'v1.8.0')
+        write(repo.dir, 'android/app/proguard-rules.pro', '# replacement packaging fix\n')
+        repo.git('add', '-A')
+        repo.git('commit', '-q', '-m', 'replace Android 1.8.0')
+
+        expect(floors(repo.dir, 'HEAD', '1.8.0', 'android')).toEqual({
+            NEXT_PUBLIC_OTA_FLOOR_ANDROID: '1.8.0',
+            NEXT_PUBLIC_OTA_FLOOR_IOS: '1.7.0',
+        })
+        expect(shared(repo.dir, '1.8.0', 'android')).toBe('1.8.0')
+    })
+
+    it('rejects a same-version replacement without the explicit platform gate', () => {
+        const repo = makeRepo()
+        release(repo, 'v1.8.0')
+        write(repo.dir, 'android/app/proguard-rules.pro', '# replacement packaging fix\n')
+        repo.git('add', '-A')
+        repo.git('commit', '-q', '-m', 'unattested replacement')
+
+        const result = require('node:child_process').spawnSync(
+            'node',
+            [SCRIPT, '--root', repo.dir, '--shared', '--prospective-version', '1.8.0'],
+            { cwd: repo.dir, encoding: 'utf8' }
+        )
+        expect(result.status).toBe(1)
+        expect(result.stderr).toContain('already exists but its android native surface differs')
+    })
+
+    it('rejects native-contract changes from a same-version replacement', () => {
+        const repo = makeRepo()
+        release(repo, 'v1.8.0')
+        write(repo.dir, 'android/app/src/main/AndroidManifest.xml', 'new native contract\n')
+        repo.git('add', '-A')
+        repo.git('commit', '-q', '-m', 'unsafe replacement')
+
+        const result = require('node:child_process').spawnSync(
+            'node',
+            [
+                SCRIPT,
+                '--root',
+                repo.dir,
+                '--shared',
+                '--prospective-version',
+                '1.8.0',
+                '--replacement-platform',
+                'android',
+            ],
+            { cwd: repo.dir, encoding: 'utf8' }
+        )
+        expect(result.status).toBe(1)
+        expect(result.stderr).toContain('not safe for older same-version android installs')
     })
 })
 

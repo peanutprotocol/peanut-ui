@@ -10,6 +10,7 @@ import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { STAR_STRAIGHT_ICON } from '@/assets/icons'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { ReceiptTokenRows } from '@/components/TransactionDetails/ReceiptTokenRows'
 import { type ReceiptViewModel } from '@/components/TransactionDetails/useReceiptViewModel'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
@@ -79,7 +80,7 @@ export function ReceiptDetailsCard({
     return (
         <Card
             position={shouldShowQrShare ? 'first' : 'single'}
-            className="divide-y divide-dashed divide-border-default px-4 py-0"
+            className="divide-y divide-dashed divide-border-default px-4 py-0 [&_.ds-data-row]:py-2 [&_.ds-data-row-label]:text-body-xs [&_.ds-data-row-value]:text-label-m"
         >
             {/* Request-pot progress (board): first row of the card. */}
             <RequestPotProgressRow transaction={transaction} />
@@ -266,15 +267,10 @@ export function ReceiptDetailsCard({
                 <DataRow
                     label={t('rows.attachment')}
                     value={
-                        <Link
-                            href={transaction.attachmentUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex items-center underline"
-                        >
+                        <LinkButton href={transaction.attachmentUrl} external>
                             {t('rows.download')}
-                            <Icon name="download" size={14} />
-                        </Link>
+                            <Icon name="download" size={14} className="shrink-0" />
+                        </LinkButton>
                     }
                 />
             )}

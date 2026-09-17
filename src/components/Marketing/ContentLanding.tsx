@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Fuse from 'fuse.js'
 import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { Icon } from '@/components/Global/Icons/Icon'
+import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import type { ContentItem, ContentItemType } from '@/lib/content'
 import type { Locale } from '@/i18n/types'
 
@@ -53,20 +54,20 @@ function typeLabelsFor(strings: ContentLandingStrings): Record<ContentItemType, 
 
 function renderLinkRows(items: ContentItem[]) {
     return (
-        <div className="flex flex-col gap-px overflow-hidden rounded-sm border border-n-1">
+        <div className="flex flex-col gap-px overflow-hidden rounded-sm border border-border-default">
             {items.map((item) => (
                 <Link
                     key={`${item.type}/${item.slug}`}
                     href={item.href}
-                    className="group flex items-center justify-between border-b border-n-1/10 bg-white px-5 py-4 transition-colors last:border-b-0 hover:bg-primary-3/20"
+                    className="group flex items-center justify-between border-b border-border-default/10 bg-background-default px-4 py-4 transition-colors last:border-b-0 hover:bg-purple-200/20"
                 >
                     <div className="flex flex-col gap-0.5">
-                        <h3 className="text-base font-semibold text-n-1 group-hover:underline">
+                        <h3 className="text-body-m-semibold text-foreground-primary group-hover:underline">
                             {displayTitle(item.title)}
                         </h3>
-                        <p className="line-clamp-1 text-sm leading-[1.75] text-grey-1">{item.description}</p>
+                        <p className="line-clamp-1 text-body-s text-foreground-secondary">{item.description}</p>
                     </div>
-                    <Icon name="arrow-up-right" size={16} className="shrink-0 text-grey-1" />
+                    <Icon name="arrow-up-right" size={16} className="shrink-0 text-foreground-secondary" />
                 </Link>
             ))}
         </div>
@@ -90,7 +91,7 @@ export function ContentLinkList({ items, strings, grouped }: ContentLinkListProp
                         if (inType.length === 0) return null
                         return (
                             <section key={t}>
-                                <h2 className="mb-4 text-xs font-bold tracking-widest text-grey-1 uppercase">
+                                <h2 className="mb-4 text-label-m tracking-widest text-foreground-secondary uppercase">
                                     {typeLabels[t]}
                                 </h2>
                                 {renderLinkRows(inType)}
@@ -138,13 +139,13 @@ export default function ContentLanding({ items, strings }: Props) {
 
     const typeLabels = typeLabelsFor(strings)
 
-    const chipBase = 'rounded-sm border border-n-1 px-3 py-1 text-sm transition-colors'
+    const chipBase = 'rounded-sm border border-border-default px-3 py-1 text-body-s transition-colors'
 
     return (
         <>
             <div className={`mx-auto mt-10 mb-6 ${PROSE_WIDTH} px-6 md:mt-12 md:px-4`}>
                 <div className="relative">
-                    <div className="absolute top-1/2 left-3 -translate-y-1/2 text-grey-1">
+                    <div className="absolute top-1/2 left-3 -translate-y-1/2 text-foreground-secondary">
                         <Icon name="search" size={18} />
                     </div>
                     <input
@@ -153,7 +154,7 @@ export default function ContentLanding({ items, strings }: Props) {
                         placeholder={strings.searchPlaceholder}
                         value={q ?? ''}
                         onChange={(e) => setFilters({ q: e.target.value || null })}
-                        className="h-12 w-full rounded-sm border border-n-1 bg-white pr-4 pl-10 text-base caret-primary-1 focus:ring-1 focus:ring-n-1 focus:outline-none"
+                        className={`${CARD_SURFACE} h-12 w-full pr-4 pl-10 text-base caret-action-primary focus:ring-1 focus:ring-border-default focus:outline-none`}
                     />
                 </div>
             </div>
@@ -163,7 +164,7 @@ export default function ContentLanding({ items, strings }: Props) {
                     <button
                         type="button"
                         onClick={() => setFilters({ type: null })}
-                        className={`${chipBase} ${activeType === null ? 'bg-primary-1/20 font-semibold' : 'hover:bg-primary-3/30'}`}
+                        className={`${chipBase} ${activeType === null ? 'bg-action-primary/20' : 'hover:bg-purple-200/30'}`}
                     >
                         {strings.filterAll}
                     </button>
@@ -172,7 +173,7 @@ export default function ContentLanding({ items, strings }: Props) {
                             key={t}
                             type="button"
                             onClick={() => setFilters({ type: activeType === t ? null : t })}
-                            className={`${chipBase} ${activeType === t ? 'bg-primary-1/20 font-semibold' : 'hover:bg-primary-3/30'}`}
+                            className={`${chipBase} ${activeType === t ? 'bg-action-primary/20' : 'hover:bg-purple-200/30'}`}
                         >
                             {typeLabels[t]}
                         </button>
@@ -182,7 +183,7 @@ export default function ContentLanding({ items, strings }: Props) {
 
             {filtered.length === 0 ? (
                 <div className={`mx-auto ${PROSE_WIDTH} px-6 pb-12 md:px-4`}>
-                    <p className="py-12 text-center text-grey-1">{strings.noResults}</p>
+                    <p className="py-12 text-center text-foreground-secondary">{strings.noResults}</p>
                 </div>
             ) : (
                 <ContentLinkList items={filtered} strings={strings} grouped={groupResults} />

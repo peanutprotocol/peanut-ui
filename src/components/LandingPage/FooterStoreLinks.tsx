@@ -6,7 +6,7 @@ export function FooterStoreLinks() {
     const migrationOn = useMigrationFlag()
     if (!migrationOn) return null
     return (
-        <div className="mt-6 flex gap-6 text-sm text-white">
+        <div className="mt-6 flex gap-6 text-body-s text-white">
             {(['ios', 'android'] as const).map((store) => (
                 <a
                     onClick={() => trackStoreClick(store, MIGRATION_SURFACES.LANDING_FOOTER)}

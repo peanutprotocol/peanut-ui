@@ -90,9 +90,9 @@ export default function CopySharePage() {
                                 <CopyToClipboard textToCopy="Hello from Peanut!" />
                             </div>
                             <div className="flex items-center gap-2">
-                                <span className="text-body-xs">Different sizes:</span>
-                                <CopyToClipboard textToCopy="small" iconSize="3" />
-                                <CopyToClipboard textToCopy="medium" iconSize="4" />
+                                <span className="text-body-xs">DS sizes:</span>
+                                <CopyToClipboard textToCopy="small" iconSize="4" />
+                                <CopyToClipboard textToCopy="medium" iconSize="5" />
                                 <CopyToClipboard textToCopy="large" iconSize="6" />
                             </div>
                         </div>
@@ -118,9 +118,9 @@ export default function CopySharePage() {
                             },
                             {
                                 name: 'iconSize',
-                                type: "'2' | '3' | '4' | '6' | '8'",
+                                type: "'2' | '3' | '4' | '5' | '6' | '8'",
                                 default: "'6'",
-                                description: 'Icon size (Tailwind scale)',
+                                description: 'Use 4, 5, or 6 for the 16px, 20px, or 24px DS steps',
                             },
                             { name: 'fill', type: 'string', default: "'black'", description: 'Icon fill color' },
                             {
@@ -179,49 +179,6 @@ copyRef.current?.copy()`}
 >
   Share
 </Button>`}
-                    />
-                </DocSection.Code>
-            </DocSection>
-
-            {/* AddressLink */}
-            <DocSection title="AddressLink">
-                <DocSection.Content>
-                    <p className="text-body-s text-foreground-secondary">
-                        Displays a shortened crypto address as a link. Resolves ENS names for Ethereum addresses. Links
-                        to the user profile page.
-                    </p>
-
-                    <DesignNote type="warning">
-                        AddressLink uses usePrimaryName hook (ENS resolution) which requires JustAName provider context.
-                        Cannot demo in isolation. Showing code example only.
-                    </DesignNote>
-
-                    <PropsTable
-                        rows={[
-                            {
-                                name: 'address',
-                                type: 'string',
-                                default: '-',
-                                required: true,
-                                description: 'Crypto address or ENS name',
-                            },
-                            {
-                                name: 'isLink',
-                                type: 'boolean',
-                                default: 'true',
-                                description: 'Render as link or plain text',
-                            },
-                            { name: 'className', type: 'string', default: "''", description: 'Override styles' },
-                        ]}
-                    />
-                </DocSection.Content>
-                <DocSection.Code>
-                    <CodeBlock label="Import" code={`import AddressLink from '@/components/Global/AddressLink'`} />
-
-                    <CodeBlock
-                        label="Usage"
-                        code={`<AddressLink address="0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18" />
-<AddressLink address={senderAddress} isLink={false} />`}
                     />
                 </DocSection.Code>
             </DocSection>

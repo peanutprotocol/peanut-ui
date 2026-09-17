@@ -44,8 +44,12 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 // the prior-transfer indicator, not the page furniture.
 jest.mock('../ProfileHeader', () => ({
     __esModule: true,
-    default: ({ haveSentMoneyToUser }: { haveSentMoneyToUser?: boolean }) => (
-        <div data-testid="profile-header" data-sent-money={String(!!haveSentMoneyToUser)} />
+    default: ({ haveSentMoneyToUser, avatarKey }: { haveSentMoneyToUser?: boolean; avatarKey?: string | null }) => (
+        <div
+            data-testid="profile-header"
+            data-sent-money={String(!!haveSentMoneyToUser)}
+            data-avatar-key={avatarKey ?? ''}
+        />
     ),
 }))
 jest.mock('@/components/Badges/BadgesRow', () => ({ __esModule: true, default: () => null }))
@@ -276,6 +280,69 @@ describe('PublicProfile prior-transfer indicator', () => {
 
         await screen.findByRole('button', { name: JOIN_CTA })
         expect(mockUseUserInteractions).toHaveBeenLastCalledWith([])
+    })
+})
+
+// TASK-22625: the profile owner's picked avatar comes from the same
+// getByUsername payload the rest of the header already reads.
+describe('PublicProfile avatar', () => {
+    beforeEach(() => {
+        mockAuth = { user: { user: { username: 'hal', hasAppAccess: true } }, isFetchingUser: false }
+    })
+
+    it('hands the profile owner pick to the header', async () => {
+        mockGetByUsername.mockResolvedValue({ userId: 'user-1', avatarKey: 'basic.frog' })
+        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+
+        await waitFor(() =>
+            expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', 'basic.frog')
+        )
+    })
+
+    it('hands null through when the owner has no pick', async () => {
+        mockGetByUsername.mockResolvedValue({ userId: 'user-1' })
+        renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+
+        await waitFor(() => expect(mockGetByUsername).toHaveBeenCalled())
+        expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', '')
+    })
+})
+
+// The [...recipient] route reuses this component across profile navigations.
+describe('PublicProfile avatar across navigations', () => {
+    beforeEach(() => {
+        mockAuth = { user: { user: { username: 'hal', hasAppAccess: true } }, isFetchingUser: false }
+    })
+
+    it('never wears the previous profile owner avatar, not even for one render', async () => {
+        mockGetByUsername.mockResolvedValue({ userId: 'user-1', avatarKey: 'basic.frog' })
+        const { rerender } = renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        await waitFor(() =>
+            expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', 'basic.frog')
+        )
+
+        // second profile: never resolves, so the loaded avatar can only be
+        // excluded by the username it was loaded for — an effect-time reset
+        // would already have painted one render of the first owner's pick.
+        mockGetByUsername.mockReturnValue(new Promise(() => {}))
+        rerender(<PublicProfile username="nakamoto" isLoggedIn />)
+
+        expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', '')
+    })
+
+    it('shows the second owner pick once it lands', async () => {
+        mockGetByUsername.mockResolvedValue({ userId: 'user-1', avatarKey: 'basic.frog' })
+        const { rerender } = renderWithIntl(<PublicProfile username="satoshi" isLoggedIn />)
+        await waitFor(() =>
+            expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', 'basic.frog')
+        )
+
+        mockGetByUsername.mockResolvedValue({ userId: 'user-2', avatarKey: 'basic.star' })
+        rerender(<PublicProfile username="nakamoto" isLoggedIn />)
+
+        await waitFor(() =>
+            expect(screen.getByTestId('profile-header')).toHaveAttribute('data-avatar-key', 'basic.star')
+        )
     })
 })
 

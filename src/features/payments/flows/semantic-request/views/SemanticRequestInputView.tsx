@@ -151,7 +151,7 @@ export function SemanticRequestInputView() {
     }, [isTokenDenominated, urlToken, tokenUsdPrice])
 
     return (
-        <div className="flex min-h-inherit flex-col justify-between gap-8">
+        <PageStack>
             <NavHeader onPrev={onBack} title={t('headers.pay')} />
 
             <PageStack.Center className="gap-4">
@@ -214,6 +214,6 @@ export function SemanticRequestInputView() {
 
             {/* support cta */}
             {!isLoggedIn && <SupportCTA />}
-        </div>
+        </PageStack>
     )
 }

@@ -2,6 +2,7 @@ import React from 'react'
 import { twMerge } from '@/utils/tw'
 
 interface FieldErrorProps {
+    id?: string
     children?: React.ReactNode
     className?: string
     'data-testid'?: string

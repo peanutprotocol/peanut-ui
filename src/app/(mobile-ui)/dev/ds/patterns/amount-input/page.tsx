@@ -33,7 +33,7 @@ export default function AmountInputPage() {
                         <div className="flex flex-col items-center gap-2 py-4">
                             <div className="flex items-center gap-1">
                                 <span className="text-heading-xs text-foreground-secondary">$</span>
-                                <span className="text-6xl font-black">0.00</span>
+                                <span className="text-heading-big-input">0.00</span>
                             </div>
                             <span className="text-heading-card text-foreground-secondary">&asymp; ETH 0.00</span>
                             <span className="text-body-s text-foreground-secondary">Balance: $ 42.50</span>
@@ -41,8 +41,8 @@ export default function AmountInputPage() {
                         <div className="absolute top-1/2 right-4 -translate-y-1/2 text-foreground-secondary"></div>
                     </div>
                     <p className="text-body-xs text-foreground-secondary">
-                        The input uses a transparent background with auto-sizing width. A fake blinking caret (primary-1
-                        color) shows when the input is empty and not focused.
+                        The input uses a transparent background with auto-sizing width. An action-primary caret shows
+                        when the input is empty and not focused.
                     </p>
                 </DocSection.Content>
                 <DocSection.Code>

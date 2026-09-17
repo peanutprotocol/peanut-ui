@@ -65,16 +65,16 @@ test.describe('Dev showcase (design system)', () => {
         assertNoConsoleErrors(c.entries, '/dev/ds')
     })
 
-    test('/dev/ds doc pages — full component sweep', async ({ page }, testInfo) => {
-        const c = collectConsoleLogs(page)
-        for (const route of DS_DOC_ROUTES) {
+    for (const route of new Set(DS_DOC_ROUTES)) {
+        test(`${route} — component showcase`, async ({ page }, testInfo) => {
+            const c = collectConsoleLogs(page)
             const res = await page.goto(route, { waitUntil: 'domcontentloaded' })
             expect(res?.ok(), `${route} responded non-2xx`).toBeTruthy()
             await dismissModals(page)
             await page.waitForTimeout(800)
             await captureStep(page, testInfo, { name: route.replace('/dev/ds', 'ds').replaceAll('/', '-') })
-        }
-        c.flush(testInfo, 'ds-doc-sweep')
-        assertNoConsoleErrors(c.entries, 'ds doc sweep')
-    })
+            c.flush(testInfo, 'ds-doc-page')
+            assertNoConsoleErrors(c.entries, route)
+        })
+    }
 })

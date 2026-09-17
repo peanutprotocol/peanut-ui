@@ -144,16 +144,14 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                     rel={cta.isExternal ? 'noopener noreferrer' : undefined}
                     onClick={cta.onClick}
                 >
-                    <Button
-                        shadowSize="4"
-                        icon={cta.icon}
-                        className="bg-white px-7 py-3 text-base font-extrabold hover:bg-white/90 md:px-9 md:py-8 md:text-xl"
-                    >
+                    <Button shadowSize="4" icon={cta.icon} className="bg-white px-6 hover:bg-white/90 md:px-8">
                         {cta.label}
                     </Button>
                 </a>
                 {cta.subtext && (
-                    <span className="mt-2 block text-center text-sm text-n-1 italic md:text-base">{cta.subtext}</span>
+                    <span className="mt-2 block text-center text-body-s text-foreground-primary italic md:text-body-m">
+                        {cta.subtext}
+                    </span>
                 )}
             </div>
         )
@@ -171,7 +169,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
     return (
         <section
             id="hero"
-            className="relative flex min-h-[85vh] w-full flex-col items-center justify-between bg-primary-1 px-4 pt-4 pb-12 md:pb-16 xl:h-fit xl:justify-center xl:pb-4"
+            className="relative flex min-h-[85vh] w-full flex-col items-center justify-between bg-background-brand px-4 pt-4 pb-12 md:pb-16 xl:h-fit xl:justify-center xl:pb-4"
         >
             <CloudsCss clouds={heroClouds} className="md:hidden" />
             <CloudsCss className="hidden md:block" />
@@ -207,11 +205,11 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                     360px) where en/es take 2, which pushes the CTA under the fold. Buy the 38-76px
                     back from this gap rather than from the artwork, so every locale keeps the same
                     hero on normal screens. Width-scoped too, or it would fire on 1366x657 laptops. */}
-                <h2 className="font-roboto-flex-extrabold mt-18 text-center text-[2.375rem] font-extraBlack text-black md:mt-12 md:text-heading [@media(max-height:660px)_and_(max-width:767px)]:mt-4">
+                <h2 className="font-roboto-flex-extrabold mt-18 text-center text-[2.375rem] font-extraBlack text-foreground-primary md:mt-12 md:text-heading [@media(max-height:660px)_and_(max-width:767px)]:mt-4">
                     {strings.heroTapScan}
                 </h2>
                 <span
-                    className="mt-2 block text-center text-xl leading-tight text-n-1 md:mt-4 md:text-5xl"
+                    className="mt-2 block text-center text-xl leading-tight text-foreground-primary md:mt-4 md:text-5xl"
                     style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
                     <Link prefetch={false} href={`/${locale}/argentina`} className="hover:underline">
@@ -227,7 +225,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                     </Link>
                     .
                 </span>
-                <span className="mt-2 block text-center text-sm text-n-1/70 md:text-base" style={{ fontWeight: 400 }}>
+                <span className="mt-2 block text-center text-body-s text-foreground-primary/70 md:text-body-m">
                     {strings.heroNoLocalId}
                 </span>
                 {primaryCta ? renderCTAButton(primaryCta, 'primary') : customCta ? renderCustomCta() : null}
@@ -237,7 +235,7 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                     <Link
                         prefetch={false}
                         href="/setup?step=login"
-                        className="mt-4 block text-center text-body-s text-n-1 underline"
+                        className="mt-4 block text-center text-body-s text-foreground-primary underline"
                     >
                         {strings.logIn}
                     </Link>

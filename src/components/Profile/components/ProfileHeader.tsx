@@ -8,7 +8,6 @@ import { shareableUrl } from '@/utils/url.utils'
 import posthog from 'posthog-js'
 import React, { useEffect, useRef } from 'react'
 import { twMerge } from '@/utils/tw'
-import AvatarWithBadge from '../AvatarWithBadge'
 import { useAvatarKey } from '@/components/Avatar/useAvatarKey'
 import { UserAvatar } from '@/components/Avatar/UserAvatar'
 import { useTranslations } from 'next-intl'
@@ -30,6 +29,9 @@ interface ProfileHeaderProps {
     haveSentMoneyToUser?: boolean
     /** Self profile only: makes the avatar a button that opens the picker (TASK-22142). */
     onChangeAvatar?: () => void
+    /** Counterparty profile only: the profile owner's picked avatar (TASK-22625).
+     *  The self branch reads the signed-in user's own pick instead. */
+    avatarKey?: string | null
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
@@ -40,6 +42,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     showShareButton = true,
     haveSentMoneyToUser = false,
     onChangeAvatar,
+    avatarKey,
 }) => {
     const { user: authenticatedUser } = useAuth()
     const tAvatar = useTranslations('avatar')
@@ -88,7 +91,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     return (
         <>
             <div className={twMerge('space-y-2 flex flex-col items-center', className)}>
-                {/* Self profiles show the chosen avatar; counterparties keep their initials. */}
+                {/* Both branches show the profile owner's chosen avatar — the self
+                    one is also the picker button. */}
                 {isSelfProfile ? (
                     onChangeAvatar ? (
                         <Button
@@ -105,7 +109,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                         ownAvatar('large')
                     )
                 ) : (
-                    <AvatarWithBadge name={name || username} />
+                    <UserAvatar name={username} avatarKey={avatarKey} size="medium" />
                 )}
 
                 {/* Without a full name, the self profile's handle appears only in the pill. */}
@@ -149,7 +153,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                             onSuccess={() =>
                                 posthog.capture(ANALYTICS_EVENTS.REFERRAL_CTA_CLICKED, REFERRAL_PILL_PROPS)
                             }
-                            className="relative ml-4 h-auto w-auto shrink-0 p-0 shadow-none after:absolute after:-inset-3.5 active:translate-x-0 active:translate-y-0"
+                            className="relative ml-4 h-auto w-auto shrink-0 p-0 shadow-none after:absolute after:-inset-3.5"
                         >
                             <span className="sr-only">{tGlobal('shareButton.share')}</span>
                             <Icon name="share" size={16} fill="black" />

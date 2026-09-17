@@ -25,7 +25,7 @@ interface CTAProps {
 export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
     if (variant === 'secondary') {
         const linkClass =
-            'inline-flex items-center gap-1 font-semibold text-n-1 underline decoration-n-1/30 underline-offset-2 hover:decoration-n-1'
+            'inline-flex items-center gap-1 font-semibold text-foreground-primary underline decoration-foreground-primary/30 underline-offset-2 hover:decoration-foreground-primary'
         return (
             <div className={`mx-auto ${PROSE_WIDTH} px-6 py-4 md:px-4`}>
                 {href.startsWith('#') ? (
@@ -55,15 +55,11 @@ export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
                     />
                     <Card shadowSize="4" className="relative z-10 items-center gap-4 p-6 text-center md:p-10">
                         <a href={href}>
-                            <Button
-                                shadowSize="4"
-                                variant="purple"
-                                className="w-full px-8 text-base font-bold sm:w-auto md:px-12 md:text-lg"
-                            >
+                            <Button shadowSize="4" variant="purple" className="w-full px-8 sm:w-auto md:px-12">
                                 {text}
                             </Button>
                         </a>
-                        {subtitle && <p className="mt-3 text-sm text-grey-1">{subtitle}</p>}
+                        {subtitle && <p className="mt-3 text-sm text-foreground-secondary">{subtitle}</p>}
                     </Card>
                 </div>
             </div>
@@ -73,11 +69,7 @@ export function CTA({ text, href, subtitle, variant = 'primary' }: CTAProps) {
     return (
         <div className={`mx-auto ${PROSE_WIDTH} px-6 py-8 text-center md:px-4 md:py-12`}>
             <a href={href}>
-                <Button
-                    shadowSize="4"
-                    variant="purple"
-                    className="w-full px-8 text-base font-bold sm:w-auto md:px-12 md:text-lg"
-                >
+                <Button shadowSize="4" variant="purple" className="w-full px-8 sm:w-auto md:px-12">
                     {text}
                 </Button>
             </a>
