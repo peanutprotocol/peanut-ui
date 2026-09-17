@@ -62,6 +62,7 @@ describe('pending invite attribution', () => {
     it('keeps the inviter for the next authenticated start after a transient failure', async () => {
         mockAcceptInvite.mockResolvedValue({
             success: false,
+            retryable: true,
             attributionResolved: false,
             onboardingResolved: false,
             claims: [],
@@ -75,6 +76,23 @@ describe('pending invite attribution', () => {
             expect.any(Error),
             expect.objectContaining({ tags: { error_type: 'invite_accept_failed' } })
         )
+    })
+
+    it('clears a terminal invalid invite instead of retrying it into a future referral', async () => {
+        mockAcceptInvite.mockResolvedValue({
+            success: false,
+            retryable: false,
+            status: 409,
+            attributionResolved: false,
+            onboardingResolved: false,
+            claims: [],
+        })
+
+        await expect(settlePendingInviteAttribution()).resolves.toMatchObject({ status: 'terminal' })
+
+        expect(mockClearInvite).toHaveBeenCalledTimes(1)
+        expect(mockExtendInviteForRetry).not.toHaveBeenCalled()
+        expect(mockCaptureException).not.toHaveBeenCalled()
     })
 
     it('settles a terminal legacy campaign without pretending it has an inviter', async () => {

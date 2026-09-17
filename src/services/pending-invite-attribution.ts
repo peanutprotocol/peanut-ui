@@ -7,7 +7,7 @@ import { invitesApi, type AcceptInviteResult } from './invites'
 import type { EInviteType } from './services.types'
 
 export type PendingInviteAttributionOutcome = {
-    status: 'none' | 'attributed' | 'campaign_only' | 'retryable'
+    status: 'none' | 'attributed' | 'campaign_only' | 'retryable' | 'terminal'
     inviteCode?: string
     inviteType?: EInviteType
     result?: AcceptInviteResult
@@ -71,16 +71,26 @@ async function settlePendingInviteAttributionOnce(): Promise<PendingInviteAttrib
             return { status: 'attributed', inviteCode, inviteType, result, pendingCampaigns }
         }
 
+        const retryable = !result.success && result.retryable
         posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, {
             invite_code: inviteCode,
-            error_message: result.success ? 'Invite did not resolve onboarding' : 'API returned unsuccessful',
+            error_message: retryable
+                ? `Retryable invite failure${result.status ? ` (${result.status})` : ''}`
+                : result.success
+                  ? 'Invite did not resolve onboarding'
+                  : `Terminal invite failure${result.status ? ` (${result.status})` : ''}`,
         })
-        captureException(new Error('authenticated invite attribution unresolved'), {
-            tags: { error_type: 'invite_accept_failed' },
-            extra: { inviteCode, result },
-        })
-        extendInviteForRetry(30)
-        return { status: 'retryable', inviteCode, inviteType, result, pendingCampaigns }
+        if (retryable) {
+            captureException(new Error('authenticated invite attribution unresolved'), {
+                tags: { error_type: 'invite_accept_failed' },
+                extra: { inviteCode, result },
+            })
+            extendInviteForRetry(30)
+            return { status: 'retryable', inviteCode, inviteType, result, pendingCampaigns }
+        }
+
+        clearInvite()
+        return { status: 'terminal', inviteCode, inviteType, result, pendingCampaigns }
     } catch (error) {
         posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPT_FAILED, {
             invite_code: inviteCode,

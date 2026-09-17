@@ -8,12 +8,26 @@ import { badgeCampaignClaimsFromPayload, type BadgeCampaignClaim } from './badge
 import { parseLegacyInviteAcquisition, type LegacyInviteAcquisition } from './invite-acquisition'
 import { isTypedCampaignOnlyInviteResponse, resolveInviteResolutionFlags } from './invite-response'
 
-export type AcceptInviteResult = {
-    success: boolean
+type AcceptInviteResolution = {
     attributionResolved: boolean
     onboardingResolved: boolean
     claims: BadgeCampaignClaim[]
     legacyAcquisition?: LegacyInviteAcquisition
+}
+
+export type AcceptInviteResult =
+    | ({ success: true } & AcceptInviteResolution)
+    | ({ success: false; retryable: boolean; status?: number } & AcceptInviteResolution)
+
+function failedAcceptInvite(retryable: boolean, status?: number): AcceptInviteResult {
+    return {
+        success: false,
+        retryable,
+        ...(status === undefined ? {} : { status }),
+        attributionResolved: false,
+        onboardingResolved: false,
+        claims: [],
+    }
 }
 
 export type ValidateInviteResult = {
@@ -26,8 +40,9 @@ export type ValidateInviteResult = {
 
 export const invitesApi = {
     acceptInvite: async (inviteCode: string, type: EInviteType, campaignTag?: string): Promise<AcceptInviteResult> => {
+        let response: Response
         try {
-            const response = await serverFetch('/invites/accept', {
+            response = await serverFetch('/invites/accept', {
                 method: 'POST',
                 // Normalize here so hand-typed input (`@alice `, ` Alice`) works no
                 // matter which screen collected it. Legacy ALICEINVITESYOU610 codes
@@ -37,30 +52,37 @@ export const invitesApi = {
                 // tag through this compatibility call.
                 body: JSON.stringify({ inviteCode: toInviteCode(inviteCode), type, campaignTag }),
             })
-            const body: unknown = await response.json()
-            const typedCampaignOnly =
-                response.status === 409 &&
-                isTypedCampaignOnlyInviteResponse(body) &&
-                !!body &&
-                typeof body === 'object' &&
-                Array.isArray((body as { claims?: unknown }).claims)
-            if (!response.ok && !typedCampaignOnly) {
-                return { success: false, attributionResolved: false, onboardingResolved: false, claims: [] }
-            }
-            const legacyAcquisition = parseLegacyInviteAcquisition(
-                body && typeof body === 'object'
-                    ? (body as { legacyAcquisition?: unknown }).legacyAcquisition
-                    : undefined
-            )
-            const resolution = resolveInviteResolutionFlags(body, response.ok)
-            return {
-                success: true,
-                ...resolution,
-                claims: legacyAcquisition ? badgeCampaignClaimsFromPayload(body, [legacyAcquisition.campaignTag]) : [],
-                ...(legacyAcquisition ? { legacyAcquisition } : {}),
-            }
         } catch {
-            return { success: false, attributionResolved: false, onboardingResolved: false, claims: [] }
+            return failedAcceptInvite(true)
+        }
+
+        let body: unknown
+        try {
+            body = await response.json()
+        } catch {
+            return failedAcceptInvite(response.status >= 500, response.status)
+        }
+        const typedCampaignOnly =
+            response.status === 409 &&
+            isTypedCampaignOnlyInviteResponse(body) &&
+            !!body &&
+            typeof body === 'object' &&
+            Array.isArray((body as { claims?: unknown }).claims)
+        if (!response.ok && !typedCampaignOnly) {
+            // Only transport failures and 5xx responses are safe to retain for
+            // retry. Invalid/forbidden codes are terminal and must not become
+            // a future referral if that username is registered later.
+            return failedAcceptInvite(response.status >= 500, response.status)
+        }
+        const legacyAcquisition = parseLegacyInviteAcquisition(
+            body && typeof body === 'object' ? (body as { legacyAcquisition?: unknown }).legacyAcquisition : undefined
+        )
+        const resolution = resolveInviteResolutionFlags(body, response.ok)
+        return {
+            success: true,
+            ...resolution,
+            claims: legacyAcquisition ? badgeCampaignClaimsFromPayload(body, [legacyAcquisition.campaignTag]) : [],
+            ...(legacyAcquisition ? { legacyAcquisition } : {}),
         }
     },
 

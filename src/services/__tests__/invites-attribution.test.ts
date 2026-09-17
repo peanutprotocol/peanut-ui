@@ -110,9 +110,26 @@ describe('invite attribution contract', () => {
 
         await expect(invitesApi.acceptInvite('not-an-invite', EInviteType.PAYMENT_LINK)).resolves.toEqual({
             success: false,
+            retryable: false,
+            status: 409,
             attributionResolved: false,
             onboardingResolved: false,
             claims: [],
+        })
+    })
+
+    it('keeps only network and 5xx failures retryable', async () => {
+        mockServerFetch.mockResolvedValueOnce(response(503, { error: 'Unavailable' }))
+        await expect(invitesApi.acceptInvite('alice', EInviteType.PAYMENT_LINK)).resolves.toMatchObject({
+            success: false,
+            retryable: true,
+            status: 503,
+        })
+
+        mockServerFetch.mockRejectedValueOnce(new TypeError('fetch failed'))
+        await expect(invitesApi.acceptInvite('alice', EInviteType.PAYMENT_LINK)).resolves.toMatchObject({
+            success: false,
+            retryable: true,
         })
     })
 
