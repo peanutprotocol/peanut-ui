@@ -25,7 +25,6 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { ExportActivityDrawer } from '@/components/History/ExportActivityDrawer'
 import { HistoryRangeDrawer } from '@/components/History/HistoryRangeDrawer'
-import { HistorySearchBar } from '@/components/History/HistorySearchBar'
 import { useHistoryRange } from '@/hooks/useHistoryRange'
 import { useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { useWebSocket } from '@/hooks/useWebSocket'
@@ -235,22 +234,32 @@ const HistoryPage = () => {
         return m
     }, [combinedAndSortedEntries])
 
-    const exportButton = (
+    const filterButton = (
         <Button
             variant="stroke"
             // nav circle recipe (board 17802:61534): 40px visual, pseudo-element to 44px
             className="relative size-10 w-10 p-0 shadow-none after:absolute after:-inset-0.5"
-            aria-label={t('export.title')}
-            onClick={() => setExportDrawerOpen(true)}
-            data-testid="history-export"
+            aria-label={t('range.title')}
+            onClick={() => setRangeDrawerOpen(true)}
+            data-testid="history-filters"
         >
-            <Icon name="download" size={20} />
+            {/* an applied range tints the glyph brand pink */}
+            <Icon name="list-filter" size={20} className={hasActiveRange ? 'text-action-primary' : undefined} />
         </Button>
     )
 
     const drawers = (
         <>
-            <HistoryRangeDrawer open={rangeDrawerOpen} onOpenChange={setRangeDrawerOpen} />
+            <HistoryRangeDrawer
+                open={rangeDrawerOpen}
+                onOpenChange={setRangeDrawerOpen}
+                // export lives behind the filter sheet: Download closes it and
+                // opens the export sheet, which starts from the applied range
+                onDownload={() => {
+                    setRangeDrawerOpen(false)
+                    setExportDrawerOpen(true)
+                }}
+            />
             <ExportActivityDrawer open={exportDrawerOpen} onOpenChange={setExportDrawerOpen} />
         </>
     )
@@ -260,11 +269,8 @@ const HistoryPage = () => {
         // keep the filter reachable while a filtered window loads
         return (
             <PageStack>
-                <NavHeader title={t('title')} rightElement={exportButton} />
-                <div className="flex w-full flex-col gap-4">
-                    <HistorySearchBar onOpenFilters={() => setRangeDrawerOpen(true)} isFilterActive={hasActiveRange} />
-                    <Loading />
-                </div>
+                <NavHeader title={t('title')} rightElement={filterButton} />
+                <Loading />
                 {drawers}
             </PageStack>
         )
@@ -282,23 +288,17 @@ const HistoryPage = () => {
     }
 
     if (!isLoading && combinedAndSortedEntries.length === 0) {
-        // an empty FILTERED window keeps the filter and export reachable —
-        // the user changes the range from here
+        // an empty FILTERED window keeps the filter reachable — the user
+        // changes the range from here
         if (hasActiveRange) {
             return (
                 <PageStack>
-                    <NavHeader title={t('title')} rightElement={exportButton} />
-                    <div className="flex w-full flex-col gap-4">
-                        <HistorySearchBar
-                            onOpenFilters={() => setRangeDrawerOpen(true)}
-                            isFilterActive={hasActiveRange}
-                        />
-                        <EmptyState
-                            icon="calendar"
-                            title={t('emptyFiltered')}
-                            description={t('emptyFilteredDescription')}
-                        />
-                    </div>
+                    <NavHeader title={t('title')} rightElement={filterButton} />
+                    <EmptyState
+                        icon="calendar"
+                        title={t('emptyFiltered')}
+                        description={t('emptyFilteredDescription')}
+                    />
                     {drawers}
                 </PageStack>
             )
@@ -324,83 +324,78 @@ const HistoryPage = () => {
 
     return (
         <PageStack>
-            <NavHeader title={t('title')} rightElement={exportButton} />
-            <div className="flex w-full flex-col gap-4">
-                <HistorySearchBar onOpenFilters={() => setRangeDrawerOpen(true)} isFilterActive={hasActiveRange} />
-                <div className="h-full w-full">
-                    {combinedAndSortedEntries.map((item, index) => {
-                        const itemDate = new Date(item.timestamp)
-                        const group = getDateGroup(itemDate, today)
-                        const currentGroupHeaderKey = getDateGroupKey(itemDate, group)
-                        const showHeader = currentGroupHeaderKey !== lastGroupHeaderKey
-                        if (showHeader) {
-                            lastGroupHeaderKey = currentGroupHeaderKey
-                        }
+            <NavHeader title={t('title')} rightElement={filterButton} />
+            <div className="h-full w-full">
+                {combinedAndSortedEntries.map((item, index) => {
+                    const itemDate = new Date(item.timestamp)
+                    const group = getDateGroup(itemDate, today)
+                    const currentGroupHeaderKey = getDateGroupKey(itemDate, group)
+                    const showHeader = currentGroupHeaderKey !== lastGroupHeaderKey
+                    if (showHeader) {
+                        lastGroupHeaderKey = currentGroupHeaderKey
+                    }
 
-                        // corners are per DATE GROUP: peek at the next entry to see
-                        // if it starts a new group
-                        const isFirstInGroup = showHeader
-                        const nextItem = combinedAndSortedEntries[index + 1]
-                        const isLastInGroup =
-                            !nextItem ||
-                            getDateGroupKey(
-                                new Date(nextItem.timestamp),
-                                getDateGroup(new Date(nextItem.timestamp), today)
-                            ) !== currentGroupHeaderKey
+                    // corners are per DATE GROUP: peek at the next entry to see
+                    // if it starts a new group
+                    const isFirstInGroup = showHeader
+                    const nextItem = combinedAndSortedEntries[index + 1]
+                    const isLastInGroup =
+                        !nextItem ||
+                        getDateGroupKey(
+                            new Date(nextItem.timestamp),
+                            getDateGroup(new Date(nextItem.timestamp), today)
+                        ) !== currentGroupHeaderKey
 
-                        let position: CardPosition = 'middle'
-                        if (isFirstInGroup && isLastInGroup) position = 'single'
-                        else if (isFirstInGroup) position = 'first'
-                        else if (isLastInGroup) position = 'last'
+                    let position: CardPosition = 'middle'
+                    if (isFirstInGroup && isLastInGroup) position = 'single'
+                    else if (isFirstInGroup) position = 'first'
+                    else if (isLastInGroup) position = 'last'
 
-                        return (
-                            <React.Fragment key={item.uuid}>
-                                {/* date group header — board 17966:12128: Label/M, 8px above the group's rows */}
-                                {showHeader && (
-                                    <div
-                                        className={twMerge(
-                                            'mb-2 text-label-m text-foreground-primary',
-                                            index > 0 && 'mt-2'
-                                        )}
-                                    >
-                                        {groupHeader(itemDate, group)}
-                                    </div>
-                                )}
-                                {isKycStatusItem(item) ? (
-                                    <KycStatusItem position={position} />
-                                ) : isBadgeHistoryItem(item) ? (
-                                    <BadgeStatusItem position={position} entry={item} />
-                                ) : (
-                                    (() => {
-                                        const { transactionDetails, transactionCardType } =
-                                            drawerByUuid.get(item.uuid) ?? mapTransactionDataForDrawer(item)
-                                        return (
-                                            <TransactionCard
-                                                type={transactionCardType}
-                                                name={transactionDetails.userName}
-                                                amount={
-                                                    transactionDetails.amount ? Number(transactionDetails.amount) : 0
-                                                }
-                                                status={transactionDetails.status}
-                                                initials={transactionDetails.initials}
-                                                transaction={transactionDetails}
-                                                position={position}
-                                                haveSentMoneyToUser={transactionDetails.haveSentMoneyToUser}
-                                                hideTxnAmount={hideTxnAmount}
-                                                isSelected={isTransactionSelected(transactionDetails.id)}
-                                                onOpen={openTransactionDetails}
-                                                onClose={closeTransactionDetails}
-                                            />
-                                        )
-                                    })()
-                                )}
-                            </React.Fragment>
-                        )
-                    })}
+                    return (
+                        <React.Fragment key={item.uuid}>
+                            {/* date group header — board 17966:12128: Label/M, 8px above the group's rows */}
+                            {showHeader && (
+                                <div
+                                    className={twMerge(
+                                        'mb-2 text-label-m text-foreground-primary',
+                                        index > 0 && 'mt-2'
+                                    )}
+                                >
+                                    {groupHeader(itemDate, group)}
+                                </div>
+                            )}
+                            {isKycStatusItem(item) ? (
+                                <KycStatusItem position={position} />
+                            ) : isBadgeHistoryItem(item) ? (
+                                <BadgeStatusItem position={position} entry={item} />
+                            ) : (
+                                (() => {
+                                    const { transactionDetails, transactionCardType } =
+                                        drawerByUuid.get(item.uuid) ?? mapTransactionDataForDrawer(item)
+                                    return (
+                                        <TransactionCard
+                                            type={transactionCardType}
+                                            name={transactionDetails.userName}
+                                            amount={transactionDetails.amount ? Number(transactionDetails.amount) : 0}
+                                            status={transactionDetails.status}
+                                            initials={transactionDetails.initials}
+                                            transaction={transactionDetails}
+                                            position={position}
+                                            haveSentMoneyToUser={transactionDetails.haveSentMoneyToUser}
+                                            hideTxnAmount={hideTxnAmount}
+                                            isSelected={isTransactionSelected(transactionDetails.id)}
+                                            onOpen={openTransactionDetails}
+                                            onClose={closeTransactionDetails}
+                                        />
+                                    )
+                                })()
+                            )}
+                        </React.Fragment>
+                    )
+                })}
 
-                    <div ref={loaderRef} className="w-full py-4">
-                        {isFetchingNextPage && <div className="w-full text-center">{t('loadingMore')}</div>}
-                    </div>
+                <div ref={loaderRef} className="w-full py-4">
+                    {isFetchingNextPage && <div className="w-full text-center">{t('loadingMore')}</div>}
                 </div>
             </div>
             {drawers}

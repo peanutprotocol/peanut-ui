@@ -2238,10 +2238,7 @@
             "error": "Export failed. Try again."
         },
         "emptyFiltered": "No activity in this period",
-        "emptyFilteredDescription": "Try a different date range.",
-        "search": {
-            "placeholder": "Search"
-        }
+        "emptyFilteredDescription": "Try a different date range."
     },
     "rewards": {
         "title": "Rewards",

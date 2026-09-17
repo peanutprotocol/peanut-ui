@@ -2238,10 +2238,7 @@
             "error": "Falha na exportação. Tente de novo."
         },
         "emptyFiltered": "Nenhuma atividade neste período",
-        "emptyFilteredDescription": "Tente outro período.",
-        "search": {
-            "placeholder": "Buscar"
-        }
+        "emptyFilteredDescription": "Tente outro período."
     },
     "rewards": {
         "title": "Recompensas",

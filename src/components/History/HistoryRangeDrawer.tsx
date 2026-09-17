@@ -21,6 +21,9 @@ interface HistoryRangeDrawerProps {
     onOpenChange: (open: boolean) => void
     /** Set when opened from inside another drawer (the export drawer). */
     nested?: boolean
+    /** Renders the secondary Download button under Save. Left unset on the
+     *  instance nested in the export drawer, which is already the download. */
+    onDownload?: () => void
 }
 
 const CUSTOM = 'custom'
@@ -28,10 +31,12 @@ const CUSTOM = 'custom'
 /**
  * Timeframe picker for the activity history. Mirrors the residence-change
  * surface (Profile/views/ResidenceChangeDrawer): centered icon bubble, title,
- * one select, one Save. Picking "Custom range" reveals the calendar below the
- * select; Save applies whichever of the two is in play.
+ * one select, one Save, plus a stroke Download under it. Picking "Custom range"
+ * reveals the calendar below the select; Save applies whichever of the two is
+ * in play. Download does not apply an unsaved pick — the export drawer shows
+ * the applied range and changes it itself.
  */
-export const HistoryRangeDrawer = ({ open, onOpenChange, nested }: HistoryRangeDrawerProps) => {
+export const HistoryRangeDrawer = ({ open, onOpenChange, nested, onDownload }: HistoryRangeDrawerProps) => {
     const t = useTranslations('history')
     const tCommon = useTranslations('common')
     const { activePreset, from, to, setPreset, setCustom } = useHistoryRange()
@@ -95,6 +100,11 @@ export const HistoryRangeDrawer = ({ open, onOpenChange, nested }: HistoryRangeD
                         >
                             {tCommon('save')}
                         </Button>
+                        {onDownload && (
+                            <Button variant="stroke" className="w-full justify-center" onClick={onDownload}>
+                                {t('export.download')}
+                            </Button>
+                        )}
                     </div>
                 </div>
             </DrawerContent>

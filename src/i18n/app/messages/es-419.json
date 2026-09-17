@@ -2238,10 +2238,7 @@
             "error": "La exportación falló. Intenta de nuevo."
         },
         "emptyFiltered": "No hay actividad en este período",
-        "emptyFilteredDescription": "Prueba con otro rango de fechas.",
-        "search": {
-            "placeholder": "Buscar"
-        }
+        "emptyFilteredDescription": "Prueba con otro rango de fechas."
     },
     "rewards": {
         "title": "Recompensas",
