@@ -87,7 +87,10 @@ export function usePerkHoldToClaim(qrPayment: QrPayment | null, setQrPayment: (p
     // We immediately show success UI and trigger confetti, then claim in background
     // If claim fails, we show error post-factum but keep the user in success state
     const claimPerk = useCallback(() => {
-        if (!qrPayment?.externalId) return
+        // Confetti needs a reward the API actually reserved for THIS payment
+        // (`perk.eligible` is set only after durable issuance), never a guess
+        // from points or amount.
+        if (!qrPayment?.externalId || !qrPayment.perk?.eligible) return
 
         // 1. IMMEDIATELY show success UI (optimistic)
         setPerkClaimed(true)
@@ -103,10 +106,13 @@ export function usePerkHoldToClaim(qrPayment: QrPayment | null, setQrPayment: (p
         // 4. Trigger confetti immediately
         shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.5 } })
 
-        // 5. Surface the reward. The perk was already issued AND claimed
-        //    server-side during QR-payment processing, and qrPayment.perk
-        //    already carries the sponsored amount from that response — so mark
-        //    it claimed and report it directly. (The old /perks/claim round-trip
+        // 5. Surface the reward. The perk was already issued server-side during
+        //    QR-payment processing, and qrPayment.perk already carries the
+        //    sponsored amount from that response — so mark it revealed and
+        //    report it directly. `claimed` is this screen's reveal flag only;
+        //    the payout transfer settles later and is `perk.payoutStatus` /
+        //    `perk.txHash`, which this hook neither reads nor requests — no
+        //    server call belongs here. (The old /perks/claim round-trip
         //    took a mantecaTransferId the endpoint no longer accepts — it now
         //    requires a usageId the client never has — so it always 400'd: pure
         //    Sentry noise, and REWARD_CLAIMED never fired because it lived in the

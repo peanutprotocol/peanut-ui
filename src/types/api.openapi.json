@@ -9394,6 +9394,9 @@
 											"chainId": {
 												"type": "string"
 											},
+											"clientPaymentAttemptId": {
+												"description": "Optional UUID minted by the client at Pay and reused for retries of the same signed payment. Telemetry correlation only; a non-UUID value is ignored."
+											},
 											"entryPointAddress": {
 												"type": "string"
 											},
@@ -9476,6 +9479,9 @@
 										"properties": {
 											"chainId": {
 												"type": "string"
+											},
+											"clientPaymentAttemptId": {
+												"description": "Optional UUID minted by the client at Pay and reused for retries of the same signed payment. Telemetry correlation only; a non-UUID value is ignored."
 											},
 											"kind": {
 												"enum": [
@@ -11503,10 +11509,20 @@
 								"schema": {
 									"properties": {
 										"code": {
-											"enum": [
-												"geo-blocked"
-											],
-											"type": "string"
+											"anyOf": [
+												{
+													"enum": [
+														"geo-blocked"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"pending-residence-blocked"
+													],
+													"type": "string"
+												}
+											]
 										},
 										"message": {
 											"type": "string"
@@ -11520,6 +11536,7 @@
 									},
 									"required": [
 										"status",
+										"code",
 										"message"
 									],
 									"type": "object"
@@ -18374,6 +18391,91 @@
 			"get": {
 				"responses": {
 					"200": {
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/users/username/check": {
+			"post": {
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"username": {
+										"maxLength": 64,
+										"minLength": 1,
+										"type": "string"
+									}
+								},
+								"required": [
+									"username"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"found": {
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"found"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										},
+										"retryAfterSeconds": {
+											"minimum": 1,
+											"type": "integer"
+										}
+									},
+									"required": [
+										"error",
+										"retryAfterSeconds"
+									],
+									"type": "object"
+								}
+							}
+						},
 						"description": "Default Response"
 					}
 				}

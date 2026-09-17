@@ -9,7 +9,7 @@ import { useCallback, useContext, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
-import { parseUnits } from 'viem'
+import { isAddress, parseUnits } from 'viem'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { useSafeBack } from '@/hooks/useSafeBack'
@@ -18,6 +18,7 @@ import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
+import { useSmartSpendPreparation } from '@/hooks/wallet/useSmartSpendPreparation'
 import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
 import { friendlyError } from '@/utils/friendly-error.utils'
@@ -53,12 +54,37 @@ import {
 import { useQrFailureCopy } from './useQrFailureCopy'
 import { useQrPayKycGate } from './useQrPayKycGate'
 import { deriveQrPayView } from './derive-view'
+import {
+    boundedQrType,
+    createQrPaymentAttemptTelemetry,
+    type QrPaymentAttemptTelemetry,
+    type QrPaymentStageOutcome,
+} from './qr-payment-telemetry'
 import type { QrPayFlowBag, QrPayScanParams } from './qr-pay-flow.types'
+import type { QrPaymentLock } from '@/services/manteca'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 const MIN_QR_PAYMENT_AMOUNT = '0.1'
 
 type PaymentProcessor = 'MANTECA'
+
+// Entity-aware deposit address served by the API (per-entity balances from
+// 2026-09-14) — the backend resolves the entity from the QR and the paying
+// Manteca account. The per-rail constants remain only as a fallback for an
+// older API that does not return the field yet.
+function mantecaDepositRecipient(lock: QrPaymentLock, qrType: string | null) {
+    return pickMantecaDepositAddress(
+        lock.depositAddress,
+        qrType === EQrType.PIX ? MANTECA_QR_DEPOSIT_ADDRESS_NON_AR : MANTECA_QR_DEPOSIT_ADDRESS_AR
+    )
+}
+
+function attemptOutcomeForStatus(status: ReturnType<typeof qrPaymentDisplayStatus>): QrPaymentStageOutcome {
+    if (status === 'completed') return 'success'
+    if (status === 'cancelled') return 'cancelled'
+    if (status === 'processing') return 'pending'
+    return 'failed'
+}
 
 /**
  * All qr-pay behavior: the payment-lock query, scan-outcome classification,
@@ -89,7 +115,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
      */
     const scanIdempotencyKey = useMemo(() => qrInitIdempotencyKey({ qrCode, timestamp }), [qrCode, timestamp])
 
-    const { spendableBalance: balance } = useWallet()
+    const { spendableBalance: balance, balance: smartBalance, address: walletAddress } = useWallet()
     const { signSpend } = useSignSpendBundle()
     const handleStaleSession = useStaleSessionGuard()
     const { overview: rainCardOverview } = useRainCardOverview()
@@ -148,6 +174,55 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
 
     const gate = useQrPayKycGate()
     const { kycGateState, shouldBlockPay } = gate
+
+    /*
+     * The final, locked spend — only a fixed-amount QR has one before Pay. An
+     * open-amount QR mints its lock inside handleMantecaPayment, so it has
+     * nothing to prepare against and takes the full path.
+     */
+    const lockedSpend = useMemo(() => {
+        if (paymentProcessor !== 'MANTECA' || !paymentLock || paymentLock.code === '') return null
+        try {
+            return {
+                lockCode: paymentLock.code,
+                lockExpiresAt: paymentLock.expireAt,
+                requiredUsdcAmount: parseUnits(paymentLock.paymentAgainstAmount, PEANUT_WALLET_TOKEN_DECIMALS),
+                recipient: mantecaDepositRecipient(paymentLock, qrType),
+            }
+        } catch {
+            // A malformed amount fails at Pay with the sign error it always did.
+            return null
+        }
+    }, [paymentProcessor, paymentLock, qrType])
+
+    // Build the unsigned smart-only UserOp while the user reads the amount, so
+    // Pay only re-checks nonce + sponsorship and signs. Gated on the cached
+    // smart balance covering the amount: a candidate can only ever serve
+    // smart-only routing, and routing itself stays LIVE at Pay. Off while a
+    // payment is in flight (`isLoading`): an open-amount lock minted inside
+    // Pay must not start a warmup racing the very signature it is for.
+    const { takePreparedSmartSpend } = useSmartSpendPreparation({
+        enabled:
+            !!lockedSpend &&
+            !shouldBlockPay &&
+            !isProviderDisabled &&
+            !isLoading &&
+            !isSuccess &&
+            !qrPayment &&
+            smartBalance !== undefined &&
+            smartBalance >= lockedSpend.requiredUsdcAmount,
+        // useWallet only exposes the address once it matches the user's
+        // wallet; the shape check is what narrows it to a signer address.
+        accountAddress: walletAddress && isAddress(walletAddress) ? walletAddress : null,
+        requiredUsdcAmount: lockedSpend?.requiredUsdcAmount ?? null,
+        recipient: lockedSpend?.recipient ?? null,
+        lockCode: lockedSpend?.lockCode ?? null,
+        lockExpiresAt: lockedSpend?.lockExpiresAt ?? null,
+    })
+
+    // The attempt whose stages are still being reported. Set at Pay; read by
+    // the success-commit effect, which runs after the Pay callback returns.
+    const attemptTelemetryRef = useRef<QrPaymentAttemptTelemetry | null>(null)
 
     /*
      * Refusals decided BEFORE the query runs (recurring Pix, unparseable QR).
@@ -461,6 +536,18 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     const handleMantecaPayment = useCallback(async () => {
         if (!paymentLock || !qrCode || !currencyAmount) return
 
+        // One attempt id per Pay press, minted BEFORE the open-amount init so
+        // the lock stage belongs to it. A retry is a new signature and so a
+        // new attempt; the id only rides along with the artifact signed here.
+        // Rail label from the lock's provider type first (what the server
+        // reports too), the scanner's type as the fallback — bounded either way.
+        const telemetry = createQrPaymentAttemptTelemetry({
+            qrType: boundedQrType(paymentLock.type) ?? boundedQrType(qrType),
+        })
+        attemptTelemetryRef.current = telemetry
+        telemetry.stage('pay_clicked')
+        const finishAttempt = (outcome: QrPaymentStageOutcome) => telemetry.stage('attempt_finished', { outcome })
+
         let finalPaymentLock = paymentLock
         if (finalPaymentLock.code === '') {
             setLoadingState('Fetching details')
@@ -482,6 +569,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                  * headroom. Routing that to "unexpected error" threw away the
                  * one screen that could tell them to try a smaller amount.
                  */
+                telemetry.stage('lock_ready', { outcome: 'failed' })
                 const deterministic = classifyQrInitError(error, 'amount-entry')
                 if (deterministic) {
                     // Deterministic rejection — actionable copy, not a
@@ -506,15 +594,19 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                 }
                 setIsSuccess(false)
                 setLoadingState('Idle')
+                finishAttempt('failed')
                 return
             }
         }
         if (finalPaymentLock.code === '') {
+            telemetry.stage('lock_ready', { outcome: 'failed' })
             setErrorMessage(t('errors.fetchDetails'))
             setIsSuccess(false)
             setLoadingState('Idle')
+            finishAttempt('failed')
             return
         }
+        telemetry.stage('lock_ready', { outcome: 'success' })
 
         setLoadingState('Preparing transaction')
         // Route across smart-only / mixed / collateral-only — pure-collateral
@@ -529,25 +621,29 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             const requiredUsdcAmount = parseUnits(finalPaymentLock.paymentAgainstAmount, PEANUT_WALLET_TOKEN_DECIMALS)
             signedArtifact = await signSpend({
                 requiredUsdcAmount,
-                // Entity-aware deposit address served by the API (per-entity
-                // balances from 2026-09-14) — the backend resolves the entity
-                // from the QR and the paying Manteca account. The per-rail
-                // constants remain only as a fallback for an older API that
-                // does not return the field yet.
-                recipient: pickMantecaDepositAddress(
-                    finalPaymentLock.depositAddress,
-                    qrType === EQrType.PIX ? MANTECA_QR_DEPOSIT_ADDRESS_NON_AR : MANTECA_QR_DEPOSIT_ADDRESS_AR
-                ),
+                recipient: mantecaDepositRecipient(finalPaymentLock, qrType),
                 rainSpendingPower: rainCentsToUsdcUnits(rainCardOverview?.balance?.spendingPower),
                 kind: 'QR_PAY',
+                // Consumed whatever routing decides: only smart-only can sign
+                // it, and after Pay its nonce may be spent either way.
+                preparedSmartSpend: takePreparedSmartSpend(),
+                onStrategyDecided: (strategy) => telemetry.stage('strategy_ready', { strategy }),
+                onProgress: (event) =>
+                    telemetry.stage(
+                        event.stage,
+                        event.stage === 'signing_preparation_ready' ? { preparation: event.preparation } : undefined
+                    ),
             })
+            telemetry.stage('signature_ready', { outcome: 'success' })
         } catch (error) {
             // Route through the shared classifier so backend wire codes reach this
             // screen too; the two branches ahead of it are deliberately per-flow.
             const classified = friendlyError(error)
+            const userCancelled = (error as Error).toString().includes('not allowed')
+            telemetry.stage('signature_ready', { outcome: userCancelled ? 'cancelled' : 'failed' })
             if (error instanceof SessionKeyGrantRequiredError) {
                 setErrorMessage(t('errors.cardAuthNeeded'))
-            } else if ((error as Error).toString().includes('not allowed')) {
+            } else if (userCancelled) {
                 // Looser than the classifier's 'not allowed by the user agent';
                 // kept as-is so this screen's matching doesn't narrow.
                 setErrorMessage(t('errors.confirmTransaction'), 'confirmTransaction')
@@ -573,6 +669,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             }
             setIsSuccess(false)
             setLoadingState('Idle')
+            finishAttempt(userCancelled ? 'cancelled' : 'failed')
             return
         }
 
@@ -587,6 +684,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                 signedArtifact.strategy === 'collateral-only'
                     ? ({
                           kind: 'rainWithdrawal' as const,
+                          clientPaymentAttemptId: telemetry.attemptId,
                           paymentLockCode: finalPaymentLock.code,
                           qrType: qrType ?? undefined,
                           signedRainWithdrawal: signedArtifact.rainWithdrawal,
@@ -594,6 +692,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                       } as const)
                     : ({
                           kind: 'userOp' as const,
+                          clientPaymentAttemptId: telemetry.attemptId,
                           paymentLockCode: finalPaymentLock.code,
                           qrType: qrType ?? undefined,
                           signedUserOp: signedArtifact.signedUserOp.signedUserOp,
@@ -606,9 +705,11 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                               ? { rainPreparationId: signedArtifact.rainPreparationId }
                               : {}),
                       } as const)
+            telemetry.stage('request_sent')
             const qrPaymentResponse = await submitSignedSpend(signedArtifact, () =>
                 mantecaApi.completeQrPaymentWithSignedTx(requestBody)
             )
+            telemetry.stage('response_received', { outcome: 'success' })
             // clear the timer since we got a response
             if (payingStateTimerRef.current) {
                 clearTimeout(payingStateTimerRef.current)
@@ -621,16 +722,20 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             }
 
             setQrPayment(qrPaymentResponse)
-            if (qrPaymentDisplayStatus(qrPaymentResponse.status) !== 'completed') {
+            const displayStatus = qrPaymentDisplayStatus(qrPaymentResponse.status)
+            if (displayStatus !== 'completed') {
                 setIsSuccess(false)
                 setLoadingState('Idle')
                 void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+                finishAttempt(attemptOutcomeForStatus(displayStatus))
                 return
             }
 
             // all eligible perks go through hold-to-claim — no auto-claiming.
             // this ensures a consistent reward experience regardless of amount.
 
+            // `success_committed` + `attempt_finished` fire from the isSuccess
+            // effect below: that is the commit, not this line.
             setIsSuccess(true)
             posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_SUCCEEDED, {
                 strategy: signedArtifact.strategy,
@@ -638,6 +743,11 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                 flow: 'sign-only',
             })
         } catch (error) {
+            // `response_received` is HTTP-level: an error response is still a
+            // response. A transport failure (timeout, offline) received
+            // nothing, so that stage is not reported at all. The money
+            // outcome is decided per branch below, never from a status code.
+            if (!isNetworkLayerFailure(error)) telemetry.stage('response_received', { outcome: 'failed' })
             // clear the timer on error to prevent race condition
             if (payingStateTimerRef.current) {
                 clearTimeout(payingStateTimerRef.current)
@@ -646,16 +756,21 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             if (wireErrorCode(error) === API_ERROR_CODES.MANTECA_TEMPORARILY_UNAVAILABLE) {
                 setErrorMessage(tErrors('transferTemporarilyUnavailable'))
                 setIsSuccess(false)
+                finishAttempt('failed')
                 return
             }
             if (wireErrorCode(error) === API_ERROR_CODES.QR_PAYMENT_CANCELLED) {
                 setErrorMessage(t('errors.paymentCancelled'))
                 setIsSuccess(false)
+                finishAttempt('cancelled')
                 return
             }
             // Wrong-passkey session: backend rejected the signed UserOp with
             // AA24 / wapk. Unrecoverable without re-auth — force a clean logout.
-            if (handleStaleSession(error)) return
+            if (handleStaleSession(error)) {
+                finishAttempt('failed')
+                return
+            }
             void captureNetworkTriagedFailure(error, {
                 tags: { ...criticalFlowTags('qr-pay'), qr_pay_step: 'submit' },
             })
@@ -664,10 +779,15 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             // Handle specific error cases
             if (errorMsg.toLowerCase().includes('nonce')) {
                 setErrorMessage(t('errors.accountStateChanged'))
+                finishAttempt('failed')
             } else if (errorMsg.toLowerCase().includes('expired') || errorMsg.toLowerCase().includes('stale')) {
                 setErrorMessage(t('errors.sessionExpired'))
+                finishAttempt('failed')
             } else {
+                // The screen says the status is unknown; so does the attempt.
+                // The backend may well have completed this payment.
                 setErrorMessage(t('errors.paymentStatusUnknown'))
+                finishAttempt('unknown')
             }
             setIsSuccess(false)
         } finally {
@@ -678,6 +798,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         tErrors,
         paymentLock,
         signSpend,
+        takePreparedSmartSpend,
         rainCardOverview,
         qrCode,
         currencyAmount,
@@ -750,6 +871,13 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     useEffect(() => {
         if (isSuccess) {
             queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+            // The commit: success state has rendered. Reported here, not where
+            // setIsSuccess was called, so the stage means what it says.
+            const telemetry = attemptTelemetryRef.current
+            if (telemetry) {
+                telemetry.stage('success_committed', { outcome: 'success' })
+                telemetry.stage('attempt_finished', { outcome: 'success' })
+            }
         }
     }, [isSuccess, queryClient])
 
