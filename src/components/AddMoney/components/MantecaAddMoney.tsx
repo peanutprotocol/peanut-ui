@@ -90,7 +90,7 @@ const MantecaAddMoney: FC = () => {
     // not "do they have an enabled rail elsewhere?" — read the identity
     // signal directly (Sumsub-cleared the human) instead of the old
     // rail-approval proxy. Same fix-pattern as Profile/ProfileEdit.
-    const { rails, nextActions } = useCapabilities()
+    const { rails, nextActions, isLoading: areCapabilitiesLoading } = useCapabilities()
     const { isVerified: isUserIdentityVerified } = useIdentityVerification()
     const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA', nextActions), [rails, nextActions])
     const currencyData = useCurrency(selectedCountry?.currency ?? 'ARS')
@@ -99,7 +99,22 @@ const MantecaAddMoney: FC = () => {
     // intent is passed at call time: handleInitiateKyc('LATAM')
     const sumsubFlow = useMultiPhaseKycFlow({})
     const [showKycModal, setShowKycModal] = useState(false)
+    // Dismissing the gate must not re-open it on the next render — same
+    // one-shot prompt contract as QrPayKycGateView's kycPromptDismissed.
+    const [kycGateDismissed, setKycGateDismissed] = useState(false)
     const isUserMantecaKycApprovedForCountry = selectedCountry ? isVerifiedForCountry(rails, selectedCountry.id) : false
+
+    // The gate comes before the amount: a user who cannot deposit should learn it
+    // on arrival, not after typing a number. The amount screen stays mounted
+    // underneath, so dismissing the drawer shows what Continue is waiting on.
+    // Wait for capabilities first — opening while they load flashes the gate at a
+    // verified user.
+    useEffect(() => {
+        if (areCapabilitiesLoading) return
+        if (isUserMantecaKycApprovedForCountry) return
+        if (kycGateDismissed) return
+        setShowKycModal(true)
+    }, [areCapabilitiesLoading, isUserMantecaKycApprovedForCountry, kycGateDismissed])
 
     // validates deposit amount against user's limits
     // currency comes from country config - hook normalizes it internally
@@ -169,6 +184,11 @@ const MantecaAddMoney: FC = () => {
         },
         [setUrlState, selectedCountry?.currency]
     )
+
+    const closeKycModal = useCallback(() => {
+        setShowKycModal(false)
+        setKycGateDismissed(true)
+    }, [])
 
     const handleAmountSubmit = useCallback(async () => {
         if (!selectedCountry?.currency) return
@@ -274,14 +294,14 @@ const MantecaAddMoney: FC = () => {
                     cooldownActive={!!sumsubFlow.errorCooldown}
                     prepPath="extended"
                     visible={showKycModal}
-                    onClose={() => setShowKycModal(false)}
+                    onClose={closeKycModal}
                     onVerify={async () => {
                         if (mantecaRejection.state === 'blocked') {
                             // blocked users cannot self-heal — route to support
                             if (typeof window !== 'undefined' && window.$crisp) {
                                 window.$crisp.push(['do', 'chat:open'])
                             }
-                            setShowKycModal(false)
+                            closeKycModal()
                             return
                         }
                         if (mantecaRejection.state === 'restart-identity') {
@@ -291,7 +311,7 @@ const MantecaAddMoney: FC = () => {
                         } else {
                             await sumsubFlow.handleInitiateKyc('LATAM', undefined, true, selectedCountry?.id)
                         }
-                        setShowKycModal(false)
+                        closeKycModal()
                     }}
                     isLoading={sumsubFlow.isLoading}
                     variant={
@@ -303,13 +323,15 @@ const MantecaAddMoney: FC = () => {
                                 ? 'provider_rejection'
                                 : isUserIdentityVerified
                                   ? 'cross_region'
-                                  : 'default'
+                                  : // not verified yet, and we know which country they came for:
+                                    // what they unlock is that country's transfers and payments
+                                    'country_payments'
                     }
                     providerMessage={mantecaRejection.userMessage ?? undefined}
                     reasonCode={mantecaRejection.reasonCode ?? undefined}
                     regionName={selectedCountry && localizedCountryTitle(locale, selectedCountry)}
                 />
-                <SumsubKycModals flow={sumsubFlow} onCooldownClose={() => setShowKycModal(false)} />
+                <SumsubKycModals flow={sumsubFlow} onCooldownClose={closeKycModal} />
                 <InputAmountStep
                     tokenAmount={displayedAmount}
                     setTokenAmount={handleUsdAmountChange}

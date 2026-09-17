@@ -1083,14 +1083,18 @@
         "bankDetailsAlternative": "Compartilhe os dados da sua conta bancária",
         "bankInstructions": {
             "title": "Permitir pagamento por transferência bancária",
-            "description": "Compartilhe seus dados bancários com quem abrir este link."
+            "description": "Compartilhe seus dados bancários com quem abrir este link.",
+            "anyonePays": "Qualquer pessoa pode pagar isto por transferência bancária.",
+            "businessPays": "Só empresas podem pagar isto por transferência bancária. A transferência de um amigo é devolvida.",
+            "unknownPays": "Uma transferência de outra pessoa não está confirmada nesta conta e pode ser devolvida."
         },
         "paidByBank": {
             "rowLabel": "Transferência bancária",
-            "receivedFull": "${received} recebidos",
             "receivedPartial": "${received} de ${requested} recebidos",
             "badgePaid": "Pago",
-            "badgePartial": "Pago em parte"
+            "badgePartial": "Pago em parte",
+            "paidByName": "Pago por {name}",
+            "paidByBank": "Pago por transferência bancária"
         }
     },
     "payment": {
@@ -1189,7 +1193,11 @@
             "referenceSection": "Referência",
             "referenceLabel": "Referência do pagamento",
             "referenceNote": "Adicione esta referência à sua transferência. Sem ela, o pagamento não é associado a esta solicitação.",
-            "unavailable": "A transferência bancária não está disponível para esta solicitação."
+            "unavailable": "A transferência bancária não está disponível para esta solicitação.",
+            "amountLabel": "Valor a enviar",
+            "amountValue": "{amount} {currency}",
+            "amountNote": "Pela cotação de hoje. Envie este valor e a solicitação fica paga.",
+            "amountNoteSameCurrency": "Envie este valor e a solicitação fica paga."
         }
     },
     "claim": {
@@ -2629,6 +2637,7 @@
             "descriptionProviderRejection": "Envie uma foto mais nítida do seu documento para continuar.",
             "descriptionCrossRegion": "Sua identidade já está verificada. Para ativar os pagamentos em {region}, precisamos confirmar mais alguns dados.",
             "descriptionCrossRegionGeneric": "Sua identidade já está verificada. Para ativar os pagamentos aqui, precisamos confirmar mais alguns dados.",
+            "descriptionCountryPayments": "Confirme seu documento para ativar as transferências bancárias e os pagamentos em {region}.",
             "descriptionRegionUnavailable": "Devido às regulamentações do Reino Unido, transferências bancárias não estão disponíveis para residentes do Reino Unido. Seu dinheiro está seguro — você pode sacá-lo como cripto a qualquer momento.",
             "titleBankUnavailable": "Indisponível no seu país",
             "descriptionBankUnavailable": "Transferências bancárias não estão disponíveis no seu país, então verificar seu documento não vai desbloqueá-las. Seu dinheiro está seguro e você ainda pode enviar e receber dinheiro de outras pessoas.",
@@ -4039,9 +4048,7 @@
             "BANK_TRANSFER_CO": {
                 "railName": "Bre-B",
                 "arrival": "Em minutos",
-                "arrivalDetail": "As transferências Bre-B costumam chegar em minutos.",
-                "residenceOnly": "Para residentes legais na Colômbia",
-                "residenceRequired": "Só residentes legais na Colômbia podem abrir esta conta. Sua nacionalidade não importa; o país onde você mora, sim."
+                "arrivalDetail": "As transferências Bre-B costumam chegar em minutos."
             }
         },
         "gate": {

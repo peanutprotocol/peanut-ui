@@ -1083,14 +1083,18 @@
         "bankDetailsAlternative": "Share your bank account details",
         "bankInstructions": {
             "title": "Let them pay by bank transfer",
-            "description": "Share your bank details with whoever opens this link."
+            "description": "Share your bank details with whoever opens this link.",
+            "anyonePays": "Anyone can pay this by bank transfer.",
+            "businessPays": "Only businesses can pay this by bank transfer. A friend's transfer is returned.",
+            "unknownPays": "A transfer from anyone but you is not confirmed on this account, and it may be returned."
         },
         "paidByBank": {
             "rowLabel": "Bank transfer",
-            "receivedFull": "${received} received",
             "receivedPartial": "${received} of ${requested} received",
             "badgePaid": "Paid",
-            "badgePartial": "Partly paid"
+            "badgePartial": "Partly paid",
+            "paidByName": "Paid by {name}",
+            "paidByBank": "Paid by bank transfer"
         }
     },
     "payment": {
@@ -1189,7 +1193,11 @@
             "referenceSection": "Reference",
             "referenceLabel": "Payment reference",
             "referenceNote": "Add this reference to your transfer. Without it the payment is not matched to this request.",
-            "unavailable": "Bank transfer is not available for this request."
+            "unavailable": "Bank transfer is not available for this request.",
+            "amountLabel": "Amount to send",
+            "amountValue": "{amount} {currency}",
+            "amountNote": "At today’s rate. Send this amount and the request is marked paid.",
+            "amountNoteSameCurrency": "Send this amount and the request is marked paid."
         }
     },
     "claim": {
@@ -2629,6 +2637,7 @@
             "descriptionProviderRejection": "Please upload a clearer photo of your ID to continue.",
             "descriptionCrossRegion": "Your identity is already verified. To turn on payments in {region}, we need to confirm a few more details.",
             "descriptionCrossRegionGeneric": "Your identity is already verified. To turn on payments here, we need to confirm a few more details.",
+            "descriptionCountryPayments": "Confirm your ID to turn on bank transfers and payments in {region}.",
             "descriptionRegionUnavailable": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime.",
             "titleBankUnavailable": "Not available in your country",
             "descriptionBankUnavailable": "Bank transfers aren't available in your country, so an ID check wouldn't unlock them. Your funds are safe, and you can still send and receive money with other people.",
@@ -4039,9 +4048,7 @@
             "BANK_TRANSFER_CO": {
                 "railName": "Bre-B",
                 "arrival": "Within minutes",
-                "arrivalDetail": "Bre-B transfers usually arrive within minutes.",
-                "residenceOnly": "For legal residents of Colombia",
-                "residenceRequired": "Only legal residents of Colombia can open this account. Your nationality does not matter — where you live does."
+                "arrivalDetail": "Bre-B transfers usually arrive within minutes."
             }
         },
         "gate": {
