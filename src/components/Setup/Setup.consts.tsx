@@ -60,8 +60,7 @@ export const setupSteps: ISetupStep[] = [
         component: SignTestTransaction,
         showBackButton: false,
         showSkipButton: false,
-        // The view renders the description itself: the confirm prompt before
-        // signing, the account-ready celebration after.
+        // The view renders the confirmation prompt itself.
         descriptionInView: true,
         // items-end, like every other signup step — centering this one alone
         // left its copy off the setup flow's left-aligned column.
