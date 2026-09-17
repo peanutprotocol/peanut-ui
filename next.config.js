@@ -456,6 +456,22 @@ let nextConfig = {
                     },
                 ],
             },
+            // Mandatory-update policy (src/utils/client-support.ts). Never
+            // cached: a stale floor is either a block nobody lifted or a
+            // client that keeps running after the floor moved. Native reads
+            // it cross-origin from capacitor://localhost (iOS) and
+            // https://localhost (Android); it is public data with no
+            // credentials, so a wildcard origin is the right answer.
+            {
+                source: '/client-support.json',
+                headers: [
+                    { key: 'Content-Type', value: 'application/json' },
+                    { key: 'Cache-Control', value: 'no-store, max-age=0' },
+                    { key: 'Access-Control-Allow-Origin', value: '*' },
+                    { key: 'Access-Control-Allow-Methods', value: 'GET' },
+                    { key: 'X-Robots-Tag', value: 'noindex' },
+                ],
+            },
 
             {
                 source: '/:path*',

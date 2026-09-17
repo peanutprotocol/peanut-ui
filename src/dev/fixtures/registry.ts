@@ -663,6 +663,25 @@ export const FIXTURES: Record<string, Fixture> = {
     },
 
     // ---------------------------------------------------------------------
+    // Mandatory update (TASK-22490). The gate reads `GET /client-support.json`
+    // straight from this registry (utils/client-support.ts), before any API
+    // call and before the wallet providers mount, so the route behind it never
+    // renders. Web only: the native restart/store variants need a device.
+    // ---------------------------------------------------------------------
+    'update-required': {
+        route: '/home',
+        about: 'Required update: the running generation is below every platform floor, so the app tree never mounts.',
+        responses: {
+            'GET /client-support.json': { schemaVersion: 1, minimumGeneration: { web: 99, ios: 99, android: 99 } },
+        },
+    },
+    'update-check-failed': {
+        route: '/home',
+        about: 'The support policy cannot be read and nothing is cached: retry screen instead of the wallet tree.',
+        fails: ['GET /client-support.json'],
+    },
+
+    // ---------------------------------------------------------------------
     // Error states.
     // ---------------------------------------------------------------------
     'error-history': {

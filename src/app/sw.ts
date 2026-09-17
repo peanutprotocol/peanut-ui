@@ -40,6 +40,15 @@ const serwist = new Serwist({
             matcher: ({ url }) => url.pathname.startsWith('/relay/'),
             handler: new NetworkOnly(),
         },
+        // The mandatory-update policy. defaultCache's `.json` rule is
+        // NetworkFirst with a day-long cache, and a strategy answers from its
+        // cache whatever `cache: 'no-store'` the page asked for — so a device
+        // that just went offline would read yesterday's floor. The page keeps
+        // its own last validated copy; the worker must never keep one.
+        {
+            matcher: ({ url }) => url.pathname === '/client-support.json',
+            handler: new NetworkOnly(),
+        },
         ...defaultCache,
     ],
     disableDevLogs: false,

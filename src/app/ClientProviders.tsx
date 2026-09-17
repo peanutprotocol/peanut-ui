@@ -6,6 +6,7 @@
  * groups all client providers in one place, keeping the root layout clean.
  * the root layout (server component) renders this single client boundary.
  */
+import { ClientSupportGate } from '@/components/Global/ClientSupportGate'
 import { ConsoleGreeting } from '@/components/Global/ConsoleGreeting'
 import { ScreenOrientationLocker } from '@/components/Global/ScreenOrientationLocker'
 import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
@@ -93,27 +94,34 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
         <OtaUpdateProvider>
             <PathnamePageviewTracker />
             <NuqsAdapter>
-                <PeanutProvider>
-                    {/* Must sit ABOVE ContextProvider: TokenContextProvider → useWallet
-                        → useSendMoney calls useTranslations, so the intl context has to
-                        exist by the time ContextProvider renders. */}
-                    <IntlProvider>
-                        <ContextProvider>
-                            <FooterVisibilityProvider>
-                                <TranslationSafeWrapper>
-                                    <ConsoleGreeting />
-                                    <ScreenOrientationLocker />
-                                    {HarnessBootstrap && (
-                                        <Suspense fallback={null}>
-                                            <HarnessBootstrap />
-                                        </Suspense>
-                                    )}
-                                    {marketing ? children : <AppGlobals>{children}</AppGlobals>}
-                                </TranslationSafeWrapper>
-                            </FooterVisibilityProvider>
-                        </ContextProvider>
-                    </IntlProvider>
-                </PeanutProvider>
+                {/* Below the OTA provider (its update screen restarts onto a
+                    staged bundle) and above PeanutProvider, whose
+                    AppStateProviders chunk is where the API-dependent wallet
+                    providers live: an unsupported client mounts none of them.
+                    Marketing routes are not gated. */}
+                <ClientSupportGate enabled={!marketing}>
+                    <PeanutProvider>
+                        {/* Must sit ABOVE ContextProvider: TokenContextProvider → useWallet
+                            → useSendMoney calls useTranslations, so the intl context has to
+                            exist by the time ContextProvider renders. */}
+                        <IntlProvider>
+                            <ContextProvider>
+                                <FooterVisibilityProvider>
+                                    <TranslationSafeWrapper>
+                                        <ConsoleGreeting />
+                                        <ScreenOrientationLocker />
+                                        {HarnessBootstrap && (
+                                            <Suspense fallback={null}>
+                                                <HarnessBootstrap />
+                                            </Suspense>
+                                        )}
+                                        {marketing ? children : <AppGlobals>{children}</AppGlobals>}
+                                    </TranslationSafeWrapper>
+                                </FooterVisibilityProvider>
+                            </ContextProvider>
+                        </IntlProvider>
+                    </PeanutProvider>
+                </ClientSupportGate>
             </NuqsAdapter>
         </OtaUpdateProvider>
     )

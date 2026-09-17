@@ -29,6 +29,7 @@
         "gen:api": "openapi-typescript src/types/api.openapi.json -o src/types/api.generated.ts && prettier --write src/types/api.generated.ts",
         "gen:api:live": "curl -sSf ${PEANUT_API_OPENAPI_URL:-http://localhost:5050/openapi.json} | python3 -m json.tool > src/types/api.openapi.json && pnpm gen:api",
         "check:api": "pnpm gen:api && git diff --exit-code src/types/api.generated.ts",
+        "check:client-support": "node scripts/client-support-policy.mjs check",
         "test": "jest",
         "screens:test": "node --test scripts/screens/*.test.mjs",
         "test:watch": "jest --watch",
