@@ -273,6 +273,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
             isPeer={transaction.isPeerActuallyUser}
             isLinkTransaction={isLinkTx}
             transactionType={type}
+            status={status}
             context="card"
             size="extra-small"
             countryCode={getBankAccountCountryCode(transaction.bankAccountDetails, transaction.currency?.code)}

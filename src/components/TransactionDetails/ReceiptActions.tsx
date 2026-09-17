@@ -226,7 +226,7 @@ export function ReceiptActions({
         <>
             {/* share and cancel buttons section (only if qr is shown) */}
             {shouldShowQrShare && transaction.extraDataForDrawer?.link && (
-                <div className="flex flex-col gap-2 pr-1 print:hidden">
+                <div className="flex flex-col gap-2 print:hidden">
                     <ShareButton url={transaction.extraDataForDrawer.link} title={t('actions.shareLinkTitle')}>
                         {t('actions.shareLink')}
                     </ShareButton>
@@ -257,24 +257,22 @@ export function ReceiptActions({
             )}
 
             {isPendingRequester && setIsLoading && onClose && (
-                <div className="pr-1">
-                    <Button
-                        icon="ban"
-                        iconSize={18}
-                        loading={isLoading}
-                        disabled={isLoading}
-                        onClick={handleCloseRequest}
-                        variant="stroke"
-                        shadowSize="4"
-                        className="flex w-full items-center gap-1"
-                    >
-                        {transaction.totalAmountCollected > 0 ? t('actions.closeRequest') : t('actions.cancelRequest')}
-                    </Button>
-                </div>
+                <Button
+                    icon="ban"
+                    iconSize={18}
+                    loading={isLoading}
+                    disabled={isLoading}
+                    onClick={handleCloseRequest}
+                    variant="stroke"
+                    shadowSize="4"
+                    className="flex w-full items-center gap-1"
+                >
+                    {transaction.totalAmountCollected > 0 ? t('actions.closeRequest') : t('actions.cancelRequest')}
+                </Button>
             )}
 
             {isPendingRequestee && setIsLoading && onClose && (
-                <div className="flex flex-col gap-2 pr-1">
+                <div className="flex flex-col gap-2">
                     <Button onClick={handlePay} shadowSize="4" className="flex w-full items-center gap-1">
                         <Icon name="currency" size={20} />
                         {t('actions.pay')}
@@ -296,7 +294,7 @@ export function ReceiptActions({
             {/* the final-state cta group (S/8 inside one action area): the one
                 primary, then the overflow trigger */}
             {(showSplitCta || sharePrimary || showMoreActionsButton) && (
-                <div className="flex flex-col gap-2 pr-1 print:hidden">
+                <div className="flex flex-col gap-2 print:hidden">
                     {showSplitCta && (
                         <Button
                             onClick={() =>
@@ -349,7 +347,7 @@ export function ReceiptActions({
                 support sits in the same tight group (S/8) — the link wrapper
                 reserves its own 44px target so the two cannot overlap */}
             {isPublic && canDownloadPdf && kind && (
-                <div className="flex flex-col gap-2 pr-1 print:hidden">
+                <div className="flex flex-col gap-2 print:hidden">
                     <DownloadReceiptPdfLink entryId={transaction.id} kind={kind} />
                     {isTest ? <PasskeyDocsLink className="border-t-0 pt-0" /> : <ReceiptSupportLink />}
                 </div>

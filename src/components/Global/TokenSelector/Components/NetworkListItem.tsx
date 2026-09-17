@@ -38,9 +38,7 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
             key={chainId}
             type="button"
             variant="transparent"
-            className={twMerge(
-                'w-full transform-none rounded-sm p-0 text-left shadow-sm hover:transform-none focus:outline-none focus-visible:ring-2 focus-visible:ring-action-primary'
-            )}
+            className={twMerge('w-full transform-none rounded-sm p-0 text-left shadow-sm hover:transform-none')}
             onClick={isComingSoon ? undefined : onClick}
             disabled={isComingSoon}
             aria-pressed={isSelected}
@@ -49,7 +47,7 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
                 position="single"
                 className={twMerge(
                     'w-full !overflow-visible border-border-default p-4',
-                    isSelected && !isComingSoon ? 'bg-action-primary/10' : 'bg-background-default',
+                    isSelected && !isComingSoon ? 'bg-action-primary' : 'bg-background-default',
                     isComingSoon && 'bg-background-disabled'
                 )}
                 border={true}

@@ -30,7 +30,7 @@ import { payLinkUrl, shareableUrl } from '@/utils/url.utils'
 export const useCreateRequestLink = () => {
     const t = useTranslations('request')
     const toast = useToast()
-    const { address, isConnected, spendableBalance: balance, formattedSpendableBalance } = useWallet()
+    const { address, isConnected } = useWallet()
     const { user } = useAuth()
     const { selectedChainID, setSelectedChainID, selectedTokenAddress, setSelectedTokenAddress, selectedTokenData } =
         useContext(tokenSelectorContext)
@@ -73,13 +73,6 @@ export const useCreateRequestLink = () => {
 
     // Refs for cleanup
     const createLinkAbortRef = useRef<AbortController | null>(null)
-
-    // Derived state — displayed total spendable, single-sourced + formatted by the
-    // hook; empty while loading so we don't flash "$0.00".
-    const peanutWalletBalance = useMemo(
-        () => (balance === undefined ? '' : formattedSpendableBalance),
-        [balance, formattedSpendableBalance]
-    )
 
     const _usdValue = useMemo(() => {
         if (!selectedTokenData?.price || !tokenValue) return ''
@@ -375,7 +368,6 @@ export const useCreateRequestLink = () => {
         requestId,
         isCreatingLink,
         isUpdatingRequest,
-        peanutWalletBalance,
         qrCodeLink,
         handleTokenValueChange,
         handleAttachmentOptionsChange,
