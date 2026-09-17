@@ -68,7 +68,7 @@ export function RewardsPage() {
         console.error('Error loading points data:', tierInfoError ?? { tierInfoSettledWithoutData: tierInfo })
 
         return (
-            <div className="mx-auto mt-6 w-full space-y-3 md:max-w-2xl">
+            <div className="mx-auto space-y-3 mt-6 w-full md:max-w-2xl">
                 <EmptyState icon="alert" title={t('loadPointsFailed')} description={t('contactSupport')} />
             </div>
         )
@@ -78,7 +78,7 @@ export function RewardsPage() {
         <PageContainer className="flex flex-col">
             <NavHeader title={t('title')} onPrev={onBack} />
 
-            <section className="mx-auto mb-auto mt-10 w-full space-y-4">
+            <section className="mx-auto space-y-4 mt-10 mb-auto w-full">
                 {/* rewards hero — pending claimable as primary, lifetime as secondary */}
                 <Card className="flex flex-col gap-4 p-6">
                     {cashStatus?.success &&
@@ -96,16 +96,16 @@ export function RewardsPage() {
                                             <h2 className="text-heading-l text-foreground-primary">
                                                 ${pendingUsd.toFixed(2)}
                                             </h2>
-                                            <p className="text-body-s text-foreground-secondary text-center">
+                                            <p className="text-center text-body-s text-foreground-secondary">
                                                 {t('pendingCallout')}
                                             </p>
                                         </>
                                     ) : (
-                                        <p className="text-body-s text-foreground-secondary text-center">
+                                        <p className="text-center text-body-s text-foreground-secondary">
                                             {t('noPendingRewards')}
                                         </p>
                                     )}
-                                    <p className="text-body-s text-foreground-secondary mt-2 text-center">
+                                    <p className="mt-2 text-center text-body-s text-foreground-secondary">
                                         {t('lifetimeRewards', { amount: `$${lifetimeUsd.toFixed(2)}` })}
                                     </p>
                                 </div>
@@ -121,7 +121,7 @@ export function RewardsPage() {
                         {t('inviteNow')}
                     </Button>
 
-                    <div className="border-border-disabled border-t" />
+                    <div className="border-t border-border-disabled" />
 
                     <div className="flex flex-col gap-2">
                         <div className="flex items-center justify-center gap-2">
@@ -148,9 +148,9 @@ export function RewardsPage() {
                                 width={20}
                                 height={20}
                             />
-                            <div className="bg-background-disabled relative h-1 flex-1 overflow-hidden rounded-full">
+                            <div className="relative h-1 flex-1 overflow-hidden rounded-full bg-background-disabled">
                                 <div
-                                    className="from-action-primary to-action-primary-hover duration-slow h-full rounded-full bg-gradient-to-r transition-all"
+                                    className="h-full rounded-full bg-gradient-to-r from-action-primary to-action-primary-hover transition-all duration-slow"
                                     style={{
                                         width: `${getTierProgressPercent(
                                             tierInfo.data.currentTier,
@@ -170,7 +170,7 @@ export function RewardsPage() {
                             )}
                         </div>
                         {tierInfo?.data.currentTier < 2 && (
-                            <p className="text-body-xs text-foreground-secondary text-center">
+                            <p className="text-center text-body-xs text-foreground-secondary">
                                 {t('pointsToNextTier', { count: tierInfo.data.pointsToNextTier })}
                             </p>
                         )}
@@ -184,8 +184,8 @@ export function RewardsPage() {
                         <h2 className="text-body-m-semibold">{t('howItWorks.title')}</h2>
                         <ol className="flex flex-col gap-2">
                             {(['step1', 'step2', 'step3', 'step4'] as const).map((step, i) => (
-                                <li key={step} className="text-body-s flex items-start gap-3">
-                                    <span className="bg-action-secondary text-label-m flex size-5 shrink-0 items-center justify-center rounded-full border border-black">
+                                <li key={step} className="flex items-start gap-3 text-body-s">
+                                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full border border-black bg-action-secondary text-label-m">
                                         {i + 1}
                                     </span>
                                     <span>{t(`howItWorks.${step}`)}</span>
@@ -212,13 +212,13 @@ export function RewardsPage() {
                                 />
                             </Card>
                         )}
-                        <p className="text-body-s text-center">
+                        <p className="text-center text-body-s">
                             {user?.invitedBy && (
                                 <>
                                     <button
                                         type="button"
                                         onClick={() => router.push(profileUrl(user.invitedBy!))}
-                                        className="focus-visible:outline-action-focus inline-flex cursor-pointer items-center gap-1 font-bold focus-visible:outline-[3px]"
+                                        className="inline-flex cursor-pointer items-center gap-1 font-bold focus-visible:outline-[3px] focus-visible:outline-action-focus"
                                     >
                                         {user.invitedBy} <Icon name="invite-heart" size={16} />
                                     </button>{' '}
@@ -234,8 +234,8 @@ export function RewardsPage() {
                 {/* if user has invites: show button above people list */}
                 {isInvitesPending ? (
                     <Card className="!mt-8 p-4" aria-busy="true">
-                        <div className="bg-background-disabled h-5 w-40 animate-pulse rounded" />
-                        <div className="bg-background-disabled mt-4 h-12 w-full animate-pulse rounded" />
+                        <div className="h-5 w-40 animate-pulse rounded bg-background-disabled" />
+                        <div className="mt-4 h-12 w-full animate-pulse rounded bg-background-disabled" />
                     </Card>
                 ) : isInvitesError ? (
                     <EmptyState
@@ -249,7 +249,7 @@ export function RewardsPage() {
                         {/* people you invited */}
                         <button
                             type="button"
-                            className="focus-visible:outline-action-focus flex min-h-11 w-full cursor-pointer items-center justify-between text-left focus-visible:outline-[3px]"
+                            className="flex min-h-11 w-full cursor-pointer items-center justify-between text-left focus-visible:outline-[3px] focus-visible:outline-action-focus"
                             onClick={() => router.push('/rewards/invites')}
                         >
                             <h2 className="text-heading-card text-foreground-primary">{t('peopleYouInvited')}</h2>
@@ -269,7 +269,7 @@ export function RewardsPage() {
                                         key={invite.inviteeId}
                                         position={getCardPosition(i, Math.min(5, invites.invitees.length))}
                                         onClick={() => router.push(profileUrl(username))}
-                                        className="focus-visible:outline-action-focus cursor-pointer focus-visible:outline-[3px]"
+                                        className="cursor-pointer focus-visible:outline-[3px] focus-visible:outline-action-focus"
                                     >
                                         <div className="flex items-center justify-between gap-4">
                                             <div className="flex items-center gap-3">
@@ -288,7 +288,7 @@ export function RewardsPage() {
                                                     size="small"
                                                 />
                                             </div>
-                                            <div className="font-roboto text-body-m min-w-0 flex-1 truncate">
+                                            <div className="min-w-0 flex-1 truncate font-roboto text-body-m">
                                                 <VerifiedUserLabel
                                                     name={displayName}
                                                     username={username}
