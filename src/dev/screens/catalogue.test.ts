@@ -17,6 +17,7 @@ describe('screen catalogue', () => {
                 'h02-settings',
                 'fixture-setup-pending',
                 'p50-setup-session',
+                'p51-setup-finish',
             ].filter((id) => ids.has(id))
         ).toEqual([])
         expect(
@@ -38,7 +39,7 @@ describe('screen catalogue', () => {
 
     it('orders setup screens by their product journey and keeps rewards invites in Rewards', () => {
         const setupIds = SCREENS.filter(({ flow }) => flow === 'Setup and login').map(({ id }) => id)
-        expect(setupIds.slice(0, 9)).toEqual([
+        expect(setupIds.slice(0, 8)).toEqual([
             '01-a-landing',
             '06-a-signup',
             '03-a-residence-select',
@@ -47,7 +48,6 @@ describe('screen catalogue', () => {
             '09-a-passkeyinfomodal',
             '05-a-signtesttransaction',
             '20-a-setupnotificationsmodal',
-            'p51-setup-finish',
         ])
         expect(SCREENS.find(({ id }) => id === 'fixture-rewards-invites')?.flow).toBe('Rewards')
         expect(SCREENS.every((screen, index) => index === 0 || SCREENS[index - 1].order < screen.order)).toBe(true)

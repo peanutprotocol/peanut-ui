@@ -104,7 +104,6 @@ PAGE_CAPTURES.push(
     { id: 'p44-card-add-to-wallet', name: 'Add card to wallet', route: '/card/add-to-wallet' },
     { id: 'p46-card-signature', name: 'Repair card signature', route: '/fix-card-signature' },
     { id: 'p47-pay-request', name: 'Pay a request', route: '/pay-request?id=synthetic-request' },
-    { id: 'p51-setup-finish', name: 'Setup completion', route: '/setup/finish' },
     { id: 'p52-kyc-success', name: 'Verification success', route: '/kyc/success' },
     { id: 'p53-maintenance', name: 'Maintenance', route: '/maintenance' },
     { id: 'p55-send-recipient', name: 'Send to a recipient', route: '/send/demo' },
