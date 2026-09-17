@@ -19,6 +19,65 @@ function run(guard, branch) {
     })
 }
 
+function promotionShell() {
+    const workflow = fs.readFileSync(path.join(workflowsDir, 'release-ota.yml'), 'utf8')
+    const step = workflow.indexOf('- name: Promote verified bundles to platform production')
+    const runStart = workflow.indexOf('run: |', step)
+    const nextStep = workflow.indexOf('\n            - name:', runStart)
+    return workflow
+        .slice(runStart + 'run: |\n'.length, nextStep)
+        .split('\n')
+        .map((line) => line.replace(/^ {18}/, ''))
+        .join('\n')
+}
+
+function runPromotion({ firstMainSha, staleAfterFirst = false }) {
+    const dir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'ota-main-guard-'))
+    const gitCalls = path.join(dir, 'git-calls')
+    const nodeCalls = path.join(dir, 'node-calls')
+    const expectedMainSha = 'a'.repeat(40)
+    const staleMainSha = 'b'.repeat(40)
+    const script = `
+        git() {
+            if [ "$1" = "ls-remote" ]; then
+                COUNT=0
+                if [ -f "$GIT_CALLS_FILE" ]; then COUNT="$(cat "$GIT_CALLS_FILE")"; fi
+                COUNT=$((COUNT + 1))
+                printf '%s' "$COUNT" > "$GIT_CALLS_FILE"
+                if [ "$COUNT" -eq 1 ]; then
+                    printf '%s\\trefs/heads/main\\n' "$FIRST_MAIN_SHA"
+                elif [ "$STALE_AFTER_FIRST" = true ]; then
+                    printf '%s\\trefs/heads/main\\n' "$STALE_MAIN_SHA"
+                else
+                    printf '%s\\trefs/heads/main\\n' "$EXPECTED_MAIN_SHA"
+                fi
+            else
+                command git "$@"
+            fi
+        }
+        node() { printf '%s\\n' "$*" >> "$NODE_CALLS_FILE"; }
+        ${promotionShell()}
+    `
+    const result = spawnSync('bash', ['-euo', 'pipefail', '-c', script], {
+        encoding: 'utf8',
+        env: {
+            ...process.env,
+            RELEASE_VERSION: '1.6.4',
+            FLOOR_ANDROID: '1.6.0',
+            FLOOR_IOS: '1.5.0',
+            EXPECTED_MAIN_SHA: expectedMainSha,
+            FIRST_MAIN_SHA: firstMainSha,
+            STALE_MAIN_SHA: staleMainSha,
+            STALE_AFTER_FIRST: String(staleAfterFirst),
+            GIT_CALLS_FILE: gitCalls,
+            NODE_CALLS_FILE: nodeCalls,
+        },
+    })
+    const calls = fs.existsSync(nodeCalls) ? fs.readFileSync(nodeCalls, 'utf8').trim().split('\n').filter(Boolean) : []
+    fs.rmSync(dir, { recursive: true, force: true })
+    return { ...result, calls }
+}
+
 /*
  * A production OTA reaches every shipped install, and there is exactly one ref
  * it may come from. `dev` and `main` both looked shippable at dispatch time and
@@ -60,6 +119,21 @@ describe('release-ota.yml ships from main only', () => {
         expect(workflow.match(/git ls-remote origin refs\/heads\/main/g)).toHaveLength(2)
         expect(workflow).toContain('EXPECTED_MAIN_SHA: ${{ github.sha }}')
         expect(workflow).toContain('guard_current_main\n                    # Bundle selection and rollout disablement')
+    })
+
+    it('stops before any Capgo mutation when main advanced before the first platform', () => {
+        const result = runPromotion({ firstMainSha: 'b'.repeat(40) })
+
+        expect(result.status).toBe(1)
+        expect(result.calls).toEqual([])
+    })
+
+    it('stops before the second platform when main advances between promotions', () => {
+        const result = runPromotion({ firstMainSha: 'a'.repeat(40), staleAfterFirst: true })
+
+        expect(result.status).toBe(1)
+        expect(result.calls.filter((call) => call.includes('promote-production'))).toHaveLength(1)
+        expect(result.calls.filter((call) => call.includes('verify-production'))).toHaveLength(1)
     })
 })
 
