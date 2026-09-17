@@ -53,6 +53,7 @@ jest.mock('../useReceiptPdfFile', () => ({
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }),
 }))
+jest.mock('../useReceiptReferralAction', () => ({ useReceiptReferralAction: () => null }))
 jest.mock('@/components/Setup/Views/SignTestTransaction', () => ({ PasskeyDocsLink: () => null }))
 jest.mock('../provider-actions/CancelDepositActions', () => ({ CancelDepositActions: () => null }))
 jest.mock('../ReceiptSupportLink', () => ({ ReceiptSupportLink: () => <div data-testid="support-link" /> }))

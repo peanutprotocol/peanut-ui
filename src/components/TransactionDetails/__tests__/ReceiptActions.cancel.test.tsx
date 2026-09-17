@@ -53,7 +53,7 @@ jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 jest.mock('@/components/Global/ShareButton', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Setup/Views/SignTestTransaction', () => ({ PasskeyDocsLink: () => null }))
 jest.mock('../provider-actions/CancelDepositActions', () => ({ CancelDepositActions: () => null }))
-jest.mock('../ReceiptReferralNudge', () => ({ ReceiptReferralNudge: () => null }))
+jest.mock('../useReceiptReferralAction', () => ({ useReceiptReferralAction: () => null }))
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }),
 }))

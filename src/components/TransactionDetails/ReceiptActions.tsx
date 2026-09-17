@@ -15,6 +15,7 @@ import { ReceiptSupportLink } from './ReceiptSupportLink'
 import { DownloadReceiptPdfLink } from './DownloadReceiptPdfLink'
 import { ReceiptMoreActionsDrawer, type ReceiptMoreAction } from './ReceiptMoreActionsDrawer'
 import { useReceiptPdfFile } from './useReceiptPdfFile'
+import { useReceiptReferralAction } from './useReceiptReferralAction'
 import { type ReceiptViewModel } from './useReceiptViewModel'
 import { useReceiptActions } from './useReceiptActions'
 import { type TransactionDetails } from './transactionTransformer'
@@ -97,6 +98,13 @@ export function ReceiptActions({
     // scope — private-kind finals fetch eagerly with the stored bearer.
     const pdfFile = useReceiptPdfFile({ entryId: transaction.id, kind: kind ?? '', prefetch: canSharePdf })
     const shareReceiptUrl = useShareAction({ url: receiptUrl ?? '' })
+    // invite row (TASK-22452 item 5): pre-#3159 eligibility, impression only
+    // while the drawer is open with the row visible
+    const referralAction = useReceiptReferralAction(transaction, {
+        isPublic,
+        drawerOpen: showMoreActions,
+        onSelect: () => setShowMoreActions(false),
+    })
 
     const handleCloseRequest = async () => {
         if (!setIsLoading || !onClose) return
@@ -185,6 +193,9 @@ export function ReceiptActions({
                 disabled: canSharePdf && pdfFile.unavailable,
                 'data-testid': 'more-action-download',
             })
+        }
+        if (referralAction && (showSplitCta || sharePrimary)) {
+            moreActions.push(referralAction)
         }
         if (!isTest && (showSplitCta || sharePrimary)) {
             moreActions.push({
