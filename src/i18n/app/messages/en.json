@@ -1976,11 +1976,12 @@
     "transaction": {
         "drawerTitle": "Transaction Details",
         "officialReceipt": {
-            "issuedBy": "Issued by Squirrel Labs Ltd",
+            "issuedBy": "Issued by:",
             "reference": "Reference",
             "issuedOn": "Issued on",
             "pdf": {
                 "title": "Transaction Receipt",
+                "issuedBy": "Issued by Squirrel Labs Ltd",
                 "type": "Type",
                 "status": "Status",
                 "from": "From"

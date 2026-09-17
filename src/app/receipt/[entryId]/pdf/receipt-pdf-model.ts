@@ -199,7 +199,7 @@ export function buildReceiptPdfModel(
 
     return {
         title: t('transaction.officialReceipt.pdf.title'),
-        issuedBy: t('transaction.officialReceipt.issuedBy'),
+        issuedBy: t('transaction.officialReceipt.pdf.issuedBy'),
         companyName: RECEIPT_COMPANY.name,
         companyAddressLines: RECEIPT_COMPANY.addressLines,
         site: RECEIPT_COMPANY.site,
