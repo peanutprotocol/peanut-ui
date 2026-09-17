@@ -123,9 +123,17 @@ const HistoryPage = () => {
                 }
             }
 
-            // A filtered view only takes entries inside its window — everything
-            // else still refreshes the balance below.
-            const withinActiveRange = !hasActiveRange || isInRange(new Date(completedEntry.timestamp))
+            // Match the server's creation-time filter, even when settlement changes the display timestamp.
+            const activityDate =
+                completedEntry.createdAt ??
+                (completedEntry.extraData?.kind === 'PERK_REWARD' ? completedEntry.timestamp : undefined)
+            const withinActiveRange = !hasActiveRange || (activityDate && isInRange(new Date(activityDate)))
+            if (hasActiveRange && !activityDate) {
+                // Older event payloads need the server to decide period membership.
+                queryClient.invalidateQueries({
+                    queryKey: [TRANSACTIONS, 'infinite', { limit: 20, from: fromIso, to: toIso }],
+                })
+            }
 
             // Update TanStack Query cache with processed transaction
             if (withinActiveRange)
