@@ -1,6 +1,5 @@
 import { Children, isValidElement, type ReactNode } from 'react'
 import { FAQsPanel } from '@/components/Global/FAQs'
-import PeanutsBG from '@/assets/illustrations/peanuts-bg.svg'
 import { JsonLd } from '@/components/Marketing/JsonLd'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
@@ -35,8 +34,10 @@ function extractText(node: ReactNode): string {
 }
 
 /**
- * MDX FAQ component. Purple section with peanut pattern overlay,
- * animated accordion, and FAQPage JSON-LD. Matches LP styling exactly.
+ * MDX FAQ component: the FAQ panel plus FAQPage JSON-LD. Matches LP styling.
+ *
+ * It used to sit in a purple peanut-pattern section. FAQsPanel paints its own
+ * opaque, full-width background on top, so none of it was ever visible.
  */
 export function FAQ({ title, children, locale = DEFAULT_LOCALE }: FAQProps) {
     const heading = title ?? getTranslations(locale).faqTitle
@@ -68,17 +69,7 @@ export function FAQ({ title, children, locale = DEFAULT_LOCALE }: FAQProps) {
     }
 
     return (
-        <section
-            className="overflow-x-hidden"
-            style={{
-                // #6340df has no DS token (purple-600 #9333ea is a visible hue
-                // shift) — parity kept; mapping is a needs-decision item
-                backgroundColor: '#6340df',
-                backgroundImage: `url(${PeanutsBG.src})`,
-                backgroundSize: '10rem auto',
-                backgroundRepeat: 'repeat',
-            }}
-        >
+        <section className="overflow-x-hidden">
             <FAQsPanel heading={heading} questions={questions} />
             <JsonLd data={faqSchema} />
         </section>
