@@ -333,7 +333,7 @@ export const BottomNav = () => {
                     triggerHaptic()
                     setIsQRScannerOpen(true)
                 }}
-                className="flex size-13 shrink-0 items-center justify-center rounded-round border border-border-button bg-action-primary text-foreground-primary shadow-4 transition-transform duration-instant active:scale-95 disabled:opacity-40"
+                className="flex size-13 shrink-0 items-center justify-center rounded-round border border-border-button bg-action-primary text-foreground-primary shadow-4 disabled:opacity-40"
             >
                 <Icon name="qr-code" size={24} />
             </button>

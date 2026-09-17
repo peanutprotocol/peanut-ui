@@ -1,7 +1,6 @@
 'use client'
 
 import Image from 'next/image'
-import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 // dark wordmark: the light one is white glyphs on this white page (TASK-22452)
 import PEANUT_LOGO from '@/assets/logos/peanut-logo-dark.svg'
@@ -28,8 +27,8 @@ export function ReceiptUnavailable({
 
     return (
         <div className="flex w-full max-w-md flex-col items-center gap-6 text-center">
-            <Image src={PEANUT_LOGO} alt={tNav('peanutLogoAlt')} className="w-28" />
-            <Card position="single" className="space-y-2 w-full px-6 py-8">
+            <Image src={PEANUT_LOGO} alt={tNav('peanutLogoAlt')} className="h-6 w-auto" />
+            <Card position="single" className="space-y-2 w-full">
                 <h1 className="text-heading-card text-foreground-primary">
                     {variant === 'gone' ? t('title') : t('loadFailedTitle')}
                 </h1>
@@ -46,11 +45,13 @@ export function ReceiptUnavailable({
                     {tCommon('retry')}
                 </Button>
             )}
-            <Link href="/home" className="w-full print:hidden">
-                <Button variant={variant === 'loadFailed' ? 'primary-soft' : 'purple'} className="w-full">
-                    {tCommon('goToHome')}
-                </Button>
-            </Link>
+            <Button
+                href="/home"
+                variant={variant === 'loadFailed' ? 'stroke' : 'purple'}
+                className="w-full print:hidden"
+            >
+                {tCommon('goToHome')}
+            </Button>
         </div>
     )
 }

@@ -56,7 +56,7 @@ const LinkSendInitialView = () => {
 
     const { setLoadingState, isLoading } = useContext(loadingStateContext)
 
-    const { fetchBalance, spendableBalance: balance, formattedSpendableBalance } = useWallet()
+    const { fetchBalance, spendableBalance: balance, formattedSpendableBalance, spendableBalanceDecimal } = useWallet()
     const queryClient = useQueryClient()
     const { hasPendingTransactions } = usePendingTransactions()
 
@@ -275,6 +275,7 @@ const LinkSendInitialView = () => {
                     setPrimaryAmount={handleAmountChange}
                     onSubmit={handleOnNext}
                     walletBalance={peanutWalletBalance}
+                    balanceFillAmount={spendableBalanceDecimal}
                 />
             </FieldColumn>
 

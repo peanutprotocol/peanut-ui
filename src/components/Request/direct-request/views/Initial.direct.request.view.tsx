@@ -36,7 +36,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     const tLoading = useTranslations('loadingStates')
     const onBack = useSafeBack('/home')
     const { user: authUser } = useAuth()
-    const { spendableBalance: balance, formattedSpendableBalance, address } = useWallet()
+    const { address } = useWallet()
     const [attachmentOptions, setAttachmentOptions] = useState<IAttachmentOptions>({
         message: undefined,
         fileUrl: undefined,
@@ -75,12 +75,6 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
             rawFile: undefined,
         })
     }
-
-    // Displayed total spendable, single-sourced + formatted by the hook; empty
-    // while loading so we don't flash "$0.00".
-    const peanutWalletBalance = useMemo(() => {
-        return balance === undefined ? '' : formattedSpendableBalance
-    }, [balance, formattedSpendableBalance])
 
     const handleTokenValueChange = (value: string | undefined) => {
         setCurrentInputValue(value || '')
@@ -241,7 +235,6 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                         initialAmount={currentInputValue}
                         setPrimaryAmount={handleTokenValueChange}
                         onSubmit={() => setView('confirm')}
-                        walletBalance={peanutWalletBalance}
                         hideCurrencyToggle
                     />
 

@@ -22,7 +22,7 @@ export default function DirectSendQr({
             variant="purple"
             shadowSize="4"
             className={twMerge(
-                'mx-auto h-20 w-20 cursor-pointer justify-center rounded-full p-4.5 hover:bg-action-primary/100 active:translate-x-0 active:translate-y-0 active:scale-95',
+                'mx-auto h-20 w-20 cursor-pointer justify-center rounded-full p-4.5 hover:bg-action-primary/100',
                 className
             )}
             disabled={disabled}

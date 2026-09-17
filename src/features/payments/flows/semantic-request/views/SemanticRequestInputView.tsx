@@ -45,6 +45,7 @@ export function SemanticRequestInputView() {
         isTokenDenominated,
         error,
         formattedBalance,
+        balanceFillAmount,
         canProceed,
         isInsufficientBalance,
         isLoading,
@@ -177,6 +178,7 @@ export function SemanticRequestInputView() {
                         primaryDenomination={primaryDenomination}
                         onSubmit={handleSubmit}
                         walletBalance={isLoggedIn ? formattedBalance : undefined}
+                        balanceFillAmount={isLoggedIn ? balanceFillAmount : undefined}
                         hideBalance={!isLoggedIn}
                         hideCurrencyToggle={true}
                         disabled={isAmountFromUrl || !!chargeIdFromUrl}

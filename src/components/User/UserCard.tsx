@@ -125,7 +125,7 @@ const UserCard = ({
                                     // as colors) — keep stock classes there.
                                     className={
                                         type === 'request_pay'
-                                            ? 'text-heading-s text-foreground-primary md:text-heading-m'
+                                            ? 'text-heading-s text-foreground-primary'
                                             : 'text-body-m'
                                     }
                                     isLink={type !== 'request_pay'}
