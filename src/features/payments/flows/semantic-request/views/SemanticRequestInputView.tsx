@@ -151,17 +151,22 @@ export function SemanticRequestInputView() {
         }
     }, [isTokenDenominated, urlToken, tokenUsdPrice])
 
-    // The fill has to be in the SAME denomination as the field. A url that names
-    // a token (/alice/eth) makes that denomination the token, so the wallet's usd
-    // total has to cross the same price the usd conversion uses — passing it raw
-    // would enter "100 ETH" for a $100 balance and then fail the affordability
-    // gate. No price yet, no fill: the balance row stays plain text rather than
-    // offering an amount that cannot pay.
+    // The fill has to be in the SAME denomination as the field, and the balance
+    // row it fills from is always usd. That holds while the field is usd too.
+    // A url that names a token (/alice/eth) makes the field token-denominated,
+    // and then the two can never agree: AmountInput floors every fill to the 2
+    // decimals the usd label shows (its TASK-21899 rule, so the filled amount
+    // always matches the number under the user's thumb), which silently drops
+    // most of a token balance — 0.025 ETH fills as 0.02, and anything under
+    // 0.01 token formats to zero and the row goes inert with no explanation.
+    // So the token case gets no fill at all: the balance stays plain text, the
+    // way it is today, instead of an affordance that quietly short-changes the
+    // user. Making the floor denomination-aware is the real fix and it belongs
+    // in AmountInput with its own ruling, not smuggled in from a call site.
     const balanceFill = useMemo(() => {
-        if (!isLoggedIn || balanceFillAmount === undefined) return undefined
-        if (!isTokenDenominated) return balanceFillAmount
-        return tokenUsdPrice ? balanceFillAmount / tokenUsdPrice : undefined
-    }, [isLoggedIn, balanceFillAmount, isTokenDenominated, tokenUsdPrice])
+        if (!isLoggedIn || isTokenDenominated) return undefined
+        return balanceFillAmount
+    }, [isLoggedIn, isTokenDenominated, balanceFillAmount])
 
     return (
         <PageStack>

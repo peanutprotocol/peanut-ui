@@ -1,9 +1,11 @@
 /**
- * TASK-22452: the balance row fills the amount field, so the number it fills
- * has to be in the field's own denomination. A url that names a token
- * (/alice/eth) makes the field ETH-denominated while the wallet balance stays
- * USD — passing it raw entered "100 ETH" for a $100 balance, which then failed
- * the affordability gate. Caught in review, these lock the conversion.
+ * TASK-22452: the balance row fills the amount field from a USD balance, so it
+ * is only offered while the field is USD too. A url that names a token
+ * (/alice/eth) makes the field token-denominated, and then the two can never
+ * agree — passing the USD total raw entered "100 ETH" for a $100 balance, and
+ * converting it runs into AmountInput's 2-decimal floor, which drops 0.025 ETH
+ * to 0.02 and anything under 0.01 token to nothing. Both were caught in review.
+ * The token case therefore gets no fill; these lock that.
  */
 import React from 'react'
 import { screen } from '@testing-library/react'
@@ -80,17 +82,19 @@ describe('SemanticRequestInputView balance fill', () => {
         expect(input).toHaveAttribute('data-balance-fill', '100')
     })
 
-    it('converts the fill into the requested token when the url names one', () => {
-        // $100 spendable at $2500/ETH is 0.04 ETH — not "100 ETH"
+    it('never fills a usd balance into a token-denominated field', () => {
+        // the field is ETH; the balance row is usd. "100" here would read as
+        // 100 ETH, and converting it loses most of the balance to the 2-decimal
+        // floor — so the row stays plain text.
         setFlow({ isTokenDenominated: true, urlToken: ETH, tokenUsdPrice: 2500 })
         renderWithIntl(<SemanticRequestInputView />)
 
         const input = screen.getByTestId('amount-input')
         expect(input).toHaveAttribute('data-symbol', 'ETH')
-        expect(input).toHaveAttribute('data-balance-fill', '0.04')
+        expect(input).not.toHaveAttribute('data-balance-fill')
     })
 
-    it('offers no fill while the token price is missing', () => {
+    it('offers no fill on a token url whose price has not arrived', () => {
         setFlow({ isTokenDenominated: true, urlToken: ETH, tokenUsdPrice: undefined })
         renderWithIntl(<SemanticRequestInputView />)
 

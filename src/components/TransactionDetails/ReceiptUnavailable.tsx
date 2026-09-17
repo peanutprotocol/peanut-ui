@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 // dark wordmark: the light one is white glyphs on this white page (TASK-22452)
 import PEANUT_LOGO from '@/assets/logos/peanut-logo-dark.svg'
 import { Button } from '@/components/0_Bruddle/Button'
-import Card from '@/components/Global/Card'
+import { Card } from '@/components/0_Bruddle/Card'
 
 /**
  * Branded terminal state for a receipt link that cannot render: 'gone' for
@@ -28,7 +28,9 @@ export function ReceiptUnavailable({
     return (
         <div className="flex w-full max-w-md flex-col items-center gap-6 text-center">
             <Image src={PEANUT_LOGO} alt={tNav('peanutLogoAlt')} className="h-6 w-auto" />
-            <Card position="single" className="space-y-2 w-full">
+            {/* standalone container, so the standalone Card at its board padding (XL/24).
+                Global/Card is the stacked list-row recipe and was never right here. */}
+            <Card className="space-y-2 w-full p-6">
                 <h1 className="text-heading-card text-foreground-primary">
                     {variant === 'gone' ? t('title') : t('loadFailedTitle')}
                 </h1>
