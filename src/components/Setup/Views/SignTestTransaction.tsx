@@ -21,7 +21,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { getFromCookie } from '@/utils/general.utils'
 import { twMerge } from '@/utils/tw'
 import { useTranslations } from 'next-intl'
-import { captureSignupStepViewed, signupAnalyticsContext } from '@/features/setup/signup-analytics'
+import { signupAnalyticsContext } from '@/features/setup/signup-analytics'
 
 export function AccountReadyView({
     onContinue,
@@ -33,8 +33,8 @@ export function AccountReadyView({
     const t = useTranslations('setup')
     return (
         <div className="flex w-full flex-col gap-4 text-left">
-            {/* neither block is a warning or a caveat, so they read as plain
-                    text under grey mini-headers rather than tinted Notifications */}
+            {/* Neither block is a warning or caveat, so keep them as plain
+                text under grey mini-headers rather than tinted notifications. */}
             <div className="flex flex-col gap-1">
                 <MiniHeader>{t('accountReady.worksNowTitle')}</MiniHeader>
                 <p className="text-body-s text-foreground-primary">{t('accountReady.worksNowBody')}</p>
@@ -66,32 +66,32 @@ const SignTestTransaction = () => {
         residenceCountry,
         secondResidenceCountry,
         setIsLoading: setSetupLoading,
-        steps,
         signupEntryFlow,
     } = useSetupFlowContext()
     const [error, setError] = useState<string | null>(null)
     const [isSigning, setIsSigning] = useState(false)
     const [testTransactionCompleted, setTestTransactionCompleted] = useState(false)
     const [isPasskeyInfoOpen, setIsPasskeyInfoOpen] = useState(false)
-    // Fresh signups pause on the account-ready screen instead of auto-redirecting;
-    // the ref (not state) guards the redirect effect against firing during the
-    // re-render window between account creation and the state update below.
-    const [accountReady, setAccountReady] = useState(false)
     const creatingAccountRef = useRef(false)
     /*
      * handleRedirect CONSUMES the stored post-auth route, so it must fire once.
-     * A second tap would find nothing stored, fall back to /home and race the
-     * first push — a signup entered from /receipt would land on /home. The ref
-     * is the guard (state is async, so a same-tick double tap would pass it);
-     * the state only drives the button's disabled/loading affordance.
+     * A second caller would find nothing stored, fall back to /home and race
+     * the first redirect — a signup entered from /receipt would land on /home.
      */
     const redirectingRef = useRef(false)
-    const accountReadyCapturedRef = useRef(false)
-    const [isRedirecting, setIsRedirecting] = useState(false)
 
-    const showAccountReady = () => {
+    const redirectToAccount = () => {
+        if (redirectingRef.current) return
+        redirectingRef.current = true
+        // This terminal path only runs for an account created in this session,
+        // so it inherits no earlier session's page — only a deep link the
+        // person themselves asked for.
+        handleRedirect({ isNewAccount: true })
+    }
+
+    const completeSignup = () => {
         creatingAccountRef.current = false
-        console.log('[SignTestTransaction] Account setup complete, showing the account-ready screen')
+        console.log('[SignTestTransaction] Account setup complete')
         const inviteCode = getFromCookie('inviteCode')
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_COMPLETED, {
             acquisition_source: inviteCode ? 'referred' : 'organic',
@@ -129,38 +129,11 @@ const SignTestTransaction = () => {
             }
         }
 
-        // The finish line does two jobs: celebrate what already works
-        // without ID, and plant the honest KYC expectation before home
-        // ever asks. The redirect moves to its CTA.
-        setIsSigning(false)
-        setSetupLoading(false)
-        setAccountReady(true)
+        // Completion is terminal for this screen. Keep both loading states
+        // active until navigation unmounts it so a slow route transition
+        // cannot expose a second completion attempt.
+        redirectToAccount()
     }
-
-    const goToAccount = () => {
-        if (redirectingRef.current) return
-        redirectingRef.current = true
-        setIsRedirecting(true)
-        posthog.capture(ANALYTICS_EVENTS.SIGNUP_ACCOUNT_READY_CTA_CLICKED, {
-            ...signupAnalyticsContext(signupEntryFlow),
-        })
-        // This screen is only reachable for an account created in this
-        // session, so it inherits no earlier session's page — only a deep link
-        // the person themselves asked for.
-        handleRedirect({ isNewAccount: true })
-    }
-
-    useEffect(() => {
-        if (!accountReady || accountReadyCapturedRef.current) return
-        accountReadyCapturedRef.current = true
-        captureSignupStepViewed({
-            screenId: 'account-ready',
-            stepIndex: steps.length + 1,
-            totalSteps: steps.length + 1,
-            navType: 'forward',
-            signupEntryFlow,
-        })
-    }, [accountReady, signupEntryFlow, steps.length])
 
     // ensure user is fetched when component mounts (important for new signups)
     useEffect(() => {
@@ -195,18 +168,18 @@ const SignTestTransaction = () => {
 
     useEffect(() => {
         // Login flow only: an account that existed before this screen redirects
-        // straight in. A signup that just created its account stays for the
-        // account-ready screen and redirects from its CTA instead — nothing may
-        // navigate off that screen on its own, so it is a hard guard here and
-        // not only the creating-account ref.
-        if (accountReady || creatingAccountRef.current) return
+        // straight in. Signup completion owns its own redirect, guarded so the
+        // account refetch cannot consume the stored destination a second time.
+        if (creatingAccountRef.current || redirectingRef.current) return
         if (accountExists) {
             console.log('[SignTestTransaction] Account exists, redirecting to the app')
             handleRedirect()
         }
-    }, [accountExists, accountReady])
+    }, [accountExists])
 
     const handleTestTransaction = async () => {
+        if (redirectingRef.current) return
+
         if (!address) {
             setError(t('testTransaction.errors.noWalletAddress'))
             return
@@ -276,7 +249,7 @@ const SignTestTransaction = () => {
                 }
 
                 // addAccount() already fetched and verified user data.
-                showAccountReady()
+                completeSignup()
             } else {
                 if (creatingAccountRef.current) {
                     // A prior ambiguous request can commit after both immediate
@@ -284,7 +257,7 @@ const SignTestTransaction = () => {
                     // marker and presents the same success state as the direct
                     // response instead of leaving the button loading forever.
                     console.log('[SignTestTransaction] Reconciled account from an earlier setup request')
-                    showAccountReady()
+                    completeSignup()
                 } else {
                     // Login flow: the account-exists effect owns navigation.
                     console.log('[SignTestTransaction] Account exists, redirecting to the app')
@@ -328,14 +301,10 @@ const SignTestTransaction = () => {
         return t('testTransaction.confirmAndFinish')
     }
 
-    if (accountReady) return <AccountReadyView onContinue={goToAccount} isRedirecting={isRedirecting} />
-
     return (
         <div>
             <div className="flex h-full flex-col justify-between gap-6 p-0 md:min-h-32">
                 <div className="flex h-full flex-col justify-end gap-2">
-                    {/* Rendered here, not by the step chrome, so the account-ready
-                        state doesn't repeat it (descriptionInView on the step). */}
                     <p className="mb-1 text-body-s text-foreground-secondary">
                         {t('steps.sign-test-transaction.description')}
                     </p>

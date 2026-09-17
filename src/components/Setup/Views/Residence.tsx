@@ -22,6 +22,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 
 type ResidenceView = 'select' | 'restricted' | 'notify' | 'notify-done' | 'partial' | 'congrats'
+type ResidenceStepProps = { initialView?: ResidenceView; handle?: string }
 type PartialRestriction = 'card' | 'banking'
 
 // An underlined text link is ~20px tall; the `after:` pseudo-element grows the
@@ -30,7 +31,7 @@ const UNDERLINED_LINK =
     'relative text-body-s underline underline-offset-2 after:absolute after:inset-x-0 after:-inset-y-3.5 focus-visible:outline-[3px] focus-visible:outline-action-focus'
 const CHANGE_COUNTRY_LINK = `mt-1 self-center text-center disabled:opacity-50 ${UNDERLINED_LINK}`
 
-const ResidenceStep = () => {
+const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
     const t = useTranslations('setup')
     const locale = useLocale()
     const { residenceCountry, setResidenceCountry, secondResidenceCountry, setSecondResidenceCountry } =
@@ -47,6 +48,7 @@ const ResidenceStep = () => {
     // selector is the natural place to change the answer. Forward entry and
     // deep links (direction 1 / 0) always start on the selector.
     const [view, setView] = useState<ResidenceView>(() => {
+        if (initialView) return initialView
         if (direction >= 0 || !residenceCountry) return 'select'
         if (restrictionSets.full.has(residenceCountry)) return 'restricted'
         if (restrictionSets.cardOnly.has(residenceCountry) || restrictionSets.bankingOnly.has(residenceCountry)) {

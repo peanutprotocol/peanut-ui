@@ -59,6 +59,7 @@ describe('isNonRetryableQrInitError', () => {
         QR_INIT_CODE.PIX_MIN_AMOUNT,
         QR_INIT_CODE.PIX_RECURRING,
         QR_INIT_CODE.MISSING_AMOUNT,
+        QR_INIT_CODE.NOT_FOUND,
         QR_INIT_CODE.EXPIRED,
         QR_INIT_CODE.DECODE,
         QR_INIT_CODE.KEY_MISMATCH,
@@ -111,6 +112,13 @@ describe('classifyQrInitError — actionability depends on the call site', () =>
         expect(classifyQrInitError(apiError('x', QR_INIT_CODE.MERCHANT_REFUND), 'amount-entry')?.amountRetryable).toBe(
             false
         )
+    })
+
+    it('treats a missing merchant destination as a deterministic scan failure', () => {
+        expect(classifyQrInitError(apiError('destination gone', QR_INIT_CODE.NOT_FOUND), 'scan')).toEqual({
+            code: QR_INIT_CODE.NOT_FOUND,
+            amountRetryable: false,
+        })
     })
 
     it('never marks an identity block amount-retryable', () => {

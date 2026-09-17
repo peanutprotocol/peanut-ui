@@ -1264,6 +1264,8 @@
         "youArePaying": "Estás pagando",
         "paymentMethodAlt": "Método de pago",
         "peanutManAlt": "Peanut Man",
+        "processingPaymentTitle": "Procesando tu pago",
+        "processingPaymentBody": "Estamos confirmando tu pago.",
         "waitingForMerchant": "Esperando a que el comercio ingrese el monto",
         "havingTrouble": "¿Tienes problemas?",
         "orderNotReady": {
@@ -1743,6 +1745,8 @@
             "minDepositAmount": "El monto del depósito debe ser de al menos ${amount}",
             "etaInstant": "Los depósitos suelen llegar en minutos."
         },
+        "processingDepositTitle": "Procesando tu depósito",
+        "processingDepositBody": "Estamos confirmando tu depósito.",
         "pix": {
             "payWithPix": "Pagar con PIX",
             "depositReceived": "¡Depósito recibido!",
@@ -1839,15 +1843,15 @@
         },
         "confirm": {
             "recipientReceives": "El destinatario recibe",
-            "recipientReceivesInfo": "Peanut cubre el costo del puente. Es posible que se descuente un pequeño costo de red al entregar.",
+            "recipientReceivesInfo": "Esto es lo que llega al destino, después de cualquier costo de entrega.",
             "tokenAndNetwork": "Token y red",
             "tokenOnChain": "{token} en <c>{chain}</c>",
             "tokenAlt": "token",
             "chainAlt": "red",
             "to": "Para",
             "networkFee": "Comisión de red",
-            "networkFeeInfo": "Peanut cubre el costo del puente. Es posible que se descuente un pequeño costo de red al entregar.",
-            "networkFeeChargedInfo": "Esta ruta cobra una comisión. Ya está incluida en el monto que pagas.",
+            "networkFeeInfo": "Entregar en esta red es gratis — Peanut lo cubre. Algunas redes, como Ethereum, Tron y Solana, cobran una comisión que se descuenta del monto recibido.",
+            "networkFeeChargedInfo": "Cada red cobra distinto por entregar. Esta cobra, y se descuenta del monto recibido. Otras, como Arbitrum, son gratis.",
             "youPay": "Pagas",
             "highFeeWarning": "Nota: la comisión de red es una parte grande de este retiro. Retirar un monto mayor o elegir una red más barata la reduce."
         },
@@ -1963,7 +1967,8 @@
             "ownAccountOnly": "Solo puedes retirar a cuentas a tu nombre.",
             "unexpected": "El retiro falló inesperadamente. Si el problema continúa, contacta a soporte",
             "completeAccountSetup": "Completa la configuración de tu cuenta. Ve a Ajustes para actualizar tu perfil.",
-            "minWithdrawAmount": "El monto del retiro debe ser de al menos ${amount}"
+            "minWithdrawAmount": "El monto del retiro debe ser de al menos ${amount}",
+            "feeExceedsAmount": "La comisión de red supera este retiro. Ingresá un monto mayor o elegí una red más barata."
         },
         "resolvesTo": "se resuelve a",
         "addNewAccount": "Agregar nueva cuenta",
@@ -1977,7 +1982,6 @@
             "issuedOn": "Fecha de emisión",
             "pdf": {
                 "title": "Comprobante de la transacción",
-                "date": "Fecha",
                 "type": "Tipo",
                 "status": "Estado",
                 "from": "De"
@@ -2113,6 +2117,7 @@
             "cancelRequest": "Cancelar solicitud",
             "pay": "Pagar",
             "rejectRequest": "Rechazar solicitud",
+            "moreActions": "Más acciones",
             "splitBill": "Dividir esta cuenta",
             "shareReceipt": "Compartir comprobante",
             "downloadPdf": "Descargar comprobante (PDF)",
@@ -3088,6 +3093,7 @@
             "noFeesWithToken": "Sin comisiones con este token.",
             "drawerTitle": "Elige token y red",
             "crossChainUnavailable": "Las transacciones entre cadenas no están disponibles temporalmente. Puedes usar USDC en Arbitrum.",
+            "allNetworks": "Todas",
             "selectANetwork": "Elige una red",
             "moreNetworksButton": "más",
             "searchTokenPlaceholder": "Token o dirección",
@@ -3104,8 +3110,7 @@
             "noNetworksFoundTitle": "No se encontraron redes que coincidan con {search}",
             "noNetworksFoundDescription": "Intenta buscar otra red",
             "searchPlaceholder": "Buscar...",
-            "clearSearch": "Borrar búsqueda",
-            "clearNetworkSelection": "Quitar la red seleccionada"
+            "clearSearch": "Borrar búsqueda"
         },
         "qrScanner": {
             "scanToPay": "Escanea para pagar",

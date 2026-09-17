@@ -2,7 +2,7 @@
 import { type FC, useEffect, useMemo, useState, useCallback } from 'react'
 import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
 import MantecaPixQrDeposit from '@/components/AddMoney/components/MantecaPixQrDeposit'
-import CyclingLoading from '@/components/Global/Loading/CyclingLoading'
+import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { addMoneyCountryUrl } from '@/utils/native-routes'
@@ -260,7 +260,9 @@ const MantecaAddMoney: FC = () => {
     if (isCreatingDeposit && selectedCountry.currency === 'BRL') {
         return (
             <div className="my-auto flex min-h-inherit flex-col justify-center">
-                <CyclingLoading />
+                {/* the deposit request is in flight — title only, no
+                    "confirming" claim before any money moved (TASK-22452) */}
+                <ProcessingScreen title={t('processingDepositTitle')} />
             </div>
         )
     }

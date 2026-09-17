@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import Card from '@/components/Global/Card'
-import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { STAR_STRAIGHT_ICON } from '@/assets/icons'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
@@ -15,7 +14,12 @@ import { ReceiptTokenRows } from '@/components/TransactionDetails/ReceiptTokenRo
 import { type ReceiptViewModel } from '@/components/TransactionDetails/useReceiptViewModel'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useReceiptDateFormatter } from '@/components/TransactionDetails/useReceiptDateFormatter'
-import { bankAccountLabelKey, getAccountCopyValue, type BankAccountLabelKey } from './transaction-details.utils'
+import {
+    bankAccountLabelKey,
+    getAccountCopyValue,
+    receiptIssuedAt,
+    type BankAccountLabelKey,
+} from './transaction-details.utils'
 import { usesCompletedTimestampLabel } from './transaction-predicates'
 import { CardPaymentRows } from './provider-rows/CardPaymentRows'
 import { MantecaDepositInfo } from './provider-rows/MantecaDepositInfo'
@@ -24,7 +28,7 @@ import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
 import { formatAmount, formatCurrency } from '@/utils/general.utils'
 import { formatPoints } from '@/utils/format.utils'
-import { printableAddress, shortenAddress, shortenStringLong } from '@/utils/general.utils'
+import { middleEllipsisAccount, printableAddress, shortenAddress, shortenStringLong } from '@/utils/general.utils'
 import { RequestPotProgressRow } from './provider-rows/RequestPotProgressRow'
 import { RequestPotContributorRows } from './provider-rows/RequestPotContributorRows'
 
@@ -119,18 +123,15 @@ export function ReceiptDetailsCard({
             <RequestPotContributorRows vm={vm} />
 
             {rowVisibilityConfig.to && (
+                /* printableAddress shortens Solana/Tron/EVM and passes
+                   usernames through — no viem isAddress pre-guard, which
+                   is EVM-only and let 44-char Solana counterparties
+                   render full-length. copy keeps the full raw value. */
                 <DataRow
                     label={t('rows.to')}
-                    value={
-                        <div className="flex items-center gap-2">
-                            {/* printableAddress shortens Solana/Tron/EVM and passes
-                                usernames through — no viem isAddress pre-guard, which
-                                is EVM-only and let 44-char Solana counterparties
-                                render full-length. */}
-                            <span>{printableAddress(transaction.userName)}</span>
-                            <CopyToClipboard textToCopy={transaction.userName} iconSize="4" />
-                        </div>
-                    }
+                    value={printableAddress(transaction.userName)}
+                    allowCopy
+                    copyValue={transaction.userName}
                 />
             )}
 
@@ -139,6 +140,8 @@ export function ReceiptDetailsCard({
             )}
 
             {rowVisibilityConfig.txId && transaction.txHash && (
+                /* the `typeof value === 'string'` gate in DataRow keeps the
+                   copy glyph off the explorer-link branch. */
                 <DataRow
                     label={t('rows.txId')}
                     value={
@@ -153,12 +156,11 @@ export function ReceiptDetailsCard({
                                 <Icon name="external-link" size={14} />
                             </Link>
                         ) : (
-                            <div className="flex items-center gap-2">
-                                <span>{shortenStringLong(transaction.txHash)}</span>
-                                <CopyToClipboard textToCopy={transaction.txHash} iconSize="4" />
-                            </div>
+                            shortenStringLong(transaction.txHash)
                         )
                     }
+                    allowCopy
+                    copyValue={transaction.txHash}
                 />
             )}
 
@@ -186,44 +188,33 @@ export function ReceiptDetailsCard({
             )}
 
             {rowVisibilityConfig.bankAccountDetails && transaction.bankAccountDetails && (
+                /* copy yields the FULL identifier — masking is for visual
+                   privacy only; the user owns the account and may need to
+                   paste it elsewhere. */
                 <DataRow
                     label={bankAccountLabel(transaction.bankAccountDetails!.type)}
                     value={
-                        <div className="flex items-center gap-2">
-                            <span>
-                                {isGuestBankClaim
-                                    ? transaction.bankAccountDetails.identifier
-                                    : maskAccountIdentifier(
-                                          transaction.bankAccountDetails.identifier,
-                                          transaction.bankAccountDetails.type
-                                      )}
-                            </span>
-                            {!isGuestBankClaim && (
-                                // Copy yields the FULL identifier — masking is for
-                                // visual privacy only; the user owns the account
-                                // and may need to paste it elsewhere.
-                                <CopyToClipboard
-                                    textToCopy={getAccountCopyValue(
-                                        transaction.bankAccountDetails.identifier,
-                                        transaction.bankAccountDetails.type
-                                    )}
-                                    iconSize="4"
-                                />
-                            )}
-                        </div>
+                        isGuestBankClaim
+                            ? transaction.bankAccountDetails.identifier
+                            : maskAccountIdentifier(
+                                  transaction.bankAccountDetails.identifier,
+                                  transaction.bankAccountDetails.type
+                              )
                     }
+                    allowCopy={!isGuestBankClaim}
+                    copyValue={getAccountCopyValue(
+                        transaction.bankAccountDetails.identifier,
+                        transaction.bankAccountDetails.type
+                    )}
                 />
             )}
 
             {rowVisibilityConfig.transferId && (
                 <DataRow
                     label={t('rows.transferId')}
-                    value={
-                        <div className="flex items-center gap-2">
-                            <span>{shortenAddress(transaction.id.toUpperCase(), 20)}</span>
-                            <CopyToClipboard textToCopy={transaction.id.toUpperCase()} iconSize="4" />
-                        </div>
-                    }
+                    value={shortenAddress(transaction.id.toUpperCase(), 20)}
+                    allowCopy
+                    copyValue={transaction.id.toUpperCase()}
                 />
             )}
 
@@ -273,6 +264,22 @@ export function ReceiptDetailsCard({
                         </LinkButton>
                     }
                 />
+            )}
+
+            {/* document rows, last (TASK-22452): the id every receipt can be
+                traced by and its issuance date. uppercase is display-only —
+                the raw id (copyValue) is a case-sensitive lookup key. */}
+            {rowVisibilityConfig.reference && (
+                <DataRow
+                    label={t('officialReceipt.reference')}
+                    value={middleEllipsisAccount(transaction.id, 20).toUpperCase()}
+                    allowCopy
+                    copyValue={transaction.id}
+                />
+            )}
+
+            {rowVisibilityConfig.issuedOn && (
+                <DataRow label={t('officialReceipt.issuedOn')} value={formatDate(receiptIssuedAt(transaction))} />
             )}
         </Card>
     )

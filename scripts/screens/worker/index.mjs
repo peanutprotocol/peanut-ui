@@ -10,9 +10,16 @@ export default {
         if (!path.startsWith('/screen-data/')) return new Response('Not found', { status: 404 })
         const key = path.slice('/screen-data/'.length)
         const reportManifest = /^reports\/[a-z0-9/-]+\/manifest\.json$/.test(key)
+        const collectionManifest = /^collections\/[a-z0-9][a-z0-9-]{0,119}\/manifest\.json$/.test(key)
         const archive = /^reports\/[a-z0-9/-]+\/offline\.tar\.gz$/.test(key)
         const asset = /^assets\/[a-f0-9]{64}\.(png|webp)$/.test(key)
-        if (!['index.json', 'latest.json'].includes(key) && !reportManifest && !archive && !asset)
+        if (
+            !['index.json', 'latest.json'].includes(key) &&
+            !reportManifest &&
+            !collectionManifest &&
+            !archive &&
+            !asset
+        )
             return new Response('Not found', { status: 404 })
         try {
             const object = request.method === 'HEAD' ? await env.REPORTS.head(key) : await env.REPORTS.get(key)
@@ -25,7 +32,12 @@ export default {
                       : key.endsWith('.webp')
                         ? 'image/webp'
                         : 'application/gzip',
-                'Cache-Control': archive || asset ? 'private, max-age=31536000, immutable' : 'private, max-age=60',
+                'Cache-Control':
+                    archive || asset
+                        ? 'private, max-age=31536000, immutable'
+                        : collectionManifest
+                          ? 'private, max-age=10'
+                          : 'private, max-age=60',
                 'X-Content-Type-Options': 'nosniff',
                 ETag: object.httpEtag,
             })

@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import Loading from '@/components/Global/Loading'
-import CyclingLoading from '@/components/Global/Loading/CyclingLoading'
+import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { loadingStateKey } from '@/i18n/app/loading-states'
 import { QrPayFlowProvider, useQrPayFlow } from './QrPayFlowContext'
@@ -36,7 +36,10 @@ function QrPayFlowContent() {
         case 'AWAITING_MERCHANT':
             return <QrPayPageLoading message={t('waitingForMerchant')} />
         case 'LOADING':
-            if (loadingState === 'Paying') return <CyclingLoading />
+            // the shared processing treatment (TASK-22452) — the payment was
+            // submitted, so "confirming" is the truthful word
+            if (loadingState === 'Paying')
+                return <ProcessingScreen title={t('processingPaymentTitle')} description={t('processingPaymentBody')} />
             /*
              * Captioned only for the retry window. A scan being retried after a
              * stalled request is otherwise pixel-identical to a slow first attempt,

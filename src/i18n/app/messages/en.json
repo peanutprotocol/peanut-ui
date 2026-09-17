@@ -1264,6 +1264,8 @@
         "youArePaying": "You're paying",
         "paymentMethodAlt": "Payment method",
         "peanutManAlt": "Peanut Man",
+        "processingPaymentTitle": "Processing your payment",
+        "processingPaymentBody": "We're confirming your payment.",
         "waitingForMerchant": "Waiting for the merchant to set the amount",
         "havingTrouble": "Having trouble?",
         "orderNotReady": {
@@ -1743,6 +1745,8 @@
             "minDepositAmount": "Deposit amount must be at least ${amount}",
             "etaInstant": "Deposits usually arrive within minutes."
         },
+        "processingDepositTitle": "Processing your deposit",
+        "processingDepositBody": "We're confirming your deposit.",
         "pix": {
             "payWithPix": "Pay with PIX",
             "depositReceived": "Deposit received!",
@@ -1839,15 +1843,15 @@
         },
         "confirm": {
             "recipientReceives": "Recipient receives",
-            "recipientReceivesInfo": "Peanut covers the bridge cost. A small network cost may be deducted on delivery.",
+            "recipientReceivesInfo": "This is what arrives at the destination, after any delivery cost.",
             "tokenAndNetwork": "Token and network",
             "tokenOnChain": "{token} on <c>{chain}</c>",
             "tokenAlt": "token",
             "chainAlt": "chain",
             "to": "To",
             "networkFee": "Network fee",
-            "networkFeeInfo": "Peanut covers the bridge cost. A small network cost may be deducted on delivery.",
-            "networkFeeChargedInfo": "This route quotes a fee. It's already included in the amount you pay.",
+            "networkFeeInfo": "Delivering on this network is free — Peanut covers it. Some networks, like Ethereum, Tron and Solana, charge a fee that comes out of the amount received.",
+            "networkFeeChargedInfo": "Networks charge different amounts to deliver. This one charges, and it comes out of the amount received. Others, like Arbitrum, are free.",
             "youPay": "You pay",
             "highFeeWarning": "Note: the network fee is a large share of this withdrawal. Withdrawing a larger amount or choosing a cheaper network reduces it."
         },
@@ -1963,7 +1967,8 @@
             "ownAccountOnly": "You can only withdraw to accounts under your name.",
             "unexpected": "Withdraw failed unexpectedly. If problem persists contact support",
             "completeAccountSetup": "Please complete your account setup. Go to Settings to update your profile.",
-            "minWithdrawAmount": "Withdraw amount must be at least ${amount}"
+            "minWithdrawAmount": "Withdraw amount must be at least ${amount}",
+            "feeExceedsAmount": "The network fee is more than this withdrawal. Enter a larger amount or pick a cheaper network."
         },
         "resolvesTo": "resolves to",
         "addNewAccount": "Add new account",
@@ -1977,7 +1982,6 @@
             "issuedOn": "Issued on",
             "pdf": {
                 "title": "Transaction Receipt",
-                "date": "Date",
                 "type": "Type",
                 "status": "Status",
                 "from": "From"
@@ -2113,6 +2117,7 @@
             "cancelRequest": "Cancel request",
             "pay": "Pay",
             "rejectRequest": "Reject request",
+            "moreActions": "More actions",
             "splitBill": "Split this bill",
             "shareReceipt": "Share Receipt",
             "downloadPdf": "Download Receipt (PDF)",
@@ -3088,6 +3093,7 @@
             "noFeesWithToken": "No fees with this token.",
             "drawerTitle": "Select Token and Network",
             "crossChainUnavailable": "Cross-chain transactions are temporarily unavailable. You can use USDC on Arbitrum.",
+            "allNetworks": "All",
             "selectANetwork": "Select a network",
             "moreNetworksButton": "more",
             "searchTokenPlaceholder": "Token or address",
@@ -3104,8 +3110,7 @@
             "noNetworksFoundTitle": "No networks found matching {search}",
             "noNetworksFoundDescription": "Try searching for a different network",
             "searchPlaceholder": "Search...",
-            "clearSearch": "Clear search",
-            "clearNetworkSelection": "Clear network selection"
+            "clearSearch": "Clear search"
         },
         "qrScanner": {
             "scanToPay": "Scan to pay",

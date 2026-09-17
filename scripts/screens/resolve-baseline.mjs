@@ -56,7 +56,7 @@ for (const run of integrationRuns) {
 // was unavailable. Search recent trusted runs rather than every repository
 // artifact, which is both unbounded and unnecessary.
 const branch = encodeURIComponent(defaultBranch)
-const baselineRuns = ['push', 'workflow_dispatch']
+const baselineRuns = ['push', 'schedule', 'workflow_dispatch']
     .flatMap((event) => api(`actions/runs?branch=${branch}&event=${event}&per_page=100`).workflow_runs ?? [])
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
 for (const run of baselineRuns) {

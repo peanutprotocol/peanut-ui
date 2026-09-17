@@ -55,13 +55,17 @@ export async function createStorage(env = process.env) {
                     ContentType: options.contentType,
                     CacheControl: `private, max-age=${options.cacheControlMaxAge ?? 31536000}`,
                     ...(!options.allowOverwrite ? { IfNoneMatch: '*' } : {}),
+                    ...(options.ifMatch ? { IfMatch: options.ifMatch } : {}),
                 })
             )
             return { url: url(key), pathname: key }
         },
-        async read(key) {
+        async readWithMetadata(key) {
             const result = await client.send(new GetObjectCommand({ Bucket, Key: key }))
-            return Buffer.from(await result.Body.transformToByteArray())
+            return { body: Buffer.from(await result.Body.transformToByteArray()), etag: result.ETag }
+        },
+        async read(key) {
+            return (await this.readWithMetadata(key)).body
         },
         async list({ prefix, cursor, limit = 1000 }) {
             const result = await client.send(

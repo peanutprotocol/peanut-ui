@@ -5630,6 +5630,8 @@ export interface paths {
                 content: {
                     "application/json": {
                         chainId: string;
+                        /** @description Optional UUID minted by the client at Pay and reused for retries of the same signed payment. Telemetry correlation only; a non-UUID value is ignored. */
+                        clientPaymentAttemptId?: unknown;
                         entryPointAddress: string;
                         /** @enum {string} */
                         kind: "userOp";
@@ -5657,6 +5659,8 @@ export interface paths {
                         };
                     } | {
                         chainId: string;
+                        /** @description Optional UUID minted by the client at Pay and reused for retries of the same signed payment. Telemetry correlation only; a non-UUID value is ignored. */
+                        clientPaymentAttemptId?: unknown;
                         /** @enum {string} */
                         kind: "rainWithdrawal";
                         /** @description The payment lock code from init */
@@ -6783,8 +6787,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            /** @enum {string} */
-                            code?: "geo-blocked";
+                            code: "geo-blocked" | "pending-residence-blocked";
                             message: string;
                             /** @enum {string} */
                             status: "error";
@@ -11280,6 +11283,72 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/username/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        username: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            found: boolean;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            retryAfterSeconds: number;
+                        };
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;

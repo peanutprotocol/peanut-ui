@@ -45,7 +45,7 @@ describe('useSetupStepAnalytics', () => {
         expect(mockedCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_STEP_VIEWED, {
             screen_id: 'landing',
             step_index: 1,
-            total_steps: steps.length + 1,
+            total_steps: steps.length,
             nav_type: 'initial',
             flow_version: 1,
             signup_entry_flow: 'card',
@@ -58,7 +58,7 @@ describe('useSetupStepAnalytics', () => {
         expect(mockedCapture).toHaveBeenLastCalledWith(ANALYTICS_EVENTS.SIGNUP_STEP_VIEWED, {
             screen_id: 'welcome',
             step_index: 2,
-            total_steps: steps.length + 1,
+            total_steps: steps.length,
             nav_type: 'forward',
             flow_version: 1,
             signup_entry_flow: 'card',
@@ -71,7 +71,7 @@ describe('useSetupStepAnalytics', () => {
         expect(mockedCapture).toHaveBeenLastCalledWith(ANALYTICS_EVENTS.SIGNUP_STEP_VIEWED, {
             screen_id: 'welcome',
             step_index: 2,
-            total_steps: steps.length + 1,
+            total_steps: steps.length,
             nav_type: 'back',
             flow_version: 1,
             signup_entry_flow: 'card',
@@ -84,7 +84,7 @@ describe('useSetupStepAnalytics', () => {
         expect(mockedCapture).toHaveBeenLastCalledWith(ANALYTICS_EVENTS.SIGNUP_STEP_VIEWED, {
             screen_id: 'signup',
             step_index: 3,
-            total_steps: steps.length + 1,
+            total_steps: steps.length,
             nav_type: 'jump',
             flow_version: 1,
             signup_entry_flow: 'card',

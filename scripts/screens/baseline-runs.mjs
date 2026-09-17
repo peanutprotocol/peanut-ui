@@ -32,7 +32,7 @@ export function trustedIntegrationBaselineRun(run, jobs, repository, expectedCom
 export function trustedScheduledBaselineRun(run, repository, defaultBranch) {
     return (
         run.path === '.github/workflows/screen-library-baseline.yml' &&
-        ['push', 'workflow_dispatch'].includes(run.event) &&
+        ['push', 'schedule', 'workflow_dispatch'].includes(run.event) &&
         run.head_repository?.full_name === repository &&
         run.head_branch === defaultBranch &&
         run.status === 'completed' &&

@@ -107,8 +107,10 @@ const UserCard = ({
                                 <div>
                                     <p className="text-heading-s text-foreground-primary">${amount}</p>
                                     <div className="flex items-center gap-2">
-                                        <Icon name="alert-filled" size={16} className="text-yellow-900" />
-                                        <p className="text-body-s text-yellow-900">{t('userCard.sendExactAmount')}</p>
+                                        <Icon name="alert-filled" size={16} className="text-foreground-attention" />
+                                        <p className="text-body-s text-foreground-attention">
+                                            {t('userCard.sendExactAmount')}
+                                        </p>
                                     </div>
                                 </div>
                             )}
