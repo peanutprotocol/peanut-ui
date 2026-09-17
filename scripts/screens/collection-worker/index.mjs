@@ -209,9 +209,18 @@ async function createCollection(request, actorEmail, env) {
         id,
         spec,
         ...source,
-        createdBy: actorEmail,
         createdAt: new Date(),
     })
+    await env.REPORTS.put(
+        `collection-audit/${id}.json`,
+        JSON.stringify({ id, createdAt: collection.createdAt, createdBy: actorEmail }),
+        {
+            httpMetadata: {
+                contentType: 'application/json',
+                cacheControl: 'no-store',
+            },
+        }
+    )
     await env.REPORTS.put(`collections/${id}/manifest.json`, JSON.stringify(collection), {
         httpMetadata: {
             contentType: 'application/json',

@@ -54,6 +54,12 @@ CLOUDFLARE_ACCESS_CLIENT_SECRET=... pnpm screens:collection -- \
 
 The CLI's Access service-token headers authenticate the public API origin; it
 must never send the Worker's private `COLLECTION_SERVICE_TOKEN` to that origin.
+For hosted CLI access, create a Cloudflare Access Service Auth service token and
+add a Service Auth policy for that token to the collection API Access
+application. Keep that policy alongside the interactive Google/
+`@peanut.me` Allow policy; the CLI's `CLOUDFLARE_ACCESS_CLIENT_ID` and
+`CLOUDFLARE_ACCESS_CLIENT_SECRET` are the service-token credentials used by the
+command above.
 
 Hosted links use `/collections/<immutable-id>/` and keep the selected locale in
 the URL. The manifest may change from queued to complete while focused capture

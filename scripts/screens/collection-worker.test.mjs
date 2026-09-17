@@ -142,9 +142,15 @@ test('collection API searches screens and creates an ordered reusable collection
     assert.equal(created.status, 201)
     const body = await created.json()
     assert.equal(body.collection.complete, true)
+    assert.equal(body.collection.createdBy, undefined)
     assert.equal(body.collection.items[0].note, 'Flat menu')
     assert.match(body.url, /^https:\/\/screens\.peanut\.me\/collections\//)
     assert.ok(REPORTS.objects.has(`collections/${body.collection.id}/manifest.json`))
+    assert.deepEqual(JSON.parse(REPORTS.objects.get(`collection-audit/${body.collection.id}.json`)), {
+        id: body.collection.id,
+        createdAt: body.collection.createdAt,
+        createdBy: 'reviewer@peanut.me',
+    })
 })
 
 test('captureMissing queues the exact missing matrix against the current dev revision', async () => {
