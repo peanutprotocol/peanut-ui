@@ -2026,11 +2026,12 @@
     "transaction": {
         "drawerTitle": "Detalles de la transacción",
         "officialReceipt": {
-            "issuedBy": "Emitido por Squirrel Labs Ltd",
+            "issuedBy": "Emitido por:",
             "reference": "Referencia",
             "issuedOn": "Fecha de emisión",
             "pdf": {
                 "title": "Comprobante de la transacción",
+                "issuedBy": "Emitido por Squirrel Labs Ltd",
                 "type": "Tipo",
                 "status": "Estado",
                 "from": "De"

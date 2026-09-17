@@ -8,6 +8,7 @@ import { Card } from '@/components/0_Bruddle/Card'
 import Checkbox from '@/components/0_Bruddle/Checkbox'
 import { Section } from '@/components/0_Bruddle/Section'
 import { PAYMENT_LOADING_WORD_KEYS } from '@/components/Global/Loading/words'
+import { QrPayProcessingView } from '@/features/payments/flows/qr-pay/views/QrPayProcessingView'
 import en from '@/i18n/app/messages/en.json'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
@@ -38,6 +39,12 @@ export default function LoadingWordsPreview() {
             description="Cycling payment-loading words with animated dots, including the production mascot treatment."
             width="prose"
         >
+            <Section title="QR pay — Paying screen (TASK-22713)">
+                <div className="mx-auto flex min-h-[560px] w-full max-w-[390px] flex-col bg-background-page p-4">
+                    <QrPayProcessingView />
+                </div>
+            </Section>
+
             <Section title='Production match — Loading variant="mascot"'>
                 <Card className="items-center justify-center gap-6 bg-action-secondary px-6 py-16" shadowSize="4">
                     <div className="animate-spin">

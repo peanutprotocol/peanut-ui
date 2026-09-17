@@ -1,8 +1,6 @@
 'use client'
 
 import React, { useMemo } from 'react'
-import Image from 'next/image'
-import { useTranslations } from 'next-intl'
 import { twMerge } from '@/utils/tw'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import Card from '@/components/Global/Card'
@@ -12,8 +10,6 @@ import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { getAvatarUrl, getTransactionSign } from '@/utils/history.utils'
 import { formatCurrency, isStableCoin } from '@/utils/general.utils'
-// dark wordmark: the light one is white glyphs on the white page (TASK-22452)
-import PEANUT_LOGO from '@/assets/logos/peanut-logo-dark.svg'
 import { PerkIcon } from './PerkIcon'
 import { ReceiptActions } from './ReceiptActions'
 import { ReceiptDetailsCard } from './ReceiptDetailsCard'
@@ -30,7 +26,7 @@ import {
     isSendLinkEntry,
 } from './transaction-predicates'
 import { useReceiptViewModel } from './useReceiptViewModel'
-import { RECEIPT_COMPANY } from './receipt-company'
+import { PublicReceiptIssuer } from './PublicReceiptIssuer'
 
 export const TransactionDetailsReceipt = ({
     transaction,
@@ -43,6 +39,7 @@ export const TransactionDetailsReceipt = ({
     setIsModalOpen,
     avatarUrl,
     isPublic = false,
+    showPublicIssuer = false,
 }: {
     transaction: TransactionDetails | null
     onClose?: () => void
@@ -55,9 +52,9 @@ export const TransactionDetailsReceipt = ({
     setIsModalOpen?: (isModalOpen: boolean) => void
     avatarUrl?: string
     isPublic?: boolean
+    showPublicIssuer?: boolean
 }) => {
     const t = useAppTranslations('transaction')
-    const tNav = useTranslations('navigation')
 
     // All derived row-visibility / status / share-receipt state lives in the
     // hook so this component stays focused on composition.
@@ -164,29 +161,7 @@ export const TransactionDetailsReceipt = ({
         // xl/24 between the receipt's main sections (approved layout); action
         // groups keep their own s/8 internally
         <div ref={contentRef} className={twMerge('flex flex-col gap-6', className)}>
-            {/* official header — only the shared/public receipt carries
-                branding. the whole issuer block lives here, once: issued-by
-                (carries the company name) + address + site. the old bottom
-                company footer is gone (TASK-22452). */}
-            {isPublic && (
-                <div className="flex items-start justify-between gap-4">
-                    <Image src={PEANUT_LOGO} alt={tNav('peanutLogoAlt')} className="h-6 w-auto shrink-0" />
-                    <div className="text-right text-body-xs text-foreground-secondary">
-                        <p className="text-body-m-semibold text-foreground-primary">{t('officialReceipt.issuedBy')}</p>
-                        {RECEIPT_COMPANY.addressLines.map((line) => (
-                            <p key={line}>{line}</p>
-                        ))}
-                        <a
-                            href="https://peanut.me"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="underline print:no-underline"
-                        >
-                            {RECEIPT_COMPANY.site}
-                        </a>
-                    </div>
-                </div>
-            )}
+            {showPublicIssuer && <PublicReceiptIssuer />}
 
             {/* head (board 17490:115877): centered bubble → type line → amount → badge */}
             <TransactionDetailsHeaderCard

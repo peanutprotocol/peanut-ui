@@ -69,7 +69,7 @@ describe('buildReceiptPdfModel — completed bank withdraw', () => {
 
     test('carries the official-document header and footer facts', () => {
         expect(model.title).toBe('transaction.officialReceipt.pdf.title')
-        expect(model.issuedBy).toBe('transaction.officialReceipt.issuedBy')
+        expect(model.issuedBy).toBe('transaction.officialReceipt.pdf.issuedBy')
         expect(model.companyName).toBe('Squirrel Labs Ltd')
         expect(model.companyAddressLines).toEqual([
             'Office One',
