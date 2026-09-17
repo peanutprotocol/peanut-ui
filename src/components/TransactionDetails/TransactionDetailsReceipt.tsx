@@ -6,17 +6,15 @@ import { useTranslations } from 'next-intl'
 import { twMerge } from '@/utils/tw'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import Card from '@/components/Global/Card'
-import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { getAvatarUrl, getTransactionSign } from '@/utils/history.utils'
-import { formatCurrency, isStableCoin } from '@/utils/general.utils'
+import { formatCurrency, isStableCoin, middleEllipsisAccount } from '@/utils/general.utils'
 // dark wordmark: the light one is white glyphs on the white page (TASK-22452)
 import PEANUT_LOGO from '@/assets/logos/peanut-logo-dark.svg'
-import { shortenAddress } from '@/utils/general.utils'
 import { PerkIcon } from './PerkIcon'
 import { useReceiptDateFormatter } from './useReceiptDateFormatter'
 import { ReceiptActions } from './ReceiptActions'
@@ -259,17 +257,13 @@ export const TransactionDetailsReceipt = ({
                 reads as a document, not an app screen */}
             {isPublic && (
                 <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">
+                    {/* uppercase is display-only: the raw id (copyValue) is a
+                        case-sensitive lookup key */}
                     <DataRow
                         label={t('officialReceipt.reference')}
-                        value={
-                            <div className="flex items-center gap-2">
-                                {/* uppercase is display-only: the raw id is a case-sensitive lookup key */}
-                                <span className="uppercase">{shortenAddress(transaction.id, 20)}</span>
-                                <span className="print:hidden">
-                                    <CopyToClipboard textToCopy={transaction.id} iconSize="4" />
-                                </span>
-                            </div>
-                        }
+                        value={middleEllipsisAccount(transaction.id, 20).toUpperCase()}
+                        allowCopy
+                        copyValue={transaction.id}
                     />
                     <DataRow label={t('officialReceipt.issuedOn')} value={formatDate(issuedAt)} />
                     <div className="py-3 text-center text-body-xs text-foreground-secondary">

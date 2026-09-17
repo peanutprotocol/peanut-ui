@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import Card from '@/components/Global/Card'
-import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { STAR_STRAIGHT_ICON } from '@/assets/icons'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
@@ -119,18 +118,15 @@ export function ReceiptDetailsCard({
             <RequestPotContributorRows vm={vm} />
 
             {rowVisibilityConfig.to && (
+                /* printableAddress shortens Solana/Tron/EVM and passes
+                   usernames through — no viem isAddress pre-guard, which
+                   is EVM-only and let 44-char Solana counterparties
+                   render full-length. copy keeps the full raw value. */
                 <DataRow
                     label={t('rows.to')}
-                    value={
-                        <div className="flex items-center gap-2">
-                            {/* printableAddress shortens Solana/Tron/EVM and passes
-                                usernames through — no viem isAddress pre-guard, which
-                                is EVM-only and let 44-char Solana counterparties
-                                render full-length. */}
-                            <span>{printableAddress(transaction.userName)}</span>
-                            <CopyToClipboard textToCopy={transaction.userName} iconSize="4" />
-                        </div>
-                    }
+                    value={printableAddress(transaction.userName)}
+                    allowCopy
+                    copyValue={transaction.userName}
                 />
             )}
 
@@ -139,6 +135,8 @@ export function ReceiptDetailsCard({
             )}
 
             {rowVisibilityConfig.txId && transaction.txHash && (
+                /* the `typeof value === 'string'` gate in DataRow keeps the
+                   copy glyph off the explorer-link branch. */
                 <DataRow
                     label={t('rows.txId')}
                     value={
@@ -153,12 +151,11 @@ export function ReceiptDetailsCard({
                                 <Icon name="external-link" size={14} />
                             </Link>
                         ) : (
-                            <div className="flex items-center gap-2">
-                                <span>{shortenStringLong(transaction.txHash)}</span>
-                                <CopyToClipboard textToCopy={transaction.txHash} iconSize="4" />
-                            </div>
+                            shortenStringLong(transaction.txHash)
                         )
                     }
+                    allowCopy
+                    copyValue={transaction.txHash}
                 />
             )}
 
@@ -186,44 +183,33 @@ export function ReceiptDetailsCard({
             )}
 
             {rowVisibilityConfig.bankAccountDetails && transaction.bankAccountDetails && (
+                /* copy yields the FULL identifier — masking is for visual
+                   privacy only; the user owns the account and may need to
+                   paste it elsewhere. */
                 <DataRow
                     label={bankAccountLabel(transaction.bankAccountDetails!.type)}
                     value={
-                        <div className="flex items-center gap-2">
-                            <span>
-                                {isGuestBankClaim
-                                    ? transaction.bankAccountDetails.identifier
-                                    : maskAccountIdentifier(
-                                          transaction.bankAccountDetails.identifier,
-                                          transaction.bankAccountDetails.type
-                                      )}
-                            </span>
-                            {!isGuestBankClaim && (
-                                // Copy yields the FULL identifier — masking is for
-                                // visual privacy only; the user owns the account
-                                // and may need to paste it elsewhere.
-                                <CopyToClipboard
-                                    textToCopy={getAccountCopyValue(
-                                        transaction.bankAccountDetails.identifier,
-                                        transaction.bankAccountDetails.type
-                                    )}
-                                    iconSize="4"
-                                />
-                            )}
-                        </div>
+                        isGuestBankClaim
+                            ? transaction.bankAccountDetails.identifier
+                            : maskAccountIdentifier(
+                                  transaction.bankAccountDetails.identifier,
+                                  transaction.bankAccountDetails.type
+                              )
                     }
+                    allowCopy={!isGuestBankClaim}
+                    copyValue={getAccountCopyValue(
+                        transaction.bankAccountDetails.identifier,
+                        transaction.bankAccountDetails.type
+                    )}
                 />
             )}
 
             {rowVisibilityConfig.transferId && (
                 <DataRow
                     label={t('rows.transferId')}
-                    value={
-                        <div className="flex items-center gap-2">
-                            <span>{shortenAddress(transaction.id.toUpperCase(), 20)}</span>
-                            <CopyToClipboard textToCopy={transaction.id.toUpperCase()} iconSize="4" />
-                        </div>
-                    }
+                    value={shortenAddress(transaction.id.toUpperCase(), 20)}
+                    allowCopy
+                    copyValue={transaction.id.toUpperCase()}
                 />
             )}
 

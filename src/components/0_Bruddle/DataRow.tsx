@@ -73,7 +73,12 @@ export const DataRow = ({
                     the row and escape the layout. */}
                 <span className="min-w-0 break-words">{value}</span>
                 {allowCopy && typeof value === 'string' && (
-                    <CopyToClipboard textToCopy={copyValue ?? value} fill="black" iconSize="4" />
+                    <CopyToClipboard
+                        textToCopy={copyValue ?? value}
+                        fill="black"
+                        iconSize="4"
+                        className="shrink-0 print:hidden"
+                    />
                 )}
                 {trailing}
             </div>
