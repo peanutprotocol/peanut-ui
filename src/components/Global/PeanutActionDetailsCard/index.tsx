@@ -190,9 +190,9 @@ export default function PeanutActionDetailsCard({
     const isRegionalMethodClaim = transactionType === 'REGIONAL_METHOD_CLAIM'
 
     /*
-     * One leading element, per the ListItem-leading rule: the flag or the
+     * one leading element, per the ListItem-leading rule: the flag or the
      * provider logo, with the bank icon as its fallback when neither loads.
-     * Same shape as TransactionAvatarBadge's bank rows. The mini bank bubble
+     * same shape as TransactionAvatarBadge's bank rows. the mini bank bubble
      * this used to overlay on the flag is gone — a composite leading has no
      * board row (design.md open conflicts, "listitem leading composite").
      */
