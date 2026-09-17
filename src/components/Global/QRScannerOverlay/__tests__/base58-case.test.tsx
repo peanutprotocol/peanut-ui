@@ -26,8 +26,7 @@ jest.mock('next/navigation', () => ({
 }))
 jest.mock('posthog-js', () => ({
     __esModule: true,
-    // onFeatureFlags: the chain-rollout gate subscribes to flag loads.
-    default: { capture: jest.fn(), onFeatureFlags: jest.fn(() => jest.fn()) },
+    default: { capture: jest.fn() },
 }))
 jest.mock('use-haptic', () => ({ useHaptic: () => ({ triggerHaptic: jest.fn() }) }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
@@ -39,12 +38,8 @@ jest.mock('@/utils/capacitor', () => ({
     openExternalUrl: jest.fn(),
 }))
 
-// The two gates that keep a scanned Solana address out of the payout flow. Both
-// are ON by default here: `nonProdBypass` makes the rollout flag true under
-// Jest, and the kill-switch is off in production config.
-const mockChainRolledOut = jest.fn((_chainKey: string) => true)
-jest.mock('@/hooks/useChainRollout', () => ({ useChainRollout: () => mockChainRolledOut }))
-
+// The ops kill-switch keeps a scanned Solana address out of the payout flow.
+// Off by default here, as in production config.
 const mockMaintenance = { disableXchainWithdraw: false }
 jest.mock('@/config/underMaintenance.config', () => ({ __esModule: true, default: mockMaintenance }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
@@ -103,7 +98,6 @@ const scan = async (data: string) => {
 describe('QRScannerOverlay case handling', () => {
     beforeEach(() => {
         mockPush.mockClear()
-        mockChainRolledOut.mockReturnValue(true)
         mockMaintenance.disableXchainWithdraw = false
     })
 
@@ -119,24 +113,11 @@ describe('QRScannerOverlay case handling', () => {
             expect(screen.getByText('Payment Confirmation')).toBeInTheDocument()
         })
 
-        // Both gates that can refuse the route. Each is the honest answer while
-        // it is closed, and each MUST refuse rather than route: the same
-        // kill-switch locks the withdraw token selector to USDC on Arbitrum, so
-        // routing a Solana address past it lands the user on the wrong-chain
-        // payout pattern in product/feedback/problems/withdraw-non-arbitrum-chain-broken.md.
-        // The kill-switch case is the live iOS behaviour until TASK-22250 lands.
-        it.each([
-            ['Solana', SOLANA_WITH_UPPERCASE_L, 'Solana not supported yet.'],
-            ['Tron', TRON, 'Tron not supported yet.'],
-        ])('refuses a %s scan when the chain is not rolled out', async (_chain, address, refusal) => {
-            mockChainRolledOut.mockReturnValue(false)
-            await scan(address)
-
-            expect(screen.getByText(refusal)).toBeInTheDocument()
-            expect(screen.queryByText('Payment Confirmation')).not.toBeInTheDocument()
-            expect(mockPush).not.toHaveBeenCalled()
-        })
-
+        // The kill-switch is the honest answer while it is on, and it MUST refuse
+        // rather than route: the same switch locks the withdraw token selector to
+        // USDC on Arbitrum, so routing a Solana address past it lands the user on
+        // the wrong-chain payout pattern in
+        // product/feedback/problems/withdraw-non-arbitrum-chain-broken.md.
         it('refuses a scan while the ops kill-switch locks withdrawals to Arbitrum', async () => {
             mockMaintenance.disableXchainWithdraw = true
             await scan(SOLANA_WITH_UPPERCASE_L)
