@@ -27,16 +27,21 @@ async function doAttachSignupAttribution(): Promise<boolean> {
     if (!(await hasPendingSignupAttribution())) return false
     const context = await readSignupAttributionAsync()
     if (!context) return false
+    const serialized = serializeSignupAttribution(context)
+    if (!serialized) {
+        await clearSignupAttribution()
+        return false
+    }
 
     const response = await apiFetch('/users/me/signup-attribution', {
         method: 'POST',
-        body: JSON.stringify({ attribution: serializeSignupAttribution(context) }),
+        body: JSON.stringify({ attribution: serialized }),
         redactTelemetry: true,
     })
     if (!response.ok) throw new Error(`signup attribution attach failed: ${response.status}`)
 
     // The API has acknowledged the evidence, including terminal outcomes such
     // as expiry or analytics opt-out. Only now may the device copy be removed.
-    clearSignupAttribution()
+    await clearSignupAttribution()
     return true
 }

@@ -7,6 +7,7 @@ export const SIGNUP_ATTRIBUTION_SCHEMA_VERSION = '1'
 const SIGNUP_ATTRIBUTION_EXPIRY_DAYS = 90
 const MAX_VALUE_LENGTH = 128
 const MAX_PATH_LENGTH = 512
+const MAX_SERIALIZED_ATTRIBUTION_LENGTH = 4096
 const NATIVE_STORAGE_KEY = 'signup-attribution'
 const PENDING_SIGNUP_KEY = 'signup-attribution-pending'
 const MAX_TOUCH_AGE_MS = 180 * 24 * 60 * 60 * 1000
@@ -14,6 +15,7 @@ const MAX_TOUCH_FUTURE_MS = 24 * 60 * 60 * 1000
 const MARKETING_VALUE_PATTERN = /^[A-Za-z0-9][-A-Za-z0-9 ._~+]*$/
 const UUID_VALUE_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const WALLET_VALUE_PATTERN = /^0x[0-9a-f]{40}$/i
+const IPV4_VALUE_PATTERN = /^(?:\d{1,3}\.){3}\d{1,3}$/
 const PUBLIC_PATH_PATTERN =
     /^\/(?:$|(?:[a-z]{2}(?:-[a-z0-9]{2,8})?\/)?(?:blog|content|help|faq|how-it-works|pay-with|send-money-to|receive-money-from)(?:\/[a-z0-9][a-z0-9/_-]*)?|(?:signup|setup|home))$/i
 
@@ -59,6 +61,16 @@ function cleanMarketingValue(value: string | null | undefined): string | undefin
         WALLET_VALUE_PATTERN.test(cleaned)
     )
         return undefined
+    return cleaned
+}
+
+function cleanHost(value: string | null | undefined): string | undefined {
+    const cleaned = cleanValue(value, 255)?.toLowerCase()
+    if (!cleaned || !/^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?(?::\d{1,5})?$/.test(cleaned)) return undefined
+    const hostname = cleaned.replace(/:\d{1,5}$/, '')
+    if (UUID_VALUE_PATTERN.test(hostname) || WALLET_VALUE_PATTERN.test(hostname) || IPV4_VALUE_PATTERN.test(hostname)) {
+        return undefined
+    }
     return cleaned
 }
 
@@ -110,7 +122,7 @@ function currentTouch(): SignupAttributionTouch | null {
     if (referrer) {
         try {
             const parsedReferrer = new URL(referrer)
-            if (parsedReferrer.origin !== url.origin) referrerHost = cleanValue(parsedReferrer.hostname, 255)
+            if (parsedReferrer.origin !== url.origin) referrerHost = cleanHost(parsedReferrer.hostname)
         } catch {}
     }
 
@@ -138,8 +150,7 @@ function isTouch(value: unknown): value is SignupAttributionTouch {
         (touch.utmMedium !== undefined && !cleanMarketingValue(touch.utmMedium)) ||
         (touch.utmCampaign !== undefined && !cleanMarketingValue(touch.utmCampaign)) ||
         (touch.utmContent !== undefined && !cleanMarketingValue(touch.utmContent)) ||
-        (touch.referrerHost !== undefined &&
-            !/^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?(?::\d{1,5})?$/i.test(touch.referrerHost)) ||
+        (touch.referrerHost !== undefined && !cleanHost(touch.referrerHost)) ||
         (touch.path !== undefined && !cleanPath(touch.path))
     )
         return false
@@ -152,6 +163,18 @@ function isContext(value: unknown): value is SignupAttributionContext {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return false
     const context = value as Partial<SignupAttributionContext>
     return (
+        Object.keys(context).every((key) =>
+            [
+                'schemaVersion',
+                'journeyId',
+                'platform',
+                'analyticsState',
+                'captureMethod',
+                'firstTouch',
+                'firstContentTouch',
+                'lastTouch',
+            ].includes(key)
+        ) &&
         context.schemaVersion === SIGNUP_ATTRIBUTION_SCHEMA_VERSION &&
         typeof context.journeyId === 'string' &&
         /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(context.journeyId) &&
@@ -167,13 +190,48 @@ function isContext(value: unknown): value is SignupAttributionContext {
     )
 }
 
+function canonicalTouch(touch: SignupAttributionTouch): SignupAttributionTouch {
+    return {
+        occurredAt: new Date(touch.occurredAt).toISOString(),
+        ...(cleanMarketingValue(touch.utmSource) ? { utmSource: cleanMarketingValue(touch.utmSource) } : {}),
+        ...(cleanMarketingValue(touch.utmMedium) ? { utmMedium: cleanMarketingValue(touch.utmMedium) } : {}),
+        ...(cleanMarketingValue(touch.utmCampaign) ? { utmCampaign: cleanMarketingValue(touch.utmCampaign) } : {}),
+        ...(cleanMarketingValue(touch.utmContent) ? { utmContent: cleanMarketingValue(touch.utmContent) } : {}),
+        ...(cleanHost(touch.referrerHost) ? { referrerHost: cleanHost(touch.referrerHost) } : {}),
+        ...(touch.path && cleanPath(touch.path) ? { path: cleanPath(touch.path) } : {}),
+    }
+}
+
+/** Rebuild from allowlisted fields and trim lower-priority touches to the API cap. */
+function canonicalSignupAttribution(value: unknown): SignupAttributionContext | null {
+    if (!isContext(value)) return null
+    const canonical: SignupAttributionContext = {
+        schemaVersion: SIGNUP_ATTRIBUTION_SCHEMA_VERSION,
+        journeyId: value.journeyId,
+        platform: value.platform,
+        analyticsState: 'enabled',
+        captureMethod: value.captureMethod,
+        firstTouch: canonicalTouch(value.firstTouch),
+        ...(value.firstContentTouch ? { firstContentTouch: canonicalTouch(value.firstContentTouch) } : {}),
+        ...(value.lastTouch ? { lastTouch: canonicalTouch(value.lastTouch) } : {}),
+    }
+    const candidates: SignupAttributionContext[] = [
+        canonical,
+        { ...canonical, lastTouch: undefined },
+        { ...canonical, firstContentTouch: undefined, lastTouch: undefined },
+    ]
+    return candidates.find((candidate) => JSON.stringify(candidate).length <= MAX_SERIALIZED_ATTRIBUTION_LENGTH) ?? null
+}
+
 export function readSignupAttribution(): SignupAttributionContext | null {
     if (!analyticsCollectionAvailable()) {
-        clearSignupAttribution()
+        void clearSignupAttribution()
         return null
     }
-    const stored = getFromCookie(SIGNUP_ATTRIBUTION_COOKIE)
-    return isContext(stored) ? stored : null
+    const rawStored = getFromCookie(SIGNUP_ATTRIBUTION_COOKIE)
+    const stored = canonicalSignupAttribution(rawStored)
+    if (rawStored && !stored) void clearSignupAttribution()
+    return stored
 }
 
 export function captureSignupAttribution(): SignupAttributionContext | null {
@@ -201,30 +259,45 @@ export function captureSignupAttribution(): SignupAttributionContext | null {
               : {}),
     }
 
-    saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, context, SIGNUP_ATTRIBUTION_EXPIRY_DAYS)
-    return context
+    const bounded = canonicalSignupAttribution(context)
+    if (!bounded) return null
+    saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, bounded, SIGNUP_ATTRIBUTION_EXPIRY_DAYS)
+    return bounded
 }
 
 export function restoreSignupAttribution(context: SignupAttributionContext): SignupAttributionContext {
     if (!analyticsCollectionAvailable()) return context
     const existing = readSignupAttribution()
-    const restored: SignupAttributionContext = {
+    const restored = canonicalSignupAttribution({
         ...context,
         captureMethod: 'deferred_link',
         firstContentTouch: context.firstContentTouch ?? existing?.firstContentTouch,
         lastTouch: context.lastTouch ?? existing?.lastTouch,
-    }
+    })
+    if (!restored) return context
     saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, restored, SIGNUP_ATTRIBUTION_EXPIRY_DAYS)
     void persistNativeSignupAttribution(restored)
     return restored
 }
 
-export function clearSignupAttribution(): void {
+function clearPendingSignupAttributionLocally(): void {
+    try {
+        localStorage.removeItem(PENDING_SIGNUP_KEY)
+    } catch {}
+}
+
+async function removeNativeSignupKeys(keys: string[]): Promise<void> {
+    if (process.env.NEXT_PUBLIC_CAPACITOR_BUILD !== 'true') return
+    try {
+        const { Preferences } = await import('@capacitor/preferences')
+        await Promise.all(keys.map((key) => Preferences.remove({ key })))
+    } catch {}
+}
+
+export async function clearSignupAttribution(): Promise<void> {
     saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, '', -1)
-    clearPendingSignupAttribution()
-    void import('@capacitor/preferences')
-        .then(({ Preferences }) => Preferences.remove({ key: NATIVE_STORAGE_KEY }))
-        .catch(() => {})
+    clearPendingSignupAttributionLocally()
+    await removeNativeSignupKeys([PENDING_SIGNUP_KEY, NATIVE_STORAGE_KEY])
 }
 
 /** Mark a completed passkey ceremony as eligible for authenticated attribution attach. */
@@ -239,15 +312,9 @@ export function markSignupAttributionPending(): void {
     }
 }
 
-export function clearPendingSignupAttribution(): void {
-    try {
-        localStorage.removeItem(PENDING_SIGNUP_KEY)
-    } catch {}
-    if (process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true') {
-        void import('@capacitor/preferences')
-            .then(({ Preferences }) => Preferences.remove({ key: PENDING_SIGNUP_KEY }))
-            .catch(() => {})
-    }
+export async function clearPendingSignupAttribution(): Promise<void> {
+    clearPendingSignupAttributionLocally()
+    await removeNativeSignupKeys([PENDING_SIGNUP_KEY])
 }
 
 /** Only a client that just completed registration may finalize a journey. */
@@ -277,16 +344,23 @@ function analyticsCollectionAvailable(): boolean {
 
 async function persistNativeSignupAttribution(context: SignupAttributionContext): Promise<void> {
     if (process.env.NEXT_PUBLIC_CAPACITOR_BUILD !== 'true') return
+    const serialized = serializeSignupAttribution(context)
+    if (!serialized) return
     try {
         const { Preferences } = await import('@capacitor/preferences')
-        await Preferences.set({ key: NATIVE_STORAGE_KEY, value: JSON.stringify(context) })
+        await Preferences.set({ key: NATIVE_STORAGE_KEY, value: serialized })
     } catch {}
 }
 
 /** Persist the context before a native app can be killed between restore and signup. */
 export async function persistSignupAttribution(context: SignupAttributionContext): Promise<void> {
-    saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, context, SIGNUP_ATTRIBUTION_EXPIRY_DAYS)
-    await persistNativeSignupAttribution(context)
+    const bounded = canonicalSignupAttribution(context)
+    if (!bounded) {
+        await clearSignupAttribution()
+        return
+    }
+    saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, bounded, SIGNUP_ATTRIBUTION_EXPIRY_DAYS)
+    await persistNativeSignupAttribution(bounded)
 }
 
 /** Cookie first, then native Preferences for WebView restarts. */
@@ -297,7 +371,9 @@ export async function readSignupAttributionAsync(): Promise<SignupAttributionCon
     try {
         const { Preferences } = await import('@capacitor/preferences')
         const stored = await Preferences.get({ key: NATIVE_STORAGE_KEY })
-        return parseSignupAttribution(stored.value)
+        const parsed = parseSignupAttribution(stored.value)
+        if (stored.value && !parsed) await clearSignupAttribution()
+        return parsed
     } catch {
         return null
     }
@@ -312,7 +388,7 @@ export async function readSignupAttributionAsync(): Promise<SignupAttributionCon
  */
 export async function ensureSignupAttributionForRegistration(): Promise<SignupAttributionContext | null> {
     if (!analyticsCollectionAvailable()) {
-        clearSignupAttribution()
+        await clearSignupAttribution()
         return null
     }
 
@@ -326,14 +402,15 @@ export async function ensureSignupAttributionForRegistration(): Promise<SignupAt
 export function serializeSignupAttribution(
     context: SignupAttributionContext | null = readSignupAttribution()
 ): string | null {
-    return context ? JSON.stringify(context) : null
+    const canonical = canonicalSignupAttribution(context)
+    return canonical ? JSON.stringify(canonical) : null
 }
 
 export function parseSignupAttribution(value: string | null | undefined): SignupAttributionContext | null {
-    if (!value) return null
+    if (!value || value.length > MAX_SERIALIZED_ATTRIBUTION_LENGTH) return null
     try {
         const parsed: unknown = JSON.parse(value)
-        return isContext(parsed) ? parsed : null
+        return canonicalSignupAttribution(parsed)
     } catch {
         return null
     }

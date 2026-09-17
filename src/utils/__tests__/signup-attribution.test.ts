@@ -1,13 +1,16 @@
 import {
     buildSignupAttributionHeader,
     captureSignupAttribution,
+    clearSignupAttribution,
     clearPendingSignupAttribution,
     ensureSignupAttributionForRegistration,
     hasPendingSignupAttribution,
     markSignupAttributionPending,
     parseSignupAttribution,
     readSignupAttribution,
+    readSignupAttributionAsync,
     restoreSignupAttribution,
+    serializeSignupAttribution,
     signupAttributionPosthogProperties,
 } from '../signup-attribution'
 
@@ -27,9 +30,9 @@ const clearAttributionCookie = () => {
     document.cookie = 'signupAttribution=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/'
 }
 
-beforeEach(() => {
+beforeEach(async () => {
     process.env.NEXT_PUBLIC_CAPACITOR_BUILD = 'false'
-    clearPendingSignupAttribution()
+    await clearPendingSignupAttribution()
     clearAttributionCookie()
     window.history.replaceState({}, '', '/')
     Object.defineProperty(document, 'referrer', { configurable: true, value: '' })
@@ -131,11 +134,61 @@ describe('signup attribution context', () => {
         expect(captured?.firstTouch.utmCampaign).toBeUndefined()
     })
 
+    it('rejects extra fields and bounds canonical uploads', () => {
+        const occurredAt = new Date().toISOString()
+        const maxTag = 'x'.repeat(128)
+        const touch = {
+            occurredAt,
+            utmSource: maxTag,
+            utmMedium: maxTag,
+            utmCampaign: maxTag,
+            utmContent: maxTag,
+            referrerHost: `${maxTag}.example`,
+            path: `/blog/${'x'.repeat(500)}`,
+        }
+        const context = {
+            schemaVersion: '1' as const,
+            journeyId: '33333333-3333-4333-8333-333333333333',
+            platform: 'android' as const,
+            analyticsState: 'enabled' as const,
+            captureMethod: 'deferred_link' as const,
+            firstTouch: touch,
+            firstContentTouch: touch,
+            lastTouch: touch,
+        }
+
+        const serialized = serializeSignupAttribution(context)
+        expect(serialized).not.toBeNull()
+        expect(serialized!.length).toBeLessThanOrEqual(4096)
+        expect(parseSignupAttribution(serialized)).not.toBeNull()
+        expect(parseSignupAttribution(JSON.stringify({ ...context, unexpected: 'field' }))).toBeNull()
+        expect(parseSignupAttribution(JSON.stringify({ ...context, unexpected: 'x'.repeat(5000) }))).toBeNull()
+    })
+
+    it('awaits both native attribution removals at an account boundary', async () => {
+        process.env.NEXT_PUBLIC_CAPACITOR_BUILD = 'true'
+
+        await clearSignupAttribution()
+
+        expect(mockPreferencesRemove).toHaveBeenCalledWith({ key: 'signup-attribution-pending' })
+        expect(mockPreferencesRemove).toHaveBeenCalledWith({ key: 'signup-attribution' })
+    })
+
+    it('removes an invalid native payload so it cannot retry forever', async () => {
+        process.env.NEXT_PUBLIC_CAPACITOR_BUILD = 'true'
+        mockPreferencesGet.mockResolvedValue({ value: JSON.stringify({ unexpected: 'legacy-payload' }) })
+
+        await expect(readSignupAttributionAsync()).resolves.toBeNull()
+
+        expect(mockPreferencesRemove).toHaveBeenCalledWith({ key: 'signup-attribution-pending' })
+        expect(mockPreferencesRemove).toHaveBeenCalledWith({ key: 'signup-attribution' })
+    })
+
     it('limits authenticated finalization retries to a completed signup marker', async () => {
         expect(await hasPendingSignupAttribution()).toBe(false)
         markSignupAttributionPending()
         expect(await hasPendingSignupAttribution()).toBe(true)
-        clearPendingSignupAttribution()
+        await clearPendingSignupAttribution()
         expect(await hasPendingSignupAttribution()).toBe(false)
     })
 })

@@ -299,7 +299,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         // Source context is account-linkable; an explicit account switch must
         // never let the next user inherit the previous user's journey.
-        clearSignupAttribution()
+        await clearSignupAttribution()
 
         // A cached step-up proof outliving the session would let the next user
         // of this device skip verification on card and withdrawal screens.

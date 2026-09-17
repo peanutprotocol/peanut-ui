@@ -236,7 +236,7 @@ export function buildDeferredPayload(dest?: string, invite?: string): string {
         params.delete('badgeCampaign')
     }
 
-    if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH && params.has('invite')) {
+    if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH) {
         params.delete(ATTRIBUTION_PARAM)
     }
 

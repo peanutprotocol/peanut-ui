@@ -45,6 +45,15 @@ describe('signup attribution attachment', () => {
         expect(mockClearSignupAttribution).toHaveBeenCalledTimes(1)
     })
 
+    it('clears an invalid stored payload without entering a POST retry loop', async () => {
+        mockSerializeSignupAttribution.mockReturnValue(null)
+
+        await expect(attachSignupAttribution()).resolves.toBe(false)
+
+        expect(mockApiFetch).not.toHaveBeenCalled()
+        expect(mockClearSignupAttribution).toHaveBeenCalledTimes(1)
+    })
+
     it('collapses concurrent registration and auth-provider attempts into one POST', async () => {
         let resolveResponse!: (response: { ok: boolean; status: number }) => void
         mockApiFetch.mockReturnValue(
