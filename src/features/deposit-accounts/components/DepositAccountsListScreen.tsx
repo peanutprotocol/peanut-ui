@@ -177,9 +177,15 @@ export function DepositAccountsListScreen({
      * A corridor nobody can hold as a standing account is unavailable whatever
      * the accounts call returned, so the rail decides that case rather than the
      * payload — a failed read must not invite a claim on AR or BR.
+     *
+     * "Unavailable" is reserved for a corridor that is truly closed. A
+     * residence-gated row is not closed — it is one residence away — so all
+     * three read "Not set up" and the screen behind them carries the reason.
      */
     const rowBadge = (rail: DepositRail, account: DepositAccountView | undefined, gate: GateState) => {
         if (isLoading) return <div className="h-5 w-16 animate-pulse rounded bg-foreground-primary/10" />
+        if (isResidenceGated(rail.corridor) && !account)
+            return <StatusBadge status="custom" customText={t('list.badgeNotSetUp')} />
         if (!isClaimable(rail) || account?.status === 'unavailable')
             return <StatusBadge status="custom" customText={t('list.badgeUnavailable')} />
         // A read that failed says nothing about what the user holds. "Not set

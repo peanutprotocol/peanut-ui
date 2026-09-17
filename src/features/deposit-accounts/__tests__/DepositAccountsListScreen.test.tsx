@@ -190,12 +190,26 @@ describe('DepositAccountsListScreen', () => {
         ).not.toBeInTheDocument()
     })
 
-    // Neither Manteca corridor is a standing account, and the rail says so
-    // whatever the accounts call returned.
-    it('badges a corridor nobody can hold as unavailable', () => {
+    /**
+     * "Unavailable" is for a corridor that is truly closed. A residence-gated
+     * row is one residence away, so all three read the same as any corridor
+     * the user has not opened — the screen behind the row carries the reason.
+     */
+    it('badges every residence-gated row the same, and not as unavailable', () => {
         const { container } = list(false)
 
-        expect(inRow(container, 'BANK_TRANSFER_AR').getByText('Unavailable')).toBeInTheDocument()
+        for (const corridor of ['BANK_TRANSFER_AR', 'BANK_TRANSFER_BR', 'BANK_TRANSFER_CO'] as const) {
+            expect(inRow(container, corridor).getByText('Not set up')).toBeInTheDocument()
+            expect(inRow(container, corridor).queryByText('Unavailable')).not.toBeInTheDocument()
+        }
+    })
+
+    // The one-off Pix code is a real "nobody can hold this" corridor, and the
+    // rail says so whatever the accounts call returned.
+    it('badges a corridor nobody can hold as unavailable', () => {
+        const { container } = list(false, { corridors: ['PIX_BR'] })
+
+        expect(inRow(container, 'PIX_BR').getByText('Unavailable')).toBeInTheDocument()
     })
 
     it('does not open a corridor whose state is not known yet', () => {

@@ -4032,8 +4032,8 @@
                     "line": "Na Argentina o depósito precisa vir de uma conta no seu nome.",
                     "why": "Nosso parceiro bancário vincula sua conta ao país do seu documento legal, um país por vez. Uma pessoa com nacionalidade americana não pode usar transferências bancárias aqui, onde quer que more."
                 },
-                "railName": "Transferência bancária",
-                "residenceOnly": "Transferência bancária ou Mercado Pago · Para residentes legais na Argentina",
+                "railName": "Banco ou Mercado Pago",
+                "residenceOnly": "Para residentes legais na Argentina",
                 "residenceRequired": "Só residentes legais na Argentina podem adicionar dinheiro assim. Sua nacionalidade não importa; o país onde você mora, sim.",
                 "qrPay": "Você ainda pode pagar códigos QR do Mercado Pago na Argentina com o seu saldo."
             },
