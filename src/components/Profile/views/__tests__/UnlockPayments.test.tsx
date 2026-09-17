@@ -7,7 +7,7 @@
  * the residence anchor renders, and restricted residences read Not available.
  */
 import React from 'react'
-import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
 import UnlockPayments from '@/components/Profile/views/UnlockPayments.view'
@@ -35,6 +35,22 @@ jest.mock('nuqs', () => ({
     useQueryState: () => [mockOpenView, mockSetOpenView],
 }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
+
+let mockDepositEnabled = false
+let mockDepositAccounts: Record<string, unknown> = {}
+const mockReadDepositAccounts = jest.fn(() => ({
+    accounts: mockDepositAccounts,
+    gates: { SEPA_EU: { kind: 'ready' } },
+    isLoading: false,
+    isError: false,
+    refetch: jest.fn(),
+}))
+jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
+    useDepositAccountsEnabled: () => mockDepositEnabled,
+}))
+jest.mock('@/features/deposit-accounts/useDepositAccounts', () => ({
+    useDepositAccounts: () => mockReadDepositAccounts(),
+}))
 
 let mockRails: unknown[] = []
 // A provider rejection only surfaces for an APPROVED user, so this has to be
@@ -144,6 +160,8 @@ jest.mock('@/components/Profile/views/ResidenceChangeDrawer', () => ({
 
 describe('UnlockPayments', () => {
     beforeEach(() => {
+        mockDepositEnabled = false
+        mockDepositAccounts = {}
         mockMantecaLimits = null
         mockBridgeLimits = null
         jest.clearAllMocks()
@@ -295,11 +313,45 @@ describe('UnlockPayments', () => {
         expect(screen.getByText(/left this month/)).toBeInTheDocument()
     })
 
-    it('an active Bridge rail shows the per-transfer cap line', () => {
+    it('an active Bridge rail names deposit and withdrawal limits separately', () => {
         mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', status: 'enabled' }]
-        mockBridgeLimits = { onRampPerTransaction: '25000', offRampPerTransaction: '25000', asset: 'USD' }
+        mockBridgeLimits = { onRampPerTransaction: '25000', offRampPerTransaction: '50000', asset: 'USD' }
         render()
-        expect(screen.getAllByText(/per transfer/).length).toBeGreaterThan(0)
+        expect(screen.getAllByText('Per bank deposit').length).toBeGreaterThan(0)
+        expect(screen.getAllByText('Per bank withdrawal').length).toBeGreaterThan(0)
+        expect(screen.getAllByText('$25,000').length).toBeGreaterThan(0)
+        expect(screen.getAllByText('$50,000').length).toBeGreaterThan(0)
+    })
+
+    it('active payment rows explain the method in a drawer', () => {
+        render()
+        fireEvent.click(screen.getByText('Peanut-to-Peanut payments'))
+
+        const drawer = screen.getByRole('dialog')
+        expect(within(drawer).getByText('Send and receive money with other Peanut users.')).toBeInTheDocument()
+        expect(within(drawer).getByText('No limits on Peanut-to-Peanut payments')).toBeInTheDocument()
+        expect(mockInitiateKyc).not.toHaveBeenCalled()
+    })
+
+    it('held bank accounts reuse account details and retain the profile return path', () => {
+        mockDepositEnabled = true
+        mockDepositAccounts = {
+            SEPA_EU: { status: 'active', instructions: {}, matching: { sender: 'business-only' } },
+        }
+        render()
+
+        expect(screen.getByText('Your bank accounts')).toBeInTheDocument()
+        fireEvent.click(screen.getByText('EUR · SEPA'))
+        expect(mockPush).toHaveBeenCalledWith(
+            '/get-paid?step=details&corridor=SEPA_EU&returnTo=%2Fprofile%2Fidentity-verification'
+        )
+    })
+
+    it('does not query bank accounts while their rollout flag is off', () => {
+        mockReadDepositAccounts.mockClear()
+        render()
+        expect(mockReadDepositAccounts).not.toHaveBeenCalled()
+        expect(screen.queryByText('Your bank accounts')).not.toBeInTheDocument()
     })
 
     it('states the P2P no-limit fact even before anything is unlocked', () => {

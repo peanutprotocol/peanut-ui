@@ -297,7 +297,7 @@
             "yourBadges": "Seus selos",
             "points": "Pontos",
             "personalDetails": "Editar perfil",
-            "unlockedRegions": "Canais de pagamento",
+            "unlockedRegions": "Contas e pagamentos",
             "paymentLimits": "Limites de pagamento",
             "showMyFullName": "Mostrar meu nome completo",
             "backup": "Backup",
@@ -356,8 +356,8 @@
             }
         },
         "unlockPayments": {
-            "title": "Canais de pagamento",
-            "description": "Tudo o que você pode usar hoje, e o que se abre depois de verificar sua identidade.",
+            "title": "Contas e pagamentos",
+            "description": "Suas contas, formas de pagamento e status de verificação.",
             "residence": {
                 "label": "Residência: {country}",
                 "unknown": "Residência não definida",
@@ -427,13 +427,29 @@
             "limits": {
                 "monthlyLeft": "Restam {remaining} de {limit} neste mês",
                 "perTransfer": "Até {amount} por transferência",
-                "p2pNoLimit": "Os pagamentos de Peanut para Peanut não têm limite"
+                "p2pNoLimit": "Os pagamentos de Peanut para Peanut não têm limite",
+                "depositPerTransfer": "Por depósito bancário",
+                "withdrawalPerTransfer": "Por saque bancário"
             },
             "cooldown": {
                 "title": "Espere um pouco",
                 "until": "As tentativas de verificação estão temporariamente limitadas. Você pode tentar novamente após {until}.",
                 "short": "As tentativas de verificação estão temporariamente limitadas. Tente novamente daqui a pouco.",
                 "dismiss": "Vou tentar mais tarde"
+            },
+            "accountsTitle": "Suas contas bancárias",
+            "details": {
+                "p2p": "Envie e receba dinheiro de outros usuários do Peanut.",
+                "saBank": "Pague por QR e transfira dinheiro por contas bancárias no Brasil e na Argentina.",
+                "pixBank": "Pague códigos QR Pix e transfira dinheiro por contas bancárias brasileiras.",
+                "pixQr": "Pague códigos QR Pix no Brasil.",
+                "arQrBank": "Pague códigos QR e transfira dinheiro por contas bancárias argentinas.",
+                "arQr": "Pague códigos QR na Argentina.",
+                "brBank": "Transfira dinheiro por contas bancárias brasileiras.",
+                "arBank": "Transfira dinheiro por contas bancárias argentinas.",
+                "naBank": "Adicione ou saque dinheiro por transferências bancárias dos Estados Unidos e pela rede SPEI do México.",
+                "sepa": "Adicione ou saque euros por transferências SEPA.",
+                "card": "Pague com seu cartão Peanut."
             }
         },
         "backup": {
@@ -610,13 +626,15 @@
             "error": "Não foi possível excluir sua conta. Tente de novo.",
             "sadPeanutAlt": "Peanut triste",
             "pointingPeanutAlt": "Peanut apontando",
-            "cryingPeanutAlt": "Peanut chorando"
+            "cryingPeanutAlt": "Peanut chorando",
+            "depositInFlight": "Há um depósito a caminho. Espere ele chegar e saque seu saldo antes de excluir sua conta.",
+            "depositAccountsUnavailable": "Não conseguimos encerrar suas contas bancárias. Sua conta Peanut continua ativa. Tente novamente mais tarde."
         }
     },
     "limits": {
         "title": "Limites de pagamento",
         "pageDescription": "Os limites de pagamento controlam quanto você pode enviar e receber. Variam por região e são renovados todo mês ou ano.",
-        "unlockedRegions": "Regiões desbloqueadas",
+        "unlockedRegions": "Contas e pagamentos",
         "lockedRegions": "Regiões bloqueadas",
         "otherRegions": "Outras regiões",
         "cardLimits": {
@@ -1061,7 +1079,7 @@
             "goToHome": "Ir para o início",
             "createWallet": "Crie sua Peanut Wallet"
         },
-        "bankDetailsAlternative": "Ou receba nos seus dados bancários"
+        "bankDetailsAlternative": "Compartilhe os dados da sua conta bancária"
     },
     "payment": {
         "validation": {
@@ -3080,6 +3098,14 @@
         "txReverted": "A transação foi revertida, tente novamente"
     },
     "global": {
+        "countryWaitlist": {
+            "title": "Transferências bancárias em {country}",
+            "body": "As transferências bancárias ainda não estão disponíveis aqui. Entre na lista e avisaremos quando estiverem.",
+            "join": "Quero ser avisado",
+            "joinedTitle": "Você está na lista",
+            "joinedBody": "Avisaremos quando as transferências bancárias estiverem disponíveis em {country}.",
+            "error": "Não foi possível atualizar a lista de espera. Tente novamente."
+        },
         "amountInput": {
             "balance": "Saldo:",
             "useFullBalance": "Usar saldo total: {balance}",
@@ -3846,11 +3872,16 @@
         }
     },
     "depositAccounts": {
+        "opened": {
+            "heading": "Sua conta em {currency} está pronta!",
+            "body": "Seus próprios dados bancários, prontos para o próximo pagamento.",
+            "cta": "Ver meus dados bancários"
+        },
         "title": "Receber",
         "list": {
-            "heading": "Receba na sua moeda local",
-            "subheading": "Tenha dados bancários onde uma empresa, um cliente ou uma plataforma pode pagar você. O dinheiro cai no seu saldo da Peanut.",
-            "sectionTitle": "Seus dados",
+            "heading": "Suas próprias contas. Receba do mundo.",
+            "subheading": "Tenha dados bancários pessoais em euros, dólares e outras moedas. Receba seu salário ou pagamentos de clientes direto no seu saldo do Peanut.",
+            "sectionTitle": "Suas contas",
             "badgeReady": "Pronta",
             "rowBlocked": "Verifique sua identidade para abrir esta conta",
             "badgeActive": "Ativo",
@@ -3892,23 +3923,17 @@
             "revokedBody": "O que for enviado para eles volta para quem enviou. Avise quem paga você para parar de usá-los e fale com o suporte para substituí-los.",
             "revokedCta": "Falar com o suporte",
             "topUpCta": "Depositar {currency} de outro jeito",
-            "exactAmountCta": "Depositar um valor definido",
             "whoCanPay": "Quem pode te pagar"
         },
         "share": {
-            "heading": "O que quem paga vê",
-            "subheading": "Envie isto para quem vai pagar você. É o mesmo para todo pagamento.",
-            "sectionTitle": "Pagar {user} em {currency}",
-            "shareCta": "Compartilhar",
-            "copyCta": "Copiar como texto",
+            "copyCta": "Copiar todos os dados",
             "copied": "Dados copiados",
             "copyFailed": "Não foi possível copiar os dados",
             "textIntroOwn": "Estes são meus dados bancários para receber em {currency}:",
             "textIntroPooled": "Dados bancários para pagar {user} em {currency}:",
             "textOutro": "Enviado pela Peanut · peanut.me",
             "sheetTitleOwn": "Meus dados bancários",
-            "sheetTitlePooled": "Dados bancários para pagar {user}",
-            "calloutTitle": "Conte isso a quem vai pagar"
+            "sheetTitlePooled": "Dados bancários para pagar {user}"
         },
         "rows": {
             "accountHolder": "Titular da conta",
@@ -3999,7 +4024,7 @@
             "ownAccount": {
                 "line": "Da sua própria conta: sim.",
                 "payer": "Da conta do próprio titular: sim.",
-                "why": "Você pode transferir da sua própria conta bancária. Fale com o suporte antes de enviar um valor alto."
+                "why": "Você pode transferir da sua própria conta bancária. Fale com o suporte antes de enviar mais de US$ 100.000."
             },
             "ownAccountMax": {
                 "line": "Da sua própria conta: até {max}.",
@@ -4049,7 +4074,7 @@
             "individualNotYet": {
                 "line": "De outra pessoa: ainda não.",
                 "payer": "De outra pessoa: ainda não.",
-                "why": "Nosso parceiro bancário ainda não acertou um valor para pagamentos de pessoas físicas nesta moeda. Vamos avisar aqui no dia em que acertar."
+                "why": "Pagamentos de outras pessoas ainda não estão disponíveis nesta conta."
             },
             "individualUnconfirmed": {
                 "line": "De outra pessoa: não confirmado.",
@@ -4057,9 +4082,9 @@
                 "why": "Só informamos o que nosso parceiro bancário confirmou para esta moeda, e ele não falou nada sobre pagamentos de outras pessoas. Os dados funcionam; se algum pagamento voltar, nos avise e a gente resolve."
             },
             "minimum": {
-                "line": "O menor pagamento é {min}.",
-                "payer": "O menor pagamento é {min}.",
-                "why": "Abaixo de {min} o trilho bancário recusa a transferência, então um pagamento de teste de alguns centavos nunca chega."
+                "line": "Depósito mínimo: {min}.",
+                "payer": "Depósito mínimo: {min}.",
+                "why": "Os depósitos devem ser de pelo menos {min}, incluindo pagamentos de teste."
             },
             "stateRestricted": {
                 "line": "Só você pode depositar, de uma conta bancária no seu nome.",

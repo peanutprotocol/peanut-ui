@@ -5,7 +5,7 @@
  * country with no send rail. Pinned here:
  * 1. Brazil is selectable — a PIX send to a third-party key rides the Manteca
  *    QR-payment endpoint, so the send->bank flow must let users reach it.
- * 2. Argentina stays disabled — its Manteca rails in this flow are own-account
+ * 2. Argentina opens the notification waitlist — its Manteca rails here are own-account
  *    offramps (same ruling that keeps Mercado Pago off the send list, PR #2813).
  * 3. Bridge countries (e.g. Germany) stay selectable.
  *
@@ -46,6 +46,14 @@ jest.mock('@/components/Global/EasterEggDrawer', () => ({
     EASTER_EGG_COUNTRIES: {},
 }))
 
+jest.mock('../CountryWaitlist', () => ({
+    CountryWaitlist: ({ countryCode, flow }: { countryCode: string; flow: string }) => (
+        <div data-testid="country-waitlist">
+            {countryCode}:{flow}
+        </div>
+    ),
+}))
+
 import { CountryList } from '../CountryList'
 
 const render = (ui: Parameters<typeof rtlRender>[0]) => rtlRender(ui, { wrapper: IntlWrapper })
@@ -81,10 +89,12 @@ describe('CountryList — enforceSupportedCountries (send->bank flow)', () => {
         expect(onCountryClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'brazil' }))
     })
 
-    test('Argentina stays disabled (own-account rails only)', () => {
+    test('Argentina opens the send waitlist without starting an own-account withdrawal)', () => {
         const argentina = row('Argentina')
-        expect(argentina).toHaveAttribute('aria-disabled', 'true')
+        expect(argentina).not.toHaveAttribute('aria-disabled')
+        expect(screen.queryByText('Soon')).not.toBeInTheDocument()
         fireEvent.click(argentina)
+        expect(screen.getByTestId('country-waitlist')).toHaveTextContent('AR:send')
         expect(onCountryClick).not.toHaveBeenCalled()
     })
 

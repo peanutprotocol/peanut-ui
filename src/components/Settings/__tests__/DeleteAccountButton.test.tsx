@@ -10,6 +10,7 @@ import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-librar
 import { IntlWrapper } from '@/test-utils/intl'
 import DeleteAccountButton from '@/components/Settings/DeleteAccountButton'
 import { AccountHasBalanceError } from '@/services/users'
+import { ApiError } from '@/services/api-error'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
@@ -106,6 +107,25 @@ describe('DeleteAccountButton', () => {
         await waitFor(() => expect(mockToastError).toHaveBeenCalled())
         expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.DELETE_ACCOUNT_FAILED)
         // still on the confirm step, not signed out
+        expect(screen.getByText("Aw, you're leaving?")).toBeInTheDocument()
+        expect(mockLogout).not.toHaveBeenCalled()
+    })
+
+    it.each([
+        [
+            'DEPOSIT_IN_FLIGHT',
+            'A deposit is still arriving. Wait for it to arrive, then withdraw your balance before deleting your account.',
+        ],
+        [
+            'DEPOSIT_ACCOUNTS_UNAVAILABLE',
+            'We couldn’t close your bank accounts. Your Peanut account is still active. Please try again later.',
+        ],
+    ])('explains %s without logging out or showing success', async (code, message) => {
+        mockRequestDeletion.mockRejectedValueOnce(new ApiError('Backend refusal', { status: 409, code }))
+        render(<DeleteAccountButton />)
+        fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }))
+        fireEvent.click(screen.getByText('Yes, delete it'))
+        await waitFor(() => expect(mockToastError).toHaveBeenCalledWith(message))
         expect(screen.getByText("Aw, you're leaving?")).toBeInTheDocument()
         expect(mockLogout).not.toHaveBeenCalled()
     })

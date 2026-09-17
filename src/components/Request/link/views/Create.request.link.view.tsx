@@ -9,7 +9,7 @@ import AmountInput from '@/components/Global/AmountInput'
 import { useTranslations } from 'next-intl'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import { useSafeBack } from '@/hooks/useSafeBack'
+import { useRequestBack } from '@/components/Request/useRequestBack'
 import { withReturnTo } from '@/utils/return-to.utils'
 import { CreateRequestLinkCta } from './CreateRequestLinkCta'
 import { useCreateRequestLink } from './useCreateRequestLink'
@@ -18,7 +18,7 @@ export const CreateRequestLinkView = () => {
     const t = useTranslations('request')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
-    const onBack = useSafeBack('/home')
+    const onBack = useRequestBack()
     const depositAccountsEnabled = useDepositAccountsEnabled()
     const {
         tokenValue,

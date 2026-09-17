@@ -1,4 +1,5 @@
 'use client'
+import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 
 import { API_ERROR_CODES } from '@/services/api-error'
 
@@ -197,7 +198,9 @@ function MantecaBankWithdrawFlow() {
         return countryData.find((country) => country.type === 'country' && country.path === countryPath)
     }, [countryPath])
 
-    const onBack = useSafeBack('/withdraw?showAll=true')
+    const { isFromSendFlow } = useSendFlowOrigin()
+    const backToWithdraw = useSafeBack('/withdraw?showAll=true')
+    const onBack = () => (isFromSendFlow ? router.replace('/send') : backToWithdraw())
 
     const countryConfig = useMemo(() => {
         if (!selectedCountry || !isMantecaSupportedCountryCode(selectedCountry.id)) return undefined
@@ -724,7 +727,7 @@ function MantecaBankWithdrawFlow() {
     if (selectedCountry && countryConfig && (isCurrencyLoading || !currencyPrice)) {
         return (
             <RateGateScreen
-                title={tNav('withdraw')}
+                title={tNav(isFromSendFlow ? 'send' : 'withdraw')}
                 onBack={onBack}
                 isLoading={isCurrencyLoading}
                 onRetry={refetchCurrency}
@@ -740,7 +743,7 @@ function MantecaBankWithdrawFlow() {
         return (
             <div className="flex min-h-inherit flex-col gap-8">
                 <SoundPlayer sound="success" />
-                <NavHeader title={tNav('withdraw')} />
+                <NavHeader title={tNav(isFromSendFlow ? 'send' : 'withdraw')} />
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <Card className="flex flex-row items-center gap-3 p-4">
                         <div className="flex items-center gap-3">
@@ -786,7 +789,7 @@ function MantecaBankWithdrawFlow() {
     if (step === 'failure') {
         return (
             <div className="flex min-h-inherit flex-col gap-8">
-                <NavHeader title={tNav('withdraw')} />
+                <NavHeader title={tNav(isFromSendFlow ? 'send' : 'withdraw')} />
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <Card className="shadow-4">
                         <Card.Header>
@@ -867,7 +870,7 @@ function MantecaBankWithdrawFlow() {
                 isMultiLevel
             />
             <NavHeader
-                title={tNav('withdraw')}
+                title={tNav(isFromSendFlow ? 'send' : 'withdraw')}
                 onPrev={() => {
                     if (step === 'review') {
                         // clear price lock and restore original amount when going back

@@ -151,7 +151,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                                     country: countryPath,
                                     destination: account.identifier,
                                     isSavedAccount: 'true',
-                                    method: isBankFromSend ? (methodParam ?? undefined) : undefined,
+                                    sendMethod: isBankFromSend ? (methodParam ?? undefined) : undefined,
                                 })
                             )
                             return
@@ -236,7 +236,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                             router.push(
                                 rewriteMethodPath(
                                     rail.path ?? '',
-                                    isBankFromSend && methodParam ? `method=${methodParam}` : undefined
+                                    isBankFromSend && methodParam ? `sendMethod=${methodParam}` : undefined
                                 )
                             )
                         })

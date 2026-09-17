@@ -1,7 +1,7 @@
 import { parseAsStringEnum } from 'nuqs'
 import type { DepositCorridor } from './types'
 
-export const DEPOSIT_ACCOUNT_SCREENS = ['list', 'claim', 'details', 'share'] as const
+export const DEPOSIT_ACCOUNT_SCREENS = ['list', 'claim', 'details'] as const
 export type DepositAccountScreen = (typeof DEPOSIT_ACCOUNT_SCREENS)[number]
 
 const CORRIDORS: DepositCorridor[] = [

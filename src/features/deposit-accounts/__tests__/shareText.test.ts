@@ -68,7 +68,7 @@ describe('the shared text carries the account rules', () => {
         })
         expect(out).toContain('From a business: any amount')
         expect(out).toContain('From another person: not yet')
-        expect(out).toContain('The smallest payment is EUR 1')
+        expect(out).toContain('Minimum deposit: EUR 1')
     })
 
     it('gives a dollar payer the cap as a strict limit, and the exemptions', () => {

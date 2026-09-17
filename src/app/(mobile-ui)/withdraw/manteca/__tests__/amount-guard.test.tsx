@@ -50,7 +50,12 @@ jest.mock('@/components/Kyc/InitiateKycModal', () => ({ InitiateKycModal: () => 
 jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({ SumsubKycWrapper: () => null }))
 jest.mock('@/components/Global/NavHeader', () => ({
     __esModule: true,
-    default: ({ onPrev }: { onPrev: () => void }) => <button onClick={onPrev}>Back</button>,
+    default: ({ onPrev, title }: { onPrev: () => void; title: string }) => (
+        <>
+            <h1>{title}</h1>
+            <button onClick={onPrev}>Back</button>
+        </>
+    ),
 }))
 jest.mock('@/features/withdraw/views/PixKeySendView', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/services/manteca', () => ({ mantecaApi: {} }))
@@ -119,4 +124,12 @@ test('destination → amount → back → amount does not loop or lose the desti
     await waitFor(() => expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled())
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Continue' })))
     expect(screen.getByText(/amount to withdraw/i)).toBeInTheDocument()
+})
+
+it('shows Send and returns to Send after a bank-origin handoff', async () => {
+    mockParams = 'country=argentina&method=bank-transfer&sendMethod=bank'
+    setup()
+    expect(await screen.findByRole('heading', { name: 'Send' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    expect(mockPush).toHaveBeenCalledWith('/send')
 })

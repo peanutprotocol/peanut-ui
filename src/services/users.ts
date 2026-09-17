@@ -11,6 +11,7 @@ import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { chargesApi } from './charges'
 import { type TCharge } from './services.types'
 import { BASE_URL } from '@/constants/general.consts'
+import { ApiError } from '@/services/api-error'
 
 type ApiAccount = {
     identifier: string
@@ -151,6 +152,14 @@ export const usersApi = {
         if (body?.error === 'ACCOUNT_HAS_BALANCE') {
             throw new AccountHasBalanceError(typeof body.balanceUsd === 'string' ? body.balanceUsd : null)
         }
-        throw new Error('Failed to request account deletion')
+        throw new ApiError('Failed to request account deletion', {
+            status: response.status,
+            code:
+                typeof body?.code === 'string'
+                    ? body.code
+                    : body?.error === 'DEPOSIT_ACCOUNTS_UNAVAILABLE'
+                      ? body.error
+                      : undefined,
+        })
     },
 }

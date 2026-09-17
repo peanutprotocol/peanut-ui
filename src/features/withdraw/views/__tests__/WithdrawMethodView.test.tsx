@@ -174,14 +174,14 @@ jest.mock('@/hooks/useGeoFilteredPaymentOptions', () => ({
     useGeoFilteredPaymentOptions: () => ({ filteredMethods: [], isLoading: false }),
 }))
 jest.mock('@/hooks/useSendFlowOrigin', () => ({
-    useSendFlowOrigin: () => ({ isBankFromSend: false }),
+    useSendFlowOrigin: () => ({ isBankFromSend: mockIsBankFromSend }),
 }))
 jest.mock('@/utils/general.utils', () => ({
     getFromLocalStorage: () => null,
 }))
 jest.mock('@/utils/native-routes', () => ({
     withdrawCountryUrl: (path: string, qs = '') => `/withdraw/${path}${qs}`,
-    rewriteMethodPath: (path: string, extra?: string) => (extra ? `${path}&${extra}` : path),
+    rewriteMethodPath: jest.requireActual('@/utils/native-routes').rewriteMethodPath,
 }))
 
 const MANTECA_ACCOUNT = {
@@ -223,6 +223,7 @@ import { WithdrawMethodView } from '../WithdrawMethodView'
 
 // ---------- helpers ----------
 
+let mockIsBankFromSend = false
 const mockOnExit = jest.fn()
 const mockOnMethodChosen = jest.fn()
 
@@ -240,6 +241,7 @@ const renderView = (searchParams: Record<string, string> = {}) =>
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockIsBankFromSend = false
 })
 
 // ---------- tests ----------
@@ -370,4 +372,13 @@ describe('WithdrawMethodView — picking a country', () => {
 
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/india')
     })
+})
+
+it('preserves the bank rail and Send origin through the real URL helper', () => {
+    mockIsBankFromSend = true
+    renderView({ showAll: 'true', method: 'bank' })
+    fireEvent.click(screen.getByTestId('country-argentina'))
+    expect(mockRouterPush).toHaveBeenCalledWith(
+        '/withdraw/manteca?method=bank-transfer&country=argentina&sendMethod=bank'
+    )
 })

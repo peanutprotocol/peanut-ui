@@ -31,7 +31,7 @@ describe('resolveScreen', () => {
             railId: 'manteca.bank_transfer_ar',
             matching: { nameOnAccount: 'provider', sender: 'own-name-only' },
         })
-        expect(resolveScreen('share', ars, own, READY)).toBe('details')
+        expect(canShare(own, READY)).toBe(false)
     })
 
     it('shares a corridor whose sender policy is unproved', () => {
@@ -39,11 +39,11 @@ describe('resolveScreen', () => {
         // a restriction, and withholding the share screen over it would hide a
         // working feature — the copy carries the uncertainty instead.
         const unproved = account({ matching: { ...account().matching, sender: 'unknown' } })
-        expect(resolveScreen('share', eur, unproved, READY)).toBe('share')
+        expect(canShare(unproved, READY)).toBe(true)
     })
 
     it('will not share an account that is not active yet', () => {
-        expect(resolveScreen('share', eur, account({ status: 'provisioning' }), READY)).toBe('details')
+        expect(canShare(account({ status: 'provisioning' }), READY)).toBe(false)
     })
 
     it('does not offer to claim an account the user already holds', () => {
@@ -73,7 +73,7 @@ describe('resolveScreen', () => {
     })
 
     it('passes a legitimate share through', () => {
-        expect(resolveScreen('share', eur, account(), READY)).toBe('share')
+        expect(canShare(account(), READY)).toBe(true)
     })
 })
 
@@ -102,12 +102,12 @@ describe('resolveScreen on a revoked corridor', () => {
     })
 
     it('does not offer to share details that no longer receive', () => {
-        expect(resolveScreen('share', eur, revoked, READY)).toBe('details')
+        expect(canShare(revoked, READY)).toBe(false)
     })
 })
 
 describe('canShare', () => {
-    it('agrees with the resolver on every account the footer can be shown for', () => {
+    it('only allows active, usable details with a ready gate', () => {
         const cases = [
             account(),
             account({ status: 'retiring' }),
@@ -116,8 +116,8 @@ describe('canShare', () => {
             account({ matching: { nameOnAccount: 'user', sender: 'own-name-only' } }),
         ]
         for (const gate of [READY, BLOCKED]) {
-            for (const candidate of cases) {
-                expect(canShare(candidate, gate)).toBe(resolveScreen('share', eur, candidate, gate) === 'share')
+            for (const [index, candidate] of cases.entries()) {
+                expect(canShare(candidate, gate)).toBe(gate === READY && index === 0)
             }
         }
     })

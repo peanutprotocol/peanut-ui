@@ -23,7 +23,7 @@ import { loadingStateKey } from '@/i18n/app/loading-states'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useUserByUsername } from '@/hooks/useUserByUsername'
-import { useSafeBack } from '@/hooks/useSafeBack'
+import { useRequestBack } from '@/components/Request/useRequestBack'
 
 interface DirectRequestInitialViewProps {
     username: string
@@ -34,7 +34,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const tLoading = useTranslations('loadingStates')
-    const onBack = useSafeBack('/home')
+    const onBack = useRequestBack()
     const { user: authUser } = useAuth()
     const { spendableBalance: balance, formattedSpendableBalance, address } = useWallet()
     const [attachmentOptions, setAttachmentOptions] = useState<IAttachmentOptions>({

@@ -2,7 +2,7 @@
 
 import type { GateState } from '@/utils/capability-gate'
 import { useQueryStates } from 'nuqs'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { trackDetailsViewed, trackGateBlocked } from '../analytics'
 import { DEPOSIT_ACCOUNT_PARAMS } from '../params'
 import { DEPOSIT_RAILS, isClaimable } from '../rails'
@@ -18,7 +18,7 @@ import { CorridorUnavailableScreen } from './CorridorUnavailableScreen'
 import { DepositDetailsSkeleton } from './DepositDetailsSkeleton'
 import { DepositAccountDetailsScreen } from './DepositAccountDetailsScreen'
 import { DepositAccountsListScreen } from './DepositAccountsListScreen'
-import { ShareDepositDetailsScreen } from './ShareDepositDetailsScreen'
+import { AccountOpenedScreen } from './AccountOpenedScreen'
 
 export interface DepositAccountsFlowProps {
     /** the corridors this user has a rail for — a deep link to any other lands on the list */
@@ -75,6 +75,7 @@ export function DepositAccountsFlow({
     onContactSupport,
 }: DepositAccountsFlowProps) {
     const [{ step: screen, corridor, screen: legacyStep }, setParams] = useQueryStates(DEPOSIT_ACCOUNT_PARAMS)
+    const [openingCorridor, setOpeningCorridor] = useState<DepositCorridor>()
     // Links minted while the cursor was called `?screen=` still open the flow
     // where they meant to. Rewritten once, in place, so back does not land on
     // the old name.
@@ -138,6 +139,7 @@ export function DepositAccountsFlow({
     }
 
     const openCorridor = (next: DepositCorridor) => {
+        setOpeningCorridor(undefined)
         const nextAccount = accounts[next]
         // only a corridor a user can hold has something to claim; the rest go
         // straight to their details, which are the user's own top-up details
@@ -164,13 +166,36 @@ export function DepositAccountsFlow({
                 // no screen change here: once the account exists, resolveScreen
                 // moves the user on by itself, and if it never does the error
                 // renders on this screen rather than nowhere
-                onClaim={() => onClaim(corridor)}
-                onBack={() => setParams({ step: 'list' })}
+                onClaim={() => {
+                    setOpeningCorridor(corridor)
+                    onClaim(corridor)
+                }}
+                onBack={() => {
+                    setOpeningCorridor(undefined)
+                    setParams({ step: 'list' })
+                }}
             />
         )
     }
 
     if (resolved === 'details' && account) {
+        // Celebrate only a claim made here, once Bridge has supplied usable details.
+        if (
+            openingCorridor === corridor &&
+            account.status === 'active' &&
+            account.instructions &&
+            gate.kind === 'ready'
+        ) {
+            return (
+                <AccountOpenedScreen
+                    currency={rail.currency}
+                    onContinue={() => {
+                        setOpeningCorridor(undefined)
+                        setParams({ step: 'details' })
+                    }}
+                />
+            )
+        }
         return (
             <DepositAccountDetailsScreen
                 rail={rail}
@@ -178,20 +203,8 @@ export function DepositAccountsFlow({
                 userName={userName}
                 canShare={canShare(account, gate)}
                 onBack={() => setParams({ step: 'list' })}
-                onShare={() => setParams({ step: 'share' })}
                 onRetry={() => onClaim(corridor)}
                 onContactSupport={() => onContactSupport(corridor)}
-            />
-        )
-    }
-
-    if (resolved === 'share' && account) {
-        return (
-            <ShareDepositDetailsScreen
-                rail={rail}
-                account={account}
-                userName={userName}
-                onBack={() => setParams({ step: 'details' })}
             />
         )
     }

@@ -8,11 +8,19 @@
  * dangling card step); the reachable Home progress state stays visible.
  */
 import React from 'react'
-import { render as rtlRender, screen, fireEvent } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import GettingStartedChecklist from '@/components/Home/GettingStartedChecklist'
+import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 
-const render = () => rtlRender(<GettingStartedChecklist />, { wrapper: IntlWrapper })
+const mockUrlUpdate = jest.fn()
+const render = () =>
+    rtlRender(
+        <NuqsTestingAdapter searchParams="?returnTo=%2Fprofile" onUrlUpdate={mockUrlUpdate}>
+            <GettingStartedChecklist />
+        </NuqsTestingAdapter>,
+        { wrapper: IntlWrapper }
+    )
 
 const mockPush = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
@@ -86,7 +94,7 @@ describe('GettingStartedChecklist', () => {
         expect(subtitle).not.toHaveClass('truncate')
     })
 
-    // The row opens /add-money, a chooser offering bank transfer AND crypto, so
+    // The row opens the Add drawer, offering bank transfer AND crypto, so
     // it no longer names one rail per residence — that promised a route the
     // chooser does not take you straight to.
     it.each([['BR'], ['MX'], ['US'], ['DE'], ['NG']])(
@@ -185,9 +193,14 @@ describe('GettingStartedChecklist', () => {
         expect(screen.queryByText('Make your first payment')).not.toBeInTheDocument()
     })
 
-    it('add money taps into /add-money', () => {
+    it('opens the Add drawer without leaving Home and preserves the return context', async () => {
         render()
         fireEvent.click(screen.getByText('Add money'))
-        expect(mockPush).toHaveBeenCalledWith('/add-money')
+
+        await waitFor(() => expect(mockUrlUpdate).toHaveBeenCalled())
+        const { searchParams } = mockUrlUpdate.mock.calls.at(-1)![0]
+        expect(searchParams.get('drawer')).toBe('add')
+        expect(searchParams.get('returnTo')).toBe('/profile')
+        expect(mockPush).not.toHaveBeenCalled()
     })
 })

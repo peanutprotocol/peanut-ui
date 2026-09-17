@@ -13,6 +13,7 @@ import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
+import { useHomeDrawer } from '@/features/home/useHomeDrawer'
 import posthog from 'posthog-js'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef } from 'react'
@@ -48,6 +49,7 @@ interface ChecklistItem {
 const GettingStartedChecklist = () => {
     const t = useTranslations('home.gettingStarted')
     const router = useRouter()
+    const [, setOpenDrawer] = useHomeDrawer()
     const { user } = useAuth()
     const restrictions = useResidenceRestrictions()
     const { isEligible } = useCardInfo()
@@ -96,7 +98,7 @@ const GettingStartedChecklist = () => {
             {
                 id: 'add-money',
                 icon: 'arrow-down',
-                // The row opens /add-money, which offers bank transfer AND
+                // The Add drawer offers bank transfer AND
                 // crypto — naming one rail promised a route the chooser doesn't
                 // take you straight to. A residence no bank provider onboards
                 // drops the bank half rather than selling an ID check that
@@ -108,11 +110,24 @@ const GettingStartedChecklist = () => {
                       ? t('addMoneyRoutes')
                       : t('addMoneyRoutesKyc'),
                 done: isFunded,
-                onTap: tap('add-money', () => router.push('/add-money')),
+                onTap: tap('add-money', () => {
+                    void setOpenDrawer('add')
+                }),
             },
             thirdItem,
         ]
-    }, [cardAvailable, hasActiveCard, hasSentPayment, isFunded, isVerified, milestone, restrictions.banking, router, t])
+    }, [
+        cardAvailable,
+        hasActiveCard,
+        hasSentPayment,
+        isFunded,
+        isVerified,
+        milestone,
+        restrictions.banking,
+        router,
+        setOpenDrawer,
+        t,
+    ])
 
     const completionPercent = Math.round((items.filter((item) => item.done).length / items.length) * 100)
     const progressLabel = t('title')

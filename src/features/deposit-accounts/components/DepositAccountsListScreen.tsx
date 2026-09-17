@@ -32,6 +32,8 @@ import Image from 'next/image'
  * and its near twin, a user whose working US rail made a blocked EUR row look
  * tappable.
  */
+// Follow-up: evaluate 1–2 included accounts and a Peanut Tier 2 unlock for more.
+// Billing and backend enforcement decisions: mono/projects/virtual-accounts/README.md, Next steps.
 export function DepositAccountsListScreen({
     corridors,
     accounts,

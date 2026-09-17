@@ -10,8 +10,7 @@ import type { GateState } from '@/utils/capability-gate'
  * The URL is the source of truth for where the user is, which means the URL is
  * also an input a user can hand-edit or a stale link can carry. Every screen
  * therefore states its own preconditions here rather than trusting the param:
- * `?step=share` on an own-name-only corridor would otherwise offer a Share
- * button for details nobody else may pay into, and `?step=claim` would offer
+ * `?step=claim` would offer
  * to open an account the user already holds, or one the gate has not cleared.
  *
  * The gate passed here is the SELECTED corridor's gate, never the bank-wide
@@ -33,15 +32,7 @@ export function isHeld(account: DepositAccountView | undefined): boolean {
     return account !== undefined && account.status !== 'unclaimed'
 }
 
-/**
- * May these details be handed to a payer right now?
- *
- * One predicate, because the footer button and the resolver used to disagree:
- * the button asked only whether the rail's sender policy allows it, and the
- * resolver also wants live details and a corridor the user may still act on.
- * A retiring account, or one whose gate has since closed, therefore offered a
- * Share button that bounced straight back to the details with nothing said.
- */
+/** Sharing needs active instructions, a permitted sender policy and an open corridor. */
 export function canShare(account: DepositAccountView | undefined, gate: GateState): boolean {
     if (!account?.instructions || account.status !== 'active') return false
     if (!isShareable(account.matching.sender)) return false
@@ -70,11 +61,6 @@ export function resolveScreen(
         // replacement. Replacing it needs backend work that does not exist.
         if (!isClaimable(rail) || !claimable || held) return held ? 'details' : 'list'
         return 'claim'
-    }
-
-    if (requested === 'share') {
-        if (!canShare(account, gate)) return held ? 'details' : 'list'
-        return 'share'
     }
 
     if (requested === 'details') {

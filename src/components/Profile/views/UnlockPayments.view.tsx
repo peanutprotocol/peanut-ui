@@ -3,7 +3,8 @@
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
-import Card from '@/components/Global/Card'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
+import HeldDepositAccounts from './HeldDepositAccounts'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
@@ -78,15 +79,10 @@ function getModalVariant(rail: RailCapability | undefined, hasSumsubAction: bool
     }
 }
 
-/**
- * Inline limit summary for an ACTIVE bank row — the limits merge: usage lives
- * on the method it belongs to instead of a separate Limits screen. Manteca
- * (BR/AR) exposes monthly allowances → a usage bar; Bridge (US/MX/EU) only
- * caps per transaction → a plain line.
- */
+/** Legacy bank-transfer limits do not apply to reusable deposit accounts. */
 type RowLimitSummary =
     | { kind: 'manteca'; asset: string; remaining: string; limit: string; usedPercent: number }
-    | { kind: 'bridge'; perTransaction: string }
+    | { kind: 'bridge'; direction: 'deposit' | 'withdrawal'; perTransaction: string }
 
 // Whole-unit cap with locale grouping ($100,000, not $100000): the shared
 // formatter only abbreviates from seven digits and never groups.
@@ -96,19 +92,28 @@ function formatCap(amount: number, currency: string, locale: string): string {
     return `${symbol}${separator}${new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(amount)}`
 }
 
-function limitSummariesForGroup(
-    group: UnlockGroup,
+function limitSummariesForRows(
+    rows: readonly UnlockRow[],
     mantecaLimits: MantecaLimit[] | null,
     bridgeLimits: BridgeLimits | null,
     locale: string
 ): RowLimitSummary[] {
-    const refs = new Set(group.rows.filter((row) => row.chip === 'active').flatMap((row) => row.limitRefs ?? []))
+    const refs = new Set(rows.filter((row) => row.chip === 'active').flatMap((row) => row.limitRefs ?? []))
     const summaries: RowLimitSummary[] = []
     for (const ref of refs) {
         if (ref === 'bridge') {
-            const cap = Number(bridgeLimits?.onRampPerTransaction)
-            if (bridgeLimits && Number.isFinite(cap) && cap > 0) {
-                summaries.push({ kind: 'bridge', perTransaction: formatCap(cap, bridgeLimits.asset || 'USD', locale) })
+            for (const [direction, rawCap] of [
+                ['deposit', bridgeLimits?.onRampPerTransaction],
+                ['withdrawal', bridgeLimits?.offRampPerTransaction],
+            ] as const) {
+                const cap = Number(rawCap)
+                if (bridgeLimits && Number.isFinite(cap) && cap > 0) {
+                    summaries.push({
+                        kind: 'bridge',
+                        direction,
+                        perTransaction: formatCap(cap, bridgeLimits.asset || 'USD', locale),
+                    })
+                }
             }
             continue
         }
@@ -138,6 +143,7 @@ const UnlockPayments = () => {
     const onBack = useSafeBack('/profile', { replace: true })
     const router = useRouter()
     const [openView, setOpenView] = useQueryState('open', parseAsString)
+    const [detailsRow, setDetailsRow] = useState<UnlockRow | null>(null)
     const { user, fetchUser } = useAuth()
     const { rails, isKycApproved, railsForProvider, nextActionsForRail } = useCapabilities()
     const restrictions = useResidenceRestrictions()
@@ -323,6 +329,10 @@ const UnlockPayments = () => {
                 router.push(row.href)
                 return
             }
+            if (row.chip === 'active' || row.chip === 'alwaysOn') {
+                setDetailsRow(row)
+                return
+            }
             if (!row.regionPath) return
             // During a verification outage the unlock modal renders its degraded
             // variant (choke point in InitiateKycModal covers the other gates);
@@ -448,13 +458,15 @@ const UnlockPayments = () => {
                 />
             )}
 
+            <HeldDepositAccounts />
+
             {groups.map((group) => (
                 <UnlockSection
                     key={group.id}
                     group={group}
                     onRowClick={handleRowClick}
                     isKycDegraded={isKycDegraded}
-                    limitSummaries={limitSummariesForGroup(group, mantecaLimits, bridgeLimits, locale)}
+                    limitSummaries={limitSummariesForRows(group.rows, mantecaLimits, bridgeLimits, locale)}
                 />
             ))}
 
@@ -634,6 +646,25 @@ const UnlockPayments = () => {
                 }
             />
 
+            <Drawer open={!!detailsRow} onOpenChange={(open) => !open && setDetailsRow(null)}>
+                <DrawerContent>
+                    {detailsRow && (
+                        <div className="flex flex-col gap-6 p-6">
+                            <DrawerHeader>
+                                <DrawerTitle>{t(`rows.${detailsRow.labelKey}`)}</DrawerTitle>
+                            </DrawerHeader>
+                            <p className="text-body-m text-foreground-secondary">
+                                {t(`details.${detailsRow.labelKey}`)}
+                            </p>
+                            <MethodLimits
+                                noLimit={detailsRow.labelKey === 'p2p'}
+                                summaries={limitSummariesForRows([detailsRow], mantecaLimits, bridgeLimits, locale)}
+                            />
+                        </div>
+                    )}
+                </DrawerContent>
+            </Drawer>
+
             <SumsubKycModals flow={flow} />
         </PageStack>
     )
@@ -659,11 +690,7 @@ const BUBBLE_COLOR: Record<UnlockChip, IconBubbleColor> = {
     notAvailable: 'gray',
 }
 
-/**
- * One region of the list (option D of the DS rebuild): a Section heading over
- * a ListGroup of method rows, closed by the region's own limits card so the
- * numbers sit next to the methods they govern.
- */
+/** Keep each region's limits beside the methods they govern. */
 const UnlockSection = ({
     group,
     onRowClick,
@@ -702,8 +729,6 @@ const UnlockSection = ({
         }
     }
 
-    const showLimits = group.id === 'everywhere' || limitSummaries.length > 0
-
     return (
         <Section
             title={
@@ -718,7 +743,11 @@ const UnlockSection = ({
                     // During a verification outage the unlock path is closed (the tap
                     // guard would no-op), so render those rows inert instead of
                     // letting them look actionable under the degraded banner.
-                    const tappable = !!row.href || (!!row.regionPath && !isKycDegraded)
+                    const tappable =
+                        !!row.href ||
+                        row.chip === 'active' ||
+                        row.chip === 'alwaysOn' ||
+                        (!!row.regionPath && !isKycDegraded)
                     return (
                         <ListItem
                             key={row.id}
@@ -733,36 +762,48 @@ const UnlockSection = ({
                     )
                 })}
             </ListGroup>
-            {showLimits && (
-                <Card position="single" className="flex flex-col gap-3 px-4 py-3">
-                    {/* P2P has no cap at all (no fiat provider behind it), so the
-                        Everywhere group always states that — it is the one limit
-                        that exists before any unlock. */}
-                    {group.id === 'everywhere' && (
-                        <div className="flex flex-col gap-1">
-                            <p className="text-body-s text-foreground-secondary">{t('limits.p2pNoLimit')}</p>
-                            <ProgressBar value={100} />
-                        </div>
-                    )}
-                    {limitSummaries.map((summary) =>
-                        summary.kind === 'manteca' ? (
-                            <div key={summary.asset} className="flex flex-col gap-1">
-                                <p className="text-body-s text-foreground-secondary">
+            <MethodLimits noLimit={group.id === 'everywhere'} summaries={limitSummaries} />
+        </Section>
+    )
+}
+
+function MethodLimits({ noLimit, summaries }: { noLimit: boolean; summaries: RowLimitSummary[] }) {
+    const t = useTranslations('profile.unlockPayments')
+    if (!noLimit && summaries.length === 0) return null
+
+    return (
+        <ListGroup>
+            {noLimit && <ListItem title={t('limits.p2pNoLimit')} />}
+            {summaries.map((summary) =>
+                summary.kind === 'manteca' ? (
+                    <ListItem
+                        key={summary.asset}
+                        title={summary.asset}
+                        body={
+                            <div className="flex flex-col gap-2">
+                                <span>
                                     {t('limits.monthlyLeft', { remaining: summary.remaining, limit: summary.limit })}
-                                </p>
+                                </span>
                                 <ProgressBar
                                     value={summary.usedPercent}
                                     fillClassName={getLimitColorClass(summary.usedPercent, 'bg')}
                                 />
                             </div>
-                        ) : (
-                            <p key="bridge" className="text-body-s text-foreground-secondary">
-                                {t('limits.perTransfer', { amount: summary.perTransaction })}
-                            </p>
-                        )
-                    )}
-                </Card>
+                        }
+                        bodyWrap
+                    />
+                ) : (
+                    <ListItem
+                        key={summary.direction}
+                        title={t(
+                            summary.direction === 'deposit'
+                                ? 'limits.depositPerTransfer'
+                                : 'limits.withdrawalPerTransfer'
+                        )}
+                        trailing={summary.perTransaction}
+                    />
+                )
             )}
-        </Section>
+        </ListGroup>
     )
 }

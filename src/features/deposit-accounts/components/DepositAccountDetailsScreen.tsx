@@ -2,7 +2,6 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
@@ -14,13 +13,7 @@ import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { DepositDetailsCard } from './DepositDetailsCard'
 import { DepositRuleList } from './DepositRuleList'
 import { DepositDetailsSkeleton } from './DepositDetailsSkeleton'
-
-/**
- * The per-amount bank deposit that predates standing accounts: pick a country,
- * name an amount, get details valid for that one payment. It is the only path
- * that can check an amount against the user's limits before the money moves.
- */
-const ONE_OFF_TRANSFER_HREF = '/add-money?method=bank'
+import { DepositShareActions } from './DepositShareActions'
 
 /**
  * Screen 2 — the user's own view of one account.
@@ -35,7 +28,6 @@ export function DepositAccountDetailsScreen({
     userName,
     canShare,
     onBack,
-    onShare,
     onRetry,
     onContactSupport,
 }: {
@@ -46,7 +38,6 @@ export function DepositAccountDetailsScreen({
     /** may these details be handed to a payer — the resolver's own answer */
     canShare: boolean
     onBack: () => void
-    onShare: () => void
     onRetry: () => void
     /** revoked details have no self-service fix — this is the only way out */
     onContactSupport: () => void
@@ -113,7 +104,6 @@ export function DepositAccountDetailsScreen({
 
     const provisioning = account.status === 'provisioning'
     const rows = account.instructions ? instructionRows(account.instructions, rowLabels, railLabels) : []
-    const ownNameOnly = account.matching.sender === 'own-name-only'
     const rules = ruleLines(account.matching, account.rules, userName)
 
     return (
@@ -141,35 +131,12 @@ export function DepositAccountDetailsScreen({
                         <Section title={t('details.whoCanPay')}>
                             <DepositRuleList lines={rules} />
                         </Section>
-
-                        {/*
-                         * The one-off transfer flow, kept and reachable. A
-                         * standing account takes any amount, which also means
-                         * nothing checks the amount against the user's limits
-                         * before the money moves. Naming a figure first is the
-                         * only way to see that a deposit would exceed them, so
-                         * the older flow stays the answer for a large or
-                         * first-time transfer rather than being retired.
-                         */}
-                        {!ownNameOnly && (
-                            <LinkButton href={ONE_OFF_TRANSFER_HREF}>{t('details.exactAmountCta')}</LinkButton>
-                        )}
                     </>
                 )}
             </div>
 
-            {/*
-             * The resolver decides this, not the sender policy alone. A button
-             * the resolver would send straight back here is worse than no
-             * button: the user presses it and nothing appears to happen.
-             */}
-            {canShare && (
-                <PageStack.Footer>
-                    <Button variant="purple" className="w-full" icon="share" onClick={onShare}>
-                        {t('details.shareCta')}
-                    </Button>
-                </PageStack.Footer>
-            )}
+            {/* Keep both sharing actions behind the same eligibility check. */}
+            {canShare && <DepositShareActions rail={rail} account={account} userName={userName} />}
         </PageStack>
     )
 }

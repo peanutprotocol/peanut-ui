@@ -24,9 +24,12 @@ import { addBankAccount } from '@/app/actions/users'
 // the screen is named in the URL (`?step=form`), so every render needs the
 // nuqs adapter — and the tests that want the bank form say so by setting it
 let mockNuqsParams: Record<string, string> = {}
+const mockUrlUpdate = jest.fn()
 const withProviders = (ui: React.ReactElement) => (
     <IntlWrapper>
-        <NuqsTestingAdapter searchParams={mockNuqsParams}>{ui}</NuqsTestingAdapter>
+        <NuqsTestingAdapter searchParams={mockNuqsParams} onUrlUpdate={mockUrlUpdate}>
+            {ui}
+        </NuqsTestingAdapter>
     </IntlWrapper>
 )
 const render = (ui: React.ReactElement) => rtlRender(withProviders(ui))
@@ -152,11 +155,7 @@ jest.mock('@/hooks/useResidenceRestrictions', () => ({
 }))
 jest.mock('@/app/actions/users', () => ({ addBankAccount: jest.fn() }))
 jest.mock('@/utils/native-routes', () => ({
-    rewriteMethodPath: (p: string, extra?: string) => {
-        const url = new URL(p, 'https://peanut.test')
-        new URLSearchParams(extra).forEach((value, key) => url.searchParams.set(key, value))
-        return url.pathname + url.search
-    },
+    rewriteMethodPath: jest.requireActual('@/utils/native-routes').rewriteMethodPath,
     withdrawBankUrl: (p: string, qs: string = '') => `/withdraw/${p}/bank${qs}`,
 }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false, isAndroidNative: () => false }))
@@ -593,6 +592,27 @@ describe('AddWithdrawCountriesList — the bank form entered cold', () => {
         expect(mockPush).toHaveBeenCalledWith('/withdraw?showAll=true')
     })
 
+    it.each(['', 'bank'])(
+        'back does not queue a country-page URL update after leaving the bank form (origin: %s)',
+        async (origin) => {
+            mockNuqsParams = { step: 'form', amount: '50' }
+            mockSearchParams = new URLSearchParams(origin ? 'method=bank' : '')
+            mockUrlUpdate.mockClear()
+            render(<AddWithdrawCountriesList flow="withdraw" />)
+
+            await act(async () => {
+                fireEvent.click(screen.getByTestId('nav-header'))
+            })
+
+            expect(mockPush).toHaveBeenCalledWith(
+                origin ? '/withdraw?showAll=true&method=bank' : '/withdraw?showAll=true'
+            )
+            expect(mockUrlUpdate).not.toHaveBeenCalled()
+            expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(null)
+            mockSearchParams = new URLSearchParams()
+        }
+    )
+
     /**
      * A country with more than one rail HAS a rail list to go back to, and the
      * screen is named by `step` now. Clearing `view` alone left the user on
@@ -622,7 +642,9 @@ it('a direct Manteca country link preserves the send marker and incoming amount'
     rail.path = '/withdraw/manteca?method=bank-transfer&country=argentina'
     try {
         render(<AddWithdrawCountriesList flow="withdraw" />)
-        expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=bank&country=argentina&amount=50')
+        expect(mockPush).toHaveBeenCalledWith(
+            '/withdraw/manteca?method=bank-transfer&country=argentina&sendMethod=bank&amount=50'
+        )
     } finally {
         rail.path = previousPath
         mockSearchParams = new URLSearchParams()

@@ -28,7 +28,6 @@ const details = (account: DepositAccountView, onRetry = () => {}, canShare = fal
                     userName="Ana Pérez"
                     canShare={canShare}
                     onBack={() => {}}
-                    onShare={() => {}}
                     onRetry={onRetry}
                     onContactSupport={onContactSupport}
                 />

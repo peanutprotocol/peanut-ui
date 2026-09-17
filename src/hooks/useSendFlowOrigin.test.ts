@@ -65,3 +65,14 @@ describe('useSendFlowOrigin', () => {
         })
     })
 })
+
+it('keeps the send origin separate from the provider rail method', () => {
+    mockSearchParams.set('method', 'bank-transfer')
+    mockSearchParams.set('sendMethod', 'bank')
+    expect(renderHook(() => useSendFlowOrigin()).result.current).toEqual({
+        isFromSendFlow: true,
+        isBankFromSend: true,
+        isCryptoFromSend: false,
+        sendFlowMethod: 'bank',
+    })
+})

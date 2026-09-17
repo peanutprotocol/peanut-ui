@@ -16,7 +16,8 @@ import { CountryListSkeleton } from './CountryListSkeleton'
 import AvatarWithBadge from '../Profile/AvatarWithBadge'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import EasterEggDrawer, { EASTER_EGG_COUNTRIES } from '@/components/Global/EasterEggDrawer'
-import StatusBadge from '../Global/Badges/StatusBadge'
+import { CountryWaitlist } from './CountryWaitlist'
+import { liveRailsForCountry } from '@/features/destinations/country-rails'
 import Loading from '../Global/Loading'
 import { useSearchParams } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
@@ -44,8 +45,7 @@ interface CountryListViewProps {
     onCryptoClick?: (flow: 'add' | 'withdraw') => void
     flow?: 'add' | 'withdraw'
     getRightContent?: (country: CountryData, isSupported: boolean) => ReactNode
-    // when true and viewMode is 'add-withdraw', disable countries that are not supported
-    // this is used for the send -> bank flow to prevent selecting unsupported countries
+    // Send has stricter country support than own-account withdrawal.
     enforceSupportedCountries?: boolean
     showLoadingState?: boolean
 }
@@ -89,6 +89,7 @@ export const CountryList = ({
 
     // easter egg modal state
     const [easterEggCountry, setEasterEggCountry] = useState<string | null>(null)
+    const [waitlistCountry, setWaitlistCountry] = useState<CountryData | null>(null)
 
     const supportedCountries = countryData.filter((country) => country.type === 'country')
 
@@ -204,8 +205,7 @@ export const CountryList = ({
                                 if (enforceSupportedCountries) {
                                     isSupported = isBridgeSupportedCountryResult || country.path === 'brazil'
                                 } else {
-                                    // otherwise allow all countries
-                                    isSupported = true
+                                    isSupported = liveRailsForCountry(country.id, flow ?? 'withdraw').length > 0
                                 }
                             } else if (viewMode === 'general-verification') {
                                 // all countries can verify even if they cant
@@ -223,11 +223,7 @@ export const CountryList = ({
                             const customRight = getRightContent ? getRightContent(country, isSupported) : undefined
                             const trailing =
                                 customRight ??
-                                (showLoadingState && clickedCountryId === country.id ? (
-                                    <Loading />
-                                ) : !isSupported && !EASTER_EGG_COUNTRIES[country.id] ? (
-                                    <StatusBadge status="soon" />
-                                ) : undefined)
+                                (showLoadingState && clickedCountryId === country.id ? <Loading /> : undefined)
 
                             return (
                                 <ListItem
@@ -242,15 +238,16 @@ export const CountryList = ({
                                             setEasterEggCountry(country.id)
                                             return
                                         }
+                                        if (!isSupported) {
+                                            setWaitlistCountry(country)
+                                            return
+                                        }
                                         // set loading state immediately for visual feedback
                                         setClickedCountryId(country.id)
                                         onCountryClick(country)
                                     }}
                                     position={position}
-                                    disabled={
-                                        (!isSupported && !EASTER_EGG_COUNTRIES[country.id]) ||
-                                        clickedCountryId === country.id
-                                    }
+                                    disabled={clickedCountryId === country.id}
                                     leading={
                                         <div className="relative h-8 w-8">
                                             <Image
@@ -279,6 +276,25 @@ export const CountryList = ({
                         />
                     )}
                 </div>
+            )}
+
+            {waitlistCountry && (
+                <CountryWaitlist
+                    countryCode={(
+                        waitlistCountry.iso2 ??
+                        ALL_COUNTRIES_ALPHA3_TO_ALPHA2[waitlistCountry.id] ??
+                        waitlistCountry.id
+                    ).toUpperCase()}
+                    countryName={countryName(waitlistCountry)}
+                    flow={
+                        viewMode === 'claim-request'
+                            ? 'claim'
+                            : enforceSupportedCountries
+                              ? 'send'
+                              : (flow ?? 'withdraw')
+                    }
+                    onClose={() => setWaitlistCountry(null)}
+                />
             )}
 
             {/* Easter egg modal for weird/uninhabited countries */}

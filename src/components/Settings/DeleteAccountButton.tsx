@@ -13,6 +13,7 @@ import ActionModal, { type ActionModalButtonProps } from '@/components/Global/Ac
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { AccountHasBalanceError, usersApi } from '@/services/users'
+import { wireErrorCode } from '@/services/api-error'
 import { DELETION_BALANCE_DUST_UNITS } from '@/utils/balance.utils'
 
 type ModalState = 'closed' | 'blocked' | 'confirm' | 'done'
@@ -84,7 +85,14 @@ const DeleteAccountButton: FC = () => {
                 block(error.balanceUsd)
             } else {
                 posthog.capture(ANALYTICS_EVENTS.DELETE_ACCOUNT_FAILED)
-                toast.error(t('error'))
+                const code = wireErrorCode(error)
+                toast.error(
+                    code === 'DEPOSIT_IN_FLIGHT'
+                        ? t('depositInFlight')
+                        : code === 'DEPOSIT_ACCOUNTS_UNAVAILABLE'
+                          ? t('depositAccountsUnavailable')
+                          : t('error')
+                )
             }
         } finally {
             setIsSubmitting(false)

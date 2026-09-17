@@ -161,7 +161,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         const rail = liveRails.length === 1 ? liveRails[0] : undefined
         if (rail?.path?.includes('/manteca')) {
             const extra = new URLSearchParams()
-            if (isBankFromSend && methodParam) extra.set('method', methodParam)
+            if (isBankFromSend && methodParam) extra.set('sendMethod', methodParam)
             if (urlAmount) extra.set('amount', urlAmount)
             router.replace(rewriteMethodPath(rail.path, extra.toString()))
         }
@@ -481,7 +481,6 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         flow === 'withdraw' ? (isBankFromSend ? tNav('send') : tNav('withdraw')) : tAddMoney('title')
                     }
                     onPrev={() => {
-                        void setUrlAmount(null)
                         // ensure kyc modal isn't open so late success events don't flip view
                         setIsKycModalOpen(false)
                         withdrawFlow?.setSelectedMethod(null)
@@ -498,9 +497,9 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                             )
                             return
                         }
-                        // the screen is named by `step` now, so clearing
-                        // `view` alone left the user on the form they asked to
-                        // leave
+                        // Only update query state when staying on this route. A queued
+                        // nuqs update can otherwise overwrite the country-list navigation.
+                        void setUrlAmount(null)
                         void setStepParam(null)
                         void setViewParam(null)
                     }}
