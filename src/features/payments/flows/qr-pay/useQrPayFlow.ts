@@ -617,6 +617,11 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         // collateral-only path that lets Rain transfer straight from the
         // collateral proxy to MANTECA's deposit address.
         let signedArtifact
+        // Signing has only begun once the engine reports its preparation done
+        // (`signing_preparation_ready` fires right before the first ceremony).
+        // Routing, balance reads and the collateral preflight run before that
+        // and can fail on their own; those failures never reached a signature.
+        let signingStarted = false
         try {
             const requiredUsdcAmount = parseUnits(finalPaymentLock.paymentAgainstAmount, PEANUT_WALLET_TOKEN_DECIMALS)
             signedArtifact = await signSpend({
@@ -628,11 +633,14 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                 // it, and after Pay its nonce may be spent either way.
                 preparedSmartSpend: takePreparedSmartSpend(),
                 onStrategyDecided: (strategy) => telemetry.stage('strategy_ready', { strategy }),
-                onProgress: (event) =>
-                    telemetry.stage(
-                        event.stage,
-                        event.stage === 'signing_preparation_ready' ? { preparation: event.preparation } : undefined
-                    ),
+                onProgress: (event) => {
+                    if (event.stage === 'signing_preparation_ready') {
+                        signingStarted = true
+                        telemetry.stage(event.stage, { preparation: event.preparation })
+                    } else {
+                        telemetry.stage(event.stage)
+                    }
+                },
             })
             telemetry.stage('signature_ready', { outcome: 'success' })
         } catch (error) {
@@ -640,7 +648,10 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             // screen too; the two branches ahead of it are deliberately per-flow.
             const classified = friendlyError(error)
             const userCancelled = (error as Error).toString().includes('not allowed')
-            telemetry.stage('signature_ready', { outcome: userCancelled ? 'cancelled' : 'failed' })
+            // A signature stage is reported only if signing was actually
+            // reached; an earlier failure ends the attempt with its outcome
+            // alone, so the funnel never shows a signature that never started.
+            if (signingStarted) telemetry.stage('signature_ready', { outcome: userCancelled ? 'cancelled' : 'failed' })
             if (error instanceof SessionKeyGrantRequiredError) {
                 setErrorMessage(t('errors.cardAuthNeeded'))
             } else if (userCancelled) {

@@ -478,7 +478,7 @@ describe('Pay on a locked amount', () => {
         await waitFor(() => expect(surface?.isSuccess).toBe(true))
     })
 
-    test('passkey dismissed: cancelled, nothing sent, no success', async () => {
+    test('passkey dismissed: signing was reached, so signature_ready is cancelled; nothing sent, no success', async () => {
         fakeClient.account.signUserOperation.mockRejectedValue(new Error('User action is not allowed'))
         renderFlow()
         await waitForLockedForm()
@@ -486,7 +486,8 @@ describe('Pay on a locked amount', () => {
         await pay()
 
         expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
-        expect(stageOutline().slice(-2)).toEqual([
+        expect(stageOutline().slice(-3)).toEqual([
+            ['signing_preparation_ready', null],
             ['signature_ready', 'cancelled'],
             ['attempt_finished', 'cancelled'],
         ])
@@ -494,6 +495,102 @@ describe('Pay on a locked amount', () => {
         expectNoSuccessReported()
         expect(surface?.isSuccess).toBe(false)
         expect(surface?.errorMessage).toBeTruthy()
+    })
+
+    // Routing, balance reads and the collateral preflight run BEFORE any
+    // signature. A failure there must not invent a reached signature stage:
+    // only the stages that really happened, then one terminal outcome.
+    describe('failures before signing started', () => {
+        test('live routing fails (insufficient spendable): no strategy, no signature stage, one terminal failed', async () => {
+            const { InsufficientSpendableError } = jest.requireActual('@/hooks/wallet/spendPreflight')
+            mockResolveSpendStrategy.mockRejectedValue(new InsufficientSpendableError())
+            renderFlow()
+            await waitForLockedForm()
+            await waitForWarmup()
+            await pay()
+
+            expect(stageOutline()).toEqual([
+                ['pay_clicked', null],
+                ['lock_ready', 'success'],
+                ['attempt_finished', 'failed'],
+            ])
+            expect(fakeClient.account.signUserOperation).not.toHaveBeenCalled()
+            expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+            expectNoSuccessReported()
+            expect(surface?.isSuccess).toBe(false)
+            expect(surface?.errorMessage).toBeTruthy()
+        })
+
+        test('collateral preflight fails (session-key grant refused): strategy reached, no preflight, no signature stage', async () => {
+            const { SessionKeyGrantRequiredError } = jest.requireActual('@/hooks/wallet/spendPreflight')
+            mockResolveSpendStrategy.mockResolvedValue({ strategy: 'collateral-only', smartBalance: 0n })
+            mockPreflight.mockRejectedValue(new SessionKeyGrantRequiredError({ kind: 'cancelled' }))
+            renderFlow()
+            await waitForLockedForm()
+            await waitForWarmup()
+            await pay()
+
+            expect(stageOutline()).toEqual([
+                ['pay_clicked', null],
+                ['lock_ready', 'success'],
+                ['strategy_ready', null],
+                ['attempt_finished', 'failed'],
+            ])
+            expect(stages().find((s) => s.stage === 'strategy_ready')).toMatchObject({ strategy: 'collateral-only' })
+            expect(mockPrepareWithdrawal).not.toHaveBeenCalled()
+            expect(fakeClient.account.signTypedData).not.toHaveBeenCalled()
+            expect(fakeClient.account.signUserOperation).not.toHaveBeenCalled()
+            expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+            expectNoSuccessReported()
+            expect(surface?.isSuccess).toBe(false)
+            expect(surface?.errorMessage).toBeTruthy()
+        })
+
+        test('Rain draft fails after preflight (mixed): preflight reached, no signing preparation, no signature stage', async () => {
+            mockResolveSpendStrategy.mockResolvedValue({ strategy: 'mixed', smartBalance: 5_000_000n })
+            mockPrepareWithdrawal.mockRejectedValue(new Error('rain prepare unavailable'))
+            renderFlow()
+            await waitForLockedForm()
+            await waitForWarmup()
+            await pay()
+
+            expect(stageOutline()).toEqual([
+                ['pay_clicked', null],
+                ['lock_ready', 'success'],
+                ['strategy_ready', null],
+                ['preflight_ready', null],
+                ['attempt_finished', 'failed'],
+            ])
+            expect(fakeClient.account.signTypedData).not.toHaveBeenCalled()
+            expect(fakeClient.account.signUserOperation).not.toHaveBeenCalled()
+            expectNoSuccessReported()
+            expect(surface?.errorMessage).toBeTruthy()
+        })
+
+        test('the first ceremony fails after preparation (collateral-only admin signature): signature_ready failed', async () => {
+            mockResolveSpendStrategy.mockResolvedValue({ strategy: 'collateral-only', smartBalance: 0n })
+            mockPrepareWithdrawal.mockResolvedValue({ ...RAIN_PREP, directTransfer: true })
+            fakeClient.account.signTypedData.mockRejectedValue(new Error('ceremony dismissed'))
+            renderFlow()
+            await waitForLockedForm()
+            await waitForWarmup()
+            await pay()
+
+            expect(stageOutline()).toEqual([
+                ['pay_clicked', null],
+                ['lock_ready', 'success'],
+                ['strategy_ready', null],
+                ['preflight_ready', null],
+                ['signing_preparation_ready', null],
+                ['signature_ready', 'failed'],
+                ['attempt_finished', 'failed'],
+            ])
+            expect(stages().find((s) => s.stage === 'signing_preparation_ready')).toMatchObject({
+                preparation: 'fresh',
+            })
+            expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+            expectNoSuccessReported()
+        })
     })
 
     test('a 200 with a non-terminal status is pending, not success', async () => {
