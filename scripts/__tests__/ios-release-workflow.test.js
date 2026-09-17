@@ -15,6 +15,7 @@ const baselineEntitlements = fs.readFileSync(
 
 describe('iOS release workflow', () => {
     it('keeps TASK-21683 profile builds inspectable without advancing production OTA', () => {
+        expect(workflowSource).toContain('fetch-depth: 0')
         expect(workflowSource).toContain("github.ref_name == 'innolope/TASK-21683-lottie-native-testflight'")
         expect(workflowSource).toContain('TASK-21683 profile builds reuse the current native version')
         expect(workflowSource).toContain('NEXT_PUBLIC_LOTTIE_PROFILE_ENABLED=true')

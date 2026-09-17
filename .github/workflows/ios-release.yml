@@ -73,6 +73,9 @@ jobs:
         steps:
             - uses: actions/checkout@v7
               with:
+                  # TASK-21683 profile builds resolve the current native tag, so
+                  # release-version.mjs needs the complete tag history.
+                  fetch-depth: 0
                   submodules: recursive
                   token: ${{ secrets.SUBMODULE_TOKEN }}
 
