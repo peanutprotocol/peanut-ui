@@ -1869,19 +1869,12 @@
         "howWouldYouLikeToWithdraw": "¿Cómo quieres retirar?",
         "howWouldYouLikeToSend": "¿Cómo quieres enviar?",
         "chooseWithdrawingMethod": "Elige el método de retiro",
-        "noAccountsTitle": "Aún no tienes cuentas",
-        "noAccountsDescription": "Agrega los datos de tus cuentas una vez<br></br>y retira con un solo toque.",
         "addAccount": "Agregar cuenta",
         "selectNewMethod": "Elegir otro método",
         "recentMethods": "Métodos recientes",
         "review": "Revisar",
         "backToHome": "Volver al inicio",
         "somethingWentWrong": "¡Algo salió mal!",
-        "methods": {
-            "mercadopago": "MercadoPago",
-            "pix": "Pix",
-            "bankTransfer": "Transferencia bancaria"
-        },
         "initial": {
             "placeholderEns": "Dirección o ENS",
             "placeholderAddress": "Dirección",
@@ -1932,12 +1925,10 @@
             "youJustWithdrew": "Acabas de retirar",
             "toDestination": "a {destination}",
             "youreWithdrawing": "Estás retirando",
-            "enterMethodDetails": "Ingresa los datos de {method}",
             "selectAccountType": "Selecciona el tipo de cuenta",
             "selectBank": "Selecciona el banco",
             "ownAccountOnly": "Solo puedes retirar a cuentas a tu nombre.",
             "redirecting": "Redirigiendo...",
-            "lockingRate": "Fijando el tipo de cambio...",
             "exchangeRate": "Tipo de cambio",
             "exchangeRateInfo": "El tipo de cambio mostrado es actual, pero puede variar un poco hasta que se confirme el pago.",
             "flagAlt": "bandera",
@@ -2003,7 +1994,7 @@
             "confirmDetailsFailed": "No se pudieron cargar los datos del retiro para confirmar. Vuelve atrás e inténtalo de nuevo.",
             "essentialInfoMissing": "Falta información esencial del retiro.",
             "txNotPrepared": "La transacción no está preparada. Inténtalo de nuevo.",
-            "userDetailsMissing": "No se encontraron los datos del usuario, la cuenta de bridge o la dirección de la billetera.",
+            "userDetailsMissing": "No se encontraron los datos del usuario, la cuenta bancaria o la dirección de la billetera.",
             "bankAccountMissing": "Falta la cuenta bancaria.",
             "depositAddressFailed": "No se pudo obtener la dirección de depósito del backend.",
             "enterAccountAddress": "Ingresa la dirección de tu cuenta",
@@ -2019,8 +2010,7 @@
             "feeExceedsAmount": "La comisión de red supera este retiro. Ingresá un monto mayor o elegí una red más barata."
         },
         "resolvesTo": "se resuelve a",
-        "addNewAccount": "Agregar nueva cuenta",
-        "mercadoPagoDescription": "Solo tus cuentas - transferencia instantánea"
+        "addNewAccount": "Agregar nueva cuenta"
     },
     "transaction": {
         "drawerTitle": "Detalles de la transacción",

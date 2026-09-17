@@ -952,8 +952,6 @@
         "howWouldYouLikeToWithdraw": "¿Cómo querés retirar?",
         "howWouldYouLikeToSend": "¿Cómo querés enviar?",
         "chooseWithdrawingMethod": "Elegí el método de retiro",
-        "noAccountsTitle": "Aún no tenés cuentas",
-        "noAccountsDescription": "Agregá los datos de tus cuentas una vez<br></br>y retirá con un solo toque.",
         "initial": {
             "placeholderEns": "Dirección o ENS",
             "placeholderAddress": "Dirección"
@@ -972,7 +970,6 @@
             "confirmPending": "Tu transferencia se está procesando. Los fondos se enviaron on-chain correctamente: la confirmación puede tardar unos minutos. Si no ves el retiro en tu actividad dentro de 30 minutos, contactá a soporte."
         },
         "manteca": {
-            "enterMethodDetails": "Ingresá los datos de {method}",
             "selectAccountType": "Seleccioná el tipo de cuenta",
             "selectBank": "Seleccioná el banco",
             "ownAccountOnly": "Solo podés retirar a cuentas a tu nombre.",

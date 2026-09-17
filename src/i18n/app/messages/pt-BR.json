@@ -1869,19 +1869,12 @@
         "howWouldYouLikeToWithdraw": "Como você quer sacar?",
         "howWouldYouLikeToSend": "Como você quer enviar?",
         "chooseWithdrawingMethod": "Escolha o método de saque",
-        "noAccountsTitle": "Você ainda não tem contas",
-        "noAccountsDescription": "Adicione os dados das suas contas uma vez<br></br>e saque com um toque.",
         "addAccount": "Adicionar conta",
         "selectNewMethod": "Escolher outro método",
         "recentMethods": "Métodos recentes",
         "review": "Revisar",
         "backToHome": "Voltar ao início",
         "somethingWentWrong": "Algo deu errado!",
-        "methods": {
-            "mercadopago": "MercadoPago",
-            "pix": "Pix",
-            "bankTransfer": "Transferência bancária"
-        },
         "initial": {
             "placeholderEns": "Endereço ou ENS",
             "placeholderAddress": "Endereço",
@@ -1932,12 +1925,10 @@
             "youJustWithdrew": "Você acabou de sacar",
             "toDestination": "para {destination}",
             "youreWithdrawing": "Você está sacando",
-            "enterMethodDetails": "Digite os dados do {method}",
             "selectAccountType": "Selecione o tipo de conta",
             "selectBank": "Selecione o banco",
             "ownAccountOnly": "Você só pode sacar para contas no seu nome.",
             "redirecting": "Redirecionando...",
-            "lockingRate": "Travando a taxa...",
             "exchangeRate": "Taxa de câmbio",
             "exchangeRateInfo": "A taxa mostrada é a atual, mas pode variar um pouco até o pagamento ser confirmado.",
             "flagAlt": "bandeira",
@@ -2003,7 +1994,7 @@
             "confirmDetailsFailed": "Não foi possível carregar os dados do saque para confirmação. Volte e tente de novo.",
             "essentialInfoMissing": "Faltam informações essenciais do saque.",
             "txNotPrepared": "A transação não está preparada. Tente de novo.",
-            "userDetailsMissing": "Não encontramos os dados do usuário, a conta do bridge ou o endereço da carteira.",
+            "userDetailsMissing": "Não encontramos os dados do usuário, a conta bancária ou o endereço da carteira.",
             "bankAccountMissing": "Falta a conta bancária.",
             "depositAddressFailed": "Não foi possível obter o endereço de depósito do backend.",
             "enterAccountAddress": "Digite o endereço da sua conta",
@@ -2019,8 +2010,7 @@
             "feeExceedsAmount": "A taxa de rede é maior que este saque. Informe um valor maior ou escolha uma rede mais barata."
         },
         "resolvesTo": "resolve para",
-        "addNewAccount": "Adicionar nova conta",
-        "mercadoPagoDescription": "Somente suas contas - transferência instantânea"
+        "addNewAccount": "Adicionar nova conta"
     },
     "transaction": {
         "drawerTitle": "Detalhes da transação",

@@ -1869,19 +1869,12 @@
         "howWouldYouLikeToWithdraw": "How would you like to withdraw?",
         "howWouldYouLikeToSend": "How would you like to send?",
         "chooseWithdrawingMethod": "Choose withdrawing method",
-        "noAccountsTitle": "No accounts yet",
-        "noAccountsDescription": "Add your accounts details once<br></br>to withdraw in one tap.",
         "addAccount": "Add account",
         "selectNewMethod": "Select new method",
         "recentMethods": "Recent methods",
         "review": "Review",
         "backToHome": "Back to home",
         "somethingWentWrong": "Something went wrong!",
-        "methods": {
-            "mercadopago": "MercadoPago",
-            "pix": "Pix",
-            "bankTransfer": "Bank Transfer"
-        },
         "initial": {
             "placeholderEns": "Address or ENS",
             "placeholderAddress": "Address",
@@ -1932,12 +1925,10 @@
             "youJustWithdrew": "You just withdrew",
             "toDestination": "to {destination}",
             "youreWithdrawing": "You're withdrawing",
-            "enterMethodDetails": "Enter {method} details",
             "selectAccountType": "Select account type",
             "selectBank": "Select bank",
             "ownAccountOnly": "You can only withdraw to accounts under your name.",
             "redirecting": "Redirecting...",
-            "lockingRate": "Locking rate...",
             "exchangeRate": "Exchange Rate",
             "exchangeRateInfo": "Rate shown is current but may vary slightly until payment is confirmed.",
             "flagAlt": "flag",
@@ -2003,7 +1994,7 @@
             "confirmDetailsFailed": "Failed to load withdrawal details for confirmation. Please go back and try again.",
             "essentialInfoMissing": "Essential withdrawal information is missing.",
             "txNotPrepared": "Transaction not prepared. Please try again.",
-            "userDetailsMissing": "User details, bridge account, or wallet address not found.",
+            "userDetailsMissing": "User details, bank account, or wallet address not found.",
             "bankAccountMissing": "Bank account is missing.",
             "depositAddressFailed": "Failed to get deposit address from the backend.",
             "enterAccountAddress": "Please enter your account address",
@@ -2019,8 +2010,7 @@
             "feeExceedsAmount": "The network fee is more than this withdrawal. Enter a larger amount or pick a cheaper network."
         },
         "resolvesTo": "resolves to",
-        "addNewAccount": "Add new account",
-        "mercadoPagoDescription": "Your accounts only - instant transfer"
+        "addNewAccount": "Add new account"
     },
     "transaction": {
         "drawerTitle": "Transaction Details",
