@@ -4,7 +4,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import Card from '@/components/Global/Card'
 import NavHeader from '@/components/Global/NavHeader'
-import { useRouter, useParams, useSearchParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useEffect } from 'react'
 import Loading from '@/components/Global/Loading'
@@ -18,8 +18,6 @@ import { BASE_URL } from '@/constants/general.consts'
 
 export default function RedirectQrSuccessPage() {
     const t = useTranslations('qrPay')
-    const tCommon = useTranslations('common')
-    const router = useRouter()
     const params = useParams()
     const searchParams = useSearchParams()
     const code = (params?.code as string) || searchParams.get('code') || ''
@@ -73,16 +71,7 @@ export default function RedirectQrSuccessPage() {
                     </div>
                 </Card>
 
-                <div className="space-y-3">
-                    <Button
-                        variant="purple"
-                        shadowSize="4"
-                        onClick={() => router.push('/home')}
-                        className="w-full"
-                        icon="arrow-up-right"
-                    >
-                        {tCommon('goToHome')}
-                    </Button>
+                <div>
                     <Button
                         variant="stroke"
                         shadowSize="4"
