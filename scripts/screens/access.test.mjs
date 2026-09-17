@@ -36,7 +36,7 @@ test('Access service-token identities are accepted only when active', async () =
     const context = {
         access: {
             aud: 'screen-library-access',
-            getIdentity: async () => ({ common_name: 'screen-collection-cli', service_token_status: 'active' }),
+            getIdentity: async () => ({ common_name: 'screen-collection-cli', service_token_status: true }),
         },
     }
     assert.equal(await verifiedAccessIdentity(context, 'screen-library-access'), 'service:screen-collection-cli')

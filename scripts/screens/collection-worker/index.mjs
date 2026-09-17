@@ -273,7 +273,31 @@ async function collectionRoute(request, id, action, env) {
             if (candidate.capture?.status === 'queued' || candidate.capture?.status === 'running')
                 return json({ collection: candidate, queued: false })
         } else if (validated.capture?.status === 'queued') {
-            return json({ collection: validated, queued: false })
+            const requestedAt = Date.parse(validated.capture.requestedAt ?? '')
+            if (Number.isFinite(requestedAt) && Date.now() - requestedAt <= CAPTURE_STALE_AFTER_MS)
+                return json({ collection: validated, queued: false })
+            const recovered = {
+                ...validated,
+                capture: {
+                    ...validated.capture,
+                    status: 'failed',
+                    failedAt: new Date().toISOString(),
+                    reason: 'The queued capture expired before the workflow started.',
+                },
+            }
+            await env.REPORTS.put(key, JSON.stringify(recovered), {
+                httpMetadata: {
+                    contentType: 'application/json',
+                    cacheControl: 'private, max-age=10',
+                },
+            })
+            const latest = await readJson(env.REPORTS, key)
+            if (!latest) return error('Collection not found', 404)
+            candidate = validateCollection(latest)
+            if (!candidate.missing.length || candidate.capture?.status === 'complete')
+                return json({ collection: candidate, queued: false })
+            if (candidate.capture?.status === 'queued' || candidate.capture?.status === 'running')
+                return json({ collection: candidate, queued: false })
         }
         const queued = await queueCapture(candidate, env)
         return json({ collection: queued, queued: true }, 202)

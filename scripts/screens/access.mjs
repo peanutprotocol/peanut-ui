@@ -6,7 +6,7 @@ export async function verifiedAccessIdentity(context, audience) {
         const email = identity?.email?.toLowerCase()
         if (email?.endsWith('@peanut.me')) return email
         const commonName = typeof identity?.common_name === 'string' ? identity.common_name.trim() : ''
-        return identity?.service_token_status === 'active' && commonName ? `service:${commonName}` : null
+        return identity?.service_token_status === true && commonName ? `service:${commonName}` : null
     } catch {
         return null
     }

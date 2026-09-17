@@ -20,7 +20,12 @@ function capturesIn(root) {
 export async function completeCollection({ collectionId, inputDir, storage, sharpFactory, attempt }) {
     if (!ID.test(collectionId ?? '')) throw new Error('Invalid collection ID')
     const collectionKey = `collections/${collectionId}/manifest.json`
-    const collection = validateCollection(JSON.parse((await storage.read(collectionKey)).toString('utf8')))
+    const readManifest = async () =>
+        storage.readWithMetadata
+            ? await storage.readWithMetadata(collectionKey)
+            : { body: await storage.read(collectionKey), etag: undefined }
+    const initialManifest = await readManifest()
+    const collection = validateCollection(JSON.parse(initialManifest.body.toString('utf8')))
     const request = validateCollectionRequest(
         JSON.parse((await storage.read(`collection-requests/${collectionId}.json`)).toString('utf8')),
         collectionId
@@ -73,6 +78,22 @@ export async function completeCollection({ collectionId, inputDir, storage, shar
         }
     }
     const updated = validateCollection(collection)
+
+    // The worker can expire this attempt while conversion/uploads are in
+    // progress. Re-read immediately before commit and use R2's conditional
+    // write so an old worker cannot overwrite a replacement attempt.
+    const latestManifest = await readManifest()
+    const latestCollection = validateCollection(JSON.parse(latestManifest.body.toString('utf8')))
+    const latestRequest = validateCollectionRequest(
+        JSON.parse((await storage.read(`collection-requests/${collectionId}.json`)).toString('utf8')),
+        collectionId
+    )
+    if (
+        latestRequest.attempt !== request.attempt ||
+        latestCollection.capture?.attempt !== request.attempt ||
+        (attempt !== undefined && attempt !== latestRequest.attempt)
+    )
+        throw new Error('Capture attempt is no longer current')
     const capture = { ...collection.capture }
     delete capture.failedLocales
     updated.capture = {
@@ -83,6 +104,7 @@ export async function completeCollection({ collectionId, inputDir, storage, shar
     }
     await storage.put(collectionKey, JSON.stringify(updated), {
         allowOverwrite: true,
+        ...(latestManifest.etag ? { ifMatch: latestManifest.etag } : {}),
         contentType: 'application/json',
         cacheControlMaxAge: 10,
     })
