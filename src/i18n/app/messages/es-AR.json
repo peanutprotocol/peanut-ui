@@ -1017,7 +1017,12 @@
             "description": "Elegí el período que querés ver."
         },
         "export": {
-            "error": "La exportación falló. Intentá de nuevo."
+            "error": "La exportación falló. Intentá de nuevo.",
+            "save": "Guardar archivo",
+            "tooLarge": "Este período es demasiado amplio. Elegí uno más corto.",
+            "unverified": "No pudimos verificar todas las transacciones de este período. Contactá a soporte.",
+            "busy": "Hay varias descargas en curso. Intentá de nuevo en un momento.",
+            "saveUnavailable": "No se pueden guardar archivos en este dispositivo. Descargalo desde la app web."
         },
         "emptyFilteredDescription": "Probá con otro rango de fechas."
     },

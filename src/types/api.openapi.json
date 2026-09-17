@@ -16712,6 +16712,86 @@
 						"schema": {
 							"type": "string"
 						}
+					},
+					{
+						"in": "query",
+						"name": "from",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "to",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/users/history/export": {
+			"get": {
+				"parameters": [
+					{
+						"in": "query",
+						"name": "format",
+						"required": true,
+						"schema": {
+							"anyOf": [
+								{
+									"enum": [
+										"csv"
+									],
+									"type": "string"
+								},
+								{
+									"enum": [
+										"pdf"
+									],
+									"type": "string"
+								},
+								{
+									"enum": [
+										"xlsx"
+									],
+									"type": "string"
+								}
+							]
+						}
+					},
+					{
+						"in": "query",
+						"name": "from",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"description": "Exclusive upper date-time bound",
+						"in": "query",
+						"name": "to",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "timeZone",
+						"required": false,
+						"schema": {
+							"maxLength": 64,
+							"type": "string"
+						}
 					}
 				],
 				"responses": {

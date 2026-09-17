@@ -2245,7 +2245,12 @@
             "range": "Período",
             "download": "Baixar",
             "success": "Exportação baixada",
-            "error": "Falha na exportação. Tente de novo."
+            "error": "Falha na exportação. Tente de novo.",
+            "save": "Salvar arquivo",
+            "tooLarge": "Este período é muito longo. Escolha um período menor.",
+            "unverified": "Não foi possível verificar todas as transações deste período. Entre em contato com o suporte.",
+            "busy": "Há vários downloads em andamento. Tente novamente em instantes.",
+            "saveUnavailable": "Não é possível salvar arquivos neste dispositivo. Baixe pelo app web."
         },
         "emptyFiltered": "Nenhuma atividade neste período",
         "emptyFilteredDescription": "Tente outro período."

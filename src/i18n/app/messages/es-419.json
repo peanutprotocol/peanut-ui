@@ -2245,7 +2245,12 @@
             "range": "Rango de fechas",
             "download": "Descargar",
             "success": "Exportación descargada",
-            "error": "La exportación falló. Intenta de nuevo."
+            "error": "La exportación falló. Intenta de nuevo.",
+            "save": "Guardar archivo",
+            "tooLarge": "Este período es demasiado amplio. Elige uno más corto.",
+            "unverified": "No pudimos verificar todas las transacciones de este período. Contacta a soporte.",
+            "busy": "Hay varias descargas en curso. Inténtalo de nuevo en un momento.",
+            "saveUnavailable": "No se pueden guardar archivos en este dispositivo. Descárgalo desde la app web."
         },
         "emptyFiltered": "No hay actividad en este período",
         "emptyFilteredDescription": "Prueba con otro rango de fechas."

@@ -2245,7 +2245,12 @@
             "range": "Date range",
             "download": "Download",
             "success": "Export downloaded",
-            "error": "Export failed. Try again."
+            "error": "Export failed. Try again.",
+            "save": "Save file",
+            "tooLarge": "This date range is too large. Choose a shorter range.",
+            "unverified": "We could not verify every transaction in this range. Please contact support.",
+            "busy": "Downloads are busy. Please try again shortly.",
+            "saveUnavailable": "File saving is unavailable on this device. Please download from the web app."
         },
         "emptyFiltered": "No activity in this period",
         "emptyFilteredDescription": "Try a different date range."
