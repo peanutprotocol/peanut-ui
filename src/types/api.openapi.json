@@ -9817,6 +9817,7 @@
 									},
 									"txHash": {
 										"description": "Transaction hash of the withdrawal",
+										"pattern": "^0x[0-9a-fA-F]{64}$",
 										"type": "string"
 									}
 								},
