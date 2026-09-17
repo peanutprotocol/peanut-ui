@@ -6,8 +6,14 @@ import { API_ERROR_CODES, apiErrorStatus, wireErrorCode } from '@/services/api-e
 import { claimDepositAccount, fetchDepositAccounts } from '@/services/deposit-accounts'
 import type { GateState } from '@/utils/capability-gate'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { trackClaimFailed, trackClaimStarted } from './analytics'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+    trackClaimed,
+    trackClaimFailed,
+    trackClaimStarted,
+    trackEndorsementApproved,
+    trackEndorsementRequested,
+} from './analytics'
 import {
     corridorFromRailId,
     corridorsFromRails,
@@ -20,6 +26,16 @@ import {
 import type { ClaimableCorridor, DepositAccount, DepositAccountView, DepositCorridor } from './types'
 
 export const DEPOSIT_ACCOUNTS_QUERY_KEY = ['deposit-accounts'] as const
+
+/**
+ * How often the preview is re-read while the provider reviews a corridor.
+ *
+ * The review takes a few minutes and the user is on a screen watching it, so
+ * the answer has to arrive without them doing anything. Slower than the
+ * provisioning poll because nothing is being minted — this is somebody else's
+ * queue moving, not our own work finishing.
+ */
+export const ENDORSEMENT_POLL_MS = 15_000
 
 /** how long a provisioning account is given before the screen stops waiting */
 export const PROVISIONING_POLL_MS = 5_000
@@ -99,8 +115,14 @@ export function useDepositAccounts({ enabled = true }: { enabled?: boolean } = {
         queryKey: [...DEPOSIT_ACCOUNTS_QUERY_KEY, userId],
         enabled: !!userId && enabled,
         queryFn: fetchDepositAccounts,
-        refetchInterval: (q) =>
-            hasAccountStillWaiting(q.state.data?.accounts, provisioningPolls) ? PROVISIONING_POLL_MS : false,
+        refetchInterval: (q) => {
+            if (hasAccountStillWaiting(q.state.data?.accounts, provisioningPolls)) return PROVISIONING_POLL_MS
+            // A corridor whose review is under way resolves on its own, and the
+            // screen is waiting on exactly this read to continue into the claim.
+            return (q.state.data?.claimable ?? []).some((corridor) => corridor.blockedBy === 'endorsement-pending')
+                ? ENDORSEMENT_POLL_MS
+                : false
+        },
     })
 
     const { dataUpdatedAt } = query
@@ -136,6 +158,11 @@ export function useDepositAccounts({ enabled = true }: { enabled?: boolean } = {
                 return next
             })
             trackClaimStarted(corridor)
+        },
+        onSuccess: (result, method: string) => {
+            const corridor = method as DepositCorridor
+            if (result.outcome === 'opened') trackClaimed(corridor, DEPOSIT_RAILS[corridor].currency)
+            if (result.outcome === 'endorsement_pending') trackEndorsementRequested(corridor)
         },
         onError: (error: Error, method: string) => {
             const corridor = method as DepositCorridor
@@ -194,9 +221,16 @@ export function useDepositAccounts({ enabled = true }: { enabled?: boolean } = {
 
     /**
      * The rows this user gets: their own rails, plus any corridor they already
-     * hold an account on. A rail that leaves the catalogue takes the capability
-     * with it and leaves the account standing, and an account a payer may still
-     * be sending money to has to stay readable.
+     * hold an account on, plus any the backend says they could open. A rail
+     * that leaves the catalogue takes the capability with it and leaves the
+     * account standing, and an account a payer may still be sending money to
+     * has to stay readable.
+     *
+     * The third group is the one that is not a rail. A corridor whose gate is a
+     * provider review has no rail until the review passes, and the tap on the
+     * row is what asks for the review — so waiting for the rail before showing
+     * the row is a corridor nobody can ever reach. That is what dropped the
+     * Colombian row and sent the country pick to the waitlist.
      */
     const corridors = useMemo(
         () =>
@@ -204,7 +238,7 @@ export function useDepositAccounts({ enabled = true }: { enabled?: boolean } = {
                 ? []
                 : corridorsFromRails(
                       rails,
-                      DEPOSIT_RAIL_ORDER.filter((corridor) => accounts[corridor])
+                      DEPOSIT_RAIL_ORDER.filter((corridor) => accounts[corridor] || claimable[corridor])
                   ).filter(
                       (corridor) =>
                           !query.data ||
@@ -229,6 +263,20 @@ export function useDepositAccounts({ enabled = true }: { enabled?: boolean } = {
         }
         return out
     }, [gateFor])
+
+    // A review that has come back is worth one event, on the transition alone:
+    // the preview repeats the same answer on every poll afterwards.
+    const pendingReviews = useRef<Set<DepositCorridor>>(new Set())
+    useEffect(() => {
+        const waiting = pendingReviews.current
+        for (const corridor of DEPOSIT_RAIL_ORDER) {
+            const blocked = claimable[corridor]?.blockedBy === 'endorsement-pending'
+            if (blocked) waiting.add(corridor)
+            // Only a corridor the preview still offers: one that vanished says
+            // nothing about the review, and a failed read must not read as news.
+            else if (claimable[corridor] && waiting.delete(corridor)) trackEndorsementApproved(corridor)
+        }
+    }, [claimable])
 
     const doClaim = useCallback((corridor: DepositCorridor) => claim.mutate(corridor), [claim])
 

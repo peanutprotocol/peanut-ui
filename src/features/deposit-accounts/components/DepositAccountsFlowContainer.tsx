@@ -50,11 +50,20 @@ export function DepositAccountsFlowContainer({ onExit }: DepositAccountsFlowCont
                 onClaim={claim}
                 onResolveGate={resolveGate}
                 onRetry={refetch}
-                // Revoked details have no self-service fix: claiming again
-                // returns the same dead account, because the provider's create
-                // call is idempotent per customer and currency. The corridor
-                // rides along so support does not have to ask which one.
-                onContactSupport={(corridor) => openSupportWithMessage(`Revoked deposit details: ${corridor}`)}
+                // Two conversations the app cannot settle itself, through the
+                // one support door every other screen uses. Revoked details
+                // have no self-service fix — claiming again returns the same
+                // dead account, because the provider's create call is
+                // idempotent per customer and currency. More accounts than we
+                // open by default is a billing decision a person makes. The
+                // corridor rides along so support does not have to ask which.
+                onContactSupport={(corridor, reason) =>
+                    openSupportWithMessage(
+                        reason === 'account-limit'
+                            ? `Another deposit account: ${corridor}`
+                            : `Revoked deposit details: ${corridor}`
+                    )
+                }
             />
             {modals}
         </>

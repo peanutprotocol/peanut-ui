@@ -3,6 +3,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
+import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
 import { rewriteMethodPath } from '@/utils/native-routes'
@@ -16,6 +17,8 @@ const TITLES = {
     'provide-email': 'gate.emailTitle',
     none: 'gate.waitTitle',
     verify: 'gate.verifyTitle',
+    'account-limit': 'gate.limitTitle',
+    'pending-review': 'gate.reviewTitle',
 } as const
 
 const BODIES = {
@@ -24,6 +27,8 @@ const BODIES = {
     'accept-tos': 'gate.verifyBody',
     support: 'gate.verifyBody',
     verify: 'gate.verifyBody',
+    'account-limit': 'gate.limitBody',
+    'pending-review': 'gate.reviewBody',
 } as const
 
 const LABELS = {
@@ -31,8 +36,22 @@ const LABELS = {
     'provide-email': 'gate.emailCta',
     support: 'gate.supportCta',
     verify: 'gate.verifyCta',
-    none: 'gate.verifyCta',
+    none: 'details.unavailableCta',
+    // The same shared support entry point, and the same label, as every other
+    // screen that offers a person — never a second wording for one door.
+    'account-limit': 'gate.supportCta',
+    'pending-review': 'gate.reviewCta',
 } as const
+
+/** the picture each reason gets; the default says "closed to you", which a wait is not */
+const ICONS = {
+    none: 'clock',
+    'pending-review': 'clock',
+    'account-limit': 'peanut-support',
+} as const
+
+/** Reasons with nothing to press: the button goes back, and the screen updates by itself. */
+const WAITS: ReadonlySet<string> = new Set(['none', 'pending-review'])
 
 /**
  * A corridor the user cannot open yet, and the one thing that changes it.
@@ -61,6 +80,7 @@ export function CorridorGateScreen({
     onAct: () => void
 }) {
     const { t, railName } = useDepositAccountCopy()
+    const waiting = WAITS.has(notice.action)
     // A gate on the standing account does not close the country. Where the rail
     // has a top-up, waiting on the gate is not the user's only option.
     const topUpHref = rail.topUpHref ? rewriteMethodPath(rail.topUpHref) : undefined
@@ -69,21 +89,25 @@ export function CorridorGateScreen({
         <PageStack>
             <NavHeader title={t('list.addTitle')} onPrev={onBack} />
             <PageStack.Center>
+                {notice.action === 'pending-review' && (
+                    <div className="mb-4 flex justify-center">
+                        <StatusBadge status="pending" />
+                    </div>
+                )}
                 <EmptyState
-                    icon="globe-lock"
+                    icon={ICONS[notice.action as keyof typeof ICONS] ?? 'globe-lock'}
                     title={t(TITLES[notice.action])}
                     description={notice.message ?? t(BODIES[notice.action])}
                     cta={
                         <div className="mt-4 flex w-full flex-col items-center gap-4">
-                            {notice.action === 'none' ? (
-                                <Button variant="purple" className="w-full" onClick={onBack}>
-                                    {t('details.unavailableCta')}
-                                </Button>
-                            ) : (
-                                <Button variant="purple" className="w-full" onClick={onAct}>
-                                    {t(LABELS[notice.action])}
-                                </Button>
-                            )}
+                            <Button
+                                variant="purple"
+                                className="w-full"
+                                onClick={waiting ? onBack : onAct}
+                                data-testid={`corridor-gate-${notice.action}`}
+                            >
+                                {t(LABELS[notice.action])}
+                            </Button>
                             {topUpHref && (
                                 <LinkButton href={topUpHref} data-testid="corridor-top-up">
                                     {t('details.topUpCta', { currency: rail.currency })}

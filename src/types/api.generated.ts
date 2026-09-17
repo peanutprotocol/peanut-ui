@@ -10580,6 +10580,7 @@ export interface paths {
                     content: {
                         "application/json": {
                             claimable: {
+                                blockedBy?: "account-limit" | "endorsement-pending" | "endorsement-required";
                                 country: string;
                                 currency: string;
                                 matching: {
@@ -10589,6 +10590,11 @@ export interface paths {
                                 /** @enum {boolean} */
                                 preview?: true;
                                 railId: string;
+                                requirements?: {
+                                    issues: string[];
+                                    missing: string[];
+                                    pending: string[];
+                                };
                                 rules?: {
                                     max?: {
                                         amount: string;
@@ -10641,6 +10647,7 @@ export interface paths {
                                     brCode?: string;
                                     breBKey?: string;
                                     clabe?: string;
+                                    depositMessage?: string;
                                     iban?: string;
                                     paymentRails: string[];
                                     routingNumber?: string;
@@ -10729,7 +10736,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            depositAccount: {
+                            depositAccount?: {
                                 country: string;
                                 currency: string;
                                 id: string;
@@ -10744,6 +10751,7 @@ export interface paths {
                                     brCode?: string;
                                     breBKey?: string;
                                     clabe?: string;
+                                    depositMessage?: string;
                                     iban?: string;
                                     paymentRails: string[];
                                     routingNumber?: string;
@@ -10793,6 +10801,12 @@ export interface paths {
                                 };
                                 status: "provisioning" | "active" | "retiring" | "revoked";
                             };
+                            outcome: "opened" | "endorsement_pending" | "endorsement_required";
+                            requirements?: {
+                                issues: string[];
+                                missing: string[];
+                                pending: string[];
+                            };
                         };
                     };
                 };
@@ -10837,6 +10851,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            code?: string;
                             error: string;
                         };
                     };

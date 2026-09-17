@@ -1,7 +1,7 @@
 import { depositGateView } from './depositGate'
 import { isClaimable, isShareable } from './rails'
 import type { DepositAccountScreen } from './params'
-import type { DepositAccountView, DepositRail } from './types'
+import type { ClaimableCorridor, DepositAccountView, DepositRail } from './types'
 import type { GateState } from '@/utils/capability-gate'
 
 /**
@@ -48,9 +48,15 @@ export function resolveScreen(
     requested: DepositAccountScreen,
     rail: DepositRail,
     account: DepositAccountView | undefined,
-    gate: GateState
+    gate: GateState,
+    /**
+     * The corridor's own terms, which also carry why it cannot be opened right
+     * now. Without it the claim step would be offered to a user over the
+     * account cap, or to one whose provider review has not come back.
+     */
+    terms?: ClaimableCorridor
 ): DepositAccountScreen {
-    const { claimable } = depositGateView(gate)
+    const { claimable } = depositGateView(gate, terms)
     const held = isHeld(account)
 
     if (requested === 'claim') {

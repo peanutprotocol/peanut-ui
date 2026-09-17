@@ -113,6 +113,12 @@ export const ANALYTICS_EVENTS = {
     DEPOSIT_ACCOUNT_DETAILS_VIEWED: 'deposit_account_details_viewed',
     DEPOSIT_ACCOUNT_SHARED: 'deposit_account_shared',
     DEPOSIT_ACCOUNT_GATE_BLOCKED: 'deposit_account_gate_blocked',
+    // The funnel had a start and a failure and no success, so nothing could
+    // answer "how many taps became an account".
+    DEPOSIT_ACCOUNT_CLAIMED: 'deposit_account_claimed',
+    // The provider review two corridors wait on: asked for, and granted.
+    DEPOSIT_ACCOUNT_ENDORSEMENT_REQUESTED: 'deposit_account_endorsement_requested',
+    DEPOSIT_ACCOUNT_ENDORSEMENT_APPROVED: 'deposit_account_endorsement_approved',
 
     // ── Withdraw ──
     WITHDRAW_AMOUNT_ENTERED: 'withdraw_amount_entered',

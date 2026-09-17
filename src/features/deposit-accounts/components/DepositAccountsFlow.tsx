@@ -48,8 +48,13 @@ export interface DepositAccountsFlowProps {
     onClaim: (corridor: DepositCorridor) => void
     onResolveGate: (gate: GateState) => void
     onRetry: () => void
-    /** revoked details are a dead end in the app — a person has to pick it up */
-    onContactSupport: (corridor: DepositCorridor) => void
+    /**
+     * The one shared support door, for the two things the app cannot settle
+     * itself: details the provider revoked, and a user who wants more accounts
+     * than we open by default. The reason rides along so support does not have
+     * to ask which conversation this is.
+     */
+    onContactSupport: (corridor: DepositCorridor, reason: 'revoked' | 'account-limit') => void
 }
 
 /**
@@ -103,7 +108,8 @@ export function DepositAccountsFlow({
     // A residence-gated corridor is offered to everybody: the row exists for
     // every user, and the screen behind it is what explains the rule.
     const offered = isLoading || corridors.includes(corridor) || isResidenceGated(corridor)
-    const resolved = isError || !offered ? 'list' : resolveScreen(screen, rail, account, gate)
+    const terms = claimable?.[corridor]
+    const resolved = isError || !offered ? 'list' : resolveScreen(screen, rail, account, gate, terms)
 
     // A user who asked for a screen and was handed a lesser one hit the gate.
     // Reported per corridor and per gate kind, because "blocked" as one number
@@ -159,14 +165,18 @@ export function DepositAccountsFlow({
      * Ready accounts to verify their identity. It belongs here: one corridor,
      * its own reason, and the button that clears it.
      */
-    const gateNotice = depositGateView(gate).notice
+    const gateNotice = depositGateView(gate, terms).notice
     if (screen !== 'list' && !isLoading && !isError && isClaimable(rail) && !isHeld(account) && gateNotice) {
         return (
             <CorridorGateScreen
                 rail={rail}
                 notice={gateNotice}
                 onBack={() => setParams({ step: 'list' })}
-                onAct={() => onResolveGate(gate)}
+                onAct={() =>
+                    gateNotice.action === 'account-limit'
+                        ? onContactSupport(corridor, 'account-limit')
+                        : onResolveGate(gate)
+                }
             />
         )
     }
@@ -191,7 +201,7 @@ export function DepositAccountsFlow({
         return (
             <ClaimAccountScreen
                 rail={rail}
-                terms={claimable?.[corridor]}
+                terms={terms}
                 userName={userName}
                 isClaiming={claimingCorridor === corridor}
                 // a failure on another corridor is not this screen's news
@@ -241,7 +251,7 @@ export function DepositAccountsFlow({
                 canShare={canShare(account, gate)}
                 onBack={() => setParams({ step: 'list' })}
                 onRetry={() => onClaim(corridor)}
-                onContactSupport={() => onContactSupport(corridor)}
+                onContactSupport={() => onContactSupport(corridor, 'revoked')}
             />
         )
     }
@@ -250,6 +260,7 @@ export function DepositAccountsFlow({
         <DepositAccountsListScreen
             corridors={corridors}
             accounts={accounts}
+            claimable={claimable}
             gates={gates}
             isLoading={isLoading}
             isError={isError}

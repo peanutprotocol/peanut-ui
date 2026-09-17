@@ -23,6 +23,24 @@ export function trackClaimFailed(corridor: DepositCorridor, reason: string): voi
     posthog.capture(ANALYTICS_EVENTS.DEPOSIT_ACCOUNT_CLAIM_FAILED, { corridor, reason })
 }
 
+/**
+ * A tap that became an account. The pair with `claim_started` is the one
+ * number the funnel was missing: a start with no success and no failure is a
+ * user who left, and nothing said how many of those there were.
+ */
+export function trackClaimed(corridor: DepositCorridor, currency: string): void {
+    posthog.capture(ANALYTICS_EVENTS.DEPOSIT_ACCOUNT_CLAIMED, { corridor, currency })
+}
+
+/** The provider was asked to review this corridor, and later granted it. */
+export function trackEndorsementRequested(corridor: DepositCorridor): void {
+    posthog.capture(ANALYTICS_EVENTS.DEPOSIT_ACCOUNT_ENDORSEMENT_REQUESTED, { corridor })
+}
+
+export function trackEndorsementApproved(corridor: DepositCorridor): void {
+    posthog.capture(ANALYTICS_EVENTS.DEPOSIT_ACCOUNT_ENDORSEMENT_APPROVED, { corridor })
+}
+
 export function trackDetailsViewed(corridor: DepositCorridor, status: string): void {
     posthog.capture(ANALYTICS_EVENTS.DEPOSIT_ACCOUNT_DETAILS_VIEWED, { corridor, status })
 }

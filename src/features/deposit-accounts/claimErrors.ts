@@ -7,11 +7,12 @@
  * carries none, the status) decides the sentence; the raw message stays for
  * Sentry and the analytics event.
  */
-export type ClaimErrorKey = 'notAvailable' | 'inFlight' | 'residenceRestricted' | 'generic'
+export type ClaimErrorKey = 'notAvailable' | 'inFlight' | 'accountLimit' | 'residenceRestricted' | 'generic'
 
 const BY_CODE: Record<string, ClaimErrorKey> = {
     DEPOSIT_ACCOUNTS_NOT_AVAILABLE: 'notAvailable',
     DEPOSIT_IN_FLIGHT: 'inFlight',
+    DEPOSIT_ACCOUNT_LIMIT: 'accountLimit',
 }
 
 export function claimErrorKey(code: string | undefined, status: number | undefined): ClaimErrorKey {

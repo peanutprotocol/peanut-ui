@@ -6563,7 +6563,7 @@
 		},
 		"/dev/poll": {
 			"post": {
-				"description": "Triggers runPollingCycle() on demand — used by the QA harness to observe provider state transitions without waiting for the 5-minute interval.",
+				"description": "Triggers runPollingCycle() on demand \u2014 used by the QA harness to observe provider state transitions without waiting for the 5-minute interval.",
 				"responses": {
 					"200": {
 						"content": {
@@ -7228,7 +7228,7 @@
 		},
 		"/dev/submit-to-providers": {
 			"post": {
-				"description": "Drives Peanut's submitToProviders(userId, applicantId) synchronously, the same function the Sumsub status-processor calls after GREEN. Used by QA harness to test routing (AR user → Manteca, US user → Bridge) end-to-end.",
+				"description": "Drives Peanut's submitToProviders(userId, applicantId) synchronously, the same function the Sumsub status-processor calls after GREEN. Used by QA harness to test routing (AR user \u2192 Manteca, US user \u2192 Bridge) end-to-end.",
 				"requestBody": {
 					"content": {
 						"application/json": {
@@ -7466,7 +7466,7 @@
 		},
 		"/dev/trigger-sumsub-webhook": {
 			"post": {
-				"description": "Invokes processSumsubKycUpdate({ applicantId, externalUserId, reviewAnswer, reviewStatus, source: 'webhook' }) — same entry point as the real /sumsub/webhooks route, minus HMAC. Used by the QA harness to exercise the full Sumsub → routing chain without real webhook delivery.",
+				"description": "Invokes processSumsubKycUpdate({ applicantId, externalUserId, reviewAnswer, reviewStatus, source: 'webhook' }) \u2014 same entry point as the real /sumsub/webhooks route, minus HMAC. Used by the QA harness to exercise the full Sumsub \u2192 routing chain without real webhook delivery.",
 				"requestBody": {
 					"content": {
 						"application/json": {
@@ -9414,7 +9414,7 @@
 		},
 		"/manteca/deposit/{depositId}/status": {
 			"get": {
-				"description": "Poll the status of a deposit order by its Manteca synthetic id. Used by the BRL PIX QR flow to detect completion (intent.status === COMPLETED) without leaving the user on a static QR. Read-only — the webhook/poller remain the authoritative completion trigger.",
+				"description": "Poll the status of a deposit order by its Manteca synthetic id. Used by the BRL PIX QR flow to detect completion (intent.status === COMPLETED) without leaving the user on a static QR. Read-only \u2014 the webhook/poller remain the authoritative completion trigger.",
 				"parameters": [
 					{
 						"in": "path",
@@ -16185,7 +16185,7 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"description": "Invalid input — malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code.",
+									"description": "Invalid input \u2014 malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code.",
 									"properties": {
 										"error": {
 											"type": "string"
@@ -16195,7 +16195,7 @@
 								}
 							}
 						},
-						"description": "Invalid input — malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code."
+						"description": "Invalid input \u2014 malformed email, rejected username, or a residence country that is not a real ISO-3166 alpha-2 code."
 					},
 					"401": {
 						"content": {
@@ -17807,6 +17807,28 @@
 										"claimable": {
 											"items": {
 												"properties": {
+													"blockedBy": {
+														"anyOf": [
+															{
+																"enum": [
+																	"account-limit"
+																],
+																"type": "string"
+															},
+															{
+																"enum": [
+																	"endorsement-pending"
+																],
+																"type": "string"
+															},
+															{
+																"enum": [
+																	"endorsement-required"
+																],
+																"type": "string"
+															}
+														]
+													},
 													"country": {
 														"type": "string"
 													},
@@ -17860,6 +17882,34 @@
 													},
 													"railId": {
 														"type": "string"
+													},
+													"requirements": {
+														"properties": {
+															"issues": {
+																"items": {
+																	"type": "string"
+																},
+																"type": "array"
+															},
+															"missing": {
+																"items": {
+																	"type": "string"
+																},
+																"type": "array"
+															},
+															"pending": {
+																"items": {
+																	"type": "string"
+																},
+																"type": "array"
+															}
+														},
+														"required": [
+															"pending",
+															"missing",
+															"issues"
+														],
+														"type": "object"
 													},
 													"rules": {
 														"properties": {
@@ -18099,6 +18149,9 @@
 																"type": "string"
 															},
 															"clabe": {
+																"type": "string"
+															},
+															"depositMessage": {
 																"type": "string"
 															},
 															"iban": {
@@ -18509,6 +18562,9 @@
 														"clabe": {
 															"type": "string"
 														},
+														"depositMessage": {
+															"type": "string"
+														},
 														"iban": {
 															"type": "string"
 														},
@@ -18813,10 +18869,60 @@
 												"matching"
 											],
 											"type": "object"
+										},
+										"outcome": {
+											"anyOf": [
+												{
+													"enum": [
+														"opened"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"endorsement_pending"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"endorsement_required"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"requirements": {
+											"properties": {
+												"issues": {
+													"items": {
+														"type": "string"
+													},
+													"type": "array"
+												},
+												"missing": {
+													"items": {
+														"type": "string"
+													},
+													"type": "array"
+												},
+												"pending": {
+													"items": {
+														"type": "string"
+													},
+													"type": "array"
+												}
+											},
+											"required": [
+												"pending",
+												"missing",
+												"issues"
+											],
+											"type": "object"
 										}
 									},
 									"required": [
-										"depositAccount"
+										"outcome"
 									],
 									"type": "object"
 								}
@@ -18887,6 +18993,9 @@
 							"application/json": {
 								"schema": {
 									"properties": {
+										"code": {
+											"type": "string"
+										},
 										"error": {
 											"type": "string"
 										}
@@ -19168,7 +19277,7 @@
 												"type": "string"
 											}
 										],
-										"description": "Level the token must target. The declared residence decides (AR/BR → LATAM, US/MX → NA, SEPA zone → EU, else ROW); a request for another provider's level is rejected with 400, an EU/ROW request is corrected. Defaults to the level the declared residence needs."
+										"description": "Level the token must target. The declared residence decides (AR/BR \u2192 LATAM, US/MX \u2192 NA, SEPA zone \u2192 EU, else ROW); a request for another provider's level is rejected with 400, an EU/ROW request is corrected. Defaults to the level the declared residence needs."
 									}
 								},
 								"type": "object"

@@ -40,16 +40,25 @@ export async function fetchDepositAccounts(): Promise<DepositAccountsSnapshot> {
 }
 
 /**
- * Claim the account for one corridor. Idempotent backend-side: claiming twice
- * returns the same account rather than opening a second one, so a double tap
- * is harmless.
+ * What a claim came back with.
+ *
+ * Opening the account is one of three answers. Two corridors need a review at
+ * the provider that the tap itself asks for, and the answer is then a wait, or
+ * a list of things the user has to supply — never an account.
  */
-export async function claimDepositAccount(method: string): Promise<DepositAccount> {
+export type DepositClaimResult = ClaimResponse
+
+/**
+ * Claim the account for one corridor. Idempotent backend-side: claiming twice
+ * returns the same account rather than opening a second one, and a corridor
+ * whose review is already under way is not asked for again, so a double tap is
+ * harmless either way.
+ */
+export async function claimDepositAccount(method: string): Promise<DepositClaimResult> {
     const response = await apiFetch('/users/deposit-accounts', {
         method: 'POST',
         body: JSON.stringify({ method }),
     })
     if (!response.ok) throw await apiErrorFromResponse(response, 'Could not open the account')
-    const body = (await response.json()) as ClaimResponse
-    return body.depositAccount
+    return (await response.json()) as ClaimResponse
 }

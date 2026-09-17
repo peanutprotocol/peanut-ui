@@ -29,7 +29,7 @@ import { depositGateView } from '../depositGate'
 import { DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, isClaimable, topUpOnlyHref } from '../rails'
 import { isResidenceGated, residenceAllows, RESIDENCE_GATED_CORRIDORS } from '../residenceGate'
 import { canShare, isHeld } from '../resolveScreen'
-import type { DepositAccountView, DepositCorridor, DepositRail } from '../types'
+import type { ClaimableCorridor, DepositAccountView, DepositCorridor, DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { useDepositAccountsEnabled } from '../useDepositAccountsEnabled'
 import { useDepositCountryRouting } from '../useDepositCountryRouting'
@@ -65,6 +65,7 @@ const CRYPTO_HREF = '/add-money/crypto'
 export function DepositAccountsListScreen({
     corridors,
     accounts,
+    claimable,
     gates,
     isLoading,
     isError,
@@ -75,6 +76,12 @@ export function DepositAccountsListScreen({
     /** the corridors this user has a rail for, in catalogue order */
     corridors: DepositCorridor[]
     accounts: Record<DepositCorridor, DepositAccountView | undefined>
+    /**
+     * The terms a corridor the user does NOT hold would carry, and why it
+     * cannot be opened right now. A corridor whose provider review is under way
+     * has no account yet and still has a status worth showing.
+     */
+    claimable?: Record<DepositCorridor, ClaimableCorridor | undefined>
     /** the app's own answer to "can this user deposit here" — one gate per corridor */
     gates: Record<DepositCorridor, GateState>
     /** the corridors and the accounts are both network answers */
@@ -195,6 +202,11 @@ export function DepositAccountsListScreen({
         // it — the notice above owns this state.
         if (isError) return null
         if (account?.timedOut) return <StatusBadge status="failed" />
+        // No account yet, and one is on its way: the provider is reviewing the
+        // corridor and the row says so rather than "Not set up", which reads as
+        // "nothing is happening" to a user who just asked for it.
+        if (claimable?.[rail.corridor]?.blockedBy === 'endorsement-pending' && !account)
+            return <StatusBadge status="pending" />
         switch (account?.status) {
             case 'active':
             case 'retiring':
