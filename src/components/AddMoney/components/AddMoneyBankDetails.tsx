@@ -58,6 +58,7 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
 
     // URL state - read amount from URL query params
     const [amountFromUrl] = useQueryState('amount', parseAsString)
+    const [countryFromQuery] = useQueryState('country', parseAsString)
 
     // contexts
     const onrampContext = useOnrampFlow()
@@ -70,7 +71,8 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
     // routing and country context
     const router = useRouter()
     const params = useParams()
-    const currentCountryName = params.country as string
+    // Native routes keep the country in query state instead of a path segment.
+    const currentCountryName = (params.country as string) || countryFromQuery || ''
 
     // get country information from url params or request fulfillment context
     const currentCountryDetails = useMemo(() => {
