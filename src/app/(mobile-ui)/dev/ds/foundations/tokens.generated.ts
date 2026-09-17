@@ -88,6 +88,12 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "previewClass": "bg-background-brand"
     },
     {
+        "name": "background-setup-hero",
+        "value": "#90a8ed",
+        "section": "semantic",
+        "previewClass": "bg-background-setup-hero"
+    },
+    {
         "name": "background-icon-bubble-green",
         "value": "#29cc6a",
         "section": "semantic",
@@ -206,6 +212,12 @@ export const COLOR_TOKENS: ThemeToken[] = [
         "value": "#ff3b30",
         "section": "semantic",
         "previewClass": "bg-foreground-error"
+    },
+    {
+        "name": "foreground-attention",
+        "value": "#885b00",
+        "section": "semantic",
+        "previewClass": "bg-foreground-attention"
     },
     {
         "name": "foreground-over-color-primary",

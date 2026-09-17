@@ -273,7 +273,7 @@ export default function SendLinkActionList({
             )}
 
             {SHOW_INVITE_MODAL_FOR_DEVCONNECT && isInviteLink && !userHasAppAccess && username && (
-                <div className="!mt-6 flex w-full items-center justify-center gap-1 md:gap-2">
+                <div className="flex w-full items-center justify-center gap-1 md:gap-2">
                     <Image src={starStraightImage.src} alt={t('actions.starAlt')} width={20} height={20} />
                     <p className="text-center text-body-s">{t('actions.invitedBy', { username })}</p>
                     <Image src={starStraightImage.src} alt={t('actions.starAlt')} width={20} height={20} />
@@ -393,7 +393,7 @@ const MethodCard = ({
             }
             onClick={onClick}
             disabled={showSoon || isDisabled}
-            trailing={<IconStack icons={method.icons} iconSize={method.id === 'bank' ? 80 : 24} />}
+            trailing={<IconStack icons={method.icons} iconSize={24} />}
         />
     )
 }

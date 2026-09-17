@@ -30,7 +30,7 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
      * (not a render-time platform check) so the static
      * export's prerendered HTML hydrates cleanly.
      */
-    const [bottomInsetFill, setBottomInsetFill] = useState('bg-blue-300')
+    const [bottomInsetFill, setBottomInsetFill] = useState('bg-background-setup-hero')
     useEffect(() => {
         if (isCapacitor() || deviceType === DeviceType.IOS) setBottomInsetFill('bg-white')
     }, [deviceType])
@@ -48,7 +48,7 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
                 // below instead of surfacing as unhandled rejections in Sentry
                 await StatusBar.setOverlaysWebView({ overlay: false })
                 await StatusBar.setStyle({ style: Style.Light })
-                await StatusBar.setBackgroundColor({ color: '#90A8ED' }) // blue-300 (--color-blue-300); capacitor takes a literal
+                await StatusBar.setBackgroundColor({ color: '#90A8ED' }) // --color-background-setup-hero; capacitor takes a literal
             })
             .catch(() => {})
     }, [])

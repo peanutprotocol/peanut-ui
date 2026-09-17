@@ -80,5 +80,6 @@ test('scheduled baselines must be successful runs on the default branch', () => 
         conclusion: 'success',
     }
     assert.equal(trustedScheduledBaselineRun(run, repository, 'main'), true)
+    assert.equal(trustedScheduledBaselineRun({ ...run, event: 'schedule' }, repository, 'main'), true)
     assert.equal(trustedScheduledBaselineRun({ ...run, conclusion: 'failure' }, repository, 'main'), false)
 })

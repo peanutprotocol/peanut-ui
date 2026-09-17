@@ -25,6 +25,7 @@ export const QR_INIT_CODE = {
     PIX_MIN_AMOUNT: 'PIX_MIN_AMOUNT',
     PIX_RECURRING: 'PIX_RECURRING_NOT_SUPPORTED',
     MISSING_AMOUNT: 'PAYMENT_DESTINATION_MISSING_AMOUNT',
+    NOT_FOUND: 'PAYMENT_DESTINATION_NOT_FOUND',
     EXPIRED: 'PAYMENT_DESTINATION_EXPIRED',
     DECODE: 'PAYMENT_DESTINATION_DECODING_ERROR',
     PROVIDER_UNAVAILABLE: 'PROVIDER_UNAVAILABLE',
@@ -73,6 +74,7 @@ const DETERMINISTIC: Partial<Record<QrInitCode, { amountRetryable: boolean }>> =
     [QR_INIT_CODE.PIX_MIN_AMOUNT]: { amountRetryable: true },
     [QR_INIT_CODE.PIX_RECURRING]: { amountRetryable: false },
     [QR_INIT_CODE.MISSING_AMOUNT]: { amountRetryable: false },
+    [QR_INIT_CODE.NOT_FOUND]: { amountRetryable: false },
     [QR_INIT_CODE.EXPIRED]: { amountRetryable: false },
     [QR_INIT_CODE.DECODE]: { amountRetryable: false },
     /*

@@ -15,6 +15,7 @@ export function FixtureBanner() {
     // during SSR/hydration would mismatch.
     const [name, setName] = useState<string | null>(null)
     useEffect(() => {
+        if ((window as Window & { __screenCapture?: boolean }).__screenCapture) return
         if (DEV_TOOLS_ENABLED) setName(peekActiveFixture())
     }, [])
     if (!name) return null
@@ -22,6 +23,7 @@ export function FixtureBanner() {
     return (
         <Notification
             data-fixture-banner=""
+            data-testid="fixture-banner"
             variant="floating"
             priority="attention"
             title={`Fixture: ${name}`}

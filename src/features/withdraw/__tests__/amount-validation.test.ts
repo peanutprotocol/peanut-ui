@@ -1,5 +1,13 @@
 import { parseUnits } from 'viem'
+import { type Account, AccountType } from '@/interfaces/interfaces'
+import { getCountryFromAccount } from '@/utils/bridge.utils'
 import { validateBankOfframpAmount, bankWithdrawMinUsd, bankWithdrawMinNeedsRate } from '../amount-validation'
+
+const savedAccountWithoutCountry = (type: AccountType): Account =>
+    ({
+        type,
+        details: { countryCode: '', countryName: '' },
+    }) as Account
 
 // The bank-offramp amount arrives via a user-editable URL param — the submit
 // handler revalidates it synchronously (Chip review, PR #2917).
@@ -64,6 +72,18 @@ describe('bankWithdrawMinUsd', () => {
     it('MX: 50 MXN converts through the sell rate, rounded up', () => {
         expect(bankWithdrawMinUsd('MX', '17')).toBe(3) // ceil(50 / 17)
         expect(bankWithdrawMinNeedsRate('MX')).toBe(true)
+    })
+
+    it.each([
+        [AccountType.GB, '0.79', 4],
+        [AccountType.CLABE, '17', 3],
+    ])('uses the %s rail minimum for a saved account with blank country metadata', (type, rate, minimum) => {
+        const countryIso2 = getCountryFromAccount(savedAccountWithoutCountry(type))?.iso2
+
+        expect(countryIso2).toBeDefined()
+        if (!countryIso2) throw new Error(`No country resolved for ${type}`)
+        expect(bankWithdrawMinUsd(countryIso2, rate)).toBe(minimum)
+        expect(bankWithdrawMinNeedsRate(countryIso2)).toBe(true)
     })
 
     it('falls back to the $1 Bridge floor while the rate loads — callers gate on bankWithdrawMinNeedsRate', () => {

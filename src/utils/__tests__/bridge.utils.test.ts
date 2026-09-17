@@ -1,6 +1,9 @@
 import { BRIDGE_DEVELOPER_FEE_RATE } from '@/constants/payment.consts'
+import { type Account, AccountType } from '@/interfaces/interfaces'
 import {
     applyBridgeCrossCurrencyFee,
+    getBankRailCountryFromAccount,
+    getCountryFromAccount,
     getCurrencyConfig,
     getOfframpConfigFromAccount,
     getOfframpCurrencyConfig,
@@ -14,7 +17,44 @@ import {
 // (current state — disabled until FX-spread followup) or non-zero.
 const NET_OF_100 = 100 * (1 - BRIDGE_DEVELOPER_FEE_RATE)
 
+const savedAccount = (type: AccountType | string): Account =>
+    ({
+        id: `account-${type}`,
+        userId: 'user-1',
+        bridgeAccountId: `bridge-${type}`,
+        type,
+        identifier: 'saved-bank-account',
+        details: {
+            bankName: null,
+            accountOwnerName: 'Ada Lovelace',
+            countryCode: '',
+            countryName: '',
+        },
+        createdAt: '2026-09-17T00:00:00.000Z',
+        updatedAt: '2026-09-17T00:00:00.000Z',
+        chainId: null,
+    }) as Account
+
 describe('bridge.utils', () => {
+    describe('saved-account country resolution', () => {
+        it.each([
+            [AccountType.GB, 'GB', 'United Kingdom'],
+            [AccountType.CLABE, 'MX', 'Mexico'],
+        ])('derives %s from the account type when country metadata is blank', (type, iso2, title) => {
+            const account = savedAccount(type)
+
+            expect(getBankRailCountryFromAccount(account)).toBe(iso2)
+            expect(getCountryFromAccount(account)).toMatchObject({ iso2, title })
+        })
+
+        it('does not invent a country for an unknown non-bank account type', () => {
+            const account = savedAccount(AccountType.EVM_ADDRESS)
+
+            expect(getBankRailCountryFromAccount(account)).toBeUndefined()
+            expect(getCountryFromAccount(account)).toBeUndefined()
+        })
+    })
+
     describe('getCurrencyConfig', () => {
         it('should return USD with correct payment rails for US', () => {
             const onrampConfig = getCurrencyConfig('US', 'onramp')

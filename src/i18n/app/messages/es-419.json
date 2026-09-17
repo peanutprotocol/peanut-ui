@@ -1283,6 +1283,8 @@
         "youArePaying": "Estás pagando",
         "paymentMethodAlt": "Método de pago",
         "peanutManAlt": "Peanut Man",
+        "processingPaymentTitle": "Procesando tu pago",
+        "processingPaymentBody": "Estamos confirmando tu pago.",
         "waitingForMerchant": "Esperando a que el comercio ingrese el monto",
         "havingTrouble": "¿Tienes problemas?",
         "orderNotReady": {
@@ -1763,6 +1765,8 @@
             "minDepositAmount": "El monto del depósito debe ser de al menos ${amount}",
             "etaInstant": "Los depósitos suelen llegar en minutos."
         },
+        "processingDepositTitle": "Procesando tu depósito",
+        "processingDepositBody": "Estamos confirmando tu depósito.",
         "pix": {
             "payWithPix": "Pagar con PIX",
             "depositReceived": "¡Depósito recibido!",
@@ -1997,7 +2001,6 @@
             "issuedOn": "Fecha de emisión",
             "pdf": {
                 "title": "Comprobante de la transacción",
-                "date": "Fecha",
                 "type": "Tipo",
                 "status": "Estado",
                 "from": "De"
@@ -2134,6 +2137,7 @@
             "cancelRequest": "Cancelar solicitud",
             "pay": "Pagar",
             "rejectRequest": "Rechazar solicitud",
+            "moreActions": "Más acciones",
             "splitBill": "Dividir esta cuenta",
             "shareReceipt": "Compartir comprobante",
             "downloadPdf": "Descargar comprobante (PDF)",
@@ -3117,6 +3121,7 @@
             "noFeesWithToken": "Sin comisiones con este token.",
             "drawerTitle": "Elige token y red",
             "crossChainUnavailable": "Las transacciones entre cadenas no están disponibles temporalmente. Puedes usar USDC en Arbitrum.",
+            "allNetworks": "Todas",
             "selectANetwork": "Elige una red",
             "moreNetworksButton": "más",
             "searchTokenPlaceholder": "Token o dirección",
@@ -3133,8 +3138,7 @@
             "noNetworksFoundTitle": "No se encontraron redes que coincidan con {search}",
             "noNetworksFoundDescription": "Intenta buscar otra red",
             "searchPlaceholder": "Buscar...",
-            "clearSearch": "Borrar búsqueda",
-            "clearNetworkSelection": "Quitar la red seleccionada"
+            "clearSearch": "Borrar búsqueda"
         },
         "qrScanner": {
             "scanToPay": "Escanea para pagar",

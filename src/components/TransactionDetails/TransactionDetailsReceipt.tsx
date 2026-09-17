@@ -6,18 +6,15 @@ import { useTranslations } from 'next-intl'
 import { twMerge } from '@/utils/tw'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import Card from '@/components/Global/Card'
-import CopyToClipboard from '@/components/Global/CopyToClipboard'
-import { DataRow } from '@/components/0_Bruddle/DataRow'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { getBankAccountCountryCode } from '@/constants/countryCurrencyMapping'
 import { getAvatarUrl, getTransactionSign } from '@/utils/history.utils'
 import { formatCurrency, isStableCoin } from '@/utils/general.utils'
-import PEANUT_LOGO from '@/assets/logos/peanut-logo.svg'
-import { shortenAddress } from '@/utils/general.utils'
+// dark wordmark: the light one is white glyphs on the white page (TASK-22452)
+import PEANUT_LOGO from '@/assets/logos/peanut-logo-dark.svg'
 import { PerkIcon } from './PerkIcon'
-import { useReceiptDateFormatter } from './useReceiptDateFormatter'
 import { ReceiptActions } from './ReceiptActions'
 import { ReceiptDetailsCard } from './ReceiptDetailsCard'
 import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
@@ -61,7 +58,6 @@ export const TransactionDetailsReceipt = ({
 }) => {
     const t = useAppTranslations('transaction')
     const tNav = useTranslations('navigation')
-    const formatDate = useReceiptDateFormatter()
 
     // All derived row-visibility / status / share-receipt state lives in the
     // hook so this component stays focused on composition.
@@ -117,11 +113,6 @@ export const TransactionDetailsReceipt = ({
         amountDisplay = t('amountCollected', { amount: formattedTotalAmountCollected })
     }
 
-    // Official-receipt issue date: the settlement timestamp when there is one,
-    // else creation. `formatDate` renders an em dash for anything unparsable.
-    const issuedAtSource = transaction.completedAt ?? transaction.claimedAt ?? transaction.createdAt ?? transaction.date
-    const issuedAt = issuedAtSource ? new Date(issuedAtSource) : undefined
-
     // '-' out, '+' in. Pots show a collected total, never a sign.
     const headSign = transaction.isRequestPotLink ? '' : getTransactionSign(transaction)
 
@@ -170,20 +161,28 @@ export const TransactionDetailsReceipt = ({
     }
 
     return (
-        <div ref={contentRef} className={twMerge('flex flex-col gap-4', className)}>
-            {/* official header — only the shared/public receipt carries branding */}
+        // xl/24 between the receipt's main sections (approved layout); action
+        // groups keep their own s/8 internally
+        <div ref={contentRef} className={twMerge('flex flex-col gap-6', className)}>
+            {/* official header — only the shared/public receipt carries
+                branding. the whole issuer block lives here, once: issued-by
+                (carries the company name) + address + site. the old bottom
+                company footer is gone (TASK-22452). */}
             {isPublic && (
-                <div className="flex items-center justify-between">
-                    <Image src={PEANUT_LOGO} alt={tNav('peanutLogoAlt')} className="h-6 w-auto" />
+                <div className="flex items-start justify-between gap-4">
+                    <Image src={PEANUT_LOGO} alt={tNav('peanutLogoAlt')} className="h-6 w-auto shrink-0" />
                     <div className="text-right text-body-xs text-foreground-secondary">
-                        <p className="text-body-m-semibold">{t('officialReceipt.issuedBy')}</p>
+                        <p className="text-body-m-semibold text-foreground-primary">{t('officialReceipt.issuedBy')}</p>
+                        {RECEIPT_COMPANY.addressLines.map((line) => (
+                            <p key={line}>{line}</p>
+                        ))}
                         <a
                             href="https://peanut.me"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="underline print:no-underline"
                         >
-                            {'peanut.me'}
+                            {RECEIPT_COMPANY.site}
                         </a>
                     </div>
                 </div>
@@ -254,32 +253,6 @@ export const TransactionDetailsReceipt = ({
                 shouldShowQrShare={shouldShowQrShare}
                 convertedAmount={convertedAmount ?? undefined}
             />
-
-            {/* official footer — reference + issue date so the shared page
-                reads as a document, not an app screen */}
-            {isPublic && (
-                <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">
-                    <DataRow
-                        label={t('officialReceipt.reference')}
-                        value={
-                            <div className="flex items-center gap-2">
-                                {/* uppercase is display-only: the raw id is a case-sensitive lookup key */}
-                                <span className="uppercase">{shortenAddress(transaction.id, 20)}</span>
-                                <span className="print:hidden">
-                                    <CopyToClipboard textToCopy={transaction.id} iconSize="4" />
-                                </span>
-                            </div>
-                        }
-                    />
-                    <DataRow label={t('officialReceipt.issuedOn')} value={formatDate(issuedAt)} />
-                    <div className="py-3 text-center text-body-xs text-foreground-secondary">
-                        <p className="text-label-m text-foreground-primary">{RECEIPT_COMPANY.name}</p>
-                        {RECEIPT_COMPANY.addressLines.map((line) => (
-                            <p key={line}>{line}</p>
-                        ))}
-                    </div>
-                </Card>
-            )}
 
             {/* Over-capture explainer — the words for the Initial hold /
                 Adjustment rows in the details card and the merchant-recourse

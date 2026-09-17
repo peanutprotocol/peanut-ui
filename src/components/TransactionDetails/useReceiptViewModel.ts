@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import {
+    receiptIssuedAt,
     type TransactionDetailsRowKey,
     transactionDetailsRowKeys,
 } from '@/components/TransactionDetails/transaction-details.utils'
@@ -239,6 +240,14 @@ export function useReceiptViewModel(
             // visible-but-empty (a stray divider in the details card).
             cardPayment: isCardPaymentEntry(transaction) && hasCardPaymentRowsContent(transaction),
             closed: !!(transaction.status === 'closed' && transaction.cancelledDate),
+            // document rows: the entry id ties any shared or printed receipt
+            // back to the source activity, and the issuance date follows the
+            // shared status-branched rule (receiptIssuedAt) — both render
+            // only from real source fields, never fabricated. the Transfer ID
+            // row shows the same id under its own label for bank rails; the
+            // user ruled the Reference fact stays regardless.
+            reference: !!transaction.id,
+            issuedOn: !!receiptIssuedAt(transaction),
         }
     }, [transaction, isPublic, isPendingBankRequest, isPeanutWalletToken, isSendLinkSenderCancelled])
 

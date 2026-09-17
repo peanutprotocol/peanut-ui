@@ -3,7 +3,8 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import PEANUT_LOGO from '@/assets/logos/peanut-logo.svg'
+// dark wordmark: the light one is white glyphs on this white page (TASK-22452)
+import PEANUT_LOGO from '@/assets/logos/peanut-logo-dark.svg'
 import { Button } from '@/components/0_Bruddle/Button'
 import Card from '@/components/Global/Card'
 
