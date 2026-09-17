@@ -21,10 +21,7 @@ export default function DirectSendQr({
             onClick={() => setIsQRScannerOpen(true)}
             variant="purple"
             shadowSize="4"
-            className={twMerge(
-                'mx-auto h-20 w-20 cursor-pointer justify-center rounded-full p-4.5 hover:bg-action-primary/100',
-                className
-            )}
+            className={twMerge('mx-auto h-20 w-20 cursor-pointer justify-center rounded-full p-4.5', className)}
             disabled={disabled}
             icon={icon}
             iconSize={32}
