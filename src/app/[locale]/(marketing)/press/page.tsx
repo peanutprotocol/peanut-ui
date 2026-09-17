@@ -5,6 +5,7 @@ import { generateMetadata as metadataHelper } from '@/app/metadata'
 import { MarketingHero } from '@/components/Marketing/MarketingHero'
 import { MarketingShell } from '@/components/Marketing/MarketingShell'
 import { JsonLd } from '@/components/Marketing/JsonLd'
+import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { SUPPORTED_LOCALES, getAlternatesFor, isValidLocale } from '@/i18n/config'
 import type { Locale } from '@/i18n/types'
@@ -139,19 +140,19 @@ export default async function PressPage({ params }: PageProps) {
                             <h2 className="text-heading-xs">{i18n.pressCompanyDescription}</h2>
                             <div className="grid gap-4 md:grid-cols-3">
                                 {fm.boilerplate.short && (
-                                    <Card className="gap-2 p-6">
+                                    <Card className="gap-2 p-6" shadowSize="4">
                                         <h3 className="text-label-l text-foreground-secondary">Short</h3>
                                         <p className="text-body-s text-foreground-primary">{fm.boilerplate.short}</p>
                                     </Card>
                                 )}
                                 {fm.boilerplate.medium && (
-                                    <Card className="gap-2 p-6">
+                                    <Card className="gap-2 p-6" shadowSize="4">
                                         <h3 className="text-label-l text-foreground-secondary">Medium</h3>
                                         <p className="text-body-s text-foreground-primary">{fm.boilerplate.medium}</p>
                                     </Card>
                                 )}
                                 {fm.boilerplate.press && (
-                                    <Card className="gap-2 p-6">
+                                    <Card className="gap-2 p-6" shadowSize="4">
                                         <h3 className="text-label-l text-foreground-secondary">Press / Partner</h3>
                                         <p className="text-body-s text-foreground-primary">{fm.boilerplate.press}</p>
                                     </Card>
@@ -163,7 +164,7 @@ export default async function PressPage({ params }: PageProps) {
                     {fm.tagline && (
                         <section className="flex flex-col gap-4">
                             <h2 className="text-heading-xs">{i18n.pressTaglineHeadlines}</h2>
-                            <Card className="gap-1 p-6">
+                            <Card className="gap-1 p-6" shadowSize="4">
                                 <p className="text-heading-card text-foreground-primary">{fm.tagline}</p>
                                 {fm.secondary_line && (
                                     <p className="text-body-s text-foreground-secondary">{fm.secondary_line}</p>
@@ -172,7 +173,7 @@ export default async function PressPage({ params }: PageProps) {
                             {fm.headlines && fm.headlines.length > 0 && (
                                 <div className="grid gap-3 md:grid-cols-2">
                                     {fm.headlines.map((h) => (
-                                        <Card key={h.text} className="gap-1 p-4">
+                                        <Card key={h.text} className="gap-1 p-4" shadowSize="4">
                                             <p className="text-label-l text-foreground-primary">{h.text}</p>
                                             <p className="text-body-xs text-foreground-secondary">{h.context}</p>
                                         </Card>
@@ -188,24 +189,22 @@ export default async function PressPage({ params }: PageProps) {
                             <h2 className="text-heading-xs">{i18n.pressBrandAssets}</h2>
                             <div className="grid gap-4 md:grid-cols-2">
                                 {fm.brand_assets.map((group) => (
-                                    <Card key={group.label} className="gap-3 p-6">
+                                    <Card key={group.label} className="gap-3 p-6" shadowSize="4">
                                         <h3 className="text-label-l text-foreground-primary">{group.label}</h3>
                                         <div className="flex flex-wrap gap-2">
                                             {group.files.map((file) => {
                                                 const href = safeHttpUrl(file.href)
                                                 if (!href) return null
                                                 return (
-                                                    <a
+                                                    <Button
                                                         key={href}
                                                         href={href}
-                                                        target={href.startsWith('http') ? '_blank' : undefined}
-                                                        rel={
-                                                            href.startsWith('http') ? 'noopener noreferrer' : undefined
-                                                        }
-                                                        className="rounded-sm border border-border-default px-3 py-1.5 text-body-xs text-foreground-primary hover:bg-purple-200"
+                                                        external={href.startsWith('http')}
+                                                        variant="stroke"
+                                                        size="small"
                                                     >
                                                         {file.name}
-                                                    </a>
+                                                    </Button>
                                                 )
                                             })}
                                         </div>
@@ -220,7 +219,7 @@ export default async function PressPage({ params }: PageProps) {
                             <h2 className="text-heading-xs">{i18n.pressTeam}</h2>
                             <div className="grid gap-6 md:grid-cols-2">
                                 {members.map((member) => (
-                                    <Card key={member.slug} className="gap-3 p-6">
+                                    <Card key={member.slug} className="gap-3 p-6" shadowSize="4">
                                         <div>
                                             <h3 className="text-heading-card">{member.name}</h3>
                                             <p className="text-body-s text-foreground-secondary">{member.role}</p>
@@ -240,7 +239,7 @@ export default async function PressPage({ params }: PageProps) {
                                                 href={href}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="relative aspect-square overflow-hidden rounded-sm border border-border-default hover:opacity-80"
+                                                className="relative aspect-square overflow-hidden rounded-sm border border-border-default focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid"
                                             >
                                                 <Image src={href} alt="Peanut team" fill className="object-cover" />
                                             </a>

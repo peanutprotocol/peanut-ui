@@ -6,7 +6,6 @@ import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { CountryCombobox } from '@/components/Common/CountryCombobox'
 import { useSetupImageOverride } from '@/components/Setup/components/SetupWrapper'
-import { PeanutCheering } from '@/assets/mascot'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
@@ -212,7 +211,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
 
     // celebration illustration for the "Good news" outcome only — the selector
     // it shares a step with keeps the step's neutral greeting
-    useSetupImageOverride(view === 'congrats' ? PeanutCheering.src : null)
+    useSetupImageOverride(useMemo(() => (view === 'congrats' ? { pose: 'cheering' as const } : null), [view]))
 
     /* The tier sets render from the bundled mirror and are replaced by the
        server-authoritative lists asynchronously. A congrats view reached

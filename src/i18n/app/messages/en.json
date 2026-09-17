@@ -1004,7 +1004,7 @@
             "exchangeOrWalletDescription": "Binance, Metamask and more"
         },
         "contacts": {
-            "searchPlaceholder": "Enter exact username or search contacts...",
+            "searchPlaceholder": "Recipient",
             "searchLabel": "Peanut username or contact",
             "exactUsername": "Exact username",
             "usernameFound": "@{username} found",
@@ -1977,11 +1977,12 @@
     "transaction": {
         "drawerTitle": "Transaction Details",
         "officialReceipt": {
-            "issuedBy": "Issued by Squirrel Labs Ltd",
+            "issuedBy": "Issued by:",
             "reference": "Reference",
             "issuedOn": "Issued on",
             "pdf": {
                 "title": "Transaction Receipt",
+                "issuedBy": "Issued by Squirrel Labs Ltd",
                 "type": "Type",
                 "status": "Status",
                 "from": "From"

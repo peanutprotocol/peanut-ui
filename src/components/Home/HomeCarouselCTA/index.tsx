@@ -125,6 +125,7 @@ const HomeCarouselCTA = () => {
                             }}
                             onClick={cta.onClick}
                             logo={cta.logo}
+                            mascotPose={cta.mascotPose}
                             iconContainerClassName={cta.iconContainerClassName}
                             secondaryIcon={cta.secondaryIcon}
                             iconSize={16}

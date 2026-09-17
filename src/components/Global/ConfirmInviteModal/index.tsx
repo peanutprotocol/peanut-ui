@@ -5,7 +5,7 @@ import Image from 'next/image'
 import PEANUT_LOGO_BLACK from '@/assets/logos/peanut-logo-dark.svg'
 import { PEANUTMAN } from '@/assets/mascot'
 import ActionModal from '@/components/Global/ActionModal'
-import { PeanutWavingHello } from '@/assets/mascot'
+import PeanutMascot from '@/components/Global/PeanutMascot'
 
 interface ConfirmInviteModalProps {
     isOpen: boolean
@@ -61,13 +61,7 @@ const ConfirmInviteModal: FC<ConfirmInviteModalProps> = ({
             footer={
                 <div className="absolute top-6 left-0 -z-10 flex w-full -translate-y-[80%] justify-center">
                     <div className="relative h-42 w-[90%] md:h-52">
-                        <Image
-                            src={PeanutWavingHello.src}
-                            unoptimized
-                            alt="Peanut Man"
-                            className="object-contain"
-                            fill
-                        />
+                        <PeanutMascot pose="waving-hello" alt="Peanut Man" className="size-full" />
                     </div>
                 </div>
             }

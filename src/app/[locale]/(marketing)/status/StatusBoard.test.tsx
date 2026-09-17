@@ -1,4 +1,7 @@
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
+// the banner and the incident badges read their chrome copy through next-intl,
+// which the marketing provider supplies at runtime
+import { renderWithIntl as render } from '@/test-utils/intl'
 import { OperationalDonut, StatusBanner, StatusBoard, operationalScore } from './StatusBoard'
 import { getTranslations } from '@/i18n'
 import type { StatusProvider, StatusSummary } from './types'

@@ -19,6 +19,13 @@ const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper 
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: { accounts: [] }, fetchUser: jest.fn() }),
 }))
+// PeanutMascot loads lottie-web, which needs a canvas jsdom does not have.
+jest.mock('@/components/Global/PeanutMascot', () => ({
+    __esModule: true,
+    default: ({ pose, alt }: { pose: string; alt?: string }) => (
+        <div data-testid="peanut-mascot" data-pose={pose} aria-label={alt} />
+    ),
+}))
 // next/image → plain img so jsdom doesn't choke on the optimizer.
 jest.mock('next/image', () => ({
     __esModule: true,

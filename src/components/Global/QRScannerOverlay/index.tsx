@@ -21,7 +21,6 @@ import { extractPaymentValue } from '@/utils/clipboard-extract.utils'
 import { recipientPayUrl, qrClaimUrl, deepLinkToNativePath } from '@/utils/native-routes'
 import { qrTelemetry, reportQrScanError } from '@/components/Global/QRScanner/utils'
 import { stashScannedDestination, withdrawScanEntryUrl } from '@/features/withdraw/destination'
-import { useChainRollout } from '@/hooks/useChainRollout'
 import { useTranslations } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
@@ -218,7 +217,6 @@ export default function QRScannerOverlay() {
     const payUserUrl = user?.user.username ? `${BASE_URL}/pay/${user.user.username}` : ''
     const { triggerHaptic } = useAppHaptic()
     const { isQRScannerOpen, setIsQRScannerOpen } = useModalsContext()
-    const isChainRolledOut = useChainRollout()
 
     // Remounts the result modal per scan so its acknowledgement starts unticked
     // on the first paint, not after an effect.
@@ -389,13 +387,13 @@ export default function QRScannerOverlay() {
                 // Both are supported withdrawal destinations, so the scan goes
                 // into the crypto withdrawal flow with the address verbatim —
                 // case is the address in base58. The address is handed over in
-                // process, never in the URL: see stashScannedDestination. Each
-                // is still behind its own rollout flag and behind the ops
-                // kill-switch; while either is off, the notify-me path is the
-                // truth. The chain ids are CHAIN_REGISTRY selector ids — non-EVM
+                // process, never in the URL: see stashScannedDestination. It
+                // refuses the hand-off while the ops kill-switch is on, and the
+                // notify-me path is the truth then. The chain ids are
+                // CHAIN_REGISTRY selector ids — non-EVM
                 // chains have a slug where EVM chains have a numeric chain id.
                 const chainId = recognized === EQrType.SOLANA_ADDRESS ? 'solana' : 'tron'
-                const scanId = isChainRolledOut(chainId) ? stashScannedDestination(scanned, chainId) : null
+                const scanId = stashScannedDestination(scanned, chainId)
                 if (!scanId) {
                     showModal(EModalType.QR_NOT_SUPPORTED)
                     return { success: true }

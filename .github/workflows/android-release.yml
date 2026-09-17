@@ -121,6 +121,8 @@ jobs:
                   EOF
 
             - name: Production web env
+              env:
+                  LOTTIE_PROFILE_BUILD: ${{ github.event_name == 'workflow_dispatch' && github.ref_name == 'innolope/TASK-21683-lottie-native-testflight' && 'true' || 'false' }}
               run: |
                   # NEXT_PUBLIC_* values are baked into the static export at build time.
                   # rpId MUST be peanut.me (passkeys + assetlinks/AASA).
@@ -146,14 +148,20 @@ jobs:
                   NEXT_PUBLIC_SAFARI_WEB_ID=${{ vars.NEXT_PUBLIC_SAFARI_WEB_ID }}
                   NEXT_PUBLIC_ONESIGNAL_WEBHOOK=${{ vars.NEXT_PUBLIC_ONESIGNAL_WEBHOOK }}
                   EOF
-                  if [ "${{ inputs.pushDebug }}" = "true" ]; then
-                      echo "NEXT_PUBLIC_ONESIGNAL_DEBUG=true" >> .env.production.local
-                  fi
+                  {
+                      if [ "${{ inputs.pushDebug }}" = "true" ]; then
+                          echo "NEXT_PUBLIC_ONESIGNAL_DEBUG=true"
+                      fi
+                      if [ "$LOTTIE_PROFILE_BUILD" = "true" ]; then
+                          echo "NEXT_PUBLIC_LOTTIE_PROFILE_ENABLED=true"
+                      fi
+                  } >> .env.production.local
 
             - name: Resolve release versionName
               id: version
               env:
                   INPUT_VERSION: ${{ inputs.versionName || '' }}
+                  LOTTIE_PROFILE_BUILD: ${{ github.event_name == 'workflow_dispatch' && github.ref_name == 'innolope/TASK-21683-lottie-native-testflight' && 'true' || 'false' }}
               run: |
                   # release-native.yml resolves the version and passes it here, so the
                   # input wins; a break-glass tag push falls back to the tag name minus
@@ -163,7 +171,20 @@ jobs:
                   # version the binary ships with. Keep in lockstep with ios-release.yml.
                   VERSION_NAME="$INPUT_VERSION"
                   DIRECT_REBUILD=false
-                  if [ -z "$VERSION_NAME" ] && [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "$GITHUB_REF_TYPE" != "tag" ]; then
+                  PROFILE_BUILD=false
+                  if [ "$LOTTIE_PROFILE_BUILD" = "true" ]; then
+                      if [ -n "$VERSION_NAME" ]; then
+                          echo "::error::TASK-21683 profile builds reuse the current native version; leave versionName blank" >&2
+                          exit 1
+                      fi
+                      if [ "${{ inputs.track || 'internal' }}" != "internal" ]; then
+                          echo "::error::TASK-21683 profile builds may upload only to Play internal" >&2
+                          exit 1
+                      fi
+                      VERSION_NAME="$(node scripts/release-version.mjs native-floor)"
+                      PROFILE_BUILD=true
+                      echo "Lottie profile build: reusing $VERSION_NAME without changing production OTA"
+                  elif [ -z "$VERSION_NAME" ] && [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ "$GITHUB_REF_TYPE" != "tag" ]; then
                       if [ "$GITHUB_REF_NAME" != "dev" ] && [ "$GITHUB_REF_NAME" != "main" ] && [ "$GITHUB_REF_NAME" != "release/android-kyc" ]; then
                           echo "::error::Android replacement builds are cut from dev, main, or release/android-kyc, not $GITHUB_REF_NAME" >&2
                           exit 1
@@ -181,8 +202,11 @@ jobs:
                       exit 1
                   fi
                   node scripts/release-version.mjs validate "$VERSION_NAME" --kind native
-                  echo "name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
-                  echo "rebuild=$DIRECT_REBUILD" >> "$GITHUB_OUTPUT"
+                  {
+                      echo "name=$VERSION_NAME"
+                      echo "rebuild=$DIRECT_REBUILD"
+                      echo "profile=$PROFILE_BUILD"
+                  } >> "$GITHUB_OUTPUT"
                   echo "Release versionName: $VERSION_NAME"
 
             # A binary whose versionName is ahead of the newest production OTA bundle
@@ -193,6 +217,7 @@ jobs:
             # upload closes the gap this detects. Keep in lockstep with
             # ios-release.yml.
             - name: Check production OTA floor
+              if: steps.version.outputs.profile != 'true'
               id: ota_floor
               env:
                   CAPGO_APP_ID: me.peanut.wallet
@@ -253,6 +278,8 @@ jobs:
                   MEAWALLET_NEXUS_USER: ${{ secrets.MEAWALLET_NEXUS_USER_ANDROID }}
                   MEAWALLET_NEXUS_PASSWORD: ${{ secrets.MEAWALLET_NEXUS_PASSWORD_ANDROID }}
                   ANDROID_VERSION_NAME: ${{ steps.version.outputs.name }}
+                  KEEP_LOTTIE_PROFILE: ${{ steps.version.outputs.profile == 'true' && 'true' || 'false' }}
+                  WEBVIEW_DEBUG: ${{ steps.version.outputs.profile == 'true' && 'true' || 'false' }}
               run: |
                   # versionCode must increase in UPLOAD order, which is not run
                   # order: GitHub preserves run_number when you re-run an older
@@ -380,7 +407,7 @@ jobs:
             # native job may reuse it only after exact source/floor/artifact checks;
             # an existing record alone never counts as a successful upload.
             - name: Publish matching production OTA bundle
-              if: steps.ota_floor.outputs.needs_ota == 'true'
+              if: steps.ota_floor.outputs.needs_ota == 'true' && steps.version.outputs.profile != 'true'
               env:
                   CAPGO_APP_ID: me.peanut.wallet
                   PLATFORM: android

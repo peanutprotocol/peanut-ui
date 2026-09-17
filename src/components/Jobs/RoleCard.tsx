@@ -1,17 +1,20 @@
+'use client'
+
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
+import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { NOTION_JOB_BOARD_URL, type OpenRole } from '@/components/Jobs/openRoles'
 
-const META_PILL = 'rounded-sm border border-border-default px-3 py-1 text-xs font-medium text-foreground-primary'
-
+// 'use client' because StatusBadge reads its label through next-intl's hook,
+// which this app resolves on the client only. Nothing here holds state.
 export function RoleCard({ role }: { role: OpenRole }) {
     return (
         <Card className="gap-4 p-6" shadowSize="4">
             <div className="flex flex-col gap-3">
                 <h3 className="text-heading-xs text-foreground-primary">{role.title}</h3>
                 <div className="flex flex-wrap gap-2">
-                    <span className={META_PILL}>{role.location}</span>
-                    <span className={META_PILL}>{role.compensation}</span>
+                    <StatusBadge status="custom" customText={role.location} />
+                    <StatusBadge status="custom" customText={role.compensation} />
                 </div>
             </div>
             <p className="text-body-s text-foreground-primary">{role.summary}</p>
