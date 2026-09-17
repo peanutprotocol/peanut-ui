@@ -86,11 +86,71 @@ jest.mock('@/utils/url.utils', () => ({
     shareableUrl: (path: string) => `https://peanut.me${path}`,
 }))
 
+// The bank opt-in default reads the payable account's sender policy. Mock the
+// two deposit hooks; the real `firstPayableAccount` still picks the account.
+let mockDepositAccountsEnabled = true
+let mockDepositAccounts: Record<string, { status: string; matching: { sender: string } } | undefined> = {}
+jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
+    useDepositAccountsEnabled: () => mockDepositAccountsEnabled,
+}))
+jest.mock('@/features/deposit-accounts/useDepositAccounts', () => ({
+    useDepositAccounts: () => ({ accounts: mockDepositAccounts }),
+}))
+const activeAccount = (sender: string) => ({ status: 'active', matching: { sender } })
+
 describe('useCreateRequestLink', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         apiCreate.mockResolvedValue({ uuid: 'req-1' })
         resolveCopy.mockResolvedValue(true)
+        mockDepositAccountsEnabled = true
+        mockDepositAccounts = {}
+    })
+
+    describe('the bank opt-in default', () => {
+        it('starts on when the payable account takes anyone', () => {
+            mockDepositAccounts = { SEPA_EU: activeAccount('anyone') }
+            const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
+            expect(result.current.bankInstructionsShared).toBe(true)
+        })
+
+        it('starts off when only a business may pay', () => {
+            mockDepositAccounts = { FASTER_PAYMENTS_GB: activeAccount('business-only') }
+            const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
+            expect(result.current.bankInstructionsShared).toBe(false)
+        })
+
+        it('starts off when only the holder may pay', () => {
+            mockDepositAccounts = { SEPA_EU: activeAccount('own-name-only') }
+            const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
+            expect(result.current.bankInstructionsShared).toBe(false)
+        })
+
+        it('starts off when no account can receive the money', () => {
+            const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
+            expect(result.current.bankInstructionsShared).toBe(false)
+        })
+
+        it('reads the account the payer is given, in catalogue order', () => {
+            mockDepositAccounts = {
+                ACH_US: activeAccount('business-only'),
+                SEPA_EU: activeAccount('anyone'),
+            }
+            const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
+            // SEPA_EU comes first in DEPOSIT_RAIL_ORDER, so its 'anyone' wins.
+            expect(result.current.bankInstructionsShared).toBe(true)
+        })
+
+        it('lets the user turn the default off and does not re-enable it', () => {
+            mockDepositAccounts = { SEPA_EU: activeAccount('anyone') }
+            const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
+            expect(result.current.bankInstructionsShared).toBe(true)
+
+            act(() => {
+                result.current.setBankInstructionsShared(false)
+            })
+            expect(result.current.bankInstructionsShared).toBe(false)
+        })
     })
 
     it('derives the profile pay link before a request exists', () => {

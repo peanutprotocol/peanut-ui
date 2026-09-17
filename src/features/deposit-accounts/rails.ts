@@ -1,5 +1,5 @@
 import type { RailCapability } from '@/types/capabilities'
-import type { DepositCorridor, DepositRail, SenderPolicy } from './types'
+import type { DepositAccountView, DepositCorridor, DepositRail, SenderPolicy } from './types'
 
 /**
  * How each corridor PRESENTS: flag, currency, arrival, row count. It never
@@ -141,6 +141,19 @@ export function topUpOnlyHref(rail: DepositRail): string | undefined {
  */
 export function isShareable(sender: SenderPolicy): boolean {
     return sender !== 'own-name-only'
+}
+
+/**
+ * The account a new payer would be handed: the first active one in catalogue
+ * order, the same one the deposit-instructions route picks. The "pay by bank
+ * transfer" opt-in reads its sender policy — both to name who may pay and to
+ * decide whether the opt-in starts on — so the two can never describe
+ * different accounts.
+ */
+export function firstPayableAccount(
+    accounts: Record<DepositCorridor, DepositAccountView | undefined>
+): DepositAccountView | undefined {
+    return DEPOSIT_RAIL_ORDER.map((corridor) => accounts[corridor]).find((held) => held?.status === 'active')
 }
 
 /**

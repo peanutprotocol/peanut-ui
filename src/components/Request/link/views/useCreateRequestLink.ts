@@ -9,6 +9,9 @@ import { loadingStateContext } from '@/context/loadingStates.context'
 import { useAuth } from '@/context/authContext'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccounts'
+import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
+import { firstPayableAccount } from '@/features/deposit-accounts/rails'
 import { type IToken } from '@/interfaces/interfaces'
 import { type IAttachmentOptions } from '@/interfaces/attachment'
 import { requestsApi } from '@/services/requests'
@@ -60,10 +63,30 @@ export const useCreateRequestLink = () => {
     const [requestId, setRequestId] = useState<string | null>(null)
     const [isCreatingLink, setIsCreatingLink] = useState(false)
     const [isUpdatingRequest, setIsUpdatingRequest] = useState(false)
-    // Off by default: a request hands out bank details only when the user says
-    // so. Create is the only place it is set, so it stays local state rather
-    // than url state — a shared link must not carry the requester's choice.
+    // The opt-in defaults to the payable account's sender policy: it starts on
+    // where a person can actually pay ('anyone' — USD, MXN, EUR) and off where
+    // only a business can ('business-only' — GBP, COP, BRL). own-name-only has
+    // no payable account, so the toggle is hidden and the default stays off.
+    // The user can still change it; create is the only place it is read, so it
+    // stays local state rather than url state — a shared link must not carry
+    // the requester's choice.
+    const depositAccountsEnabled = useDepositAccountsEnabled()
+    const { accounts: depositAccounts } = useDepositAccounts({ enabled: depositAccountsEnabled })
+    const payableSender = useMemo(
+        () => (depositAccountsEnabled ? firstPayableAccount(depositAccounts)?.matching.sender : undefined),
+        [depositAccountsEnabled, depositAccounts]
+    )
     const [bankInstructionsShared, setBankInstructionsShared] = useState(false)
+    // Once the user sets the toggle, the derived default stops overriding it.
+    const bankInstructionsTouchedRef = useRef(false)
+    useEffect(() => {
+        if (bankInstructionsTouchedRef.current || requestId) return
+        setBankInstructionsShared(payableSender === 'anyone')
+    }, [payableSender, requestId])
+    const handleBankInstructionsSharedChange = useCallback((value: boolean) => {
+        bankInstructionsTouchedRef.current = true
+        setBankInstructionsShared(value)
+    }, [])
 
     // Debounced attachment options to prevent rapid API calls during typing
     const debouncedAttachmentOptions = useDebounce(attachmentOptions, 500)
@@ -384,7 +407,7 @@ export const useCreateRequestLink = () => {
         peanutWalletBalance,
         qrCodeLink,
         bankInstructionsShared,
-        setBankInstructionsShared,
+        setBankInstructionsShared: handleBankInstructionsSharedChange,
         handleTokenValueChange,
         handleAttachmentOptionsChange,
         handleTokenAmountSubmit,

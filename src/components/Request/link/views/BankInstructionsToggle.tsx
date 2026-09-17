@@ -2,7 +2,7 @@
 
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Toggle } from '@/components/0_Bruddle/Toggle'
-import { DEPOSIT_RAIL_ORDER } from '@/features/deposit-accounts/rails'
+import { firstPayableAccount } from '@/features/deposit-accounts/rails'
 import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccounts'
 import { useTranslations } from 'next-intl'
 
@@ -46,7 +46,7 @@ export function BankInstructionsToggle({
     const t = useTranslations('request')
     const { accounts } = useDepositAccounts()
 
-    const account = DEPOSIT_RAIL_ORDER.map((corridor) => accounts[corridor]).find((held) => held?.status === 'active')
+    const account = firstPayableAccount(accounts)
     if (!account) return null
 
     const sender = account.matching.sender
