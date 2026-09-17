@@ -68,10 +68,7 @@ export function PerkRewardReceipt({
                 stripped because PerkUsage uses it for idempotency (purchase-
                 listener.ts) and shouldn't surface to users. Backend follow-up:
                 add requestPaymentUuid column so reason can be clean. */}
-            <Card
-                position="single"
-                className="divide-y divide-dashed divide-border-default px-4 py-0 [&_.ds-data-row]:py-2 [&_.ds-data-row-label]:text-body-xs [&_.ds-data-row-value]:text-label-m"
-            >
+            <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">
                 <DataRow label={t('perk.received')} value={formatDate(new Date(transaction.date))} />
                 <DataRow
                     label={t('rows.reason')}
