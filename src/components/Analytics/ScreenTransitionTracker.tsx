@@ -16,6 +16,8 @@ interface PendingTransition {
     trigger: TransitionTrigger
 }
 
+const LINK_TRANSITION_TIMEOUT_MS = 10_000
+
 const now = () => globalThis.performance?.now?.() ?? Date.now()
 
 function screenFromUrl(value: string | URL | null | undefined): string | null {
@@ -53,32 +55,67 @@ export function ScreenTransitionTracker() {
     const previousScreenRef = useRef<string | null>(null)
     const pendingRef = useRef<PendingTransition | null>(null)
     const interactionRef = useRef<{ fromScreen: string; startedAt: number } | null>(null)
+    const pendingExpiryRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const capturedLinkRef = useRef<{ event: MouseEvent; pending: PendingTransition } | null>(null)
 
     useEffect(() => {
-        const begin = (toScreen: string | null, trigger: TransitionTrigger) => {
+        const clearPendingExpiry = () => {
+            if (pendingExpiryRef.current !== null) {
+                clearTimeout(pendingExpiryRef.current)
+                pendingExpiryRef.current = null
+            }
+        }
+
+        const begin = (toScreen: string | null, trigger: TransitionTrigger): PendingTransition | null => {
             const fromScreen = screenTemplate(window.location.pathname, window.location.search)
-            if (!toScreen || toScreen === fromScreen) return
+            if (!toScreen || toScreen === fromScreen) return null
 
             // A link/pointer start is earlier and more representative than the
             // History API call Next makes later for the same transition.
             const pending = pendingRef.current
-            if (pending?.fromScreen === fromScreen && pending.toScreen === toScreen) return
+            if (pending?.fromScreen === fromScreen && pending.toScreen === toScreen) return pending
             const interaction = trigger === 'programmatic' ? interactionRef.current : null
             const usesRecentInteraction =
                 interaction?.fromScreen === fromScreen && now() - interaction.startedAt < 15_000
-            pendingRef.current = {
+            clearPendingExpiry()
+            const nextPending: PendingTransition = {
                 fromScreen,
                 toScreen,
                 startedAt: usesRecentInteraction ? interaction.startedAt : now(),
                 trigger: usesRecentInteraction ? 'interaction' : trigger,
             }
+            pendingRef.current = nextPending
             interactionRef.current = null
+
+            // A plain anchor can be canceled by a later handler or fail to
+            // navigate without ever mutating history. Never let that stale
+            // intent become the start time for an unrelated later transition.
+            if (trigger === 'link') {
+                pendingExpiryRef.current = setTimeout(() => {
+                    if (pendingRef.current === nextPending) pendingRef.current = null
+                    pendingExpiryRef.current = null
+                }, LINK_TRANSITION_TIMEOUT_MS)
+            }
+
+            return nextPending
         }
 
-        const onClick = (event: MouseEvent) => {
+        const onClickCapture = (event: MouseEvent) => {
             const target = event.target instanceof Element ? event.target.closest('a[href]') : null
             if (target instanceof HTMLAnchorElement) {
-                begin(screenFromUrl(target.href), 'link')
+                if (
+                    event.button !== 0 ||
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey ||
+                    target.hasAttribute('download') ||
+                    (target.target && target.target.toLowerCase() !== '_self')
+                ) {
+                    return
+                }
+                const pending = begin(screenFromUrl(target.href), 'link')
+                if (pending) capturedLinkRef.current = { event, pending }
                 return
             }
 
@@ -91,6 +128,16 @@ export function ScreenTransitionTracker() {
                     fromScreen: screenTemplate(window.location.pathname, window.location.search),
                     startedAt: now(),
                 }
+            }
+        }
+
+        const onClickSettled = (event: MouseEvent) => {
+            const captured = capturedLinkRef.current
+            if (!captured || captured.event !== event) return
+            capturedLinkRef.current = null
+            if (event.defaultPrevented && pendingRef.current === captured.pending) {
+                pendingRef.current = null
+                clearPendingExpiry()
             }
         }
 
@@ -109,17 +156,22 @@ export function ScreenTransitionTracker() {
             const fromScreen = previousScreenRef.current
             const toScreen = screenTemplate(window.location.pathname, window.location.search)
             if (fromScreen && fromScreen !== toScreen) {
+                clearPendingExpiry()
                 pendingRef.current = { fromScreen, toScreen, startedAt: now(), trigger: 'history' }
             }
         }
 
-        document.addEventListener('click', onClick, true)
+        document.addEventListener('click', onClickCapture, true)
+        document.addEventListener('click', onClickSettled)
         window.addEventListener('popstate', onPopState)
         return () => {
-            document.removeEventListener('click', onClick, true)
+            document.removeEventListener('click', onClickCapture, true)
+            document.removeEventListener('click', onClickSettled)
             window.removeEventListener('popstate', onPopState)
             window.history.pushState = originalPushState
             window.history.replaceState = originalReplaceState
+            clearPendingExpiry()
+            capturedLinkRef.current = null
         }
     }, [])
 
@@ -136,6 +188,10 @@ export function ScreenTransitionTracker() {
             secondFrame = requestAnimationFrame(() => {
                 if (pendingRef.current !== pending) return
                 pendingRef.current = null
+                if (pendingExpiryRef.current !== null) {
+                    clearTimeout(pendingExpiryRef.current)
+                    pendingExpiryRef.current = null
+                }
                 posthog.capture(ANALYTICS_EVENTS.SCREEN_TRANSITION_COMPLETED, {
                     from_screen: pending.fromScreen,
                     to_screen: screen,

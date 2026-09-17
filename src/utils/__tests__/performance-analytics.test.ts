@@ -16,6 +16,19 @@ describe('performance analytics templates', () => {
         expect(apiRouteTemplate('/future/secret-user-value')).toBe('/unmatched')
     })
 
+    it.each([
+        ['/rhino/bridge/quote', '/rhino/bridge/quote'],
+        ['/rhino/bridge/commit', '/rhino/bridge/commit'],
+        ['/rhino/bridge/chains', '/rhino/bridge/chains'],
+        ['/rhino/bridge/status/provider-secret', '/rhino/bridge/status/:bridgeId'],
+        ['/rhino/sda-transfer', '/rhino/sda-transfer'],
+        ['/rhino/sda-transfer/preview', '/rhino/sda-transfer/preview'],
+        ['/invites/graph?mode=payment', '/invites/graph'],
+        ['/invites/graph/external?topNodes=10', '/invites/graph/external'],
+    ])('covers the API shape used by service call sites: %s', (path, expected) => {
+        expect(apiRouteTemplate(path)).toBe(expected)
+    })
+
     it('names fixed screen states without exporting their dynamic values', () => {
         expect(screenTemplate('/home', '?drawer=add')).toBe('/home#add')
         expect(screenTemplate('/add-money', '?country=germany&view=bank')).toBe('/add-money/:id/bank')

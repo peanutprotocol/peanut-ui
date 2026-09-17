@@ -38,6 +38,7 @@ const API_ROUTE_PATTERNS: readonly ApiRoutePattern[] = [
     [/^\/send-links\/[^/]+\/status$/, '/send-links/:publicKey/status'],
     [/^\/send-links\/[^/]+$/, '/send-links/:publicKey'],
     [/^\/history\/[^/]+$/, '/history/:entryId'],
+    [/^\/rhino\/bridge\/status\/[^/]+$/, '/rhino/bridge/status/:bridgeId'],
 ]
 
 // Only whole, known-static routes are retained. Unknown shapes collapse to a
@@ -62,6 +63,8 @@ const API_STATIC_ROUTES = new Set([
     '/fx/rate',
     '/get-user-id',
     '/invites/accept',
+    '/invites/graph',
+    '/invites/graph/external',
     '/invites/user-graph',
     '/invites/validate',
     '/invites/waitlist-position',
@@ -93,7 +96,12 @@ const API_STATIC_ROUTES = new Set([
     '/rain/cards/withdraw/submit',
     '/requests',
     '/rhino/deposit',
+    '/rhino/bridge/chains',
+    '/rhino/bridge/commit',
+    '/rhino/bridge/quote',
     '/rhino/request-fulfilment',
+    '/rhino/sda-transfer',
+    '/rhino/sda-transfer/preview',
     '/send-links',
     '/tokens/price',
     '/tokens/wallet-portfolio',
