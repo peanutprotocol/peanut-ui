@@ -57,13 +57,20 @@ export const Profile = () => {
     const { locale } = useAppLocale()
     const { pendingBundle, storeUpdateRequired } = useOtaUpdate()
     const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
+    const [isUpdateModalMounted, setIsUpdateModalMounted] = useState(false)
     const [isStoreUpdateModalOpen, setIsStoreUpdateModalOpen] = useState(false)
+    const [isStoreUpdateModalMounted, setIsStoreUpdateModalMounted] = useState(false)
     // A staged OTA bundle wins over the store hint: it is already on the device,
     // and the gate only ever stages one this binary can run. Store updates get
     // their own modal — offering a restart for one would reload the same JS.
     const onUpdateTap = () => {
-        if (pendingBundle) setIsUpdateModalOpen(true)
-        else setIsStoreUpdateModalOpen(true)
+        if (pendingBundle) {
+            setIsUpdateModalMounted(true)
+            setIsUpdateModalOpen(true)
+        } else {
+            setIsStoreUpdateModalMounted(true)
+            setIsStoreUpdateModalOpen(true)
+        }
     }
 
     const logout = async () => {
@@ -196,8 +203,12 @@ export const Profile = () => {
                     source="profile"
                 />
             )}
-            {isUpdateModalOpen && <OtaUpdateModal visible onClose={() => setIsUpdateModalOpen(false)} />}
-            {isStoreUpdateModalOpen && <StoreUpdateModal visible onClose={() => setIsStoreUpdateModalOpen(false)} />}
+            {isUpdateModalMounted && (
+                <OtaUpdateModal visible={isUpdateModalOpen} onClose={() => setIsUpdateModalOpen(false)} />
+            )}
+            {isStoreUpdateModalMounted && (
+                <StoreUpdateModal visible={isStoreUpdateModalOpen} onClose={() => setIsStoreUpdateModalOpen(false)} />
+            )}
         </div>
     )
 }
