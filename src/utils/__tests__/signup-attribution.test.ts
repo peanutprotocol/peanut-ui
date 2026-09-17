@@ -53,7 +53,7 @@ describe('signup attribution context', () => {
             value: 'https://example.com/article',
         })
 
-        const first = captureSignupAttribution()
+        const first = captureSignupAttribution({ includeDocumentReferrer: true })
         expect(first).toMatchObject({
             platform: 'web',
             captureMethod: 'browser',
@@ -79,6 +79,22 @@ describe('signup attribution context', () => {
             utmCampaign: 'retargeting',
             path: '/signup',
         })
+        expect(second?.lastTouch?.referrerHost).toBeUndefined()
+    })
+
+    it('does not replay the document referrer on an untagged SPA navigation', () => {
+        window.history.replaceState({}, '', '/blog/creator-guide')
+        Object.defineProperty(document, 'referrer', {
+            configurable: true,
+            value: 'https://example.com/article',
+        })
+
+        const first = captureSignupAttribution({ includeDocumentReferrer: true })
+        window.history.replaceState({}, '', '/signup')
+        const second = captureSignupAttribution()
+
+        expect(first?.lastTouch).toMatchObject({ referrerHost: 'example.com', path: '/blog/creator-guide' })
+        expect(second?.lastTouch).toEqual(first?.lastTouch)
     })
 
     it('round-trips the context through the registration header and preserves its journey id', () => {

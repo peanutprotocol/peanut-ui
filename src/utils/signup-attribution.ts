@@ -113,11 +113,14 @@ function isContentPath(pathname: string): boolean {
     ].includes(parts[0].toLowerCase())
 }
 
-function currentTouch(): SignupAttributionTouch | null {
+function currentTouch(includeDocumentReferrer: boolean): SignupAttributionTouch | null {
     if (typeof window === 'undefined') return null
 
     const url = new URL(window.location.href)
-    const referrer = document.referrer
+    // document.referrer describes the initial document request and stays
+    // unchanged across App Router navigations. Reusing it would turn every
+    // later path into a fabricated external last touch.
+    const referrer = includeDocumentReferrer ? document.referrer : ''
     let referrerHost: string | undefined
     if (referrer) {
         try {
@@ -234,9 +237,11 @@ export function readSignupAttribution(): SignupAttributionContext | null {
     return stored
 }
 
-export function captureSignupAttribution(): SignupAttributionContext | null {
+export function captureSignupAttribution({
+    includeDocumentReferrer = false,
+}: { includeDocumentReferrer?: boolean } = {}): SignupAttributionContext | null {
     if (!analyticsCollectionAvailable()) return null
-    const touch = currentTouch()
+    const touch = currentTouch(includeDocumentReferrer)
     if (!touch) return null
 
     const existing = readSignupAttribution()
