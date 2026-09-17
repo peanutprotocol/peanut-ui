@@ -27,10 +27,12 @@ const DEV_ROUTES = routesUnder(path.join(process.cwd(), 'src/app')).filter((rout
 const ALLOWED_ON_PROD = ['/dev/payment-graph', '/dev/safe-area']
 
 const ORIGINAL_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL
+const ORIGINAL_LOTTIE_PROFILE = process.env.NEXT_PUBLIC_LOTTIE_PROFILE_ENABLED
 
 // The gate reads env at module load, so re-import it as a peanut.me build.
 async function loadProdBuild() {
     process.env.NEXT_PUBLIC_BASE_URL = 'https://peanut.me'
+    delete process.env.NEXT_PUBLIC_LOTTIE_PROFILE_ENABLED
     jest.resetModules()
     const { proxy, config } = await import('@/proxy')
     return { proxy, config }
@@ -38,6 +40,8 @@ async function loadProdBuild() {
 
 afterAll(() => {
     process.env.NEXT_PUBLIC_BASE_URL = ORIGINAL_BASE_URL
+    if (ORIGINAL_LOTTIE_PROFILE === undefined) delete process.env.NEXT_PUBLIC_LOTTIE_PROFILE_ENABLED
+    else process.env.NEXT_PUBLIC_LOTTIE_PROFILE_ENABLED = ORIGINAL_LOTTIE_PROFILE
     jest.resetModules()
 })
 
@@ -64,5 +68,15 @@ describe('dev routes on peanut.me', () => {
         const { config } = await loadProdBuild()
 
         expect(config.matcher).toContain('/dev/:path*')
+    })
+
+    it('opens only the Lottie profiler when the signed profile build opts in', async () => {
+        process.env.NEXT_PUBLIC_BASE_URL = 'https://peanut.me'
+        process.env.NEXT_PUBLIC_LOTTIE_PROFILE_ENABLED = 'true'
+        jest.resetModules()
+        const { proxy } = await import('@/proxy')
+
+        expect(proxy(new NextRequest('https://peanut.me/dev/lottie-profile'))?.status).not.toBe(404)
+        expect(proxy(new NextRequest('https://peanut.me/dev/debug'))?.status).toBe(404)
     })
 })

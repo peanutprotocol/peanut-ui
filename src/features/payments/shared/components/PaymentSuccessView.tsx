@@ -36,12 +36,11 @@ import { isDemoMode } from '@/utils/demo'
 import { recordDemoTransaction } from '@/utils/demo-transactions'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { type ReactNode, useEffect, useMemo, useRef } from 'react'
 import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
-import { PeanutCheering } from '@/assets/mascot'
+import PeanutMascot from '@/components/Global/PeanutMascot'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -307,13 +306,10 @@ const PaymentSuccessView = ({
                 <NavHeader icon="cancel" title={headerTitle} onPrev={handleDone} />
             )}
             <PageStack.Center className="relative z-10 gap-4">
-                <Image
-                    src={PeanutCheering.src}
-                    unoptimized
+                <PeanutMascot
+                    pose="cheering"
                     alt="Peanut Mascot"
-                    width={240}
-                    height={240}
-                    className="absolute -top-32 left-1/2 -z-10 h-60 w-60 -translate-x-1/2"
+                    className="absolute -top-32 left-1/2 -z-10 h-60 w-auto -translate-x-1/2"
                 />
                 <Card className="flex items-center gap-3 p-4">
                     <div className="flex items-center gap-3">

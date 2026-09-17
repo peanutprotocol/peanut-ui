@@ -20,8 +20,18 @@ describe('Android replacement release workflow', () => {
         expect(workflow).toContain(
             'node scripts/check-native-change-scope.cjs "v$VERSION_NAME" android --legacy-compatible'
         )
-        expect(workflow).toContain('echo "rebuild=$DIRECT_REBUILD" >> "$GITHUB_OUTPUT"')
+        expect(workflow).toContain('echo "rebuild=$DIRECT_REBUILD"')
         expect(workflow).toContain('IS_REBUILD: ${{ steps.version.outputs.rebuild }}')
+    })
+
+    it('keeps TASK-21683 profile builds on Play internal without production OTA or tags', () => {
+        expect(workflow).toContain("github.ref_name == 'innolope/TASK-21683-lottie-native-testflight'")
+        expect(workflow).toContain('TASK-21683 profile builds may upload only to Play internal')
+        expect(workflow).toContain('echo "profile=$PROFILE_BUILD"')
+        expect(workflow).toContain("KEEP_LOTTIE_PROFILE: ${{ steps.version.outputs.profile == 'true'")
+        expect(workflow).toContain("WEBVIEW_DEBUG: ${{ steps.version.outputs.profile == 'true'")
+        expect(workflow).toContain("if: steps.version.outputs.profile != 'true'")
+        expect(workflow).toContain("steps.version.outputs.profile != 'true'")
     })
 
     it('allows only a same-build OTA to sort above a replacement binary', () => {
