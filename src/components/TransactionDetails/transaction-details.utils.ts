@@ -54,16 +54,30 @@ export const transactionDetailsRowKeys: TransactionDetailsRowKey[] = [
     'issuedOn',
 ]
 
-/** the receipt's issuance timestamp: the settlement moment when there is one,
- *  else creation. shared by the details-card row and the public header so the
- *  two can never disagree (TASK-22452). */
+/** the receipt's issuance timestamp — the moment the documented state was
+ *  established, never the download time. status-branched: cancelled/closed
+ *  receipts date from the cancellation, refunded from the refund, completed
+ *  from settlement/claim, pending from creation. one rule shared by the
+ *  details-card row and the pdf model so the two can never disagree. */
 export const receiptIssuedAt = (transaction: {
+    status?: string
+    cancelledDate?: string | Date
     completedAt?: string | Date
     claimedAt?: string | Date
     createdAt?: string | Date
     date: string | Date
 }): Date | undefined => {
-    const source = transaction.completedAt ?? transaction.claimedAt ?? transaction.createdAt ?? transaction.date
+    const { status } = transaction
+    const source =
+        status === 'cancelled'
+            ? transaction.cancelledDate || transaction.createdAt || transaction.date
+            : status === 'closed'
+              ? transaction.cancelledDate || transaction.date || transaction.createdAt
+              : status === 'refunded'
+                ? transaction.date || transaction.completedAt || transaction.createdAt
+                : status === 'completed'
+                  ? transaction.claimedAt || transaction.completedAt || transaction.date || transaction.createdAt
+                  : transaction.createdAt || transaction.date
     return source ? new Date(source) : undefined
 }
 

@@ -161,7 +161,9 @@ export const TransactionDetailsReceipt = ({
     }
 
     return (
-        <div ref={contentRef} className={twMerge('flex flex-col gap-4', className)}>
+        // xl/24 between the receipt's main sections (approved layout); action
+        // groups keep their own s/8 internally
+        <div ref={contentRef} className={twMerge('flex flex-col gap-6', className)}>
             {/* official header — only the shared/public receipt carries
                 branding. the whole issuer block lives here, once: issued-by
                 (carries the company name) + address + site. the old bottom
