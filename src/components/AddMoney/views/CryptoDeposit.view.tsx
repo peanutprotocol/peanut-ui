@@ -8,7 +8,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import Loading from '@/components/Global/Loading'
-import CyclingLoading from '@/components/Global/Loading/CyclingLoading'
+import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import ChainChip from '../components/ChainChip'
 import HowToDepositDrawer from '../components/HowToDepositDrawer'
 import SupportedNetworksDrawer from '../components/SupportedNetworksDrawer'
@@ -112,7 +112,16 @@ const CryptoDepositView = ({
                 {/* loading state */}
                 {(isLoading || status === 'loading') && (
                     <div className="flex h-screen-60 items-center justify-center">
-                        {status === 'loading' ? <CyclingLoading /> : <Loading variant="mascot" />}
+                        {/* deposit detected and settling — the shared processing
+                            treatment (TASK-22452); address prep keeps the bare mascot */}
+                        {status === 'loading' ? (
+                            <ProcessingScreen
+                                title={tAddMoney('processingDepositTitle')}
+                                description={tAddMoney('processingDepositBody')}
+                            />
+                        ) : (
+                            <Loading variant="mascot" />
+                        )}
                     </div>
                 )}
 

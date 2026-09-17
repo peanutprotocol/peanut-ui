@@ -1356,7 +1356,7 @@ input::placeholder {
     min-width: 0;
 }
 
-/* Cycling loading word + dots (used by CyclingLoading) */
+/* cycling word + dots (dev /dev/loading-words page; the in-app screen-level consumer left with TASK-22452) */
 @keyframes cyclingFadeIn {
     from {
         opacity: 0;

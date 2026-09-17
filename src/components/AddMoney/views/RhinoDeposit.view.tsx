@@ -9,7 +9,7 @@ import ChainChip from '../components/ChainChip'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import SegmentedControl from '@/components/0_Bruddle/SegmentedControl'
 import Loading from '@/components/Global/Loading'
-import CyclingLoading from '@/components/Global/Loading/CyclingLoading'
+import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useCryptoDepositPolling } from '../hooks/useCryptoDepositPolling'
 import type { CreateDepositAddressResponse, RhinoChainType } from '@/services/services.types'
@@ -45,6 +45,7 @@ const RhinoDepositView = ({
     identifier,
 }: RhinoDepositViewProps) => {
     const t = useTranslations('addMoney.crypto')
+    const tAddMoney = useTranslations('addMoney')
     const tCommon = useTranslations('common')
     const tPayment = useTranslations('payment')
     const {
@@ -120,7 +121,16 @@ const RhinoDepositView = ({
 
                 {(isDepositAddressDataLoading || depositAddressStatus === 'loading') && (
                     <div className="flex h-screen-60 items-center justify-center">
-                        {depositAddressStatus === 'loading' ? <CyclingLoading /> : <Loading variant="mascot" />}
+                        {/* deposit detected and settling — the shared processing
+                            treatment (TASK-22452); address prep keeps the bare mascot */}
+                        {depositAddressStatus === 'loading' ? (
+                            <ProcessingScreen
+                                title={tAddMoney('processingDepositTitle')}
+                                description={tAddMoney('processingDepositBody')}
+                            />
+                        ) : (
+                            <Loading variant="mascot" />
+                        )}
                     </div>
                 )}
 

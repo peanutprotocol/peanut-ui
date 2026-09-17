@@ -1264,6 +1264,8 @@
         "youArePaying": "You're paying",
         "paymentMethodAlt": "Payment method",
         "peanutManAlt": "Peanut Man",
+        "processingPaymentTitle": "Processing your payment",
+        "processingPaymentBody": "We're confirming your payment.",
         "waitingForMerchant": "Waiting for the merchant to set the amount",
         "havingTrouble": "Having trouble?",
         "orderNotReady": {
@@ -1743,6 +1745,8 @@
             "minDepositAmount": "Deposit amount must be at least ${amount}",
             "etaInstant": "Deposits usually arrive within minutes."
         },
+        "processingDepositTitle": "Processing your deposit",
+        "processingDepositBody": "We're confirming your deposit.",
         "pix": {
             "payWithPix": "Pay with PIX",
             "depositReceived": "Deposit received!",

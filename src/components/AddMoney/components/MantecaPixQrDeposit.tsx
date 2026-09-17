@@ -9,7 +9,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useMantecaDepositPolling } from '@/components/AddMoney/hooks/useMantecaDepositPolling'
-import CyclingLoading from '@/components/Global/Loading/CyclingLoading'
+import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import { useTranslations } from 'next-intl'
 
 const MantecaPixQrDeposit: FC<{
@@ -78,9 +78,8 @@ const MantecaPixQrDeposit: FC<{
         return (
             <PageStack>
                 <NavHeader title={t('title')} onPrev={onDone} />
-                <div className="my-auto flex flex-col justify-center">
-                    <CyclingLoading />
-                </div>
+                {/* fiat has left the bank — "confirming" is truthful (TASK-22452) */}
+                <ProcessingScreen title={t('processingDepositTitle')} description={t('processingDepositBody')} />
             </PageStack>
         )
     }
@@ -95,7 +94,9 @@ const MantecaPixQrDeposit: FC<{
                 </div>
 
                 {!qr ? (
-                    <CyclingLoading />
+                    // the qr is still being generated — title only, no
+                    // "confirming" claim before any money moved (TASK-22452)
+                    <ProcessingScreen title={t('processingDepositTitle')} />
                 ) : (
                     <>
                         <QRCodeWrapper url={qr} isBlurred={isExpired} disabled={isExpired} className="max-w-[280px]" />
