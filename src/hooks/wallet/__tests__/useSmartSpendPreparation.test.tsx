@@ -93,6 +93,11 @@ test('mount prepares exactly once and never signs', async () => {
 
     expect(mockEnsureClientForChain).toHaveBeenCalledWith('42161')
     expect(mockPrepareUserOperation).toHaveBeenCalledTimes(1)
+    // a warmup is a PREVIEW: the request carries the marker that stops the
+    // ZeroDev callback from consuming the sponsorship policy
+    expect(mockPrepareUserOperation).toHaveBeenCalledWith(
+        expect.objectContaining({ paymasterContext: { sponsorship: 'preview' } })
+    )
     expect(mockSignUserOperation).not.toHaveBeenCalled()
 
     const candidate = result.current.takePreparedSmartSpend()

@@ -19,6 +19,7 @@ import {
     type SmartSpendCall,
     type UnsignedUserOperation,
 } from './smartSpendPreparation'
+import { PAYMASTER_PREVIEW_CONTEXT } from './paymasterSponsorship'
 
 export interface SignedUserOpData {
     signedUserOp: UnsignedUserOperation & { signature: Hex }
@@ -30,10 +31,11 @@ export interface SignedUserOpData {
 export type UserOpPreparationOrigin = 'reused' | 'fresh'
 
 export interface SignCallsUserOpOptions {
-    /** Candidate built before Pay by `useSmartSpendPreparation`. Signed only if
-     *  it is still for this client, these calls and a live lock, its nonce
-     *  still matches on-chain and a fresh sponsorship is obtained. Otherwise
-     *  the op is rebuilt from scratch — same as with no candidate. */
+    /** Candidate built before Pay by `useSmartSpendPreparation` (previewed,
+     *  never consuming). Signed only if it is still for this client, these
+     *  calls and a live lock and its nonce still matches on-chain; then ONE
+     *  consuming sponsorship is taken for it. Otherwise the op is rebuilt from
+     *  scratch — same as with no candidate — and only that rebuild consumes. */
     prepared?: PreparedSmartSpend | null
     /** Fires once the unsigned op is final, right before the passkey ceremony. */
     onPrepared?: (origin: UserOpPreparationOrigin) => void
@@ -58,8 +60,7 @@ const isBigint = (value: unknown): value is bigint => typeof value === 'bigint'
 
 /**
  * Narrow the paymaster response at runtime. A sponsorship with a missing or
- * malformed field is not "probably fine" — it is a reason to rebuild the op
- * through the full prepare, which validates the same response its own way.
+ * malformed field is not "probably fine" and must never be merged into the op.
  */
 function toSponsorshipRefresh(value: unknown): SponsorshipRefresh | null {
     if (!value || typeof value !== 'object') return null
@@ -89,49 +90,74 @@ function toSponsorshipRefresh(value: unknown): SponsorshipRefresh | null {
     }
 }
 
+type PaymasterConfig = Exclude<NonNullable<KernelClient['paymaster']>, true>
+type PaymasterCallbacks = { getPaymasterData: NonNullable<PaymasterConfig['getPaymasterData']> }
+
+function paymasterCallbacks(client: KernelClient): PaymasterCallbacks | null {
+    const paymaster = client.paymaster
+    if (!paymaster || paymaster === true || typeof paymaster.getPaymasterData !== 'function') return null
+    return paymaster as PaymasterCallbacks
+}
+
 /**
- * Sponsorship refresh for a reused candidate. The installed ZeroDev SDK returns
- * `paymasterData` as an opaque blob for EntryPoint 0.7 (no validUntil /
- * validAfter are exposed), so the client cannot prove an earlier sponsorship is
- * still valid — a TTL guess is not proof. Ask the paymaster again for the SAME
- * op instead; it re-estimates gas and re-signs. One RPC.
+ * The ONE consuming sponsorship for a reused candidate. The installed ZeroDev
+ * SDK returns `paymasterData` as an opaque blob for EntryPoint 0.7 (no
+ * validUntil / validAfter are exposed), so the client cannot prove the
+ * warmup's preview sponsorship is still valid — a TTL guess is not proof. Ask
+ * the paymaster again for the SAME op, this time consuming the policy; it
+ * re-estimates gas and re-signs. Same callback and request shape viem's
+ * prepareUserOperation uses (stub signature included), with the client's own
+ * context, i.e. no preview marker.
+ *
+ * Past this call the policy may have been consumed even if the answer never
+ * arrives, so nothing here is swallowed: the caller must not follow it with
+ * another consuming request on its own.
  */
-async function refreshSponsorship(
+async function consumeSponsorship(
+    paymaster: PaymasterCallbacks,
     client: KernelClient,
     userOperation: UnsignedUserOperation,
     chainId: string
-): Promise<SponsorshipRefresh | null> {
-    const paymaster = client.paymaster
-    if (!paymaster || paymaster === true || typeof paymaster.getPaymasterData !== 'function') return null
-    // Same call viem's prepareUserOperation makes for the final sponsorship,
-    // with the same request shape (stub signature included).
+): Promise<SponsorshipRefresh> {
     const response = await paymaster.getPaymasterData({
         chainId: Number(chainId),
         entryPointAddress: USER_OP_ENTRY_POINT.address,
         context: client.paymasterContext,
         ...userOperation,
-    } as Parameters<typeof paymaster.getPaymasterData>[0])
-    return toSponsorshipRefresh(response)
+    } as Parameters<PaymasterCallbacks['getPaymasterData']>[0])
+    const sponsorship = toSponsorshipRefresh(response)
+    if (!sponsorship) throw new Error('useSignUserOp: malformed sponsorship response after consuming the policy')
+    return sponsorship
 }
+
+type SponsorshipMode = 'preview' | 'consume'
 
 /**
  * The harmless half of signing: encode the calls and let viem fill nonce,
  * factory args, gas and paymaster sponsorship. The bundler and paymaster do
  * receive the unsigned op for estimation and sponsorship, but nothing is
- * signed and nothing is broadcast — no passkey prompt, no state change.
+ * signed and nothing is broadcast — no passkey prompt, no on-chain state change.
+ * viem invokes the single configured paymaster callback once. In `preview`
+ * mode the request carries the preview marker, so that call sponsors WITHOUT
+ * consuming the policy; in `consume` mode it consumes exactly once, as before.
  * Bound to ONE client: the account that prepared is the account that signs.
  */
 async function prepareWithClient(
     client: KernelClient,
     calls: SmartSpendCall[],
-    chainId: string
+    chainId: string,
+    mode: SponsorshipMode
 ): Promise<Omit<PreparedSmartSpend, 'lockCode' | 'lockExpiresAtMs'>> {
     const account = client.account
     if (!account) {
         throw new Error('Smart account not initialized')
     }
     const callData = await account.encodeCalls(calls)
-    const userOperation = (await client.prepareUserOperation({ account, callData })) as UnsignedUserOperation
+    const userOperation = (await client.prepareUserOperation({
+        account,
+        callData,
+        ...(mode === 'preview' ? { paymasterContext: PAYMASTER_PREVIEW_CONTEXT } : {}),
+    })) as UnsignedUserOperation
     return {
         client,
         chainId,
@@ -142,28 +168,37 @@ async function prepareWithClient(
     }
 }
 
+type ReuseOutcome = { kind: 'stale' } | { kind: 'ready'; userOperation: UnsignedUserOperation }
+const STALE: ReuseOutcome = { kind: 'stale' }
+
 /**
- * Turns a pre-Pay candidate into a signable op, or returns null when it must
- * be rebuilt: wrong client/calls/lock, nonce moved on-chain, or no valid fresh
- * sponsorship. Every failure here is pre-signature and silent — the caller
- * falls back to the full prepare, which reports its own errors.
+ * Turns a pre-Pay candidate into a signable op, or reports it stale so the
+ * caller rebuilds: wrong client/calls/lock, unsponsored client, or nonce
+ * moved on-chain. Every stale verdict is reached BEFORE any policy use, so a
+ * rebuild never doubles up. The consuming sponsorship comes last and its
+ * failures propagate (see `consumeSponsorship`).
  */
 async function reusePreparedUserOp(
     client: KernelClient,
     prepared: PreparedSmartSpend,
     calls: SmartSpendCall[],
     chainId: string
-): Promise<UnsignedUserOperation | null> {
-    if (preparedSmartSpendStaleness(prepared, { client, chainId, calls, now: Date.now() })) return null
+): Promise<ReuseOutcome> {
+    if (preparedSmartSpendStaleness(prepared, { client, chainId, calls, now: Date.now() })) return STALE
+    const paymaster = paymasterCallbacks(client)
+    if (!paymaster) return STALE
+    // A read; the full prepare re-reads it anyway, so a failure here is stale.
+    let nonce: bigint
     try {
-        // Both are reads of current state; the sponsorship covers the
-        // candidate's nonce, so it is only usable if the nonce re-read agrees.
-        const [nonce, sponsorship] = await Promise.all([
-            client.account!.getNonce(),
-            refreshSponsorship(client, prepared.userOperation, chainId),
-        ])
-        if (nonce !== prepared.userOperation.nonce || !sponsorship) return null
-        return {
+        nonce = await client.account!.getNonce()
+    } catch {
+        return STALE
+    }
+    if (nonce !== prepared.userOperation.nonce) return STALE
+    const sponsorship = await consumeSponsorship(paymaster, client, prepared.userOperation, chainId)
+    return {
+        kind: 'ready',
+        userOperation: {
             ...prepared.userOperation,
             paymaster: sponsorship.paymaster,
             paymasterData: sponsorship.paymasterData,
@@ -176,9 +211,7 @@ async function reusePreparedUserOp(
             ...(sponsorship.maxPriorityFeePerGas !== undefined
                 ? { maxPriorityFeePerGas: sponsorship.maxPriorityFeePerGas }
                 : {}),
-        }
-    } catch {
-        return null
+        },
     }
 }
 
@@ -190,10 +223,10 @@ async function reusePreparedUserOp(
 export const useSignUserOp = () => {
     const { getClientForChain } = useKernelClient()
 
-    /** Ahead-of-Pay preparation against the current client. See `prepareWithClient`. */
+    /** Ahead-of-Pay preview against the current client: no policy use. See `prepareWithClient`. */
     const prepareCallsUserOp = useCallback(
         (calls: SmartSpendCall[], chainId: string = PEANUT_WALLET_CHAIN.id.toString()) =>
-            prepareWithClient(getClientForChain(chainId), calls, chainId),
+            prepareWithClient(getClientForChain(chainId), calls, chainId, 'preview'),
         [getClientForChain]
     )
 
@@ -219,11 +252,17 @@ export const useSignUserOp = () => {
                 if (!account) {
                     throw new Error('Smart account not initialized')
                 }
-                let userOperation = options?.prepared
+                // Exactly one consuming sponsorship per signed op: either the
+                // candidate's (after the nonce re-read agrees) or the fresh
+                // prepare's single callback call — never both.
+                const reuse: ReuseOutcome = options?.prepared
                     ? await reusePreparedUserOp(client, options.prepared, calls, chainId)
-                    : null
-                const origin: UserOpPreparationOrigin = userOperation ? 'reused' : 'fresh'
-                if (!userOperation) userOperation = (await prepareWithClient(client, calls, chainId)).userOperation
+                    : STALE
+                const origin: UserOpPreparationOrigin = reuse.kind === 'ready' ? 'reused' : 'fresh'
+                const userOperation =
+                    reuse.kind === 'ready'
+                        ? reuse.userOperation
+                        : (await prepareWithClient(client, calls, chainId, 'consume')).userOperation
                 options?.onPrepared?.(origin)
                 // Same split as useZeroDev: the signature is the only ceremony.
                 const signature = (await withCeremonyPurpose('user_op', () =>
