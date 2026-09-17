@@ -10,7 +10,7 @@ import { twMerge } from '@/utils/tw'
 import Attachment from '../Attachment'
 import { Card } from '@/components/0_Bruddle/Card'
 import { Icon, type IconName } from '../Icons/Icon'
-import Image, { type StaticImageData } from 'next/image'
+import { type StaticImageData } from 'next/image'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import Loading from '../Loading'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
@@ -189,28 +189,27 @@ export default function PeanutActionDetailsCard({
     const isClaimLinkBankAccount = transactionType === 'CLAIM_LINK_BANK_ACCOUNT' && recipientType === 'BANK_ACCOUNT'
     const isRegionalMethodClaim = transactionType === 'REGIONAL_METHOD_CLAIM'
 
-    const withdrawBankIcon = () => {
-        const imgSrc = logo ? logo : getFlagUrl(countryCodeForFlag)
-        if (isWithdrawBankAccount || isAddBankAccount || isClaimLinkBankAccount || isRegionalMethodClaim)
-            return (
-                <div className="relative mr-1 h-12 w-12">
-                    {(countryCodeForFlag || logo) && (
-                        <Image
-                            src={imgSrc}
-                            alt={`${countryCodeForFlag} flag`}
-                            width={160}
-                            height={160}
-                            className="h-12 w-12 rounded-full object-cover"
-                        />
-                    )}
-                    {!isRegionalMethodClaim && (
-                        <div className="absolute -right-1 -bottom-1 flex h-6 w-6 items-center justify-center rounded-full bg-background-icon-bubble-blue p-1.5">
-                            <Icon size={14} name="bank" className="text-foreground-primary" />
-                        </div>
-                    )}
-                </div>
-            )
-        return undefined
+    /*
+     * One leading element, per the ListItem-leading rule: the flag or the
+     * provider logo, with the bank icon as its fallback when neither loads.
+     * Same shape as TransactionAvatarBadge's bank rows. The mini bank bubble
+     * this used to overlay on the flag is gone — a composite leading has no
+     * board row (design.md open conflicts, "listitem leading composite").
+     */
+    const bankAvatar = () => {
+        if (!(isWithdrawBankAccount || isAddBankAccount || isClaimLinkBankAccount || isRegionalMethodClaim))
+            return undefined
+        const imgSrc = logo ?? (countryCodeForFlag ? getFlagUrl(countryCodeForFlag) : undefined)
+        return (
+            <AvatarWithBadge
+                size="small"
+                logo={imgSrc}
+                icon="bank"
+                inlineStyle={{ backgroundColor: 'var(--color-background-icon-bubble-blue)' }}
+                iconFillColor={AVATAR_TEXT_DARK}
+                fallback={{ icon: 'bank', bgColor: 'var(--color-background-icon-bubble-blue)' }}
+            />
+        )
     }
 
     return (
@@ -219,7 +218,7 @@ export default function PeanutActionDetailsCard({
                 <div className="flex items-center gap-3">
                     {viewType !== 'SUCCESS' &&
                     (isWithdrawBankAccount || isAddBankAccount || isClaimLinkBankAccount || isRegionalMethodClaim) ? (
-                        withdrawBankIcon()
+                        bankAvatar()
                     ) : showsPersonAvatar ? (
                         // The branch that used to draw the counterparty's
                         // initials: a Peanut handle with no icon of its own.
