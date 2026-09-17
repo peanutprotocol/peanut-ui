@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import messages from '@/i18n/app/messages/en.json'
+import esMessages from '@/i18n/app/messages/es-419.json'
+import ptMessages from '@/i18n/app/messages/pt-BR.json'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { DepositAccountsFlow } from '../components/DepositAccountsFlow'
 import { DepositAccountsListScreen } from '../components/DepositAccountsListScreen'
@@ -517,5 +519,109 @@ describe('the hub titles itself for the entry point', () => {
         expect(screen.getByText(messages.depositAccounts.list.addHeading)).toBeInTheDocument()
         expect(screen.queryByText(messages.depositAccounts.list.heading)).not.toBeInTheDocument()
         expect(scrollIntoView).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * One field filters the whole screen. Two fields, or a field that only
+ * filtered the countries, is what made this screen read as three unrelated
+ * lists stacked on top of each other.
+ */
+describe('the hub search filters every section at once', () => {
+    const search = (text: string) =>
+        fireEvent.change(screen.getByPlaceholderText(messages.depositAccounts.list.searchPlaceholder), {
+            target: { value: text },
+        })
+
+    it('keeps the corridors a currency names and drops the rest', () => {
+        const { container } = list(false)
+
+        search('eur')
+
+        expect(rowOf(container, 'SEPA_EU')).toBeInTheDocument()
+        expect(rowOf(container, 'ACH_US')).not.toBeInTheDocument()
+        expect(rowOf(container, 'SPEI_MX')).not.toBeInTheDocument()
+    })
+
+    it('finds an account by its rail name', () => {
+        const { container } = list(false)
+
+        search('spei')
+
+        expect(rowOf(container, 'SPEI_MX')).toBeInTheDocument()
+        expect(rowOf(container, 'SEPA_EU')).not.toBeInTheDocument()
+    })
+
+    /**
+     * Only the country table knows that Portugal pays in euro, so the country
+     * match has to reach the account rows — a user searching their own country
+     * is looking for the account it pays into.
+     */
+    it('finds the euro account by a euro-zone country name', () => {
+        const { container } = list(false)
+
+        search('portugal')
+
+        expect(rowOf(container, 'SEPA_EU')).toBeInTheDocument()
+        expect(screen.getByTestId('country-list')).toBeInTheDocument()
+    })
+
+    it('finds the crypto row by its own words, and hides the sections that do not match', () => {
+        const { container } = list(false)
+
+        search('crypto')
+
+        expect(screen.getByTestId('add-money-crypto')).toBeInTheDocument()
+        expect(rowOf(container, 'SEPA_EU')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('country-list')).not.toBeInTheDocument()
+        expect(screen.queryByText(messages.depositAccounts.list.countriesTitle)).not.toBeInTheDocument()
+    })
+
+    it('hides a section title along with the section it labels', () => {
+        list(false)
+
+        search('eur')
+
+        // the crypto row says nothing about euros
+        expect(screen.queryByTestId('add-money-crypto')).not.toBeInTheDocument()
+        expect(screen.getByText(messages.depositAccounts.list.sectionTitle)).toBeInTheDocument()
+    })
+
+    it('says so once when nothing matches anywhere, and clears the search', () => {
+        const { container } = list(false)
+
+        search('zzzzqq')
+
+        expect(screen.getByText(/zzzzqq/)).toBeInTheDocument()
+        expect(screen.queryByTestId('country-list')).not.toBeInTheDocument()
+        expect(rowOf(container, 'SEPA_EU')).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByText(messages.depositAccounts.list.clearSearch))
+
+        expect(rowOf(container, 'SEPA_EU')).toBeInTheDocument()
+        expect(screen.getByTestId('country-list')).toBeInTheDocument()
+    })
+})
+
+/**
+ * Three catalogs ship this screen. A key that exists only in English reaches a
+ * Spanish user as its own raw name.
+ */
+describe('the hub copy exists in every catalog', () => {
+    const HUB_KEYS = [
+        'addTitle',
+        'addHeading',
+        'sectionTitle',
+        'countriesTitle',
+        'searchPlaceholder',
+        'noMatchTitle',
+        'clearSearch',
+    ]
+
+    it('es-419 and pt-BR carry every key the hub reads', () => {
+        for (const catalog of [esMessages, ptMessages]) {
+            const listCopy = (catalog as any).depositAccounts.list as Record<string, string>
+            for (const key of HUB_KEYS) expect(listCopy[key]).toBeTruthy()
+        }
     })
 })

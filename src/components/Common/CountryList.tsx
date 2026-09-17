@@ -24,6 +24,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
+import { matchesCountryQuery } from './country-search'
 
 // precompute bridge alpha2 values for O(1) lookup
 const BRIDGE_ALPHA2_SET = new Set(Object.values(BRIDGE_ALPHA3_TO_ALPHA2))
@@ -38,7 +39,7 @@ const isBridgeSupportedCountry = (code: string): boolean => {
 }
 
 interface CountryListViewProps {
-    inputTitle: string
+    inputTitle?: string
     inputDescription?: string
     viewMode: 'claim-request' | 'add-withdraw' | 'general-verification'
     onCountryClick: (country: CountryData) => void
@@ -55,6 +56,12 @@ interface CountryListViewProps {
      * Colombia read as unsupported and land on the waitlist.
      */
     isCountrySupported?: (country: CountryData) => boolean
+    /**
+     * The search term, when the caller owns it. A screen that filters several
+     * sections at once has one field above them all, so this list renders no
+     * field of its own and filters on what it is given.
+     */
+    searchTerm?: string
 }
 
 /**
@@ -81,6 +88,7 @@ export const CountryList = ({
     enforceSupportedCountries,
     showLoadingState = true, // true by default to show loading state when clicking a country
     isCountrySupported,
+    searchTerm: controlledSearchTerm,
 }: CountryListViewProps) => {
     const t = useTranslations('global')
     const locale = useLocale()
@@ -88,7 +96,10 @@ export const CountryList = ({
     // get currencyCode from search params
     const currencyCode = searchParams.get('currencyCode')
 
-    const [searchTerm, setSearchTerm] = useState(currencyCode ?? '')
+    const [ownSearchTerm, setOwnSearchTerm] = useState(currencyCode ?? '')
+    // the caller's term wins outright where it is given — the list then has no
+    // field of its own to keep in step with it
+    const searchTerm = controlledSearchTerm ?? ownSearchTerm
     // use deferred value to prevent blocking ui during search
     const deferredSearchTerm = useDeferredValue(searchTerm)
     const { countryCode: homeCountryCode, isLoading: isHomeCountryLoading } = useHomeCountry()
@@ -137,27 +148,24 @@ export const CountryList = ({
     const filteredCountries = useMemo(() => {
         if (!deferredSearchTerm) return sortedCountries
 
-        const term = deferredSearchTerm.toLowerCase()
-        return sortedCountries.filter(
-            (country) =>
-                countryName(country).toLowerCase().includes(term) ||
-                country.title.toLowerCase().includes(term) ||
-                country.currency?.toLowerCase().includes(term)
-        )
+        const term = deferredSearchTerm.trim().toLowerCase()
+        return sortedCountries.filter((country) => matchesCountryQuery(country, term, countryName(country)))
     }, [deferredSearchTerm, sortedCountries, countryName])
 
     return (
         <div className="flex h-full w-full flex-1 flex-col justify-start gap-4">
-            <div className="space-y-2">
-                <div className="text-body-m-semibold">{inputTitle}</div>
-                {inputDescription && <p className="text-body-xs">{inputDescription}</p>}
-                <SearchInput
-                    value={searchTerm}
-                    onChange={setSearchTerm}
-                    onClear={() => setSearchTerm('')}
-                    placeholder={t('countryList.searchPlaceholder')}
-                />
-            </div>
+            {controlledSearchTerm === undefined && (
+                <div className="space-y-2">
+                    {inputTitle && <div className="text-body-m-semibold">{inputTitle}</div>}
+                    {inputDescription && <p className="text-body-xs">{inputDescription}</p>}
+                    <SearchInput
+                        value={ownSearchTerm}
+                        onChange={setOwnSearchTerm}
+                        onClear={() => setOwnSearchTerm('')}
+                        placeholder={t('countryList.searchPlaceholder')}
+                    />
+                </div>
+            )}
             {isHomeCountryLoading ? (
                 <CountryListSkeleton />
             ) : (

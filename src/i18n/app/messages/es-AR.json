@@ -1687,9 +1687,7 @@
         "list": {
             "heading": "Tus propios datos bancarios. Cobrá del mundo.",
             "subheading": "Tené datos bancarios personales en euros, dólares y más monedas. Recibí tu sueldo o pagos de clientes directamente en tu saldo de Peanut.",
-            "addHeading": "Agregá dinero desde tu banco o conseguí datos bancarios para que te paguen.",
-            "addSubheading": "Abrí tus propios datos bancarios o elegí el país desde el que enviás.",
-            "countriesTitle": "Enviá desde cualquier país",
+            "searchPlaceholder": "Buscá un país, una moneda o una cuenta",
             "rowBlocked": "Verificá tu identidad para abrir esta cuenta",
             "errorBody": "Tus cuentas están bien: solo no pudimos leerlas. Revisá tu conexión y probá de nuevo."
         },
