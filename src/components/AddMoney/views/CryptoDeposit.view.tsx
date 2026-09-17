@@ -132,7 +132,7 @@ const CryptoDepositView = ({
 
                 {/* address-creation error — without this the screen instructs the
                     user to send funds while showing no address at all */}
-                {isError && !isLoading && status !== 'loading' && (
+                {isError && !isLoading && (
                     <div className="flex flex-col items-center gap-4">
                         <Notification priority="attention" title={t('addressErrorTitle')}>
                             {t('addressErrorDescription')}
@@ -150,7 +150,7 @@ const CryptoDepositView = ({
                     </div>
                 )}
 
-                {depositAddressData && !isLoading && status !== 'loading' && (
+                {depositAddressData && !isLoading && (
                     <>
                         {/* qr code */}
                         <div className="flex items-center justify-center">
