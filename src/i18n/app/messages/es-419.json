@@ -451,6 +451,23 @@
                 "naBank": "Agrega o retira dinero mediante transferencias bancarias de Estados Unidos y la red SPEI de México.",
                 "sepa": "Agrega o retira euros mediante transferencias SEPA.",
                 "card": "Paga con tu tarjeta Peanut."
+            },
+            "valueProp": {
+                "p2p": "Divide cuentas y paga a tus amigos en un toque.",
+                "card": "Usa tu saldo de Peanut en el mundo real.",
+                "saBank": "Maneja tu dinero como local en Brasil y Argentina.",
+                "pixBank": "Mueve dinero por Brasil al instante.",
+                "pixQr": "Escanea, paga y listo, donde funcione Pix.",
+                "brBank": "Llega a cualquier cuenta bancaria en Brasil.",
+                "arQrBank": "Paga y cobra en cualquier lugar de Argentina.",
+                "arQr": "Escanea y paga en cualquier QR de Argentina.",
+                "arBank": "Llega a cualquier cuenta bancaria en Argentina.",
+                "naBank": "Conecta tu dinero de bancos de EE. UU. y México.",
+                "sepa": "Guarda y mueve euros sin un banco local."
+            },
+            "detailsDrawer": {
+                "aboutTitle": "Qué puedes hacer",
+                "limitsTitle": "Límites"
             }
         },
         "backup": {

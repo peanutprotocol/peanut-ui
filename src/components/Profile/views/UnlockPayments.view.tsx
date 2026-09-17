@@ -3,7 +3,7 @@
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import HeldDepositAccounts from './HeldDepositAccounts'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
@@ -385,6 +385,13 @@ const UnlockPayments = () => {
         <span className="text-body-s text-foreground-secondary">{t('residence.unverified')}</span>
     )
 
+    // Detail-drawer facts: reuse the page's own limit derivation and the p2p
+    // no-limit rule, so the drawer can never state a cap the section beside it
+    // does not. The Limits block is hidden when a method publishes none.
+    const detailSummaries = detailsRow ? limitSummariesForRows([detailsRow], mantecaLimits, bridgeLimits, locale) : []
+    const detailNoLimit = detailsRow?.labelKey === 'p2p'
+    const showDetailLimits = detailNoLimit || detailSummaries.length > 0
+
     return (
         <PageStack gap="6" className="pb-10">
             <NavHeader title={t('title')} onPrev={onBack} titleClassName="text-heading-xs md:text-heading-s" />
@@ -649,17 +656,41 @@ const UnlockPayments = () => {
             <Drawer open={!!detailsRow} onOpenChange={(open) => !open && setDetailsRow(null)}>
                 <DrawerContent>
                     {detailsRow && (
-                        <div className="flex flex-col gap-6 p-6">
-                            <DrawerHeader>
-                                <DrawerTitle>{t(`rows.${detailsRow.labelKey}`)}</DrawerTitle>
-                            </DrawerHeader>
-                            <p className="text-body-m text-foreground-secondary">
-                                {t(`details.${detailsRow.labelKey}`)}
-                            </p>
-                            <MethodLimits
-                                noLimit={detailsRow.labelKey === 'p2p'}
-                                summaries={limitSummariesForRows([detailsRow], mantecaLimits, bridgeLimits, locale)}
-                            />
+                        <div className="flex flex-col gap-6 pt-1 pb-6">
+                            {/* Hero: method mark + name + one-line value prop.
+                                Mirrors InitiateKycModal's drawer hero (IconBubble
+                                + DrawerHeader/DrawerTitle + a secondary line). */}
+                            <div className="flex flex-col items-center gap-4 text-center">
+                                <IconBubble icon={detailsRow.icon as IconName} color={BUBBLE_COLOR[detailsRow.chip]} />
+                                <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                                    <DrawerTitle>{t(`rows.${detailsRow.labelKey}`)}</DrawerTitle>
+                                    <DrawerDescription>{t(`valueProp.${detailsRow.labelKey}`)}</DrawerDescription>
+                                </DrawerHeader>
+                            </div>
+
+                            {/* What you can do: the same Section + ListGroup +
+                                ListItem row vocabulary UnlockSection uses on the
+                                page, with a green check to read as a capability. */}
+                            <Section title={t('detailsDrawer.aboutTitle')}>
+                                <ListGroup>
+                                    <ListItem
+                                        leading={<IconBubble icon="check" size="s" color="green" />}
+                                        title={
+                                            <span className="break-words whitespace-normal">
+                                                {t(`details.${detailsRow.labelKey}`)}
+                                            </span>
+                                        }
+                                    />
+                                </ListGroup>
+                            </Section>
+
+                            {/* Limits: reuse MethodLimits, the component the page
+                                already renders under each section. */}
+                            {showDetailLimits && (
+                                <Section title={t('detailsDrawer.limitsTitle')}>
+                                    <MethodLimits noLimit={detailNoLimit} summaries={detailSummaries} />
+                                </Section>
+                            )}
                         </div>
                     )}
                 </DrawerContent>

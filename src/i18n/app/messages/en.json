@@ -451,6 +451,23 @@
                 "naBank": "Add or withdraw money using US bank transfers and Mexico’s SPEI network.",
                 "sepa": "Add or withdraw euros using SEPA bank transfers.",
                 "card": "Pay with your Peanut card."
+            },
+            "valueProp": {
+                "p2p": "Split bills and pay friends in one tap.",
+                "card": "Spend your Peanut balance in the real world.",
+                "saBank": "Bank like a local across Brazil and Argentina.",
+                "pixBank": "Move money across Brazil the instant way.",
+                "pixQr": "Scan, pay, done — anywhere Pix works.",
+                "brBank": "Reach any bank account in Brazil.",
+                "arQrBank": "Pay and get paid anywhere in Argentina.",
+                "arQr": "Scan and pay at any QR in Argentina.",
+                "arBank": "Reach any bank account in Argentina.",
+                "naBank": "Connect your US and Mexican bank money.",
+                "sepa": "Hold and move euros without a local bank."
+            },
+            "detailsDrawer": {
+                "aboutTitle": "What you can do",
+                "limitsTitle": "Limits"
             }
         },
         "backup": {
