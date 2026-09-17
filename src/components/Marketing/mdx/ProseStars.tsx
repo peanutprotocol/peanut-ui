@@ -12,8 +12,8 @@ interface StarPlacement {
 }
 
 /**
- * Pre-defined star placement sets. Each h2 cycles through these
- * via a module-level counter so stars appear in varied positions.
+ * Pre-defined star placement sets. Each h2 picks one from its own heading
+ * text, so stars vary between headings and stay the same on every render.
  */
 const placements: StarPlacement[][] = [
     [
@@ -66,12 +66,18 @@ const placements: StarPlacement[][] = [
     ],
 ]
 
-let counter = 0
+// a module-level counter used to do this, but it survives between requests:
+// a heading's placement then depended on how many headings other pages had
+// already rendered in the same server process.
+function pickSet(seed: string): StarPlacement[] {
+    let hash = 0
+    for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) | 0
+    return placements[Math.abs(hash) % placements.length]
+}
 
 /** Decorative stars placed in the margins around prose h2 headings. */
-export function ProseStars() {
-    const set = placements[counter % placements.length]
-    counter++
+export function ProseStars({ seed = '' }: { seed?: string }) {
+    const set = pickSet(seed)
 
     return (
         <>

@@ -6,7 +6,6 @@ import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { CountryCombobox } from '@/components/Common/CountryCombobox'
 import { useSetupImageOverride } from '@/components/Setup/components/SetupWrapper'
-import { PeanutCheering } from '@/assets/mascot'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
@@ -22,6 +21,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 
 type ResidenceView = 'select' | 'restricted' | 'notify' | 'notify-done' | 'partial' | 'congrats'
+type ResidenceStepProps = { initialView?: ResidenceView; handle?: string }
 type PartialRestriction = 'card' | 'banking'
 
 // An underlined text link is ~20px tall; the `after:` pseudo-element grows the
@@ -30,7 +30,7 @@ const UNDERLINED_LINK =
     'relative text-body-s underline underline-offset-2 after:absolute after:inset-x-0 after:-inset-y-3.5 focus-visible:outline-[3px] focus-visible:outline-action-focus'
 const CHANGE_COUNTRY_LINK = `mt-1 self-center text-center disabled:opacity-50 ${UNDERLINED_LINK}`
 
-const ResidenceStep = () => {
+const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
     const t = useTranslations('setup')
     const locale = useLocale()
     const { residenceCountry, setResidenceCountry, secondResidenceCountry, setSecondResidenceCountry } =
@@ -47,6 +47,7 @@ const ResidenceStep = () => {
     // selector is the natural place to change the answer. Forward entry and
     // deep links (direction 1 / 0) always start on the selector.
     const [view, setView] = useState<ResidenceView>(() => {
+        if (initialView) return initialView
         if (direction >= 0 || !residenceCountry) return 'select'
         if (restrictionSets.full.has(residenceCountry)) return 'restricted'
         if (restrictionSets.cardOnly.has(residenceCountry) || restrictionSets.bankingOnly.has(residenceCountry)) {
@@ -210,7 +211,7 @@ const ResidenceStep = () => {
 
     // celebration illustration for the "Good news" outcome only — the selector
     // it shares a step with keeps the step's neutral greeting
-    useSetupImageOverride(view === 'congrats' ? PeanutCheering.src : null)
+    useSetupImageOverride(useMemo(() => (view === 'congrats' ? { pose: 'cheering' as const } : null), [view]))
 
     /* The tier sets render from the bundled mirror and are replaced by the
        server-authoritative lists asynchronously. A congrats view reached

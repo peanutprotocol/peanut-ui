@@ -12,6 +12,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useEffect } from 'react'
 import { disableDemoMode } from '@/utils/demo'
 import DocsLink from '@/components/Global/DocsLink'
+import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
 import { useTranslations } from 'next-intl'
 import StoreButtons from '@/components/Migration/StoreButtons'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
@@ -93,10 +94,8 @@ const LandingStep = () => {
                 {t('logIn')}
             </Button>
             <div className="pt-2 text-center">
-                <DocsLink
-                    href="/en/help/account-recovery"
-                    className="text-body-xs text-foreground-secondary underline underline-offset-2"
-                >
+                {/* DocsLink keeps the locale + native behavior; the chrome is LinkButton's. */}
+                <DocsLink href="/en/help/account-recovery" className={LINK_BUTTON_CLASSES}>
                     {t('landing.recoverWallet')}
                 </DocsLink>
             </div>

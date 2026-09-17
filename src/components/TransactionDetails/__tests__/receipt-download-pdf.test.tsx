@@ -43,7 +43,10 @@ describe('DownloadReceiptPdfLink', () => {
         expect(link).toHaveAttribute('href', '/receipt/entry-1/pdf?kind=OFFRAMP&locale=en')
         expect(link).toHaveAttribute('download')
         expect(link).toHaveAttribute('target', '_blank')
-        expect(link).toHaveClass('btn', 'btn-stroke')
+        expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+        // the button look comes from Button's link mode; purple = the public
+        // receipt's one primary (TASK-22452)
+        expect(link).toHaveClass('btn', 'btn-purple')
         fireEvent.click(link)
         expect(mockOpenExternalUrl).not.toHaveBeenCalled()
     })

@@ -382,11 +382,6 @@ jest.mock('@/components/Global/Loading', () => ({
         ),
 }))
 
-jest.mock('@/components/Global/Loading/CyclingLoading', () => ({
-    __esModule: true,
-    default: () => <div data-testid="cycling-loading" />,
-}))
-
 jest.mock('@/components/Global/NavHeader', () => ({
     __esModule: true,
     default: (props: any) => (
@@ -1133,7 +1128,7 @@ describe('GROUP 3: Crypto Deposit', () => {
         expect(screen.getByText('10,000 USD')).toBeInTheDocument()
     })
 
-    test('deposit processing shows CyclingLoading', () => {
+    test('deposit processing shows the shared processing screen', () => {
         mockUseCryptoDepositPolling.mockReturnValue({
             status: 'loading',
             resetStatus: jest.fn(),
@@ -1155,7 +1150,10 @@ describe('GROUP 3: Crypto Deposit', () => {
             />
         )
 
-        expect(screen.getByTestId('cycling-loading')).toBeInTheDocument()
+        // the shared treatment (TASK-22452): mascot loader + titled copy
+        expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
+        expect(screen.getByText('Processing your deposit')).toBeInTheDocument()
+        expect(screen.getByText(/confirming your deposit/)).toBeInTheDocument()
     })
 
     test('deposit failed shows error card with retry button', () => {

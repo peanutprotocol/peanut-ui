@@ -1,14 +1,13 @@
 /**
  * Cross-chain withdrawal fee display and heads-up.
  *
- * The app quotes with Rhino's authenticated (account-bound) quote, and
- * Peanut's account is configured 1:1 with no on-chain fee on stablecoin
- * routes — so `feeUsd` is normally 0 and the row shows the sponsored label.
- * Rhino can still deduct a small network cost on delivery (1–3 bps seen on
- * Solana) and the account config can change, so everything here reads the
- * quote verbatim and never assumes zero: a non-zero quote is shown as-is, and
- * when it is a large share of a small withdrawal we surface a non-blocking
- * heads-up rather than block.
+ * The app quotes with Rhino's authenticated (account-bound) quote, so `feeUsd`
+ * already reflects which networks Peanut sponsors — a sponsored route quotes
+ * zero and the row shows the sponsored label. Nothing here assumes which
+ * routes those are, or stays right only until the account changes: the quote
+ * is read verbatim, a non-zero one is shown as-is, and when it is a large
+ * share of a small withdrawal we surface a non-blocking heads-up rather than
+ * block.
  */
 
 /**
@@ -40,6 +39,17 @@ export function isWithdrawFeeDisproportionate(
 }
 
 /**
+ * True when the network fee would take the whole withdrawal, leaving nothing
+ * to deliver. Compare against the amount that will actually move — the one
+ * pinned to the charge, never the editable `?amount=`.
+ */
+export function feeConsumesWithdrawal(feeUsd: number | undefined, amountUsd: number): boolean {
+    if (!feeUsd || feeUsd <= 0) return false
+    if (!Number.isFinite(amountUsd) || amountUsd <= 0) return false
+    return feeUsd >= amountUsd
+}
+
+/**
  * Rhino per-network withdrawal minimums.
  *
  * Rhino REJECTS a bridge deposit below the route minimum (`UNDER_MIN` webhook)
@@ -51,12 +61,18 @@ export function isWithdrawFeeDisproportionate(
  * They apply to RHINO-ROUTED withdrawals only — same-chain (Arbitrum) USDC is
  * a direct transfer with no minimum; callers exempt it before consulting this.
  * Verified against Rhino's getSupportedTokens API on 2026-07-21.
+ *
+ * Solana's is Peanut's own floor, not Rhino's: Rhino still accepts $0.50, but
+ * a delivery Peanut no longer sponsors costs about that much, so anything
+ * under a dollar arrives as dust or not at all (product/networks.md).
  */
 export const MIN_CRYPTO_WITHDRAW_USD = 0.5
 export const ETHEREUM_MIN_WITHDRAW_USD = 5
+export const SOLANA_MIN_WITHDRAW_USD = 1
 
 const CHAIN_MIN_WITHDRAW_USD: Record<string, number> = {
     '1': ETHEREUM_MIN_WITHDRAW_USD, // Ethereum mainnet
+    solana: SOLANA_MIN_WITHDRAW_USD,
     // Tron: the withdraw picker's NON_EVM_WITHDRAW_CHAINS entry uses the
     // 'tron' slug (chainRegistry.consts.ts), not the numeric chain id — key
     // both so neither representation slips past the $10 floor.

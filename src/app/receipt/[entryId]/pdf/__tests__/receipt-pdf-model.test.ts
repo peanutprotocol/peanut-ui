@@ -69,7 +69,7 @@ describe('buildReceiptPdfModel — completed bank withdraw', () => {
 
     test('carries the official-document header and footer facts', () => {
         expect(model.title).toBe('transaction.officialReceipt.pdf.title')
-        expect(model.issuedBy).toBe('transaction.officialReceipt.issuedBy')
+        expect(model.issuedBy).toBe('transaction.officialReceipt.pdf.issuedBy')
         expect(model.companyName).toBe('Squirrel Labs Ltd')
         expect(model.companyAddressLines).toEqual([
             'Office One',
@@ -84,7 +84,7 @@ describe('buildReceiptPdfModel — completed bank withdraw', () => {
         // formatCurrency mirrors the page: decimal places follow the input string
         expect(model.amountDisplay).toBe('$125.5')
         expect(model.rows[0]).toEqual({
-            label: 'transaction.officialReceipt.pdf.date',
+            label: 'transaction.officialReceipt.issuedOn',
             value: expect.stringContaining('2026'),
         })
         expect(row(model, 'transaction.officialReceipt.pdf.type')).toBe('transaction.type.bank_withdraw')
@@ -104,7 +104,7 @@ describe('buildReceiptPdfModel — completed bank withdraw', () => {
     })
 
     test('completed OFFRAMP uses one Date field at the top', () => {
-        expect(row(model, 'transaction.officialReceipt.pdf.date')).toContain('2026')
+        expect(row(model, 'transaction.officialReceipt.issuedOn')).toContain('2026')
         expect(labels(model)).not.toContain('transaction.rows.completed')
         expect(labels(model)).not.toContain('transaction.rows.created')
     })
@@ -117,7 +117,7 @@ describe('buildReceiptPdfModel — variants', () => {
             t,
             'en'
         )
-        expect(row(model, 'transaction.officialReceipt.pdf.date')).toContain('2026')
+        expect(row(model, 'transaction.officialReceipt.issuedOn')).toContain('2026')
         expect(labels(model)).not.toContain('transaction.rows.created')
         expect(labels(model)).not.toContain('transaction.rows.completed')
         expect(labels(model)).not.toContain('transaction.rows.txId')
@@ -198,7 +198,7 @@ describe('buildReceiptPdfModel — variants', () => {
             t,
             'en'
         )
-        expect(row(model, 'transaction.officialReceipt.pdf.date')).toContain('2026')
+        expect(row(model, 'transaction.officialReceipt.issuedOn')).toContain('2026')
         expect(labels(model)).not.toContain('transaction.rows.cancelled')
         expect(labels(model)).not.toContain('transaction.rows.fee')
         expect(labels(model)).not.toContain('transaction.rows.transferId')
@@ -267,7 +267,7 @@ describe('buildReceiptPdfModel — variants', () => {
             'en'
         )
 
-        expect(row(model, 'transaction.officialReceipt.pdf.date')).toContain('August 22, 2026')
+        expect(row(model, 'transaction.officialReceipt.issuedOn')).toContain('August 22, 2026')
     })
 
     test('closed request pot uses its closure timestamp as Date', () => {
@@ -286,7 +286,7 @@ describe('buildReceiptPdfModel — variants', () => {
             'en'
         )
 
-        expect(row(model, 'transaction.officialReceipt.pdf.date')).toContain('August 23, 2026')
+        expect(row(model, 'transaction.officialReceipt.issuedOn')).toContain('August 23, 2026')
     })
 
     test('unparsable dates fall back to an ASCII marker instead of throwing', () => {
@@ -295,16 +295,18 @@ describe('buildReceiptPdfModel — variants', () => {
             t,
             'en'
         )
-        expect(row(model, 'transaction.officialReceipt.pdf.date')).toBe('-')
+        expect(row(model, 'transaction.officialReceipt.issuedOn')).toBe('-')
     })
 })
 
 describe('buildReceiptPdfModel — app locales', () => {
+    // the leading row is the issuance date since TASK-22452 (relabelled from
+    // the generic Date — same status-branched source timestamp)
     const localizedCopy: ReadonlyArray<[AppLocale, string, string, string]> = [
-        ['en', 'Transaction Receipt', 'Date', 'Reference'],
-        ['es-419', 'Comprobante de la transacción', 'Fecha', 'Referencia'],
-        ['es-AR', 'Comprobante de la transacción', 'Fecha', 'Referencia'],
-        ['pt-BR', 'Comprovante da transação', 'Data', 'Referência'],
+        ['en', 'Transaction Receipt', 'Issued on', 'Reference'],
+        ['es-419', 'Comprobante de la transacción', 'Fecha de emisión', 'Referencia'],
+        ['es-AR', 'Comprobante de la transacción', 'Fecha de emisión', 'Referencia'],
+        ['pt-BR', 'Comprovante da transação', 'Emitido em', 'Referência'],
     ]
 
     test('covers every supported app locale', () => {
@@ -319,5 +321,77 @@ describe('buildReceiptPdfModel — app locales', () => {
         expect(model.title).toBe(title)
         expect(model.rows[0].label).toBe(dateLabel)
         expect(model.rows.at(-1)?.label).toBe(referenceLabel)
+    })
+})
+
+// representative coverage for the authenticated all-kinds pdf that #3159
+// introduced (TASK-22452 item 4): a card spend, a p2p transfer and a
+// send-link claim each produce a sane model — no access-boundary changes.
+describe('buildReceiptPdfModel — representative private kinds', () => {
+    test('card spend: fx and status rows, no bank transfer id', () => {
+        const model = buildReceiptPdfModel(
+            withOverrides(
+                {
+                    direction: 'qr_payment',
+                    userName: 'Aerolineas Argentinas',
+                    txHash: undefined,
+                    currency: { code: 'ARS', amount: '18000' },
+                },
+                {
+                    kind: 'CARD_SPEND_CLEAR',
+                    transactionCardType: 'qr_payment',
+                    cardPayment: {},
+                    receipt: { exchange_rate: '1412' },
+                }
+            ),
+            t,
+            'en'
+        )
+        expect(model.rows[0].label).toBe('transaction.officialReceipt.issuedOn')
+        expect(row(model, 'transaction.officialReceipt.pdf.status')).toBe('common.status.completed')
+        expect(row(model, 'transaction.rows.to')).toBe('Aerolineas Argentinas')
+        expect(row(model, 'common.exchangeRate')).toContain('ARS')
+        expect(labels(model)).not.toContain('transaction.rows.transferId')
+        expect(model.rows.at(-1)?.label).toBe('transaction.officialReceipt.reference')
+    })
+
+    test('p2p direct transfer: counterparty, memo, reference — no bank rows', () => {
+        const model = buildReceiptPdfModel(
+            withOverrides(
+                { direction: 'send', userName: 'nacho', memo: 'gracias!', txHash: undefined },
+                { kind: 'DIRECT_TRANSFER', transactionCardType: 'send' }
+            ),
+            t,
+            'en'
+        )
+        expect(model.rows[0].label).toBe('transaction.officialReceipt.issuedOn')
+        expect(row(model, 'transaction.rows.to')).toBe('nacho')
+        expect(row(model, 'common.comment')).toBe('gracias!')
+        expect(labels(model)).not.toContain('transaction.rows.transferId')
+        expect(model.rows.at(-1)?.label).toBe('transaction.officialReceipt.reference')
+    })
+
+    test('send-link claim: recipient side reads From and dates from the claim', () => {
+        const model = buildReceiptPdfModel(
+            withOverrides(
+                {
+                    direction: 'claim_external',
+                    userName: 'kkonrad',
+                    txHash: undefined,
+                    completedAt: undefined,
+                    claimedAt: '2026-08-22T10:00:00.000Z',
+                },
+                {
+                    kind: 'SEND_LINK_CLAIM',
+                    transactionCardType: 'receive',
+                    originalUserRole: EHistoryUserRole.RECIPIENT,
+                }
+            ),
+            t,
+            'en'
+        )
+        expect(row(model, 'transaction.officialReceipt.issuedOn')).toContain('August 22, 2026')
+        expect(row(model, 'transaction.officialReceipt.pdf.from')).toBe('kkonrad')
+        expect(model.rows.at(-1)?.label).toBe('transaction.officialReceipt.reference')
     })
 })

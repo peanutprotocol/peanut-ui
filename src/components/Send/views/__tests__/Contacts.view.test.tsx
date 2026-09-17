@@ -89,7 +89,21 @@ describe('ContactsView exact username entry', () => {
     it('keeps username entry available when the user has no contacts', () => {
         renderContacts([], new Error('Contacts unavailable'))
 
-        expect(screen.getByRole('textbox', { name: 'Peanut username or contact' })).toBeInTheDocument()
+        expect(screen.getByRole('textbox', { name: 'Peanut username or contact' })).toHaveAttribute(
+            'placeholder',
+            'Recipient'
+        )
+    })
+
+    it('keeps the empty-state card full-width and uses the standard button icon size', () => {
+        renderContacts([])
+
+        const emptyStateTitle = screen.getByText('No contacts yet')
+        const emptyStateCard = emptyStateTitle.parentElement?.parentElement
+        const linkButton = screen.getByRole('button', { name: 'Send via link' })
+
+        expect(emptyStateCard).toHaveClass('w-full')
+        expect(linkButton.querySelector('svg')).toHaveAttribute('width', '20')
     })
 
     it('checks a valid exact username outside the contact list and opens direct send', async () => {

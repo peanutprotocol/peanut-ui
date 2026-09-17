@@ -54,6 +54,17 @@ test('same pixels remain unchanged; changed pixels get a diff', () => {
     assert.ok(r.screens[0].diff)
     assert.equal(compare(capture([screen('home')]), capture([screen('home')]), dir).screens[0].status, 'unchanged')
 })
+test('capture metadata preserves journey order and comparisons use it instead of screen IDs', () => {
+    const later = { ...screen('alpha'), order: 20, journey: 'Account setup' }
+    const earlier = { ...screen('zeta'), order: 10, journey: 'Account setup' }
+    const validated = validateCapture(capture([later, earlier]))
+    assert.equal(validated.screens[0].journey, 'Account setup')
+    assert.equal(validated.screens[0].order, 20)
+    assert.deepEqual(
+        compare(capture([later, earlier]), capture([later, earlier]), dir).screens.map(({ id }) => id),
+        ['zeta', 'alpha']
+    )
+})
 test('failure cannot become a removed or unchanged screen', () => {
     const failed = { id: 'home', name: 'Home', flow: 'Home', kind: 'route', status: 'failed', reason: 'Wrong route' }
     const r = compare(capture([screen('home')]), capture([failed]), dir)

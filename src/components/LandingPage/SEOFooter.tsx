@@ -18,7 +18,7 @@ interface ManifestEntry {
 function FooterSection({ title, children }: { title: string; children: React.ReactNode }) {
     return (
         <div>
-            <h3 className="mb-3 text-xs font-bold text-white">{title}</h3>
+            <h3 className="mb-3 text-label-m text-white">{title}</h3>
             <ul className="space-y-1">{children}</ul>
         </div>
     )
@@ -79,7 +79,7 @@ function FooterLink({ href, external, children }: { href: string; external?: boo
                     href={href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-white underline underline-offset-2 [text-decoration-skip-ink:none] hover:text-white/70"
+                    className="text-body-xs text-white underline underline-offset-2 [text-decoration-skip-ink:none] hover:text-white/70"
                 >
                     {children}
                 </a>
@@ -98,7 +98,7 @@ function FooterLink({ href, external, children }: { href: string; external?: boo
             <Link
                 prefetch={false}
                 href={href}
-                className="text-xs text-white underline underline-offset-2 [text-decoration-skip-ink:none] hover:text-white/70"
+                className="text-body-xs text-white underline underline-offset-2 [text-decoration-skip-ink:none] hover:text-white/70"
             >
                 {children}
             </Link>

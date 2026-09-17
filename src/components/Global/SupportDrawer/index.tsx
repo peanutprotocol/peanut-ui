@@ -9,6 +9,7 @@ import { useVisualViewport } from '@/hooks/useVisualViewport'
 import { useBackHandler } from '@/hooks/useBackHandler'
 import Loading from '../Loading'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import {
     SUPPORT_EMAIL,
     CRISP_LOCALE_BY_APP_LOCALE,
@@ -442,7 +443,7 @@ const SupportDrawer = () => {
                 role="dialog"
                 aria-label={t('supportDrawer.label')}
                 aria-modal={isSupportModalOpen}
-                className={`fixed inset-x-0 z-[999999] flex flex-col rounded-t-[10px] border bg-background pt-4 ${
+                className={`fixed inset-x-0 z-[999999] flex flex-col rounded-t-[10px] border bg-background-page pt-4 ${
                     isSupportModalOpen ? 'pointer-events-auto translate-y-0' : 'pointer-events-none translate-y-full'
                 }`}
                 style={{
@@ -478,24 +479,19 @@ const SupportDrawer = () => {
                 <div className="flex min-h-0 w-full flex-1 justify-center">
                     <div className="relative h-full w-full overflow-hidden md:max-w-xl">
                         {(!isCrispReady || isAwaitingToken) && !isCrispFailed && (
-                            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background">
+                            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background-page">
                                 <Loading variant="mascot" />
                             </div>
                         )}
                         {isCrispFailed && (
-                            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-background px-8 text-center">
+                            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-background-page px-8 text-center">
                                 <p className="text-body-m-semibold text-foreground-primary">
                                     {t('supportDrawer.chatLoadFailed')}
                                 </p>
                                 <p className="text-body-s text-foreground-secondary">
                                     {t('supportDrawer.chatLoadFailedDescription')}
                                 </p>
-                                <a
-                                    href={`mailto:${SUPPORT_EMAIL}`}
-                                    className="text-body-m text-foreground-primary underline"
-                                >
-                                    {SUPPORT_EMAIL}
-                                </a>
+                                <LinkButton href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</LinkButton>
                                 <Button variant="stroke" className="w-full" onClick={handleRetry}>
                                     {tCommon('tryAgain')}
                                 </Button>

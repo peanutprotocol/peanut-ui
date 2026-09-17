@@ -3,7 +3,6 @@
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import EvmChainChips from './EvmChainChips'
 import { CHAIN_LOGOS, SUPPORTED_EVM_CHAINS, getSupportedTokens } from '@/constants/rhino.consts'
-import { useChainRollout } from '@/hooks/useChainRollout'
 import type { RhinoChainType } from '@/services/services.types'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
@@ -23,10 +22,7 @@ interface NetworkListProps {
  */
 const NetworkList = ({ onSelect, showEvmChips = false }: NetworkListProps) => {
     const t = useTranslations('addMoney')
-    // count only rolled-out chains — the chips are gated the same way, and a
-    // higher number above fewer visible chips would be a lie
-    const isChainRolledOut = useChainRollout()
-    const evmChainCount = SUPPORTED_EVM_CHAINS.filter(isChainRolledOut).length
+    const evmChainCount = SUPPORTED_EVM_CHAINS.length
 
     const rows: Array<{ network: RhinoChainType; title: string; body: string; logo: string }> = [
         {

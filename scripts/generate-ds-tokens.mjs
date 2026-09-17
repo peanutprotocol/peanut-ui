@@ -19,7 +19,6 @@ const OUT_PATH = path.join(ROOT, 'src/app/(mobile-ui)/dev/ds/foundations/tokens.
 // the @theme block is organized by banner comments; tokens are classified by
 // which banner they appear under. if a banner is renamed the parse fails loud.
 const SECTION_BANNERS = [
-    ['legacy', 'LEGACY PALETTE'],
     ['semantic', 'SEMANTIC TOKENS'],
     ['parity', 'v3-parity theme values'],
 ]
@@ -149,9 +148,9 @@ export function renderTokensModule(tokens) {
 // a jest drift test (scripts/__tests__/ds-tokens-drift.test.js) fails CI when
 // this file is stale.
 
-/** which @theme banner the token sits under: legacy palette (v3 port, do not
- * use in new code), semantic (figma-verified, use these), or v3-parity shims. */
-export type TokenSection = 'legacy' | 'semantic' | 'parity'
+/** which @theme banner the token sits under: semantic (figma-verified, use
+ * these) or v3-parity shims. The legacy palette section no longer exists. */
+export type TokenSection = 'semantic' | 'parity'
 
 export interface ThemeToken {
     name: string

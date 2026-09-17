@@ -69,6 +69,14 @@ import PerkClaimDrawer from '@/components/Home/PerkClaimDrawer'
 import { PerkClaimSuccessDrawer } from '@/components/Home/PerkClaimSuccessDrawer'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
 import NoMoreJailDrawer from '@/components/Global/NoMoreJailDrawer'
+import SendLinkActionList from '@/components/Claim/Link/SendLinkActionList'
+import { ClaimErrorView } from '@/components/Claim/Generic/ClaimError.view'
+import ApplicationStatusScreen from '@/components/Card/ApplicationStatusScreen'
+import ResidenceStep from '@/components/Setup/Views/Residence'
+import PublicProfile from '@/components/Profile/components/PublicProfile'
+import NotFoundScreen from '@/components/Global/NotFoundScreen'
+import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
+import { RequestPotActionList } from '@/features/payments/flows/contribute-pot/components/RequestPotActionList'
 
 /**
  * A setup step exactly as /setup renders it — SetupWrapper driven by the step's
@@ -298,10 +306,11 @@ export const SURFACES: Record<string, Surface> = {
     '33-c-cardlimiteditmodal': {
         ...SURFACE_META['33-c-cardlimiteditmodal'],
         render: () => (
+            // perauthorization is the only frequency the product surfaces
             <CardLimitEditDrawer
                 cardId="demo-card"
-                frequency="per24HourPeriod"
-                label="Daily limit"
+                frequency="perAuthorization"
+                label="Per transaction"
                 initialAmountCents={50000}
                 isOpen
                 onClose={noop}
@@ -638,6 +647,111 @@ export const SURFACES: Record<string, Surface> = {
                 />
             </div>
         ),
+    },
+    '78-f-choice-guest-claim': {
+        ...SURFACE_META['78-f-choice-guest-claim'],
+        render: () => (
+            <div className="flex min-h-dvh w-full flex-col justify-center gap-4 p-4">
+                <SendLinkActionList
+                    claimLinkData={
+                        {
+                            pubKey: 'demo-pubkey',
+                            depositIdx: 0,
+                            chainId: '42161',
+                            contractVersion: 'v4.3',
+                            status: 'CREATED',
+                            createdAt: '2026-09-01T12:00:00.000Z',
+                            senderAddress: '0x1111111111111111111111111111111111111111',
+                            amount: BigInt(25_000_000),
+                            tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+                            tokenDecimals: 6,
+                            tokenSymbol: 'USDC',
+                            sender: {
+                                userId: 'demo-ana',
+                                username: 'ana',
+                                fullName: 'Ana Ruiz',
+                                bridgeKycStatus: 'approved',
+                                accounts: [],
+                            },
+                            link: 'https://peanut.me/claim?c=42161&v=v4.3&i=0#p=demo',
+                            password: 'demo',
+                        } as never
+                    }
+                    isLoggedIn={false}
+                />
+            </div>
+        ),
+    },
+    '79-f-choice-direct-send': {
+        ...SURFACE_META['79-f-choice-direct-send'],
+        render: () => (
+            <div className="flex min-h-dvh w-full flex-col justify-center p-4">
+                <PaymentMethodActionList isAmountEntered />
+            </div>
+        ),
+    },
+    '80-f-choice-semantic-request': {
+        ...SURFACE_META['80-f-choice-semantic-request'],
+        render: () => (
+            <div className="flex min-h-dvh w-full flex-col justify-center p-4">
+                <PaymentMethodActionList isAmountEntered onPayWithExternalWallet={noop} />
+            </div>
+        ),
+    },
+    '81-f-choice-request-pot': {
+        ...SURFACE_META['81-f-choice-request-pot'],
+        render: () => (
+            <div className="flex min-h-dvh w-full flex-col justify-center p-4">
+                <RequestPotActionList
+                    isAmountEntered
+                    usdAmount="25"
+                    recipientUserId="demo-ana"
+                    recipientUsername="ana"
+                    onPayWithPeanut={noop}
+                    onPayWithExternalWallet={noop}
+                />
+            </div>
+        ),
+    },
+    '82-f-choice-card-requires-info': {
+        ...SURFACE_META['82-f-choice-card-requires-info'],
+        render: () => (
+            <ApplicationStatusScreen
+                variant="requires-info"
+                onUploadProofOfAddress={noop}
+                onUploadIdentity={noop}
+                onContactSupport={noop}
+            />
+        ),
+    },
+    '83-f-choice-residence-restricted': {
+        ...SURFACE_META['83-f-choice-residence-restricted'],
+        render: () => (
+            <SetupScreen screenId="residence">
+                <ResidenceStep initialView="restricted" />
+            </SetupScreen>
+        ),
+    },
+    '84-f-choice-public-profile-guest': {
+        ...SURFACE_META['84-f-choice-public-profile-guest'],
+        render: () => <PublicProfile username="ana" isLoggedIn={false} onSendClick={noop} />,
+    },
+    '85-f-choice-claim-error': {
+        ...SURFACE_META['85-f-choice-claim-error'],
+        render: () => (
+            <div className="flex min-h-dvh w-full flex-col justify-center p-4">
+                <ClaimErrorView
+                    title="We couldn't complete the claim"
+                    message="The transfer is still safe. Try again or ask support for help."
+                    primaryButtonText="Try again"
+                    onPrimaryClick={noop}
+                />
+            </div>
+        ),
+    },
+    '86-f-choice-not-found': {
+        ...SURFACE_META['86-f-choice-not-found'],
+        render: () => <NotFoundScreen />,
     },
     '69-d-perkclaimsuccess': {
         name: 'PerkClaimSuccessDrawer',

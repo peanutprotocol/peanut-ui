@@ -23,7 +23,6 @@ function groupByPrefix(tokens: ThemeToken[]): Map<string, ThemeToken[]> {
 }
 
 const SEMANTIC = groupByPrefix(COLOR_TOKENS.filter((t) => t.section === 'semantic'))
-const LEGACY = groupByPrefix(COLOR_TOKENS.filter((t) => t.section === 'legacy'))
 
 export default function ColorsPage() {
     const [copiedColor, setCopiedColor] = useState<string | null>(null)
@@ -78,9 +77,10 @@ export default function ColorsPage() {
                 description="Generated from the @theme block in globals.css (pnpm gen:ds-tokens) — swatches cannot drift from the source. Tap any swatch to copy the class name."
             />
 
-            <DesignNote type="warning">
-                Legacy palette names remain for landing-page migration and these reference swatches. New UI must use
-                semantic tokens only.
+            <DesignNote type="info">
+                The legacy v3 palette is gone — every token below is a semantic one. The families it used to occupy are
+                reset to <code className="font-mono text-label-m">initial</code>, so a stock Tailwind shade that this
+                page does not list renders nothing at all.
             </DesignNote>
 
             <DocSection title="Semantic Tokens">
@@ -90,14 +90,6 @@ export default function ColorsPage() {
                     <code className="font-mono text-label-m text-foreground-primary">text-foreground-secondary</code>.
                 </p>
                 {renderGroups(SEMANTIC)}
-            </DocSection>
-
-            <DocSection title="Legacy Palette">
-                <p className="text-body-s text-foreground-secondary">
-                    Ported verbatim from the v3 config for visual parity. Do not use in new code — consumer migration to
-                    the semantic tokens is DS 06+.
-                </p>
-                {renderGroups(LEGACY)}
             </DocSection>
 
             {/* Text / BG pairs */}
@@ -125,26 +117,6 @@ export default function ColorsPage() {
                     Use LinkButton for a standalone link. For an inline link inside a sentence, underline the
                     surrounding text and keep semantic foreground colors.
                 </DesignNote>
-            </DocSection>
-
-            {/* Background patterns */}
-            <DocSection title="Background Patterns">
-                <DesignNote type="info">
-                    The Mono design-system rulebook documents one brand background:{' '}
-                    <code className="rounded-sm bg-background-default px-1 font-mono text-body-xs">
-                        bg-peanut-repeat-normal
-                    </code>
-                    . The undocumented large and small variants were removed.
-                </DesignNote>
-                <ListItem
-                    onClick={() => copyClass('bg-peanut-repeat-normal')}
-                    title="bg-peanut-repeat-normal"
-                    body="Waving peanut repeat pattern"
-                    leading={
-                        <span className="bg-peanut-repeat-normal size-8 rounded-sm border border-dashed border-border-default bg-background-badge-accent" />
-                    }
-                    trailing={<Icon name={copiedColor === 'bg-peanut-repeat-normal' ? 'check' : 'copy'} size={16} />}
-                />
             </DocSection>
         </DocPage>
     )

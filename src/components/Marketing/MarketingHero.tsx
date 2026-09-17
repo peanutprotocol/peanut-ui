@@ -1,6 +1,6 @@
+import { Button } from '@/components/0_Bruddle/Button'
 import Title from '@/components/0_Bruddle/Title'
 import Image from 'next/image'
-import Link from 'next/link'
 import { CloudsCss } from '@/components/LandingPage/CloudsCss'
 import { MarqueeComp } from '@/components/Global/MarqueeWrapper'
 import HandThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
@@ -34,7 +34,7 @@ export function MarketingHero({
     ctaText = ctaText ?? i18n.getStarted
     return (
         <>
-            <section className="relative overflow-hidden bg-primary-1 px-4 py-16 text-center md:px-8 md:py-20">
+            <section className="relative overflow-hidden bg-action-primary px-4 py-16 text-center md:px-8 md:py-20">
                 <CloudsCss clouds={marketingClouds} />
                 <div className="relative z-10 mx-auto max-w-3xl">
                     {image && (
@@ -54,15 +54,12 @@ export function MarketingHero({
                             with text-7xl (TASK-22366 sweep) */}
                         <Title text={title} className="text-5xl md:text-9xl" />
                     </h1>
-                    <p className="mt-6 text-3xl font-bold text-black md:text-5xl">{subtitle}</p>
+                    <p className="mt-6 text-heading-m text-foreground-primary md:text-5xl">{subtitle}</p>
                     {ctaText && (
                         <div className="mt-8">
-                            <Link
-                                href={ctaHref}
-                                className="btn btn-purple btn-shadow-primary-4 inline-flex w-auto px-8 active:translate-x-[3px] active:translate-y-[4px] active:shadow-none"
-                            >
+                            <Button href={ctaHref} shadowSize="4" className="inline-flex w-auto px-8">
                                 {ctaText}
-                            </Link>
+                            </Button>
                         </div>
                     )}
                 </div>
@@ -76,7 +73,7 @@ export function MarketingHero({
                     'USDT/USDC',
                 ]}
                 imageSrc={HandThumbsUp.src}
-                backgroundColor="bg-secondary-1"
+                backgroundColor="bg-action-secondary"
             />
         </>
     )

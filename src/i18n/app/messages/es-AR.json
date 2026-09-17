@@ -576,7 +576,7 @@
             "contactsDescription": "Ingresá un @usuario exacto o elegí un contacto"
         },
         "contacts": {
-            "searchPlaceholder": "Ingresá el usuario exacto o buscá contactos...",
+            "searchPlaceholder": "Destinatario",
             "searchLabel": "Nombre de usuario de Peanut o contacto",
             "exactUsername": "Nombre de usuario exacto",
             "usernameFound": "Encontramos a @{username}",
@@ -816,6 +816,7 @@
         },
         "limits": {
             "subtitle": "Definí tu límite de gasto por transacción.",
+            "explainer": "El límite aplica a cada transacción. Podés cambiarlo cuando quieras.",
             "invalidAmount": "Ingresá un monto entre {minimum} y {maximum}, con un máximo de dos decimales.",
             "noActiveCard": "No tenés una tarjeta activa para gestionar límites."
         },
@@ -1467,6 +1468,8 @@
         "unsupportedBrowserModal": {
             "title": "Abrí este enlace en tu navegador",
             "description": "Todavía estamos trabajando para que Peanut funcione en tu navegador. Por ahora, usá Chrome o Safari.",
+            "passkeyTitle": "Las llaves de acceso no están disponibles",
+            "passkeyDescription": "Peanut necesita una llave de acceso para crear tu cuenta. Asegurate de que tu dispositivo tenga bloqueo de pantalla y las llaves de acceso activadas, y volvé a intentarlo. Si todavía no funciona, probá una vez desde otro teléfono o computadora.",
             "pasteHint": "Luego pegalo en tu navegador preferido."
         },
         "tokenAndNetworkConfirmationModal": {

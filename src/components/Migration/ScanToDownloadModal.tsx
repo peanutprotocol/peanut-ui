@@ -20,7 +20,6 @@ export default function ScanToDownloadModal({
     handoff?: StoreHandoff
 }) {
     const t = useTranslations('migration')
-    const tCommon = useTranslations('common')
     const locale = useLocale() as AppLocale
     return (
         <ActionModal
@@ -34,15 +33,6 @@ export default function ScanToDownloadModal({
                     <LinkButton href={localizeMarketingPath('/en/help', locale)}>{t('sunset.supportLink')}</LinkButton>
                 </div>
             }
-            ctas={[
-                {
-                    text: tCommon('close'),
-                    variant: 'purple',
-                    shadowSize: '4',
-                    className: 'w-full',
-                    onClick: onClose,
-                },
-            ]}
         />
     )
 }

@@ -181,7 +181,7 @@ export function RequestPotActionList({
                         <ListItem
                             key={method.id}
                             position="single"
-                            body={<div className="text-[12px]">{method.description}</div>}
+                            body={<div className="text-body-xs">{method.description}</div>}
                             title={
                                 <div className="flex items-center gap-2">
                                     {method.title}
@@ -195,7 +195,7 @@ export function RequestPotActionList({
                             }
                             onClick={() => handleMethodClick(method)}
                             disabled={method.soon || !isAmountEntered}
-                            trailing={<IconStack icons={method.icons} iconSize={method.id === 'bank' ? 80 : 24} />}
+                            trailing={<IconStack icons={method.icons} iconSize={24} />}
                         />
                     )
                 })}

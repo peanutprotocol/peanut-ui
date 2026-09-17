@@ -117,3 +117,36 @@ jobs:
                       exit 1
                   fi
                   scripts/screens/deploy/node_modules/.bin/wrangler deploy --config /tmp/screen-gallery/wrangler.json
+            - name: Prepare collection API Worker
+              if: vars.SCREEN_LIBRARY_COLLECTION_API_URL != ''
+              env:
+                  SCREEN_LIBRARY_R2_BUCKET: ${{ vars.SCREEN_LIBRARY_R2_BUCKET }}
+                  SCREEN_LIBRARY_R2_JURISDICTION: ${{ vars.SCREEN_LIBRARY_R2_JURISDICTION }}
+                  SCREEN_LIBRARY_PUBLIC_URL: ${{ vars.SCREEN_LIBRARY_PUBLIC_URL }}
+                  SCREEN_LIBRARY_ACCESS_AUD: ${{ vars.SCREEN_LIBRARY_ACCESS_AUD }}
+                  SCREEN_LIBRARY_COLLECTION_API_URL: ${{ vars.SCREEN_LIBRARY_COLLECTION_API_URL }}
+                  GITHUB_REPOSITORY: ${{ github.repository }}
+              run: node scripts/screens/collection-worker/prepare.mjs /tmp/screen-collections
+            - name: Deploy collection API Worker
+              if: vars.SCREEN_LIBRARY_COLLECTION_API_URL != ''
+              env:
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_PUBLISH_TOKEN }}
+                  CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+              run: scripts/screens/deploy/node_modules/.bin/wrangler deploy --config /tmp/screen-collections/wrangler.json
+            - name: Install isolated MCP deployment dependencies
+              if: vars.SCREEN_LIBRARY_MCP_URL != ''
+              run: npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/screens/mcp
+            - name: Prepare MCP Worker
+              if: vars.SCREEN_LIBRARY_MCP_URL != ''
+              env:
+                  SCREEN_LIBRARY_MCP_URL: ${{ vars.SCREEN_LIBRARY_MCP_URL }}
+                  SCREEN_LIBRARY_ACCESS_AUD: ${{ vars.SCREEN_LIBRARY_ACCESS_AUD }}
+              run: |
+                  node scripts/screens/mcp/prepare.mjs /tmp/screen-library-mcp
+                  ln -s "$GITHUB_WORKSPACE/scripts/screens/mcp/node_modules" /tmp/screen-library-mcp/node_modules
+            - name: Deploy MCP Worker
+              if: vars.SCREEN_LIBRARY_MCP_URL != ''
+              env:
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_PUBLISH_TOKEN }}
+                  CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+              run: scripts/screens/mcp/node_modules/.bin/wrangler deploy --config /tmp/screen-library-mcp/wrangler.json

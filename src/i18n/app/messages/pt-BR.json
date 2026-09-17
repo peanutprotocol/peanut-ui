@@ -692,7 +692,8 @@
             "bankFee": "Taxa do banco",
             "free": "Grátis!",
             "arrivesHours": "Costuma chegar em horas.",
-            "arrivesMinutes": "Costuma chegar em minutos."
+            "arrivesMinutes": "Costuma chegar em minutos.",
+            "selectCurrency": "Selecionar moeda"
         },
         "row": {
             "approximate": "Este é um valor aproximado. O valor recebido pode variar conforme a taxa de câmbio do seu banco.",
@@ -1003,7 +1004,7 @@
             "exchangeOrWalletDescription": "Binance, Metamask e mais"
         },
         "contacts": {
-            "searchPlaceholder": "Digite o usuário exato ou busque contatos...",
+            "searchPlaceholder": "Destinatário",
             "searchLabel": "Usuário do Peanut ou contato",
             "exactUsername": "Usuário exato",
             "usernameFound": "@{username} encontrado",
@@ -1263,6 +1264,8 @@
         "youArePaying": "Você está pagando",
         "paymentMethodAlt": "Método de pagamento",
         "peanutManAlt": "Peanut Man",
+        "processingPaymentTitle": "Processando seu pagamento",
+        "processingPaymentBody": "Estamos confirmando seu pagamento.",
         "waitingForMerchant": "Aguardando o lojista definir o valor",
         "havingTrouble": "Está com problemas?",
         "orderNotReady": {
@@ -1509,6 +1512,7 @@
         "limits": {
             "navTitle": "Limite do cartão",
             "subtitle": "Defina seu limite de gasto por transação.",
+            "explainer": "O limite se aplica a cada transação. Você pode alterá-lo quando quiser.",
             "perTransaction": "Por transação",
             "loadFailed": "Não foi possível carregar o limite do cartão.",
             "noLimitSet": "Nenhum limite definido",
@@ -1526,6 +1530,7 @@
             "noPinBody": "Você precisa definir um pin antes de usar seu cartão em compras na loja.",
             "setPin": "Definir pin",
             "hiddenNote": "Seu pin fica oculto por segurança.",
+            "rowLabel": "PIN",
             "hidePin": "Ocultar pin",
             "showPin": "Mostrar pin",
             "changePin": "Alterar pin",
@@ -1740,6 +1745,8 @@
             "minDepositAmount": "O valor do depósito precisa ser de pelo menos ${amount}",
             "etaInstant": "Os depósitos costumam chegar em minutos."
         },
+        "processingDepositTitle": "Processando seu depósito",
+        "processingDepositBody": "Estamos confirmando seu depósito.",
         "pix": {
             "payWithPix": "Pagar com PIX",
             "depositReceived": "Depósito recebido!",
@@ -1836,15 +1843,15 @@
         },
         "confirm": {
             "recipientReceives": "O destinatário recebe",
-            "recipientReceivesInfo": "Peanut cobre o custo da ponte. Um pequeno custo de rede pode ser descontado na entrega.",
+            "recipientReceivesInfo": "Este é o valor que chega ao destino, após qualquer custo de entrega.",
             "tokenAndNetwork": "Token e rede",
             "tokenOnChain": "{token} na <c>{chain}</c>",
             "tokenAlt": "token",
             "chainAlt": "rede",
             "to": "Para",
             "networkFee": "Taxa de rede",
-            "networkFeeInfo": "Peanut cobre o custo da ponte. Um pequeno custo de rede pode ser descontado na entrega.",
-            "networkFeeChargedInfo": "Esta rota cobra uma taxa. Ela já está incluída no valor que você paga.",
+            "networkFeeInfo": "Entregar nesta rede é gratuito — a Peanut cobre. Algumas redes, como Ethereum, Tron e Solana, cobram uma taxa descontada do valor recebido.",
+            "networkFeeChargedInfo": "Cada rede cobra um valor diferente para entregar. Esta cobra, e a taxa sai do valor recebido. Outras, como Arbitrum, são gratuitas.",
             "youPay": "Você paga",
             "highFeeWarning": "Atenção: a taxa de rede é uma parte grande deste saque. Sacar um valor maior ou escolher uma rede mais barata reduz a taxa."
         },
@@ -1960,7 +1967,8 @@
             "ownAccountOnly": "Você só pode sacar para contas no seu nome.",
             "unexpected": "O saque falhou inesperadamente. Se o problema continuar, fale com o suporte",
             "completeAccountSetup": "Complete a configuração da sua conta. Vá em Configurações para atualizar seu perfil.",
-            "minWithdrawAmount": "O valor do saque precisa ser de pelo menos ${amount}"
+            "minWithdrawAmount": "O valor do saque precisa ser de pelo menos ${amount}",
+            "feeExceedsAmount": "A taxa de rede é maior que este saque. Informe um valor maior ou escolha uma rede mais barata."
         },
         "resolvesTo": "resolve para",
         "addNewAccount": "Adicionar nova conta",
@@ -1969,12 +1977,12 @@
     "transaction": {
         "drawerTitle": "Detalhes da transação",
         "officialReceipt": {
-            "issuedBy": "Emitido pela Squirrel Labs Ltd",
+            "issuedBy": "Emitido por:",
             "reference": "Referência",
             "issuedOn": "Emitido em",
             "pdf": {
                 "title": "Comprovante da transação",
-                "date": "Data",
+                "issuedBy": "Emitido pela Squirrel Labs Ltd",
                 "type": "Tipo",
                 "status": "Status",
                 "from": "De"
@@ -2110,6 +2118,7 @@
             "cancelRequest": "Cancelar cobrança",
             "pay": "Pagar",
             "rejectRequest": "Recusar cobrança",
+            "moreActions": "Mais ações",
             "splitBill": "Dividir essa conta",
             "shareReceipt": "Compartilhar comprovante",
             "downloadPdf": "Baixar comprovante (PDF)",
@@ -3107,6 +3116,7 @@
             "noFeesWithToken": "Sem taxas com este token.",
             "drawerTitle": "Escolha token e rede",
             "crossChainUnavailable": "As transações entre redes estão temporariamente indisponíveis. Você pode usar USDC na Arbitrum.",
+            "allNetworks": "Todas",
             "selectANetwork": "Escolha uma rede",
             "moreNetworksButton": "mais",
             "searchTokenPlaceholder": "Token ou endereço",
@@ -3123,8 +3133,7 @@
             "noNetworksFoundTitle": "Nenhuma rede encontrada para {search}",
             "noNetworksFoundDescription": "Tente buscar outra rede",
             "searchPlaceholder": "Buscar...",
-            "clearSearch": "Limpar busca",
-            "clearNetworkSelection": "Limpar rede selecionada"
+            "clearSearch": "Limpar busca"
         },
         "qrScanner": {
             "scanToPay": "Escaneie para pagar",
@@ -3291,6 +3300,8 @@
         "unsupportedBrowserModal": {
             "title": "Abra este link no seu navegador",
             "description": "Ainda estamos trabalhando para a Peanut funcionar no seu navegador. Por enquanto, use o Chrome ou o Safari.",
+            "passkeyTitle": "As chaves de acesso não estão disponíveis",
+            "passkeyDescription": "A Peanut precisa de uma chave de acesso para criar sua conta. Verifique se o dispositivo tem bloqueio de tela e chaves de acesso ativadas e tente novamente. Se ainda não funcionar, tente uma vez em outro celular ou computador.",
             "copyLinkCta": "Copiar link",
             "copied": "Copiado!",
             "copySuccessToast": "Link copiado para a área de transferência!",

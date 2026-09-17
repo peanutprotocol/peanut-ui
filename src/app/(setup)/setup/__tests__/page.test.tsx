@@ -92,7 +92,6 @@ jest.mock('@/components/Global/UnsupportedBrowserModal', () => ({
     __esModule: true,
     default: () => <div>Unsupported device</div>,
 }))
-jest.mock('@/assets/mascot', () => ({ PeanutWavingHello: { src: '' } }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@sentry/nextjs', () => ({
     captureException: jest.fn(),
@@ -103,7 +102,7 @@ jest.mock('@sentry/nextjs', () => ({
 const landing: ISetupStep = {
     screenId: 'landing',
     layoutType: 'signup',
-    image: '',
+    image: { src: '' },
     component: () => <div>Landing step</div>,
 }
 const advance = (ms: number) =>

@@ -75,6 +75,13 @@ interface WithdrawConfirmViewProps {
     saveAddressPrompt?: React.ReactNode
     /** Extra gate for the CTA — e.g. "Save to address book" ticked with no nickname yet. */
     confirmDisabled?: boolean
+    /**
+     * Funds already left the wallet for this charge and only the bookkeeping
+     * failed, so Retry replays the record and spends nothing. The balance and
+     * minimum gates are about spending, and a full-balance withdrawal trips
+     * them once the wallet empties — they must not disable the recovery.
+     */
+    alreadySpent?: boolean
 }
 
 export default function ConfirmWithdrawView({
@@ -96,6 +103,7 @@ export default function ConfirmWithdrawView({
     showHighFeeWarning = false,
     insufficientBalance = false,
     belowMinimumMessage = null,
+    alreadySpent = false,
     isFromSendFlow = false,
     toNickname = null,
     saveAddressPrompt = null,
@@ -211,13 +219,19 @@ export default function ConfirmWithdrawView({
                         loading={isCrossChain && isCalculating}
                         estimationFailed={isCrossChain && quoteFailed}
                         // Two different things to explain: nothing charged on
-                        // top (the sponsored row), or a quoted fee — which this
-                        // flow quotes receive-mode, so it sits inside You pay,
-                        // not on top of it.
+                        // top (the sponsored row), or a quoted fee. Withdraw
+                        // quotes are pay-mode (useCrossChainTransfer), so the
+                        // fee comes out of what the recipient receives — it is
+                        // never added on top of You pay.
+                        // A failed quote shows a dash, and neither string is
+                        // true then — one promises free delivery, the other
+                        // describes a fee nobody quoted.
                         moreInfoText={
-                            isCrossChain && (networkFee ?? 0) > 0
-                                ? t('confirm.networkFeeChargedInfo')
-                                : t('confirm.networkFeeInfo')
+                            isCrossChain && quoteFailed
+                                ? undefined
+                                : isCrossChain && (networkFee ?? 0) > 0
+                                  ? t('confirm.networkFeeChargedInfo')
+                                  : t('confirm.networkFeeInfo')
                         }
                     />
                     {isCrossChain && (isCalculating || totalPayDisplay) && (
@@ -241,7 +255,16 @@ export default function ConfirmWithdrawView({
                                 onConfirm()
                             }
                         }}
-                        disabled={confirmDisabled}
+                        // Retry replaces the confirm CTA, so it has to carry the
+                        // same gates — otherwise a failed send is a way past
+                        // them, and the money moves anyway. Once the spend has
+                        // landed there is nothing left to gate: Retry only
+                        // replays the record.
+                        disabled={
+                            alreadySpent
+                                ? confirmDisabled
+                                : insufficientBalance || !!belowMinimumMessage || confirmDisabled
+                        }
                         loading={false}
                         className="w-full"
                         icon="retry"

@@ -100,6 +100,10 @@
     "statusTimesInUtc": "Times shown in UTC",
     "lastUpdated": "Last updated: {date}",
     "relatedPages": "Related Pages",
+    "calloutInfo": "Info",
+    "calloutTip": "Tip",
+    "calloutImportant": "Important",
+    "clearSearch": "Clear search",
     "content": "Content",
     "contentHubTitle": "Explore Peanut",
     "contentHubSubtitle": "Articles, stories, guides, and comparisons.",
@@ -219,6 +223,7 @@
     "exchangeFree": "Free!",
     "exchangeArrivesHours": "Should arrive in hours.",
     "exchangeArrivesMinutes": "Should arrive in minutes.",
+    "exchangeSelectCurrency": "Select currency",
     "legalHeroSubtitlePrivacy": "How we handle your data",
     "legalHeroSubtitleTerms": "The agreement between you and Peanut"
 }

@@ -71,9 +71,21 @@ export const DataRow = ({
                 {/* min-w-0 + break-words: a single unbreakable token (wallet
                     address, tx hash) must wrap inside the card, not stretch
                     the row and escape the layout. */}
-                <span className="min-w-0 break-words">{value}</span>
+                <span
+                    className={twMerge(
+                        'min-w-0 break-words',
+                        allowCopy && typeof value === 'string' && 'ds-data-row-copyable-value'
+                    )}
+                >
+                    {value}
+                </span>
                 {allowCopy && typeof value === 'string' && (
-                    <CopyToClipboard textToCopy={copyValue ?? value} fill="black" iconSize="4" />
+                    <CopyToClipboard
+                        textToCopy={copyValue ?? value}
+                        fill="black"
+                        iconSize="4"
+                        className="shrink-0 print:hidden"
+                    />
                 )}
                 {trailing}
             </div>

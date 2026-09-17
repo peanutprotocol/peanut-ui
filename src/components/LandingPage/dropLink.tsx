@@ -7,16 +7,12 @@ import iphoneDropALinkMobile from '@/assets/iphone-ss/iphone-drop-a-link-mobile.
 import { WHATSAPP_ICON, IMESSAGE_ICON, FBMessenger_ICON, TELEGRAM_ICON } from '@/assets/icons'
 import type { LandingStrings } from './landingStrings'
 
-// Define the background color as a constant
-const businessBgColor = '#90A8ED'
-
 export function DropLink({ strings }: { strings: LandingStrings }) {
     const reduceMotion = useReducedMotion()
     return (
         <section
             id="drop-link"
-            className="flex min-h-[500px] items-center justify-center px-4 py-16 text-n-1 md:min-h-[700px]"
-            style={{ backgroundColor: businessBgColor }}
+            className="flex min-h-[500px] items-center justify-center bg-blue-300 px-4 py-16 text-foreground-primary md:min-h-[700px]"
         >
             <div className="flex w-[80rem] flex-col items-center justify-center p-6 md:flex-row">
                 <div className="space-y-8 w-full md:w-2/3">
@@ -129,7 +125,7 @@ export function DropLink({ strings }: { strings: LandingStrings }) {
                     <a href="/setup" target="_blank" rel="noopener noreferrer">
                         <Button
                             shadowSize="4"
-                            className="mt-8 hidden w-58 bg-white px-7 pt-4 pb-11 text-base font-extrabold hover:bg-white/90 md:inline-block md:w-72 md:px-10 md:text-lg"
+                            className="mt-8 hidden w-58 bg-white px-6 hover:bg-white/90 md:inline-block md:w-72 md:px-10"
                         >
                             {strings.signUp}
                         </Button>

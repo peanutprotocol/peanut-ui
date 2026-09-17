@@ -1,4 +1,3 @@
-import { PeanutPointing, PeanutThinking, PeanutTooCool, PeanutWavingHello, PeanutWhistling } from '@/assets/mascot'
 import type { ISetupStep } from '@/components/Setup/Setup.types'
 import { SetupPasskey, SignupStep, LandingStep, ResidenceStep, SignTestTransaction } from '@/components/Setup/Views'
 import JoinWaitlist from './Views/JoinWaitlist'
@@ -7,7 +6,7 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'landing',
         layoutType: 'signup',
-        image: PeanutWhistling.src,
+        image: { pose: 'waving-chill' },
         component: LandingStep,
         showBackButton: false,
         showSkipButton: false,
@@ -16,7 +15,7 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'welcome',
         layoutType: 'signup',
-        image: PeanutPointing.src,
+        image: { pose: 'pointing' },
         component: JoinWaitlist,
         showBackButton: true,
         showSkipButton: false,
@@ -25,7 +24,7 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'signup',
         layoutType: 'signup',
-        image: PeanutThinking.src,
+        image: { pose: 'thinking' },
         component: SignupStep,
         showBackButton: true,
         showSkipButton: false,
@@ -34,7 +33,7 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'residence',
         layoutType: 'signup',
-        image: PeanutWavingHello.src,
+        image: { pose: 'waving-hello' },
         component: ResidenceStep,
         showBackButton: true,
         showSkipButton: false,
@@ -47,7 +46,7 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'passkey-permission',
         layoutType: 'signup',
-        image: PeanutTooCool.src,
+        image: { pose: 'too-cool' },
         component: SetupPasskey,
         showBackButton: true,
         showSkipButton: false,
@@ -56,12 +55,11 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'sign-test-transaction',
         layoutType: 'signup',
-        image: PeanutWhistling.src,
+        image: { pose: 'waving-chill' },
         component: SignTestTransaction,
         showBackButton: false,
         showSkipButton: false,
-        // The view renders the description itself: the confirm prompt before
-        // signing, the account-ready celebration after.
+        // The view renders the confirmation prompt itself.
         descriptionInView: true,
         // items-end, like every other signup step — centering this one alone
         // left its copy off the setup flow's left-aligned column.

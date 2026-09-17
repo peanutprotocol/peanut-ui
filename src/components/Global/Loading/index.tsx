@@ -29,7 +29,7 @@ const Loading = ({ className, variant = 'spinner', coverFullScreen = false, mess
                     className={twMerge(
                         'flex w-full flex-col items-center justify-center self-center',
                         coverFullScreen &&
-                            'fixed top-0 left-0 z-50 flex h-screen w-full items-center justify-center bg-background'
+                            'fixed top-0 left-0 z-50 flex h-screen w-full items-center justify-center bg-background-page'
                     )}
                 >
                     <div className="animate-spin">

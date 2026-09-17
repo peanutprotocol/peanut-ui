@@ -43,6 +43,7 @@ export interface LandingStrings {
         free: string
         arrivesHours: string
         arrivesMinutes: string
+        selectCurrency: string
     }
 }
 
@@ -99,6 +100,7 @@ export function landingStrings(i18n: Translations): LandingStrings {
             free: i18n.exchangeFree,
             arrivesHours: i18n.exchangeArrivesHours,
             arrivesMinutes: i18n.exchangeArrivesMinutes,
+            selectCurrency: i18n.exchangeSelectCurrency,
         },
     }
 }

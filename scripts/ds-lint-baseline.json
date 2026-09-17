@@ -1,26 +1,26 @@
 {
-    "rawHex": 8,
-    "rawHexFiles": 5,
+    "rawHex": 4,
+    "rawHexFiles": 3,
     "inlineStyle": 22,
     "stockTextSize": 0,
-    "dsTextScale": 5,
+    "dsTextScale": 2,
     "nonDsClassesInViews": 6,
-    "useSearchParamsFiles": 34,
+    "useSearchParamsFiles": 35,
     "nuqsFiles": 37,
     "legacyColorClasses": 0,
     "offRampPalette": 0,
     "deadLegacyTokens": 0,
     "consumedUndefinedTokens": 0,
-    "classNameSitesInPages": 129,
-    "fontWeightOnTypeToken": 40,
-    "offScaleSpacing": 139,
-    "iconOffScale": 57,
-    "offScaleRadius": 23,
-    "rawDuration": 2,
-    "retypedCardLiteral": 15,
-    "hoverNoActiveFiles": 32,
-    "arbitraryFontSize": 32,
-    "rawErrorText": 15,
+    "classNameSitesInPages": 128,
+    "fontWeightOnTypeToken": 31,
+    "offScaleSpacing": 82,
+    "iconOffScale": 46,
+    "offScaleRadius": 16,
+    "rawDuration": 1,
+    "retypedCardLiteral": 13,
+    "hoverNoActiveFiles": 23,
+    "arbitraryFontSize": 20,
+    "rawErrorText": 14,
     "handRolledCloseGlyphFiles": 7,
     "_meta": [
         {
@@ -72,6 +72,16 @@
             "date": "2026-09-15",
             "metrics": ["classNameSitesInPages 127 -> 129"],
             "reason": "classNameSitesInPages 127->129: inherited from origin/dev's receipts-v2 (#3159) receipt-shell wrappers via the dev merge — upstream code, not this branch's; TASK-22452"
+        },
+        {
+            "date": "2026-09-16",
+            "metrics": ["rawErrorText 15 -> 16"],
+            "reason": "limits red text per the legacy-color ruling — progress-meter text, not a field error"
+        },
+        {
+            "date": "2026-09-16",
+            "metrics": ["useSearchParamsFiles 34 -> 35", "hoverNoActiveFiles 32 -> 33"],
+            "reason": "useSearchParamsFiles: ArticleLocaleNav sanctioned verbatim query passthrough (re-recorded after merge took dev's baseline); hoverNoActiveFiles: the type port moved hand-rolled active:translate into the Button component — files keep a hover: override while press state is component-supplied, a text-scan false positive"
         }
     ]
 }

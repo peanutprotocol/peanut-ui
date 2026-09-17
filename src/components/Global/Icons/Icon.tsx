@@ -27,6 +27,7 @@ import {
     Copy,
     CreditCard,
     ChevronDown,
+    Pencil,
     ChevronRight,
     ChevronUp,
     Dice5,
@@ -171,6 +172,7 @@ export type IconName =
     | 'alert-filled'
     | 'paste'
     | 'credit-card'
+    | 'edit'
     | 'menu'
     | 'more-horizontal'
     | 'trash'
@@ -341,6 +343,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'alert-filled': (props) => <LucideWrapper Icon={AlertTriangle} {...props} filled />,
     paste: (props) => <LucideWrapper Icon={Clipboard} {...props} />,
     'credit-card': (props) => <LucideWrapper Icon={CreditCard} {...props} />,
+    edit: (props) => <LucideWrapper Icon={Pencil} {...props} />,
     menu: (props) => <LucideWrapper Icon={Menu} {...props} />,
     'more-horizontal': (props) => <LucideWrapper Icon={MoreHorizontal} {...props} />,
     trash: (props) => <LucideWrapper Icon={Trash2} {...props} />,

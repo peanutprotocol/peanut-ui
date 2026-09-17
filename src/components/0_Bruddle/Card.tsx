@@ -1,31 +1,22 @@
 import { twMerge } from '@/utils/tw'
 
 type ShadowSize = '4' | '6' | '8'
-type ShadowColor = 'primary' | 'secondary'
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
     shadowSize?: ShadowSize
-    color?: ShadowColor
 }
 
 /** Shared surface for Card and native button tiles (board 17802:61536). */
 export const CARD_SURFACE = 'rounded-sm border border-border-default bg-background-default'
 
-const shadowClasses: Record<ShadowColor, Record<ShadowSize, string>> = {
-    primary: {
-        '4': 'shadow-4',
-        '6': 'shadow-primary-6',
-        '8': 'shadow-primary-8',
-    },
-    secondary: {
-        '4': 'shadow-secondary-4',
-        '6': 'shadow-secondary-6',
-        '8': 'shadow-secondary-8',
-    },
+const shadowClasses: Record<ShadowSize, string> = {
+    '4': 'shadow-4',
+    '6': 'shadow-primary-6',
+    '8': 'shadow-primary-8',
 }
 
-const Card = ({ children, className, shadowSize, color = 'primary', ...props }: CardProps) => {
-    const shadowClass = shadowSize ? shadowClasses[color][shadowSize] : ''
+const Card = ({ children, className, shadowSize, ...props }: CardProps) => {
+    const shadowClass = shadowSize ? shadowClasses[shadowSize] : ''
 
     return (
         <div

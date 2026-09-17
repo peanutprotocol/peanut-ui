@@ -1,18 +1,20 @@
 'use client'
 
 import { useMemo } from 'react'
-import Link from 'next/link'
 import Fuse from 'fuse.js'
 import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
-import { Icon } from '@/components/Global/Icons/Icon'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import { SearchInput } from '@/components/SearchInput'
+import { ContentLinkRow } from './ContentLinkRow'
+import { HUB_WIDTH } from './constants'
 import type { ContentItem, ContentItemType } from '@/lib/content'
 import type { Locale } from '@/i18n/types'
 
-const PROSE_WIDTH = 'max-w-[720px]'
 const TYPE_VALUES: ContentItemType[] = ['blog', 'stories', 'use-cases', 'compare']
 
 export interface ContentLandingStrings {
     searchPlaceholder: string
+    clearSearch: string
     noResults: string
     filterAll: string
     filterBlog: string
@@ -53,21 +55,16 @@ function typeLabelsFor(strings: ContentLandingStrings): Record<ContentItemType, 
 
 function renderLinkRows(items: ContentItem[]) {
     return (
-        <div className="flex flex-col gap-px overflow-hidden rounded-sm border border-n-1">
-            {items.map((item) => (
-                <Link
+        <div className="flex flex-col">
+            {items.map((item, i) => (
+                <ContentLinkRow
                     key={`${item.type}/${item.slug}`}
                     href={item.href}
-                    className="group flex items-center justify-between border-b border-n-1/10 bg-white px-5 py-4 transition-colors last:border-b-0 hover:bg-primary-3/20"
-                >
-                    <div className="flex flex-col gap-0.5">
-                        <h3 className="text-base font-semibold text-n-1 group-hover:underline">
-                            {displayTitle(item.title)}
-                        </h3>
-                        <p className="line-clamp-1 text-sm leading-[1.75] text-grey-1">{item.description}</p>
-                    </div>
-                    <Icon name="arrow-up-right" size={16} className="shrink-0 text-grey-1" />
-                </Link>
+                    title={displayTitle(item.title)}
+                    description={item.description}
+                    index={i}
+                    total={items.length}
+                />
             ))}
         </div>
     )
@@ -82,7 +79,7 @@ export function ContentLinkList({ items, strings, grouped }: ContentLinkListProp
     const typeLabels = typeLabelsFor(strings)
 
     return (
-        <div className={`mx-auto ${PROSE_WIDTH} px-6 pb-12 md:px-4`}>
+        <div className={`mx-auto ${HUB_WIDTH} px-6 pb-12 md:px-4`}>
             {grouped ? (
                 <div className="flex flex-col gap-10">
                     {TYPE_VALUES.map((t) => {
@@ -90,7 +87,7 @@ export function ContentLinkList({ items, strings, grouped }: ContentLinkListProp
                         if (inType.length === 0) return null
                         return (
                             <section key={t}>
-                                <h2 className="mb-4 text-xs font-bold tracking-widest text-grey-1 uppercase">
+                                <h2 className="mb-4 text-label-m tracking-widest text-foreground-secondary uppercase">
                                     {typeLabels[t]}
                                 </h2>
                                 {renderLinkRows(inType)}
@@ -138,32 +135,27 @@ export default function ContentLanding({ items, strings }: Props) {
 
     const typeLabels = typeLabelsFor(strings)
 
-    const chipBase = 'rounded-sm border border-n-1 px-3 py-1 text-sm transition-colors'
+    const chipBase = 'rounded-sm border border-border-default px-3 py-1 text-body-s transition-colors'
 
     return (
         <>
-            <div className={`mx-auto mt-10 mb-6 ${PROSE_WIDTH} px-6 md:mt-12 md:px-4`}>
-                <div className="relative">
-                    <div className="absolute top-1/2 left-3 -translate-y-1/2 text-grey-1">
-                        <Icon name="search" size={18} />
-                    </div>
-                    <input
-                        type="text"
-                        aria-label={strings.searchPlaceholder}
-                        placeholder={strings.searchPlaceholder}
-                        value={q ?? ''}
-                        onChange={(e) => setFilters({ q: e.target.value || null })}
-                        className="h-12 w-full rounded-sm border border-n-1 bg-white pr-4 pl-10 text-base caret-primary-1 focus:ring-1 focus:ring-n-1 focus:outline-none"
-                    />
-                </div>
+            <div className={`mx-auto mt-10 mb-6 ${HUB_WIDTH} px-6 md:mt-12 md:px-4`}>
+                <SearchInput
+                    value={q ?? ''}
+                    onChange={(value) => setFilters({ q: value || null })}
+                    onClear={() => setFilters({ q: null })}
+                    placeholder={strings.searchPlaceholder}
+                    aria-label={strings.searchPlaceholder}
+                    clearLabel={strings.clearSearch}
+                />
             </div>
 
-            <div className={`mx-auto mb-4 ${PROSE_WIDTH} px-6 md:px-4`}>
+            <div className={`mx-auto mb-4 ${HUB_WIDTH} px-6 md:px-4`}>
                 <div className="flex flex-wrap gap-2">
                     <button
                         type="button"
                         onClick={() => setFilters({ type: null })}
-                        className={`${chipBase} ${activeType === null ? 'bg-primary-1/20 font-semibold' : 'hover:bg-primary-3/30'}`}
+                        className={`${chipBase} ${activeType === null ? 'bg-action-primary/20' : 'hover:bg-background-disabled'}`}
                     >
                         {strings.filterAll}
                     </button>
@@ -172,7 +164,7 @@ export default function ContentLanding({ items, strings }: Props) {
                             key={t}
                             type="button"
                             onClick={() => setFilters({ type: activeType === t ? null : t })}
-                            className={`${chipBase} ${activeType === t ? 'bg-primary-1/20 font-semibold' : 'hover:bg-primary-3/30'}`}
+                            className={`${chipBase} ${activeType === t ? 'bg-action-primary/20' : 'hover:bg-background-disabled'}`}
                         >
                             {typeLabels[t]}
                         </button>
@@ -181,8 +173,8 @@ export default function ContentLanding({ items, strings }: Props) {
             </div>
 
             {filtered.length === 0 ? (
-                <div className={`mx-auto ${PROSE_WIDTH} px-6 pb-12 md:px-4`}>
-                    <p className="py-12 text-center text-grey-1">{strings.noResults}</p>
+                <div className={`mx-auto ${HUB_WIDTH} px-6 pb-12 md:px-4`}>
+                    <EmptyState icon="search" title={strings.noResults} />
                 </div>
             ) : (
                 <ContentLinkList items={filtered} strings={strings} grouped={groupResults} />

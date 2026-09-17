@@ -692,7 +692,8 @@
             "bankFee": "Bank fee",
             "free": "Free!",
             "arrivesHours": "Usually arrives in hours.",
-            "arrivesMinutes": "Usually arrives in minutes."
+            "arrivesMinutes": "Usually arrives in minutes.",
+            "selectCurrency": "Select currency"
         },
         "row": {
             "approximate": "This is an approximate value. The actual amount received may vary based on your bank's exchange rate",
@@ -1003,7 +1004,7 @@
             "exchangeOrWalletDescription": "Binance, Metamask and more"
         },
         "contacts": {
-            "searchPlaceholder": "Enter exact username or search contacts...",
+            "searchPlaceholder": "Recipient",
             "searchLabel": "Peanut username or contact",
             "exactUsername": "Exact username",
             "usernameFound": "@{username} found",
@@ -1263,6 +1264,8 @@
         "youArePaying": "You're paying",
         "paymentMethodAlt": "Payment method",
         "peanutManAlt": "Peanut Man",
+        "processingPaymentTitle": "Processing your payment",
+        "processingPaymentBody": "We're confirming your payment.",
         "waitingForMerchant": "Waiting for the merchant to set the amount",
         "havingTrouble": "Having trouble?",
         "orderNotReady": {
@@ -1509,6 +1512,7 @@
         "limits": {
             "navTitle": "Card limit",
             "subtitle": "Set your per-transaction spending limit.",
+            "explainer": "The limit applies to each transaction. You can change it anytime.",
             "perTransaction": "Per transaction",
             "loadFailed": "Failed to load card limit.",
             "noLimitSet": "No limit set",
@@ -1526,6 +1530,7 @@
             "noPinBody": "You need to set a pin before using your card for in-store purchases.",
             "setPin": "Set pin",
             "hiddenNote": "Your pin is hidden for security reasons.",
+            "rowLabel": "PIN",
             "hidePin": "Hide pin",
             "showPin": "Show pin",
             "changePin": "Change pin",
@@ -1740,6 +1745,8 @@
             "minDepositAmount": "Deposit amount must be at least ${amount}",
             "etaInstant": "Deposits usually arrive within minutes."
         },
+        "processingDepositTitle": "Processing your deposit",
+        "processingDepositBody": "We're confirming your deposit.",
         "pix": {
             "payWithPix": "Pay with PIX",
             "depositReceived": "Deposit received!",
@@ -1836,15 +1843,15 @@
         },
         "confirm": {
             "recipientReceives": "Recipient receives",
-            "recipientReceivesInfo": "Peanut covers the bridge cost. A small network cost may be deducted on delivery.",
+            "recipientReceivesInfo": "This is what arrives at the destination, after any delivery cost.",
             "tokenAndNetwork": "Token and network",
             "tokenOnChain": "{token} on <c>{chain}</c>",
             "tokenAlt": "token",
             "chainAlt": "chain",
             "to": "To",
             "networkFee": "Network fee",
-            "networkFeeInfo": "Peanut covers the bridge cost. A small network cost may be deducted on delivery.",
-            "networkFeeChargedInfo": "This route quotes a fee. It's already included in the amount you pay.",
+            "networkFeeInfo": "Delivering on this network is free — Peanut covers it. Some networks, like Ethereum, Tron and Solana, charge a fee that comes out of the amount received.",
+            "networkFeeChargedInfo": "Networks charge different amounts to deliver. This one charges, and it comes out of the amount received. Others, like Arbitrum, are free.",
             "youPay": "You pay",
             "highFeeWarning": "Note: the network fee is a large share of this withdrawal. Withdrawing a larger amount or choosing a cheaper network reduces it."
         },
@@ -1960,7 +1967,8 @@
             "ownAccountOnly": "You can only withdraw to accounts under your name.",
             "unexpected": "Withdraw failed unexpectedly. If problem persists contact support",
             "completeAccountSetup": "Please complete your account setup. Go to Settings to update your profile.",
-            "minWithdrawAmount": "Withdraw amount must be at least ${amount}"
+            "minWithdrawAmount": "Withdraw amount must be at least ${amount}",
+            "feeExceedsAmount": "The network fee is more than this withdrawal. Enter a larger amount or pick a cheaper network."
         },
         "resolvesTo": "resolves to",
         "addNewAccount": "Add new account",
@@ -1969,12 +1977,12 @@
     "transaction": {
         "drawerTitle": "Transaction Details",
         "officialReceipt": {
-            "issuedBy": "Issued by Squirrel Labs Ltd",
+            "issuedBy": "Issued by:",
             "reference": "Reference",
             "issuedOn": "Issued on",
             "pdf": {
                 "title": "Transaction Receipt",
-                "date": "Date",
+                "issuedBy": "Issued by Squirrel Labs Ltd",
                 "type": "Type",
                 "status": "Status",
                 "from": "From"
@@ -2110,6 +2118,7 @@
             "cancelRequest": "Cancel request",
             "pay": "Pay",
             "rejectRequest": "Reject request",
+            "moreActions": "More actions",
             "splitBill": "Split this bill",
             "shareReceipt": "Share Receipt",
             "downloadPdf": "Download Receipt (PDF)",
@@ -3107,6 +3116,7 @@
             "noFeesWithToken": "No fees with this token.",
             "drawerTitle": "Select Token and Network",
             "crossChainUnavailable": "Cross-chain transactions are temporarily unavailable. You can use USDC on Arbitrum.",
+            "allNetworks": "All",
             "selectANetwork": "Select a network",
             "moreNetworksButton": "more",
             "searchTokenPlaceholder": "Token or address",
@@ -3123,8 +3133,7 @@
             "noNetworksFoundTitle": "No networks found matching {search}",
             "noNetworksFoundDescription": "Try searching for a different network",
             "searchPlaceholder": "Search...",
-            "clearSearch": "Clear search",
-            "clearNetworkSelection": "Clear network selection"
+            "clearSearch": "Clear search"
         },
         "qrScanner": {
             "scanToPay": "Scan to pay",
@@ -3291,6 +3300,8 @@
         "unsupportedBrowserModal": {
             "title": "Open this link in your browser",
             "description": "We're still working on making Peanut work on your browser. For now, please use Chrome or Safari.",
+            "passkeyTitle": "Passkeys aren't available",
+            "passkeyDescription": "Peanut needs a passkey to create your account. Make sure your device has a screen lock and passkeys enabled, then try again. If it still doesn't work, try once from another phone or computer.",
             "copyLinkCta": "Copy Link",
             "copied": "Copied!",
             "copySuccessToast": "Link copied to clipboard!",
