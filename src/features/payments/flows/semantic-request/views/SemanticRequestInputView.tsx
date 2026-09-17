@@ -151,6 +151,18 @@ export function SemanticRequestInputView() {
         }
     }, [isTokenDenominated, urlToken, tokenUsdPrice])
 
+    // The fill has to be in the SAME denomination as the field. A url that names
+    // a token (/alice/eth) makes that denomination the token, so the wallet's usd
+    // total has to cross the same price the usd conversion uses — passing it raw
+    // would enter "100 ETH" for a $100 balance and then fail the affordability
+    // gate. No price yet, no fill: the balance row stays plain text rather than
+    // offering an amount that cannot pay.
+    const balanceFill = useMemo(() => {
+        if (!isLoggedIn || balanceFillAmount === undefined) return undefined
+        if (!isTokenDenominated) return balanceFillAmount
+        return tokenUsdPrice ? balanceFillAmount / tokenUsdPrice : undefined
+    }, [isLoggedIn, balanceFillAmount, isTokenDenominated, tokenUsdPrice])
+
     return (
         <PageStack>
             <NavHeader onPrev={onBack} title={t('headers.pay')} />
@@ -178,7 +190,7 @@ export function SemanticRequestInputView() {
                         primaryDenomination={primaryDenomination}
                         onSubmit={handleSubmit}
                         walletBalance={isLoggedIn ? formattedBalance : undefined}
-                        balanceFillAmount={isLoggedIn ? balanceFillAmount : undefined}
+                        balanceFillAmount={balanceFill}
                         hideBalance={!isLoggedIn}
                         hideCurrencyToggle={true}
                         disabled={isAmountFromUrl || !!chargeIdFromUrl}
