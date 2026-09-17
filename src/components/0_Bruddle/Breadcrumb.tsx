@@ -12,7 +12,7 @@ interface BreadcrumbProps {
 // recipe LinkButton uses. keep stacked crumbs on one line so the areas of two
 // rows cannot overlap.
 const CRUMB_LINK =
-    'relative rounded underline decoration-foreground-primary/30 underline-offset-2 transition-colors duration-instant after:absolute after:inset-x-0 after:-inset-y-3 hover:text-foreground-primary active:text-foreground-primary focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-action-focus'
+    'relative rounded underline decoration-foreground-primary/30 underline-offset-2 transition-colors duration-instant after:absolute after:inset-x-0 after:-inset-y-3 hover:text-foreground-primary active:text-foreground-primary focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid'
 
 /**
  * The one breadcrumb trail for marketing and content pages. Replaces the two

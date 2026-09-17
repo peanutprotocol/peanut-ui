@@ -1,17 +1,12 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
-import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { Icon } from '@/components/Global/Icons/Icon'
-import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { getCardPosition } from '@/components/Global/Card/card.utils'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { SearchInput } from '@/components/SearchInput'
-import { PROSE_WIDTH } from './mdx/constants'
-import { getTranslations } from '@/i18n'
-import { useUrlLocale } from '@/i18n/useUrlLocale'
+import { ContentLinkRow } from './ContentLinkRow'
+import { PROSE_WIDTH } from './constants'
 
 interface HelpArticle {
     slug: string
@@ -23,6 +18,8 @@ interface HelpArticle {
 
 interface HelpLandingStrings {
     searchPlaceholder: string
+    clearSearch: string
+    noResults: string
     cantFind: string
     cantFindDesc: string
 }
@@ -30,25 +27,23 @@ interface HelpLandingStrings {
 interface HelpLandingProps {
     articles: HelpArticle[]
     categories: string[]
-    strings?: HelpLandingStrings
+    /** Every label comes from the page, which already holds the locale catalog.
+     *  Reading '@/i18n' here instead would ship all four catalogs to the client. */
+    strings: HelpLandingStrings
 }
 
-// rows are anchors, not onClick handlers: help articles have to stay crawlable,
-// so ListItem sits inside a Link — which is also why ListGroup, whose cloneElement
-// would put `position` on the anchor, cannot own the grouping here.
 function CategoryRows({ articles }: { articles: HelpArticle[] }) {
     return (
         <div className="flex flex-col">
             {articles.map((article, i) => (
-                <Link key={article.slug} href={article.href} className="group block">
-                    <ListItem
-                        position={getCardPosition(i, articles.length)}
-                        title={<h3 className="truncate group-hover:underline">{article.title}</h3>}
-                        body={article.description}
-                        trailing={<Icon name="arrow-up-right" size={20} className="text-foreground-secondary" />}
-                        className="transition-colors duration-instant group-hover:bg-background-disabled"
-                    />
-                </Link>
+                <ContentLinkRow
+                    key={article.slug}
+                    href={article.href}
+                    title={article.title}
+                    description={article.description}
+                    index={i}
+                    total={articles.length}
+                />
             ))}
         </div>
     )
@@ -57,10 +52,6 @@ function CategoryRows({ articles }: { articles: HelpArticle[] }) {
 export default function HelpLanding({ articles, categories, strings }: HelpLandingProps) {
     const [searchTerm, setSearchTerm] = useState('')
     const searchParams = useSearchParams()
-    // the page passes `strings`, but this is a localized surface and the hub is
-    // also reachable without them — read the same dictionary the page reads
-    // instead of falling back to english.
-    const i18n = getTranslations(useUrlLocale())
 
     // Auto-open Crisp chat when ?chat=open (e.g. redirected from /support)
     useEffect(() => {
@@ -99,9 +90,9 @@ export default function HelpLanding({ articles, categories, strings }: HelpLandi
                     value={searchTerm}
                     onChange={setSearchTerm}
                     onClear={() => setSearchTerm('')}
-                    placeholder={strings?.searchPlaceholder ?? i18n.searchHelpArticles}
-                    aria-label={strings?.searchPlaceholder ?? i18n.searchHelpArticles}
-                    clearLabel={i18n.clearSearch}
+                    placeholder={strings.searchPlaceholder}
+                    aria-label={strings.searchPlaceholder}
+                    clearLabel={strings.clearSearch}
                 />
             </div>
 
@@ -119,12 +110,12 @@ export default function HelpLanding({ articles, categories, strings }: HelpLandi
                         ))}
                     </div>
                 ) : (
-                    <EmptyState icon="search" title={i18n.noContentResults} />
+                    <EmptyState icon="search" title={strings.noResults} />
                 )}
 
                 {/* Contact CTA */}
-                <Notification priority="helper" title={strings?.cantFind ?? i18n.cantFindAnswer} className="my-8">
-                    {strings?.cantFindDesc ?? i18n.cantFindAnswerDesc}
+                <Notification priority="helper" title={strings.cantFind} className="my-8">
+                    {strings.cantFindDesc}
                 </Notification>
             </div>
         </>

@@ -18,9 +18,6 @@ export type FAQsProps = {
         redirectUrl?: string
         redirectText?: string
         calModal?: boolean
-        /** Translated label for the `calModal` control, the way `redirectText`
-         *  labels `redirectUrl`. Both halves are needed or nothing renders. */
-        calLabel?: string
         /** Article that answers this question in full. Renders a "learn more" link under the answer. */
         learnMoreHref?: string
     }>
@@ -81,17 +78,14 @@ export function FAQsPanel({ heading, questions, learnMoreLabel }: FAQsProps) {
                             </summary>
                             <div className="mt-4 text-body-l text-foreground-primary">
                                 {faq.answerContent ?? <p className="whitespace-pre-line">{linkifyText(faq.answer)}</p>}
-                                {faq.calModal && faq.calLabel && (
-                                    // was an <a> with no href: not focusable and
-                                    // not a link. LinkButton with no href is the
-                                    // DS underlined text action — a real button
-                                    // with the focus ring and a 44px hit area.
-                                    <LinkButton
+                                {faq.calModal && (
+                                    <a
                                         data-cal-link="kkonrad+hugo0/15min?duration=30"
                                         data-cal-config='{"layout":"month_view"}'
+                                        className="underline"
                                     >
-                                        {faq.calLabel}
-                                    </LinkButton>
+                                        Let&apos;s talk!
+                                    </a>
                                 )}
                                 {faq.redirectUrl && faq.redirectText && (
                                     <a

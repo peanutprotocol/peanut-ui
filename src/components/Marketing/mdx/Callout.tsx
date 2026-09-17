@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
-import { PROSE_WIDTH } from './constants'
+import { PROSE_WIDTH } from '../constants'
 
 type CalloutType = 'info' | 'tip' | 'warning'
 

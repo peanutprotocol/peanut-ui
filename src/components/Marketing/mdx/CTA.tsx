@@ -2,7 +2,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import PeanutMascot from '@/components/Global/PeanutMascot'
-import { PROSE_WIDTH } from './constants'
+import { PROSE_WIDTH } from '../constants'
 
 interface CTAProps {
     text: string

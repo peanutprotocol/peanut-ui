@@ -7,7 +7,7 @@ import { readPageContentLocalizedResolved, listContentSlugs } from '@/lib/conten
 import { notFound } from 'next/navigation'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import { Hero } from '@/components/Marketing/mdx/Hero'
-import { PROSE_WIDTH } from '@/components/Marketing/mdx/constants'
+import { PROSE_WIDTH } from '@/components/Marketing/constants'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
@@ -140,6 +140,10 @@ export default async function HelpPage({ params }: PageProps) {
                     categories={categories}
                     strings={{
                         searchPlaceholder: i18n.searchHelpArticles,
+                        clearSearch: i18n.clearSearch,
+                        // both hubs say the same sentence, so one key serves
+                        // both rather than a second copy to keep translated.
+                        noResults: i18n.noContentResults,
                         cantFind: i18n.cantFindAnswer,
                         cantFindDesc: i18n.cantFindAnswerDesc,
                     }}

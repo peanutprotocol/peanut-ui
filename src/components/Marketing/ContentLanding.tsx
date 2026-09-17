@@ -1,15 +1,12 @@
 'use client'
 
 import { useMemo } from 'react'
-import Link from 'next/link'
 import Fuse from 'fuse.js'
 import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
-import { Icon } from '@/components/Global/Icons/Icon'
-import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { getCardPosition } from '@/components/Global/Card/card.utils'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { SearchInput } from '@/components/SearchInput'
-import { HUB_WIDTH } from './mdx/constants'
+import { ContentLinkRow } from './ContentLinkRow'
+import { HUB_WIDTH } from './constants'
 import type { ContentItem, ContentItemType } from '@/lib/content'
 import type { Locale } from '@/i18n/types'
 
@@ -56,22 +53,18 @@ function typeLabelsFor(strings: ContentLandingStrings): Record<ContentItemType, 
     }
 }
 
-// rows are anchors, not onClick handlers: this list is the crawlable half of the
-// hub, so ListItem sits inside a Link (which is also why ListGroup, whose
-// cloneElement would put `position` on the anchor, cannot own the grouping here).
 function renderLinkRows(items: ContentItem[]) {
     return (
         <div className="flex flex-col">
             {items.map((item, i) => (
-                <Link key={`${item.type}/${item.slug}`} href={item.href} className="group block">
-                    <ListItem
-                        position={getCardPosition(i, items.length)}
-                        title={<h3 className="truncate group-hover:underline">{displayTitle(item.title)}</h3>}
-                        body={item.description}
-                        trailing={<Icon name="arrow-up-right" size={20} className="text-foreground-secondary" />}
-                        className="transition-colors duration-instant group-hover:bg-background-disabled"
-                    />
-                </Link>
+                <ContentLinkRow
+                    key={`${item.type}/${item.slug}`}
+                    href={item.href}
+                    title={displayTitle(item.title)}
+                    description={item.description}
+                    index={i}
+                    total={items.length}
+                />
             ))}
         </div>
     )
@@ -162,7 +155,7 @@ export default function ContentLanding({ items, strings }: Props) {
                     <button
                         type="button"
                         onClick={() => setFilters({ type: null })}
-                        className={`${chipBase} ${activeType === null ? 'bg-action-primary/20' : 'hover:bg-purple-200/30'}`}
+                        className={`${chipBase} ${activeType === null ? 'bg-action-primary/20' : 'hover:bg-background-disabled'}`}
                     >
                         {strings.filterAll}
                     </button>
@@ -171,7 +164,7 @@ export default function ContentLanding({ items, strings }: Props) {
                             key={t}
                             type="button"
                             onClick={() => setFilters({ type: activeType === t ? null : t })}
-                            className={`${chipBase} ${activeType === t ? 'bg-action-primary/20' : 'hover:bg-purple-200/30'}`}
+                            className={`${chipBase} ${activeType === t ? 'bg-action-primary/20' : 'hover:bg-background-disabled'}`}
                         >
                             {typeLabels[t]}
                         </button>

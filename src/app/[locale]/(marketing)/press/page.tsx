@@ -239,7 +239,7 @@ export default async function PressPage({ params }: PageProps) {
                                                 href={href}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="relative aspect-square overflow-hidden rounded-sm border border-border-default focus-visible:outline-[3px] focus-visible:outline-action-focus"
+                                                className="relative aspect-square overflow-hidden rounded-sm border border-border-default focus-visible:outline-[3px] focus-visible:outline-action-focus focus-visible:outline-solid"
                                             >
                                                 <Image src={href} alt="Peanut team" fill className="object-cover" />
                                             </a>

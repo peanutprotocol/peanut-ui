@@ -1,6 +1,7 @@
 import { Children, isValidElement, type ReactNode } from 'react'
 import { Steps as StepsCards } from '@/components/Marketing/Steps'
 import { JsonLd } from '@/components/Marketing/JsonLd'
+import { extractText } from './mdx.utils'
 import { CloudsCss } from '@/components/LandingPage/CloudsCss'
 import { Stars } from './Stars'
 import { getTranslations } from '@/i18n'
@@ -21,16 +22,6 @@ interface StepsProps {
     /** Injected by createMdxComponents — never authored in MDX. */
     locale?: Locale
     children: ReactNode
-}
-
-/** Extract text content from React nodes for descriptions and JSON-LD */
-function extractText(node: ReactNode): string {
-    if (typeof node === 'string') return node
-    if (typeof node === 'number') return String(node)
-    if (!node) return ''
-    if (Array.isArray(node)) return node.map(extractText).join('')
-    if (isValidElement(node)) return extractText(node.props.children)
-    return ''
 }
 
 const stepsClouds = [

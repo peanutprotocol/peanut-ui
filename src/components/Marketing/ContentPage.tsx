@@ -6,7 +6,7 @@ import { BASE_URL } from '@/constants/general.consts'
 import { MarketingErrorBoundary } from './MarketingErrorBoundary'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
-import { PROSE_WIDTH } from './mdx/constants'
+import { PROSE_WIDTH } from './constants'
 
 interface ContentPageProps {
     /** Compiled MDX content element */

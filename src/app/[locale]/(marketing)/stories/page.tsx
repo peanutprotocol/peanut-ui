@@ -5,13 +5,10 @@ import { getTranslations } from '@/i18n'
 import { notFound } from 'next/navigation'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import { Hero } from '@/components/Marketing/mdx/Hero'
-import { PROSE_WIDTH } from '@/components/Marketing/mdx/constants'
-import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { Icon } from '@/components/Global/Icons/Icon'
-import { getCardPosition } from '@/components/Global/Card/card.utils'
+import { PROSE_WIDTH } from '@/components/Marketing/constants'
+import { ContentLinkRow } from '@/components/Marketing/ContentLinkRow'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { readPageContentLocalizedResolved, listPublishedSlugs, type ContentFrontmatter } from '@/lib/content'
-import Link from 'next/link'
 
 interface PageProps {
     params: Promise<{ locale: string }>
@@ -77,23 +74,14 @@ export default async function StoriesIndexPage({ params }: PageProps) {
                 ) : (
                     <div className="flex flex-col">
                         {stories.map((story, index) => (
-                            // ListItem owns no href, so the anchor wraps it: the row stays a
-                            // real crawlable link and carries the DS focus ring.
-                            <Link
+                            <ContentLinkRow
                                 key={story.slug}
                                 href={story.href}
-                                className="group block rounded-sm focus-visible:outline-[3px] focus-visible:outline-action-focus"
-                            >
-                                <ListItem
-                                    position={getCardPosition(index, stories.length)}
-                                    title={<h3 className="truncate group-hover:underline">{story.title}</h3>}
-                                    body={story.description}
-                                    trailing={
-                                        <Icon name="arrow-up-right" size={20} className="text-foreground-secondary" />
-                                    }
-                                    className="transition-colors duration-instant group-hover:bg-background-disabled"
-                                />
-                            </Link>
+                                title={story.title}
+                                description={story.description}
+                                index={index}
+                                total={stories.length}
+                            />
                         ))}
                     </div>
                 )}

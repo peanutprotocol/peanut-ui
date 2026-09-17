@@ -9,7 +9,7 @@ import { listAllContent, type ContentItem } from '@/lib/content'
 import { ContentPage } from '@/components/Marketing/ContentPage'
 import { Hero } from '@/components/Marketing/mdx/Hero'
 import ContentLanding, { ContentLinkList, type ContentLandingStrings } from '@/components/Marketing/ContentLanding'
-import { HUB_WIDTH } from '@/components/Marketing/mdx/constants'
+import { HUB_WIDTH } from '@/components/Marketing/constants'
 
 interface PageProps {
     params: Promise<{ locale: string }>

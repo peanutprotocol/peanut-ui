@@ -3,9 +3,15 @@ import HelpLanding from '../HelpLanding'
 
 jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(),
-    // HelpLanding reads the marketing locale off the url (useUrlLocale)
-    usePathname: () => '/en/help',
 }))
+
+const STRINGS = {
+    searchPlaceholder: 'Search help articles...',
+    clearSearch: 'Clear search',
+    noResults: 'Nothing matches your search.',
+    cantFind: 'Cannot find an answer?',
+    cantFindDesc: 'Chat with us.',
+}
 
 describe('HelpLanding owner links', () => {
     it('renders the server-provided href instead of reconstructing it from the hub locale', () => {
@@ -28,6 +34,7 @@ describe('HelpLanding owner links', () => {
                     },
                 ]}
                 categories={['Security', 'Payments']}
+                strings={STRINGS}
             />
         )
         const hrefs = [...container.querySelectorAll<HTMLAnchorElement>('a[href]')].map((link) =>

@@ -1,6 +1,7 @@
 import { Children, isValidElement, type ReactNode } from 'react'
 import { FAQsPanel } from '@/components/Global/FAQs'
 import { JsonLd } from '@/components/Marketing/JsonLd'
+import { extractText } from './mdx.utils'
 import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
@@ -21,16 +22,6 @@ interface FAQProps {
     /** Injected by createMdxComponents — never authored in MDX. */
     locale?: Locale
     children: ReactNode
-}
-
-/** Extract text content from React nodes for JSON-LD plain text */
-function extractText(node: ReactNode): string {
-    if (typeof node === 'string') return node
-    if (typeof node === 'number') return String(node)
-    if (!node) return ''
-    if (Array.isArray(node)) return node.map(extractText).join('')
-    if (isValidElement(node)) return extractText(node.props.children)
-    return ''
 }
 
 /**

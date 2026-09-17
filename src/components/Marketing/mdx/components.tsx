@@ -8,9 +8,10 @@ import { ExchangeWidget } from './ExchangeWidget'
 import { RelatedPages, RelatedLink } from './RelatedPages'
 import { CountryGrid } from './CountryGrid'
 import { ProseStars } from './ProseStars'
+import { extractText } from './mdx.utils'
 import { Tabs, TabPanel } from './Tabs'
 import Divider from '@/components/0_Bruddle/Divider'
-import { PROSE_WIDTH } from './constants'
+import { PROSE_WIDTH } from '../constants'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 import { resolveContentHref } from '@/lib/content'
 
@@ -77,7 +78,7 @@ export const mdxComponents: MdxComponentMap = {
     ),
     h2: (props: React.HTMLAttributes<HTMLHeadingElement>) => (
         <div className="relative">
-            <ProseStars seed={typeof props.children === 'string' ? props.children : ''} />
+            <ProseStars seed={extractText(props.children)} />
             <h2
                 className={`mx-auto mt-14 mb-4 ${PROSE_WIDTH} px-6 text-heading-s text-foreground-primary md:mt-16 md:px-4 md:text-heading-m`}
                 {...props}
