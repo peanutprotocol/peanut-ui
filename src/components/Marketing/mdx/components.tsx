@@ -13,6 +13,7 @@ import { extractText } from './mdx.utils'
 import { Tabs, TabPanel } from './Tabs'
 import Divider from '@/components/0_Bruddle/Divider'
 import { PROSE_LINK, PROSE_WIDTH } from '../constants'
+import { getTranslations } from '@/i18n'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 import { resolveContentHref } from '@/lib/content'
 
@@ -35,10 +36,25 @@ type MdxComponentMap = Record<string, React.ComponentType<any>>
  * falls back to English.
  */
 export function createMdxComponents(locale: Locale = DEFAULT_LOCALE): MdxComponentMap {
+    const i18n = getTranslations(locale)
     return {
         ...mdxComponents,
         CountryGrid: (props) => <CountryGrid {...props} locale={locale} />,
-        CompareSavings: (props) => <CompareSavings {...props} locale={locale} />,
+        // CompareSavings is a client component, so its copy is picked here key
+        // by key: passing the whole catalog would serialize ~14 KB of unused
+        // strings into every compare page.
+        CompareSavings: (props) => (
+            <CompareSavings
+                {...props}
+                locale={locale}
+                strings={{
+                    compareSavingsLive: i18n.compareSavingsLive,
+                    compareSavingsStatic: i18n.compareSavingsStatic,
+                    compareSavingsUnverified: i18n.compareSavingsUnverified,
+                    compareSavingsSource: i18n.compareSavingsSource,
+                }}
+            />
+        ),
         Steps: (props) => <Steps {...props} locale={locale} />,
         RelatedPages: (props) => <RelatedPages {...props} locale={locale} />,
         FAQ: (props) => <FAQ {...props} locale={locale} />,

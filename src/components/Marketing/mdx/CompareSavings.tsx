@@ -1,8 +1,19 @@
 'use client'
 
 import { useExchangeRate } from '@/hooks/useExchangeRate'
-import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
+import { t } from '@/i18n/interpolate'
+import { DEFAULT_LOCALE, type Locale, type Translations } from '@/i18n/types'
 import { PROSE_LINK, PROSE_WIDTH } from '../constants'
+
+/**
+ * Only the keys this component renders. The whole catalog would cross the
+ * server/client boundary on every compare page, and `@/i18n` pulls all four
+ * catalogs into the client bundle — hence `strings` rather than a lookup here.
+ */
+type CompareSavingsStrings = Pick<
+    Translations,
+    'compareSavingsLive' | 'compareSavingsStatic' | 'compareSavingsUnverified' | 'compareSavingsSource'
+>
 
 interface CompareSavingsProps {
     /** Competitor name as it should read in the sentence, e.g. "Wise". */
@@ -25,6 +36,8 @@ interface CompareSavingsProps {
     sourceUrl?: string
     /** Injected by createMdxComponents — never authored in MDX. */
     locale?: Locale
+    /** Injected by createMdxComponents — never authored in MDX. */
+    strings: CompareSavingsStrings
 }
 
 const MAX_PLAUSIBLE_PCT = 50
@@ -89,7 +102,7 @@ const formatRange = (min: number, max: number): string =>
  *     currency="ARS" sourceUrl="https://wise.com/pricing/" />
  */
 export function CompareSavings(props: CompareSavingsProps) {
-    const { competitor, markupPct, verifiedAt, currency = 'ARS', sourceUrl, locale = DEFAULT_LOCALE } = props
+    const { competitor, verifiedAt, currency = 'ARS', sourceUrl, strings, locale = DEFAULT_LOCALE } = props
     const claim = parseClaim(props)
 
     const { exchangeRate } = useExchangeRate({
@@ -114,19 +127,20 @@ export function CompareSavings(props: CompareSavingsProps) {
         <>
             {' '}
             <a href={sourceUrl} rel="nofollow noopener" className={PROSE_LINK}>
-                Source
+                {strings.compareSavingsSource}
             </a>
             .
         </>
     ) : null
 
-    // Degraded lane: the claim itself did not parse, so state it without doing
-    // arithmetic on numbers we could not validate.
+    // Degraded lane: the claim itself did not parse. The rejected markupPct is
+    // deliberately absent — repeating it here would publish the exact claim the
+    // guard above refused ("-2%", "lots%").
     if (!claim) {
         return (
             <Frame>
-                As of {verifiedLabel}, {competitor} charges around {markupPct}% to convert your money. Peanut&apos;s
-                rate is live and indicative.{source}
+                {t(strings.compareSavingsUnverified, { competitor, date: verifiedLabel })}
+                {source}
             </Frame>
         )
     }
@@ -141,8 +155,13 @@ export function CompareSavings(props: CompareSavingsProps) {
     if (!(exchangeRate > 0)) {
         return (
             <Frame>
-                As of {verifiedLabel}, {competitor} charges {rangeLabel}% to convert your money — up to about{' '}
-                {usd(worstCaseUsd)} on a {usd(claim.baseAmount)} transfer. Peanut&apos;s rate is live and indicative.
+                {t(strings.compareSavingsStatic, {
+                    date: verifiedLabel,
+                    competitor,
+                    range: rangeLabel,
+                    worstCase: usd(worstCaseUsd),
+                    base: usd(claim.baseAmount),
+                })}
                 {source}
             </Frame>
         )
@@ -150,10 +169,16 @@ export function CompareSavings(props: CompareSavingsProps) {
 
     return (
         <Frame>
-            {usd(claim.baseAmount)} with Peanut is about {local(claim.baseAmount * exchangeRate)} today. {competitor}
-            &apos;s {rangeLabel}% conversion fee costs you up to about {usd(worstCaseUsd)} (
-            {local(worstCaseUsd * exchangeRate)}) of that. Competitor fees were verified on {verifiedLabel} and change
-            over time.{source}
+            {t(strings.compareSavingsLive, {
+                base: usd(claim.baseAmount),
+                localBase: local(claim.baseAmount * exchangeRate),
+                competitor,
+                range: rangeLabel,
+                worstCase: usd(worstCaseUsd),
+                localWorstCase: local(worstCaseUsd * exchangeRate),
+                date: verifiedLabel,
+            })}
+            {source}
         </Frame>
     )
 }
