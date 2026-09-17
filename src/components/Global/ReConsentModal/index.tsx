@@ -9,6 +9,7 @@ import DocsLink from '@/components/Global/DocsLink'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { legalPolicyForSlug } from '@/constants/legal-policies'
 import { useAuth } from '@/context/authContext'
+import { useModalsContextOptional } from '@/context/ModalsContext'
 import { acceptedLegalDocument, consentApi, type ConsentStatusDocument } from '@/services/consent'
 import { LEGAL_DOCUMENT_VERSIONS, type LegalDocumentSlug } from '@/constants/legal-versions.generated'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
@@ -38,27 +39,43 @@ const ReConsentModal = () => {
     const [checked, setChecked] = useState(false)
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    // false while a status check may still surface documents; true on every
+    // terminal path. feeds the priority gate below (TASK-22452).
+    const [resolved, setResolved] = useState(false)
     const lastCheckedUserId = useRef<string | null>(null)
+    const setLegalConsentGate = useModalsContextOptional()?.setLegalConsentGate
 
     useEffect(() => {
         // once per user per session — keyed by userId so a logout → login as a
         // different account still gets its own check
         const userId = user?.user.userId
-        if (!userId || lastCheckedUserId.current === userId) return
+        if (!userId) {
+            // logged out: nothing can prompt — the gate must not stay closed
+            setResolved(true)
+            setOutdatedDocs([])
+            lastCheckedUserId.current = null
+            return
+        }
+        if (lastCheckedUserId.current === userId) return
         lastCheckedUserId.current = userId
         // account switched: none of the previous user's consent state may leak
         // into this session (an already-populated modal or a pre-ticked box)
+        setResolved(false)
         setOutdatedDocs([])
         setChecked(false)
         setError(null)
         // a recent "Not now" defers the prompt — don't even spend the request
-        if (isReConsentSnoozed(userId)) return
+        if (isReConsentSnoozed(userId)) {
+            setResolved(true)
+            return
+        }
         consentApi
             .getStatus()
             .then((status) => {
                 // a slow response for the previous account must not populate
                 // the modal for whoever is logged in now
                 if (lastCheckedUserId.current !== userId) return
+                setResolved(true)
                 if (!status.needsReConsent) return
                 // only prompt for documents this client can actually display
                 const docs = status.documents.filter((d) => d.needsAcceptance && d.slug in LEGAL_DOCUMENT_VERSIONS)
@@ -73,9 +90,29 @@ const ReConsentModal = () => {
                 // a failed status check must never block the app — retry next
                 // session. Sentry (not console): a systematic failure here means
                 // re-consent silently stops rolling out, and prod must say so.
+                if (lastCheckedUserId.current === userId) setResolved(true)
                 Sentry.captureException(e, { tags: { feature: 're-consent', action: 'status' } })
             })
     }, [user])
+
+    // publish the priority gate, owned by the current account: in-flight
+    // counts as blocking so the download prompt can never flash before legal
+    // resolves, and a stale 'clear' from the previous account never releases
+    // the next one
+    const gateUserId = user?.user.userId ?? null
+    useEffect(() => {
+        setLegalConsentGate?.({
+            status: !resolved ? 'checking' : outdatedDocs.length ? 'prompting' : 'clear',
+            userId: gateUserId,
+        })
+    }, [setLegalConsentGate, resolved, outdatedDocs.length, gateUserId])
+
+    // this modal unmounting (route group change, error boundary) must never
+    // leave the rest of the app gated
+    useEffect(() => {
+        if (!setLegalConsentGate) return
+        return () => setLegalConsentGate({ status: 'clear', userId: null })
+    }, [setLegalConsentGate])
 
     const handleAccept = async () => {
         if (!checked || submitting) return

@@ -29,6 +29,25 @@ interface ModalsContextType {
     isSecurityVerificationOpen: boolean
     securityVerificationVariant: SecurityVerificationVariant
     setIsSecurityVerificationOpen: (isOpen: boolean, variant?: SecurityVerificationVariant) => void
+
+    // legal re-consent priority gate: ReConsentModal writes it, the download
+    // prompt defers while it is not 'clear' FOR THE CURRENT ACCOUNT. the gate
+    // carries the userId it was resolved for, so account A's 'clear' can
+    // never release account B before B's own check publishes. 'checking'
+    // also covers the status request in flight, so the prompt cannot flash
+    // before legal resolves. starts 'checking' — the modal settles it on
+    // every terminal path (incl. no user / failed check) and on unmount.
+    legalConsentGate: LegalConsentGate
+    setLegalConsentGate: (gate: LegalConsentGate) => void
+}
+
+/** status: 'checking' = request pending · 'prompting' = the legal modal is
+ *  showing · 'clear' = resolved (accepted, snoozed, nothing to show, failed
+ *  open, or no user). userId: the account the status belongs to; null means
+ *  account-independent (logged out, or no consent surface mounted). */
+export interface LegalConsentGate {
+    status: 'checking' | 'prompting' | 'clear'
+    userId: string | null
 }
 
 /** 'next-passkey' tells the user a second passkey sheet follows (mixed spend tap #2). */
@@ -60,6 +79,10 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
 
     // QR Scanner
     const [isQRScannerOpen, setIsQRScannerOpen] = useState(false)
+
+    // legal re-consent gate — 'checking' until ReConsentModal reports, so a
+    // first render can never race the download prompt past legal
+    const [legalConsentGate, setLegalConsentGate] = useState<LegalConsentGate>({ status: 'checking', userId: null })
 
     // Security Verification Overlay
     const [securityVerification, setSecurityVerification] = useState<{
@@ -111,6 +134,10 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
             isSecurityVerificationOpen,
             securityVerificationVariant,
             setIsSecurityVerificationOpen,
+
+            // Legal re-consent gate
+            legalConsentGate,
+            setLegalConsentGate,
         }),
         [
             isSignInModalOpen,
@@ -123,6 +150,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
             isSecurityVerificationOpen,
             securityVerificationVariant,
             setIsSecurityVerificationOpen,
+            legalConsentGate,
         ]
     )
 
