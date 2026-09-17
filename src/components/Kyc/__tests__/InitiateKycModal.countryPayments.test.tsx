@@ -57,4 +57,17 @@ describe('InitiateKycModal — country_payments', () => {
         renderModal({ regionName: 'Argentina' })
         expect(screen.getByText('Unlock your account')).toBeInTheDocument()
     })
+
+    it('shows the Argentina tax ID in the prep checklist, not a Brazilian CPF', () => {
+        renderModal({ variant: 'country_payments', regionName: 'Argentina', prepPath: 'extended', taxIdCountry: 'AR' })
+        expect(screen.getByText('CUIT or CUIL, from your DNI. Needed for local bank transfers.')).toBeInTheDocument()
+        expect(
+            screen.queryByText('CPF in Brazil, CUIT or CUIL in Argentina. Needed for local bank transfers.')
+        ).not.toBeInTheDocument()
+    })
+
+    it('shows the Brazil tax ID in the prep checklist for a BR country', () => {
+        renderModal({ variant: 'country_payments', regionName: 'Brazil', prepPath: 'extended', taxIdCountry: 'BR' })
+        expect(screen.getByText('CPF. Needed for local bank transfers.')).toBeInTheDocument()
+    })
 })

@@ -3017,7 +3017,9 @@
                 "taxId": {
                     "label": "Tax ID",
                     "title": "Your tax ID",
-                    "body": "CPF in Brazil, CUIT or CUIL in Argentina. Needed for local bank transfers."
+                    "body": "CPF in Brazil, CUIT or CUIL in Argentina. Needed for local bank transfers.",
+                    "bodyAR": "CUIT or CUIL, from your DNI. Needed for local bank transfers.",
+                    "bodyBR": "CPF. Needed for local bank transfers."
                 },
                 "questions": {
                     "label": "Questions",

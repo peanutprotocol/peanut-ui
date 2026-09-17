@@ -153,6 +153,7 @@ const MantecaFlowManager: FC<MantecaFlowManagerProps> = ({ claimLinkData, amount
             <InitiateKycModal
                 cooldownActive={!!sumsubFlow.errorCooldown}
                 prepPath="extended"
+                taxIdCountry={targetCountry === 'BR' ? 'BR' : targetCountry === 'AR' ? 'AR' : undefined}
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
                 onVerify={async () => {

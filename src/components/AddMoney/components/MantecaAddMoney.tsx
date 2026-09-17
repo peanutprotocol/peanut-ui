@@ -293,6 +293,7 @@ const MantecaAddMoney: FC = () => {
                 <InitiateKycModal
                     cooldownActive={!!sumsubFlow.errorCooldown}
                     prepPath="extended"
+                    taxIdCountry={selectedCountry?.id === 'BR' ? 'BR' : selectedCountry?.id === 'AR' ? 'AR' : undefined}
                     visible={showKycModal}
                     onClose={closeKycModal}
                     onVerify={async () => {

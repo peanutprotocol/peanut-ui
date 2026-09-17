@@ -1356,7 +1356,9 @@
                 },
                 "taxId": {
                     "title": "Tu identificación fiscal",
-                    "body": "CPF en Brasil, CUIT o CUIL en Argentina. Se necesita para enviar y recibir por los rieles bancarios locales."
+                    "body": "CPF en Brasil, CUIT o CUIL en Argentina. Se necesita para enviar y recibir por los rieles bancarios locales.",
+                    "bodyAR": "CUIT o CUIL, de tu DNI. Se necesita para las transferencias bancarias locales.",
+                    "bodyBR": "CPF. Se necesita para las transferencias bancarias locales."
                 },
                 "questions": {
                     "title": "Unas preguntas breves",

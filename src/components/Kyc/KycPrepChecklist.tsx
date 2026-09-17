@@ -22,7 +22,7 @@ export type KycPrepPath = 'standard' | 'extended' | 'hosted'
  * AFTER the list so it reads as the consequence of not having those documents
  * rather than as a preamble to them.
  */
-const KycPrepChecklist = ({ path }: { path: KycPrepPath }) => {
+const KycPrepChecklist = ({ path, taxIdCountry }: { path: KycPrepPath; taxIdCountry?: 'AR' | 'BR' }) => {
     const t = useTranslations('kyc.prep')
     const isHosted = path === 'hosted'
     const items =
@@ -31,6 +31,12 @@ const KycPrepChecklist = ({ path }: { path: KycPrepPath }) => {
             : isHosted
               ? (['id', 'selfie', 'proofOfAddress'] as const)
               : (['id', 'selfie'] as const)
+    // The tax-ID row lists one country's document. The extended path is Manteca-
+    // only, so the caller knows whether it is Argentina or Brazil — name that
+    // country's tax ID instead of the both-countries string that showed a
+    // Brazilian CPF inside the Argentina drawer.
+    const taxIdBodyKey =
+        taxIdCountry === 'AR' ? 'items.taxId.bodyAR' : taxIdCountry === 'BR' ? 'items.taxId.bodyBR' : 'items.taxId.body'
 
     return (
         <div className="flex w-full flex-col gap-3 text-left" data-testid="kyc-prep-checklist">
@@ -44,7 +50,9 @@ const KycPrepChecklist = ({ path }: { path: KycPrepPath }) => {
                 {items.map((item) => (
                     <div key={item} className="pb-3">
                         <DataRow label={t(`items.${item}.label`)} value={t(`items.${item}.title`)} />
-                        <p className="text-body-xs text-foreground-secondary">{t(`items.${item}.body`)}</p>
+                        <p className="text-body-xs text-foreground-secondary">
+                            {t(item === 'taxId' ? taxIdBodyKey : `items.${item}.body`)}
+                        </p>
                     </div>
                 ))}
             </Card>

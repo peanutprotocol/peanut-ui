@@ -47,6 +47,10 @@ interface InitiateKycModalProps {
     /** Which prep checklist the SDK-bound variants show: extended for the
      *  Manteca (BR/AR) flows, standard elsewhere. */
     prepPath?: 'standard' | 'extended'
+    /** ISO code of the single country the extended prep is for, so the tax-ID
+     *  row names that country's document (CUIT/CUIL for AR, CPF for BR) rather
+     *  than the both-countries string. Pass the ISO code, not `regionName`. */
+    taxIdCountry?: 'AR' | 'BR'
     /**
      * 'modal' overlays the caller; 'page' renders the same decision as a flow
      * step. The prep content is a screen's worth — two requirement cards, a
@@ -86,6 +90,7 @@ export const InitiateKycModal = ({
     reasonCode,
     regionName,
     prepPath = 'standard',
+    taxIdCountry,
     presentation = 'modal',
     onBack,
     navTitle,
@@ -276,7 +281,7 @@ export const InitiateKycModal = ({
     const description = showPrepChecklist ? (
         <div className="flex flex-col gap-3 text-left">
             <p>{getDescription()}</p>
-            <KycPrepChecklist path={prepPath} />
+            <KycPrepChecklist path={prepPath} taxIdCountry={taxIdCountry} />
         </div>
     ) : (
         getDescription()

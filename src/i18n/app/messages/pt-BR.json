@@ -3017,7 +3017,9 @@
                 "taxId": {
                     "label": "ID fiscal",
                     "title": "Seu documento fiscal",
-                    "body": "CPF no Brasil, CUIT ou CUIL na Argentina. Necessário para enviar e receber pelos trilhos bancários locais."
+                    "body": "CPF no Brasil, CUIT ou CUIL na Argentina. Necessário para enviar e receber pelos trilhos bancários locais.",
+                    "bodyAR": "CUIT ou CUIL, do seu DNI. Necessário para transferências bancárias locais.",
+                    "bodyBR": "CPF. Necessário para transferências bancárias locais."
                 },
                 "questions": {
                     "label": "Perguntas",
