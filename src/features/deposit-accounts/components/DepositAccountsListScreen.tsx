@@ -1,6 +1,5 @@
 'use client'
 
-import { Accordion } from '@/components/0_Bruddle/Accordion'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
@@ -13,19 +12,21 @@ import { CountryList } from '@/components/Common/CountryList'
 import { matchesCountryQuery } from '@/components/Common/country-search'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { SearchInput } from '@/components/SearchInput'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import type { GateState } from '@/utils/capability-gate'
 import { rewriteMethodPath } from '@/utils/native-routes'
+import { twMerge } from '@/utils/tw'
 import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { parseAsStringEnum, useQueryStates } from 'nuqs'
 import { useMemo, useState } from 'react'
 import { corridorsForCountry } from '../countryCorridor'
 import { depositGateView } from '../depositGate'
-import { DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, isClaimable } from '../rails'
+import { DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, isClaimable, topUpOnlyHref } from '../rails'
 import { isResidenceGated, residenceAllows, RESIDENCE_GATED_CORRIDORS } from '../residenceGate'
 import { canShare, isHeld } from '../resolveScreen'
 import type { DepositAccountView, DepositCorridor, DepositRail } from '../types'
@@ -174,15 +175,16 @@ export function DepositAccountsListScreen({
     /**
      * Where the corridor stands, in the one slot that carries status.
      *
-     * A corridor nobody can hold as a standing account is unavailable whatever
-     * the accounts call returned, so the rail decides that case rather than the
-     * payload — a failed read must not invite a claim on AR or BR.
+     * A pointer row has no account and therefore no status: its badge would be
+     * a claim about something that does not exist. The chevron already says it
+     * leads somewhere, which is all a pointer row has to say.
      *
      * "Unavailable" is reserved for a corridor that is truly closed. A
-     * residence-gated row is not closed — it is one residence away — so all
-     * three read "Not set up" and the screen behind them carries the reason.
+     * residence-gated row is not closed — it is one residence away — so it
+     * reads "Not set up" and the screen behind it carries the reason.
      */
     const rowBadge = (rail: DepositRail, account: DepositAccountView | undefined, gate: GateState) => {
+        if (topUpOnlyHref(rail)) return null
         if (isLoading) return <div className="h-5 w-16 animate-pulse rounded bg-foreground-primary/10" />
         if (isResidenceGated(rail.corridor) && !account)
             return <StatusBadge status="custom" customText={t('list.badgeNotSetUp')} />
@@ -213,20 +215,33 @@ export function DepositAccountsListScreen({
         }
     }
 
+    /** the top-up a claimable corridor falls back to, where the user can use it */
+    const standingTopUp = (rail: DepositRail, claimableHere: boolean): string | undefined => {
+        const noStandingAccount = !isHeld(accounts[rail.corridor]) && !claimableHere
+        return rail.topUpHref && noStandingAccount && residenceAllows(rail.corridor, residenceIso2s)
+            ? rail.topUpHref
+            : undefined
+    }
+
     /**
      * Where a row leads.
      *
-     * A corridor with no standing account for this user — Argentina, which
-     * never has one, or a Brazilian resident who holds none and is not
-     * endorsed yet — follows the top-up its own rail names, rather than a claim
-     * that cannot happen. Everything else opens the corridor screens, which is
-     * also where a non-resident reads the residence rule.
+     * A pointer row goes straight to its top-up flow, whatever the residence
+     * says: Argentina has no account to open, and the flow states its own
+     * verification rule. The country list sends Argentina to the same href, so
+     * the two entry points cannot disagree.
+     *
+     * A corridor that IS a standing account follows its rail's top-up only
+     * where the user holds none, cannot open one here, and lives in the
+     * country — a Brazilian resident waiting on an endorsement. Everything
+     * else opens the corridor screens, which is also where a non-resident
+     * reads the residence rule.
      */
     const openRow = (corridor: DepositCorridor, claimableHere: boolean) => {
         const rail = DEPOSIT_RAILS[corridor]
-        const noStandingAccount = !isHeld(accounts[corridor]) && (!isClaimable(rail) || !claimableHere)
-        if (rail.topUpHref && noStandingAccount && residenceAllows(corridor, residenceIso2s)) {
-            router.push(rewriteMethodPath(rail.topUpHref))
+        const topUp = topUpOnlyHref(rail) ?? standingTopUp(rail, claimableHere)
+        if (topUp) {
+            router.push(rewriteMethodPath(topUp))
             return
         }
         onOpen(corridor)
@@ -353,27 +368,43 @@ export function DepositAccountsListScreen({
                  * offers the waitlist rather than a screen that says "soon".
                  */}
                 {showCountries && (
-                    <Section title={t('list.countriesTitle')}>
-                        <Accordion
-                            type="single"
-                            collapsible
-                            value={countriesExpanded ? 'countries' : ''}
-                            onValueChange={(value) => setCountriesOpen(value === 'countries')}
-                        >
-                            <Accordion.Item value="countries">
-                                <Accordion.Trigger>{t('list.countriesPitch')}</Accordion.Trigger>
-                                <Accordion.Content>
-                                    <CountryList
-                                        viewMode="add-withdraw"
-                                        flow="add"
-                                        searchTerm={query}
-                                        onCountryClick={openCountry}
-                                        isCountrySupported={isCountrySupported}
-                                    />
-                                </Accordion.Content>
-                            </Accordion.Item>
-                        </Accordion>
-                    </Section>
+                    <ListGroup data-testid="other-countries">
+                        {/* the same row the accounts card is built from: an
+                            accordion with one bottom border read as a broken
+                            row next to them */}
+                        <ListItem
+                            title={t('list.countriesTitle')}
+                            body={t('list.countriesPitch')}
+                            bodyWrap
+                            leading={
+                                <AvatarWithBadge icon="globe" size="extra-small" className="bg-action-secondary" />
+                            }
+                            trailing={
+                                <Icon
+                                    name="chevron-down"
+                                    size={20}
+                                    className={twMerge(
+                                        'transition-transform duration-moderate',
+                                        countriesExpanded && 'rotate-180'
+                                    )}
+                                />
+                            }
+                            position={countriesExpanded ? 'first' : 'single'}
+                            aria-expanded={countriesExpanded}
+                            onClick={() => setCountriesOpen(!countriesExpanded)}
+                            data-testid="other-countries-toggle"
+                        />
+                        {countriesExpanded && (
+                            <CountryList
+                                viewMode="add-withdraw"
+                                flow="add"
+                                searchTerm={query}
+                                onCountryClick={openCountry}
+                                isCountrySupported={isCountrySupported}
+                                continuesGroup
+                            />
+                        )}
+                    </ListGroup>
                 )}
             </div>
         </PageStack>

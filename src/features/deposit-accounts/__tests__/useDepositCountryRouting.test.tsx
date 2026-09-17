@@ -84,6 +84,8 @@ describe('useDepositCountryRouting', () => {
         })
     })
 
+    // Argentina has no account to open: the provider mints a CVU per deposit,
+    // so both entry points land on the top-up flow, residence or not.
     it('sends Argentina to the route its own rail names', () => {
         const { result } = renderRouting()
 
@@ -94,24 +96,27 @@ describe('useDepositCountryRouting', () => {
     })
 
     /**
-     * Brazil is the one country with two corridors, and the catalogue order is
-     * the answer: the standing Pix account when the user is offered it, and the
-     * top-up when they are not. Asking a user to choose between two Pixes was a
-     * step that taught them nothing.
+     * Brazil has two Pix products, and the country pick used to have to choose
+     * between them. It opens the BRL corridor instead, whether or not the user
+     * has the rail yet: the flow behind it resolves the claim, the gate, the
+     * residence and the Pix top-up in one place.
      */
-    it('prefers a standing Brazilian account, and falls back to the top-up', async () => {
+    it('opens the Brazilian corridor in place, offered rail or not', async () => {
         mockOfferedCorridors.mockReturnValue(['BANK_TRANSFER_BR'])
         const updates: UrlUpdateEvent[] = []
         const { result } = renderRouting((e) => updates.push(e))
 
         act(() => result.current.openCountry(BRAZIL as any))
         await waitFor(() => expect(updates.at(-1)?.searchParams.get('corridor')).toBe('BANK_TRANSFER_BR'))
+        expect(updates.at(-1)?.searchParams.get('step')).toBe('details')
         expect(mockRouterPush).not.toHaveBeenCalled()
 
         mockOfferedCorridors.mockReturnValue([])
-        const { result: without } = renderRouting()
-        act(() => without.current.openCountry(BRAZIL as any))
-        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/brazil/manteca')
+        const without: UrlUpdateEvent[] = []
+        const { result: notOffered } = renderRouting((e) => without.push(e))
+        act(() => notOffered.current.openCountry(BRAZIL as any))
+        await waitFor(() => expect(without.at(-1)?.searchParams.get('corridor')).toBe('BANK_TRANSFER_BR'))
+        expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
     it('keeps the bank flow for a corridor the user has no rail for, and while the flag is off', () => {

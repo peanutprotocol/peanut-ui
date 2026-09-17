@@ -4019,23 +4019,14 @@
             "PIX_BR": {
                 "arrival": "Em minutos",
                 "arrivalDetail": "As transferências Pix costumam chegar em minutos.",
-                "unclaimable": {
-                    "line": "No Brasil o depósito é um código Pix para um pagamento, da sua própria conta.",
-                    "why": "Nosso parceiro bancário vincula sua conta ao país do seu documento legal, um país por vez. Uma pessoa com nacionalidade americana não pode usar transferências bancárias aqui, onde quer que more."
-                },
                 "railName": "Pix"
             },
             "BANK_TRANSFER_AR": {
                 "arrival": "Em minutos",
                 "arrivalDetail": "As transferências na Argentina costumam chegar em minutos.",
-                "unclaimable": {
-                    "line": "Na Argentina o depósito precisa vir de uma conta no seu nome.",
-                    "why": "Nosso parceiro bancário vincula sua conta ao país do seu documento legal, um país por vez. Uma pessoa com nacionalidade americana não pode usar transferências bancárias aqui, onde quer que more."
-                },
                 "railName": "Banco ou Mercado Pago",
                 "residenceOnly": "Para residentes legais na Argentina",
-                "residenceRequired": "Só residentes legais na Argentina podem adicionar dinheiro assim. Sua nacionalidade não importa; o país onde você mora, sim.",
-                "qrPay": "Você ainda pode pagar códigos QR do Mercado Pago na Argentina com o seu saldo."
+                "residenceRequired": "Só residentes legais na Argentina podem adicionar dinheiro assim. Sua nacionalidade não importa; o país onde você mora, sim."
             },
             "BANK_TRANSFER_BR": {
                 "arrival": "Em minutos",

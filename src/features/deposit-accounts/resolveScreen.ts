@@ -64,10 +64,11 @@ export function resolveScreen(
     }
 
     if (requested === 'details') {
-        // A corridor nobody can hold has no account and still has a details
-        // screen: why it is not a standing account, and the top-up route that
-        // is its real way in.
-        if (!isClaimable(rail)) return 'details'
+        // A corridor nobody can hold has no account, no claim and no screen of
+        // its own: its way in is the top-up flow, which the list links to and
+        // which states its own verification rule. A link naming one lands on
+        // the list rather than on a screen that only repeats that rule.
+        if (!isClaimable(rail)) return 'list'
         if (!account) return claimable ? 'claim' : 'list'
         if (account.status === 'unclaimed') return claimable ? 'claim' : 'list'
         return 'details'

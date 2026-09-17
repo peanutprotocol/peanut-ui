@@ -1757,8 +1757,7 @@
                 "residenceRequired": "Solo los residentes legales de Colombia pueden abrir esta cuenta. Tu nacionalidad no importa; el país donde vivís, sí."
             },
             "BANK_TRANSFER_AR": {
-                "residenceRequired": "Solo los residentes legales de Argentina pueden agregar plata así. Tu nacionalidad no importa; el país donde vivís, sí.",
-                "qrPay": "De todas formas podés pagar códigos QR de Mercado Pago en Argentina con tu saldo."
+                "residenceRequired": "Solo los residentes legales de Argentina pueden agregar plata así. Tu nacionalidad no importa; el país donde vivís, sí."
             }
         },
         "errors": {

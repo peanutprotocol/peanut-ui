@@ -1,6 +1,7 @@
 import type { CountryData } from '@/components/AddMoney/consts'
 import { corridorsForCountry } from '@/features/deposit-accounts/countryCorridor'
 import { DEPOSIT_RAILS, isClaimable } from '@/features/deposit-accounts/rails'
+import { isResidenceGated } from '@/features/deposit-accounts/residenceGate'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import { liveRailsForCountry } from '@/features/destinations/country-rails'
 
@@ -20,22 +21,33 @@ export type AddMoneyRoute =
 /**
  * The bank routes this user has into this country, in catalogue order.
  *
- * A standing corridor counts only where the user is actually offered its rail:
- * the catalogue says the corridor exists, the capabilities say whether this
- * person may open it. A top-up corridor counts for everybody, because it needs
- * no account.
+ * A standing corridor counts where the user is offered its rail, and where the
+ * corridor is residence-gated: those are shown to everybody, and the flow
+ * behind them resolves held, claim, gate and residence in one place. Sending a
+ * Brazilian resident somewhere else until the capability block names their rail
+ * is how the country list and the account row came to disagree. A top-up
+ * corridor counts for everybody, because it needs no account.
  */
 export function addMoneyRoutesForCountry(
     country: Pick<CountryData, 'type' | 'iso2' | 'currency'>,
     offeredCorridors: DepositCorridor[],
     depositAccountsEnabled: boolean
 ): AddMoneyRoute[] {
-    return corridorsForCountry(country).flatMap<AddMoneyRoute>((corridor) => {
+    const corridors = corridorsForCountry(country)
+    const claimableCorridors = corridors.filter((corridor) => isClaimable(DEPOSIT_RAILS[corridor]))
+    // One country, one destination. Brazil has a standing Pix account and a
+    // per-payment Pix code, and once standing accounts are live the account is
+    // the answer — the code is reached from the corridor flow, not from a
+    // second country route to the same tap. While they are dark the top-up is
+    // the only way in, so it stays.
+    const resolvable = depositAccountsEnabled && claimableCorridors.length > 0 ? claimableCorridors : corridors
+
+    return resolvable.flatMap<AddMoneyRoute>((corridor) => {
         const rail = DEPOSIT_RAILS[corridor]
         if (!isClaimable(rail)) {
             return rail.topUpHref ? [{ corridor, kind: 'top-up', href: rail.topUpHref }] : []
         }
-        const offered = depositAccountsEnabled && offeredCorridors.includes(corridor)
+        const offered = depositAccountsEnabled && (offeredCorridors.includes(corridor) || isResidenceGated(corridor))
         return offered ? [{ corridor, kind: 'standing' }] : []
     })
 }

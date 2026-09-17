@@ -35,14 +35,18 @@ jest.mock('../components/DepositAccountsListScreen', () => ({
 const READY: GateState = { kind: 'ready' }
 const NONE = emptyCorridorRecord<DepositAccountView>()
 
-const flow = (corridor: DepositCorridor, corridors: DepositCorridor[] = ['SEPA_EU']) =>
+const flow = (
+    corridor: DepositCorridor,
+    corridors: DepositCorridor[] = ['SEPA_EU'],
+    { step = 'claim', gate = READY }: { step?: string; gate?: GateState } = {}
+) =>
     render(
         <NextIntlClientProvider locale="en" messages={messages}>
-            <NuqsTestingAdapter searchParams={`?step=claim&corridor=${corridor}`}>
+            <NuqsTestingAdapter searchParams={`?step=${step}&corridor=${corridor}`}>
                 <DepositAccountsFlow
                     corridors={corridors}
                     accounts={NONE}
-                    gates={corridorRecord(() => READY)}
+                    gates={corridorRecord(() => gate)}
                     isLoading={false}
                     userName="Demo User"
                     onExit={() => {}}
@@ -112,6 +116,31 @@ describe('tapping a residence-gated corridor', () => {
 
         expect(screen.queryByText(messages.depositAccounts.details.residenceTitle)).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: /open brl account/i })).toBeInTheDocument()
+    })
+
+    /**
+     * The country list opens Brazil on its corridor now, the same way Portugal
+     * opens the euro account. A non-resident arriving that way has to read the
+     * rule, not a claim screen that would fail at the provider.
+     */
+    it('answers a Brazilian country pick with the rule, for a non-resident', () => {
+        residenceIso2s = ['DE']
+        flow('BANK_TRANSFER_BR', ['SEPA_EU'], { step: 'details' })
+
+        expect(screen.getByText(messages.depositAccounts.details.residenceTitle)).toBeInTheDocument()
+    })
+
+    /**
+     * A Brazilian resident whose rail is not enabled yet is not stuck: the Pix
+     * top-up is the same money in, minted per payment. Reaching it from the
+     * gate screen is what keeps the country pick to one destination.
+     */
+    it('offers the Pix top-up to a resident waiting on the gate', () => {
+        residenceIso2s = ['BR']
+        flow('BANK_TRANSFER_BR', ['SEPA_EU'], { step: 'details', gate: { kind: 'needs-enrollment' } })
+
+        expect(screen.getByText(messages.depositAccounts.gate.verifyTitle)).toBeInTheDocument()
+        expect(screen.getByTestId('corridor-top-up')).toHaveAttribute('href', '/add-money/brazil/manteca')
     })
 
     it('leaves an ungated corridor alone whatever the residence says', () => {

@@ -148,7 +148,7 @@ export function DepositAccountsFlow({
     // The corridor exists and the user does not live there. Said before any
     // claim, because the claim would fail at the provider with a sentence
     // written for us rather than for them.
-    if (screen !== 'list' && !residenceAllows(corridor, residenceIso2s)) {
+    if (screen !== 'list' && isClaimable(rail) && !residenceAllows(corridor, residenceIso2s)) {
         return <CorridorUnavailableScreen rail={rail} requiresResidence onBack={() => setParams({ step: 'list' })} />
     }
 
@@ -180,9 +180,10 @@ export function DepositAccountsFlow({
         setParams({ corridor: next, step: needsClaim ? 'claim' : 'details' })
     }
 
-    // A corridor that is not a standing account has no account to wait for and
-    // none to render — its details screen is the education and the top-up route.
-    if (resolved === 'details' && (!isClaimable(rail) || account?.status === 'unavailable')) {
+    // The provider closed a corridor the user holds an account on. There are no
+    // details left to render, so the screen says so and offers the way in that
+    // still works.
+    if (resolved === 'details' && account?.status === 'unavailable') {
         return <CorridorUnavailableScreen rail={rail} onBack={() => setParams({ step: 'list' })} />
     }
 

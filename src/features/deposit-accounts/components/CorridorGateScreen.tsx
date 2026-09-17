@@ -1,9 +1,11 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
+import { rewriteMethodPath } from '@/utils/native-routes'
 import type { DepositGateView } from '../depositGate'
 import type { DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
@@ -59,6 +61,9 @@ export function CorridorGateScreen({
     onAct: () => void
 }) {
     const { t, railName } = useDepositAccountCopy()
+    // A gate on the standing account does not close the country. Where the rail
+    // has a top-up, waiting on the gate is not the user's only option.
+    const topUpHref = rail.topUpHref ? rewriteMethodPath(rail.topUpHref) : undefined
 
     return (
         <PageStack>
@@ -69,15 +74,22 @@ export function CorridorGateScreen({
                     title={t(TITLES[notice.action])}
                     description={notice.message ?? t(BODIES[notice.action])}
                     cta={
-                        notice.action === 'none' ? (
-                            <Button variant="stroke" size="small" onClick={onBack}>
-                                {t('details.unavailableCta')}
-                            </Button>
-                        ) : (
-                            <Button variant="purple" size="small" onClick={onAct}>
-                                {t(LABELS[notice.action])}
-                            </Button>
-                        )
+                        <div className="mt-4 flex w-full flex-col items-center gap-4">
+                            {notice.action === 'none' ? (
+                                <Button variant="purple" className="w-full" onClick={onBack}>
+                                    {t('details.unavailableCta')}
+                                </Button>
+                            ) : (
+                                <Button variant="purple" className="w-full" onClick={onAct}>
+                                    {t(LABELS[notice.action])}
+                                </Button>
+                            )}
+                            {topUpHref && (
+                                <LinkButton href={topUpHref} data-testid="corridor-top-up">
+                                    {t('details.topUpCta', { currency: rail.currency })}
+                                </LinkButton>
+                            )}
+                        </div>
                     }
                 />
                 {/* which corridor the user tapped, so the screen is not about "an account" */}

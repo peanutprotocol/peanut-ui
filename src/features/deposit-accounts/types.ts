@@ -162,9 +162,9 @@ export interface DepositRail {
      */
     residenceIso2?: string
     /**
-     * The country takes QR payments from a Peanut balance — Pix in Brazil,
-     * Mercado Pago in Argentina. A non-resident cannot open the account and
-     * can still pay there, so the explainer says both.
+     * The country takes QR payments from a Peanut balance — Pix in Brazil. A
+     * non-resident cannot open the account and can still pay there, so the
+     * explainer says both.
      */
     qrPay?: true
 }

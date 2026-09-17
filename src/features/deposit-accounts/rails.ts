@@ -80,7 +80,6 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         detailRowCount: 5,
         claimable: false,
         residenceIso2: 'AR',
-        qrPay: true,
         topUpHref: '/add-money/argentina/manteca',
     },
 }
@@ -118,6 +117,18 @@ export function emptyCorridorRecord<T>(): Record<DepositCorridor, T | undefined>
 /** a corridor a user can hold as a reusable account somebody else can pay into */
 export function isClaimable(rail: DepositRail): boolean {
     return rail.claimable !== false
+}
+
+/**
+ * The top-up flow a corridor points at, where that flow is its whole way in.
+ *
+ * Argentina is the case: the provider mints a CVU per deposit and holds it, so
+ * there is no account to open, no details to hand a payer and nothing for a
+ * corridor screen to say. The row points at the flow, which states its own
+ * verification rule.
+ */
+export function topUpOnlyHref(rail: DepositRail): string | undefined {
+    return isClaimable(rail) ? undefined : rail.topUpHref
 }
 
 /**

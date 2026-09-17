@@ -62,10 +62,11 @@ describe('resolveScreen', () => {
         expect(resolveScreen('details', eur, undefined, READY)).toBe('claim')
     })
 
-    // A corridor nobody can hold has no account and never will. Its details
-    // screen is the education and the top-up route, so it must still resolve.
-    it('keeps a corridor that cannot be held on its own details screen', () => {
-        expect(resolveScreen('details', ars, undefined, READY)).toBe('details')
+    // A corridor nobody can hold has no account, no claim and no screen of its
+    // own — the row on the list points straight at its top-up flow, which
+    // states its own verification rule. A link naming one lands on the list.
+    it('sends a corridor that cannot be held back to the list', () => {
+        expect(resolveScreen('details', ars, undefined, READY)).toBe('list')
     })
 
     it('keeps a revoked account on its details, where the reason is', () => {

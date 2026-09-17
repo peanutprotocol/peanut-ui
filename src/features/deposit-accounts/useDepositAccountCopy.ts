@@ -54,19 +54,12 @@ const RESIDENCE_KEYS = {
 } as const
 
 /**
- * The corridors whose country takes QR payments, written out separately from
- * the residence keys above: Colombia has the residence rule and no QR flow, so
- * only these two have a `qrPay` sentence to look up at all.
+ * The corridors whose country takes QR payments. Only Brazil is left: Colombia
+ * has the residence rule and no QR flow, and Argentina no longer has a screen
+ * of its own to say it on.
  */
 const QR_PAY_KEYS = {
     BANK_TRANSFER_BR: 'corridors.BANK_TRANSFER_BR.qrPay',
-    BANK_TRANSFER_AR: 'corridors.BANK_TRANSFER_AR.qrPay',
-} as const
-
-/** only the corridors that cannot be held as an account have a reason */
-const UNCLAIMABLE_KEYS = {
-    PIX_BR: 'corridors.PIX_BR.unclaimable',
-    BANK_TRANSFER_AR: 'corridors.BANK_TRANSFER_AR.unclaimable',
 } as const
 
 /**
@@ -178,17 +171,6 @@ export function useDepositAccountCopy() {
     const arrival = (corridor: DepositCorridor) => t(ARRIVAL_KEYS[corridor])
     const arrivalDetail = (corridor: DepositCorridor) => t(ARRIVAL_DETAIL_KEYS[corridor])
     /**
-     * Why a corridor is never a standing account, in both voices: `text` for
-     * the row body and the empty state, `why` for the (i) behind it — the
-     * exchange-binding and US-nationality rule (`product/providers/fiat/
-     * eligibility.md`) that the short sentence has no room for.
-     */
-    const unclaimableReason = (corridor: DepositCorridor): { text: string; why: string } | undefined => {
-        const key = UNCLAIMABLE_KEYS[corridor as keyof typeof UNCLAIMABLE_KEYS]
-        return key ? { text: t(`${key}.line`), why: t(`${key}.why`) } : undefined
-    }
-
-    /**
      * What a residence-gated corridor says: `caveat` in the row body, so the
      * rule is read before the tap, and `requirement` on the screen that
      * explains the tap that did not open an account.
@@ -216,7 +198,6 @@ export function useDepositAccountCopy() {
         railName,
         arrival,
         arrivalDetail,
-        unclaimableReason,
         residenceLine,
         qrPayLine,
         claimErrorBody,

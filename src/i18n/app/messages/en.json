@@ -4019,23 +4019,14 @@
             "PIX_BR": {
                 "arrival": "Within minutes",
                 "arrivalDetail": "Pix transfers usually arrive within minutes.",
-                "unclaimable": {
-                    "line": "Brazilian deposits are a Pix code for one payment, from your own account.",
-                    "why": "Our banking partner ties your account to the country on your legal ID, one country at a time. A US national cannot use bank transfers here, wherever they live."
-                },
                 "railName": "Pix"
             },
             "BANK_TRANSFER_AR": {
                 "arrival": "Within minutes",
                 "arrivalDetail": "Argentine transfers usually arrive within minutes.",
-                "unclaimable": {
-                    "line": "Argentine deposits must come from an account in your own name.",
-                    "why": "Our banking partner ties your account to the country on your legal ID, one country at a time. A US national cannot use bank transfers here, wherever they live."
-                },
                 "railName": "Bank or Mercado Pago",
                 "residenceOnly": "For legal residents of Argentina",
-                "residenceRequired": "Only legal residents of Argentina can add money this way. Your nationality does not matter — where you live does.",
-                "qrPay": "You can still pay Mercado Pago QR codes in Argentina from your balance."
+                "residenceRequired": "Only legal residents of Argentina can add money this way. Your nationality does not matter — where you live does."
             },
             "BANK_TRANSFER_BR": {
                 "arrival": "Within minutes",

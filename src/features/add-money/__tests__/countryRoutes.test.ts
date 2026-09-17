@@ -20,15 +20,15 @@ const routes = (c: CountryData, offered: DepositCorridor[] = [], enabled = true)
     addMoneyRoutesForCountry(c, offered, enabled)
 
 describe('addMoneyRoutesForCountry', () => {
-    it('offers Brazil both Pix products when the user holds the standing rail', () => {
-        expect(routes(BR, ['BANK_TRANSFER_BR'])).toEqual([
-            { corridor: 'BANK_TRANSFER_BR', kind: 'standing' },
-            { corridor: 'PIX_BR', kind: 'top-up', href: '/add-money/brazil/manteca' },
-        ])
-    })
-
-    it('leaves Brazil the one-off top-up when the standing rail is not the user’s', () => {
-        expect(routes(BR)).toEqual([{ corridor: 'PIX_BR', kind: 'top-up', href: '/add-money/brazil/manteca' }])
+    /**
+     * One country, one destination. Brazil used to answer with both Pix
+     * products and the country pick had to guess; now it opens the BRL
+     * corridor and the flow behind it decides — claim, gate, or the Pix
+     * top-up.
+     */
+    it('sends Brazil to its BRL corridor, offered rail or not', () => {
+        expect(routes(BR, ['BANK_TRANSFER_BR'])).toEqual([{ corridor: 'BANK_TRANSFER_BR', kind: 'standing' }])
+        expect(routes(BR)).toEqual([{ corridor: 'BANK_TRANSFER_BR', kind: 'standing' }])
     })
 
     it('does not offer a standing corridor while the deposit-accounts flag is off', () => {
@@ -37,9 +37,11 @@ describe('addMoneyRoutesForCountry', () => {
         ])
     })
 
-    it('offers Colombia its Bre-B account, and nothing when the rail is not the user’s', () => {
+    // A residence-gated corridor is offered to everybody: the row exists for
+    // every user, and the flow behind it states the rule.
+    it('offers Colombia its Bre-B account whether or not the rail is the user’s', () => {
         expect(routes(CO, ['BANK_TRANSFER_CO'])).toEqual([{ corridor: 'BANK_TRANSFER_CO', kind: 'standing' }])
-        expect(routes(CO)).toEqual([])
+        expect(routes(CO)).toEqual([{ corridor: 'BANK_TRANSFER_CO', kind: 'standing' }])
     })
 
     it('resolves a euro member through the zone rail', () => {
@@ -52,15 +54,14 @@ describe('addMoneyRoutesForCountry', () => {
 })
 
 describe('hasAddMoneyRoute', () => {
-    it('keeps Brazil and Colombia off the waitlist once they have a route', () => {
-        // Brazil's top-up needs no rail of the user's own; Colombia's account does
+    it('keeps Brazil and Colombia off the waitlist, rail of their own or not', () => {
         expect(hasAddMoneyRoute(BR, [], true)).toBe(true)
+        expect(hasAddMoneyRoute(CO, [], true)).toBe(true)
         expect(hasAddMoneyRoute(CO, ['BANK_TRANSFER_CO'], true)).toBe(true)
     })
 
     it('offers the waitlist where there is no corridor and no live bank rail', () => {
         expect(hasAddMoneyRoute(NG, [], true)).toBe(false)
-        expect(hasAddMoneyRoute(CO, [], true)).toBe(false)
     })
 
     it('still counts a live bank rail for a corridor the user has not been offered', () => {

@@ -27,7 +27,7 @@ jest.mock('next/navigation', () => ({
 // country back to the screen the way a tap does
 jest.mock('@/components/Common/CountryList', () => ({
     CountryList: (props: any) => (
-        <div data-testid="country-list">
+        <div data-testid="country-list" data-continues-group={String(!!props.continuesGroup)}>
             <span>{props.inputTitle}</span>
             <button
                 data-testid="country-germany"
@@ -118,8 +118,8 @@ const rowOf = (container: HTMLElement, corridor: DepositCorridor) =>
 
 const inRow = (container: HTMLElement, corridor: DepositCorridor) => within(rowOf(container, corridor) as HTMLElement)
 
-/** the countries collapsible, collapsed until tapped or until a search finds one */
-const countriesTrigger = () => screen.getByRole('button', { name: messages.depositAccounts.list.countriesPitch })
+/** the countries toggle row, collapsed until tapped or until a search finds one */
+const countriesTrigger = () => screen.getByTestId('other-countries-toggle')
 
 /**
  * The corridors are a local catalogue and the accounts are a network call, so
@@ -195,21 +195,24 @@ describe('DepositAccountsListScreen', () => {
      * row is one residence away, so all three read the same as any corridor
      * the user has not opened — the screen behind the row carries the reason.
      */
-    it('badges every residence-gated row the same, and not as unavailable', () => {
+    it('badges every residence-gated account row the same, and not as unavailable', () => {
         const { container } = list(false)
 
-        for (const corridor of ['BANK_TRANSFER_AR', 'BANK_TRANSFER_BR', 'BANK_TRANSFER_CO'] as const) {
+        for (const corridor of ['BANK_TRANSFER_BR', 'BANK_TRANSFER_CO'] as const) {
             expect(inRow(container, corridor).getByText('Not set up')).toBeInTheDocument()
             expect(inRow(container, corridor).queryByText('Unavailable')).not.toBeInTheDocument()
         }
     })
 
-    // The one-off Pix code is a real "nobody can hold this" corridor, and the
-    // rail says so whatever the accounts call returned.
-    it('badges a corridor nobody can hold as unavailable', () => {
+    // A row that only points at a top-up flow has no account behind it, so it
+    // has no status to carry: a badge there would be a claim about something
+    // that does not exist.
+    it('badges no pointer row at all', () => {
         const { container } = list(false, { corridors: ['PIX_BR'] })
 
-        expect(inRow(container, 'PIX_BR').getByText('Unavailable')).toBeInTheDocument()
+        expect(inRow(container, 'PIX_BR').queryByText('Unavailable')).not.toBeInTheDocument()
+        expect(inRow(container, 'PIX_BR').queryByText('Not set up')).not.toBeInTheDocument()
+        expect(inRow(container, 'BANK_TRANSFER_AR').queryByText('Not set up')).not.toBeInTheDocument()
     })
 
     it('does not open a corridor whose state is not known yet', () => {
@@ -425,27 +428,19 @@ describe('the residence-gated rows and the tap behind them', () => {
     })
 
     /**
-     * A corridor with no standing account for this user goes to the top-up its
-     * own rail names, rather than a claim that cannot happen.
+     * Argentina has no account to open: the provider mints a CVU per deposit
+     * and holds it. The row is a pointer at the top-up flow, which owns the
+     * verification step from there — so residence does not change where the
+     * tap goes, and there is no second screen saying the same thing.
      */
-    it('sends an Argentine resident to the local top-up', () => {
-        residenceIso2s = ['AR']
+    it.each([['AR'], ['DE']])('sends the Argentine row to the local top-up for a %s resident', (iso2) => {
+        residenceIso2s = [iso2]
         const onOpen = jest.fn()
         const { container } = list(false, { corridors: ['SEPA_EU'], onOpen })
 
         fireEvent.click(rowOf(container, 'BANK_TRANSFER_AR') as HTMLElement)
         expect(mockPush).toHaveBeenCalledWith('/add-money/argentina/manteca')
         expect(onOpen).not.toHaveBeenCalled()
-    })
-
-    it('sends a non-resident into the corridor screens, where the rule is stated', () => {
-        residenceIso2s = ['DE']
-        const onOpen = jest.fn()
-        const { container } = list(false, { corridors: ['SEPA_EU'], onOpen })
-
-        fireEvent.click(rowOf(container, 'BANK_TRANSFER_AR') as HTMLElement)
-        expect(onOpen).toHaveBeenCalledWith('BANK_TRANSFER_AR')
-        expect(mockPush).not.toHaveBeenCalled()
     })
 
     it('falls back to the Pix top-up for a Brazilian resident with no account and no endorsement', () => {
@@ -524,7 +519,7 @@ describe('DepositAccountsFlow when the accounts cannot be read', () => {
  * user has no rail for has to land somewhere true.
  */
 describe('DepositAccountsFlow when a link names a corridor the user has no rail for', () => {
-    it('answers an Argentine link with the residence rule, not the Argentine screens', () => {
+    it('lands an Argentine link on the list, which points at the Argentine flow', () => {
         render(
             <NextIntlClientProvider locale="en" messages={messages}>
                 <NuqsTestingAdapter searchParams="?step=details&corridor=BANK_TRANSFER_AR">
@@ -544,12 +539,13 @@ describe('DepositAccountsFlow when a link names a corridor the user has no rail 
             </NextIntlClientProvider>
         )
 
-        // the ARS row is on every screen now, so the link lands on the rule
-        // that governs it rather than bouncing back to the list
+        // Argentina has no corridor screen of its own: the hub row points at
+        // the top-up flow, and that flow states its own verification rule
         expect(
             screen.queryByText(messages.depositAccounts.details.unavailableTitle.replace('{currency}', 'ARS'))
         ).not.toBeInTheDocument()
-        expect(screen.getByText(messages.depositAccounts.details.residenceTitle)).toBeInTheDocument()
+        expect(screen.queryByText(messages.depositAccounts.details.residenceTitle)).not.toBeInTheDocument()
+        expect(screen.getByText(messages.depositAccounts.list.addHeading)).toBeInTheDocument()
     })
 })
 
@@ -660,11 +656,29 @@ describe('the countries collapsible', () => {
         expect(screen.queryByTestId('country-list')).not.toBeInTheDocument()
     })
 
-    it('expands on a tap', () => {
+    it('expands on a tap and folds again, and says which it is', () => {
         list(false)
+
+        expect(countriesTrigger()).toHaveAttribute('aria-expanded', 'false')
 
         fireEvent.click(countriesTrigger())
         expect(screen.getByTestId('country-list')).toBeInTheDocument()
+        expect(countriesTrigger()).toHaveAttribute('aria-expanded', 'true')
+
+        fireEvent.click(countriesTrigger())
+        expect(screen.queryByTestId('country-list')).not.toBeInTheDocument()
+    })
+
+    /**
+     * The toggle and the countries are one card, not a toggle with a list
+     * under it: the accordion this replaced had one bottom border and read as
+     * a broken row beside the account rows above it.
+     */
+    it('renders the countries flush with the toggle row above them', () => {
+        list(false)
+
+        fireEvent.click(countriesTrigger())
+        expect(screen.getByTestId('country-list')).toHaveAttribute('data-continues-group', 'true')
     })
 
     it('opens itself once a search of two characters finds a country', () => {
