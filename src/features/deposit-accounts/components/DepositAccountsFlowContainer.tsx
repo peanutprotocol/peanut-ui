@@ -6,29 +6,23 @@ import { DepositAccountsFlow } from './DepositAccountsFlow'
 import { useDepositAccounts } from '../useDepositAccounts'
 import { useDepositAccountsEnabled } from '../useDepositAccountsEnabled'
 import { useDepositGateRemediation } from '../useDepositGateRemediation'
-import type { DepositHubVariant } from '../types'
 
 interface DepositAccountsFlowContainerProps {
     /** leaving the flow entirely — each entry point decides where that goes */
     onExit: () => void
-    /** which entry point this is: it decides the title and the heading, nothing else */
-    variant?: DepositHubVariant
 }
 
 /**
  * The deposit-accounts flow with its data wired in.
  *
- * Two entry points render it: the Add money country pick, once the country
- * resolves to a corridor the user can hold, and /get-paid, which is the same
- * flow reached from the other side. They used to be one page's body, which is
- * how a second onboarding gets written — so the wiring lives here and both
- * callers pass nothing but where "back" goes.
+ * One route renders it — `/add-money?method=bank` — and the wiring lives here
+ * rather than in the page, so the page passes nothing but where "back" goes.
  *
  * The step and the corridor stay in the URL, read by the flow itself, so a
  * caller navigates by setting `?corridor=` and `?step=` rather than by passing
  * state down.
  */
-export function DepositAccountsFlowContainer({ onExit, variant = 'get-paid' }: DepositAccountsFlowContainerProps) {
+export function DepositAccountsFlowContainer({ onExit }: DepositAccountsFlowContainerProps) {
     // While standing accounts are dark, the hub is the country list alone —
     // asking the backend for accounts nobody can open yet buys nothing.
     const accountsEnabled = useDepositAccountsEnabled()
@@ -41,7 +35,6 @@ export function DepositAccountsFlowContainer({ onExit, variant = 'get-paid' }: D
     return (
         <>
             <DepositAccountsFlow
-                variant={variant}
                 corridors={corridors}
                 accounts={accounts}
                 claimable={claimable}

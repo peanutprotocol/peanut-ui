@@ -141,6 +141,7 @@
             "firstPayment": "Make your first payment",
             "firstPaymentNote": "Send a few dollars to a Peanut user, ENS name or wallet address. It lands in seconds.",
             "addMoneyRoutes": "Bank transfer or crypto",
+            "addMoneyStandingAccounts": "Claim your own bank details. Get paid in euros, dollars and more.",
             "addMoneyRoutesKyc": "Bank transfer or crypto · bank needs a one-time ID check",
             "addMoneyRoutesNoBank": "Crypto from any wallet or exchange",
             "getCardNote": "Your dollars, in pink, wherever Visa is accepted."
@@ -3902,25 +3903,23 @@
             "body": "Your own bank details, ready for your next payment.",
             "cta": "See my account details"
         },
-        "title": "Get paid",
+        "title": "Your bank details",
         "list": {
-            "heading": "Your own bank details. Get paid globally.",
-            "subheading": "Get personal bank details in euros, dollars and more. Receive your salary or client payments straight into your Peanut balance.",
             "addTitle": "Add money",
             "addHeading": "Where is the money coming from?",
             "searchPlaceholder": "Search country, currency or account",
             "noMatchTitle": "No match for “{query}”",
             "clearSearch": "Clear search",
             "countriesTitle": "Countries",
+            "countriesPitch": "Send yourself money from a bank in another country.",
             "sectionTitle": "Your accounts",
+            "accountsPitch": "Bank details in your name. Share them once and get paid straight into Peanut.",
             "badgeReady": "Ready",
             "rowBlocked": "Verify your identity to open this account",
             "badgeActive": "Active",
             "badgeNotSetUp": "Not set up",
             "badgeUnavailable": "Unavailable",
             "badgeRevoked": "Revoked",
-            "emptyTitle": "No accounts for your region yet",
-            "emptyBody": "We open bank details in the currencies your verified region supports. None are open to you yet — check back after you add a new country or currency.",
             "errorTitle": "We could not load your accounts",
             "errorBody": "Your accounts are fine — we just could not read them. Check your connection and try again.",
             "errorRetry": "Try again",
@@ -3954,7 +3953,9 @@
             "revokedBody": "Anything sent to them is returned to the sender. Tell anyone who pays you to stop using them, then contact support to have them replaced.",
             "revokedCta": "Contact support",
             "topUpCta": "Add {currency} instead",
-            "whoCanPay": "Who can pay you"
+            "whoCanPay": "Who can pay you",
+            "residenceTitle": "Residence required",
+            "residenceCta": "Update your residence"
         },
         "share": {
             "copyCta": "Copy all details",
@@ -4035,12 +4036,16 @@
             "BANK_TRANSFER_BR": {
                 "arrival": "Within minutes",
                 "arrivalDetail": "Pix transfers usually arrive within minutes.",
-                "railName": "Pix"
+                "railName": "Pix",
+                "residenceOnly": "For legal residents of Brazil",
+                "residenceRequired": "Only legal residents of Brazil can open this account. Your nationality does not matter — where you live does."
             },
             "BANK_TRANSFER_CO": {
                 "railName": "Bre-B",
                 "arrival": "Within minutes",
-                "arrivalDetail": "Bre-B transfers usually arrive within minutes."
+                "arrivalDetail": "Bre-B transfers usually arrive within minutes.",
+                "residenceOnly": "For legal residents of Colombia",
+                "residenceRequired": "Only legal residents of Colombia can open this account. Your nationality does not matter — where you live does."
             }
         },
         "gate": {
@@ -4155,6 +4160,12 @@
                 "payer": "Monthly limit: {limit} equivalent.",
                 "why": "This limit applies across payments to your account. Contact support if you need a higher limit."
             }
+        },
+        "errors": {
+            "generic": "We could not open the account. Try again in a moment.",
+            "notAvailable": "Standing accounts are not open to your account yet.",
+            "inFlight": "A deposit is still landing. Try again once it arrives.",
+            "residenceRestricted": "Bank details are not available where you live. Update your residence if you have moved."
         }
     }
 }

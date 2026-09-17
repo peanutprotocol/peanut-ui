@@ -52,7 +52,8 @@
             "addMoney": "Agregar dinero",
             "firstPayment": "Hacé tu primer pago",
             "firstPaymentNote": "Mandá unos dólares a un usuario de Peanut, un nombre ENS o una dirección de wallet. Llegan en segundos.",
-            "addMoneyRoutesKyc": "Transferencia bancaria o cripto · el banco pide una verificación de identidad por única vez"
+            "addMoneyRoutesKyc": "Transferencia bancaria o cripto · el banco pide una verificación de identidad por única vez",
+            "addMoneyStandingAccounts": "Conseguí datos bancarios a tu nombre. Cobrá en euros, dólares y más."
         },
         "autoBalance": {
             "title": "Terminá de configurar tu tarjeta",
@@ -1685,11 +1686,11 @@
             "cta": "Ver mis datos bancarios"
         },
         "list": {
-            "heading": "Tus propios datos bancarios. Cobrá del mundo.",
-            "subheading": "Tené datos bancarios personales en euros, dólares y más monedas. Recibí tu sueldo o pagos de clientes directamente en tu saldo de Peanut.",
             "searchPlaceholder": "Buscá un país, una moneda o una cuenta",
             "rowBlocked": "Verificá tu identidad para abrir esta cuenta",
-            "errorBody": "Tus cuentas están bien: solo no pudimos leerlas. Revisá tu conexión y probá de nuevo."
+            "errorBody": "Tus cuentas están bien: solo no pudimos leerlas. Revisá tu conexión y probá de nuevo.",
+            "accountsPitch": "Datos bancarios a tu nombre. Compartilos una vez y cobrá directo en Peanut.",
+            "countriesPitch": "Enviate plata desde un banco de otro país."
         },
         "claim": {
             "benefitStable": "Compartí estos datos una sola vez — quedan igual para cada pago después.",
@@ -1699,7 +1700,8 @@
             "unavailableTitle": "Todavía no tenés datos en {currency}",
             "timedOutBody": "No se cobró nada. Probá de nuevo en un momento o elegí otra moneda.",
             "revokedBody": "Lo que manden a esos datos vuelve a quien lo envió. Avisale a quien te paga que deje de usarlos y escribí a soporte para reemplazarlos.",
-            "topUpCta": "Ingresar {currency} de otra forma"
+            "topUpCta": "Ingresar {currency} de otra forma",
+            "residenceCta": "Actualizá tu residencia"
         },
         "share": {
             "textIntroOwn": "Estos son mis datos bancarios para cobrar en {currency}:"
@@ -1744,6 +1746,19 @@
             "monthlyLimit": {
                 "why": "Este límite se aplica al total de pagos recibidos en tu cuenta. Contactá a soporte si necesitás un límite mayor."
             }
+        },
+        "corridors": {
+            "BANK_TRANSFER_BR": {
+                "residenceRequired": "Solo los residentes legales de Brasil pueden abrir esta cuenta. Tu nacionalidad no importa; el país donde vivís, sí."
+            },
+            "BANK_TRANSFER_CO": {
+                "residenceRequired": "Solo los residentes legales de Colombia pueden abrir esta cuenta. Tu nacionalidad no importa; el país donde vivís, sí."
+            }
+        },
+        "errors": {
+            "generic": "No pudimos abrir la cuenta. Probá de nuevo en un momento.",
+            "inFlight": "Todavía está llegando un depósito. Probá de nuevo cuando llegue.",
+            "residenceRestricted": "Los datos bancarios no están disponibles donde vivís. Actualizá tu residencia si te mudaste."
         }
     }
 }

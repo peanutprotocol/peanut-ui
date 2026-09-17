@@ -382,7 +382,7 @@ const DEPOSIT_ACCOUNT_PROVIDER_HELD = {
  * The Bridge bank rails, the set a user verified through Bridge carries.
  *
  * The corridor rows come from the user's rails — `corridorsFromRails` in
- * features/deposit-accounts/rails.ts — so this list IS what /get-paid shows.
+ * features/deposit-accounts/rails.ts — so this list IS what the hub shows.
  * The Manteca corridors are deliberately absent: they belong to an Argentine
  * or Brazilian user, and the fixture that wants one says so (`get-paid-ar`).
  */
@@ -475,7 +475,7 @@ const BRIDGE_CO_CAPABILITIES = {
     restrictions: [],
 }
 
-/** Every verified-user get-paid fixture answers the gate the same way. */
+/** Every verified-user deposit-account fixture answers the gate the same way. */
 const VA_READY_RESPONSE = { 'GET /users/me': { capabilities: VA_READY_CAPABILITIES } }
 
 export const FIXTURES: Record<string, Fixture> = {
@@ -526,7 +526,7 @@ export const FIXTURES: Record<string, Fixture> = {
     history: { route: '/history', about: 'Activity list, four entries, both directions.' },
     'add-money': {
         route: '/add-money?method=bank',
-        about: 'Add money by bank: the same hub /get-paid renders, titled for adding money.',
+        about: 'Add money by bank: the accounts you hold, crypto, and every country you can send from.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
     },
     'add-money-crypto': { route: '/add-money/crypto', about: 'Crypto deposit: the network picker.' },
@@ -990,7 +990,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
 
     // ---------------------------------------------------------------------
-    // Standing deposit accounts (/get-paid). One fixture per state a payer or
+    // Standing deposit accounts (the bank hub). One fixture per state a payer or
     // a holder can be looking at — the two policy fields on `matching` are
     // what each screen reads, so the states differ by policy, not by country.
     //
@@ -999,17 +999,17 @@ export const FIXTURES: Record<string, Fixture> = {
     // of mocked responses can produce. `useDepositAccounts.test` covers it.
     // ---------------------------------------------------------------------
     'get-paid': {
-        route: '/get-paid',
+        route: '/add-money?method=bank',
         about: 'The hub: one euro account held, the rest open to claim, every country below.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
     },
     'get-paid-empty': {
-        route: '/get-paid',
+        route: '/add-money?method=bank',
         about: 'Nothing claimed yet — every corridor offered, none held, country list below.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [] } },
     },
     'get-paid-blocked': {
-        route: '/get-paid',
+        route: '/add-money?method=bank',
         about: 'Identity not verified, so no corridor can be claimed and the gate says why.',
         responses: {
             'GET /users/deposit-accounts': { depositAccounts: [] },
@@ -1017,7 +1017,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'get-paid-claim': {
-        route: '/get-paid?step=claim&corridor=ACH_US',
+        route: '/add-money?method=bank&step=claim&corridor=ACH_US',
         // The payer terms sit under the benefit rows, below the fold at 375.
         fullPage: true,
         about: 'What the user agrees to before a dollar account is opened, with the state rule still to be confirmed.',
@@ -1027,7 +1027,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'get-paid-claim-eur': {
-        route: '/get-paid?step=claim&corridor=SEPA_EU',
+        route: '/add-money?method=bank&step=claim&corridor=SEPA_EU',
         // The payer terms sit under the benefit rows, below the fold at 375.
         fullPage: true,
         about: 'The same step on a corridor whose terms are fully resolved — no state rule to wait for.',
@@ -1037,17 +1037,17 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'get-paid-details-eur': {
-        route: '/get-paid?step=details&corridor=SEPA_EU',
+        route: '/add-money?method=bank&step=details&corridor=SEPA_EU',
         about: 'Euro details: businesses only until an individual volume is agreed, with a 1 EUR floor.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
     },
     'get-paid-details-usd': {
-        route: '/get-paid?step=details&corridor=ACH_US',
+        route: '/add-money?method=bank&step=details&corridor=ACH_US',
         about: 'Dollar details: businesses and same-surname family unlimited, anyone else capped.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_USD] } },
     },
     'get-paid-details-usd-state-restricted': {
-        route: '/get-paid?step=details&corridor=ACH_US',
+        route: '/add-money?method=bank&step=details&corridor=ACH_US',
         about: 'The same dollar account for a resident of a state where no third party may pay in.',
         responses: {
             ...VA_READY_RESPONSE,
@@ -1055,17 +1055,17 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'get-paid-details-gbp': {
-        route: '/get-paid?step=details&corridor=FASTER_PAYMENTS_GB',
+        route: '/add-money?method=bank&step=details&corridor=FASTER_PAYMENTS_GB',
         about: 'Sterling details, where only a business may pay in, above a floor.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_GBP] } },
     },
     'get-paid-details-mxn': {
-        route: '/get-paid?step=details&corridor=SPEI_MX',
+        route: '/add-money?method=bank&step=details&corridor=SPEI_MX',
         about: 'Peso details: a per-payment cap on individuals, and a floor under every payment.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_MXN] } },
     },
     'get-paid-details-provider-held': {
-        route: '/get-paid?step=details&corridor=SEPA_EU',
+        route: '/add-money?method=bank&step=details&corridor=SEPA_EU',
         about: 'The account is held by our banking partner, so the payer reads a name that is not the user.',
         responses: {
             ...VA_READY_RESPONSE,
@@ -1073,7 +1073,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'get-paid-provisioning': {
-        route: '/get-paid?step=details&corridor=ACH_US',
+        route: '/add-money?method=bank&step=details&corridor=ACH_US',
         about: 'Claimed, waiting on the provider — the skeleton matches the row count to come.',
         isLoadingState: true,
         waitFor: '[data-testid="deposit-details-skeleton"]',
@@ -1085,7 +1085,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'get-paid-revoked': {
-        route: '/get-paid?step=details&corridor=ACH_US',
+        route: '/add-money?method=bank&step=details&corridor=ACH_US',
         about: 'The account no longer accepts money and the details are already in a payroll file somewhere.',
         responses: {
             ...VA_READY_RESPONSE,
@@ -1093,14 +1093,14 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'get-paid-share': {
-        route: '/get-paid?step=share&corridor=SEPA_EU',
+        route: '/add-money?method=bank&step=share&corridor=SEPA_EU',
         about: 'What the payer will see, before the user sends it to them.',
         // The caveats sit under the details card, below the fold.
         fullPage: true,
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
     },
     'get-paid-brl': {
-        route: '/get-paid?step=details&corridor=BANK_TRANSFER_BR',
+        route: '/add-money?method=bank&step=details&corridor=BANK_TRANSFER_BR',
         about: 'Brazil: standing Pix details a payer can use again, not a code minted for one payment.',
         responses: {
             'GET /users/me': { capabilities: BRIDGE_BR_CAPABILITIES },
@@ -1108,7 +1108,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'get-paid-cop': {
-        route: '/get-paid?step=details&corridor=BANK_TRANSFER_CO',
+        route: '/add-money?method=bank&step=details&corridor=BANK_TRANSFER_CO',
         about: 'Colombia: the Bre-B key the payer types, beside the bank and the holder.',
         responses: {
             'GET /users/me': { capabilities: BRIDGE_CO_CAPABILITIES },
@@ -1116,7 +1116,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'get-paid-ar': {
-        route: '/get-paid?step=details&corridor=BANK_TRANSFER_AR',
+        route: '/add-money?method=bank&step=details&corridor=BANK_TRANSFER_AR',
         about: 'Argentina: the provider CVU only credits transfers the user sends themselves, so it is never shared.',
         responses: {
             'GET /users/me': { capabilities: MANTECA_AR_CAPABILITIES },

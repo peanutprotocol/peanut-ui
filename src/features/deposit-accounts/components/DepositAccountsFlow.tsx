@@ -6,13 +6,15 @@ import { useEffect, useState } from 'react'
 import { trackDetailsViewed, trackGateBlocked } from '../analytics'
 import { DEPOSIT_ACCOUNT_PARAMS } from '../params'
 import { DEPOSIT_RAILS, isClaimable } from '../rails'
+import { isResidenceGated, residenceAllows } from '../residenceGate'
 import { canShare, resolveScreen } from '../resolveScreen'
-import type { ClaimableCorridor, DepositAccountView, DepositCorridor, DepositHubVariant } from '../types'
+import type { ClaimableCorridor, DepositAccountView, DepositCorridor } from '../types'
 import type { DepositClaimError } from '../useDepositAccounts'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import NavHeader from '@/components/Global/NavHeader'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
+import { useResidenceIso2s } from '../useResidenceIso2s'
 import { ClaimAccountScreen } from './ClaimAccountScreen'
 import { CorridorUnavailableScreen } from './CorridorUnavailableScreen'
 import { DepositDetailsSkeleton } from './DepositDetailsSkeleton'
@@ -36,8 +38,6 @@ export interface DepositAccountsFlowProps {
     isLoading?: boolean
     /** the accounts could not be read; the list says so instead of offering claims */
     isError?: boolean
-    /** which entry point rendered the flow — only the hub reads it */
-    variant?: DepositHubVariant
     userName: string
     claimingCorridor?: DepositCorridor
     claimError?: DepositClaimError
@@ -51,8 +51,8 @@ export interface DepositAccountsFlowProps {
 }
 
 /**
- * The get-paid flow: one NavHeader title across every step, the step in the
- * URL, in-flow back through `onPrev`.
+ * The bank flow: one NavHeader title across every step, the step in the URL,
+ * in-flow back through `onPrev`.
  *
  * Which screen renders is resolved from the SELECTED corridor's gate and its
  * account rather than read off the URL — see `resolveScreen`. The claim step
@@ -67,7 +67,6 @@ export function DepositAccountsFlow({
     gates,
     isLoading = false,
     isError = false,
-    variant = 'get-paid',
     userName,
     claimingCorridor,
     claimError,
@@ -85,7 +84,8 @@ export function DepositAccountsFlow({
     useEffect(() => {
         if (legacyStep) setParams({ step: legacyStep, screen: null })
     }, [legacyStep, setParams])
-    const { t, railName } = useDepositAccountCopy()
+    const { t, railName, claimErrorBody } = useDepositAccountCopy()
+    const residenceIso2s = useResidenceIso2s()
     const rail = DEPOSIT_RAILS[corridor]
     const account = accounts[corridor]
     const gate = gates[corridor]
@@ -98,7 +98,9 @@ export function DepositAccountsFlow({
     // user input, and a stale link naming ARS must not open an Argentine screen
     // for somebody in Germany. Only once the corridors are known, though —
     // before that every corridor looks absent.
-    const offered = isLoading || corridors.includes(corridor)
+    // A residence-gated corridor is offered to everybody: the row exists for
+    // every user, and the screen behind it is what explains the rule.
+    const offered = isLoading || corridors.includes(corridor) || isResidenceGated(corridor)
     const resolved = isError || !offered ? 'list' : resolveScreen(screen, rail, account, gate)
 
     // A user who asked for a screen and was handed a lesser one hit the gate.
@@ -125,7 +127,7 @@ export function DepositAccountsFlow({
     if (isLoading && resolved !== 'list') {
         return (
             <PageStack>
-                <NavHeader title={variant === 'get-paid' ? t('title') : t('list.addTitle')} onPrev={onExit} />
+                <NavHeader title={t('list.addTitle')} onPrev={onExit} />
                 <div className="flex flex-col gap-6">
                     {/* Real heading and status line — only the card underneath is a
                         skeleton, so a claimed corridor reads as "your account is
@@ -139,6 +141,13 @@ export function DepositAccountsFlow({
                 </div>
             </PageStack>
         )
+    }
+
+    // The corridor exists and the user does not live there. Said before any
+    // claim, because the claim would fail at the provider with a sentence
+    // written for us rather than for them.
+    if (screen !== 'list' && !residenceAllows(corridor, residenceIso2s)) {
+        return <CorridorUnavailableScreen rail={rail} requiresResidence onBack={() => setParams({ step: 'list' })} />
     }
 
     const openCorridor = (next: DepositCorridor) => {
@@ -164,7 +173,10 @@ export function DepositAccountsFlow({
                 userName={userName}
                 isClaiming={claimingCorridor === corridor}
                 // a failure on another corridor is not this screen's news
-                error={claimError?.corridor === corridor ? claimError.message : undefined}
+                // the localized sentence for the wire code, never the backend's own
+                error={
+                    claimError?.corridor === corridor ? claimErrorBody(claimError.code, claimError.status) : undefined
+                }
                 isUnavailable={claimError?.corridor === corridor && claimError.unavailable}
                 // no screen change here: once the account exists, resolveScreen
                 // moves the user on by itself, and if it never does the error
@@ -214,7 +226,6 @@ export function DepositAccountsFlow({
 
     return (
         <DepositAccountsListScreen
-            variant={variant}
             corridors={corridors}
             accounts={accounts}
             gates={gates}

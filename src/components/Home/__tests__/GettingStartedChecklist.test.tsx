@@ -32,6 +32,13 @@ let mockUser: {
 } | null = null
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser }) }))
 
+// the standing-accounts flag rewrites the add-money subtitle; off by default
+// here, so every case below reads the pre-launch copy unless it says otherwise
+let mockDepositAccounts = false
+jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
+    useDepositAccountsEnabled: () => mockDepositAccounts,
+}))
+
 let mockRestrictions = { banking: false, card: false }
 jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => mockRestrictions,
@@ -54,6 +61,7 @@ describe('GettingStartedChecklist', () => {
         jest.clearAllMocks()
         mockUser = { user: { activationMilestone: 'registered' }, residence: { declared: 'BR', verified: null } }
         mockRestrictions = { banking: false, card: false }
+        mockDepositAccounts = false
         mockIsEligible = true
         mockIsCardInfoFetching = false
         mockOverview = null
@@ -115,6 +123,28 @@ describe('GettingStartedChecklist', () => {
         // the verified render names both routes without the ID-check cost
         expect(screen.getAllByText('Bank transfer or crypto').length).toBe(1)
         expect(screen.getAllByText(/one-time ID check/).length).toBe(1) // only the first render's copy
+    })
+
+    /**
+     * Once standing accounts are live the step stops being a chore. The row
+     * promises the thing the user gets, not the ID check it costs.
+     */
+    it('promises the standing account once deposit accounts are live', () => {
+        mockDepositAccounts = true
+        render()
+
+        expect(
+            screen.getByText('Claim your own bank details. Get paid in euros, dollars and more.')
+        ).toBeInTheDocument()
+        expect(screen.queryByText(/one-time ID check/)).not.toBeInTheDocument()
+        expect(screen.getByText('Add money')).toBeInTheDocument()
+    })
+
+    it('keeps the pre-launch line while the flag is off', () => {
+        render()
+
+        expect(screen.getByText('Bank transfer or crypto · bank needs a one-time ID check')).toBeInTheDocument()
+        expect(screen.queryByText(/Claim your own bank details/)).not.toBeInTheDocument()
     })
 
     it('drops the bank half for a residence no bank provider onboards', () => {

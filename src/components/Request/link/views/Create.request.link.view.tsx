@@ -110,8 +110,8 @@ export const CreateRequestLinkView = () => {
                     <Link
                         // name the origin rather than leaving it to history:
                         // a user who reached /request by deep link has none, and
-                        // get-paid's back would drop them on /home instead of here
-                        href={withReturnTo('/get-paid', '/request')}
+                        // the hub's back would drop them on /home instead of here
+                        href={withReturnTo('/add-money?method=bank', '/request')}
                         className="text-center text-body-s text-foreground-secondary underline underline-offset-4"
                     >
                         {t('bankDetailsAlternative')}

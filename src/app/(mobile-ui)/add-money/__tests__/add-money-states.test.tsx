@@ -599,8 +599,8 @@ jest.mock('@/components/Common/CountryList', () => {
 // The merged bank screen — accounts, crypto and the country list — is covered
 // by its own tests. Here the page only has to render it and hand it an exit.
 jest.mock('@/features/deposit-accounts/components/DepositAccountsFlowContainer', () => ({
-    DepositAccountsFlowContainer: ({ variant, onExit }: { variant: string; onExit: () => void }) => (
-        <div data-testid="deposit-accounts-hub" data-variant={variant}>
+    DepositAccountsFlowContainer: ({ onExit }: { onExit: () => void }) => (
+        <div data-testid="deposit-accounts-hub">
             <button data-testid="hub-back" onClick={onExit}>
                 back
             </button>
@@ -1044,11 +1044,11 @@ describe('GROUP 1: Landing', () => {
      * this user holds, crypto, and every country they can send from. Which
      * corridor a country opens is `useDepositCountryRouting`, tested there.
      */
-    test('?method=bank shows the merged bank screen, titled for adding money', () => {
+    test('?method=bank shows the merged bank screen', () => {
         resetQueryState({ method: 'bank' })
         renderWithProviders(<AddMoneyPage />)
 
-        expect(screen.getByTestId('deposit-accounts-hub')).toHaveAttribute('data-variant', 'add-money')
+        expect(screen.getByTestId('deposit-accounts-hub')).toBeInTheDocument()
     })
 
     test('a corridor link opens the same screen without a ?method=', () => {

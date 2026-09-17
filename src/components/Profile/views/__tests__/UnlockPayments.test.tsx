@@ -343,7 +343,7 @@ describe('UnlockPayments', () => {
         expect(screen.getByText('Your bank accounts')).toBeInTheDocument()
         fireEvent.click(screen.getByText('EUR · SEPA'))
         expect(mockPush).toHaveBeenCalledWith(
-            '/get-paid?step=details&corridor=SEPA_EU&returnTo=%2Fprofile%2Fidentity-verification'
+            '/add-money?method=bank&step=details&corridor=SEPA_EU&returnTo=%2Fprofile%2Fidentity-verification'
         )
     })
 

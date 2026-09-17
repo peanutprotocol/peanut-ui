@@ -12,6 +12,8 @@ jest.mock('nuqs', () => ({
     },
 }))
 jest.mock('../analytics', () => ({ trackDetailsViewed: jest.fn(), trackGateBlocked: jest.fn() }))
+// residence only decides the BR/CO corridors, which this file never renders
+jest.mock('../useResidenceIso2s', () => ({ useResidenceIso2s: () => [] }))
 jest.mock('../useDepositAccountCopy', () => ({
     useDepositAccountCopy: () => ({ t: (key: string) => key, railName: () => 'SEPA' }),
 }))

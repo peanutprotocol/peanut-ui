@@ -48,7 +48,7 @@ function HeldAccounts() {
                             onClick={() =>
                                 router.push(
                                     withReturnTo(
-                                        `/get-paid?step=details&corridor=${corridor}`,
+                                        `/add-money?method=bank&step=details&corridor=${corridor}`,
                                         '/profile/identity-verification'
                                     )
                                 )

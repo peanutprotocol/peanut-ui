@@ -29,7 +29,7 @@ export default function AddMoneyPage() {
     // redirecting — render nothing for the one frame before replace() lands
     if (isBareRoot) return null
 
-    // ?method=bank: the accounts this user holds and every country they can
-    // send from, on the one screen /get-paid renders as well
-    return <DepositAccountsFlowContainer variant="add-money" onExit={handleBack} />
+    // ?method=bank: the accounts this user holds, crypto, and every country
+    // they can send money in from
+    return <DepositAccountsFlowContainer onExit={handleBack} />
 }

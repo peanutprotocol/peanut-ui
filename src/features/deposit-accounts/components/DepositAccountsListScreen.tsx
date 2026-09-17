@@ -1,11 +1,12 @@
 'use client'
 
+import { Accordion } from '@/components/0_Bruddle/Accordion'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { Section } from '@/components/0_Bruddle/Section'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { countryData } from '@/components/AddMoney/consts'
 import { CountryList } from '@/components/Common/CountryList'
@@ -19,12 +20,13 @@ import { localizedCountryTitle } from '@/utils/country-name.utils'
 import type { GateState } from '@/utils/capability-gate'
 import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { corridorsForCountry } from '../countryCorridor'
 import { depositGateView } from '../depositGate'
-import { DEPOSIT_RAILS, isClaimable } from '../rails'
+import { DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, isClaimable } from '../rails'
+import { isResidenceGated, RESIDENCE_GATED_CORRIDORS } from '../residenceGate'
 import { canShare, isHeld } from '../resolveScreen'
-import type { DepositAccountView, DepositCorridor, DepositHubVariant, DepositRail } from '../types'
+import type { DepositAccountView, DepositCorridor, DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { useDepositAccountsEnabled } from '../useDepositAccountsEnabled'
 import { useDepositCountryRouting } from '../useDepositCountryRouting'
@@ -63,7 +65,6 @@ export function DepositAccountsListScreen({
     gates,
     isLoading,
     isError,
-    variant = 'get-paid',
     onBack,
     onOpen,
     onResolveGate,
@@ -78,14 +79,12 @@ export function DepositAccountsListScreen({
     isLoading: boolean
     /** the accounts could not be read at all */
     isError: boolean
-    /** which job the user came for — it decides the title and the heading, nothing else */
-    variant?: DepositHubVariant
     onBack: () => void
     onOpen: (corridor: DepositCorridor) => void
     onResolveGate: (gate: GateState) => void
     onRetry: () => void
 }) {
-    const { t, arrival, railName } = useDepositAccountCopy()
+    const { t, arrival, railName, residenceLine } = useDepositAccountCopy()
     const tMethods = useTranslations('addMoney.methods')
     const locale = useLocale()
     const router = useRouter()
@@ -100,12 +99,9 @@ export function DepositAccountsListScreen({
     // nobody can use yet would only ask a question it cannot answer.
     const accountsEnabled = useDepositAccountsEnabled()
 
-    // Entering by account means the accounts are what the user came to read,
-    // so they are what the screen opens on.
-    const accountsRef = useRef<HTMLDivElement>(null)
-    useEffect(() => {
-        if (variant === 'get-paid') accountsRef.current?.scrollIntoView?.({ block: 'start' })
-    }, [variant])
+    // The country list opens on a tap, or on a search that has found one.
+    // `null` means nobody has decided yet, so the search still can.
+    const [countriesOpen, setCountriesOpen] = useState<boolean | null>(null)
 
     /**
      * One field filters the whole screen, so every section answers the same
@@ -139,7 +135,17 @@ export function DepositAccountsListScreen({
     const matchesCrypto =
         !term || `${tMethods('crypto')} ${tMethods('cryptoDescription')} usdc`.toLowerCase().includes(term)
 
-    const views = corridors
+    /**
+     * The rows: this user's own corridors, plus the residence-gated ones, which
+     * everybody sees. A Brazilian account is worth knowing about before you
+     * live in Brazil, and the screen behind the row is what states the rule.
+     */
+    const hubCorridors = useMemo(() => {
+        const shown = new Set([...corridors, ...RESIDENCE_GATED_CORRIDORS])
+        return DEPOSIT_RAIL_ORDER.filter((corridor) => shown.has(corridor))
+    }, [corridors])
+
+    const views = hubCorridors
         .filter((corridor) => matchesCorridor(corridor))
         .map((corridor) => ({ corridor, view: depositGateView(gates[corridor]) }))
     // The banner names one corridor the user could hold but cannot. Every
@@ -156,6 +162,10 @@ export function DepositAccountsListScreen({
     // "when does the money land". Saying it in both places is how a row ended
     // up reading "Not set up yet" under a "Ready" pill.
     const rowBody = (corridor: DepositCorridor, openable: boolean): string => {
+        // The residence rule outranks every other line: it is why the tap will
+        // not open an account, and it is true before the accounts arrive.
+        const residence = isResidenceGated(corridor) ? residenceLine(corridor) : undefined
+        if (residence) return residence.caveat
         // The rows can paint before the accounts arrive. The arrival time is
         // true in that gap too; the status is not, so the badge carries it.
         if (isLoading) return arrival(corridor)
@@ -203,7 +213,6 @@ export function DepositAccountsListScreen({
         }
     }
 
-    const isGetPaid = variant === 'get-paid'
     /**
      * The KYC-free way in, and the only one that is not a country. It is a row
      * of the accounts card rather than a box of its own: three stacked cards
@@ -222,18 +231,18 @@ export function DepositAccountsListScreen({
         />
     ) : null
     // A corridor with no row left after the search has nothing to label.
-    const showAccounts = accountsEnabled && (views.length > 0 || (isGetPaid && !term && !isLoading))
+    const showAccounts = accountsEnabled && views.length > 0
     const showCountries = !term || matchingCountries.length > 0
     const nothingMatches = !!term && views.length === 0 && !matchesCrypto && !showCountries
+    // Two characters is where a search stops matching half the world, so it is
+    // where opening the list for the user helps rather than startles.
+    const countriesExpanded = countriesOpen ?? (term.length >= 2 && matchingCountries.length > 0)
 
     return (
         <PageStack>
-            <NavHeader title={isGetPaid ? t('title') : t('list.addTitle')} onPrev={onBack} />
+            <NavHeader title={t('list.addTitle')} onPrev={onBack} />
             <div className="flex flex-col gap-4">
-                <TitleBlock
-                    title={isGetPaid ? t('list.heading') : t('list.addHeading')}
-                    description={isGetPaid ? t('list.subheading') : undefined}
-                />
+                <TitleBlock title={t('list.addHeading')} />
 
                 {/* one field for the whole screen: accounts, crypto and countries */}
                 <SearchInput
@@ -277,57 +286,49 @@ export function DepositAccountsListScreen({
                 )}
 
                 {showAccounts && (
-                    <div ref={accountsRef} className="flex flex-col gap-2" data-testid="your-accounts">
-                        <MiniHeader>{t('list.sectionTitle')}</MiniHeader>
-                        {/*
-                         * No bank rail at all, so there is no corridor to offer. Saying
-                         * so is the honest answer on the screen whose subject IS the
-                         * accounts; Add money has the countries below to answer with.
-                         */}
-                        {views.length === 0 && (
-                            <EmptyState
-                                icon="globe-lock"
-                                title={t('list.emptyTitle')}
-                                description={t('list.emptyBody')}
-                            />
-                        )}
-                        {(views.length > 0 || cryptoRow) && (
-                            <ListGroup>
-                                {views.map(({ corridor, view }) => {
-                                    const rail = DEPOSIT_RAILS[corridor]
-                                    const account = accounts[corridor]
-                                    // The gate governs opening a NEW account, not
-                                    // reading one that already exists — resolveScreen
-                                    // serves those details read-only. A corridor with
-                                    // nothing to claim is always open: its details are
-                                    // the user's own top-up route.
-                                    // Revoked details still explain returned payments and provide support.
-                                    const openable = !isClaimable(rail) || view.claimable || isHeld(account)
-                                    const disabled = isError || isLoading || !openable
+                    <Section title={t('list.sectionTitle')} data-testid="your-accounts">
+                        <p className="text-body-s text-foreground-secondary">{t('list.accountsPitch')}</p>
+                        <ListGroup>
+                            {views.map(({ corridor, view }) => {
+                                const rail = DEPOSIT_RAILS[corridor]
+                                const account = accounts[corridor]
+                                // The gate governs opening a NEW account, not
+                                // reading one that already exists — resolveScreen
+                                // serves those details read-only. A corridor with
+                                // nothing to claim is always open: its details are
+                                // the user's own top-up route.
+                                // Revoked details still explain returned payments and provide support.
+                                // A residence-gated row always opens: the screen behind
+                                // it states the rule, and a disabled row states nothing.
+                                const openable =
+                                    isResidenceGated(corridor) ||
+                                    !isClaimable(rail) ||
+                                    view.claimable ||
+                                    isHeld(account)
+                                const disabled = isError || isLoading || !openable
 
-                                    return (
-                                        <ListItem
-                                            key={corridor}
-                                            leading={<CorridorFlag iso2={rail.flagIso2} />}
-                                            /* a ReactNode title wraps; a bare
+                                return (
+                                    <ListItem
+                                        key={corridor}
+                                        leading={<CorridorFlag iso2={rail.flagIso2} />}
+                                        /* a ReactNode title wraps; a bare
                                                string is truncated to one line, and
                                                "GBP · Faster Payments" does not fit
                                                at 375 */
-                                            title={<span>{`${rail.currency} · ${railName(corridor)}`}</span>}
-                                            body={rowBody(corridor, openable)}
-                                            bodyWrap
-                                            trailing={rowBadge(rail, account, gates[corridor])}
-                                            chevron={!disabled}
-                                            disabled={disabled}
-                                            onClick={() => onOpen(corridor)}
-                                            data-testid={`deposit-account-${corridor}`}
-                                        />
-                                    )
-                                })}
-                                {cryptoRow}
-                            </ListGroup>
-                        )}
-                    </div>
+                                        title={<span>{`${rail.currency} · ${railName(corridor)}`}</span>}
+                                        body={rowBody(corridor, openable)}
+                                        bodyWrap
+                                        trailing={rowBadge(rail, account, gates[corridor])}
+                                        chevron={!disabled}
+                                        disabled={disabled}
+                                        onClick={() => onOpen(corridor)}
+                                        data-testid={`deposit-account-${corridor}`}
+                                    />
+                                )
+                            })}
+                            {cryptoRow}
+                        </ListGroup>
+                    </Section>
                 )}
 
                 {/* crypto keeps its row where there is no accounts card to carry it */}
@@ -340,16 +341,27 @@ export function DepositAccountsListScreen({
                  * offers the waitlist rather than a screen that says "soon".
                  */}
                 {showCountries && (
-                    <div className="flex flex-col gap-2">
-                        <MiniHeader>{t('list.countriesTitle')}</MiniHeader>
-                        <CountryList
-                            viewMode="add-withdraw"
-                            flow="add"
-                            searchTerm={query}
-                            onCountryClick={openCountry}
-                            isCountrySupported={isCountrySupported}
-                        />
-                    </div>
+                    <Section title={t('list.countriesTitle')}>
+                        <Accordion
+                            type="single"
+                            collapsible
+                            value={countriesExpanded ? 'countries' : ''}
+                            onValueChange={(value) => setCountriesOpen(value === 'countries')}
+                        >
+                            <Accordion.Item value="countries">
+                                <Accordion.Trigger>{t('list.countriesPitch')}</Accordion.Trigger>
+                                <Accordion.Content>
+                                    <CountryList
+                                        viewMode="add-withdraw"
+                                        flow="add"
+                                        searchTerm={query}
+                                        onCountryClick={openCountry}
+                                        isCountrySupported={isCountrySupported}
+                                    />
+                                </Accordion.Content>
+                            </Accordion.Item>
+                        </Accordion>
+                    </Section>
                 )}
             </div>
         </PageStack>

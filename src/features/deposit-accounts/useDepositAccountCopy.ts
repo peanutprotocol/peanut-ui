@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl'
 import { useCallback, useMemo } from 'react'
 import { formatCurrencyAmount } from '@/utils/currency'
+import { claimErrorKey } from './claimErrors'
 import type { RailLabels } from './instructionRows'
 import { depositRuleLines, type DepositRuleKey } from './ruleLines'
 import type { DepositCorridor, DepositRowLabels, DepositRules, DepositSenderTerms } from './types'
@@ -44,6 +45,12 @@ const ARRIVAL_DETAIL_KEYS = {
     PIX_BR: 'corridors.PIX_BR.arrivalDetail',
     BANK_TRANSFER_AR: 'corridors.BANK_TRANSFER_AR.arrivalDetail',
 } as const satisfies Record<DepositCorridor, string>
+
+/** only the corridors a provider opens for residents alone carry these */
+const RESIDENCE_KEYS = {
+    BANK_TRANSFER_BR: 'corridors.BANK_TRANSFER_BR',
+    BANK_TRANSFER_CO: 'corridors.BANK_TRANSFER_CO',
+} as const
 
 /** only the corridors that cannot be held as an account have a reason */
 const UNCLAIMABLE_KEYS = {
@@ -135,6 +142,14 @@ export function useDepositAccountCopy() {
         [t]
     )
 
+    /**
+     * Why a claim failed, in the user's language. The backend answers in
+     * English whatever the locale, so the code decides the sentence and the
+     * backend's own message never reaches a screen.
+     */
+    const claimErrorBody = (code: string | undefined, status: number | undefined) =>
+        t(`errors.${claimErrorKey(code, status)}`)
+
     const railName = (corridor: DepositCorridor) => t(RAIL_NAME_KEYS[corridor])
     const arrival = (corridor: DepositCorridor) => t(ARRIVAL_KEYS[corridor])
     const arrivalDetail = (corridor: DepositCorridor) => t(ARRIVAL_DETAIL_KEYS[corridor])
@@ -149,5 +164,26 @@ export function useDepositAccountCopy() {
         return key ? { text: t(`${key}.line`), why: t(`${key}.why`) } : undefined
     }
 
-    return { t, rowLabels, railLabels, ruleLines, railName, arrival, arrivalDetail, unclaimableReason }
+    /**
+     * What a residence-gated corridor says: `caveat` in the row body, so the
+     * rule is read before the tap, and `requirement` on the screen that
+     * explains the tap that did not open an account.
+     */
+    const residenceLine = (corridor: DepositCorridor): { caveat: string; requirement: string } | undefined => {
+        const key = RESIDENCE_KEYS[corridor as keyof typeof RESIDENCE_KEYS]
+        return key ? { caveat: t(`${key}.residenceOnly`), requirement: t(`${key}.residenceRequired`) } : undefined
+    }
+
+    return {
+        t,
+        rowLabels,
+        railLabels,
+        ruleLines,
+        railName,
+        arrival,
+        arrivalDetail,
+        unclaimableReason,
+        residenceLine,
+        claimErrorBody,
+    }
 }

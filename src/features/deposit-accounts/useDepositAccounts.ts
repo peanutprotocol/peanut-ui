@@ -28,7 +28,12 @@ export const MAX_PROVISIONING_POLLS = 24
 /** the corridor a claim failed on, so a stale error cannot be shown on another */
 export interface DepositClaimError {
     corridor: DepositCorridor
+    /** the backend's own English sentence — for Sentry and the analytics event, never for a screen */
     message: string
+    /** the wire discriminant the screen picks its localized sentence from */
+    code?: string
+    /** the residence refusal carries no code, only a 403 */
+    status?: number
     /**
      * The backend refused to open an account for this user at all — the
      * server-side rollout gate on the claim route, a missing provider customer,
@@ -134,7 +139,13 @@ export function useDepositAccounts({ enabled = true }: { enabled?: boolean } = {
         },
         onError: (error: Error, method: string) => {
             const corridor = method as DepositCorridor
-            setClaimError({ corridor, message: error.message, unavailable: isNotAvailableYet(error) })
+            setClaimError({
+                corridor,
+                message: error.message,
+                code: wireErrorCode(error),
+                status: apiErrorStatus(error),
+                unavailable: isNotAvailableYet(error),
+            })
             trackClaimFailed(corridor, error.message)
         },
         onSettled: async () => {

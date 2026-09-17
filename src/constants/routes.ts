@@ -14,7 +14,6 @@ export const DEDICATED_ROUTES = [
     'qr',
     'api',
     'setup',
-    'get-paid',
     'home',
     'history',
     'settings',

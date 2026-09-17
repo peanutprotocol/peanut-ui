@@ -141,6 +141,7 @@
             "firstPayment": "Faça seu primeiro pagamento",
             "firstPaymentNote": "Envie alguns dólares para um usuário Peanut, um nome ENS ou um endereço de carteira. Chega em segundos.",
             "addMoneyRoutes": "Transferência bancária ou cripto",
+            "addMoneyStandingAccounts": "Tenha dados bancários no seu nome. Receba em euros, dólares e mais.",
             "addMoneyRoutesKyc": "Transferência bancária ou cripto · o banco exige uma verificação de identidade única",
             "addMoneyRoutesNoBank": "Cripto de qualquer carteira ou corretora",
             "getCardNote": "Seus dólares, em rosa, onde a Visa for aceita."
@@ -3902,25 +3903,23 @@
             "body": "Seus próprios dados bancários, prontos para o próximo pagamento.",
             "cta": "Ver meus dados bancários"
         },
-        "title": "Receber",
+        "title": "Seus dados bancários",
         "list": {
-            "heading": "Seus próprios dados bancários. Receba do mundo.",
-            "subheading": "Tenha dados bancários pessoais em euros, dólares e outras moedas. Receba seu salário ou pagamentos de clientes direto no seu saldo do Peanut.",
             "addTitle": "Adicionar dinheiro",
             "addHeading": "De onde vem o dinheiro?",
             "searchPlaceholder": "Busque um país, uma moeda ou uma conta",
             "noMatchTitle": "Nenhum resultado para “{query}”",
             "clearSearch": "Limpar busca",
             "countriesTitle": "Países",
+            "countriesPitch": "Envie dinheiro para você mesmo de um banco em outro país.",
             "sectionTitle": "Suas contas",
+            "accountsPitch": "Dados bancários no seu nome. Compartilhe uma vez e receba direto no Peanut.",
             "badgeReady": "Pronta",
             "rowBlocked": "Verifique sua identidade para abrir esta conta",
             "badgeActive": "Ativo",
             "badgeNotSetUp": "Não configurada",
             "badgeUnavailable": "Indisponível",
             "badgeRevoked": "Revogada",
-            "emptyTitle": "Ainda não há contas para a sua região",
-            "emptyBody": "Abrimos dados bancários nas moedas que a sua região verificada aceita. Ainda não há nenhuma para você. Volte aqui quando adicionar outro país ou moeda.",
             "errorTitle": "Não conseguimos carregar suas contas",
             "errorBody": "Suas contas estão bem: só não conseguimos lê-las. Verifique sua conexão e tente de novo.",
             "errorRetry": "Tentar de novo",
@@ -3954,7 +3953,9 @@
             "revokedBody": "O que for enviado para eles volta para quem enviou. Avise quem paga você para parar de usá-los e fale com o suporte para substituí-los.",
             "revokedCta": "Falar com o suporte",
             "topUpCta": "Depositar {currency} de outro jeito",
-            "whoCanPay": "Quem pode te pagar"
+            "whoCanPay": "Quem pode te pagar",
+            "residenceTitle": "Residência necessária",
+            "residenceCta": "Atualizar sua residência"
         },
         "share": {
             "copyCta": "Copiar todos os dados",
@@ -4035,12 +4036,16 @@
             "BANK_TRANSFER_BR": {
                 "arrival": "Em minutos",
                 "arrivalDetail": "As transferências Pix costumam chegar em minutos.",
-                "railName": "Pix"
+                "railName": "Pix",
+                "residenceOnly": "Para residentes legais no Brasil",
+                "residenceRequired": "Só residentes legais no Brasil podem abrir esta conta. Sua nacionalidade não importa; o país onde você mora, sim."
             },
             "BANK_TRANSFER_CO": {
                 "railName": "Bre-B",
                 "arrival": "Em minutos",
-                "arrivalDetail": "As transferências Bre-B costumam chegar em minutos."
+                "arrivalDetail": "As transferências Bre-B costumam chegar em minutos.",
+                "residenceOnly": "Para residentes legais na Colômbia",
+                "residenceRequired": "Só residentes legais na Colômbia podem abrir esta conta. Sua nacionalidade não importa; o país onde você mora, sim."
             }
         },
         "gate": {
@@ -4155,6 +4160,12 @@
                 "payer": "Limite mensal: equivalente a {limit}.",
                 "why": "Este limite vale para o total de pagamentos na sua conta. Fale com o suporte se precisar de um limite maior."
             }
+        },
+        "errors": {
+            "generic": "Não conseguimos abrir a conta. Tente de novo em instantes.",
+            "notAvailable": "As contas próprias ainda não estão disponíveis para a sua conta.",
+            "inFlight": "Um depósito ainda está chegando. Tente de novo quando ele cair.",
+            "residenceRestricted": "Os dados bancários não estão disponíveis onde você mora. Atualize sua residência se você mudou."
         }
     }
 }

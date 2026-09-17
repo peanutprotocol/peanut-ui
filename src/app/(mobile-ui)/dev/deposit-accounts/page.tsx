@@ -18,7 +18,7 @@ const SCENARIOS: { value: SandboxScenario; label: string; hint: string }[] = [
 ]
 
 /**
- * Virtual accounts — the get-paid flow on real Bridge sandbox data.
+ * Virtual accounts — the bank flow on real Bridge sandbox data.
  *
  * Bank details use captured Bridge sandbox responses (2026-09-11).
  */

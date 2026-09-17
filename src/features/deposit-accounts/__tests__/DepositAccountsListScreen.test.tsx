@@ -49,6 +49,10 @@ jest.mock('../useDepositCountryRouting', () => ({
     }),
 }))
 
+// the Flow reads the user's residence; the hub does not
+let residenceIso2s: string[] = []
+jest.mock('../useResidenceIso2s', () => ({ useResidenceIso2s: () => residenceIso2s }))
+
 let depositAccountsEnabled = true
 jest.mock('../useDepositAccountsEnabled', () => ({
     useDepositAccountsEnabled: () => depositAccountsEnabled,
@@ -57,6 +61,7 @@ jest.mock('../useDepositAccountsEnabled', () => ({
 beforeEach(() => {
     jest.clearAllMocks()
     depositAccountsEnabled = true
+    residenceIso2s = []
     mockIsCountrySupported.mockReturnValue(true)
 })
 
@@ -87,13 +92,11 @@ const list = (
         isError?: boolean
         accounts?: Record<DepositCorridor, DepositAccount | undefined>
         onOpen?: (corridor: DepositCorridor) => void
-        variant?: 'add-money' | 'get-paid'
     } = {}
 ) =>
     render(
         <NextIntlClientProvider locale="en" messages={messages}>
             <DepositAccountsListScreen
-                variant={opts.variant ?? 'get-paid'}
                 corridors={opts.corridors ?? DEPOSIT_RAIL_ORDER}
                 accounts={opts.accounts ?? NONE}
                 gates={opts.gates ?? allGates()}
@@ -111,6 +114,9 @@ const rowOf = (container: HTMLElement, corridor: DepositCorridor) =>
     container.querySelector(`[data-testid="deposit-account-${corridor}"]`)
 
 const inRow = (container: HTMLElement, corridor: DepositCorridor) => within(rowOf(container, corridor) as HTMLElement)
+
+/** the countries collapsible, collapsed until tapped or until a search finds one */
+const countriesTrigger = () => screen.getByRole('button', { name: messages.depositAccounts.list.countriesPitch })
 
 /**
  * The corridors are a local catalogue and the accounts are a network call, so
@@ -219,11 +225,17 @@ describe("DepositAccountsListScreen renders the user's corridors and no others",
         expect(rowOf(container, 'BANK_TRANSFER_AR')).not.toBeInTheDocument()
     })
 
-    it('says so plainly when the user has no bank rail at all', () => {
+    /**
+     * A user with no bank rail of their own is not left with an empty screen:
+     * the residence-gated rows are there for everybody, and the countries and
+     * crypto below answer the rest.
+     */
+    it('keeps only the rows everybody gets when the user has no bank rail', () => {
         const { container } = list(false, { corridors: [] })
 
-        expect(screen.getByText(messages.depositAccounts.list.emptyTitle)).toBeInTheDocument()
         expect(rowOf(container, 'SEPA_EU')).not.toBeInTheDocument()
+        expect(rowOf(container, 'BANK_TRANSFER_BR')).toBeInTheDocument()
+        expect(rowOf(container, 'BANK_TRANSFER_CO')).toBeInTheDocument()
     })
 })
 
@@ -410,7 +422,7 @@ describe('DepositAccountsFlow when a link names a corridor the user has no rail 
         expect(
             screen.queryByText(messages.depositAccounts.details.unavailableTitle.replace('{currency}', 'ARS'))
         ).not.toBeInTheDocument()
-        expect(screen.getByText(messages.depositAccounts.list.heading)).toBeInTheDocument()
+        expect(screen.getByText(messages.depositAccounts.list.addHeading)).toBeInTheDocument()
     })
 })
 
@@ -448,13 +460,20 @@ describe('DepositAccountsFlow accepts the cursor by its old name', () => {
  * to open.
  */
 describe('the hub carries the accounts, crypto and the countries together', () => {
-    it('shows the accounts, one crypto row and the country list', () => {
+    it('shows the accounts, one crypto row and the collapsed countries', () => {
         const { container } = list(false)
 
         expect(rowOf(container, 'SEPA_EU')).toBeInTheDocument()
         expect(screen.getAllByTestId('add-money-crypto')).toHaveLength(1)
-        expect(screen.getByTestId('country-list')).toBeInTheDocument()
         expect(screen.getByText(messages.depositAccounts.list.countriesTitle)).toBeInTheDocument()
+        expect(countriesTrigger()).toBeInTheDocument()
+    })
+
+    it('carries the pitch line under each section title', () => {
+        list(false)
+
+        expect(screen.getByText(messages.depositAccounts.list.accountsPitch)).toBeInTheDocument()
+        expect(screen.getByText(messages.depositAccounts.list.countriesPitch)).toBeInTheDocument()
     })
 
     it('opens the crypto flow from its own row', () => {
@@ -469,6 +488,7 @@ describe('the hub carries the accounts, crypto and the countries together', () =
     it('hands a picked country to the one country resolver', () => {
         list(false)
 
+        fireEvent.click(countriesTrigger())
         fireEvent.click(screen.getByTestId('country-germany'))
         expect(mockOpenCountry).toHaveBeenCalledWith(expect.objectContaining({ iso2: 'DE', path: 'germany' }))
     })
@@ -477,6 +497,7 @@ describe('the hub carries the accounts, crypto and the countries together', () =
         mockIsCountrySupported.mockReturnValue(false)
         list(false)
 
+        fireEvent.click(countriesTrigger())
         expect(screen.getByTestId('country-germany')).toHaveAttribute('data-supported', 'false')
     })
 
@@ -491,34 +512,75 @@ describe('the hub carries the accounts, crypto and the countries together', () =
 
         expect(screen.queryByTestId('your-accounts')).not.toBeInTheDocument()
         expect(rowOf(container, 'SEPA_EU')).not.toBeInTheDocument()
-        expect(screen.getByTestId('country-list')).toBeInTheDocument()
+        expect(countriesTrigger()).toBeInTheDocument()
     })
 })
 
 /**
- * The same screen, titled for the job the user arrived with. Entering by
- * account opens on the accounts; entering by "add money" says so in the header.
+ * The countries are a long list and a second question. They stay folded until
+ * the user asks for them, or until a search has already found one.
  */
-describe('the hub titles itself for the entry point', () => {
-    it('names get-paid and scrolls to the accounts', () => {
-        const scrollIntoView = jest.fn()
-        window.HTMLElement.prototype.scrollIntoView = scrollIntoView
+describe('the countries collapsible', () => {
+    const search = (text: string) =>
+        fireEvent.change(screen.getByPlaceholderText(messages.depositAccounts.list.searchPlaceholder), {
+            target: { value: text },
+        })
 
-        list(false, { variant: 'get-paid' })
+    it('starts collapsed, showing only its title and pitch', () => {
+        list(false)
 
-        expect(screen.getByText(messages.depositAccounts.list.heading)).toBeInTheDocument()
-        expect(scrollIntoView).toHaveBeenCalled()
+        expect(screen.getByText(messages.depositAccounts.list.countriesTitle)).toBeInTheDocument()
+        expect(screen.queryByTestId('country-list')).not.toBeInTheDocument()
     })
 
-    it('names add money and leaves the scroll alone', () => {
-        const scrollIntoView = jest.fn()
-        window.HTMLElement.prototype.scrollIntoView = scrollIntoView
+    it('expands on a tap', () => {
+        list(false)
 
-        list(false, { variant: 'add-money' })
+        fireEvent.click(countriesTrigger())
+        expect(screen.getByTestId('country-list')).toBeInTheDocument()
+    })
 
-        expect(screen.getByText(messages.depositAccounts.list.addHeading)).toBeInTheDocument()
-        expect(screen.queryByText(messages.depositAccounts.list.heading)).not.toBeInTheDocument()
-        expect(scrollIntoView).not.toHaveBeenCalled()
+    it('opens itself once a search of two characters finds a country', () => {
+        list(false)
+
+        search('p')
+        expect(screen.queryByTestId('country-list')).not.toBeInTheDocument()
+
+        search('po')
+        expect(screen.getByTestId('country-list')).toBeInTheDocument()
+    })
+
+    it('folds again when the search is cleared', () => {
+        list(false)
+
+        search('portugal')
+        expect(screen.getByTestId('country-list')).toBeInTheDocument()
+
+        search('')
+        expect(screen.queryByTestId('country-list')).not.toBeInTheDocument()
+    })
+})
+
+/**
+ * Brazil and Colombia are open to residents alone. Everybody sees the row —
+ * the account is worth knowing about before you move — and the row says the
+ * rule before the tap rather than after a refused claim.
+ */
+describe('the residence-gated rows', () => {
+    it('shows BRL and COP to every user, with the residence caveat in the body', () => {
+        const { container } = list(false, { corridors: ['SEPA_EU'] })
+
+        expect(inRow(container, 'BANK_TRANSFER_BR').getByText(/residents of Brazil/i)).toBeInTheDocument()
+        expect(inRow(container, 'BANK_TRANSFER_CO').getByText(/residents of Colombia/i)).toBeInTheDocument()
+    })
+
+    it('keeps them tappable, because the screen behind them states the rule', () => {
+        const onOpen = jest.fn()
+        const { container } = list(false, { corridors: ['SEPA_EU'], onOpen })
+
+        expect(rowOf(container, 'BANK_TRANSFER_BR')).not.toHaveAttribute('aria-disabled', 'true')
+        fireEvent.click(rowOf(container, 'BANK_TRANSFER_BR') as HTMLElement)
+        expect(onOpen).toHaveBeenCalledWith('BANK_TRANSFER_BR')
     })
 })
 
@@ -563,6 +625,7 @@ describe('the hub search filters every section at once', () => {
         search('portugal')
 
         expect(rowOf(container, 'SEPA_EU')).toBeInTheDocument()
+        // a search that found countries opens the list on its own
         expect(screen.getByTestId('country-list')).toBeInTheDocument()
     })
 
@@ -599,7 +662,7 @@ describe('the hub search filters every section at once', () => {
         fireEvent.click(screen.getByText(messages.depositAccounts.list.clearSearch))
 
         expect(rowOf(container, 'SEPA_EU')).toBeInTheDocument()
-        expect(screen.getByTestId('country-list')).toBeInTheDocument()
+        expect(countriesTrigger()).toBeInTheDocument()
     })
 })
 
@@ -611,6 +674,8 @@ describe('the hub copy exists in every catalog', () => {
     const HUB_KEYS = [
         'addTitle',
         'addHeading',
+        'accountsPitch',
+        'countriesPitch',
         'sectionTitle',
         'countriesTitle',
         'searchPlaceholder',

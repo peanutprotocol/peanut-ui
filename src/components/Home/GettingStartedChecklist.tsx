@@ -12,6 +12,7 @@ import { useAuth } from '@/context/authContext'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { findActiveCard } from '@/components/Card/cardState.utils'
+import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useHomeDrawer } from '@/features/home/useHomeDrawer'
 import posthog from 'posthog-js'
@@ -52,6 +53,7 @@ const GettingStartedChecklist = () => {
     const [, setOpenDrawer] = useHomeDrawer()
     const { user } = useAuth()
     const restrictions = useResidenceRestrictions()
+    const depositAccountsEnabled = useDepositAccountsEnabled()
     const { isEligible } = useCardInfo()
     const { overview } = useRainCardOverview()
 
@@ -104,11 +106,15 @@ const GettingStartedChecklist = () => {
                 // drops the bank half rather than selling an ID check that
                 // cannot deliver it (same ruling as the signup residence step).
                 label: t('addMoney'),
+                // With standing accounts live, the step is a win rather than a
+                // chore: bank details of the user's own, not an ID check to pay for.
                 sub: restrictions.banking
                     ? t('addMoneyRoutesNoBank')
-                    : isVerified
-                      ? t('addMoneyRoutes')
-                      : t('addMoneyRoutesKyc'),
+                    : depositAccountsEnabled
+                      ? t('addMoneyStandingAccounts')
+                      : isVerified
+                        ? t('addMoneyRoutes')
+                        : t('addMoneyRoutesKyc'),
                 done: isFunded,
                 onTap: tap('add-money', () => {
                     void setOpenDrawer('add')
@@ -118,6 +124,7 @@ const GettingStartedChecklist = () => {
         ]
     }, [
         cardAvailable,
+        depositAccountsEnabled,
         hasActiveCard,
         hasSentPayment,
         isFunded,
