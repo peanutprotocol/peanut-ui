@@ -1,8 +1,9 @@
 import React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render } from '@testing-library/react'
 
-const mockGetUserPreferences = jest.fn()
 const mockTransactionCard = jest.fn()
+const mockSetQueryData = jest.fn()
+const mockInvalidateQueries = jest.fn()
 
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
 jest.mock('next-intl', () => ({
@@ -10,7 +11,7 @@ jest.mock('next-intl', () => ({
     useFormatter: () => ({ dateTime: () => 'date' }),
 }))
 jest.mock('@tanstack/react-query', () => ({
-    useQueryClient: () => ({ setQueryData: jest.fn(), invalidateQueries: jest.fn() }),
+    useQueryClient: () => ({ setQueryData: mockSetQueryData, invalidateQueries: mockInvalidateQueries }),
 }))
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
@@ -22,9 +23,6 @@ jest.mock('@/hooks/useCardInfo', () => ({ useCardInfo: () => ({ cardInfo: undefi
 jest.mock('@/hooks/useRainCardOverview', () => ({ useRainCardOverview: () => ({ overview: undefined }) }))
 jest.mock('@/hooks/useWebSocket', () => ({ useWebSocket: jest.fn() }))
 jest.mock('@/hooks/useInfiniteScroll', () => ({ useInfiniteScroll: () => ({ loaderRef: { current: null } }) }))
-// selection is hoisted to the list — the page computes isSelected per row from
-// this hook (rows no longer subscribe to `?tx=` themselves)
-let mockSelectedTxId: string | null = null
 jest.mock('@/hooks/useHistoryRange', () => ({
     useHistoryRange: () => ({
         from: null,
@@ -33,26 +31,35 @@ jest.mock('@/hooks/useHistoryRange', () => ({
         toDate: undefined,
         fromIso: undefined,
         toIso: undefined,
-        hasActiveRange: false,
+        hasActiveRange: true,
         activePreset: 'allTime',
         setPreset: jest.fn(),
         setCustom: jest.fn(),
-        isInRange: () => true,
+        isInRange: (date: Date) => date >= new Date('2026-08-01') && date < new Date('2026-09-01'),
     }),
 }))
 jest.mock('@/components/History/HistoryRangeDrawer', () => ({ HistoryRangeDrawer: () => null }))
 jest.mock('@/components/History/ExportActivityDrawer', () => ({ ExportActivityDrawer: () => null }))
 jest.mock('@/hooks/useTransactionDetailsDrawer', () => ({
     useTransactionDetailsDrawer: () => ({
-        selectedTxId: mockSelectedTxId,
-        isTransactionSelected: (id?: string | null) => mockSelectedTxId != null && mockSelectedTxId === id,
+        selectedTxId: null,
+        isTransactionSelected: () => false,
         openTransactionDetails: jest.fn(),
         closeTransactionDetails: jest.fn(),
     }),
 }))
+
+// two date groups: two entries today, two on one fixed past day
+const nowMs = Date.now()
+const mockEntries = [
+    { uuid: 'tx-1', timestamp: new Date(nowMs - 1000).toISOString(), type: 'SEND' },
+    { uuid: 'tx-2', timestamp: new Date(nowMs - 2000).toISOString(), type: 'SEND' },
+    { uuid: 'tx-3', timestamp: '2024-01-05T12:01:00Z', type: 'SEND' },
+    { uuid: 'tx-4', timestamp: '2024-01-05T12:00:00Z', type: 'SEND' },
+]
 jest.mock('@/hooks/useTransactionHistory', () => ({
     useTransactionHistory: () => ({
-        data: { pages: [{ entries: [{ uuid: 'tx-1', timestamp: '2026-01-01T00:00:00Z', type: 'SEND' }] }] },
+        data: { pages: [{ entries: mockEntries }] },
         hasNextPage: false,
         fetchNextPage: jest.fn(),
         isFetchingNextPage: false,
@@ -61,7 +68,7 @@ jest.mock('@/hooks/useTransactionHistory', () => ({
         error: null,
     }),
 }))
-jest.mock('@/utils/general.utils', () => ({ getUserPreferences: (id: string) => mockGetUserPreferences(id) }))
+jest.mock('@/utils/general.utils', () => ({ getUserPreferences: () => undefined }))
 jest.mock('@/utils/kyc-grouping.utils', () => ({ buildKycHistoryEntry: () => null }))
 jest.mock('@/utils/history.utils', () => ({
     completeHistoryEntry: jest.fn(),
@@ -81,55 +88,56 @@ jest.mock('@/components/TransactionDetails/transactionTransformer', () => ({
     }),
 }))
 jest.mock('@/components/TransactionDetails/TransactionCard', () => {
-    function MockTransactionCard(props: { hideTxnAmount?: boolean }) {
+    function MockTransactionCard(props: { position?: string }) {
         mockTransactionCard(props)
-        return <div data-testid="txn-card">{props.hideTxnAmount ? '****' : 'amount'}</div>
+        return <div data-testid="txn-card" />
     }
     return MockTransactionCard
 })
 
 import HistoryPage from '../page'
 
-describe('HistoryPage hidden-balance preference', () => {
+import { useWebSocket } from '@/hooks/useWebSocket'
+import { completeHistoryEntry, type HistoryEntry } from '@/utils/history.utils'
+
+describe('HistoryPage live date filter', () => {
     beforeEach(() => {
-        mockGetUserPreferences.mockReset()
-        mockTransactionCard.mockClear()
-        mockSelectedTxId = null
+        jest.clearAllMocks()
+        jest.mocked(completeHistoryEntry).mockImplementation(async (entry) => entry)
     })
 
-    it('masks transaction amounts when balanceHidden is set', () => {
-        mockGetUserPreferences.mockReturnValue({ balanceHidden: true })
+    async function receive(createdAt: string | undefined, timestamp: string, kind = 'DIRECT_TRANSFER') {
         render(<HistoryPage />)
-        expect(mockGetUserPreferences).toHaveBeenCalledWith('user-1')
-        expect(mockTransactionCard).toHaveBeenCalledWith(expect.objectContaining({ hideTxnAmount: true }))
-        expect(screen.getByTestId('txn-card')).toHaveTextContent('****')
+        const options = jest.mocked(useWebSocket).mock.calls.at(-1)![0]!
+        await options.onHistoryEntry!({
+            uuid: 'date-test',
+            createdAt,
+            timestamp: new Date(timestamp),
+            amount: '1',
+            extraData: { kind },
+        } as HistoryEntry)
+    }
+
+    it('excludes July payments completed in August', async () => {
+        await receive('2026-07-31T12:00:00Z', '2026-08-05T12:00:00Z')
+        expect(mockSetQueryData).not.toHaveBeenCalled()
     })
 
-    it('shows transaction amounts when the preference is unset', () => {
-        mockGetUserPreferences.mockReturnValue(undefined)
-        render(<HistoryPage />)
-        expect(mockTransactionCard).toHaveBeenCalledWith(expect.objectContaining({ hideTxnAmount: false }))
-        expect(screen.getByTestId('txn-card')).toHaveTextContent('amount')
+    it('includes August payments completed in September', async () => {
+        await receive('2026-08-31T12:00:00Z', '2026-09-05T12:00:00Z')
+        expect(mockSetQueryData).toHaveBeenCalledTimes(1)
     })
 
-    // deep-link wiring: `?tx=` (via the hoisted hook) still selects the right
-    // row after the per-row subscription moved to the list level
-    it('marks the row matching the url tx id as selected', () => {
-        mockGetUserPreferences.mockReturnValue(undefined)
-        mockSelectedTxId = 'tx-1'
-        render(<HistoryPage />)
-        expect(mockTransactionCard).toHaveBeenCalledWith(
-            expect.objectContaining({
-                isSelected: true,
-                onOpen: expect.any(Function),
-                onClose: expect.any(Function),
-            })
-        )
+    it('refreshes the server selection when a legacy event omits creation time', async () => {
+        await receive(undefined, '2026-08-05T12:00:00Z')
+        expect(mockSetQueryData).not.toHaveBeenCalled()
+        expect(mockInvalidateQueries).toHaveBeenCalledWith({
+            queryKey: ['transactions', 'infinite', { limit: 20, from: undefined, to: undefined }],
+        })
     })
 
-    it('passes isSelected=false when no tx id is in the url', () => {
-        mockGetUserPreferences.mockReturnValue(undefined)
-        render(<HistoryPage />)
-        expect(mockTransactionCard).toHaveBeenCalledWith(expect.objectContaining({ isSelected: false }))
+    it('uses the issuance timestamp for perk records without createdAt', async () => {
+        await receive(undefined, '2026-08-05T12:00:00Z', 'PERK_REWARD')
+        expect(mockSetQueryData).toHaveBeenCalledTimes(1)
     })
 })

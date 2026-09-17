@@ -31,6 +31,9 @@ type UseTransactionHistoryOptions = {
     enabled?: boolean
     username?: string
     filterMutualTxs?: boolean
+    /** ISO date-time bounds for the timeframe filter (infinite mode only). */
+    from?: string
+    to?: string
 }
 
 /** Absolute ceiling on requests per latest-mode load — the sole bounded-work
@@ -219,6 +222,8 @@ export function useTransactionHistory(options: {
     mode?: 'infinite'
     limit?: number
     enabled?: boolean
+    from?: string
+    to?: string
 }): InfiniteHistoryResult
 
 /**
@@ -232,6 +237,8 @@ export function useTransactionHistory({
     enabled = true,
     username,
     filterMutualTxs,
+    from,
+    to,
 }: UseTransactionHistoryOptions): LatestHistoryResult | InfiniteHistoryResult {
     // Defaulted per mode rather than once at destructuring: the same number
     // means a page size to the infinite list and a unique-row target to the
@@ -254,6 +261,9 @@ export function useTransactionHistory({
         if (limit) queryParams.append('limit', limit.toString())
         // append targetUsername to the query params if filterMutualTxs is true and username is provided
         if (filterMutualTxs && username) queryParams.append('targetUsername', username)
+        // timeframe filter — bounds createdAt server-side (see useHistoryRange)
+        if (from) queryParams.append('from', from)
+        if (to) queryParams.append('to', to)
 
         // no-store: home Activity must never render a cached copy of history
         // (server also sends Cache-Control: no-store; this covers the WebView path)
@@ -298,9 +308,10 @@ export function useTransactionHistory({
         refetchOnWindowFocus: true,
     })
 
-    // Infinite scrolling (main history page).
+    // Infinite scrolling (main history page). from/to are part of the key so a
+    // filtered view caches separately from the unfiltered feed.
     const infiniteQuery = useInfiniteQuery({
-        queryKey: [TRANSACTIONS, 'infinite', { limit: infiniteLimit }],
+        queryKey: [TRANSACTIONS, 'infinite', { limit: infiniteLimit, from, to }],
         queryFn: ({ pageParam }) => fetchHistory({ cursor: pageParam, limit: infiniteLimit }),
         initialPageParam: undefined as string | undefined,
         getNextPageParam: (lastPage, _allPages, lastPageParam) => {

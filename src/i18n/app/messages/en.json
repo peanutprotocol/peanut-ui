@@ -2226,7 +2226,34 @@
         "empty": "You haven't done any transactions",
         "loadingMore": "Loading more...",
         "today": "Today",
-        "yesterday": "Yesterday"
+        "yesterday": "Yesterday",
+        "range": {
+            "title": "Filter by date",
+            "titleActive": "Filter by date: {range}",
+            "description": "Pick the period you want to see.",
+            "allTime": "All time",
+            "last7d": "Last 7 days",
+            "last30d": "Last 30 days",
+            "last3m": "Last 3 months",
+            "last6m": "Last 6 months",
+            "ytd": "Year to date",
+            "custom": "Custom range"
+        },
+        "export": {
+            "title": "Export activity",
+            "format": "Format",
+            "range": "Date range",
+            "download": "Download",
+            "success": "Export downloaded",
+            "error": "Export failed. Try again.",
+            "save": "Save file",
+            "tooLarge": "This date range is too large. Choose a shorter range.",
+            "unverified": "We could not verify every transaction in this range. Please contact support.",
+            "busy": "Downloads are busy. Please try again shortly.",
+            "saveUnavailable": "File saving is unavailable on this device. Please download from the web app."
+        },
+        "emptyFiltered": "No activity in this period",
+        "emptyFilteredDescription": "Try a different date range."
     },
     "rewards": {
         "title": "Rewards",

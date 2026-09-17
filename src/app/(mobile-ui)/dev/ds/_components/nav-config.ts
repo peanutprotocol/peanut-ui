@@ -37,6 +37,14 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             status: 'production',
         },
         {
+            label: 'Calendar',
+            icon: 'calendar',
+            href: '/dev/ds/primitives/calendar',
+            description:
+                'Range calendar over react-day-picker, semantic tokens only. Built for the activity-history timeframe filter',
+            status: 'limited',
+        },
+        {
             label: 'Card',
             icon: 'docs',
             href: '/dev/ds/primitives/card',

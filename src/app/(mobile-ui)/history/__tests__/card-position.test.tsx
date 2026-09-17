@@ -21,6 +21,23 @@ jest.mock('@/hooks/useCardInfo', () => ({ useCardInfo: () => ({ cardInfo: undefi
 jest.mock('@/hooks/useRainCardOverview', () => ({ useRainCardOverview: () => ({ overview: undefined }) }))
 jest.mock('@/hooks/useWebSocket', () => ({ useWebSocket: jest.fn() }))
 jest.mock('@/hooks/useInfiniteScroll', () => ({ useInfiniteScroll: () => ({ loaderRef: { current: null } }) }))
+jest.mock('@/hooks/useHistoryRange', () => ({
+    useHistoryRange: () => ({
+        from: null,
+        to: null,
+        fromDate: undefined,
+        toDate: undefined,
+        fromIso: undefined,
+        toIso: undefined,
+        hasActiveRange: false,
+        activePreset: 'allTime',
+        setPreset: jest.fn(),
+        setCustom: jest.fn(),
+        isInRange: () => true,
+    }),
+}))
+jest.mock('@/components/History/HistoryRangeDrawer', () => ({ HistoryRangeDrawer: () => null }))
+jest.mock('@/components/History/ExportActivityDrawer', () => ({ ExportActivityDrawer: () => null }))
 jest.mock('@/hooks/useTransactionDetailsDrawer', () => ({
     useTransactionDetailsDrawer: () => ({
         selectedTxId: null,

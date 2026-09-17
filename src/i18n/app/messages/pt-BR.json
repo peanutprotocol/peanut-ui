@@ -2226,7 +2226,34 @@
         "empty": "Você ainda não fez nenhuma transação",
         "loadingMore": "Carregando mais...",
         "today": "Hoje",
-        "yesterday": "Ontem"
+        "yesterday": "Ontem",
+        "range": {
+            "title": "Filtrar por data",
+            "titleActive": "Filtrar por data: {range}",
+            "description": "Escolha o período que você quer ver.",
+            "allTime": "Todo o histórico",
+            "last7d": "Últimos 7 dias",
+            "last30d": "Últimos 30 dias",
+            "last3m": "Últimos 3 meses",
+            "last6m": "Últimos 6 meses",
+            "ytd": "Este ano",
+            "custom": "Período personalizado"
+        },
+        "export": {
+            "title": "Exportar atividade",
+            "format": "Formato",
+            "range": "Período",
+            "download": "Baixar",
+            "success": "Exportação baixada",
+            "error": "Falha na exportação. Tente de novo.",
+            "save": "Salvar arquivo",
+            "tooLarge": "Este período é muito longo. Escolha um período menor.",
+            "unverified": "Não foi possível verificar todas as transações deste período. Entre em contato com o suporte.",
+            "busy": "Há vários downloads em andamento. Tente novamente em instantes.",
+            "saveUnavailable": "Não é possível salvar arquivos neste dispositivo. Baixe pelo app web."
+        },
+        "emptyFiltered": "Nenhuma atividade neste período",
+        "emptyFilteredDescription": "Tente outro período."
     },
     "rewards": {
         "title": "Recompensas",
