@@ -12,6 +12,7 @@ import { readInviteCode, stashInvite } from '@/utils/invite-stash'
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { hasKnownDeviceCredentials, resolveSetupEntryStep } from '@/components/Setup/setup-entry'
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
+import { harnessPasskeyBypass } from '@/constants/harness.consts'
 import { isLikelyWebview, isDeviceOsSupported } from '@/components/Setup/Setup.utils'
 import { isCapacitor } from '@/utils/capacitor'
 import { isPwaSunsetOn } from '@/utils/migration.utils'
@@ -403,14 +404,19 @@ function SetupPageContent() {
 
             // check if device has a platform authenticator (biometric/pin).
             // capacitor already returned above — this only runs on web.
+            // The harness browser has no authenticator and signs with its own
+            // key, so the probe there only walls the QA run off its first
+            // screen. Production has neither harness signal.
             let passkeySupport = true
-            try {
-                if (PublicKeyCredential?.isUserVerifyingPlatformAuthenticatorAvailable) {
-                    passkeySupport = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+            if (!harnessPasskeyBypass()) {
+                try {
+                    if (PublicKeyCredential?.isUserVerifyingPlatformAuthenticatorAvailable) {
+                        passkeySupport = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+                    }
+                } catch (e) {
+                    passkeySupport = false
+                    console.error('Error checking passkey support:', e)
                 }
-            } catch (e) {
-                passkeySupport = false
-                console.error('Error checking passkey support:', e)
             }
 
             if (isObsolete()) return

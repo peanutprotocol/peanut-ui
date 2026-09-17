@@ -41,6 +41,14 @@ const cacheKeys = jest.fn().mockResolvedValue(['peanut-app-shell-v7', 'user-data
 
 const MANIFEST = { localStorage: { 'harness-pk': '0xabc' }, token: 'fresh-jwt' }
 
+// `--runInBand` shares one process, and `HARNESS_ENABLED` is read when a file
+// first imports the harness consts — so leaving the flag on here would turn it
+// on for whatever suite loads next.
+const harnessFlag = process.env.NEXT_PUBLIC_HARNESS_SKIP_PASSKEY_CHECK
+afterAll(() => {
+    process.env.NEXT_PUBLIC_HARNESS_SKIP_PASSKEY_CHECK = harnessFlag
+})
+
 beforeEach(() => {
     jest.clearAllMocks()
     openUrl('/home?__reproduce=session-1')
@@ -76,6 +84,45 @@ it('clears the previous build before applying the session', async () => {
     // the session is applied AFTER the wipe, so its own marker survives it
     expect(sessionStorage.getItem('__reproduce_applied')).toBe('session-1')
     expect(document.cookie).toContain('jwt-token=fresh-jwt')
+})
+
+/*
+ * The first reproduce link used to be the only one a document would honour:
+ * the effect read the URL once, so a second link opened in the same Playwright
+ * profile left the app on its loader with nothing in the log to say why.
+ */
+it('applies a second reproduce link opened after the first', async () => {
+    const first = render(<ReproduceBootstrap />)
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledWith('http://api.test/dev/reproduce/session-1'))
+    first.unmount()
+
+    openUrl('/setup?__reproduce=session-2')
+    render(<ReproduceBootstrap />)
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledWith('http://api.test/dev/reproduce/session-2'))
+    expect(global.fetch).toHaveBeenCalledTimes(2)
+})
+
+it('re-reads the URL when a reproduce link arrives without a fresh mount', async () => {
+    render(<ReproduceBootstrap />)
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledWith('http://api.test/dev/reproduce/session-1'))
+
+    openUrl('/setup?__reproduce=session-3')
+    window.dispatchEvent(new Event('popstate'))
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledWith('http://api.test/dev/reproduce/session-3'))
+})
+
+it('says so in the log when the manifest cannot be fetched', async () => {
+    const error = jest.spyOn(console, 'error').mockImplementation(() => {})
+    global.fetch = jest.fn().mockRejectedValue(new Error('offline')) as unknown as typeof fetch
+
+    render(<ReproduceBootstrap />)
+
+    await waitFor(() =>
+        expect(error).toHaveBeenCalledWith('[reproduce] bootstrap failed', 'session-1', expect.any(Error))
+    )
+    error.mockRestore()
 })
 
 it('does nothing outside the harness build', async () => {

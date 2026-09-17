@@ -101,26 +101,22 @@ async function wipeUserScopedClientState() {
 export function ReproduceBootstrap() {
     useEffect(() => {
         if (process.env.NEXT_PUBLIC_HARNESS_SKIP_PASSKEY_CHECK !== 'true') return
-        // window.location, not useSearchParams: that hook makes this component
-        // a Suspense-bailout consumer, so the boundary it sits in has to
-        // resolve before the effect can run at all. A reproduce link is always
-        // a full document load, so the URL is right here and needs no hook —
-        // and the bootstrap no longer depends on anything resolving first.
         if (typeof window === 'undefined') return
-        const sessionId = new URLSearchParams(window.location.search).get('__reproduce')
-        if (!sessionId) return
-        // Idempotent: sessionStorage flag prevents re-fetch on re-renders.
-        if (sessionStorage.getItem(SESSION_STORAGE_KEY) === sessionId) return
-
-        const apiBase = process.env.NEXT_PUBLIC_PEANUT_API_URL || ''
-        if (!apiBase) return
 
         let cancelled = false
-        ;(async () => {
+        // The id being applied right now. The FIRST reproduce link used to be
+        // the only one this document would ever honour: the effect read the
+        // URL once and never looked again, so a second link opened in the same
+        // tab left the app on its loader forever. The session id is the guard,
+        // not the fact that the effect has run before.
+        let applying: string | null = null
+
+        const apply = async (sessionId: string, apiBase: string) => {
             try {
                 const res = await fetch(`${apiBase}/dev/reproduce/${encodeURIComponent(sessionId)}`)
                 if (!res.ok) {
-                    console.warn('[reproduce] manifest fetch failed', res.status)
+                    console.error('[reproduce] manifest fetch failed', res.status, sessionId)
+                    applying = null
                     return
                 }
                 const manifest = await res.json()
@@ -167,15 +163,49 @@ export function ReproduceBootstrap() {
                 // state with no carryover from the pre-wipe session.
                 window.location.reload()
             } catch (err) {
-                console.warn('[reproduce] bootstrap failed', err)
+                // Loud, not silent: a swallowed failure here looks exactly like
+                // the loader that never resolves, and the QA log is the only
+                // place anyone can tell the two apart.
+                console.error('[reproduce] bootstrap failed', sessionId, err)
+                applying = null
             }
-        })()
+        }
+
+        // window.location, not useSearchParams: that hook makes this component
+        // a Suspense-bailout consumer, so the boundary it sits in has to
+        // resolve before the effect can run at all. Reading the live URL also
+        // means a second link reaching this same document is seen.
+        const run = () => {
+            const sessionId = new URLSearchParams(window.location.search).get('__reproduce')
+            if (!sessionId || applying === sessionId) return
+            // Idempotent across reloads: the applied marker survives the hard
+            // reload this ends in, so the same link is not replayed.
+            if (sessionStorage.getItem(SESSION_STORAGE_KEY) === sessionId) return
+
+            const apiBase = process.env.NEXT_PUBLIC_PEANUT_API_URL || ''
+            if (!apiBase) {
+                console.error('[reproduce] no API base is configured, so no manifest can be fetched', sessionId)
+                return
+            }
+
+            applying = sessionId
+            console.info('[reproduce] bootstrap start', sessionId)
+            void apply(sessionId, apiBase)
+        }
+
+        run()
+        // A reproduce link can also arrive without a fresh mount: back/forward
+        // through one, or a restore from the back-forward cache.
+        window.addEventListener('popstate', run)
+        window.addEventListener('pageshow', run)
 
         return () => {
             cancelled = true
+            window.removeEventListener('popstate', run)
+            window.removeEventListener('pageshow', run)
         }
-        // Once per document: the reproduce link is a cold load and this ends in
-        // a hard reload, so there is nothing to re-run on.
+        // Mount-scoped: `run` reads the live URL every time it fires, so there
+        // is no value to depend on.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
