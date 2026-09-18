@@ -1756,7 +1756,7 @@
             "warning": "Sending to the wrong network or token will result in permanent loss."
         },
         "howToDeposit": {
-            "title": "How to Deposit",
+            "title": "How to deposit",
             "warning": "Sending to the wrong network or token will result in permanent loss.",
             "default": {
                 "step1": "Copy the deposit address above",
@@ -1773,8 +1773,8 @@
             "tooltipTron": "Your Tron deposit address. Deposits are bridged to Arbitrum (±0.1% variance).",
             "universalDepositAddress": "Universal Deposit Address",
             "depositAddress": "Deposit Address",
-            "supportedNetworks": "Supported Networks:",
-            "supportedTokens": "Supported Tokens:",
+            "supportedNetworks": "Supported Networks",
+            "supportedTokens": "Supported Tokens",
             "supportedTokensInline": "Supported tokens:",
             "supportedEvmNetworks": "Supported EVM networks",
             "evmNetworks": "EVM networks",
@@ -1786,7 +1786,7 @@
             "minDepositForLabel": "Min deposit for {network}",
             "maxDepositForLabel": "Max deposit for {network}",
             "bridgingVarianceNote": "Deposits are bridged to Arbitrum and can vary slightly (±0.1%).",
-            "bridgingVarianceNoteEvm": "USDC on Arbitrum arrives exactly. Deposits from other chains or tokens are bridged and can vary slightly (±0.1%).",
+            "bridgingVarianceNoteEvm": "USDC on Arbitrum arrives at the full amount. Deposits from other chains or tokens are bridged and can vary slightly (±0.1%).",
             "addressErrorTitle": "We couldn't prepare your deposit address",
             "addressErrorDescription": "Nothing was sent. Please try again — if this keeps happening, contact support.",
             "marketMovedTitle": "Oops! Market moved",

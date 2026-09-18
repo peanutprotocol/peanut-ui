@@ -1209,7 +1209,7 @@ describe('GROUP 3: Crypto Deposit', () => {
         expect(mockResetStatus).toHaveBeenCalled()
     })
 
-    test('How to Deposit button opens modal', () => {
+    test('How to deposit button opens modal', () => {
         mockUseCryptoDepositPolling.mockReturnValue({
             status: 'not_started',
             resetStatus: jest.fn(),
@@ -1231,7 +1231,7 @@ describe('GROUP 3: Crypto Deposit', () => {
             />
         )
 
-        fireEvent.click(screen.getByText('How to Deposit'))
+        fireEvent.click(screen.getByText(en.addMoney.howToDeposit.title))
         expect(screen.getByTestId('how-to-deposit-modal')).toBeInTheDocument()
     })
 
