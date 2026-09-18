@@ -2,7 +2,7 @@ import SearchBox from './SearchBox'
 import InfoTooltip from './InfoTooltip'
 import type { ExplorerView } from './types'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import SegmentedControl from '@/components/0_Bruddle/SegmentedControl'
+import { Tabs } from '@/components/0_Bruddle/Tabs'
 
 interface ExplorerHeaderProps {
     view: ExplorerView
@@ -24,10 +24,11 @@ export default function ExplorerHeader({ view, searching, searchError, onViewCha
             </div>
             <SearchBox busy={searching} error={searchError} onSearch={onSearch} />
             <div className="flex items-center justify-between gap-3 lg:justify-end">
-                <SegmentedControl
+                <Tabs
+                    variant="pill"
                     value={view}
-                    onChange={(value) => onViewChange(value as ExplorerView)}
-                    options={[
+                    onValueChange={(value) => onViewChange(value as ExplorerView)}
+                    tabs={[
                         { value: 'graph', label: 'Graph' },
                         { value: 'table', label: 'Table' },
                     ]}

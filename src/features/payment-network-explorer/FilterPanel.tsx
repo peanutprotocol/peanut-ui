@@ -9,7 +9,7 @@ import BaseInput from '@/components/0_Bruddle/BaseInput'
 import BaseSelect from '@/components/0_Bruddle/BaseSelect'
 import { Field } from '@/components/0_Bruddle/Field'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import SegmentedControl from '@/components/0_Bruddle/SegmentedControl'
+import { Tabs } from '@/components/0_Bruddle/Tabs'
 
 interface FilterPanelProps {
     filters: ExplorerFilters
@@ -79,10 +79,11 @@ export default function FilterPanel({ filters, relationships, onChange, onReset 
                         row badge says whether the same type comes back.
                     </InfoTooltip>
                 </legend>
-                <SegmentedControl
+                <Tabs
+                    variant="pill"
                     value={filters.direction}
-                    onChange={(value) => onChange({ direction: value as EdgeDirectionFilter })}
-                    options={(Object.keys(DIRECTION_LABELS) as EdgeDirectionFilter[]).map((option) => ({
+                    onValueChange={(value) => onChange({ direction: value as EdgeDirectionFilter })}
+                    tabs={(Object.keys(DIRECTION_LABELS) as EdgeDirectionFilter[]).map((option) => ({
                         value: option,
                         label: DIRECTION_LABELS[option],
                     }))}

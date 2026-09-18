@@ -58,6 +58,38 @@ describe('Tabs', () => {
         expect(screen.getByTestId('rich-label')).toBeInTheDocument()
     })
 
+    test('no tab carries content: the trigger row renders alone, with no panel', () => {
+        render(
+            <Tabs
+                tabs={[
+                    { value: 'monthly', label: 'Monthly' },
+                    { value: 'yearly', label: 'Yearly' },
+                ]}
+                aria-label="period"
+            />
+        )
+        expect(screen.getAllByRole('tab')).toHaveLength(2)
+        expect(screen.queryByRole('tabpanel')).not.toBeInTheDocument()
+    })
+
+    test('pill variant still reports clicks through onValueChange', () => {
+        const onValueChange = jest.fn()
+        render(
+            <Tabs
+                variant="pill"
+                tabs={[
+                    { value: 'monthly', label: 'Monthly' },
+                    { value: 'yearly', label: 'Yearly' },
+                ]}
+                aria-label="period"
+                value="monthly"
+                onValueChange={onValueChange}
+            />
+        )
+        clickTab(screen.getByRole('tab', { name: 'Yearly' }))
+        expect(onValueChange).toHaveBeenCalledWith('yearly')
+    })
+
     test('forceMount keeps inactive panels in the DOM, hidden', () => {
         render(<Tabs tabs={TABS} aria-label="demo" forceMount />)
         // both panels exist; only the active one is visible
