@@ -1,7 +1,6 @@
 'use client'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import NavHeader from '@/components/Global/NavHeader'
-import Link from 'next/link'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
@@ -10,7 +9,6 @@ import { useTranslations } from 'next-intl'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useRequestBack } from '@/components/Request/useRequestBack'
-import { withReturnTo } from '@/utils/return-to.utils'
 import { BankInstructionsToggle } from './BankInstructionsToggle'
 import { CreateRequestLinkCta } from './CreateRequestLinkCta'
 import { RequestFulfillmentNotice } from './RequestFulfillmentNotice'
@@ -95,26 +93,6 @@ export const CreateRequestLinkView = () => {
                     tokenValue={tokenValue}
                     onGenerate={generateLink}
                 />
-
-                {/*
-                    The other way to be paid. A request asks one person for one
-                    amount and is answered inside Peanut; standing bank details
-                    take any amount from anybody through their own bank. Both
-                    are money coming in, so the screen for one names the other
-                    rather than leaving the user to find it under Add — once
-                    the flow it points at is open for business.
-                */}
-                {depositAccountsEnabled && (
-                    <Link
-                        // name the origin rather than leaving it to history:
-                        // a user who reached /request by deep link has none, and
-                        // the hub's back would drop them on /home instead of here
-                        href={withReturnTo('/add-money?method=bank', '/request')}
-                        className="text-center text-body-s text-foreground-secondary underline underline-offset-4"
-                    >
-                        {t('bankDetailsAlternative')}
-                    </Link>
-                )}
 
                 {errorState.showError && (
                     <div className="text-start">

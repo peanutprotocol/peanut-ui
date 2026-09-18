@@ -91,10 +91,12 @@ describe('BankInstructionsToggle', () => {
     })
 
     describe('who may pay', () => {
+        // The sender-line only describes a live disclosure, so it only shows
+        // once the toggle is actually ON (checked=true below).
         it('says anyone may pay on a corridor that takes third-party money', () => {
             accounts = { SEPA_EU: account('active', 'anyone') }
 
-            renderToggle()
+            renderToggle(true)
 
             expect(screen.getByText(/They can then pay you by bank transfer\./)).toBeInTheDocument()
         })
@@ -104,7 +106,7 @@ describe('BankInstructionsToggle', () => {
         it('warns that only businesses may pay on a business-only corridor', () => {
             accounts = { SEPA_EU: account('active', 'business-only') }
 
-            renderToggle()
+            renderToggle(true)
 
             expect(screen.getByText(/Only businesses can pay this by bank transfer\./)).toBeInTheDocument()
         })
@@ -123,7 +125,7 @@ describe('BankInstructionsToggle', () => {
         it('says a third-party transfer is unconfirmed where the rail publishes nothing', () => {
             accounts = { SEPA_EU: account('active', 'unknown') }
 
-            renderToggle()
+            renderToggle(true)
 
             expect(screen.getByText(/is not confirmed on this account/)).toBeInTheDocument()
         })
@@ -135,8 +137,37 @@ describe('BankInstructionsToggle', () => {
     it('reads the policy of the account the payer will be given', () => {
         accounts = { ACH_US: account('active', 'business-only'), SEPA_EU: account('active', 'anyone') }
 
-        renderToggle()
+        renderToggle(true)
 
         expect(screen.getByText(/They can then pay you by bank transfer\./)).toBeInTheDocument()
+    })
+
+    describe('state-reactive copy', () => {
+        // ON reads as a privacy disclosure: sharing the link exposes bank
+        // details and a full name, not just "here's how payers pay you".
+        it('shows the sharing disclosure while checked', () => {
+            accounts = { SEPA_EU: account('active') }
+
+            renderToggle(true)
+
+            expect(screen.getByText('Share your bank account details')).toBeInTheDocument()
+            expect(
+                screen.getByText(/Anyone who opens this link sees your bank details and full name\./)
+            ).toBeInTheDocument()
+        })
+
+        // OFF confirms nothing leaves, and drops the sender-line entirely —
+        // there is no live disclosure to qualify.
+        it('shows the opt-out copy while unchecked, with no sender line', () => {
+            accounts = { SEPA_EU: account('active', 'business-only') }
+
+            renderToggle(false)
+
+            expect(screen.getByText("Don't share bank account details")).toBeInTheDocument()
+            expect(
+                screen.getByText("You won't share your account details; only Peanut and crypto ways to pay.")
+            ).toBeInTheDocument()
+            expect(screen.queryByText(/Only businesses can pay this by bank transfer\./)).not.toBeInTheDocument()
+        })
     })
 })

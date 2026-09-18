@@ -60,23 +60,31 @@ export function BankInstructionsToggle({
     // canShare already excludes own-name-only; this narrows the copy-line type.
     if (sender === 'own-name-only') return null
 
+    // The copy names the actual tradeoff at the toggle's current position,
+    // not a generic explanation of what the toggle does: ON reads as a
+    // privacy disclosure (Slava, 2026-09-18), OFF confirms nothing leaves.
+    const title = checked ? t('bankInstructions.title') : t('bankInstructions.titleOff')
+    const description = checked ? (
+        <>
+            {t('bankInstructions.description')} {t(SENDER_LINE_KEYS[sender])}
+        </>
+    ) : (
+        t('bankInstructions.descriptionOff')
+    )
+
     return (
         <ListItem
             position="single"
             className="w-full"
-            title={t('bankInstructions.title')}
-            body={
-                <div className="text-body-xs">
-                    {t('bankInstructions.description')} {t(SENDER_LINE_KEYS[sender])}
-                </div>
-            }
+            title={title}
+            body={<div className="text-body-xs">{description}</div>}
             bodyWrap
             trailing={
                 <Toggle
                     checked={checked}
                     onChange={onChange}
                     disabled={disabled}
-                    aria-label={t('bankInstructions.title')}
+                    aria-label={title}
                     data-testid="bank-instructions-toggle"
                 />
             }
