@@ -681,7 +681,7 @@
             "payInCurrency": "Pagar en {currency} · {rail}",
             "otherWays": "Pagar de otra forma",
             "referenceNote": "Agregá esta referencia a tu transferencia. Sin ella, el pago no se asocia a esta solicitud.",
-            "amountNote": "Al tipo de cambio de hoy. Enviá este monto y la solicitud queda pagada.",
+            "amountNote": "Estimado al tipo de cambio de hoy. Tu banco puede convertir a otro tipo de cambio, así que el monto exacto puede cambiar.",
             "amountNoteSameCurrency": "Enviá este monto y la solicitud queda pagada."
         }
     },
@@ -1798,7 +1798,7 @@
         },
         "corridors": {
             "BANK_TRANSFER_BR": {
-                "residenceRequired": "Una cuenta en BRL necesita un CPF, la identificación tributaria de Brasil. Primero miramos la residencia de tu cuenta, así que ponela en Brasil si tenés uno.",
+                "residenceRequired": "Una cuenta en BRL necesita un CPF (la identificación tributaria de Brasil) y una residencia en Brasil verificada. Tu residencia se verifica en tu control de identidad, así que tiene que ser donde realmente vivís.",
                 "qrPay": "De todas formas podés pagar códigos Pix en Brasil con tu saldo."
             },
             "BANK_TRANSFER_AR": {

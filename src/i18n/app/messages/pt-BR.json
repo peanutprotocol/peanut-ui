@@ -1215,8 +1215,11 @@
             "unavailable": "A transferência bancária não está disponível para esta solicitação.",
             "amountLabel": "Valor a enviar",
             "amountValue": "{amount} {currency}",
-            "amountNote": "Pela cotação de hoje. Envie este valor e a solicitação fica paga.",
-            "amountNoteSameCurrency": "Envie este valor e a solicitação fica paga."
+            "amountValueApprox": "≈ {amount} {currency}",
+            "amountNote": "Estimado pela cotação de hoje. Seu banco pode converter por outra cotação, então o valor exato pode mudar.",
+            "amountNoteSameCurrency": "Envie este valor e a solicitação fica paga.",
+            "senderBusinessOnly": "Só uma conta empresarial pode pagar isto. Uma transferência de uma conta pessoal é devolvida.",
+            "senderUnknown": "Esta conta não confirmou que aceita pagamentos de outras pessoas, então sua transferência pode ser devolvida."
         }
     },
     "claim": {
@@ -4095,7 +4098,7 @@
                 "railName": "Pix",
                 "residenceTitle": "CPF obrigatório",
                 "residenceOnly": "Precisa de CPF",
-                "residenceRequired": "Uma conta em BRL precisa de CPF. Primeiro conferimos a residência da sua conta, então defina o Brasil se você tiver um.",
+                "residenceRequired": "Uma conta em BRL precisa de CPF (o CPF do Brasil) e de residência no Brasil verificada. Sua residência é verificada na sua checagem de identidade, então precisa ser onde você realmente mora.",
                 "qrPay": "Você ainda pode pagar códigos Pix no Brasil com o seu saldo."
             },
             "BANK_TRANSFER_CO": {
@@ -4231,7 +4234,7 @@
         },
         "fees": {
             "noFee": "Sem taxa da Peanut.",
-            "converted": "Sem taxa da Peanut. O dinheiro é convertido para USD pela cotação.",
+            "converted": "Convertido para USD pela cotação. Aplica-se uma taxa de conversão.",
             "seeRates": "Ver cotações"
         }
     }

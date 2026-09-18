@@ -1215,8 +1215,11 @@
             "unavailable": "La transferencia bancaria no está disponible para esta solicitud.",
             "amountLabel": "Monto a enviar",
             "amountValue": "{amount} {currency}",
-            "amountNote": "Al tipo de cambio de hoy. Envía este monto y la solicitud queda pagada.",
-            "amountNoteSameCurrency": "Envía este monto y la solicitud queda pagada."
+            "amountValueApprox": "≈ {amount} {currency}",
+            "amountNote": "Estimado al tipo de cambio de hoy. Tu banco puede convertir a otro tipo de cambio, así que el monto exacto puede cambiar.",
+            "amountNoteSameCurrency": "Envía este monto y la solicitud queda pagada.",
+            "senderBusinessOnly": "Solo una cuenta de empresa puede pagar esto. Una transferencia desde una cuenta personal se devuelve.",
+            "senderUnknown": "Esta cuenta no confirmó que acepta pagos de otras personas, así que tu transferencia puede devolverse."
         }
     },
     "claim": {
@@ -4095,7 +4098,7 @@
                 "railName": "Pix",
                 "residenceTitle": "Necesitas CPF",
                 "residenceOnly": "Necesita un CPF (identificación tributaria de Brasil)",
-                "residenceRequired": "Una cuenta en BRL necesita un CPF, la identificación tributaria de Brasil. Primero revisamos la residencia de tu cuenta, así que ponla en Brasil si tienes uno.",
+                "residenceRequired": "Una cuenta en BRL necesita un CPF (la identificación tributaria de Brasil) y una residencia en Brasil verificada. Tu residencia se verifica en tu control de identidad, así que debe ser donde realmente vives.",
                 "qrPay": "De todas formas puedes pagar códigos Pix en Brasil con tu saldo."
             },
             "BANK_TRANSFER_CO": {
@@ -4231,7 +4234,7 @@
         },
         "fees": {
             "noFee": "Sin comisión de Peanut.",
-            "converted": "Sin comisión de Peanut. El dinero se convierte a USD al tipo de cambio.",
+            "converted": "Se convierte a USD al tipo de cambio. Se aplica una comisión por conversión.",
             "seeRates": "Ver tipos de cambio"
         }
     }
