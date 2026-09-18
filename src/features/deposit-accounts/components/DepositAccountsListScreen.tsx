@@ -14,7 +14,7 @@ import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
-import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { SearchInput } from '@/components/SearchInput'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import type { GateState } from '@/utils/capability-gate'
@@ -275,7 +275,7 @@ export function DepositAccountsListScreen({
             body={tMethods('cryptoDescription')}
             bodyWrap
             chevron
-            leading={<AvatarWithBadge icon="wallet-outline" size="extra-small" className="bg-action-secondary" />}
+            leading={<IconBubble icon="coins" color="blue" size="s" />}
             onClick={() => router.push(CRYPTO_HREF)}
             data-testid="add-money-crypto"
         />
@@ -392,9 +392,7 @@ export function DepositAccountsListScreen({
                             title={t('list.countriesTitle')}
                             body={t('list.countriesPitch')}
                             bodyWrap
-                            leading={
-                                <AvatarWithBadge icon="globe" size="extra-small" className="bg-action-secondary" />
-                            }
+                            leading={<IconBubble icon="globe" color="blue" size="s" />}
                             trailing={
                                 <Icon
                                     name="chevron-down"

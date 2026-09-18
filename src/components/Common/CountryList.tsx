@@ -12,7 +12,7 @@ import { useCallback, useMemo, useState, useDeferredValue, type ReactNode } from
 import { getCardPosition } from '../Global/Card/card.utils'
 import { useHomeCountry } from '@/features/destinations/useHomeCountry'
 import { CountryListSkeleton } from './CountryListSkeleton'
-import AvatarWithBadge from '../Profile/AvatarWithBadge'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import EasterEggDrawer, { EASTER_EGG_COUNTRIES } from '@/components/Global/EasterEggDrawer'
 import { CountryWaitlist } from './CountryWaitlist'
@@ -183,13 +183,7 @@ export const CountryList = ({
                                 onClick={() => onCryptoClick(flow!)}
                                 position={'single'}
                                 chevron
-                                leading={
-                                    <AvatarWithBadge
-                                        icon="wallet-outline"
-                                        size="extra-small"
-                                        className="bg-action-secondary"
-                                    />
-                                }
+                                leading={<IconBubble icon="coins" color="blue" size="s" />}
                             />
                         </div>
                     )}
