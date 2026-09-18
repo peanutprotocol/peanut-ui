@@ -1731,7 +1731,7 @@
             "cta": "Ver mis datos bancarios"
         },
         "list": {
-            "searchPlaceholder": "Buscá un país, una moneda o una cuenta",
+            "searchPlaceholder": "Buscá país, moneda o cuenta",
             "rowBlocked": "Verificá tu identidad para abrir esta cuenta",
             "errorBody": "Tus cuentas están bien: solo no pudimos leerlas. Revisá tu conexión y probá de nuevo.",
             "accountsPitch": "Datos bancarios a tu nombre. Compartilos una vez y cobrá directo en Peanut.",

@@ -3968,7 +3968,7 @@
         "list": {
             "addTitle": "Adicionar dinheiro",
             "addHeading": "De onde vem o dinheiro?",
-            "searchPlaceholder": "Busque um país, uma moeda ou uma conta",
+            "searchPlaceholder": "Busque país, moeda ou conta",
             "noMatchTitle": "Nenhum resultado para “{query}”",
             "clearSearch": "Limpar busca",
             "countriesTitle": "Outros países",
