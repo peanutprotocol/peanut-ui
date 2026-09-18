@@ -1958,6 +1958,7 @@
             "accountNumberUk": "El número de cuenta debe tener entre 6 y 8 dígitos",
             "accountNumberInvalid": "Número de cuenta inválido",
             "bic": "BIC",
+            "bicOptional": "BIC (opcional)",
             "bicRequired": "El BIC es obligatorio",
             "bicInvalid": "Código BIC inválido",
             "routingNumber": "Número de ruta",
@@ -2002,7 +2003,10 @@
             "phoneNumber": "Número de teléfono",
             "phoneNumberRequired": "El número de teléfono es obligatorio",
             "phoneNumberInvalid": "Ingresa un número colombiano, por ejemplo +573001234567",
-            "phoneNumberHelper": "El número registrado en tu banco."
+            "phoneNumberHelper": "El número registrado en tu banco.",
+            "pasteAria": "Pegar desde el portapapeles",
+            "pasteEmpty": "No hay nada para pegar",
+            "pasteUnavailable": "No se pudo leer el portapapeles"
         },
         "errors": {
             "invalidNumber": "Ingresa un número válido.",
@@ -2035,7 +2039,13 @@
         },
         "resolvesTo": "se resuelve a",
         "withdrawToBank": "Retira a una cuenta bancaria",
-        "withdrawToCrypto": "Retira a una dirección cripto"
+        "withdrawToCrypto": "Retira a una dirección cripto",
+        "currencyList": {
+            "searchPlaceholder": "Buscar moneda o país",
+            "flagAlt": "Bandera de {currency}",
+            "otherCountriesTitle": "Otros países",
+            "otherCountriesPitch": "Encuentra tu país y retira en tu moneda local"
+        }
     },
     "transaction": {
         "drawerTitle": "Detalles de la transacción",
