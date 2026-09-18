@@ -692,6 +692,7 @@
         }
     },
     "qrPay": {
+        "cardUpdatedReviewQuote": "Tu tarjeta se actualizó. Revisá la cotización actual para continuar.",
         "havingTrouble": "¿Tenés problemas?",
         "orderNotReady": {
             "description": "Pedile al comercio que lo ingrese y escaneá el QR de nuevo."
@@ -940,6 +941,7 @@
         "bankNotAvailableNote": "Las transferencias bancarias no están disponibles en tu país. Todavía podés ingresar y retirar cripto."
     },
     "withdraw": {
+        "cardUpdatedReviewQuote": "Tu tarjeta se actualizó. Revisá la cotización actual para continuar.",
         "howWouldYouLikeToWithdraw": "¿Cómo querés retirar?",
         "howWouldYouLikeToSend": "¿Cómo querés enviar?",
         "chooseWithdrawingMethod": "Elegí el método de retiro",
@@ -1494,6 +1496,7 @@
             "description": "Necesitás volver a habilitar tu tarjeta antes de retirar. Solo toma un toque con tu passkey.",
             "successDescription": "Tu tarjeta está lista — intentá tu retiro de nuevo.",
             "cancelledError": "Se canceló la reactivación. Tocá Reactivar tarjeta para intentarlo otra vez.",
+            "rotatedError": "Tu tarjeta se actualizó mientras guardábamos. Tocá Reactivar tarjeta una vez más.",
             "unexpectedError": "No pudimos reactivar tu tarjeta. Intentalo de nuevo."
         },
         "iframeWrapper": {

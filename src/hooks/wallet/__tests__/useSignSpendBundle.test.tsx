@@ -11,14 +11,16 @@
  *     event, refreshes the overview, and throws InsufficientSpendableError
  *     — same handling as resolveSpendStrategy's insufficient branch.
  */
-import { renderHook, act } from '@testing-library/react'
+import { renderHook, act, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import posthog from 'posthog-js'
 import { submitSignedSpend } from '../signSpendRetry'
 import { useSignSpendBundle } from '../useSignSpendBundle'
 import { InsufficientSpendableError, resolveSpendStrategy, runCollateralSpendPreflight } from '../spendPreflight'
-import { rainApi } from '@/services/rain'
+import { rainApi, RainCooldownError } from '@/services/rain'
+import { API_ERROR_CODES, ApiError } from '@/services/api-error'
+import { getSpendArtifactMeta, SpendRecoveryAbortedError, SpendRecoveryQuoteReviewError } from '../signSpendRetry'
 import { signMixedEphemeralSpend } from '../mixedEphemeralSign'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
@@ -72,15 +74,34 @@ jest.mock('@/constants/session-key-sign.consts', () => ({
 jest.mock('../mixedEphemeralSign', () => ({ signMixedEphemeralSpend: jest.fn() }))
 jest.mock('@/hooks/useZeroDev', () => ({ useZeroDev: () => ({ handleSendUserOpEncoded: jest.fn() }) }))
 jest.mock('@/context/ModalsContext', () => ({ useModalsContextOptional: () => undefined }))
+// The post-prepare approval gate reads the cached overview and, only when it
+// disagrees with the prepared coordinator, the refetched one.
+let mockOverview: unknown = { cards: [] }
+let mockFreshOverview: unknown = { cards: [] }
+const mockRefetchOverview = jest.fn(async () => ({ data: mockFreshOverview }))
 jest.mock('@/hooks/useRainCardOverview', () => ({
-    useRainCardOverview: () => ({ overview: { cards: [] } }),
+    useRainCardOverview: () => ({ overview: mockOverview, refetch: mockRefetchOverview }),
     RAIN_CARD_OVERVIEW_QUERY_KEY: 'rain-card-overview',
 }))
-jest.mock('../useGrantSessionKey', () => ({ useGrantSessionKey: () => ({ grant: jest.fn() }) }))
+const mockGrant = jest.fn()
+jest.mock('../useGrantSessionKey', () => ({
+    useGrantSessionKey: () => ({ grant: (...args: unknown[]) => mockGrant(...args) }),
+}))
 const mockSignCallsUserOp = jest.fn(async () => ({ signedUserOp: { signature: '0xpasskey' } }))
 jest.mock('../useSignUserOp', () => ({ useSignUserOp: () => ({ signCallsUserOp: mockSignCallsUserOp }) }))
 jest.mock('@/utils/rainWithdraw.utils', () => ({ buildRainWithdrawTypedData: jest.fn(() => ({})) }))
-jest.mock('@/services/rain', () => ({ rainApi: { prepareWithdrawal: jest.fn(), cancelPreparation: jest.fn() } }))
+jest.mock('@/services/rain', () => ({
+    // Real shape: the engines narrow a cooldown with `instanceof`.
+    RainCooldownError: class RainCooldownError extends Error {
+        readonly retryAfterSec: number | null
+        constructor(message: string, retryAfterSec: number | null) {
+            super(message)
+            this.name = 'RainCooldownError'
+            this.retryAfterSec = retryAfterSec
+        }
+    },
+    rainApi: { prepareWithdrawal: jest.fn(), cancelPreparation: jest.fn(), refreshControllerAddress: jest.fn() },
+}))
 // Keep the real InsufficientSpendableError class (instanceof must hold);
 // mock only the two engine entry points.
 jest.mock('../spendPreflight', () => ({
@@ -92,6 +113,7 @@ jest.mock('../spendPreflight', () => ({
 const mockResolveSpendStrategy = resolveSpendStrategy as jest.Mock
 const mockPreflight = runCollateralSpendPreflight as jest.Mock
 const mockPrepareWithdrawal = rainApi.prepareWithdrawal as jest.Mock
+const mockRefreshController = rainApi.refreshControllerAddress as jest.Mock
 const mockCapture = posthog.capture as jest.Mock
 
 const PREP = {
@@ -123,6 +145,10 @@ beforeEach(() => {
     mockPreflight.mockImplementation(async ({ kernelClient }) => kernelClient)
     mockPrepareWithdrawal.mockResolvedValue(PREP)
     mockSignTypedData.mockResolvedValue('0xadminsig')
+    mockRefreshController.mockResolvedValue({ coordinatorAddress: PREP.coordinatorAddress, changed: false })
+    mockOverview = { cards: [] }
+    mockFreshOverview = { cards: [] }
+    mockGrant.mockResolvedValue({ ok: true, overviewFresh: true })
 })
 
 describe('useSignSpendBundle — forceStrategy: collateral-only', () => {
@@ -141,11 +167,15 @@ describe('useSignSpendBundle — forceStrategy: collateral-only', () => {
         expect(mockResolveSpendStrategy).not.toHaveBeenCalled()
         // The backend chooses the intent kind (TASK-21815) — the wire call
         // carries no client-declared kind.
-        expect(mockPrepareWithdrawal).toHaveBeenCalledWith({
-            amount: '15000', // USDC units → Rain cents
-            recipientAddress: RECIPIENT,
-            directTransfer: true,
-        })
+        expect(mockPrepareWithdrawal).toHaveBeenCalledWith(
+            {
+                amount: '15000', // USDC units → Rain cents
+                recipientAddress: RECIPIENT,
+                directTransfer: true,
+            },
+            // A normal spend keeps the global cooldown explainer.
+            { suppressCooldownEvent: false }
+        )
         expect(artifact).toEqual({
             strategy: 'collateral-only',
             rainWithdrawal: expect.objectContaining({
@@ -200,6 +230,483 @@ describe('useSignSpendBundle — forceStrategy: collateral-only', () => {
             ).rejects.toThrow('ceremony dismissed')
         })
         expect(mockCancelPreparation).toHaveBeenCalledWith('prep-1')
+    })
+})
+
+/** QR / Manteca sign here and let the backend submit, so the approval the
+ *  backend will check has to be current at SIGNING time — /prepare is what
+ *  says which controller that is. */
+describe('useSignSpendBundle — prepared-controller approval gate (TASK-22734)', () => {
+    const COORD_A = '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+    const COORD_B = '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+    const card = (hasWithdrawApproval: boolean) => [{ id: 'card-1', status: 'ACTIVE', hasWithdrawApproval }]
+
+    function signCollateralOnly() {
+        const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
+        return act(async () =>
+            result.current
+                .signSpend({
+                    requiredUsdcAmount: 150_000_000n,
+                    recipient: RECIPIENT,
+                    rainSpendingPower: 200_000_000n,
+                    kind: 'QR_PAY',
+                    forceStrategy: 'collateral-only',
+                })
+                .catch((e: Error) => e)
+        )
+    }
+
+    it('A→B: one refetch, one grant before the admin signature, artifact still produced', async () => {
+        mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(true) }
+        mockFreshOverview = { status: { coordinatorAddress: COORD_B }, cards: card(false) }
+        mockPrepareWithdrawal.mockResolvedValue({ ...PREP, coordinatorAddress: COORD_B })
+
+        const artifact = (await signCollateralOnly()) as unknown as { strategy: string }
+
+        expect(artifact).toMatchObject({ strategy: 'collateral-only' })
+        expect(mockRefetchOverview).toHaveBeenCalledTimes(1)
+        expect(mockGrant).toHaveBeenCalledTimes(1)
+        expect(mockGrant.mock.invocationCallOrder[0]).toBeLessThan(mockSignTypedData.mock.invocationCallOrder[0])
+        expect(rainApi.cancelPreparation).not.toHaveBeenCalled()
+        expect(mockRefreshController).not.toHaveBeenCalled()
+    })
+
+    it('an already-current overview signs with no refetch and no grant', async () => {
+        mockOverview = { status: { coordinatorAddress: COORD_B }, cards: card(true) }
+        mockPrepareWithdrawal.mockResolvedValue({ ...PREP, coordinatorAddress: COORD_B })
+
+        await signCollateralOnly()
+
+        expect(mockRefetchOverview).not.toHaveBeenCalled()
+        expect(mockGrant).not.toHaveBeenCalled()
+        expect(mockSignTypedData).toHaveBeenCalledTimes(1)
+    })
+
+    it('a cancelled grant yields no signature and backs the draft out', async () => {
+        mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(true) }
+        mockFreshOverview = { status: { coordinatorAddress: COORD_B }, cards: card(false) }
+        mockPrepareWithdrawal.mockResolvedValue({ ...PREP, coordinatorAddress: COORD_B })
+        mockGrant.mockResolvedValue({ ok: false, error: { kind: 'user-cancelled' } })
+
+        const error = (await signCollateralOnly()) as unknown as Error
+
+        expect(error.name).toBe('SessionKeyGrantRequiredError')
+        expect(mockSignTypedData).not.toHaveBeenCalled()
+        expect(rainApi.cancelPreparation).toHaveBeenCalledWith('prep-1')
+        expect(mockRefreshController).not.toHaveBeenCalled()
+    })
+
+    it('mixed signs without any grant even when the prepared coordinator moved', async () => {
+        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'mixed', smartBalance: 50_000_000n })
+        mockOverview = { status: { coordinatorAddress: COORD_A }, cards: card(false) }
+        mockPrepareWithdrawal.mockResolvedValue({ ...PREP, coordinatorAddress: COORD_B })
+
+        const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
+        await act(async () => {
+            await result.current.signSpend({
+                requiredUsdcAmount: 150_000_000n,
+                recipient: RECIPIENT,
+                rainSpendingPower: 200_000_000n,
+                kind: 'QR_PAY',
+            })
+        })
+
+        expect(mockGrant).not.toHaveBeenCalled()
+        expect(mockRefetchOverview).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * Ordinary collateral funding EXECUTES through the mixed pipeline: it is the
+ * one with a durable reservation, a precomputed hash and definitive failure
+ * codes, so a late rotation is recoverable on the same lock. The funding SOURCE
+ * the user's routing picked is preserved — the whole amount still comes from
+ * collateral, even when the smart account holds a balance.
+ */
+describe('useSignSpendBundle — ordinary collateral funding runs on the mixed pipeline', () => {
+    function signOrdinary() {
+        const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
+        return act(async () =>
+            result.current.signSpend({
+                requiredUsdcAmount: 150_000_000n, // $150
+                recipient: RECIPIENT,
+                rainSpendingPower: 200_000_000n,
+                kind: 'QR_PAY',
+            })
+        )
+    }
+
+    it.each([
+        ['an empty smart account', 0n],
+        ['a smart account that also has funds', 40_000_000n],
+    ])('%s: the FULL amount is drawn from collateral to the kernel', async (_label, smartBalance) => {
+        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'collateral-only', smartBalance })
+
+        const artifact = (await signOrdinary()) as unknown as { strategy: string; rainPreparationId?: string }
+
+        expect(artifact.strategy).toBe('mixed')
+        expect(artifact.rainPreparationId).toBe('prep-1')
+        expect(mockPrepareWithdrawal).toHaveBeenCalledWith(
+            {
+                // Full required amount, not a shortfall.
+                amount: '15000',
+                totalAmountCents: '15000',
+                // Kernel account is the withdraw beneficiary; the transfer to
+                // the recipient rides in the same UserOp.
+                recipientAddress: ACCOUNT,
+                directTransfer: false,
+            },
+            { suppressCooldownEvent: false }
+        )
+    })
+
+    it('keeps the modern capability metadata for late recovery', async () => {
+        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'collateral-only', smartBalance: 0n })
+        const artifact = (await signOrdinary()) as unknown as object
+        expect(getSpendArtifactMeta(artifact)).toEqual({
+            coordinatorAddress: PREP.coordinatorAddress,
+            mixedSpendContract: 'broadcast-first-revert-v1',
+        })
+    })
+
+    it('a FORCED collateral-only spend (lock/cancel card) still signs the direct withdrawal', async () => {
+        const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
+        let artifact: unknown
+        await act(async () => {
+            artifact = await result.current.signSpend({
+                requiredUsdcAmount: 150_000_000n,
+                recipient: RECIPIENT,
+                rainSpendingPower: 200_000_000n,
+                kind: 'AUTO_REBALANCE',
+                forceStrategy: 'collateral-only',
+            })
+        })
+        expect((artifact as { strategy: string }).strategy).toBe('collateral-only')
+        expect(mockPrepareWithdrawal).toHaveBeenCalledWith(
+            expect.objectContaining({ directTransfer: true, recipientAddress: RECIPIENT }),
+            { suppressCooldownEvent: false }
+        )
+        expect(mockResolveSpendStrategy).not.toHaveBeenCalled()
+    })
+})
+
+/**
+ * A rotation can break the mixed prepare/estimate BEFORE any artifact exists.
+ * This engine broadcasts nothing, so that attempt is re-run once with the same
+ * terms — the first post-rotation QR/offramp must not fail visibly.
+ */
+describe('useSignSpendBundle — pre-artifact rotation recovery', () => {
+    const COORD_B = '0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+
+    beforeEach(() => {
+        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'mixed', smartBalance: 50_000_000n })
+    })
+
+    function signMixedSpend() {
+        const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
+        return act(async () =>
+            result.current
+                .signSpend({
+                    requiredUsdcAmount: 150_000_000n,
+                    recipient: RECIPIENT,
+                    rainSpendingPower: 200_000_000n,
+                    kind: 'QR_PAY',
+                })
+                .catch((e: Error) => e)
+        )
+    }
+
+    it('estimation fails under A, the controller is now B: re-prepares and returns a fresh artifact once', async () => {
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
+        mockSignCallsUserOp.mockRejectedValueOnce(new Error('execution reverted during gas estimation'))
+        mockPrepareWithdrawal
+            .mockResolvedValueOnce(PREP)
+            .mockResolvedValueOnce({ ...PREP, preparationId: 'prep-2', coordinatorAddress: COORD_B })
+
+        const artifact = (await signMixedSpend()) as unknown as { rainPreparationId?: string }
+
+        expect(artifact.rainPreparationId).toBe('prep-2')
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(2)
+        // Same terms; only the recovery attempt owns its cooldown explainer.
+        expect(mockPrepareWithdrawal.mock.calls[1][0]).toEqual(mockPrepareWithdrawal.mock.calls[0][0])
+        expect(mockPrepareWithdrawal.mock.calls[1][1]).toEqual({ suppressCooldownEvent: true })
+        expect(mockCapture).not.toHaveBeenCalledWith(
+            ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED,
+            expect.objectContaining({ flow: 'sign-only' })
+        )
+    })
+
+    it('the backend rotation code is accepted with no local prepared target and no extra refresh', async () => {
+        mockPrepareWithdrawal
+            .mockRejectedValueOnce(
+                new ApiError('controller changed', { status: 409, code: API_ERROR_CODES.RAIN_CONTROLLER_CHANGED })
+            )
+            .mockResolvedValueOnce({ ...PREP, preparationId: 'prep-2' })
+
+        const artifact = (await signMixedSpend()) as unknown as { rainPreparationId?: string }
+
+        expect(artifact.rainPreparationId).toBe('prep-2')
+        expect(mockRefreshController).not.toHaveBeenCalled()
+    })
+
+    it('an internal 425 after that safe code becomes a quote-review handoff, not a failed payment', async () => {
+        mockPrepareWithdrawal
+            .mockRejectedValueOnce(
+                new ApiError('controller changed', { status: 409, code: API_ERROR_CODES.RAIN_CONTROLLER_CHANGED })
+            )
+            .mockRejectedValueOnce(new RainCooldownError('cooling down', 300))
+
+        const error = (await signMixedSpend()) as unknown as Error
+
+        expect(error).toBeInstanceOf(SpendRecoveryQuoteReviewError)
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(2)
+        expect(mockRefreshController).not.toHaveBeenCalled()
+    })
+
+    it('an unchanged controller is not retried', async () => {
+        mockSignCallsUserOp.mockRejectedValueOnce(new Error('bundler 502'))
+        const error = (await signMixedSpend()) as unknown as Error
+        expect(error.message).toBe('bundler 502')
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
+    })
+
+    it('a dismissed passkey neither refreshes the controller nor retries', async () => {
+        const cancelled = Object.assign(new Error('ceremony dismissed'), { name: 'NotAllowedError' })
+        mockSignCallsUserOp.mockRejectedValueOnce(cancelled)
+        const error = (await signMixedSpend()) as unknown as Error
+        expect(error).toBe(cancelled)
+        expect(mockRefreshController).not.toHaveBeenCalled()
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
+    })
+
+    it('a controller refresh that resolves AFTER the user leaves prepares nothing more', async () => {
+        let releaseRefresh: (value: { coordinatorAddress: string; changed: boolean }) => void = () => {}
+        mockRefreshController.mockReturnValueOnce(
+            new Promise((resolve) => {
+                releaseRefresh = resolve
+            })
+        )
+        mockSignCallsUserOp.mockRejectedValueOnce(new Error('execution reverted during gas estimation'))
+
+        const { result, unmount } = renderHook(() => useSignSpendBundle(), { wrapper })
+        let settled: Promise<unknown> | undefined
+        await act(async () => {
+            settled = result.current
+                .signSpend({
+                    requiredUsdcAmount: 150_000_000n,
+                    recipient: RECIPIENT,
+                    rainSpendingPower: 200_000_000n,
+                    kind: 'QR_PAY',
+                })
+                .catch((e: Error) => e)
+            await waitFor(() => expect(mockRefreshController).toHaveBeenCalledTimes(1))
+        })
+        unmount()
+        await act(async () => {
+            releaseRefresh({ coordinatorAddress: COORD_B, changed: true })
+            expect(await settled).toBeInstanceOf(SpendRecoveryAbortedError)
+        })
+
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
+    })
+
+    /*
+     * fitsLock === true: the replacement prepare hits Rain's cooldown, but the
+     * wait plus signing still fits INSIDE this payment's own quote — so the
+     * recovery waits it out itself and signs, with no quote renewal and no
+     * second confirmation from the user.
+     */
+    it('waits out a cooldown that fits the lock, then signs a fresh artifact under the SAME lock', async () => {
+        jest.useFakeTimers({ advanceTimers: true })
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
+        mockSignCallsUserOp.mockRejectedValueOnce(new Error('execution reverted during gas estimation'))
+        mockPrepareWithdrawal
+            .mockResolvedValueOnce(PREP)
+            .mockRejectedValueOnce(new RainCooldownError('cooling down', 2))
+            .mockResolvedValueOnce({ ...PREP, preparationId: 'prep-2', coordinatorAddress: COORD_B })
+
+        const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
+        let settled: Promise<unknown> | undefined
+        await act(async () => {
+            settled = result.current.signSpend({
+                requiredUsdcAmount: 150_000_000n,
+                recipient: RECIPIENT,
+                rainSpendingPower: 200_000_000n,
+                kind: 'QR_PAY',
+                lockExpiresAt: Date.now() + 120_000,
+            })
+            await Promise.resolve()
+        })
+        // Inside the cooldown nothing more is prepared.
+        await waitFor(() => expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(2))
+
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(2_100)
+        })
+        const artifact = (await settled) as unknown as { rainPreparationId?: string }
+
+        // initial prepare, cooled-down replacement prepare, successful retry.
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(3)
+        expect(artifact.rainPreparationId).toBe('prep-2')
+        // Same money and recipient throughout; only the prep is fresh.
+        expect(mockPrepareWithdrawal.mock.calls[2][0]).toEqual(mockPrepareWithdrawal.mock.calls[0][0])
+        // The recovery owns its own 425 — no global cooldown explainer.
+        expect(mockPrepareWithdrawal.mock.calls[1][1]).toEqual({ suppressCooldownEvent: true })
+        jest.useRealTimers()
+    }, 20_000)
+
+    it('leaving the screen mid-wait aborts the recovery without signing a replacement', async () => {
+        jest.useFakeTimers({ advanceTimers: true })
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
+        mockSignCallsUserOp.mockRejectedValueOnce(new Error('execution reverted during gas estimation'))
+        mockPrepareWithdrawal
+            .mockResolvedValueOnce(PREP)
+            .mockRejectedValueOnce(new RainCooldownError('cooling down', 2))
+
+        const { result, unmount } = renderHook(() => useSignSpendBundle(), { wrapper })
+        let settled: Promise<unknown> | undefined
+        await act(async () => {
+            settled = result.current
+                .signSpend({
+                    requiredUsdcAmount: 150_000_000n,
+                    recipient: RECIPIENT,
+                    rainSpendingPower: 200_000_000n,
+                    kind: 'QR_PAY',
+                    lockExpiresAt: Date.now() + 120_000,
+                })
+                .catch((e: Error) => e)
+            await Promise.resolve()
+        })
+        await waitFor(() => expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(2))
+        unmount()
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(2_100)
+        })
+
+        expect(await settled).toBeInstanceOf(SpendRecoveryAbortedError)
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(2)
+        jest.useRealTimers()
+    }, 20_000)
+
+    /*
+     * A replacement that ends badly must still run the same cleanup the first
+     * attempt would have: its standalone draft is backed out, and a real
+     * failure (not a typed handoff) is reported once.
+     */
+    it('a failed replacement backs its own draft out and reports the FINAL failure once', async () => {
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
+        mockSignCallsUserOp
+            .mockRejectedValueOnce(new Error('execution reverted during gas estimation'))
+            .mockRejectedValueOnce(new Error('bundler 502'))
+        mockPrepareWithdrawal
+            .mockResolvedValueOnce(PREP)
+            .mockResolvedValueOnce({ ...PREP, preparationId: 'prep-2', coordinatorAddress: COORD_B })
+
+        const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
+        const error = (await act(async () =>
+            result.current
+                .signSpend({
+                    requiredUsdcAmount: 150_000_000n,
+                    recipient: RECIPIENT,
+                    rainSpendingPower: 200_000_000n,
+                    kind: 'QR_PAY',
+                })
+                .catch((e: Error) => e)
+        )) as unknown as Error
+
+        expect(error.message).toBe('bundler 502')
+        // Both drafts are released: the original before the retry, the
+        // replacement's own on the shared failure exit.
+        expect(rainApi.cancelPreparation).toHaveBeenCalledWith('prep-1')
+        expect(rainApi.cancelPreparation).toHaveBeenCalledWith('prep-2')
+        // Exactly ONE failure event for the whole payment — the recovered first
+        // attempt must not report one of its own.
+        const failures = mockCapture.mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED)
+        expect(failures).toHaveLength(1)
+        expect(failures[0][1]).toMatchObject({
+            flow: 'sign-only',
+            error_message: 'bundler 502',
+            recovery: 'controller-changed',
+        })
+    })
+
+    it('a quote-review handoff releases the original draft and reports no failed payment', async () => {
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
+        mockSignCallsUserOp.mockRejectedValueOnce(new Error('execution reverted during gas estimation'))
+        // The replacement prepare itself is cooled down for longer than any
+        // quote could survive, so the call site has to re-quote.
+        mockPrepareWithdrawal
+            .mockResolvedValueOnce(PREP)
+            .mockRejectedValueOnce(new RainCooldownError('cooling down', 600))
+
+        const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
+        const error = (await act(async () =>
+            result.current
+                .signSpend({
+                    requiredUsdcAmount: 150_000_000n,
+                    recipient: RECIPIENT,
+                    rainSpendingPower: 200_000_000n,
+                    kind: 'QR_PAY',
+                })
+                .catch((e: Error) => e)
+        )) as unknown as Error
+
+        expect(error).toBeInstanceOf(SpendRecoveryQuoteReviewError)
+        // The original draft is released; the replacement never got one.
+        expect(rainApi.cancelPreparation).toHaveBeenCalledWith('prep-1')
+        expect(mockCapture).not.toHaveBeenCalledWith(
+            ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED,
+            expect.objectContaining({ flow: 'sign-only' })
+        )
+    })
+
+    it('a second failure after the recovery stops and surfaces', async () => {
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
+        mockSignCallsUserOp
+            .mockRejectedValueOnce(new Error('still broken'))
+            .mockRejectedValueOnce(new Error('still broken'))
+        const error = (await signMixedSpend()) as unknown as Error
+        expect(error.message).toBe('still broken')
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(2)
+    })
+})
+
+describe('useSignSpendBundle — cached-controller repair (TASK-22734)', () => {
+    function signCollateralOnly() {
+        const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
+        return act(async () =>
+            result.current
+                .signSpend({
+                    requiredUsdcAmount: 150_000_000n,
+                    recipient: RECIPIENT,
+                    rainSpendingPower: 200_000_000n,
+                    kind: 'FIAT_OFFRAMP',
+                    forceStrategy: 'collateral-only',
+                })
+                .catch((e: Error) => e)
+        )
+    }
+
+    it('signing a Rain leg successfully asks for no refresh', async () => {
+        await signCollateralOnly()
+        expect(mockRefreshController).not.toHaveBeenCalled()
+    })
+
+    it('a failed Rain leg repairs the cache once and surfaces the original error', async () => {
+        mockPrepareWithdrawal.mockRejectedValueOnce(new Error('rain prepare 502'))
+        const error = (await signCollateralOnly()) as unknown as Error
+        expect(error.message).toBe('rain prepare 502')
+        expect(mockRefreshController).toHaveBeenCalledTimes(1)
+        // Cache-only: the failed order/preparation is never retried from here.
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
+    })
+
+    it('a dismissed passkey prompt is not treated as evidence of a stale controller', async () => {
+        const cancelled = new Error('ceremony dismissed')
+        cancelled.name = 'NotAllowedError'
+        mockSignTypedData.mockRejectedValueOnce(cancelled)
+        await signCollateralOnly()
+        expect(mockRefreshController).not.toHaveBeenCalled()
     })
 })
 

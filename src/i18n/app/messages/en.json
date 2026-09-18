@@ -1279,6 +1279,7 @@
     },
     "qrPay": {
         "youArePaying": "You're paying",
+        "cardUpdatedReviewQuote": "Your card was updated. Review the current quote to continue.",
         "paymentMethodAlt": "Payment method",
         "peanutManAlt": "Peanut Man",
         "waitingForMerchant": "Waiting for the merchant to set the amount",
@@ -1873,6 +1874,7 @@
         "bankNotAvailableNote": "Bank transfers aren't available in your country. You can still add and withdraw crypto."
     },
     "withdraw": {
+        "cardUpdatedReviewQuote": "Your card was updated. Review the current quote to continue.",
         "amountToWithdraw": "Amount to withdraw",
         "amountToSend": "Amount to send",
         "howWouldYouLikeToWithdraw": "How would you like to withdraw?",
@@ -3354,6 +3356,7 @@
             "successTitle": "Card re-enabled",
             "successDescription": "Your card is ready — please try your withdrawal again.",
             "cancelledError": "Re-enabling was cancelled. Tap Re-enable card to try again.",
+            "rotatedError": "Your card was updated while we were saving. Tap Re-enable card once more.",
             "unexpectedError": "We couldn't re-enable your card. Please try again.",
             "reEnableCta": "Re-enable card",
             "workingCta": "Working…",

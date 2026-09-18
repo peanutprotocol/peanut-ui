@@ -7,8 +7,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { findActiveCard } from '@/components/Card/cardState.utils'
-import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
-import { useQueryClient } from '@tanstack/react-query'
+import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { rainCoordinatorAbi } from '@/constants/rain.consts'
 import { toPermissionValidator } from '@zerodev/permissions'
@@ -20,6 +19,7 @@ import { serializePermissionAccount } from '@zerodev/permissions'
 import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 import { peanutPublicClient } from '@/app/actions/clients'
 import { rainApi } from '@/services/rain'
+import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { ensureRootValidatorMigrated, isMigrationWrapperAccount } from '@/utils/kernelMigration.utils'
 import { repairEnableNonce, type NoncePublicClient } from '@/utils/kernelNonceRepair.utils'
@@ -80,6 +80,11 @@ export type GrantSessionKeyError =
     | { kind: 'no-contracts' }
     | { kind: 'session-key-unavailable'; message: string }
     | { kind: 'user-cancelled' }
+    /** The grant store refused the approval (400 STALE_CARD_APPROVAL): the
+     *  controller moved between this overview read and the save. Kept distinct
+     *  from `unexpected` because it is the ONE grant failure a spend may treat
+     *  as a rotation candidate — and the re-enable modal can say so. */
+    | { kind: 'stale-approval'; message: string }
     | { kind: 'unexpected'; message: string }
 
 export interface GrantSessionKeyResult {
@@ -102,7 +107,6 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
     const { overview, refetch } = useRainCardOverview()
     const { ensureClientForChain, getPatchedSudoValidator, rebuildClientForChain } = useKernelClient()
     const { handleSendUserOpEncoded } = useZeroDev()
-    const queryClient = useQueryClient()
     const [isGranting, setIsGranting] = useState(false)
     const [lastError, setLastError] = useState<GrantSessionKeyError | null>(null)
 
@@ -110,12 +114,28 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
      * Shared passkey + serialize step. Produces the serialized permission
      * string but does NOT hit any backend endpoint. Requires the collateral
      * proxy + coordinator addresses (available once Rain has approved KYC).
+     *
+     * The coordinator is read from a FRESH overview fetch, never the cached
+     * one: it surfaces the latest SERVER metadata, which a failed Rain
+     * operation repairs after Rain rotates the controller (TASK-22734). A grant
+     * pinned to a stale coordinator is dead on arrival — the backend refuses to
+     * store it (400 STALE_CARD_APPROVAL) and every collateral spend would 409.
      */
     const runSerialize = useCallback(async (): Promise<
         { ok: true; serialized: string } | { ok: false; error: GrantSessionKeyError }
     > => {
-        const collateralProxy = overview?.status?.contractAddress as Address | undefined
-        const coordinatorAddress = overview?.status?.coordinatorAddress as Address | undefined
+        const fresh = await refetch()
+        if (!fresh.isSuccess || !fresh.data) {
+            return {
+                ok: false,
+                error: {
+                    kind: 'unexpected',
+                    message: (fresh.error as Error | null)?.message ?? 'Card overview unavailable',
+                },
+            }
+        }
+        const collateralProxy = fresh.data.status?.contractAddress as Address | undefined
+        const coordinatorAddress = fresh.data.status?.coordinatorAddress as Address | undefined
         if (!collateralProxy || !coordinatorAddress) {
             return { ok: false, error: { kind: 'no-contracts' } }
         }
@@ -315,7 +335,7 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
 
         const serialized = await serializePermissionAccount(sessionKernelAccount, undefined, enableSignature)
         return { ok: true, serialized }
-    }, [overview, ensureClientForChain, getPatchedSudoValidator, handleSendUserOpEncoded, rebuildClientForChain])
+    }, [refetch, ensureClientForChain, getPatchedSudoValidator, handleSendUserOpEncoded, rebuildClientForChain])
 
     const wrap = useCallback(
         async <T>(
@@ -370,20 +390,27 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
             try {
                 await rainApi.submitWithdrawSessionApproval({ serializedApproval: r.serialized })
             } catch (e) {
-                return { ok: false, error: { kind: 'unexpected', message: (e as Error).message } as const }
+                // Structured code only — the approval we just signed targets a
+                // controller the backend no longer has on record.
+                const kind =
+                    wireErrorCode(e) === API_ERROR_CODES.STALE_CARD_APPROVAL
+                        ? 'stale-approval'
+                        : ('unexpected' as const)
+                return { ok: false, error: { kind, message: (e as Error).message } as const }
             }
 
             // Flip the `hasWithdrawApproval` flag in UI by refetching overview.
             // refetch() resolves (never throws) with an error state on network
             // failure — surface that so the caller can tell "flag is stale"
-            // apart from "flag genuinely didn't flip".
+            // apart from "flag genuinely didn't flip". No invalidateQueries
+            // after it: awaiting the shared query's own refetch already gives
+            // every observer the post-grant data.
             const refetchResult = await refetch()
-            queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
             return { ok: true as const, value: refetchResult.isSuccess }
         })
         if (result.ok) return { ok: true, overviewFresh: result.value === true }
         return result
-    }, [wrap, runSerialize, overview, refetch, queryClient])
+    }, [wrap, runSerialize, overview, refetch])
 
     return { grant, serializeGrant, isGranting, lastError }
 }

@@ -10518,6 +10518,10 @@
                                                     "recipientAddress": {
                                                         "pattern": "^0x[0-9a-fA-F]{40}$",
                                                         "type": "string"
+                                                    },
+                                                    "preparedCoordinatorAddress": {
+                                                        "pattern": "^0x[0-9a-fA-F]{40}$",
+                                                        "type": "string"
                                                     }
                                                 },
                                                 "required": [
@@ -11212,6 +11216,10 @@
                                                         "type": "string"
                                                     },
                                                     "recipientAddress": {
+                                                        "pattern": "^0x[0-9a-fA-F]{40}$",
+                                                        "type": "string"
+                                                    },
+                                                    "preparedCoordinatorAddress": {
                                                         "pattern": "^0x[0-9a-fA-F]{40}$",
                                                         "type": "string"
                                                     }
@@ -12995,6 +13003,107 @@
                 }
             }
         },
+        "/rain/cards/controller/refresh": {
+            "post": {
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {},
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "changed": {
+                                            "type": "boolean"
+                                        },
+                                        "coordinatorAddress": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "coordinatorAddress",
+                                        "changed"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "502": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
         "/rain/cards/readiness": {
             "get": {
                 "responses": {
@@ -13553,6 +13662,27 @@
                         },
                         "description": "Default Response"
                     },
+                    "409": {
+                        "description": "Default Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        },
+                                        "code": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ]
+                                }
+                            }
+                        }
+                    },
                     "422": {
                         "content": {
                             "application/json": {
@@ -14033,6 +14163,10 @@
                                     "recipientAddress": {
                                         "pattern": "^0x[0-9a-fA-F]{40}$",
                                         "type": "string"
+                                    },
+                                    "preparedCoordinatorAddress": {
+                                        "pattern": "^0x[0-9a-fA-F]{40}$",
+                                        "type": "string"
                                     }
                                 },
                                 "required": [
@@ -14120,10 +14254,20 @@
                                 "schema": {
                                     "properties": {
                                         "code": {
-                                            "enum": [
-                                                "STALE_CARD_APPROVAL"
-                                            ],
-                                            "type": "string"
+                                            "anyOf": [
+                                                {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "STALE_CARD_APPROVAL"
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "RAIN_CONTROLLER_CHANGED"
+                                                    ]
+                                                }
+                                            ]
                                         },
                                         "error": {
                                             "type": "string"
@@ -14424,6 +14568,10 @@
                                                 "type": "string"
                                             },
                                             "recipientAddress": {
+                                                "pattern": "^0x[0-9a-fA-F]{40}$",
+                                                "type": "string"
+                                            },
+                                            "preparedCoordinatorAddress": {
                                                 "pattern": "^0x[0-9a-fA-F]{40}$",
                                                 "type": "string"
                                             }
@@ -14845,6 +14993,10 @@
                                                 "type": "string"
                                             },
                                             "recipientAddress": {
+                                                "pattern": "^0x[0-9a-fA-F]{40}$",
+                                                "type": "string"
+                                            },
+                                            "preparedCoordinatorAddress": {
                                                 "pattern": "^0x[0-9a-fA-F]{40}$",
                                                 "type": "string"
                                             }

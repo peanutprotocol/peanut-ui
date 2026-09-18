@@ -49,7 +49,14 @@ jest.mock('@/constants/rain.consts', () => ({
     RAIN_WITHDRAW_EIP712_DOMAIN_VERSION: '2',
 }))
 
-import { computeSpendStrategy, fetchLiveSmartUsdcBalance } from '../spendPreflight'
+import {
+    computeSpendStrategy,
+    ensurePreparedControllerApproval,
+    fetchLiveSmartUsdcBalance,
+    runCollateralSpendPreflight,
+    SessionKeyGrantRequiredError,
+} from '../spendPreflight'
+import type { RainCardOverview } from '@/services/rain'
 
 describe('computeSpendStrategy', () => {
     const amount = 1000n
@@ -157,25 +164,98 @@ describe('fetchLiveSmartUsdcBalance', () => {
     })
 })
 
+/**
+ * The collateral-only grant gate, run AFTER /prepare: the prep states which
+ * coordinator the withdrawal targets, and a cached overview can be behind it
+ * (TASK-22734).
+ */
+describe('ensurePreparedControllerApproval', () => {
+    const COORD_A = '0xAAAA000000000000000000000000000000000001'
+    const COORD_B = '0xbbbb000000000000000000000000000000000002'
+    const overviewWith = (coordinatorAddress: string, hasWithdrawApproval: boolean) =>
+        ({
+            status: { coordinatorAddress },
+            cards: [{ id: 'card-1', status: 'ACTIVE', hasWithdrawApproval }],
+        }) as unknown as RainCardOverview
+
+    const run = async (opts: { cached: RainCardOverview | undefined; fresh?: RainCardOverview; prepared: string }) => {
+        const refetchOverview = jest.fn(async () => opts.fresh)
+        const grant = jest.fn(async () => ({ ok: true }) as const)
+        await ensurePreparedControllerApproval({
+            preparedCoordinator: opts.prepared,
+            overview: opts.cached,
+            refetchOverview,
+            grant,
+        })
+        return { refetchOverview, grant }
+    }
+
+    it('short-circuits when the cached overview already matches the prepared coordinator', async () => {
+        // Case-insensitive: the wire casing of the two sides need not agree.
+        const cached = overviewWith(COORD_A, true)
+        const { refetchOverview, grant } = await run({ cached, prepared: COORD_A.toLowerCase() })
+        expect(refetchOverview).not.toHaveBeenCalled()
+        expect(grant).not.toHaveBeenCalled()
+    })
+
+    it('re-grants once when the prepared coordinator moved and the refetch confirms the dead approval', async () => {
+        const onGrantRequired = jest.fn()
+        const refetchOverview = jest.fn(async () => overviewWith(COORD_B, false))
+        const grant = jest.fn(async () => ({ ok: true }) as const)
+        await ensurePreparedControllerApproval({
+            preparedCoordinator: COORD_B,
+            overview: overviewWith(COORD_A, true),
+            refetchOverview,
+            grant,
+            onGrantRequired,
+        })
+        expect(refetchOverview).toHaveBeenCalledTimes(1)
+        expect(onGrantRequired).toHaveBeenCalledTimes(1)
+        expect(grant).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not grant when the refetched overview still reports a live approval', async () => {
+        // e.g. the pre-prepare gate just granted; the cached snapshot is behind.
+        const cached = overviewWith(COORD_A, false)
+        const fresh = overviewWith(COORD_B, true)
+        const { grant, refetchOverview } = await run({ cached, fresh, prepared: COORD_B })
+        expect(refetchOverview).toHaveBeenCalledTimes(1)
+        expect(grant).not.toHaveBeenCalled()
+    })
+
+    it('does nothing when no active card is visible', async () => {
+        const cached = { cards: [] } as unknown as RainCardOverview
+        const { refetchOverview, grant } = await run({ cached, prepared: COORD_B })
+        expect(refetchOverview).not.toHaveBeenCalled()
+        expect(grant).not.toHaveBeenCalled()
+    })
+
+    it('surfaces a cancelled grant as SessionKeyGrantRequiredError so the caller never signs', async () => {
+        await expect(
+            ensurePreparedControllerApproval({
+                preparedCoordinator: COORD_B,
+                overview: overviewWith(COORD_A, true),
+                refetchOverview: async () => overviewWith(COORD_B, false),
+                grant: async () => ({ ok: false, error: { kind: 'user-cancelled' } }) as const,
+            })
+        ).rejects.toBeInstanceOf(SessionKeyGrantRequiredError)
+    })
+})
+
 // ── shared collateral pre-flight orchestration ──────────────────────────────
 // The one ordered sequence both spend engines run before signing anything:
-// migration gate → grant gate. Drift between the engines here is exactly how
-// the migration-ordering bug shipped twice.
-
-import { runCollateralSpendPreflight, SessionKeyGrantRequiredError } from '../spendPreflight'
+// migration gate + overview validation. Drift between the engines here is
+// exactly how the migration-ordering bug shipped twice. The session-key grant
+// is NOT here — it binds to the coordinator /prepare returns, so it lives in
+// `ensurePreparedControllerApproval` above.
 
 const CARD_OVERVIEW = (hasWithdrawApproval: boolean) =>
     ({ cards: [{ status: 'ACTIVE', hasWithdrawApproval }] }) as never
 
-const preflightHarness = (opts: { account: unknown; overview?: unknown; grantOk?: boolean; migrated?: boolean }) => {
+const preflightHarness = (opts: { account: unknown; overview?: unknown }) => {
     const rebuilt = { account: { address: '0xrebuilt' } }
     const sendNoopUserOp = jest.fn(async () => ({ receipt: { status: 'success' } as never }))
     const rebuildClient = jest.fn(async () => rebuilt)
-    const grant = jest.fn(async () =>
-        opts.grantOk === false
-            ? { ok: false as const, error: { kind: 'user-cancelled' as const } }
-            : { ok: true as const }
-    )
     const overlayStates: boolean[] = []
     return {
         args: {
@@ -183,7 +263,6 @@ const preflightHarness = (opts: { account: unknown; overview?: unknown; grantOk?
             kernelClient: { account: opts.account },
             overview: (opts.overview ?? CARD_OVERVIEW(true)) as never,
             requireOverview: false,
-            grant,
             sendNoopUserOp,
             rebuildClient,
             setSecurityOverlay: (open: boolean) => overlayStates.push(open),
@@ -192,7 +271,6 @@ const preflightHarness = (opts: { account: unknown; overview?: unknown; grantOk?
         sendNoopUserOp,
         rebuildClient,
         rebuilt,
-        grant,
         overlayStates,
     }
 }
@@ -207,31 +285,20 @@ const unmigratedWrapper = () => {
 }
 
 describe('runCollateralSpendPreflight', () => {
-    it('smart-only: no migration, no grant, same client back', async () => {
+    it('smart-only: no migration, same client back', async () => {
         const h = preflightHarness({ account: unmigratedWrapper(), overview: CARD_OVERVIEW(false) })
         const result = await runCollateralSpendPreflight({ ...h.args, strategy: 'smart-only' })
         expect(result).toBe(h.args.kernelClient)
         expect(h.sendNoopUserOp).not.toHaveBeenCalled()
-        expect(h.grant).not.toHaveBeenCalled()
     })
 
-    it('mixed + unmigrated wrapper: migrates under the overlay, returns rebuilt client, never grants', async () => {
+    it('mixed + unmigrated wrapper: migrates under the overlay, returns rebuilt client', async () => {
         const h = preflightHarness({ account: unmigratedWrapper(), overview: CARD_OVERVIEW(false) })
         const result = await runCollateralSpendPreflight({ ...h.args, strategy: 'mixed' })
         expect(h.sendNoopUserOp).toHaveBeenCalledTimes(1)
         expect(h.rebuildClient).toHaveBeenCalledTimes(1)
         expect(result).toBe(h.rebuilt)
         expect(h.overlayStates).toEqual([true, false]) // overlay opened then always closed
-        // The granted key is consumed only by the backend's collateral-only
-        // submit; mixed broadcasts a root-signed UserOp and never touches the
-        // stored approval — the old gate here charged a passkey tap for nothing.
-        expect(h.grant).not.toHaveBeenCalled()
-    })
-
-    it('collateral-only with missing approval still grant-checks', async () => {
-        const h = preflightHarness({ account: { address: '0xplain' }, overview: CARD_OVERVIEW(false) })
-        await runCollateralSpendPreflight({ ...h.args, strategy: 'collateral-only' })
-        expect(h.grant).toHaveBeenCalledTimes(1)
     })
 
     it('mixed + plain (patched) account: zero migration behavior', async () => {
@@ -250,19 +317,6 @@ describe('runCollateralSpendPreflight', () => {
         expect(h.sendNoopUserOp).not.toHaveBeenCalled()
     })
 
-    it('skips the grant when the approval already exists', async () => {
-        const h = preflightHarness({ account: { address: '0xplain' }, overview: CARD_OVERVIEW(true) })
-        await runCollateralSpendPreflight({ ...h.args, strategy: 'collateral-only' })
-        expect(h.grant).not.toHaveBeenCalled()
-    })
-
-    it('throws SessionKeyGrantRequiredError when the inline grant fails', async () => {
-        const h = preflightHarness({ account: { address: '0xplain' }, overview: CARD_OVERVIEW(false), grantOk: false })
-        await expect(runCollateralSpendPreflight({ ...h.args, strategy: 'collateral-only' })).rejects.toThrow(
-            SessionKeyGrantRequiredError
-        )
-    })
-
     it('requireOverview: fails closed when the overview has not loaded (sign-only engine)', async () => {
         const h = preflightHarness({ account: { address: '0xplain' }, overview: undefined })
         await expect(
@@ -273,7 +327,6 @@ describe('runCollateralSpendPreflight', () => {
                 strategy: 'collateral-only',
             })
         ).rejects.toThrow(SessionKeyGrantRequiredError)
-        expect(h.grant).not.toHaveBeenCalled()
     })
 
     it('broadcasting engine proceeds without overview (no card visible → nothing to grant)', async () => {
@@ -285,6 +338,5 @@ describe('runCollateralSpendPreflight', () => {
             strategy: 'collateral-only',
         })
         expect(result).toBe(h.args.kernelClient)
-        expect(h.grant).not.toHaveBeenCalled()
     })
 })

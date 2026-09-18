@@ -1,0 +1,139 @@
+'use client'
+
+import { useCallback, useEffect, useRef } from 'react'
+import { rainApi, RainCooldownError } from '@/services/rain'
+import { sleepUnlessCancelled } from '@/utils/cancellable-wait'
+import { WebAuthnErrorName } from '@/utils/webauthn.utils'
+import {
+    getSpendArtifactMeta,
+    isRainControllerChanged,
+    isStructuredBroadcastFailure,
+    SpendRecoveryAbortedError,
+    SpendRecoveryQuoteReviewError,
+} from './signSpendRetry'
+import { SessionKeyGrantRequiredError } from './spendPreflight'
+import type { SignedSpendArtifact } from './useSignSpendBundle'
+
+/**
+ * Backend contract that makes a returned USER_OP_REVERTED / USER_OP_REJECTED
+ * safe to replace: both Manteca routes force broadcast-first for a
+ * `rainPreparationId`, so such a failure proves zero provider orders were
+ * created and the payment lock is free again.
+ */
+const BROADCAST_FIRST_REVERT = 'broadcast-first-revert-v1'
+/** Headroom for the replacement's signing + submission inside the same lock. */
+const RESIGN_MARGIN_MS = 20_000
+
+function sameAddress(a: string | undefined, b: string | undefined): boolean {
+    return !!a && !!b && a.toLowerCase() === b.toLowerCase()
+}
+
+/** Every way the user can say no to the recovery's prompts: a dismissed
+ *  WebAuthn ceremony, or a cancelled session-key grant inside the re-sign. */
+export function isUserCancellation(error: unknown): boolean {
+    if (error instanceof SessionKeyGrantRequiredError) return error.cause.kind === 'user-cancelled'
+    return error instanceof Error && Object.values(WebAuthnErrorName).includes(error.name as WebAuthnErrorName)
+}
+
+/**
+ * Decides whether a failed backend submission may be replaced by a freshly
+ * prepared + signed artifact for the SAME payment, and produces it. Only two
+ * classes of failure qualify:
+ *
+ *  - `RAIN_CONTROLLER_CHANGED` — raised by prepare/verify only, i.e.
+ *    structurally before any order, claim or broadcast.
+ *  - a STRUCTURED `USER_OP_REVERTED` / `USER_OP_REJECTED` on a mixed artifact
+ *    whose prep carried the broadcast-first capability, AND the controller has
+ *    actually moved since that prep (someone else's refresh makes `changed`
+ *    useless, so compare addresses).
+ *
+ * Everything else — unknown, timeout, pending, message-only failures,
+ * smart-only, legacy mixed — returns null and the original outcome stands.
+ */
+export type RecoverSignedSpend = (
+    failure: unknown,
+    artifact: SignedSpendArtifact,
+    resign: () => Promise<SignedSpendArtifact>,
+    opts?: {
+        /** Epoch ms the provider quote/lock dies at. A cooldown that cannot be
+         *  waited out inside it hands back to quote review instead. */
+        lockExpiresAt?: number
+    }
+) => Promise<SignedSpendArtifact | null>
+
+export const useSignedSpendRecovery = (): RecoverSignedSpend => {
+    const unmountedRef = useRef(false)
+    useEffect(() => {
+        unmountedRef.current = false
+        return () => {
+            unmountedRef.current = true
+        }
+    }, [])
+
+    return useCallback(async (failure, artifact, resign, opts) => {
+        /*
+         * Every await below can resolve after the user has left: the recovery
+         * must not start — or hand back — anything the flow would then submit.
+         * This only gates work that has NOT been sent; an outcome already in
+         * flight keeps its own reconciliation.
+         */
+        const abortIfGone = () => {
+            if (unmountedRef.current) throw new SpendRecoveryAbortedError(failure)
+        }
+        abortIfGone()
+
+        const meta = getSpendArtifactMeta(artifact)
+        if (!meta) return null
+
+        if (!isRainControllerChanged(failure)) {
+            if (!isStructuredBroadcastFailure(failure)) return null
+            if (artifact.strategy !== 'mixed' || meta.mixedSpendContract !== BROADCAST_FIRST_REVERT) return null
+            const current = await rainApi.refreshControllerAddress().catch(() => null)
+            abortIfGone()
+            if (!current || sameAddress(current.coordinatorAddress, meta.coordinatorAddress)) return null
+        }
+
+        // No cancel of the superseded prep: both branches are failures the
+        // backend already recorded on that intent, so the cancel would be
+        // refused and changes nothing on Rain's side either way.
+        const attempt = async (): Promise<SignedSpendArtifact> => {
+            abortIfGone()
+            let replacement: SignedSpendArtifact
+            try {
+                replacement = await resign()
+            } catch (error) {
+                if (isUserCancellation(error)) throw new SpendRecoveryAbortedError(failure)
+                throw error
+            }
+            // Signing (prepare + grant + passkey) can outlive the screen; a
+            // replacement handed back now would be submitted by the caller.
+            abortIfGone()
+            return replacement
+        }
+
+        try {
+            return await attempt()
+        } catch (error) {
+            if (!(error instanceof RainCooldownError)) throw error
+            // Rain is cooling down the fresh signature. Wait it out only if the
+            // replacement can still be signed AND submitted inside the ORIGINAL
+            // quote; otherwise the user reviews refreshed terms.
+            const waitMs = (error.retryAfterSec ?? 0) * 1000 + RESIGN_MARGIN_MS
+            const fitsLock = !!error.retryAfterSec && !!opts?.lockExpiresAt && Date.now() + waitMs <= opts.lockExpiresAt
+            // Hand the cooldown to the call site rather than burning it here:
+            // it has to wait BEFORE minting a short-lived replacement quote.
+            if (!fitsLock) throw new SpendRecoveryQuoteReviewError(error, error.retryAfterSec ?? undefined)
+            if (!(await sleepUnlessCancelled(waitMs - RESIGN_MARGIN_MS, () => unmountedRef.current))) {
+                throw new SpendRecoveryAbortedError(error)
+            }
+            try {
+                return await attempt()
+            } catch (again) {
+                if (again instanceof RainCooldownError) {
+                    throw new SpendRecoveryQuoteReviewError(again, again.retryAfterSec ?? undefined)
+                }
+                throw again
+            }
+        }
+    }, [])
+}

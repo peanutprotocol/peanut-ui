@@ -2,12 +2,19 @@
 
 import { API_ERROR_CODES } from '@/services/api-error'
 
-import { submitSignedSpend } from '@/hooks/wallet/signSpendRetry'
+import {
+    isSpendRecoveryOutcome,
+    SpendRecoveryAbortedError,
+    SpendRecoveryQuoteReviewError,
+    submitSignedSpend,
+} from '@/hooks/wallet/signSpendRetry'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
+import { useRainControllerRepair } from '@/hooks/wallet/useRainControllerRepair'
+import { useSignedSpendRecovery } from '@/hooks/wallet/useSignedSpendRecovery'
 import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
 import { friendlyError } from '@/utils/friendly-error.utils'
@@ -15,7 +22,8 @@ import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { resolveOfframpSpendRecipient } from '@/utils/manteca.utils'
 import { rainCentsToUsdcUnits, isAmountWithinBalance, parseUsdAmountToUnits } from '@/utils/balance.utils'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
-import { useState, useMemo, useContext, useEffect, useCallback, useId } from 'react'
+import { useState, useMemo, useContext, useEffect, useCallback, useId, useRef } from 'react'
+import { sleepUnlessCancelled } from '@/utils/cancellable-wait'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -147,6 +155,19 @@ function MantecaBankWithdrawFlow() {
     const [isDestinationAddressChanging, setIsDestinationAddressChanging] = useState(false)
     // price lock state - holds the locked price from /withdraw/init
     const [priceLock, setPriceLock] = useState<WithdrawPriceLock | null>(null)
+    // Neutral notice shown on review after a controller-rotation re-quote.
+    const [quoteUpdatedNotice, setQuoteUpdatedNotice] = useState<string | null>(null)
+    /** The replacement quote could not be minted: the review control retries the
+     *  QUOTE only — it can never sign or submit against the dead lock. */
+    const [requoteFailed, setRequoteFailed] = useState(false)
+    const quoteRecoveryCancelledRef = useRef(false)
+    const quoteRecoveryInFlightRef = useRef(false)
+    useEffect(
+        () => () => {
+            quoteRecoveryCancelledRef.current = true
+        },
+        []
+    )
     const [isLockingPrice, setIsLockingPrice] = useState(false)
     // Execution proof for the terminal steps: set only by the withdrawal
     // submission. A hand-edited ?step=success (or =failure) with no completed
@@ -167,6 +188,8 @@ function MantecaBankWithdrawFlow() {
     const router = useRouter()
     const { spendableBalance: balance, formattedSpendableBalance } = useWallet()
     const { signSpend } = useSignSpendBundle()
+    const repairRainController = useRainControllerRepair()
+    const recoverSignedSpend = useSignedSpendRecovery()
     const handleStaleSession = useStaleSessionGuard()
     const { overview: rainCardOverview } = useRainCardOverview()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
@@ -481,7 +504,65 @@ function MantecaBankWithdrawFlow() {
         setErrorMessage,
     ])
 
+    /*
+     * Controller-rotation handoff for the offramp. Nothing was ordered or
+     * broadcast: wait out Rain's cooldown (cancellable by leaving the screen),
+     * then re-lock the SAME amount/recipient through the existing rate-lock
+     * handler, which returns the user to review to confirm the new quote.
+     */
+    const runQuoteRecovery = async (recovery: SpendRecoveryQuoteReviewError) => {
+        if (!usdAmount || !currencyCode) return
+        // One recovery at a time: a second entry would race two quotes.
+        if (quoteRecoveryInFlightRef.current) return
+        quoteRecoveryInFlightRef.current = true
+        quoteRecoveryCancelledRef.current = false
+        setQuoteUpdatedNotice(t('cardUpdatedReviewQuote'))
+        setLoadingState('Idle')
+        void stepper.goTo('review')
+        // The OLD quote stays on screen (disabled by isLockingPrice) until the
+        // new one lands: clearing it would trip the review step guard back to
+        // the amount screen, and `originalCurrencyAmount` — the pre-lock value
+        // back-navigation restores — must survive untouched.
+        setIsLockingPrice(true)
+        try {
+            if (recovery.retryAfterSec) {
+                const proceed = await sleepUnlessCancelled(
+                    recovery.retryAfterSec * 1000 + 1_000,
+                    () => quoteRecoveryCancelledRef.current
+                )
+                if (!proceed) return
+            }
+            const result = await mantecaApi.initiateWithdraw({ amount: usdAmount, currency: currencyCode })
+            if (quoteRecoveryCancelledRef.current) return
+            if (result.error || !result.data) {
+                // Neutral review/retry state — the payment did not fail. The
+                // review control retries the QUOTE, never the old lock.
+                setRequoteFailed(true)
+                setErrorMessage(t('errors.lockRateFailed'))
+                return
+            }
+            // Atomic swap of the displayed quote; the USD amount and recipient
+            // the user chose are unchanged.
+            setRequoteFailed(false)
+            setErrorMessage('')
+            setPriceLock(result.data)
+            setCurrencyAmount(result.data.fiatAmount)
+        } catch (error) {
+            void captureNetworkTriagedFailure(error, {
+                tags: { ...criticalFlowTags('withdraw-manteca'), withdraw_step: 'lock-rate' },
+            })
+            setRequoteFailed(true)
+            setErrorMessage(t('errors.lockRateFailed'))
+        } finally {
+            setIsLockingPrice(false)
+            quoteRecoveryInFlightRef.current = false
+        }
+    }
+
     const handleWithdraw = async () => {
+        // A quote refresh (cooldown wait included) owns the flow: re-entering
+        // here would sign against the lock that refresh is replacing.
+        if (quoteRecoveryInFlightRef.current) return
         if (!destinationAddress || !usdAmount || !currencyCode || !priceLock) return
         if (!validateSubmissionAmount()) {
             void stepper.goTo('amount')
@@ -509,32 +590,73 @@ function MantecaBankWithdrawFlow() {
             method_type: 'manteca',
             country: countryPath,
         })
+        // The previous re-quote never landed: this tap retries the QUOTE only.
+        // The user then sees the fresh terms and taps again to pay.
+        if (requoteFailed) {
+            setErrorMessage('')
+            await runQuoteRecovery(new SpendRecoveryQuoteReviewError(new Error('quote refresh retry')))
+            return
+        }
+        // This tap IS the confirmation of whatever quote is on screen.
+        setQuoteUpdatedNotice(null)
 
         try {
             setLoadingState('Preparing transaction')
 
             // Step 1: Sign the spend artifact (but don't broadcast yet).
-            // Route across smart-only / mixed / collateral-only — pure-collateral
-            // offramps (smart wallet empty, card collateral covers it) used to
-            // fail here because signTransferUserOp asks the paymaster to
-            // simulate a USDC transfer from a zero-balance smart account, which
-            // ZeroDev refuses to sponsor. signSpend picks the right routing,
-            // including a single-tap collateral-only path that lets Rain
-            // transfer straight from the collateral proxy to MANTECA's deposit
-            // address.
+            // Routing picks the funding SOURCE; execution runs on the mixed
+            // pipeline whenever collateral is involved — including a fully
+            // collateral-funded offramp from an empty smart account — because
+            // that route has a durable reservation and definitive failure
+            // codes, so a late controller rotation is recoverable on this same
+            // lock. Cost: the passkey fallback is two taps (one where the
+            // ephemeral path is enabled).
+            // Same terms on a recovery re-sign: only the prep and the signature
+            // are fresh — amount, recipient and the price lock below are not.
+            const signSpendInput = () => ({
+                requiredUsdcAmount: parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS),
+                // Entity-aware deposit address served by /withdraw/init
+                // (per-entity balances from 2026-09-14); the constant is
+                // only the fallback for an older API without the field.
+                recipient: resolveOfframpSpendRecipient(priceLock),
+                rainSpendingPower: rainCentsToUsdcUnits(rainCardOverview?.balance?.spendingPower),
+                kind: 'FIAT_OFFRAMP' as const,
+                // Lets an internal recovery wait out a Rain cooldown that still
+                // fits this price lock instead of re-quoting.
+                lockExpiresAt: Date.parse(priceLock.expiresAt) || undefined,
+            })
+
+            /*
+             * The price lock bounds EVERY attempt, not just the first
+             * signature: a passkey sheet is unbounded and a replacement is
+             * signed later still. An expired quote is a neutral re-lock +
+             * reconfirm — never a signature, never a submission.
+             */
+            const quoteExpired = () => {
+                const deadline = Date.parse(priceLock.expiresAt)
+                return Number.isFinite(deadline) && Date.now() >= deadline
+            }
+            if (quoteExpired()) {
+                await runQuoteRecovery(new SpendRecoveryQuoteReviewError(new Error('quote expired')))
+                return
+            }
+
             let signedArtifact
             try {
-                const requiredUsdcAmount = parseUnits(usdAmount, PEANUT_WALLET_TOKEN_DECIMALS)
-                signedArtifact = await signSpend({
-                    requiredUsdcAmount,
-                    // Entity-aware deposit address served by /withdraw/init
-                    // (per-entity balances from 2026-09-14); the constant is
-                    // only the fallback for an older API without the field.
-                    recipient: resolveOfframpSpendRecipient(priceLock),
-                    rainSpendingPower: rainCentsToUsdcUnits(rainCardOverview?.balance?.spendingPower),
-                    kind: 'FIAT_OFFRAMP',
-                })
+                signedArtifact = await signSpend(signSpendInput())
             } catch (error) {
+                // Controller-recovery control flow (nothing signed, nothing
+                // ordered): stay on the same payment and re-lock the quote
+                // through the existing handler, or simply return to review.
+                if (error instanceof SpendRecoveryQuoteReviewError) {
+                    await runQuoteRecovery(error)
+                    return
+                }
+                if (error instanceof SpendRecoveryAbortedError) {
+                    setLoadingState('Idle')
+                    void stepper.goTo('review')
+                    return
+                }
                 // Route through the shared classifier so backend wire codes reach
                 // this screen too; the branches ahead of it are per-flow.
                 const classified = friendlyError(error)
@@ -568,45 +690,81 @@ function MantecaBankWithdrawFlow() {
                 return
             }
 
+            /*
+             * Signing can outlive the price lock (a passkey sheet is
+             * unbounded). Nothing has been ordered or broadcast yet, so an
+             * expired quote here is a re-quote + reconfirm, never a submission
+             * under terms the user never saw.
+             */
+            if (quoteExpired()) {
+                await runQuoteRecovery(new SpendRecoveryQuoteReviewError(new Error('quote expired while signing')))
+                return
+            }
+
             setLoadingState('Withdrawing')
 
-            // Step 2: Send signed artifact to backend. Backend creates the
-            // Manteca order FIRST, then either broadcasts the signed UserOp
-            // (smart-only / mixed) or submits the Rain withdrawal via the
-            // user's session-key UserOp (collateral-only). No stuck funds.
-            const result = await submitSignedSpend(signedArtifact, () =>
-                mantecaApi.withdrawWithSignedTx(
-                    signedArtifact.strategy === 'collateral-only'
-                        ? {
-                              kind: 'rainWithdrawal' as const,
-                              priceLockCode: priceLock.priceLockCode,
-                              amount: usdAmount,
-                              destinationAddress: destinationAddress.toLowerCase(),
-                              bankCode: selectedBank?.code,
-                              accountType: accountType ?? undefined,
-                              currency: currencyCode,
-                              signedRainWithdrawal: signedArtifact.rainWithdrawal,
-                              chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                          }
-                        : {
-                              kind: 'userOp' as const,
-                              priceLockCode: priceLock.priceLockCode,
-                              amount: usdAmount,
-                              destinationAddress: destinationAddress.toLowerCase(),
-                              bankCode: selectedBank?.code,
-                              accountType: accountType ?? undefined,
-                              currency: currencyCode,
-                              signedUserOp: signedArtifact.signedUserOp.signedUserOp,
-                              chainId: signedArtifact.signedUserOp.chainId,
-                              entryPointAddress: signedArtifact.signedUserOp.entryPointAddress,
-                              // For mixed: tell backend about the Rain prepare intent
-                              // embedded in the UserOp's batched callData so it can
-                              // reconcile the collateral webhook to OFFRAMP in history.
-                              ...(signedArtifact.strategy === 'mixed'
-                                  ? { rainPreparationId: signedArtifact.rainPreparationId }
-                                  : {}),
-                          }
-                )
+            // Step 2: Send signed artifact to backend. The modern mixed/userOp
+            // route broadcasts the funding op FIRST — a definitive revert
+            // leaves no provider order behind, which is what makes the
+            // replacement below safe. No stuck funds either way.
+            // Built from the artifact actually being submitted: a recovery
+            // replacement carries a fresh prep + signature under the SAME lock.
+            const withdrawBody = (artifact: typeof signedArtifact) => {
+                const common = {
+                    priceLockCode: priceLock.priceLockCode,
+                    amount: usdAmount,
+                    destinationAddress: destinationAddress.toLowerCase(),
+                    bankCode: selectedBank?.code,
+                    accountType: accountType ?? undefined,
+                    currency: currencyCode,
+                }
+                return artifact.strategy === 'collateral-only'
+                    ? {
+                          ...common,
+                          kind: 'rainWithdrawal' as const,
+                          signedRainWithdrawal: artifact.rainWithdrawal,
+                          chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                      }
+                    : {
+                          ...common,
+                          kind: 'userOp' as const,
+                          signedUserOp: artifact.signedUserOp.signedUserOp,
+                          chainId: artifact.signedUserOp.chainId,
+                          entryPointAddress: artifact.signedUserOp.entryPointAddress,
+                          // For mixed: tell backend about the Rain prepare intent
+                          // embedded in the UserOp's batched callData so it can
+                          // reconcile the collateral webhook to OFFRAMP in history.
+                          ...(artifact.strategy === 'mixed' ? { rainPreparationId: artifact.rainPreparationId } : {}),
+                      }
+            }
+
+            const result = await submitSignedSpend(
+                signedArtifact,
+                // Guards EVERY attempt, the recovery replacement included: it is
+                // signed later still, and the lock may have died in between.
+                (candidate) => {
+                    if (quoteExpired()) {
+                        throw new SpendRecoveryQuoteReviewError(new Error('quote expired before send'))
+                    }
+                    return mantecaApi.withdrawWithSignedTx(withdrawBody(candidate))
+                },
+                {
+                    // Observes the FINAL failure only — cache repair, no retry.
+                    // A typed recovery outcome is control flow, not a Rain leg.
+                    onFailure: (failure) =>
+                        isSpendRecoveryOutcome(failure)
+                            ? undefined
+                            : void repairRainController({ strategy: signedArtifact.strategy, error: failure }),
+                    recover: (failure, artifact) =>
+                        recoverSignedSpend(
+                            failure,
+                            artifact,
+                            // Same terms, same lock — only the prep and the
+                            // signature are fresh, and its own 425 is ours.
+                            () => signSpend({ ...signSpendInput(), suppressCooldownEvent: true }),
+                            { lockExpiresAt: Date.parse(priceLock.expiresAt) || undefined }
+                        ),
+                }
             )
 
             if (result.error) {
@@ -650,6 +808,23 @@ function MantecaBankWithdrawFlow() {
                 country: countryPath,
             })
         } catch (error) {
+            /*
+             * Controller-recovery control flow, handled BEFORE any failure
+             * surface: nothing moved and no provider order exists (a broadcast
+             * may have happened and reverted definitively). The user returns to
+             * the SAME review step — re-locking the quote through the existing
+             * handler when the old lock could not outlive Rain's cooldown — and
+             * confirms again. No submission happens under refreshed terms
+             * without that confirmation.
+             */
+            if (error instanceof SpendRecoveryQuoteReviewError) {
+                await runQuoteRecovery(error)
+                return
+            }
+            if (error instanceof SpendRecoveryAbortedError) {
+                void stepper.goTo('review')
+                return
+            }
             console.error('Manteca withdraw error:', error)
             if (handleStaleSession(error)) return
             // Reported here rather than left to the console-capture integration,
@@ -1150,13 +1325,27 @@ function MantecaBankWithdrawFlow() {
                     <Button
                         icon="arrow-up"
                         onClick={handleWithdraw}
-                        loading={isLoading}
-                        // settling failure is retryable — don't dead-end the button on it
-                        disabled={(!!errorMessage && errorCode !== 'balanceSettling') || isLoading}
+                        // A quote refresh (cooldown wait included) owns the
+                        // button: nothing may be signed against the old lock.
+                        loading={isLoading || isLockingPrice}
+                        disabled={
+                            // settling failure is retryable — don't dead-end the button on it.
+                            // A failed re-quote is retryable too: the tap fetches
+                            // a new quote and cannot submit the dead one.
+                            (!!errorMessage && errorCode !== 'balanceSettling' && !requoteFailed) ||
+                            isLoading ||
+                            isLockingPrice
+                        }
                         shadowSize="4"
                     >
                         {isLoading ? tLoading(loadingStateKey(loadingState)) : tNav('withdraw')}
                     </Button>
+                    {/* Neutral controller-rotation notice — the quote moved, the payment did not fail */}
+                    {quoteUpdatedNotice && !errorMessage && (
+                        <Notification priority="info" data-testid="quote-updated-notice">
+                            {quoteUpdatedNotice}
+                        </Notification>
+                    )}
                     {(errorMessage || sumsubFlow.error) && (
                         <Notification priority="error">{(errorMessage || sumsubFlow.error)!}</Notification>
                     )}

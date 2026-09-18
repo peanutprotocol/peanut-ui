@@ -47,6 +47,8 @@ export function QrPayFormView() {
         balanceErrorMessage,
         shouldBlockPay,
         isLoading,
+        quoteUpdatedNotice,
+        isQuoteRecovering,
         payQR,
         handleCurrencyAmountChange,
         balance,
@@ -206,12 +208,15 @@ export function QrPayFormView() {
                     <Button
                         onClick={payQR}
                         shadowSize="4"
-                        loading={isLoading}
+                        loading={isLoading || isQuoteRecovering}
                         disabled={
                             !!errorInitiatingPayment ||
                             isBlockingError ||
                             !amount ||
                             isLoading ||
+                            // A replacement quote is being obtained — paying now
+                            // would submit under terms the user has not seen.
+                            isQuoteRecovering ||
                             !!balanceErrorMessage ||
                             shouldBlockPay ||
                             !usdAmount ||
@@ -221,6 +226,13 @@ export function QrPayFormView() {
                     >
                         {isLoading ? tCommon('loading') : tNav('pay')}
                     </Button>
+
+                    {/* Neutral controller-rotation notice — the quote moved, the payment did not fail */}
+                    {quoteUpdatedNotice && (
+                        <Notification priority="info" data-testid="quote-updated-notice">
+                            {quoteUpdatedNotice}
+                        </Notification>
+                    )}
 
                     {/* Error State */}
                     {errorMessage && (
