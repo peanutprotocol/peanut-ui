@@ -2,14 +2,27 @@ import { IntlWrapper } from '@/test-utils/intl'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { BankInstructionsToggle } from '../BankInstructionsToggle'
 
-type TestAccount = { status: string; matching: { sender: string } }
+type TestAccount = { status: string; matching: { sender: string }; instructions?: unknown }
 
 let accounts: Record<string, TestAccount | undefined> = {}
+// The toggle asks canShare(account, gate) for the corridor the payer is handed,
+// so the hook must expose per-corridor gates. Default every corridor to a ready
+// gate; a test overrides one to prove a blocked corridor hides the opt-in.
+let gates: Record<string, { kind: string }> = {}
 jest.mock('@/features/deposit-accounts/useDepositAccounts', () => ({
-    useDepositAccounts: () => ({ accounts }),
+    useDepositAccounts: () => ({ accounts, gates }),
 }))
 
-const account = (status: string, sender = 'anyone'): TestAccount => ({ status, matching: { sender } })
+// canShare needs live instructions present, so the fixture carries them by default.
+const account = (
+    status: string,
+    sender = 'anyone',
+    instructions: unknown = { railId: 'bridge.sepa_eu' }
+): TestAccount => ({
+    status,
+    matching: { sender },
+    instructions,
+})
 
 const renderToggle = (checked = false, onChange = jest.fn()) => {
     render(<BankInstructionsToggle checked={checked} onChange={onChange} />, { wrapper: IntlWrapper })
@@ -18,6 +31,7 @@ const renderToggle = (checked = false, onChange = jest.fn()) => {
 
 beforeEach(() => {
     accounts = {}
+    gates = new Proxy({}, { get: () => ({ kind: 'ready' }) }) as Record<string, { kind: string }>
 })
 
 describe('BankInstructionsToggle', () => {
@@ -41,6 +55,27 @@ describe('BankInstructionsToggle', () => {
     })
 
     it('stays hidden for a user who holds no account at all', () => {
+        renderToggle()
+
+        expect(screen.queryByTestId('bank-instructions-toggle')).not.toBeInTheDocument()
+    })
+
+    // An active account whose corridor gate is blocked cannot be paid into, so
+    // offering the opt-in would hand a payer details that fail — the same test
+    // the Share action runs.
+    it('stays hidden when the payable account’s corridor gate is not open', () => {
+        accounts = { SEPA_EU: account('active') }
+        gates = { SEPA_EU: { kind: 'needs-identity' } }
+
+        renderToggle()
+
+        expect(screen.queryByTestId('bank-instructions-toggle')).not.toBeInTheDocument()
+    })
+
+    // No live instructions means there are no numbers to share yet.
+    it('stays hidden when the payable account has no live instructions', () => {
+        accounts = { SEPA_EU: { status: 'active', matching: { sender: 'anyone' } } }
+
         renderToggle()
 
         expect(screen.queryByTestId('bank-instructions-toggle')).not.toBeInTheDocument()

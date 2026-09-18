@@ -2,7 +2,8 @@
 
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Toggle } from '@/components/0_Bruddle/Toggle'
-import { firstPayableAccount } from '@/features/deposit-accounts/rails'
+import { firstPayableCorridor } from '@/features/deposit-accounts/rails'
+import { canShare } from '@/features/deposit-accounts/resolveScreen'
 import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccounts'
 import { useTranslations } from 'next-intl'
 
@@ -44,12 +45,19 @@ export function BankInstructionsToggle({
     disabled?: boolean
 }) {
     const t = useTranslations('request')
-    const { accounts } = useDepositAccounts()
+    const { accounts, gates } = useDepositAccounts()
 
-    const account = firstPayableAccount(accounts)
-    if (!account) return null
+    // Offer the opt-in only when these details could actually be paid: the same
+    // test the Share action runs — an active account with live instructions on a
+    // corridor whose gate is open. Rejecting own-name-only alone let a blocked or
+    // detail-less account promise a payer bank details it cannot honor.
+    const corridor = firstPayableCorridor(accounts)
+    const account = corridor ? accounts[corridor] : undefined
+    const gate = corridor ? gates[corridor] : undefined
+    if (!account || !gate || !canShare(account, gate)) return null
 
     const sender = account.matching.sender
+    // canShare already excludes own-name-only; this narrows the copy-line type.
     if (sender === 'own-name-only') return null
 
     return (

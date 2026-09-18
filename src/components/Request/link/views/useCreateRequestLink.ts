@@ -11,7 +11,8 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccounts'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
-import { firstPayableAccount } from '@/features/deposit-accounts/rails'
+import { firstPayableCorridor } from '@/features/deposit-accounts/rails'
+import { canShare } from '@/features/deposit-accounts/resolveScreen'
 import { type IToken } from '@/interfaces/interfaces'
 import { type IAttachmentOptions } from '@/interfaces/attachment'
 import { requestsApi } from '@/services/requests'
@@ -71,11 +72,19 @@ export const useCreateRequestLink = () => {
     // stays local state rather than url state — a shared link must not carry
     // the requester's choice.
     const depositAccountsEnabled = useDepositAccountsEnabled()
-    const { accounts: depositAccounts } = useDepositAccounts({ enabled: depositAccountsEnabled })
-    const payableSender = useMemo(
-        () => (depositAccountsEnabled ? firstPayableAccount(depositAccounts)?.matching.sender : undefined),
-        [depositAccountsEnabled, depositAccounts]
-    )
+    const { accounts: depositAccounts, gates: depositGates } = useDepositAccounts({ enabled: depositAccountsEnabled })
+    // Read the sender policy only of an account the payer could actually be given
+    // — the same canShare test the toggle uses. Without the gate the default
+    // turned bank-payment ON for a blocked or detail-less account whose toggle is
+    // hidden, so the request shipped bankInstructionsShared with no way to unset it.
+    const payableSender = useMemo(() => {
+        if (!depositAccountsEnabled) return undefined
+        const corridor = firstPayableCorridor(depositAccounts)
+        const account = corridor ? depositAccounts[corridor] : undefined
+        const gate = corridor ? depositGates[corridor] : undefined
+        if (!account || !gate || !canShare(account, gate)) return undefined
+        return account.matching.sender
+    }, [depositAccountsEnabled, depositAccounts, depositGates])
     const [bankInstructionsShared, setBankInstructionsShared] = useState(false)
     // Once the user sets the toggle, the derived default stops overriding it.
     const bankInstructionsTouchedRef = useRef(false)

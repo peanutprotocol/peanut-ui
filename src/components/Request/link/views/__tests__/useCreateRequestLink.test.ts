@@ -86,17 +86,27 @@ jest.mock('@/utils/url.utils', () => ({
     shareableUrl: (path: string) => `https://peanut.me${path}`,
 }))
 
-// The bank opt-in default reads the payable account's sender policy. Mock the
-// two deposit hooks; the real `firstPayableAccount` still picks the account.
+// The bank opt-in default reads the payable account's sender policy, but only
+// for an account the payer could actually be given — canShare(account, gate).
+// Mock the deposit hook with per-corridor gates; the real `firstPayableCorridor`
+// still picks the account.
 let mockDepositAccountsEnabled = true
-let mockDepositAccounts: Record<string, { status: string; matching: { sender: string } } | undefined> = {}
+let mockDepositAccounts: Record<
+    string,
+    { status: string; matching: { sender: string }; instructions?: unknown } | undefined
+> = {}
+let mockDepositGates: Record<string, { kind: string }> = {}
 jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
     useDepositAccountsEnabled: () => mockDepositAccountsEnabled,
 }))
 jest.mock('@/features/deposit-accounts/useDepositAccounts', () => ({
-    useDepositAccounts: () => ({ accounts: mockDepositAccounts }),
+    useDepositAccounts: () => ({ accounts: mockDepositAccounts, gates: mockDepositGates }),
 }))
-const activeAccount = (sender: string) => ({ status: 'active', matching: { sender } })
+const activeAccount = (sender: string) => ({
+    status: 'active',
+    matching: { sender },
+    instructions: { railId: 'bridge.sepa_eu' },
+})
 
 describe('useCreateRequestLink', () => {
     beforeEach(() => {
@@ -105,6 +115,7 @@ describe('useCreateRequestLink', () => {
         resolveCopy.mockResolvedValue(true)
         mockDepositAccountsEnabled = true
         mockDepositAccounts = {}
+        mockDepositGates = new Proxy({}, { get: () => ({ kind: 'ready' }) }) as Record<string, { kind: string }>
     })
 
     describe('the bank opt-in default', () => {
@@ -127,6 +138,13 @@ describe('useCreateRequestLink', () => {
         })
 
         it('starts off when no account can receive the money', () => {
+            const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
+            expect(result.current.bankInstructionsShared).toBe(false)
+        })
+
+        it('starts off when the payable account’s corridor gate is blocked', () => {
+            mockDepositAccounts = { SEPA_EU: activeAccount('anyone') }
+            mockDepositGates = { SEPA_EU: { kind: 'needs-identity' } }
             const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
             expect(result.current.bankInstructionsShared).toBe(false)
         })

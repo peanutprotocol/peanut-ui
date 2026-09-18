@@ -144,6 +144,18 @@ export function isShareable(sender: SenderPolicy): boolean {
 }
 
 /**
+ * The corridor of the account a new payer would be handed: the first active one
+ * in catalogue order, the same one the deposit-instructions route picks. The
+ * corridor is what indexes the per-corridor gate, so callers that must ask
+ * `canShare(account, gate)` need it, not only the account.
+ */
+export function firstPayableCorridor(
+    accounts: Record<DepositCorridor, DepositAccountView | undefined>
+): DepositCorridor | undefined {
+    return DEPOSIT_RAIL_ORDER.find((corridor) => accounts[corridor]?.status === 'active')
+}
+
+/**
  * The account a new payer would be handed: the first active one in catalogue
  * order, the same one the deposit-instructions route picks. The "pay by bank
  * transfer" opt-in reads its sender policy — both to name who may pay and to
@@ -153,7 +165,8 @@ export function isShareable(sender: SenderPolicy): boolean {
 export function firstPayableAccount(
     accounts: Record<DepositCorridor, DepositAccountView | undefined>
 ): DepositAccountView | undefined {
-    return DEPOSIT_RAIL_ORDER.map((corridor) => accounts[corridor]).find((held) => held?.status === 'active')
+    const corridor = firstPayableCorridor(accounts)
+    return corridor ? accounts[corridor] : undefined
 }
 
 /**
