@@ -1756,7 +1756,7 @@
             "warning": "Sending to the wrong network or token will result in permanent loss."
         },
         "howToDeposit": {
-            "title": "How to Deposit",
+            "title": "How to deposit",
             "warning": "Sending to the wrong network or token will result in permanent loss.",
             "default": {
                 "step1": "Copy the deposit address above",
@@ -1773,8 +1773,8 @@
             "tooltipTron": "Your Tron deposit address. Deposits are bridged to Arbitrum (±0.1% variance).",
             "universalDepositAddress": "Universal Deposit Address",
             "depositAddress": "Deposit Address",
-            "supportedNetworks": "Supported Networks:",
-            "supportedTokens": "Supported Tokens:",
+            "supportedNetworks": "Supported Networks",
+            "supportedTokens": "Supported Tokens",
             "supportedTokensInline": "Supported tokens:",
             "supportedEvmNetworks": "Supported EVM networks",
             "evmNetworks": "EVM networks",

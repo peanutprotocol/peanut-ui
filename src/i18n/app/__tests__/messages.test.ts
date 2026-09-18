@@ -90,6 +90,41 @@ describe('navigation action labels', () => {
     })
 })
 
+describe('deposit screen headings', () => {
+    const EXPECTED = {
+        en: {
+            howToDeposit: 'How to deposit',
+            supportedNetworks: 'Supported Networks',
+            supportedTokens: 'Supported Tokens',
+        },
+        'es-419': {
+            howToDeposit: 'Cómo depositar',
+            supportedNetworks: 'Redes compatibles',
+            supportedTokens: 'Tokens compatibles',
+        },
+        'es-AR': {
+            howToDeposit: 'Cómo depositar',
+            supportedNetworks: 'Redes compatibles',
+            supportedTokens: 'Tokens compatibles',
+        },
+        'pt-BR': {
+            howToDeposit: 'Como depositar',
+            supportedNetworks: 'Redes compatíveis',
+            supportedTokens: 'Tokens compatíveis',
+        },
+    } satisfies Record<AppLocale, { howToDeposit: string; supportedNetworks: string; supportedTokens: string }>
+
+    it.each(APP_LOCALES)('%s uses sentence-case headings without trailing colons', async (locale) => {
+        const { addMoney } = await loadMessages(locale)
+
+        expect({
+            howToDeposit: addMoney.howToDeposit.title,
+            supportedNetworks: addMoney.crypto.supportedNetworks,
+            supportedTokens: addMoney.crypto.supportedTokens,
+        }).toEqual(EXPECTED[locale])
+    })
+})
+
 describe('duplicate-value drift', () => {
     const groups = new Map<string, string[]>()
     for (const path of leafPaths(en)) {
