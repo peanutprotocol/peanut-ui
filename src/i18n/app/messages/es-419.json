@@ -141,6 +141,7 @@
             "firstPayment": "Haz tu primer pago",
             "firstPaymentNote": "Envía unos dólares a un usuario de Peanut, un nombre ENS o una dirección de wallet. Llegan en segundos.",
             "addMoneyRoutes": "Transferencia bancaria o cripto",
+            "addMoneyStandingAccounts": "Consigue datos bancarios a tu nombre. Recibe pagos en euros, dólares y más.",
             "addMoneyRoutesKyc": "Transferencia bancaria o cripto · el banco requiere una verificación de identidad por única vez",
             "addMoneyRoutesNoBank": "Cripto desde cualquier wallet o exchange",
             "getCardNote": "Tus dólares, en rosa, donde sea que acepten Visa."
@@ -297,7 +298,7 @@
             "yourBadges": "Tus insignias",
             "points": "Puntos",
             "personalDetails": "Editar perfil",
-            "unlockedRegions": "Canales de pago",
+            "unlockedRegions": "Cuentas y pagos",
             "paymentLimits": "Límites de pago",
             "showMyFullName": "Mostrar mi nombre completo",
             "backup": "Respaldo",
@@ -356,8 +357,8 @@
             }
         },
         "unlockPayments": {
-            "title": "Canales de pago",
-            "description": "Todo lo que puedes usar hoy, y lo que se abre después de verificar tu identidad.",
+            "title": "Cuentas y pagos",
+            "description": "Tus cuentas, métodos de pago y estado de verificación.",
             "residence": {
                 "label": "Residencia: {country}",
                 "unknown": "Residencia sin definir",
@@ -426,14 +427,47 @@
             },
             "limits": {
                 "monthlyLeft": "Te quedan {remaining} de {limit} este mes",
-                "perTransfer": "Hasta {amount} por transferencia",
-                "p2pNoLimit": "Los pagos de Peanut a Peanut no tienen límite"
+                "p2pNoLimit": "Los pagos de Peanut a Peanut no tienen límite",
+                "depositPerTransfer": "Por depósito bancario",
+                "withdrawalPerTransfer": "Por retiro bancario"
             },
             "cooldown": {
                 "title": "Espera un poco",
                 "until": "Los intentos de verificación están limitados temporalmente. Puedes volver a intentarlo después de {until}.",
                 "short": "Los intentos de verificación están limitados temporalmente. Vuelve a intentarlo en un rato.",
                 "dismiss": "Lo intentaré más tarde"
+            },
+            "accountsTitle": "Tus cuentas bancarias",
+            "accountsSubtitle": "Números de cuenta que puedes compartir para recibir dinero en Peanut.",
+            "details": {
+                "p2p": "Envía y recibe dinero de otros usuarios de Peanut.",
+                "saBank": "Paga con QR y transfiere dinero a través de cuentas bancarias en Brasil y Argentina.",
+                "pixBank": "Paga códigos QR Pix y transfiere dinero a través de cuentas bancarias brasileñas.",
+                "pixQr": "Paga códigos QR Pix en Brasil.",
+                "arQrBank": "Paga códigos QR y transfiere dinero a través de cuentas bancarias argentinas.",
+                "arQr": "Paga códigos QR en Argentina.",
+                "brBank": "Transfiere dinero a través de cuentas bancarias brasileñas.",
+                "arBank": "Transfiere dinero a través de cuentas bancarias argentinas.",
+                "naBank": "Agrega o retira dinero mediante transferencias bancarias de Estados Unidos y la red SPEI de México.",
+                "sepa": "Agrega o retira euros mediante transferencias SEPA.",
+                "card": "Paga con tu tarjeta Peanut."
+            },
+            "valueProp": {
+                "p2p": "Divide cuentas y paga a tus amigos en un toque.",
+                "card": "Usa tu saldo de Peanut en el mundo real.",
+                "saBank": "Maneja tu dinero como local en Brasil y Argentina.",
+                "pixBank": "Mueve dinero por Brasil al instante.",
+                "pixQr": "Escanea, paga y listo, donde funcione Pix.",
+                "brBank": "Llega a cualquier cuenta bancaria en Brasil.",
+                "arQrBank": "Paga y cobra en cualquier lugar de Argentina.",
+                "arQr": "Escanea y paga en cualquier QR de Argentina.",
+                "arBank": "Llega a cualquier cuenta bancaria en Argentina.",
+                "naBank": "Conecta tu dinero de bancos de EE. UU. y México.",
+                "sepa": "Guarda y mueve euros sin un banco local."
+            },
+            "detailsDrawer": {
+                "aboutTitle": "Qué puedes hacer",
+                "limitsTitle": "Límites"
             }
         },
         "backup": {
@@ -610,13 +644,15 @@
             "error": "No pudimos eliminar tu cuenta. Intenta de nuevo.",
             "sadPeanutAlt": "Peanut triste",
             "pointingPeanutAlt": "Peanut señalando",
-            "cryingPeanutAlt": "Peanut llorando"
+            "cryingPeanutAlt": "Peanut llorando",
+            "depositInFlight": "Hay un depósito en camino. Espera a que llegue y retira tu saldo antes de eliminar tu cuenta.",
+            "depositAccountsUnavailable": "No pudimos cerrar tus cuentas bancarias. Tu cuenta de Peanut sigue activa. Inténtalo más tarde."
         }
     },
     "limits": {
         "title": "Límites de pago",
         "pageDescription": "Los límites de pago controlan cuánto puedes enviar y recibir. Varían según la región y se reinician cada mes o cada año.",
-        "unlockedRegions": "Regiones desbloqueadas",
+        "unlockedRegions": "Cuentas y pagos",
         "lockedRegions": "Regiones bloqueadas",
         "otherRegions": "Otras regiones",
         "cardLimits": {
@@ -1060,6 +1096,22 @@
             "missingRecipientMessage": "No se incluyó un nombre de usuario en la URL. Revisa el enlace e inténtalo de nuevo.",
             "goToHome": "Ir al inicio",
             "createWallet": "Crea tu Peanut Wallet"
+        },
+        "bankDetailsAlternative": "Comparte los datos de tu cuenta bancaria",
+        "bankInstructions": {
+            "title": "Permitir el pago por transferencia bancaria",
+            "description": "Comparte tus datos bancarios con quien abra este enlace.",
+            "anyonePays": "Cualquier persona puede pagar esto por transferencia bancaria.",
+            "businessPays": "Solo las empresas pueden pagar esto por transferencia bancaria. La transferencia de un amigo se devuelve.",
+            "unknownPays": "Una transferencia de alguien que no seas tú no está confirmada en esta cuenta y puede devolverse."
+        },
+        "paidByBank": {
+            "rowLabel": "Transferencia bancaria",
+            "receivedPartial": "${received} de ${requested} recibidos",
+            "badgePaid": "Pagado",
+            "badgePartial": "Pagado en parte",
+            "paidByName": "Pagado por {name}",
+            "paidByBank": "Pagado por transferencia bancaria"
         }
     },
     "payment": {
@@ -1151,6 +1203,23 @@
             "invalidPaymentUrlDescription": "El enlace está incompleto o mal escrito. Pide a quien lo envió que lo comparta de nuevo.",
             "requestNotFoundTitle": "Solicitud no encontrada",
             "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pide un nuevo enlace a quien la envió."
+        },
+        "bankTransfer": {
+            "title": "Pagar por transferencia bancaria",
+            "description": "Envía desde tu banco a la cuenta de quien te pide el pago.",
+            "payInCurrency": "Pagar en {currency} · {rail}",
+            "otherWays": "Pagar de otra forma",
+            "referenceSection": "Referencia",
+            "referenceLabel": "Referencia del pago",
+            "referenceNote": "Agrega esta referencia a tu transferencia. Sin ella, el pago no se asocia a esta solicitud.",
+            "unavailable": "La transferencia bancaria no está disponible para esta solicitud.",
+            "amountLabel": "Monto a enviar",
+            "amountValue": "{amount} {currency}",
+            "amountValueApprox": "≈ {amount} {currency}",
+            "amountNote": "Estimado al tipo de cambio de hoy. Tu banco puede convertir a otro tipo de cambio, así que el monto exacto puede cambiar.",
+            "amountNoteSameCurrency": "Envía este monto y la solicitud queda pagada.",
+            "senderBusinessOnly": "Solo una cuenta de empresa puede pagar esto. Una transferencia desde una cuenta personal se devuelve.",
+            "senderUnknown": "Esta cuenta no confirmó que acepta pagos de otras personas, así que tu transferencia puede devolverse."
         }
     },
     "claim": {
@@ -1670,7 +1739,8 @@
             "crypto": "Cripto",
             "cryptoDescription": "Deposita desde una billetera o exchange",
             "bankTransfer": "Transferencia bancaria",
-            "kycRequired": "Requiere KYC"
+            "kycRequired": "Requiere KYC",
+            "bankTransferDescription": "Datos bancarios reutilizables para cobrar"
         },
         "networkDrawer": {
             "title": "Elegir red",
@@ -1821,21 +1891,12 @@
         "howWouldYouLikeToWithdraw": "¿Cómo quieres retirar?",
         "howWouldYouLikeToSend": "¿Cómo quieres enviar?",
         "chooseWithdrawingMethod": "Elige el método de retiro",
-        "noAccountsTitle": "Aún no tienes cuentas",
-        "noAccountsDescription": "Agrega los datos de tus cuentas una vez<br></br>y retira con un solo toque.",
         "addAccount": "Agregar cuenta",
         "selectNewMethod": "Elegir otro método",
         "recentMethods": "Métodos recientes",
         "review": "Revisar",
         "backToHome": "Volver al inicio",
         "somethingWentWrong": "¡Algo salió mal!",
-        "methods": {
-            "mercadopago": "MercadoPago",
-            "pix": "Pix",
-            "bankTransfer": "Transferencia bancaria",
-            "euroBankTransfers": "Transferencias bancarias en euros",
-            "euroBankTransfersDescription": "Normalmente llega en 20 minutos; puede tardar hasta 1 día hábil."
-        },
         "initial": {
             "placeholderEns": "Dirección o ENS",
             "placeholderAddress": "Dirección",
@@ -1886,16 +1947,16 @@
             "youJustWithdrew": "Acabas de retirar",
             "toDestination": "a {destination}",
             "youreWithdrawing": "Estás retirando",
-            "enterMethodDetails": "Ingresa los datos de {method}",
             "selectAccountType": "Selecciona el tipo de cuenta",
             "selectBank": "Selecciona el banco",
             "ownAccountOnly": "Solo puedes retirar a cuentas a tu nombre.",
             "redirecting": "Redirigiendo...",
-            "lockingRate": "Fijando el tipo de cambio...",
             "exchangeRate": "Tipo de cambio",
             "exchangeRateInfo": "El tipo de cambio mostrado es actual, pero puede variar un poco hasta que se confirme el pago.",
             "flagAlt": "bandera",
-            "increaseLimitsMessage": "Hola, me gustaría aumentar mis límites de pago."
+            "increaseLimitsMessage": "Hola, me gustaría aumentar mis límites de pago.",
+            "enterAccountDetails": "Ingresa los datos de tu banco o billetera",
+            "accountDetailsHint": "Usa tu CBU, CVU o alias, incluido Mercado Pago."
         },
         "bankForm": {
             "heading": "Ingresa los datos de tu cuenta bancaria",
@@ -1939,7 +2000,29 @@
             "stateRequired": "El estado es obligatorio",
             "postalCode": "Tu código postal",
             "postalCodeRequired": "El código postal es obligatorio",
-            "unsupportedCountry": "País no compatible"
+            "unsupportedCountry": "País no compatible",
+            "accountNumberCo": "El número de cuenta debe tener entre 5 y 20 dígitos",
+            "documentType": "Tipo de documento",
+            "documentTypeRequired": "El tipo de documento es obligatorio",
+            "documentTypeCc": "Cédula de ciudadanía",
+            "documentTypeCe": "Cédula de extranjería",
+            "documentTypeNit": "NIT",
+            "documentTypePp": "Pasaporte",
+            "documentNumber": "Número de documento",
+            "documentNumberRequired": "El número de documento es obligatorio",
+            "documentNumberInvalid": "El número de documento debe tener entre 5 y 15 dígitos",
+            "bankCode": "Código del banco",
+            "bankCodeRequired": "El código del banco es obligatorio",
+            "bankCodeInvalid": "El código del banco tiene 3 o 4 dígitos",
+            "bankCodeHelper": "El código de tu banco, de 3 o 4 dígitos. Lo encuentras en la app de tu banco o en un extracto.",
+            "accountCategory": "Tipo de cuenta",
+            "accountCategoryRequired": "El tipo de cuenta es obligatorio",
+            "accountCategorySavings": "Ahorros",
+            "accountCategoryChecking": "Corriente",
+            "phoneNumber": "Número de teléfono",
+            "phoneNumberRequired": "El número de teléfono es obligatorio",
+            "phoneNumberInvalid": "Ingresa un número colombiano, por ejemplo +573001234567",
+            "phoneNumberHelper": "El número registrado en tu banco."
         },
         "errors": {
             "invalidNumber": "Ingresa un número válido.",
@@ -1955,7 +2038,7 @@
             "confirmDetailsFailed": "No se pudieron cargar los datos del retiro para confirmar. Vuelve atrás e inténtalo de nuevo.",
             "essentialInfoMissing": "Falta información esencial del retiro.",
             "txNotPrepared": "La transacción no está preparada. Inténtalo de nuevo.",
-            "userDetailsMissing": "No se encontraron los datos del usuario, la cuenta de bridge o la dirección de la billetera.",
+            "userDetailsMissing": "No se encontraron los datos del usuario, la cuenta bancaria o la dirección de la billetera.",
             "bankAccountMissing": "Falta la cuenta bancaria.",
             "depositAddressFailed": "No se pudo obtener la dirección de depósito del backend.",
             "enterAccountAddress": "Ingresa la dirección de tu cuenta",
@@ -1971,8 +2054,8 @@
             "feeExceedsAmount": "La comisión de red supera este retiro. Ingresá un monto mayor o elegí una red más barata."
         },
         "resolvesTo": "se resuelve a",
-        "addNewAccount": "Agregar nueva cuenta",
-        "mercadoPagoDescription": "Solo tus cuentas - transferencia instantánea"
+        "withdrawToBank": "Retira a una cuenta bancaria",
+        "withdrawToCrypto": "Retira a una dirección cripto"
     },
     "transaction": {
         "drawerTitle": "Detalles de la transacción",
@@ -2010,6 +2093,8 @@
             "bank_claim": "Reclamo",
             "bank_withdraw": "Retiro",
             "bank_deposit": "Ingreso",
+            "beingReturned": "Volviendo a quien pagó",
+            "returnedToSender": "Devuelto a quien pagó",
             "bank_request_fulfillment": "Solicitud pagada por banco",
             "card_pay": "Pago",
             "refund": "Reembolso",
@@ -2096,6 +2181,7 @@
             "address": "Dirección",
             "estimateConversion": "Conversión estimada"
         },
+        "returnedReason": "El banco devolvió este pago. Suele pasar cuando los datos no coinciden con el nombre de quien envía, o cuando su banco lo rechaza.",
         "perkBanner": {
             "title": "¡Ganaste una recompensa!",
             "capped": "Recompensa de ${amount} — ¡se alcanzó el límite de la campaña!",
@@ -2603,6 +2689,7 @@
             "descriptionProviderRejection": "Sube una foto más nítida de tu documento para continuar.",
             "descriptionCrossRegion": "Tu identidad ya está verificada. Para activar los pagos en {region}, necesitamos confirmar algunos datos más.",
             "descriptionCrossRegionGeneric": "Tu identidad ya está verificada. Para activar los pagos aquí, necesitamos confirmar algunos datos más.",
+            "descriptionCountryPayments": "Confirma tu identidad para activar las transferencias bancarias y los pagos en {region}.",
             "descriptionRegionUnavailable": "Debido a las regulaciones del Reino Unido, las transferencias bancarias no están disponibles para sus residentes. Tus fondos están seguros: puedes retirarlos como cripto en cualquier momento.",
             "titleBankUnavailable": "No disponible en tu país",
             "descriptionBankUnavailable": "Las transferencias bancarias no están disponibles en tu país, así que verificar tu identidad no las desbloquearía. Tus fondos están seguros y puedes seguir enviando y recibiendo dinero con otras personas.",
@@ -2968,7 +3055,9 @@
                 "taxId": {
                     "label": "ID fiscal",
                     "title": "Tu identificación fiscal",
-                    "body": "CPF en Brasil, CUIT o CUIL en Argentina. Se necesita para enviar y recibir por los rieles bancarios locales."
+                    "body": "CPF en Brasil, CUIT o CUIL en Argentina. Se necesita para enviar y recibir por los rieles bancarios locales.",
+                    "bodyAR": "CUIT o CUIL, de tu DNI. Se necesita para las transferencias bancarias locales.",
+                    "bodyBR": "CPF. Se necesita para las transferencias bancarias locales."
                 },
                 "questions": {
                     "label": "Preguntas",
@@ -3098,6 +3187,14 @@
         "txReverted": "La transacción fue revertida, inténtalo de nuevo"
     },
     "global": {
+        "countryWaitlist": {
+            "title": "Transferencias bancarias en {country}",
+            "body": "Las transferencias bancarias aún no están disponibles aquí. Únete a la lista y te avisaremos cuando lo estén.",
+            "join": "Avisarme",
+            "joinedTitle": "Ya estás en la lista",
+            "joinedBody": "Te avisaremos cuando las transferencias bancarias estén disponibles en {country}.",
+            "error": "No se pudo actualizar la lista de espera. Inténtalo de nuevo."
+        },
         "amountInput": {
             "balance": "Saldo:",
             "useFullBalance": "Usar saldo completo: {balance}",
@@ -3464,6 +3561,7 @@
         },
         "savedAccounts": {
             "title": "Cuentas guardadas",
+            "bankSectionTitle": "Cuentas bancarias",
             "selectNewMethod": "Elegir otro método",
             "flagAlt": "Bandera de {country}",
             "flagAltGeneric": "Bandera del país"
@@ -3471,14 +3569,18 @@
         "savedAddresses": {
             "title": "Libreta de direcciones cripto",
             "lastUsed": "{days, plural, =0 {Usada hoy} =1 {Usada ayer} other {Usada hace # días}}",
-            "editTitle": "Editar dirección",
-            "editAria": "Editar {nickname}",
-            "nicknameLabel": "Apodo",
             "nicknamePlaceholder": "p. ej. Binance",
             "deleteCta": "Eliminar dirección",
             "savePrompt": "Guardar en la libreta",
-            "editFailed": "No pudimos actualizar la dirección. Intentá de nuevo.",
             "nicknameRequired": "Agregá un apodo para guardar esta dirección."
+        },
+        "savedDestinations": {
+            "editTitle": "Editar nombre",
+            "nameLabel": "Nombre",
+            "namePlaceholder": "p. ej. Sueldo",
+            "deleteCta": "Eliminar",
+            "editFailed": "No pudimos guardar el nombre. Intentá de nuevo.",
+            "editAria": "Editar {name}"
         },
         "pointsCard": {
             "earned": "¡Ganaste {count, plural, one {# punto} other {# puntos}}!"
@@ -3858,6 +3960,282 @@
                 "name": "Ganso mandón",
                 "line": "Arrea al grupo"
             }
+        }
+    },
+    "depositAccounts": {
+        "opened": {
+            "heading": "¡Tu cuenta en {currency} está lista!",
+            "body": "Tus propios datos bancarios, listos para tu próximo pago.",
+            "cta": "Ver mis datos bancarios"
+        },
+        "title": "Tus datos bancarios",
+        "list": {
+            "addTitle": "Agregar dinero",
+            "addHeading": "¿De dónde viene el dinero?",
+            "searchPlaceholder": "Busca país, moneda o cuenta",
+            "noMatchTitle": "Sin resultados para «{query}»",
+            "clearSearch": "Borrar búsqueda",
+            "countriesTitle": "Otros países",
+            "countriesPitch": "Envíate dinero desde un banco de otro país.",
+            "sectionTitle": "Tus cuentas",
+            "accountsPitch": "Datos bancarios a tu nombre. Compártelos una vez y recibe pagos directo en Peanut.",
+            "badgeReady": "Lista",
+            "rowBlocked": "Verifica tu identidad para abrir esta cuenta",
+            "badgeActive": "Activo",
+            "badgeNotSetUp": "Sin configurar",
+            "badgeUnavailable": "No disponible",
+            "badgeRevoked": "Revocada",
+            "errorTitle": "No pudimos cargar tus cuentas",
+            "errorBody": "Tus cuentas están bien: solo no pudimos leerlas. Revisa tu conexión e inténtalo de nuevo.",
+            "errorRetry": "Intentar de nuevo",
+            "rowRevoked": "Cerrada: lo que se envíe a estos datos se devuelve"
+        },
+        "claim": {
+            "heading": "Datos bancarios en {currency}",
+            "subheading": "Datos bancarios reales que tu empleador, cliente o plataforma ya sabe usar.",
+            "conditionTerms": "Quién puede pagarte depende de los términos de {currency}. Los verás en cuanto la cuenta esté abierta.",
+            "statePending": "Las reglas de tu estado se confirman cuando abres la cuenta.",
+            "benefitStable": "Comparte estos datos una sola vez — quedan igual para cada pago después.",
+            "benefitBalance": "El dinero llega a tu saldo de Peanut en USD.",
+            "conditionNoReference": "Sin referencia ni concepto que recordar.",
+            "cta": "Abrir cuenta en {currency}",
+            "errorTitle": "No pudimos abrir la cuenta"
+        },
+        "details": {
+            "heading": "{currency} · {rail}",
+            "provisioning": "Preparando tu cuenta en {currency}, normalmente en menos de un minuto.",
+            "sectionTitle": "Datos bancarios",
+            "shareCta": "Compartir datos",
+            "unavailableTitle": "Todavía no tienes datos en {currency}",
+            "unavailableBody": "Lo verificamos antes de mostrar los datos, así que ningún pago se puede perder.",
+            "unavailableCta": "Elegir otra moneda",
+            "timedOutTitle": "No pudimos abrir tu cuenta en {currency}",
+            "timedOutBody": "No se cobró nada. Inténtalo de nuevo en un momento o elige otra moneda.",
+            "timedOutRetry": "Intentar de nuevo",
+            "revokedTitle": "Tus datos en {currency} ya no funcionan",
+            "revokedBody": "Lo que envíen a esos datos vuelve a quien lo mandó. Avisa a quien te paga que deje de usarlos y escribe a soporte para reemplazarlos.",
+            "revokedCta": "Contactar soporte",
+            "topUpCta": "Ingresar {currency} de otra forma",
+            "whoCanPay": "Quién puede pagarte",
+            "residenceCta": "Actualiza tu residencia",
+            "qrPayCta": "Pagar un código QR"
+        },
+        "share": {
+            "copyCta": "Copiar todos los datos",
+            "copied": "Datos copiados",
+            "copyFailed": "No se pudieron copiar los datos",
+            "textIntroOwn": "Estos son mis datos bancarios para que me pagues en {currency}:",
+            "textIntroPooled": "Datos bancarios para pagarle a {user} en {currency}:",
+            "textOutro": "Enviado desde Peanut · peanut.me",
+            "sheetTitleOwn": "Mis datos bancarios",
+            "sheetTitlePooled": "Datos bancarios para pagarle a {user}"
+        },
+        "rows": {
+            "accountHolder": "Titular de la cuenta",
+            "bank": "Banco",
+            "iban": "IBAN",
+            "bic": "BIC",
+            "sortCode": "Sort Code",
+            "accountNumber": "Número de cuenta",
+            "routingNumber": "Número de ruta",
+            "clabe": "CLABE",
+            "bankAddress": "Dirección del banco",
+            "accepts": "Acepta",
+            "beneficiaryAddress": "Dirección del destinatario",
+            "rails": {
+                "ach_push": "ACH",
+                "fednow": "FedNow",
+                "wire": "Transferencia internacional",
+                "sepa": "SEPA",
+                "faster_payments": "Faster Payments",
+                "spei": "SPEI",
+                "pix": "Pix",
+                "transfer_ar": "Transferencia bancaria",
+                "fallback": "Transferencia bancaria",
+                "bre_b": "Bre-B"
+            },
+            "brCode": "Código Pix",
+            "breBKey": "Llave Bre-B"
+        },
+        "corridors": {
+            "SEPA_EU": {
+                "arrival": "El mismo día hábil",
+                "arrivalDetail": "Las transferencias SEPA suelen llegar el mismo día hábil, como máximo en dos.",
+                "railName": "SEPA"
+            },
+            "FASTER_PAYMENTS_GB": {
+                "arrival": "En minutos",
+                "arrivalDetail": "Los Faster Payments suelen llegar en minutos.",
+                "railName": "Faster Payments"
+            },
+            "ACH_US": {
+                "arrival": "1 a 3 días hábiles",
+                "arrivalDetail": "ACH llega en uno a tres días hábiles. Una transferencia wire llega el mismo día.",
+                "railName": "ACH o wire"
+            },
+            "SPEI_MX": {
+                "arrival": "En minutos",
+                "arrivalDetail": "Las transferencias SPEI suelen llegar en minutos.",
+                "railName": "SPEI"
+            },
+            "PIX_BR": {
+                "arrival": "En minutos",
+                "arrivalDetail": "Las transferencias Pix suelen llegar en minutos.",
+                "railName": "Pix"
+            },
+            "BANK_TRANSFER_AR": {
+                "arrival": "En minutos",
+                "arrivalDetail": "Las transferencias en Argentina suelen llegar en minutos.",
+                "railName": "Banco o Mercado Pago",
+                "residenceTitle": "Necesitas residencia",
+                "residenceOnly": "Para residentes legales de Argentina",
+                "residenceRequired": "Solo los residentes legales de Argentina pueden agregar dinero así. Tu nacionalidad no importa; el país donde vives, sí.",
+                "qrPay": "De todas formas puedes pagar códigos QR de Mercado Pago en Argentina con tu saldo."
+            },
+            "BANK_TRANSFER_BR": {
+                "arrival": "En minutos",
+                "arrivalDetail": "Las transferencias Pix suelen llegar en minutos.",
+                "railName": "Pix",
+                "residenceTitle": "Necesitas CPF",
+                "residenceOnly": "Necesita un CPF (identificación tributaria de Brasil)",
+                "residenceRequired": "Una cuenta en BRL necesita un CPF (la identificación tributaria de Brasil) y una residencia en Brasil verificada. Tu residencia se verifica en tu control de identidad, así que debe ser donde realmente vives.",
+                "qrPay": "De todas formas puedes pagar códigos Pix en Brasil con tu saldo."
+            },
+            "BANK_TRANSFER_CO": {
+                "railName": "Bre-B",
+                "arrival": "En minutos",
+                "arrivalDetail": "Las transferencias Bre-B suelen llegar en minutos."
+            }
+        },
+        "gate": {
+            "verifyTitle": "Primero verifica tu identidad",
+            "verifyBody": "Solo podemos abrir una cuenta a tu nombre cuando sabemos quién eres.",
+            "verifyCta": "Verificar identidad",
+            "tosTitle": "Falta aceptar un documento",
+            "tosCta": "Leer y aceptar",
+            "waitTitle": "Lo estamos preparando",
+            "waitBody": "No tienes que hacer nada. Esta pantalla se actualiza sola.",
+            "blockedTitle": "No podemos abrirte una cuenta",
+            "supportCta": "Contactar soporte",
+            "emailTitle": "Necesitamos un correo electrónico",
+            "emailBody": "Tu identidad está verificada. Nunca recibimos un correo para reenviar, así que no podemos abrir la cuenta hasta que agregues uno.",
+            "emailCta": "Agrega tu email",
+            "notYetTitle": "Todavía no está disponible para ti",
+            "notYetBody": "Lo estamos abriendo de a poco.",
+            "limitTitle": "Ya tienes dos cuentas",
+            "limitBody": "Dos cuentas bancarias es lo normal. Si necesitas otra, soporte puede abrirla.",
+            "reviewTitle": "Estamos creando tu cuenta",
+            "reviewBody": "Suele tardar unos minutos. Te avisamos cuando esté lista.",
+            "reviewCta": "Volver a Agregar dinero"
+        },
+        "rules": {
+            "providerHeld": {
+                "line": "La cuenta se mantiene a tu favor, no a tu nombre.",
+                "payer": "La cuenta se mantiene a favor de {user}, no a su nombre.",
+                "why": "El dinero que entra igual llega a tu saldo de Peanut. El nombre de la cuenta no es el tuyo, así que un formulario de nómina que revise el nombre necesita el titular que se muestra arriba."
+            },
+            "ownAccount": {
+                "line": "Desde tu propia cuenta: sí.",
+                "payer": "Desde la cuenta propia del titular: sí.",
+                "why": "Puedes transferir desde tu propia cuenta bancaria. Contacta a soporte antes de enviar más de US$100.000."
+            },
+            "ownAccountMax": {
+                "line": "Desde tu propia cuenta: hasta {max}.",
+                "payer": "Desde la cuenta propia del titular: hasta {max}.",
+                "why": "El dinero que te envías a ti mismo es una recarga, no un pago de otra persona. Se aceptan hasta {max} desde tu propia cuenta en esta moneda. Si una transferencia tuya más grande se devuelve, escribe a soporte."
+            },
+            "ownAccountNo": {
+                "line": "Desde tu propia cuenta: todavía no.",
+                "payer": "Desde la cuenta propia del titular: todavía no.",
+                "why": "Todavía no se aceptan transferencias desde tu propia cuenta bancaria en esta moneda. Lo diremos acá el día que cambie."
+            },
+            "businessAny": {
+                "line": "Desde una empresa: cualquier monto.",
+                "payer": "Desde una empresa: cualquier monto.",
+                "why": "Un pago de una empresa no tiene límite. El sueldo y las facturas pasan sin cambios."
+            },
+            "businessNotYet": {
+                "line": "Desde una empresa: todavía no.",
+                "payer": "Desde una empresa: todavía no.",
+                "why": "Todavía no están disponibles los pagos de empresas en esta moneda. Lo diremos acá el día que cambie."
+            },
+            "businessUnconfirmed": {
+                "line": "Desde una empresa: sin confirmar.",
+                "payer": "Desde una empresa: sin confirmar. La transferencia podría devolverse.",
+                "why": "Los pagos de empresas no están confirmados en esta moneda. Los datos funcionan; si alguna vez un pago se devuelve, avísanos y lo resolvemos."
+            },
+            "individualAny": {
+                "line": "Desde otra persona: cualquier monto.",
+                "payer": "Desde otra persona: cualquier monto.",
+                "why": "Se aceptan pagos de otras personas en esta moneda, así que puedes dar estos datos a quien te pague."
+            },
+            "individualCap": {
+                "line": "Desde otra persona: menos de {cap} por pago.",
+                "payer": "Desde otra persona: menos de {cap} por pago.",
+                "why": "Un pago único de otra persona tiene un límite de {cap}. Una empresa puede pagar cualquier monto. Para recibir más de {cap} de una persona en un solo pago, escribe a soporte."
+            },
+            "individualCapFamily": {
+                "line": "Desde otra persona: menos de {cap} por pago. Los familiares con tu mismo apellido: cualquier monto.",
+                "payer": "Desde otra persona: menos de {cap} por pago. Los familiares con el apellido del titular: cualquier monto.",
+                "why": "Un pago único de otra persona tiene un límite de {cap}. Una empresa puede pagar cualquier monto, y también los familiares con tu mismo apellido. Para recibir más de {cap} de una persona en un solo pago, escribe a soporte."
+            },
+            "individualVolume": {
+                "line": "Desde otra persona: hasta {limit} en total. Pregunta a soporte por el periodo.",
+                "payer": "Desde otra persona: hasta {limit} en total. Pide al titular que consulte el periodo con soporte.",
+                "why": "El total que otras personas pueden pagar a esta cuenta tiene un límite de {limit}. El periodo que cubre ese total no se publica, así que escribe a soporte antes de un pago grande. Una empresa puede pagar cualquier monto."
+            },
+            "individualNotYet": {
+                "line": "Desde otra persona: todavía no.",
+                "payer": "Desde otra persona: todavía no.",
+                "why": "Los pagos de otras personas aún no están disponibles en esta cuenta."
+            },
+            "individualUnconfirmed": {
+                "line": "Desde otra persona: sin confirmar.",
+                "payer": "Desde otra persona: sin confirmar. La transferencia podría devolverse.",
+                "why": "Los pagos de otras personas no están confirmados en esta moneda. Los datos funcionan; si alguna vez un pago se devuelve, avísanos y lo resolvemos."
+            },
+            "minimum": {
+                "line": "Depósito mínimo: {min}.",
+                "payer": "Depósito mínimo: {min}.",
+                "why": "Los depósitos deben ser de al menos {min}, incluidos los pagos de prueba."
+            },
+            "stateRestricted": {
+                "line": "Solo tú puedes ingresar dinero, desde una cuenta bancaria a tu nombre.",
+                "payer": "Solo el titular puede pagar a esta cuenta.",
+                "why": "El estado de tu dirección no permite que nadie más pague a una cuenta como esta. Tus propias transferencias funcionan normal y los datos siguen siendo válidos."
+            },
+            "ownName": {
+                "line": "Ingresa dinero desde una cuenta bancaria a tu nombre.",
+                "payer": "Solo el titular puede pagar a esta cuenta.",
+                "why": "Solo se acredita una transferencia que venga de una cuenta a tu nombre. Un pago de cualquier otra persona se devuelve a quien lo envió."
+            },
+            "businessAllowed": {
+                "line": "De una empresa: permitido.",
+                "payer": "De una empresa: permitido.",
+                "why": "Las empresas registradas pueden pagarte. Se aplican los límites indicados aquí."
+            },
+            "maximum": {
+                "line": "Monto máximo por pago: {max}.",
+                "payer": "Monto máximo por pago: {max}.",
+                "why": "Este es el monto máximo aceptado por pago con este medio."
+            },
+            "monthlyLimit": {
+                "line": "Límite mensual: equivalente a {limit}.",
+                "payer": "Límite mensual: equivalente a {limit}.",
+                "why": "Este límite se aplica al total de pagos recibidos en tu cuenta. Contacta a soporte si necesitas un límite mayor."
+            }
+        },
+        "errors": {
+            "generic": "No pudimos abrir la cuenta. Inténtalo de nuevo en un momento.",
+            "notAvailable": "Las cuentas propias todavía no están disponibles para tu cuenta.",
+            "inFlight": "Todavía está llegando un depósito. Inténtalo de nuevo cuando llegue.",
+            "residenceRestricted": "Los datos bancarios no están disponibles donde vives. Actualiza tu residencia si te mudaste.",
+            "accountLimit": "Ya tienes dos cuentas bancarias. Soporte puede abrirte otra."
+        },
+        "fees": {
+            "noFee": "Sin comisión de Peanut.",
+            "converted": "Se convierte a USD al tipo de cambio. Se aplica una comisión por conversión.",
+            "seeRates": "Ver tipos de cambio"
         }
     }
 }

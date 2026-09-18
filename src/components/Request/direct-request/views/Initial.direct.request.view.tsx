@@ -23,8 +23,8 @@ import { loadingStateKey } from '@/i18n/app/loading-states'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useUserByUsername } from '@/hooks/useUserByUsername'
+import { useRequestBack } from '@/components/Request/useRequestBack'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
-import { useSafeBack } from '@/hooks/useSafeBack'
 
 interface DirectRequestInitialViewProps {
     username: string
@@ -35,11 +35,11 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const tLoading = useTranslations('loadingStates')
+    const onBack = useRequestBack()
     const tMigration = useTranslations('migration')
     // a guest on a broken request link is asked to join — during the migration
     // that means the app, not web signup
     const { interceptGuestCta, storeHandoffModal, handoffActive } = useGuestStoreHandoff()
-    const onBack = useSafeBack('/home')
     const { user: authUser } = useAuth()
     const { address } = useWallet()
     const [attachmentOptions, setAttachmentOptions] = useState<IAttachmentOptions>({

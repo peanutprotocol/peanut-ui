@@ -21,6 +21,7 @@ import { PerkRewardReceipt } from './provider-receipts/PerkRewardReceipt'
 import {
     hasUserProfile,
     hasUserProfileAvatar,
+    isCardPaymentEntry,
     isPerkReward as isPerkRewardTransaction,
     isRequestEntry,
     isSendLinkEntry,
@@ -166,6 +167,7 @@ export const TransactionDetailsReceipt = ({
             {/* head (board 17490:115877): centered bubble → type line → amount → badge */}
             <TransactionDetailsHeaderCard
                 direction={transaction.direction}
+                actionLabelKey={transaction.actionLabelKey}
                 userName={transaction.userName}
                 nameKey={transaction.nameKey}
                 nameParams={transaction.nameParams}
@@ -177,6 +179,9 @@ export const TransactionDetailsReceipt = ({
                 isLinkTransaction={transaction.extraDataForDrawer?.isLinkTransaction}
                 transactionType={transaction.extraDataForDrawer?.transactionCardType}
                 avatarUrl={avatarUrl ?? getAvatarUrl(transaction)}
+                merchantLogo={
+                    isCardPaymentEntry(transaction) ? transaction.extraDataForDrawer?.cardPayment?.merchantLogo : null
+                }
                 avatarKey={transaction.avatarKey}
                 isPeer={transaction.isPeerActuallyUser}
                 haveSentMoneyToUser={transaction.haveSentMoneyToUser}
@@ -187,6 +192,14 @@ export const TransactionDetailsReceipt = ({
                 fullName={transaction.fullName}
                 countryCode={getBankAccountCountryCode(transaction.bankAccountDetails, transaction.currency?.code)}
             />
+
+            {/* Why a deposit went back. The status alone says the money left
+                the balance; only this says what to ask the sender to fix. */}
+            {transaction.actionLabelKey === 'type.returnedToSender' && (
+                <Card position="single" className="p-4">
+                    <span className="text-body-s text-foreground-secondary">{t('returnedReason')}</span>
+                </Card>
+            )}
 
             {/* Perk eligibility banner */}
             {transaction.extraDataForDrawer?.perk?.claimed && transaction.status !== 'pending' && (

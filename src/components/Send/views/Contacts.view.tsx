@@ -252,7 +252,13 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                                     icon="alert"
                                     description={t('contacts.errorDescription')}
                                     cta={
-                                        <Button shadowSize="4" onClick={() => refetch()} className="mt-4" icon="retry">
+                                        <Button
+                                            shadowSize="4"
+                                            onClick={() => refetch()}
+                                            className="mt-4"
+                                            icon="retry"
+                                            iconSize={12}
+                                        >
                                             {tCommon('retry')}
                                         </Button>
                                     }

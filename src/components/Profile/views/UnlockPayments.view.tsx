@@ -3,11 +3,14 @@
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
-import Card from '@/components/Global/Card'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
+import HeldDepositAccounts from './HeldDepositAccounts'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { DataRow } from '@/components/0_Bruddle/DataRow'
+import Card from '@/components/Global/Card'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
@@ -78,15 +81,10 @@ function getModalVariant(rail: RailCapability | undefined, hasSumsubAction: bool
     }
 }
 
-/**
- * Inline limit summary for an ACTIVE bank row — the limits merge: usage lives
- * on the method it belongs to instead of a separate Limits screen. Manteca
- * (BR/AR) exposes monthly allowances → a usage bar; Bridge (US/MX/EU) only
- * caps per transaction → a plain line.
- */
+/** Legacy bank-transfer limits do not apply to reusable deposit accounts. */
 type RowLimitSummary =
     | { kind: 'manteca'; asset: string; remaining: string; limit: string; usedPercent: number }
-    | { kind: 'bridge'; perTransaction: string }
+    | { kind: 'bridge'; direction: 'deposit' | 'withdrawal'; perTransaction: string }
 
 // Whole-unit cap with locale grouping ($100,000, not $100000): the shared
 // formatter only abbreviates from seven digits and never groups.
@@ -96,19 +94,28 @@ function formatCap(amount: number, currency: string, locale: string): string {
     return `${symbol}${separator}${new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(amount)}`
 }
 
-function limitSummariesForGroup(
-    group: UnlockGroup,
+function limitSummariesForRows(
+    rows: readonly UnlockRow[],
     mantecaLimits: MantecaLimit[] | null,
     bridgeLimits: BridgeLimits | null,
     locale: string
 ): RowLimitSummary[] {
-    const refs = new Set(group.rows.filter((row) => row.chip === 'active').flatMap((row) => row.limitRefs ?? []))
+    const refs = new Set(rows.filter((row) => row.chip === 'active').flatMap((row) => row.limitRefs ?? []))
     const summaries: RowLimitSummary[] = []
     for (const ref of refs) {
         if (ref === 'bridge') {
-            const cap = Number(bridgeLimits?.onRampPerTransaction)
-            if (bridgeLimits && Number.isFinite(cap) && cap > 0) {
-                summaries.push({ kind: 'bridge', perTransaction: formatCap(cap, bridgeLimits.asset || 'USD', locale) })
+            for (const [direction, rawCap] of [
+                ['deposit', bridgeLimits?.onRampPerTransaction],
+                ['withdrawal', bridgeLimits?.offRampPerTransaction],
+            ] as const) {
+                const cap = Number(rawCap)
+                if (bridgeLimits && Number.isFinite(cap) && cap > 0) {
+                    summaries.push({
+                        kind: 'bridge',
+                        direction,
+                        perTransaction: formatCap(cap, bridgeLimits.asset || 'USD', locale),
+                    })
+                }
             }
             continue
         }
@@ -138,6 +145,7 @@ const UnlockPayments = () => {
     const onBack = useSafeBack('/profile', { replace: true })
     const router = useRouter()
     const [openView, setOpenView] = useQueryState('open', parseAsString)
+    const [detailsRow, setDetailsRow] = useState<UnlockRow | null>(null)
     const { user, fetchUser } = useAuth()
     const { rails, isKycApproved, railsForProvider, nextActionsForRail } = useCapabilities()
     const restrictions = useResidenceRestrictions()
@@ -323,6 +331,10 @@ const UnlockPayments = () => {
                 router.push(row.href)
                 return
             }
+            if (row.chip === 'active' || row.chip === 'alwaysOn') {
+                setDetailsRow(row)
+                return
+            }
             if (!row.regionPath) return
             // During a verification outage the unlock modal renders its degraded
             // variant (choke point in InitiateKycModal covers the other gates);
@@ -374,6 +386,13 @@ const UnlockPayments = () => {
     ) : (
         <span className="text-body-s text-foreground-secondary">{t('residence.unverified')}</span>
     )
+
+    // Detail-drawer facts: reuse the page's own limit derivation and the p2p
+    // no-limit rule, so the drawer can never state a cap the section beside it
+    // does not. The Limits block is hidden when a method publishes none.
+    const detailSummaries = detailsRow ? limitSummariesForRows([detailsRow], mantecaLimits, bridgeLimits, locale) : []
+    const detailNoLimit = detailsRow?.labelKey === 'p2p'
+    const showDetailLimits = detailNoLimit || detailSummaries.length > 0
 
     return (
         <PageStack gap="6" className="pb-10">
@@ -440,6 +459,11 @@ const UnlockPayments = () => {
             {/* Pending Bridge verification tasks (ToS / hosted re-verification). */}
             <PendingVerificationTasks />
 
+            {/* Held bank accounts lead the payment content: a user who already
+                holds accounts sees them before the region list (or the empty
+                state), so the page reads as their accounts first. */}
+            <HeldDepositAccounts />
+
             {groups.length === 0 && (
                 <EmptyState
                     title={tRegions('empty.title')}
@@ -454,7 +478,7 @@ const UnlockPayments = () => {
                     group={group}
                     onRowClick={handleRowClick}
                     isKycDegraded={isKycDegraded}
-                    limitSummaries={limitSummariesForGroup(group, mantecaLimits, bridgeLimits, locale)}
+                    limitSummaries={limitSummariesForRows(group.rows, mantecaLimits, bridgeLimits, locale)}
                 />
             ))}
 
@@ -634,6 +658,49 @@ const UnlockPayments = () => {
                 }
             />
 
+            <Drawer open={!!detailsRow} onOpenChange={(open) => !open && setDetailsRow(null)}>
+                <DrawerContent>
+                    {detailsRow && (
+                        <div className="flex flex-col gap-6 pt-1 pb-6">
+                            {/* Hero: method mark + name + one-line value prop.
+                                Mirrors InitiateKycModal's drawer hero (IconBubble
+                                + DrawerHeader/DrawerTitle + a secondary line). */}
+                            <div className="flex flex-col items-center gap-4 text-center">
+                                <IconBubble icon={detailsRow.icon as IconName} color={BUBBLE_COLOR[detailsRow.chip]} />
+                                <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                                    <DrawerTitle>{t(`rows.${detailsRow.labelKey}`)}</DrawerTitle>
+                                    <DrawerDescription>{t(`valueProp.${detailsRow.labelKey}`)}</DrawerDescription>
+                                </DrawerHeader>
+                            </div>
+
+                            {/* What you can do: the same Section + ListGroup +
+                                ListItem row vocabulary UnlockSection uses on the
+                                page, with a green check to read as a capability. */}
+                            <Section title={t('detailsDrawer.aboutTitle')}>
+                                <ListGroup>
+                                    <ListItem
+                                        leading={<IconBubble icon="check" size="s" color="green" />}
+                                        title={
+                                            <span className="break-words whitespace-normal">
+                                                {t(`details.${detailsRow.labelKey}`)}
+                                            </span>
+                                        }
+                                    />
+                                </ListGroup>
+                            </Section>
+
+                            {/* Limits: reuse MethodLimits, the component the page
+                                already renders under each section. */}
+                            {showDetailLimits && (
+                                <Section title={t('detailsDrawer.limitsTitle')}>
+                                    <MethodLimits noLimit={detailNoLimit} summaries={detailSummaries} />
+                                </Section>
+                            )}
+                        </div>
+                    )}
+                </DrawerContent>
+            </Drawer>
+
             <SumsubKycModals flow={flow} />
         </PageStack>
     )
@@ -659,11 +726,7 @@ const BUBBLE_COLOR: Record<UnlockChip, IconBubbleColor> = {
     notAvailable: 'gray',
 }
 
-/**
- * One region of the list (option D of the DS rebuild): a Section heading over
- * a ListGroup of method rows, closed by the region's own limits card so the
- * numbers sit next to the methods they govern.
- */
+/** Keep each region's limits beside the methods they govern. */
 const UnlockSection = ({
     group,
     onRowClick,
@@ -702,8 +765,6 @@ const UnlockSection = ({
         }
     }
 
-    const showLimits = group.id === 'everywhere' || limitSummaries.length > 0
-
     return (
         <Section
             title={
@@ -718,7 +779,11 @@ const UnlockSection = ({
                     // During a verification outage the unlock path is closed (the tap
                     // guard would no-op), so render those rows inert instead of
                     // letting them look actionable under the degraded banner.
-                    const tappable = !!row.href || (!!row.regionPath && !isKycDegraded)
+                    const tappable =
+                        !!row.href ||
+                        row.chip === 'active' ||
+                        row.chip === 'alwaysOn' ||
+                        (!!row.regionPath && !isKycDegraded)
                     return (
                         <ListItem
                             key={row.id}
@@ -733,36 +798,71 @@ const UnlockSection = ({
                     )
                 })}
             </ListGroup>
-            {showLimits && (
-                <Card position="single" className="flex flex-col gap-3 px-4 py-3">
-                    {/* P2P has no cap at all (no fiat provider behind it), so the
-                        Everywhere group always states that — it is the one limit
-                        that exists before any unlock. */}
-                    {group.id === 'everywhere' && (
-                        <div className="flex flex-col gap-1">
-                            <p className="text-body-s text-foreground-secondary">{t('limits.p2pNoLimit')}</p>
-                            <ProgressBar value={100} />
-                        </div>
-                    )}
-                    {limitSummaries.map((summary) =>
-                        summary.kind === 'manteca' ? (
-                            <div key={summary.asset} className="flex flex-col gap-1">
-                                <p className="text-body-s text-foreground-secondary">
-                                    {t('limits.monthlyLeft', { remaining: summary.remaining, limit: summary.limit })}
-                                </p>
-                                <ProgressBar
-                                    value={summary.usedPercent}
-                                    fillClassName={getLimitColorClass(summary.usedPercent, 'bg')}
-                                />
-                            </div>
-                        ) : (
-                            <p key="bridge" className="text-body-s text-foreground-secondary">
-                                {t('limits.perTransfer', { amount: summary.perTransaction })}
-                            </p>
-                        )
-                    )}
+            <MethodLimits noLimit={group.id === 'everywhere'} summaries={limitSummaries} />
+        </Section>
+    )
+}
+
+function MethodLimits({ noLimit, summaries }: { noLimit: boolean; summaries: RowLimitSummary[] }) {
+    const t = useTranslations('profile.unlockPayments')
+    if (!noLimit && summaries.length === 0) return null
+
+    // A monthly limit needs the label + used-bar shape (ListItem body + ProgressBar);
+    // a per-transfer bank cap is a plain labelled value, so it reads as a receipt row.
+    const mantecaSummaries = summaries.filter(
+        (s): s is Extract<RowLimitSummary, { kind: 'manteca' }> => s.kind === 'manteca'
+    )
+    const bridgeSummaries = summaries.filter(
+        (s): s is Extract<RowLimitSummary, { kind: 'bridge' }> => s.kind === 'bridge'
+    )
+
+    return (
+        <>
+            {(noLimit || mantecaSummaries.length > 0) && (
+                <ListGroup>
+                    {noLimit && <ListItem title={t('limits.p2pNoLimit')} />}
+                    {mantecaSummaries.map((summary) => (
+                        <ListItem
+                            key={summary.asset}
+                            title={summary.asset}
+                            body={
+                                <div className="flex flex-col gap-2">
+                                    <span>
+                                        {t('limits.monthlyLeft', {
+                                            remaining: summary.remaining,
+                                            limit: summary.limit,
+                                        })}
+                                    </span>
+                                    <ProgressBar
+                                        value={summary.usedPercent}
+                                        fillClassName={getLimitColorClass(summary.usedPercent, 'bg')}
+                                    />
+                                </div>
+                            }
+                            bodyWrap
+                        />
+                    ))}
+                </ListGroup>
+            )}
+            {/* Per-transfer bank caps are labelled values: the DS DataRow-in-Card
+                receipt recipe (same as DepositDetailsCard) — label left, value right —
+                replaces the hand-rolled ListItem title/trailing pair. The card owns the
+                dashed dividers; DataRow draws no border of its own. */}
+            {bridgeSummaries.length > 0 && (
+                <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">
+                    {bridgeSummaries.map((summary) => (
+                        <DataRow
+                            key={summary.direction}
+                            label={t(
+                                summary.direction === 'deposit'
+                                    ? 'limits.depositPerTransfer'
+                                    : 'limits.withdrawalPerTransfer'
+                            )}
+                            value={summary.perTransaction}
+                        />
+                    ))}
                 </Card>
             )}
-        </Section>
+        </>
     )
 }

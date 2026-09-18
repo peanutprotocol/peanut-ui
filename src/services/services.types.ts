@@ -1,5 +1,6 @@
 import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
+import type { paths } from '@/types/api.generated'
 
 export type TStatus = 'NEW' | 'PENDING' | 'COMPLETED' | 'EXPIRED' | 'FAILED' | 'SIGNED' | 'SUCCESSFUL' | 'CANCELLED'
 
@@ -19,7 +20,23 @@ export interface CreateRequestRequest {
     tokenAddress: string
     tokenDecimals: string
     tokenSymbol: string
+    /** the requester lets a payer settle this request by bank transfer */
+    bankInstructionsShared?: boolean
 }
+
+/**
+ * The requester's standing bank details for one request, plus the reference a
+ * payer must type. Derived from the generated contract rather than restated,
+ * so a field the API drops fails the build at every reader.
+ */
+export type RequestDepositInstructions =
+    paths['/requests/{uuid}/deposit-instructions']['get']['responses'][200]['content']['application/json']
+
+/**
+ * How much of a request money arriving by bank answered, as the backend
+ * decides it: nothing yet, some of it, or the whole request.
+ */
+export type BankFulfilment = 'none' | 'partial' | 'paid'
 
 export interface TRequestResponse {
     uuid: string
@@ -35,6 +52,27 @@ export interface TRequestResponse {
     attachmentUrl: string | null
     createdAt: string
     updatedAt: string
+    /**
+     * A bank deposit carrying this request's reference answered it. `paidAt`
+     * is when it landed and `receivedAmount` is what arrived, which can be
+     * less than `tokenAmount` — a part payment leaves the request open.
+     *
+     * `bankFulfilment` is the backend's own verdict on those two numbers: a
+     * transfer loses fees on the way, so the request counts as paid once the
+     * net amount is close enough to the amount asked. Read it rather than
+     * comparing the amounts here.
+     *
+     * `payerName` is the name the payer's bank reported on the last transfer.
+     * It is on the owner-facing request alone — a payer opening the link never
+     * sees who else paid it.
+     *
+     * Both are optional while the backend that returns them ships.
+     */
+    paidAt: string | null
+    receivedAmount: string | null
+    bankFulfilment?: BankFulfilment
+    payerName?: string | null
+    bankInstructionsShared: boolean
     charges: ChargeEntry[]
     history: TRequestHistory[]
     recipientAccount: {

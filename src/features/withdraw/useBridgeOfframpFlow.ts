@@ -22,7 +22,7 @@ import { useEeaUpliftFunnel } from '@/hooks/useEeaUpliftFunnel'
 import { upliftTriggerFromGate, upliftTriggerFromAdvisory } from '@/utils/eea-uplift.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { isVerifiableGate } from '@/utils/capability-gate'
-import { isBridgeSupportedCountry } from '@/utils/regions.utils'
+import { hasBridgeBankCorridor } from '@/components/AddWithdraw/bank-corridors'
 import { PointsAction } from '@/services/services.types'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import posthog from 'posthog-js'
@@ -117,7 +117,13 @@ export function useBridgeOfframpFlow() {
     const minNeedsRate = bankWithdrawMinNeedsRate(countryIso2)
     const { exchangeRate } = useGetExchangeRate({
         accountType:
-            countryIso2 === 'GB' ? AccountType.GB : countryIso2 === 'MX' ? AccountType.CLABE : AccountType.IBAN,
+            countryIso2 === 'GB'
+                ? AccountType.GB
+                : countryIso2 === 'MX'
+                  ? AccountType.CLABE
+                  : countryIso2 === 'CO'
+                    ? AccountType.CO_BANK_TRANSFER
+                    : AccountType.IBAN,
         enabled: minNeedsRate,
     })
     const minUsd = bankWithdrawMinUsd(countryIso2, exchangeRate)
@@ -172,7 +178,7 @@ export function useBridgeOfframpFlow() {
     useEffect(() => {
         if (country) {
             const countryInfo = getCountryFromPath(country)
-            if (!countryInfo || !isBridgeSupportedCountry(countryInfo.id)) {
+            if (!countryInfo || !hasBridgeBankCorridor(countryInfo.id)) {
                 router.replace(`/withdraw${fromSendFlow ? '?method=bank' : ''}`)
             }
         }
@@ -214,8 +220,10 @@ export function useBridgeOfframpFlow() {
             // If no amount, go back to main page
             router.replace(`/withdraw${recoveryQuery}`)
         } else if (!bankAccount && amountToWithdraw) {
-            // If amount is set but no bank account, go to country method selection
-            router.replace(withdrawCountryUrl(country, recoveryQuery))
+            // An amount with no destination — send the user to the country's
+            // bank form, named in the URL, with the amount still on it
+            recovery.set('step', 'form')
+            router.replace(withdrawCountryUrl(country, `?${recovery.toString()}`))
         }
     }, [bankAccount, router, amountToWithdraw, country, step, fromSendFlow])
 

@@ -13,8 +13,8 @@ import type { GeneralRecipientUpdate } from '@/components/Global/GeneralRecipien
 
 // ---------- module mocks ----------
 
-jest.mock('@/hooks/useSafeBack', () => ({
-    useSafeBack: () => jest.fn(),
+jest.mock('@/components/Request/useRequestBack', () => ({
+    useRequestBack: () => jest.fn(),
 }))
 
 // unauthenticated visitor — the recipient input renders in this state

@@ -24,6 +24,7 @@ type InitiateKycVariant =
     | 'blocked'
     | 'restart_identity'
     | 'cross_region'
+    | 'country_payments'
     | 'region-unavailable'
 
 interface InitiateKycModalProps {
@@ -46,6 +47,10 @@ interface InitiateKycModalProps {
     /** Which prep checklist the SDK-bound variants show: extended for the
      *  Manteca (BR/AR) flows, standard elsewhere. */
     prepPath?: 'standard' | 'extended'
+    /** ISO code of the single country the extended prep is for, so the tax-ID
+     *  row names that country's document (CUIT/CUIL for AR, CPF for BR) rather
+     *  than the both-countries string. Pass the ISO code, not `regionName`. */
+    taxIdCountry?: 'AR' | 'BR'
     /**
      * 'modal' overlays the caller; 'page' renders the same decision as a flow
      * step. The prep content is a screen's worth — two requirement cards, a
@@ -65,7 +70,10 @@ interface InitiateKycModalProps {
 // provider_rejection → "We need extra documents"
 // blocked            → "We couldn't unlock this — contact support"
 // restart_identity   → "Verify with a different document" (self-fix for country mismatch)
-// cross_region       → "Unlock {region}"
+// cross_region       → "Unlock {region}" (identity already cleared)
+// country_payments   → "Unlock {region}" for a user who has not verified yet and
+//                      arrived from one country's flow: what they unlock is that
+//                      country's bank transfers and payments, not an account
 // Three states are decided HERE and outrank whatever variant the caller asked
 // for: the verification outage, a region-restricted rejection, and a residence
 // no bank provider onboards.
@@ -82,6 +90,7 @@ export const InitiateKycModal = ({
     reasonCode,
     regionName,
     prepPath = 'standard',
+    taxIdCountry,
     presentation = 'modal',
     onBack,
     navTitle,
@@ -124,6 +133,7 @@ export const InitiateKycModal = ({
     const isBlocked = resolvedVariant === 'blocked'
     const isRestartIdentity = resolvedVariant === 'restart_identity'
     const isCrossRegion = resolvedVariant === 'cross_region'
+    const isCountryPayments = resolvedVariant === 'country_payments'
     const router = useRouter()
     const regionRestrictedCta = useRegionRestrictedCta(onClose)
 
@@ -138,6 +148,7 @@ export const InitiateKycModal = ({
             return regionName
                 ? t('initiate.titleCrossRegion', { region: regionName })
                 : t('initiate.titleCrossRegionGeneric')
+        if (isCountryPayments && regionName) return t('initiate.titleCrossRegion', { region: regionName })
         return t('initiate.titleDefault')
     }
 
@@ -153,6 +164,7 @@ export const InitiateKycModal = ({
                 ? t('initiate.descriptionCrossRegion', { region: regionName })
                 : t('initiate.descriptionCrossRegionGeneric')
         }
+        if (isCountryPayments && regionName) return t('initiate.descriptionCountryPayments', { region: regionName })
         return t('initiate.descriptionDefault')
     }
 
@@ -262,13 +274,14 @@ export const InitiateKycModal = ({
     // the cross-region unlock) carry the prep checklist, so no path reaches the
     // vendor without it. Every other variant is an error/action state where the
     // list would be noise.
-    const showPrepChecklist = (resolvedVariant === 'default' || resolvedVariant === 'cross_region') && !error
+    const showPrepChecklist =
+        (resolvedVariant === 'default' || resolvedVariant === 'cross_region' || isCountryPayments) && !error
     // The checklist is left-aligned, so the paragraph introducing it is too:
     // centered prose stacked on a left-aligned list reads as two columns.
     const description = showPrepChecklist ? (
         <div className="flex flex-col gap-3 text-left">
             <p>{getDescription()}</p>
-            <KycPrepChecklist path={prepPath} />
+            <KycPrepChecklist path={prepPath} taxIdCountry={taxIdCountry} />
         </div>
     ) : (
         getDescription()

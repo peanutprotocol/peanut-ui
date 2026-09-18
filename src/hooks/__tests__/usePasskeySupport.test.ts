@@ -7,6 +7,15 @@ const mockIsCapacitor = jest.fn()
 
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => mockIsCapacitor() }))
 
+// The AND gate itself lives in harness.consts (tested there). Here we only need
+// to drive "is the harness bypass active" — the hook consults it via
+// checkPasskeyCapability.
+const mockHarnessBypass = jest.fn()
+jest.mock('@/constants/harness.consts', () => ({
+    HARNESS_ENABLED: false,
+    harnessPasskeyBypass: () => mockHarnessBypass(),
+}))
+
 const mockBrowserSupportsWebAuthn = jest.mocked(browserSupportsWebAuthn)
 const mockPlatformAuthenticatorIsAvailable = jest.mocked(platformAuthenticatorIsAvailable)
 
@@ -15,6 +24,8 @@ describe('usePasskeySupport', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
+        mockHarnessBypass.mockReturnValue(false)
+        localStorage.removeItem('__harness_skip_passkey')
         mockIsCapacitor.mockReturnValue(false)
         mockBrowserSupportsWebAuthn.mockReturnValue(true)
         mockPlatformAuthenticatorIsAvailable.mockResolvedValue(true)
@@ -27,6 +38,36 @@ describe('usePasskeySupport', () => {
 
     afterAll(() => {
         Object.defineProperty(navigator, 'userAgent', { configurable: true, value: originalUserAgent })
+    })
+
+    /*
+     * The QA browser has no platform authenticator, so the probe says no
+     * passkeys and /setup walls the run behind the unsupported-browser modal
+     * before a scenario reaches its first screen. The harness signs with its
+     * own key and needs no authenticator; production sets neither signal.
+     */
+    it('treats passkeys as available when the harness bypass is active', async () => {
+        mockBrowserSupportsWebAuthn.mockReturnValue(false)
+        mockPlatformAuthenticatorIsAvailable.mockResolvedValue(false)
+        mockHarnessBypass.mockReturnValue(true)
+
+        const { result } = renderHook(() => usePasskeySupport())
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+        expect(result.current.isSupported).toBe(true)
+        expect(result.current.browserSupported).toBe(true)
+        expect(result.current.error).toBeNull()
+        // the real probe is never reached, so a QA browser cannot fail it
+        expect(mockPlatformAuthenticatorIsAvailable).not.toHaveBeenCalled()
+    })
+
+    it('still refuses a browser with no authenticator once the bypass is gone', async () => {
+        mockPlatformAuthenticatorIsAvailable.mockResolvedValue(false)
+
+        const { result } = renderHook(() => usePasskeySupport())
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+        expect(result.current.isSupported).toBe(false)
     })
 
     it('accepts a secure browser with an available platform authenticator', async () => {

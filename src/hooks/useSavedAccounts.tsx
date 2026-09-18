@@ -25,6 +25,7 @@ export default function useSavedAccounts() {
                     acc.type === AccountType.US ||
                     acc.type === AccountType.CLABE ||
                     acc.type === AccountType.GB ||
+                    acc.type === AccountType.CO_BANK_TRANSFER ||
                     acc.type === AccountType.MANTECA
             ) ?? []
         )

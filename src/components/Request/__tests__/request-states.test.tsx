@@ -50,13 +50,13 @@ jest.mock('@sentry/nextjs', () => ({
 // PostHog
 jest.mock('posthog-js', () => ({
     __esModule: true,
-    // onFeatureFlags: the guest store hand-off on the validation-error CTA reads
-    // the migration flag, and useFeatureFlags subscribes through it
+    // onFeatureFlags: the guest store hand-off CTA reads the migration flag and
+    // the bank-hub link on this screen is flag-gated — both subscribe through it.
     default: {
         capture: jest.fn(),
         init: jest.fn(),
-        onFeatureFlags: jest.fn(() => jest.fn()),
         isFeatureEnabled: jest.fn(() => false),
+        onFeatureFlags: jest.fn(() => jest.fn()),
     },
 }))
 
@@ -108,6 +108,8 @@ jest.mock('@/utils/general.utils', () => ({
     formatAmount: jest.fn((v: any) => v ?? '0'),
     printableAddress: jest.fn((a: string) => `${a.slice(0, 6)}...${a.slice(-4)}`),
     jsonStringify: jest.fn((v: any) => JSON.stringify(v)),
+    // the bank-hub link names its origin through withReturnTo, which sanitizes
+    sanitizeRedirectURL: jest.requireActual('@/utils/cookie-url.utils').sanitizeRedirectURL,
 }))
 
 jest.mock('@/utils/balance.utils', () => ({
@@ -332,11 +334,13 @@ function renderPayRequest(params: Record<string, string> = {}) {
     const queryClient = createQueryClient()
 
     return render(
-        <IntlWrapper>
-            <QueryClientProvider client={queryClient}>
-                <PayRequestLink />
-            </QueryClientProvider>
-        </IntlWrapper>
+        <NuqsTestingAdapter searchParams={params}>
+            <IntlWrapper>
+                <QueryClientProvider client={queryClient}>
+                    <PayRequestLink />
+                </QueryClientProvider>
+            </IntlWrapper>
+        </NuqsTestingAdapter>
     )
 }
 
@@ -344,11 +348,13 @@ function renderDirectRequest() {
     const queryClient = createQueryClient()
 
     return render(
-        <IntlWrapper>
-            <QueryClientProvider client={queryClient}>
-                <DirectRequestInitialView username="test-user" />
-            </QueryClientProvider>
-        </IntlWrapper>
+        <NuqsTestingAdapter searchParams={{}}>
+            <IntlWrapper>
+                <QueryClientProvider client={queryClient}>
+                    <DirectRequestInitialView username="test-user" />
+                </QueryClientProvider>
+            </IntlWrapper>
+        </NuqsTestingAdapter>
     )
 }
 
@@ -496,6 +502,27 @@ describe('GROUP 1: Initial Form States', () => {
 
         fireEvent.click(screen.getByTestId('nav-back'))
         expect(mockRouterPush).toHaveBeenCalledWith('/home')
+    })
+
+    test.each(['/request', '/request?amount=20', '/request/', 'https://outside.example'])(
+        'request Back rejects a same-route or external return target (%s)',
+        (returnTo) => {
+            renderCreateRequest({ returnTo })
+
+            fireEvent.click(screen.getByTestId('nav-back'))
+
+            expect(mockRouterPush).toHaveBeenCalledWith('/home')
+            expect(mockRouterBack).not.toHaveBeenCalled()
+        }
+    )
+
+    test('request Back honors a safe explicit origin', () => {
+        renderCreateRequest({ returnTo: '/profile?section=payments' })
+
+        fireEvent.click(screen.getByTestId('nav-back'))
+
+        expect(mockRouterPush).toHaveBeenCalledWith('/profile?section=payments')
+        expect(mockRouterBack).not.toHaveBeenCalled()
     })
 
     test('QR code is blurred before an amount is entered', () => {

@@ -22,6 +22,7 @@ export function FixtureBanner() {
 
     return (
         <Notification
+            data-fixture-banner=""
             data-testid="fixture-banner"
             variant="floating"
             priority="attention"

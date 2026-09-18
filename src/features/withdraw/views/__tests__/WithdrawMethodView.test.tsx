@@ -7,9 +7,7 @@
  *      amount step);
  *  (b) a saved non-Manteca account sets selectedBankAccount and advances to
  *      the amount step WITHOUT navigating;
- *  (c) the crypto row sets selectedMethod and performs no router.push — a
- *      pre-amount push trips the crypto page's no-amount redirect guard,
- *      whose unmount cleanup resets the flow.
+ *  (c) crypto opens destination selection before amount entry.
  */
 import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
@@ -89,8 +87,44 @@ jest.mock('@/components/Common/SavedAccountsView', () => ({
         </div>
     ),
 }))
-jest.mock('@/components/Common/CountryList', () => ({ CountryList: () => null }))
-jest.mock('@/features/withdraw/components/AddressBook/SavedAddressEditDrawer', () => ({
+// the country list is driven through its onCountryClick — one row per country
+// the rail tests need
+jest.mock('@/components/Common/CountryList', () => ({
+    CountryList: ({ onCountryClick }: { onCountryClick: (c: unknown) => void }) => (
+        <div>
+            {[
+                { id: 'DE', path: 'germany', currency: 'EUR', title: 'Germany' },
+                { id: 'AR', path: 'argentina', currency: 'ARS', title: 'Argentina' },
+                { id: 'BR', path: 'brazil', currency: 'BRL', title: 'Brazil' },
+                { id: 'IN', path: 'india', currency: 'INR', title: 'India' },
+            ].map((country) => (
+                <button
+                    key={country.id}
+                    data-testid={`country-${country.path}`}
+                    onClick={() => onCountryClick(country)}
+                >
+                    {country.title}
+                </button>
+            ))}
+        </div>
+    ),
+}))
+
+// what each country leaves the user to choose: Germany one bank rail, Brazil
+// one Manteca rail, Argentina one, India none live
+jest.mock('@/features/destinations/country-rails', () => ({
+    soleLiveRailForCountry: (id: string) =>
+        ({
+            DE: { id: 'de-default-bank-withdraw', title: 'To Bank' },
+            AR: {
+                id: 'ar-default-bank-withdraw',
+                title: 'To Bank',
+                path: '/withdraw/manteca?method=bank-transfer&country=argentina',
+            },
+            BR: { id: 'br-pix-withdraw', title: 'Pix', path: '/withdraw/manteca?method=pix&country=brazil' },
+        })[id] ?? null,
+}))
+jest.mock('@/features/destinations/DestinationEditDrawer', () => ({
     __esModule: true,
     default: () => null,
 }))
@@ -140,13 +174,14 @@ jest.mock('@/hooks/useGeoFilteredPaymentOptions', () => ({
     useGeoFilteredPaymentOptions: () => ({ filteredMethods: [], isLoading: false }),
 }))
 jest.mock('@/hooks/useSendFlowOrigin', () => ({
-    useSendFlowOrigin: () => ({ isBankFromSend: false }),
+    useSendFlowOrigin: () => ({ isBankFromSend: mockIsBankFromSend }),
 }))
 jest.mock('@/utils/general.utils', () => ({
     getFromLocalStorage: () => null,
 }))
 jest.mock('@/utils/native-routes', () => ({
-    withdrawCountryUrl: (path: string) => `/withdraw/${path}`,
+    withdrawCountryUrl: (path: string, qs = '') => `/withdraw/${path}${qs}`,
+    rewriteMethodPath: jest.requireActual('@/utils/native-routes').rewriteMethodPath,
 }))
 
 const MANTECA_ACCOUNT = {
@@ -188,6 +223,7 @@ import { WithdrawMethodView } from '../WithdrawMethodView'
 
 // ---------- helpers ----------
 
+let mockIsBankFromSend = false
 const mockOnExit = jest.fn()
 const mockOnMethodChosen = jest.fn()
 
@@ -205,6 +241,7 @@ const renderView = (searchParams: Record<string, string> = {}) =>
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockIsBankFromSend = false
 })
 
 // ---------- tests ----------
@@ -245,7 +282,7 @@ describe('WithdrawMethodView — destination state and routing (Chip review roun
         expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
-    it('the crypto row sets the method in context and does NOT navigate', () => {
+    it('the crypto row sets the method in context and opens destination before amount', () => {
         // a pre-amount push trips the crypto page's no-amount redirect guard,
         // whose unmount cleanup resets the flow (the deleted
         // AddWithdrawRouterView test pinned this exact regression)
@@ -253,12 +290,12 @@ describe('WithdrawMethodView — destination state and routing (Chip review roun
         fireEvent.click(screen.getByTestId('crypto-row'))
 
         expect(mockSetSelectedMethod).toHaveBeenCalledWith(expect.objectContaining({ type: 'crypto' }))
-        expect(mockOnMethodChosen).toHaveBeenCalledTimes(1)
-        expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(mockOnMethodChosen).not.toHaveBeenCalled()
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto')
     })
 
     it('an address-book row preselects the saved chain + USDC and prefills a valid recipient', () => {
-        // row → amount → /withdraw/crypto: the saved network must survive into
+        // The saved network must survive into
         // the crypto screen, or an EVM address gets sent on the default chain
         // (Chip: preserve the saved destination network)
         renderView()
@@ -269,8 +306,8 @@ describe('WithdrawMethodView — destination state and routing (Chip review roun
         expect(mockSetRecipient).toHaveBeenCalledWith({ name: undefined, address: mockSavedBaseAddress.address })
         expect(mockSetIsValidRecipient).toHaveBeenCalledWith(true)
         expect(mockSetSelectedMethod).toHaveBeenCalledWith(expect.objectContaining({ type: 'crypto' }))
-        expect(mockOnMethodChosen).toHaveBeenCalledTimes(1)
-        expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(mockOnMethodChosen).not.toHaveBeenCalled()
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/crypto')
     })
 
     it('the plain crypto row clears any address-book prefill before selecting the method', () => {
@@ -296,4 +333,52 @@ describe('WithdrawMethodView — destination state and routing (Chip review roun
 
         expect(takeScannedDestination(scanId)).toBeNull()
     })
+})
+
+/**
+ * The country pick (TASK-22589). A country with one live rail has nothing to
+ * choose, so the one-row per-country list is skipped; a country with several
+ * still shows them, once.
+ */
+describe('WithdrawMethodView — picking a country', () => {
+    it('one live bank rail: straight to the bank form, named in the URL', () => {
+        renderView({ showAll: 'true' })
+        fireEvent.click(screen.getByTestId('country-germany'))
+
+        expect(mockSetSelectedMethod).toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'bridge', countryPath: 'germany', title: 'To Bank' })
+        )
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/germany?step=form')
+    })
+
+    it('one live Manteca rail: straight to that flow, with no amount to seed', () => {
+        renderView({ showAll: 'true' })
+        fireEvent.click(screen.getByTestId('country-brazil'))
+
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
+    })
+
+    it('several live rails: the per-country list still gets shown', () => {
+        renderView({ showAll: 'true' })
+        fireEvent.click(screen.getByTestId('country-argentina'))
+
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=bank-transfer&country=argentina')
+        expect(mockSetSelectedMethod).not.toHaveBeenCalled()
+    })
+
+    it('no live rail: the per-country list shows the coming-soon state', () => {
+        renderView({ showAll: 'true' })
+        fireEvent.click(screen.getByTestId('country-india'))
+
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/india')
+    })
+})
+
+it('preserves the bank rail and Send origin through the real URL helper', () => {
+    mockIsBankFromSend = true
+    renderView({ showAll: 'true', method: 'bank' })
+    fireEvent.click(screen.getByTestId('country-argentina'))
+    expect(mockRouterPush).toHaveBeenCalledWith(
+        '/withdraw/manteca?method=bank-transfer&country=argentina&sendMethod=bank'
+    )
 })

@@ -87,7 +87,10 @@ export const AppShell = ({
                 // the shell already starts below --safe-top, so pt-4 means 16px
                 // below the safe-area boundary. Keep the XL/24 bottom rhythm.
                 className={twMerge(
-                    'relative w-full flex-1 overflow-y-auto bg-background-page pt-4 pb-6',
+                    // Reserve the scrollbar gutter so a fold/expander that grows
+                    // the page and shows a scrollbar does not narrow this box and
+                    // shift the centered mx-auto content sideways.
+                    'relative w-full flex-1 [scrollbar-gutter:stable] overflow-y-auto bg-background-page pt-4 pb-6',
                     contentClassName
                 )}
             >

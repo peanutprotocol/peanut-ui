@@ -16,6 +16,7 @@ import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
 import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
+import { shouldShowAmountError } from '@/features/limits/amount-error-gating'
 import { getLimitsWarningCardProps } from '@/features/limits/utils'
 import { getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 import {
@@ -138,15 +139,31 @@ export function BridgeBankOnrampView() {
     }
 
     if (urlState.step === 'inputAmount') {
-        const showLimitsCard = limitsValidation.isBlocking || limitsValidation.isWarning
+        // the card is the only thing that can replace the amount message, so the
+        // message rule reads the same props the card is rendered from
+        const limitsCardProps = getLimitsWarningCardProps({
+            validation: limitsValidation,
+            flowType: 'onramp',
+            currency: 'USD',
+        })
 
         return (
             <div className="space-y-8 flex flex-col justify-start">
                 <NavHeader title={t('title')} onPrev={onBack} />
                 <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                     <div className="text-label-l">{t('howMuchToAdd')}</div>
-                    {/* only show the field error if limits blocking card is not displayed (warnings can coexist) */}
-                    <FieldColumn error={!limitsValidation.isBlocking ? validationError : undefined}>
+                    {/* the field error yields to the limits card only when that card renders */}
+                    <FieldColumn
+                        error={
+                            shouldShowAmountError({
+                                showError: !!validationError,
+                                showsLimitsCard: !!limitsCardProps,
+                                limitsBlocking: limitsValidation.isBlocking,
+                            })
+                                ? validationError
+                                : undefined
+                        }
+                    >
                         <AmountInput
                             initialAmount={rawTokenAmount}
                             setPrimaryAmount={handleTokenAmountChange}
@@ -167,15 +184,7 @@ export function BridgeBankOnrampView() {
                     </FieldColumn>
 
                     {/* limits warning/error card */}
-                    {showLimitsCard &&
-                        (() => {
-                            const limitsCardProps = getLimitsWarningCardProps({
-                                validation: limitsValidation,
-                                flowType: 'onramp',
-                                currency: 'USD',
-                            })
-                            return limitsCardProps ? <LimitsWarningCard {...limitsCardProps} /> : null
-                        })()}
+                    {limitsCardProps && <LimitsWarningCard {...limitsCardProps} />}
 
                     {!limitsValidation.isBlocking && (
                         <Notification priority="attention">{t('amountMustMatchBank')}</Notification>
@@ -207,10 +216,11 @@ export function BridgeBankOnrampView() {
                     >
                         {tCommon('continue')}
                     </Button>
-                    {/* only show error if limits blocking card is not displayed (warnings can coexist) */}
-                    {error.showError && !!error.errorMessage && !limitsValidation.isBlocking && (
-                        <Notification priority="error">{error.errorMessage}</Notification>
-                    )}
+                    {shouldShowAmountError({
+                        showError: error.showError && !!error.errorMessage,
+                        showsLimitsCard: !!limitsCardProps,
+                        limitsBlocking: limitsValidation.isBlocking,
+                    }) && <Notification priority="error">{error.errorMessage}</Notification>}
                     {localCurrency !== 'USD' && isRateError && <RateUnavailable onRetry={refetchRate} />}
                 </div>
 

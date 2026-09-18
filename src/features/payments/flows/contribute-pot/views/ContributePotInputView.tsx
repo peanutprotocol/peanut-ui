@@ -128,6 +128,8 @@ export function ContributePotInputView() {
                     usdAmount={amount}
                     recipientUserId={recipient?.userId}
                     recipientUsername={recipient?.username}
+                    requestId={request?.uuid}
+                    bankPayable={!!request?.bankInstructionsShared}
                     onPayWithPeanut={handlePayWithPeanut}
                     isPaymentLoading={isLoading && !isExternalWalletLoading}
                     isExternalWalletLoading={isExternalWalletLoading}

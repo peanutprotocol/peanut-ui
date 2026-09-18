@@ -567,6 +567,51 @@ describe('mapTransactionDataForDrawer', () => {
         })
     })
 
+    /**
+     * A deposit on a standing account whose refund is on its way back to the
+     * payer. The intent stays non-terminal, so its status alone reads as an
+     * ordinary deposit still in progress — `extraData.refundInFlight` is the
+     * only thing that says the money is going the other way.
+     */
+    describe('a deposit being returned to the payer', () => {
+        const returning = baseEntry({
+            userRole: EHistoryUserRole.RECIPIENT,
+            recipientAccount: aliceUser,
+            status: EHistoryStatus.PAYMENT_SUBMITTED,
+            extraData: { kind: 'ONRAMP', provider: 'BRIDGE', refundInFlight: true },
+        })
+
+        it('names the return instead of the deposit, and stays in progress', () => {
+            const result = mapTransactionDataForDrawer(returning).transactionDetails
+            expect(result.actionLabelKey).toBe('type.beingReturned')
+            expect(result.status).toBe('processing')
+        })
+
+        it('leaves an ordinary deposit alone', () => {
+            const ordinary = baseEntry({
+                userRole: EHistoryUserRole.RECIPIENT,
+                recipientAccount: aliceUser,
+                status: EHistoryStatus.PAYMENT_SUBMITTED,
+                extraData: { kind: 'ONRAMP', provider: 'BRIDGE' },
+            })
+            expect(mapTransactionDataForDrawer(ordinary).transactionDetails.actionLabelKey).toBeUndefined()
+        })
+
+        // Bridge rails map both terminal return statuses to 'failed', which
+        // reads as a deposit that never worked. It worked and then went back.
+        it.each([EHistoryStatus.REFUNDED, EHistoryStatus.RETURNED])('names the finished return on %s', (status) => {
+            const returned = baseEntry({
+                userRole: EHistoryUserRole.RECIPIENT,
+                recipientAccount: aliceUser,
+                status,
+                extraData: { kind: 'ONRAMP', provider: 'BRIDGE' },
+            })
+            const result = mapTransactionDataForDrawer(returned).transactionDetails
+            expect(result.actionLabelKey).toBe('type.returnedToSender')
+            expect(result.status).toBe('refunded')
+        })
+    })
+
     describe('refund credit rows (status + sign + flag)', () => {
         const negativeAuth = baseEntry({
             userRole: EHistoryUserRole.SENDER,

@@ -1,6 +1,6 @@
 'use client'
 import { type CardPosition } from '@/components/Global/Card/card.utils'
-import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import Image from 'next/image'
 import { twMerge } from '@/utils/tw'
 import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '../consts'
@@ -67,18 +67,9 @@ export const DepositMethodList = ({ methods, onItemClick, isAllMethodsView = fal
                         body={<div className="text-body-xs">{method.description || method.currency}</div>}
                         leading={
                             method.type === 'crypto' ? (
-                                <AvatarWithBadge
-                                    icon="wallet-outline"
-                                    size="extra-small"
-                                    className="bg-background-icon-bubble-blue"
-                                />
+                                <IconBubble icon="coins" color="blue" size="s" />
                             ) : method.id === 'bank-transfer-add' ? (
-                                <AvatarWithBadge
-                                    icon="bank"
-                                    size="extra-small"
-                                    className="bg-background-icon-bubble-blue"
-                                    inlineStyle={{ color: 'black' }}
-                                />
+                                <IconBubble icon="bank" color="blue" size="s" />
                             ) : method.type === 'country' ? (
                                 <Image
                                     src={getFlagUrl(countryCodeForFlag)}
@@ -89,11 +80,7 @@ export const DepositMethodList = ({ methods, onItemClick, isAllMethodsView = fal
                                     loading="lazy"
                                 />
                             ) : (
-                                <AvatarWithBadge
-                                    name={method.title}
-                                    size="extra-small"
-                                    className="bg-background-icon-bubble-blue"
-                                />
+                                <IconBubble icon="bank" color="blue" size="s" />
                             )
                         }
                         onClick={() => onItemClick(method)}

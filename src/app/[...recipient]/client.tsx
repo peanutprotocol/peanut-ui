@@ -2,6 +2,7 @@
 
 import { useSearchParams, useRouter } from 'next/navigation'
 import { ContributePotPageWrapper } from '@/features/payments/flows/contribute-pot/ContributePotPageWrapper'
+import { AnonymousBankRequestView } from '@/features/payments/anonymous-bank/AnonymousBankRequestView'
 import { SemanticRequestPageWrapper } from '@/features/payments/flows/semantic-request/SemanticRequestPageWrapper'
 import { isAddress } from 'viem'
 import PublicProfile from '@/components/Profile/components/PublicProfile'
@@ -19,12 +20,20 @@ interface Props {
 export default function PaymentPage({ recipient }: Props) {
     const searchParams = useSearchParams()
     const router = useRouter()
-    const { user } = useAuth()
+    const { user, isFetchingUser } = useAuth()
     const requestId = searchParams.get('id')
     const chargeIdFromUrl = searchParams.get('chargeId')
 
     // request pot flow: ?id=<requestId>
     if (requestId) {
+        // A signed-out visitor to a bank-payable request is most often a
+        // business paying from its bank, not a wallet — so lead with the
+        // bank details. The view falls back to the normal flow for a request
+        // that did not opt in, or a payer who wants another way to pay. Wait
+        // for auth to settle first so a logged-in payer never flashes it.
+        if (!isFetchingUser && !user) {
+            return <AnonymousBankRequestView requestId={requestId} />
+        }
         return <ContributePotPageWrapper requestId={requestId} />
     }
 

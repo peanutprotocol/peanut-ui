@@ -31,6 +31,7 @@ import { MIN_BANK_TRANSFER_AMOUNT, validateMinimumAmount } from '@/constants/pay
 import { EInviteType } from '@/services/services.types'
 import { saveRedirectUrl, saveToLocalStorage, toInviteCode, inviteFlowUrl } from '@/utils/general.utils'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
+import { PayByBankTransferDrawer } from './PayByBankTransferDrawer'
 import { useTranslations } from 'next-intl'
 import { stashInvite } from '@/utils/invite-stash'
 
@@ -39,6 +40,10 @@ interface RequestPotActionListProps {
     usdAmount: string
     recipientUserId?: string
     recipientUsername?: string
+    /** the request being paid — needed to read its bank details */
+    requestId?: string
+    /** the requester lets this request be settled by bank transfer */
+    bankPayable?: boolean
     onPayWithPeanut: () => void
     isPaymentLoading?: boolean
     isExternalWalletLoading?: boolean
@@ -50,6 +55,8 @@ export function RequestPotActionList({
     usdAmount,
     recipientUserId,
     recipientUsername,
+    requestId,
+    bankPayable = false,
     onPayWithPeanut,
     isPaymentLoading = false,
     isExternalWalletLoading = false,
@@ -199,6 +206,17 @@ export function RequestPotActionList({
                         />
                     )
                 })}
+
+                {/*
+                    Straight into the requester's own bank account. It sits
+                    with the other methods rather than above them: it asks the
+                    payer to leave the app and type a reference, so it is the
+                    fallback for a payer whose bank is the only thing they
+                    have, not the first thing offered.
+                */}
+                {requestId && (
+                    <PayByBankTransferDrawer requestId={requestId} bankPayable={bankPayable} usdAmount={usdAmount} />
+                )}
             </div>
 
             {/* minimum amount error modal */}

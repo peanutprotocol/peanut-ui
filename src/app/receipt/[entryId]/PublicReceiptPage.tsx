@@ -1,5 +1,6 @@
 'use client'
 
+import type React from 'react'
 import NavHeader from '@/components/Global/NavHeader'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import { ReceiptUnavailable } from '@/components/TransactionDetails/ReceiptUnavailable'
@@ -10,9 +11,12 @@ import { useAuth } from '@/context/authContext'
 export function PublicReceiptPage({
     state,
     transaction,
+    children,
 }: {
     state?: 'gone' | 'loadFailed'
     transaction?: TransactionDetails
+    /** Owner view: the client refetches the entry so the shared PDF cache never sees a cookie. */
+    children?: React.ReactNode
 }) {
     const { user, isFetchingUser } = useAuth()
     const isAuthenticated = Boolean(user?.user.userId)
@@ -30,6 +34,8 @@ export function PublicReceiptPage({
                     <div className="m-auto">
                         <ReceiptUnavailable variant={state} />
                     </div>
+                ) : children ? (
+                    <div className="my-auto w-full">{children}</div>
                 ) : transaction ? (
                     <div className="my-auto w-full">
                         <TransactionDetailsReceipt

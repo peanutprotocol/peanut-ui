@@ -40,6 +40,15 @@ import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
 import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { shouldShowSunsetBlock } from '@/utils/migration.utils'
 
+/**
+ * How long the protected auth gate may show the mascot before it gives up.
+ *
+ * Same ceiling, and for the same reason, as the `initialization_timeout` on
+ * /setup (app/(setup)/setup/page.tsx): a screen that can wait forever will,
+ * and the person is left with no way out of it.
+ */
+const AUTH_GATE_TIMEOUT_MS = 15000
+
 const Layout = ({ children }: { children: React.ReactNode }) => {
     useNativePlugins()
     const pathName = usePathname()
@@ -140,6 +149,36 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     // redirect logged-in users without peanut wallet account to complete setup
     const { needsRedirect, isCheckingAccount } = useAccountSetupRedirect()
 
+    /*
+     * A floor under the protected gate.
+     *
+     * On native, `authReady()` can park before the user query ever fires (see
+     * utils/auth-token.ts), so `isFetchingUser` stays true, the /setup bounce
+     * above never arms, and the mascot runs forever. After 15s hand the person
+     * the backend error screen instead — it already offers a reload and a
+     * logout that skips the backend call, which is exactly what a parked
+     * token needs.
+     *
+     * A settled `user === null` is deliberately NOT watched: that is a logged-
+     * out visitor, and the bounce above already carries its own 3s hard-nav
+     * fallback. This watches only the states that claim to still be working.
+     */
+    const isAuthGateWorking = !isPublicPath && (!isReady || isFetchingUser || isCheckingAccount || needsRedirect)
+    const [authGateExpired, setAuthGateExpired] = useState(false)
+    useEffect(() => {
+        if (!isAuthGateWorking) {
+            setAuthGateExpired(false)
+            return undefined
+        }
+        // Harness-only: a reproduce session wipes client state and reloads on
+        // its own schedule, so an error screen mid-flight is noise.
+        if (HARNESS_ENABLED && typeof window !== 'undefined') {
+            if (new URL(window.location.href).searchParams.get('__reproduce')) return undefined
+        }
+        const timeout = setTimeout(() => setAuthGateExpired(true), AUTH_GATE_TIMEOUT_MS)
+        return () => clearTimeout(timeout)
+    }, [isAuthGateWorking])
+
     // show full-page offline screen when user is offline
     // only show after initialization to prevent flash on initial load
     // when connection is restored, page auto-reloads (no "back online" screen)
@@ -167,6 +206,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     } else {
         // for protected paths, wait for auth to settle before rendering
         if (!isReady || isFetchingUser || !user || isCheckingAccount || needsRedirect) {
+            if (authGateExpired) return <BackendErrorScreen />
             return (
                 <div className="flex h-dvh w-full flex-col items-center justify-center">
                     <Loading variant="mascot" />

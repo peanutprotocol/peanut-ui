@@ -28,7 +28,14 @@ const ExchangeRate = ({
         enabled: !!nonEuroCurrency,
     })
 
-    const toCurrency = accountType === AccountType.IBAN ? 'EUR' : accountType === AccountType.CLABE ? 'MXN' : 'USD'
+    const toCurrency =
+        accountType === AccountType.IBAN
+            ? 'EUR'
+            : accountType === AccountType.CLABE
+              ? 'MXN'
+              : accountType === AccountType.CO_BANK_TRANSFER
+                ? 'COP'
+                : 'USD'
 
     if (accountType === AccountType.US) {
         return <PaymentInfoRow loading={isFetchingRate} label={tCommon('exchangeRate')} value={`1 USD`} />

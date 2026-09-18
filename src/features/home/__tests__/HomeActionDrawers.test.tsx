@@ -22,6 +22,19 @@ jest.mock('@/hooks/useAppHaptic', () => ({
     useAppHaptic: () => ({ triggerHaptic: jest.fn() }),
 }))
 
+const mockCapture = jest.fn()
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: { capture: (...args: unknown[]) => mockCapture(...args) },
+}))
+
+// Get-paid is dark until Bridge grants the Virtual Accounts SKU, so the bank
+// row has two truths and both have to hold.
+let depositAccountsEnabled = true
+jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
+    useDepositAccountsEnabled: () => depositAccountsEnabled,
+}))
+
 beforeAll(() => {
     window.matchMedia =
         window.matchMedia ||
@@ -41,6 +54,7 @@ beforeAll(() => {
 beforeEach(() => {
     jest.clearAllMocks()
     resetBottomNavVisibilityForTests()
+    depositAccountsEnabled = true
 })
 
 const renderWithUrl = (search: string, onUrlUpdate?: (e: UrlUpdateEvent) => void) =>
@@ -74,6 +88,8 @@ describe('HomeActionDrawers', () => {
     it('opens the add drawer with bank and crypto options only', async () => {
         renderWithUrl('?drawer=add')
 
+        // Both bank rows lead to the country selector — the single entry to
+        // every bank route, standing account and one-off top-up alike.
         fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank'))
 
@@ -105,7 +121,32 @@ describe('HomeActionDrawers', () => {
         expect(last.searchParams.get('returnTo')).toBeNull()
     })
 
-    it('carries returnTo onto the bank destination through the & separator branch', async () => {
+    it('sends the bank row to the country list while get-paid is off', async () => {
+        depositAccountsEnabled = false
+        renderWithUrl('?drawer=add')
+
+        fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank'))
+    })
+
+    /*
+     * Both bank rows land on the country list, so the country click is the one
+     * place the bank arm of deposit_method_selected is reported. A capture
+     * here too counted the same user twice as soon as the flag went on.
+     */
+    it.each([true, false])('leaves the bank funnel event to the country click (get-paid on: %s)', async (enabled) => {
+        depositAccountsEnabled = enabled
+        renderWithUrl('?drawer=add')
+
+        fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank'))
+        expect(mockCapture).not.toHaveBeenCalled()
+    })
+
+    it('carries a query-bearing returnTo onto the bank destination', async () => {
+        // The origin holds its own query string, so the value has to survive
+        // encoding whole — an unencoded `&to=EUR` would arrive as a separate
+        // param and the back button would land on half a URL.
         const origin = '/profile/exchange-rate?from=USD&to=EUR'
         renderWithUrl(`?drawer=add&returnTo=${encodeURIComponent(origin)}`)
 

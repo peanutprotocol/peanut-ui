@@ -99,6 +99,12 @@ const groups: { title: string; tools: DevTool[] }[] = [
         title: 'Builders & ops',
         tools: [
             {
+                name: 'Deposit accounts',
+                description: 'Claim and share bank details with Bridge sandbox accounts',
+                path: '/dev/deposit-accounts',
+                icon: 'bank',
+            },
+            {
                 name: 'Share asset builder',
                 description: 'Iterate the card share asset: badge set, hero variant, seed reroll, PNG capture',
                 path: '/dev/share-builder',

@@ -260,6 +260,26 @@ describe('TransactionDetailsHeaderCard — counterparty avatar', () => {
     })
 })
 
+// The receipt head shows the merchant's own brand logo for a card spend,
+// mirroring the feed row. A broken logo URL falls back to the generic badge.
+describe('TransactionDetailsHeaderCard — merchant logo', () => {
+    it('shows the merchant logo when there is no avatar', () => {
+        const { container } = renderHeaderCard({ merchantLogo: 'https://logos.example/bolt.png' })
+
+        expect(container.querySelector('img')).toHaveAttribute('src', 'https://logos.example/bolt.png')
+        expect(screen.queryByTestId('transaction-avatar')).not.toBeInTheDocument()
+    })
+
+    it('falls back to the generic badge when the logo URL fails to load', () => {
+        const { container } = renderHeaderCard({ merchantLogo: 'https://logos.example/broken.png' })
+
+        fireEvent.error(container.querySelector('img')!)
+
+        expect(container.querySelector('img')).toBeNull()
+        expect(screen.getByTestId('transaction-avatar')).toBeInTheDocument()
+    })
+})
+
 // TASK-22452: a link row's bubble is derived from the link's state, so the
 // receipt header has to hand the badge the status it already renders in the
 // badge below. Without it every link row falls back to the fixed pink icon.

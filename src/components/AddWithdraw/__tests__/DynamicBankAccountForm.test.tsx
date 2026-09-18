@@ -136,3 +136,111 @@ describe('DynamicBankAccountForm — existing-account branch (Chip round 9)', ()
         )
     })
 })
+
+const CO_INITIAL_DATA = {
+    accountOwnerName: 'Ana Gomez',
+    accountNumber: '12345678910',
+    documentType: 'cc',
+    documentNumber: '1234567890',
+    bankCode: '1007',
+    accountCategory: 'savings',
+    phoneNumber: '+573001234567',
+}
+
+describe('DynamicBankAccountForm — the Colombian corridor', () => {
+    it('sends the document, bank code, account type and phone, and no address', async () => {
+        const onSuccess = jest.fn(async (_payload: unknown, _rawData: unknown) => ({}))
+        const ref = React.createRef<{ handleSubmit: () => void }>()
+        render(
+            <DynamicBankAccountForm
+                ref={ref}
+                country="CO"
+                flow="withdraw"
+                initialData={CO_INITIAL_DATA}
+                error={null}
+                onSuccess={onSuccess}
+            />
+        )
+
+        await act(async () => {
+            ref.current!.handleSubmit()
+        })
+
+        expect(onSuccess).toHaveBeenCalledTimes(1)
+        const payload = onSuccess.mock.calls[0][0] as unknown as Record<string, unknown>
+        expect(payload).toMatchObject({
+            accountType: 'co_bank_transfer',
+            accountNumber: '12345678910',
+            countryCode: 'CO',
+            documentType: 'cc',
+            documentNumber: '1234567890',
+            bankCode: '1007',
+            accountCategory: 'savings',
+            phoneNumber: '+573001234567',
+        })
+        expect(payload.address).toBeUndefined()
+    })
+
+    it('refuses a phone number from another country', async () => {
+        const onSuccess = jest.fn(async () => ({}))
+        const ref = React.createRef<{ handleSubmit: () => void }>()
+        render(
+            <DynamicBankAccountForm
+                ref={ref}
+                country="CO"
+                flow="withdraw"
+                initialData={{ ...CO_INITIAL_DATA, phoneNumber: '+5215512345678' }}
+                error={null}
+                onSuccess={onSuccess}
+            />
+        )
+
+        await act(async () => {
+            ref.current!.handleSubmit()
+        })
+
+        expect(onSuccess).not.toHaveBeenCalled()
+    })
+})
+
+const GB_INITIAL_DATA = {
+    accountOwnerName: 'Jane Smith',
+    accountNumber: '12345678', // 8 digits
+    sortCode: '123456',
+    street: '10 Downing St',
+    city: 'London',
+    postalCode: 'SW1A 2AA',
+}
+
+describe('DynamicBankAccountForm — the UK corridor sends a beneficiary address', () => {
+    it('includes the address (no state) in the payload so the provider body is complete', async () => {
+        const onSuccess = jest.fn(async (_payload: unknown, _rawData: unknown) => ({}))
+        const ref = React.createRef<{ handleSubmit: () => void }>()
+        render(
+            <DynamicBankAccountForm
+                ref={ref}
+                country="GBR"
+                flow="withdraw"
+                initialData={GB_INITIAL_DATA}
+                error={null}
+                onSuccess={onSuccess}
+            />
+        )
+
+        await act(async () => {
+            ref.current!.handleSubmit()
+        })
+
+        expect(onSuccess).toHaveBeenCalledTimes(1)
+        const payload = onSuccess.mock.calls[0][0] as unknown as Record<string, unknown>
+        expect(payload).toMatchObject({
+            accountType: 'gb',
+            address: {
+                street: '10 Downing St',
+                city: 'London',
+                postalCode: 'SW1A 2AA',
+                country: 'GBR',
+            },
+        })
+    })
+})

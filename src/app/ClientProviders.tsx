@@ -29,8 +29,19 @@ import { Suspense } from 'react'
 import { PathnamePageviewTracker } from '@/components/Analytics/PathnamePageviewTracker'
 import { ScreenTransitionTracker } from '@/components/Analytics/ScreenTransitionTracker'
 
-// Harness bootstrap ships only in harness builds. In prod bundles the dynamic
-// import is in dead code behind `if (false)` and webpack drops the chunk.
+/*
+ * Harness bootstrap ships only in harness builds. In prod bundles the dynamic
+ * import is in dead code behind `if (false)` and webpack drops the chunk.
+ *
+ * It is rendered at the TOP of the tree below, above every lazily-loaded
+ * provider and outside the unsupported-WebView branch, because it is the
+ * recovery path: a reproduce link is opened precisely when the browser holds a
+ * stale session and a stale build, and anything mounted under the app's
+ * provider chunks can only run once those chunks have. Mounted deeper, a
+ * boundary that never resolved left the reproduce effect unmounted, the
+ * manifest unfetched and — because the (mobile-ui) layout suppresses its
+ * /setup bounce while `?__reproduce` is present — the mascot on screen forever.
+ */
 const HarnessBootstrap = HARNESS_ENABLED
     ? dynamic(() => import('@/context/HarnessBootstrap').then((m) => m.HarnessBootstrap), {
           ssr: false,
@@ -72,11 +83,21 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     const marketing = isMarketingRoute(usePathname())
     const IntlProvider = marketing ? MarketingIntlProvider : AppIntlProvider
 
+    // One mount, used by both branches below. Nothing in it reads a provider:
+    // ReproduceBootstrap works off window.location and HarnessReplay off the
+    // DOM, so it can sit above the whole tree.
+    const harness = HarnessBootstrap && (
+        <Suspense fallback={null}>
+            <HarnessBootstrap />
+        </Suspense>
+    )
+
     if (UNSUPPORTED_WEBVIEW) {
         // notifyAppReady still has to run here, or the plugin's app-ready
         // timeout rolls the active OTA bundle back on this screen.
         return (
             <OtaUpdateProvider>
+                {harness}
                 <AppIntlProvider>
                     <UnsupportedWebViewScreen />
                 </AppIntlProvider>
@@ -92,6 +113,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
            only through the dynamically-imported AppStateProviders chunk, and a
            chunk that loads slowly or fails would take readiness down with it. */
         <OtaUpdateProvider>
+            {harness}
             <PathnamePageviewTracker />
             <NuqsAdapter>
                 <Suspense fallback={null}>
@@ -107,11 +129,6 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
                                 <TranslationSafeWrapper>
                                     <ConsoleGreeting />
                                     <ScreenOrientationLocker />
-                                    {HarnessBootstrap && (
-                                        <Suspense fallback={null}>
-                                            <HarnessBootstrap />
-                                        </Suspense>
-                                    )}
                                     {marketing ? children : <AppGlobals>{children}</AppGlobals>}
                                 </TranslationSafeWrapper>
                             </FooterVisibilityProvider>

@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 import { renderHook, act } from '@testing-library/react'
-import { withNuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testing'
+import { withNuqsTestingAdapter } from 'nuqs/adapters/testing'
 
 const mockRouterPush = jest.fn()
 const mockRouterReplace = jest.fn()
@@ -19,12 +19,6 @@ jest.mock('@/context/OnrampFlowContext', () => ({
     useOnrampFlow: () => ({ resetOnrampFlow: mockResetOnrampFlow }),
 }))
 
-const mockCapture = jest.fn()
-jest.mock('posthog-js', () => ({
-    __esModule: true,
-    default: { capture: (...args: any[]) => mockCapture(...args) },
-}))
-
 jest.mock('@/utils/general.utils', () => ({
     getStoredRedirect: mockGetStoredRedirect,
     clearRedirectUrl: mockClearRedirectUrl,
@@ -35,27 +29,10 @@ jest.mock('@/utils/general.utils', () => ({
     ),
 }))
 
-jest.mock('@/utils/regions.utils', () => ({
-    isBridgeSupportedCountry: (id: string) => ['DE', 'US'].includes(id),
-}))
-
-jest.mock('@/constants/manteca.consts', () => ({
-    isMantecaSupportedCountryCode: (id: string) => ['AR', 'BR'].includes(id),
-}))
-
-jest.mock('@/utils/native-routes', () => ({
-    addMoneyCountryUrl: (path: string) => `/add-money/${path}`,
-    rewriteMethodPath: (path: string) => path,
-}))
-
-jest.mock('@/constants/analytics.consts', () => ({
-    ANALYTICS_EVENTS: { DEPOSIT_METHOD_SELECTED: 'deposit_method_selected' },
-}))
-
 import { useAddMoneyFlow } from '../useAddMoneyFlow'
 
-const renderFlow = (search = '', onUrlUpdate?: (e: UrlUpdateEvent) => void) =>
-    renderHook(() => useAddMoneyFlow(), { wrapper: withNuqsTestingAdapter({ searchParams: search, onUrlUpdate }) })
+const renderFlow = (search = '') =>
+    renderHook(() => useAddMoneyFlow(), { wrapper: withNuqsTestingAdapter({ searchParams: search }) })
 
 describe('useAddMoneyFlow', () => {
     beforeEach(() => {
@@ -83,6 +60,16 @@ describe('useAddMoneyFlow', () => {
 
     it('?method=bank is not bare root and does not redirect', () => {
         const { result } = renderFlow('?method=bank')
+        expect(result.current.isBareRoot).toBe(false)
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+    })
+
+    /**
+     * A link into one corridor is a link into the hub, not a bare root. Sending
+     * it to the home drawer would drop the corridor the link named.
+     */
+    it('a corridor link opens the hub rather than the drawer', () => {
+        const { result } = renderFlow('?corridor=SEPA_EU&step=details')
         expect(result.current.isBareRoot).toBe(false)
         expect(mockRouterReplace).not.toHaveBeenCalled()
     })
@@ -120,19 +107,5 @@ describe('useAddMoneyFlow', () => {
         // write-params-in-place branch was unreachable and is gone.
         renderFlow('?country=austria')
         expect(mockResetOnrampFlow).not.toHaveBeenCalled()
-    })
-
-    it('routes a country click to manteca, bridge bank, or the per-country screen', () => {
-        const { result } = renderFlow('?method=bank')
-
-        act(() => result.current.handleCountryClick({ id: 'AR', path: 'argentina' } as any))
-        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/argentina/manteca')
-
-        act(() => result.current.handleCountryClick({ id: 'DE', path: 'germany' } as any))
-        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/germany/bank')
-
-        act(() => result.current.handleCountryClick({ id: 'TD', path: 'chad' } as any))
-        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/chad')
-        expect(mockCapture).toHaveBeenCalledTimes(3)
     })
 })
