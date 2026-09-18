@@ -5,12 +5,17 @@ import Fuse from 'fuse.js'
 import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { SearchInput } from '@/components/SearchInput'
+import { Tabs } from '@/components/0_Bruddle/Tabs'
 import { ContentLinkRow } from './ContentLinkRow'
 import { HUB_WIDTH } from './constants'
 import type { ContentItem, ContentItemType } from '@/lib/content'
 import type { Locale } from '@/i18n/types'
 
 const TYPE_VALUES: ContentItemType[] = ['blog', 'stories', 'use-cases', 'compare']
+
+// the "no type filter" tab. Not a ContentItemType, and not '' — radix rejects an empty
+// tab value. It never reaches the URL: onValueChange maps it back to `type: null`.
+const ALL_VALUE = 'all'
 
 export interface ContentLandingStrings {
     searchPlaceholder: string
@@ -135,8 +140,6 @@ export default function ContentLanding({ items, strings }: Props) {
 
     const typeLabels = typeLabelsFor(strings)
 
-    const chipBase = 'rounded-sm border border-border-default px-3 py-1 text-body-s transition-colors'
-
     return (
         <>
             <div className={`mx-auto mt-10 mb-6 ${HUB_WIDTH} px-6 md:mt-12 md:px-4`}>
@@ -151,25 +154,21 @@ export default function ContentLanding({ items, strings }: Props) {
             </div>
 
             <div className={`mx-auto mb-4 ${HUB_WIDTH} px-6 md:px-4`}>
-                <div className="flex flex-wrap gap-2">
-                    <button
-                        type="button"
-                        onClick={() => setFilters({ type: null })}
-                        className={`${chipBase} ${activeType === null ? 'bg-action-primary/20' : 'hover:bg-background-disabled'}`}
-                    >
-                        {strings.filterAll}
-                    </button>
-                    {TYPE_VALUES.map((t) => (
-                        <button
-                            key={t}
-                            type="button"
-                            onClick={() => setFilters({ type: activeType === t ? null : t })}
-                            className={`${chipBase} ${activeType === t ? 'bg-action-primary/20' : 'hover:bg-background-disabled'}`}
-                        >
-                            {typeLabels[t]}
-                        </button>
-                    ))}
-                </div>
+                {/* nuqs owns the value: ?type=blog is a shareable filtered URL, so the
+                    tabs read and write the query state directly and hold none of their own.
+                    ALL_VALUE stands in for `type=null` because a radix tab value cannot be
+                    empty. */}
+                <Tabs
+                    aria-label={strings.filterAll}
+                    value={activeType ?? ALL_VALUE}
+                    onValueChange={(next) =>
+                        setFilters({ type: next === ALL_VALUE ? null : (next as ContentItemType) })
+                    }
+                    tabs={[
+                        { value: ALL_VALUE, label: strings.filterAll },
+                        ...TYPE_VALUES.map((t) => ({ value: t, label: typeLabels[t] })),
+                    ]}
+                />
             </div>
 
             {filtered.length === 0 ? (

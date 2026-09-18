@@ -1,6 +1,6 @@
 'use client'
 
-import SegmentedControl from '@/components/0_Bruddle/SegmentedControl'
+import { Tabs } from '@/components/0_Bruddle/Tabs'
 import type { JourneyViewMode } from './journeyTypes'
 
 const OPTIONS: { value: JourneyViewMode; label: string; hint: string }[] = [
@@ -17,10 +17,10 @@ export default function ViewModeToggle({
     onChange: (next: JourneyViewMode) => void
 }) {
     return (
-        <SegmentedControl
+        <Tabs
             value={value}
-            options={OPTIONS}
-            onChange={(next) => onChange(next as JourneyViewMode)}
+            tabs={OPTIONS}
+            onValueChange={(next) => onChange(next as JourneyViewMode)}
             aria-label="Journey view"
         />
     )

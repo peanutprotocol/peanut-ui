@@ -58,11 +58,55 @@ describe('Tabs', () => {
         expect(screen.getByTestId('rich-label')).toBeInTheDocument()
     })
 
+    test('no tab carries content: the trigger row renders alone, with no panel', () => {
+        render(
+            <Tabs
+                tabs={[
+                    { value: 'monthly', label: 'Monthly' },
+                    { value: 'yearly', label: 'Yearly' },
+                ]}
+                aria-label="period"
+            />
+        )
+        expect(screen.getAllByRole('tab')).toHaveLength(2)
+        expect(screen.queryByRole('tabpanel')).not.toBeInTheDocument()
+    })
+
+    test('a panel-less row still reports clicks through onValueChange', () => {
+        const onValueChange = jest.fn()
+        render(
+            <Tabs
+                tabs={[
+                    { value: 'monthly', label: 'Monthly' },
+                    { value: 'yearly', label: 'Yearly' },
+                ]}
+                aria-label="period"
+                value="monthly"
+                onValueChange={onValueChange}
+            />
+        )
+        clickTab(screen.getByRole('tab', { name: 'Yearly' }))
+        expect(onValueChange).toHaveBeenCalledWith('yearly')
+    })
+
     test('forceMount keeps inactive panels in the DOM, hidden', () => {
         render(<Tabs tabs={TABS} aria-label="demo" forceMount />)
         // both panels exist; only the active one is visible
         expect(screen.getByText('panel one')).toBeInTheDocument()
         expect(screen.getByText('panel two')).toBeInTheDocument()
         expect(screen.getByText('panel two').closest('[data-state="inactive"]')).not.toBeNull()
+    })
+
+    // the Weight look distinguishes the two states with two type tokens and the
+    // foreground tokens — nothing else. If a border/fill/rule ever comes back,
+    // or a raw font-weight utility replaces the token pair, this fails.
+    test('active and inactive states are type tokens only, and focus is ruled', () => {
+        render(<Tabs tabs={TABS} aria-label="demo" />)
+        const [active, inactive] = screen.getAllByRole('tab')
+        expect(active.className).toContain('data-[state=active]:text-body-m-semibold')
+        expect(active.className).toContain('data-[state=inactive]:text-body-m')
+        expect(active.className).not.toMatch(/\bfont-(semibold|bold|medium)\b/)
+        expect(active.className).not.toMatch(/\b(border|bg)-/)
+        expect(inactive.className).toContain('focus-visible:outline-action-focus')
     })
 })
