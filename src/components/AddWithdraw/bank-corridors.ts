@@ -116,7 +116,9 @@ const IBAN_SPEC: BankCorridorSpec = {
     accountInvalidKey: 'ibanInvalid',
     // The IBAN itself is checked against the provider — see the form.
     accountTest: () => true,
-    needsAddress: false,
+    // Bridge requires a beneficiary address on the SEPA payout body. SEPA has no
+    // state concept, so the form collects street/city/postal and skips state.
+    needsAddress: true,
     fields: [],
 }
 
@@ -159,7 +161,9 @@ const SPECS: Record<string, BankCorridorSpec> = {
         accountRequiredKey: 'accountNumberRequired',
         accountInvalidKey: 'accountNumberUk',
         accountTest: isValidUKAccountNumber,
-        needsAddress: false,
+        // Bridge requires a beneficiary address on the UK payout body. The UK
+        // has no state concept, so the form collects street/city/postal only.
+        needsAddress: true,
         fields: [
             {
                 name: 'sortCode',

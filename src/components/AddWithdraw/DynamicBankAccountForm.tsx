@@ -638,17 +638,23 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
                                 {renderInput('city', t('cityLabel'), { required: t('cityRequired') })}
 
-                                {renderSelect(
-                                    'state',
-                                    t('stateLabel'),
-                                    t('state'),
-                                    (corridor.states ?? []).map((state) => ({
-                                        label: state.name,
-                                        value: state.code,
-                                    })),
-                                    {
-                                        required: t('stateRequired'),
-                                    }
+                                {/* Only US/MX carry a state; SEPA/UK addresses have none, so
+                                    a required empty dropdown would wall the form. */}
+                                {corridor.states && corridor.states.length > 0 && (
+                                    <div>
+                                        {renderSelect(
+                                            'state',
+                                            t('stateLabel'),
+                                            t('state'),
+                                            corridor.states.map((state) => ({
+                                                label: state.name,
+                                                value: state.code,
+                                            })),
+                                            {
+                                                required: t('stateRequired'),
+                                            }
+                                        )}
+                                    </div>
                                 )}
 
                                 {renderInput('postalCode', t('postalCodeLabel'), {

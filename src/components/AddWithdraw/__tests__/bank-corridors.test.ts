@@ -79,10 +79,12 @@ describe('the corridors the table absorbed', () => {
         expect(mx?.accountTest('123')).toBe(false)
     })
 
-    it('keeps the UK on a sort code and no address', () => {
+    it('keeps the UK on a sort code and now carries a beneficiary address', () => {
         const gb = bankCorridorFor('GBR')
         expect(gb?.accountType).toBe(BridgeAccountType.GB)
-        expect(gb?.needsAddress).toBe(false)
+        // Bridge requires the beneficiary address on the UK body; the UK has no state.
+        expect(gb?.needsAddress).toBe(true)
+        expect(gb?.states).toBeUndefined()
         expect(gb?.fields.map((field) => field.name)).toEqual(['sortCode'])
         expect(gb?.fields[0].test?.('12-34-56')).toBe(true)
     })
@@ -97,6 +99,13 @@ describe('the corridors the table absorbed', () => {
     it('sends a SEPA country to the IBAN corridor and an unknown one nowhere', () => {
         expect(bankCorridorFor('DEU')?.accountType).toBe(BridgeAccountType.IBAN)
         expect(bankCorridorFor('ZZ')).toBeNull()
+    })
+
+    it('carries a beneficiary address on the SEPA corridor, with no state', () => {
+        const sepa = bankCorridorFor('DEU')
+        // Bridge requires the beneficiary address on the SEPA body; SEPA has no state.
+        expect(sepa?.needsAddress).toBe(true)
+        expect(sepa?.states).toBeUndefined()
     })
 })
 
