@@ -9,12 +9,13 @@ export const HARNESS_ENABLED = process.env.NEXT_PUBLIC_HARNESS_SKIP_PASSKEY_CHEC
  *
  * The QA browser has no platform authenticator, so every capability probe says
  * "no passkeys here" and /setup walls the run behind the unsupported-browser
- * modal before a scenario reaches its first screen. The same two signals the
- * kernel client already trusts answer it: the build-time harness flag, and the
- * localStorage key the harness sets per session. Production has neither, so
- * this is `false` there and nothing about the real check changes.
+ * modal before a scenario reaches its first screen. Two signals must BOTH hold
+ * to skip it: the build-time harness flag, AND the localStorage key the harness
+ * sets per session. The flag is compiled to `false` in prod builds, so a user
+ * who sets the localStorage key on peanut.me still cannot bypass the passkey
+ * wall — the flag gates the key, not the other way around.
  */
 export function harnessPasskeyBypass(): boolean {
     if (typeof window === 'undefined') return false
-    return HARNESS_ENABLED || window.localStorage?.getItem('__harness_skip_passkey') === 'true'
+    return HARNESS_ENABLED && window.localStorage?.getItem('__harness_skip_passkey') === 'true'
 }
