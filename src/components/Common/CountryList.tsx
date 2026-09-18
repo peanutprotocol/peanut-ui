@@ -55,6 +55,12 @@ interface CountryListViewProps {
      * keeps the square top edge that joins the two into one card.
      */
     continuesGroup?: boolean
+    /**
+     * Restrict the list to one currency (ISO-4217 code). The withdraw
+     * currency-first selector uses this to disambiguate a shared currency —
+     * tapping EUR shows only the SEPA countries, country as the secondary step.
+     */
+    currencyFilter?: string
 }
 
 /**
@@ -83,6 +89,7 @@ export const CountryList = ({
     isCountrySupported,
     searchTerm: controlledSearchTerm,
     continuesGroup = false,
+    currencyFilter,
 }: CountryListViewProps) => {
     const t = useTranslations('global')
     const locale = useLocale()
@@ -104,7 +111,11 @@ export const CountryList = ({
     const [easterEggCountry, setEasterEggCountry] = useState<string | null>(null)
     const [waitlistCountry, setWaitlistCountry] = useState<CountryData | null>(null)
 
-    const supportedCountries = countryData.filter((country) => country.type === 'country')
+    const supportedCountries = countryData.filter(
+        (country) =>
+            country.type === 'country' &&
+            (!currencyFilter || country.currency?.toUpperCase() === currencyFilter.toUpperCase())
+    )
 
     // catalog titles are English; the displayed name comes from Intl.DisplayNames
     const countryName = useCallback((country: CountryData) => localizedCountryTitle(locale, country), [locale])
@@ -135,7 +146,7 @@ export const CountryList = ({
 
             return countryName(a).localeCompare(countryName(b), locale)
         })
-    }, [homeCountryCode, countryName, locale])
+    }, [homeCountryCode, countryName, locale, currencyFilter])
 
     // filter countries based on deferred search term to prevent blocking ui.
     // The English title stays searchable so "Brazil" still finds "Brasil".

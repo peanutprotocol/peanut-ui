@@ -87,10 +87,19 @@ jest.mock('@/components/Common/SavedAccountsView', () => ({
         </div>
     ),
 }))
-// the country list is driven through its onCountryClick — one row per country
-// the rail tests need
-jest.mock('@/components/Common/CountryList', () => ({
-    CountryList: ({ onCountryClick }: { onCountryClick: (c: unknown) => void }) => (
+// The currency-first selector is now the method view's all-methods screen. Its
+// own currency/country/disambiguation behaviour is unit-tested in
+// WithdrawCurrencyList.test.tsx; here it is stubbed to the country + crypto
+// callbacks the routing tests drive, so these tests pin WithdrawMethodView's
+// routing (`handleCountrySelected`), not the picker's internals.
+jest.mock('@/features/withdraw/components/WithdrawCurrencyList', () => ({
+    WithdrawCurrencyList: ({
+        onCountryClick,
+        onCryptoClick,
+    }: {
+        onCountryClick: (c: unknown) => void
+        onCryptoClick: () => void
+    }) => (
         <div>
             {[
                 { id: 'DE', path: 'germany', currency: 'EUR', title: 'Germany' },
@@ -106,6 +115,9 @@ jest.mock('@/components/Common/CountryList', () => ({
                     {country.title}
                 </button>
             ))}
+            <button data-testid="currency-crypto-row" onClick={onCryptoClick}>
+                Crypto
+            </button>
         </div>
     ),
 }))
