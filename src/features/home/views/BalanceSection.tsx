@@ -21,13 +21,14 @@ interface BalanceSectionProps {
     onToggleVisibility: () => void
 }
 
-// home IA (figma section 17609:2334): add + send open a bottom drawer,
-// request navigates directly (a Link, so it keeps prefetch + anchor semantics)
+// home IA (figma section 17609:2334): add, send and request each open a bottom
+// drawer. request offers two ways to be paid — share a request link, or share
+// standing bank details — instead of going straight to the link screen.
 const SUBMENU_ACTIONS: Array<{ key: 'add' | 'send' | 'request'; icon: IconName; drawer?: HomeDrawer; href?: string }> =
     [
         { key: 'add', icon: 'plus', drawer: 'add' },
         { key: 'send', icon: 'arrow-up-right', drawer: 'send' },
-        { key: 'request', icon: 'arrow-down-left', href: '/request' },
+        { key: 'request', icon: 'arrow-down-left', drawer: 'request' },
     ]
 
 /**

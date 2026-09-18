@@ -280,7 +280,11 @@
             "sendToFriends": "Enviar a amigos",
             "sendToFriendsDescription": "Link, contactos, banco, cripto",
             "withdrawToOwnAccounts": "Retirar a tus cuentas",
-            "withdrawToOwnAccountsDescription": "Banco, Mercado, cripto"
+            "withdrawToOwnAccountsDescription": "Banco, Mercado, cripto",
+            "shareRequestLink": "Compartir un enlace de solicitud",
+            "shareRequestLinkDescription": "Pídele un monto a una persona",
+            "shareBankDetails": "Compartir datos bancarios",
+            "shareBankDetailsDescription": "Recibe el pago directo en tu cuenta"
         }
     },
     "profile": {

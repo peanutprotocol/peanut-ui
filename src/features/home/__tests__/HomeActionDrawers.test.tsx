@@ -143,6 +143,31 @@ describe('HomeActionDrawers', () => {
         expect(mockCapture).not.toHaveBeenCalled()
     })
 
+    it('opens the request drawer with both share actions and routes each on click', async () => {
+        const urlUpdates: UrlUpdateEvent[] = []
+        renderWithUrl('?drawer=request', (e) => urlUpdates.push(e))
+
+        // both ways to be paid are offered on one screen
+        expect(screen.getByText('shareRequestLink')).toBeInTheDocument()
+        expect(screen.getByText('shareBankDetails')).toBeInTheDocument()
+
+        fireEvent.click(screen.getByTestId('home-drawer-request-share-link'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/request'))
+        // the drawer param is cleared before routing, so browser-back lands on a closed home
+        expect(urlUpdates.at(-1)?.searchParams.get('drawer')).toBeNull()
+
+        fireEvent.click(screen.getByTestId('home-drawer-request-share-bank'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank'))
+    })
+
+    it('drops the bank-details row from the request drawer while get-paid is off', () => {
+        depositAccountsEnabled = false
+        renderWithUrl('?drawer=request')
+
+        expect(screen.getByTestId('home-drawer-request-share-link')).toBeInTheDocument()
+        expect(screen.queryByTestId('home-drawer-request-share-bank')).not.toBeInTheDocument()
+    })
+
     it('carries a query-bearing returnTo onto the bank destination', async () => {
         // The origin holds its own query string, so the value has to survive
         // encoding whole — an unencoded `&to=EUR` would arrive as a separate
