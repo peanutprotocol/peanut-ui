@@ -268,7 +268,25 @@
         },
         "pendingTasks": {
             "completeBefore": "Complete before {deadline}",
-            "dismiss": "Descartar {task}"
+            "dismiss": "Descartar {task}",
+            "verifyTitle": "Se necesita verificación adicional",
+            "verifyTitleCorridor": "Verifica para habilitar {corridor}",
+            "verifyDescription": "Haz una verificación rápida con nuestro socio de pagos para habilitar las transferencias bancarias.",
+            "verifyDescriptionAdvisory": "Haz una verificación rápida con nuestro socio de pagos para mantener disponibles las transferencias bancarias.",
+            "verifyDescriptionCorridor": "Termina la verificación para habilitar {corridor}.",
+            "verifyDescriptionCorridorAdvisory": "Termina la verificación para mantener disponibles {corridor}.",
+            "tosTitle": "Aceptar los términos de servicio",
+            "tosDescription": "Acepta los términos de nuestro socio de pagos para habilitar las transferencias bancarias.",
+            "tosDescriptionAdvisory": "Acepta los términos de nuestro socio de pagos para mantener disponibles las transferencias bancarias.",
+            "tosSepaTitle": "Aceptar los términos actualizados del proveedor de transferencias bancarias",
+            "tosSepaDescription": "Acepta los Términos del servicio actualizados de nuestro proveedor de transferencias bancarias para habilitar las transferencias en euros y libras esterlinas.",
+            "tosSepaDescriptionAdvisory": "Acepta los Términos del servicio actualizados de nuestro proveedor de transferencias bancarias para mantener disponibles las transferencias en euros y libras esterlinas.",
+            "corridors": {
+                "USD": "transferencias bancarias en dólares estadounidenses",
+                "EUR": "transferencias bancarias en euros",
+                "GBP": "transferencias bancarias en libras esterlinas",
+                "MXN": "transferencias bancarias en pesos mexicanos"
+            }
         },
         "iosCopy": {
             "rewards": "Cashback"

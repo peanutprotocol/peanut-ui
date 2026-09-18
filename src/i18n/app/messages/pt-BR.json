@@ -268,7 +268,25 @@
         },
         "pendingTasks": {
             "completeBefore": "Complete before {deadline}",
-            "dismiss": "Dispensar {task}"
+            "dismiss": "Dispensar {task}",
+            "verifyTitle": "Verificação adicional necessária",
+            "verifyTitleCorridor": "Verifique para liberar {corridor}",
+            "verifyDescription": "Faça uma verificação rápida com nosso parceiro de pagamentos para ativar transferências bancárias.",
+            "verifyDescriptionAdvisory": "Faça uma verificação rápida com nosso parceiro de pagamentos para manter as transferências bancárias disponíveis.",
+            "verifyDescriptionCorridor": "Conclua a verificação para liberar {corridor}.",
+            "verifyDescriptionCorridorAdvisory": "Conclua a verificação para manter {corridor} disponíveis.",
+            "tosTitle": "Aceitar os Termos de Serviço",
+            "tosDescription": "Aceite os termos do nosso parceiro de pagamentos para ativar transferências bancárias.",
+            "tosDescriptionAdvisory": "Aceite os termos do nosso parceiro de pagamentos para manter as transferências bancárias disponíveis.",
+            "tosSepaTitle": "Aceitar os termos atualizados do provedor de transferências bancárias",
+            "tosSepaDescription": "Aceite os Termos de Serviço atualizados do nosso provedor de transferências bancárias para ativar transferências em euros e libras esterlinas.",
+            "tosSepaDescriptionAdvisory": "Aceite os Termos de Serviço atualizados do nosso provedor de transferências bancárias para manter as transferências em euros e libras esterlinas disponíveis.",
+            "corridors": {
+                "USD": "transferências bancárias em dólares americanos",
+                "EUR": "transferências bancárias em euros",
+                "GBP": "transferências bancárias em libras esterlinas",
+                "MXN": "transferências bancárias em pesos mexicanos"
+            }
         },
         "iosCopy": {
             "rewards": "Cashback"
