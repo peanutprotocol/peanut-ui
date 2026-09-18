@@ -37,6 +37,7 @@ interface WithdrawCurrencyListProps {
  * caller's `onCountryClick`, so this component adds no second source of truth
  * for where a country leads.
  */
+// TODO(va): extract shared currency-first selector shell (with DepositAccountsListScreen)
 export function WithdrawCurrencyList({
     heading,
     onCountryClick,

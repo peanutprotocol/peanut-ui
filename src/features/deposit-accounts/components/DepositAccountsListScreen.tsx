@@ -62,6 +62,7 @@ const CRYPTO_HREF = '/add-money/crypto'
  */
 // Follow-up: evaluate 1–2 included accounts and a Peanut Tier 2 unlock for more.
 // Billing and backend enforcement decisions: mono/projects/virtual-accounts/README.md, Next steps.
+// TODO(va): extract shared currency-first selector shell (with WithdrawCurrencyList)
 export function DepositAccountsListScreen({
     corridors,
     accounts,
