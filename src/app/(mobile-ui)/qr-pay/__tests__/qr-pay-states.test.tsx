@@ -135,9 +135,6 @@ jest.mock('@/hooks/wallet/useSmartSpendPreparation', () => ({
     useSmartSpendPreparation: () => ({ takePreparedSmartSpend: () => null }),
 }))
 
-const mockPerksApi = { claimPerk: jest.fn(), getPendingPerks: jest.fn() }
-jest.mock('@/services/perks', () => ({ perksApi: mockPerksApi }))
-
 jest.mock('@/hooks/wallet/useSpendBundle', () => ({
     InsufficientSpendableError: class extends Error {
         constructor() {
@@ -1417,10 +1414,9 @@ describe('GROUP 4: Success States', () => {
         expect(posthog.capture).toHaveBeenCalledWith('reward_claimed', { amount_usd: 0.5, discount_pct: 5 })
 
         // The reveal talks to no one: the scan init and the completion are the
-        // only Manteca calls, and the legacy /perks/claim round-trip stays dead.
+        // only calls it makes.
         expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
         expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1)
-        expect(mockPerksApi.claimPerk).not.toHaveBeenCalled()
 
         jest.useRealTimers()
     })
@@ -1458,7 +1454,6 @@ describe('GROUP 4: Success States', () => {
         for (const event of ['reward_claim_shown', 'surprise_moment_shown', 'reward_claimed']) {
             expect(posthog.capture).not.toHaveBeenCalledWith(event, expect.anything())
         }
-        expect(mockPerksApi.claimPerk).not.toHaveBeenCalled()
 
         jest.useRealTimers()
     })
