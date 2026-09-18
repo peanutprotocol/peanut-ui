@@ -117,6 +117,7 @@
         "userOpReverted": "Não foi possível concluir o pagamento. Tente novamente."
     },
     "migration": {
+        "downloadPeanut": "Baixar Peanut",
         "downloadPrompt": {
             "earlyTitle": "O app do Peanut chegou!",
             "earlyDescription": "A Peanut agora é um app, na App Store e no Google Play. Mesma conta, experiência mais rápida e avisos na hora em que o dinheiro cai.",

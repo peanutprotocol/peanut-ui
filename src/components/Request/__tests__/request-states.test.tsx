@@ -50,7 +50,14 @@ jest.mock('@sentry/nextjs', () => ({
 // PostHog
 jest.mock('posthog-js', () => ({
     __esModule: true,
-    default: { capture: jest.fn(), init: jest.fn() },
+    // onFeatureFlags: the guest store hand-off on the validation-error CTA reads
+    // the migration flag, and useFeatureFlags subscribes through it
+    default: {
+        capture: jest.fn(),
+        init: jest.fn(),
+        onFeatureFlags: jest.fn(() => jest.fn()),
+        isFeatureEnabled: jest.fn(() => false),
+    },
 }))
 
 // ---------- hooks & services ----------

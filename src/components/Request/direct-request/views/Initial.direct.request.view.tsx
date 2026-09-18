@@ -23,6 +23,7 @@ import { loadingStateKey } from '@/i18n/app/loading-states'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useUserInteractions } from '@/hooks/useUserInteractions'
 import { useUserByUsername } from '@/hooks/useUserByUsername'
+import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useSafeBack } from '@/hooks/useSafeBack'
 
 interface DirectRequestInitialViewProps {
@@ -34,6 +35,10 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const tLoading = useTranslations('loadingStates')
+    const tMigration = useTranslations('migration')
+    // a guest on a broken request link is asked to join — during the migration
+    // that means the app, not web signup
+    const { interceptGuestCta, storeHandoffModal, handoffActive } = useGuestStoreHandoff()
     const onBack = useSafeBack('/home')
     const { user: authUser } = useAuth()
     const { address } = useWallet()
@@ -150,7 +155,11 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                 title:
                     kind === 'invalid' ? t('validation.invalidRecipientTitle') : t('validation.missingRecipientTitle'),
                 message,
-                buttonText: authUser?.user.userId ? t('validation.goToHome') : t('validation.createWallet'),
+                buttonText: authUser?.user.userId
+                    ? t('validation.goToHome')
+                    : handoffActive
+                      ? tMigration('downloadPeanut')
+                      : t('validation.createWallet'),
                 redirectTo: authUser?.user.userId ? '/home' : '/setup',
             }
         }
@@ -166,7 +175,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
         }
 
         setValidationError(null)
-    }, [username, authUser, recipientUser, recipientUserError, isRecipientUserLoading, t])
+    }, [username, authUser, recipientUser, recipientUserError, isRecipientUserLoading, t, tMigration, handoffActive])
 
     if (isRecipientUserLoading || authUser === undefined) {
         return (
@@ -181,7 +190,11 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
             <div className="flex flex-col items-center justify-center gap-8">
                 {!!authUser?.user.userId ? <NavHeader onPrev={onBack} title={tNav('request')} /> : null}
                 <div className="my-auto space-y-4 flex h-full w-full flex-col items-center justify-center md:w-6/12">
-                    <ValidationErrorView {...validationError} />
+                    <ValidationErrorView
+                        {...validationError}
+                        onButtonClick={!authUser?.user.userId ? () => interceptGuestCta() : undefined}
+                    />
+                    {storeHandoffModal}
                 </div>
             </div>
         )

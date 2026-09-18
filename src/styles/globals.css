@@ -792,6 +792,23 @@
         color: var(--color-foreground-secondary);
     }
 
+    /* An autofilled field keeps the DS input surface. Chrome paints its own
+       #e8f0fe over the author background-color (the recipient field turned
+       light blue once the browser filled it, with a white notch where the
+       clear button sits on its own background). background-color cannot win
+       that, so repaint the box with an inset shadow and pin the text color. */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    input:-webkit-autofill:active,
+    textarea:-webkit-autofill,
+    select:-webkit-autofill {
+        box-shadow: 0 0 0 1000px var(--color-background-default) inset;
+        -webkit-box-shadow: 0 0 0 1000px var(--color-background-default) inset;
+        -webkit-text-fill-color: var(--color-foreground-primary);
+        caret-color: var(--color-foreground-primary);
+    }
+
     /* v3-preflight parity: buttons keep the pointer cursor (v4 uses default) */
     button:not(:disabled),
     [role='button']:not(:disabled) {

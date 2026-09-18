@@ -58,7 +58,12 @@ export interface ActionModalProps {
     footer?: React.ReactNode
     /** The footer is decoration (an absolutely positioned mascot), not an
      *  action. It renders outside the in-flow wrapper, so it adds no row of
-     *  its own beneath the ctas. */
+     *  its own beneath the ctas.
+     *  To paint such art BEHIND the panel, move the surface background off the
+     *  panel and onto the content box (`modalPanelClassName="bg-transparent"` +
+     *  `contentContainerClassName="bg-background-default"`). The panel is its own
+     *  stacking context, so a negative z-index inside it still paints on top of
+     *  the panel's own background — see ConfirmInviteModal. */
     footerIsDecorative?: boolean
     content?: React.ReactNode
     classOverlay?: string
