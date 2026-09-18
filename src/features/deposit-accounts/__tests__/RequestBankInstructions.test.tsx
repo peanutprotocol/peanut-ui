@@ -104,6 +104,48 @@ describe('RequestBankInstructions', () => {
 
             expect(screen.queryByText('Amount to send')).not.toBeInTheDocument()
         })
+
+        // The requests-multicurrency API can attach a per-rail amount. When it
+        // does, the screen shows that figure and never fetches a client rate.
+        const withServerAmount = (payerAmount: unknown): RequestDepositInstructions =>
+            ({ ...instructions('EUR', 'sepa_eu'), payerAmount }) as RequestDepositInstructions
+
+        it('prefers a server-provided estimate over a client conversion', () => {
+            render(
+                <RequestBankInstructions
+                    instructions={withServerAmount({ amount: '229.50', currency: 'EUR', isEstimate: true })}
+                    usdAmount="250"
+                />,
+                { wrapper }
+            )
+
+            expect(screen.getByText('≈ 229.50 EUR')).toBeInTheDocument()
+            expect(screen.getByText(/Estimated at today’s rate/)).toBeInTheDocument()
+            expect(useExchangeRate).toHaveBeenCalledWith(expect.objectContaining({ enabled: false }))
+        })
+
+        it('shows a server-locked non-USD amount as exact and copyable', () => {
+            render(
+                <RequestBankInstructions
+                    instructions={withServerAmount({ amount: '229.50', currency: 'EUR', isEstimate: false })}
+                    usdAmount="250"
+                />,
+                { wrapper }
+            )
+
+            expect(screen.getByText('229.50 EUR')).toBeInTheDocument()
+            expect(screen.getByText('Send this amount and the request is marked paid.')).toBeInTheDocument()
+        })
+
+        it('falls back to the client conversion for a malformed server amount', () => {
+            useExchangeRate.mockReturnValue({ exchangeRate: 0.92 })
+            render(
+                <RequestBankInstructions instructions={withServerAmount({ amount: 'not-a-number' })} usdAmount="250" />,
+                { wrapper }
+            )
+
+            expect(screen.getByText('≈ 230.00 EUR')).toBeInTheDocument()
+        })
     })
 
     // A payer must read who may pay BEFORE they send: a personal transfer into a

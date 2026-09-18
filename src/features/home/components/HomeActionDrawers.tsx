@@ -12,8 +12,12 @@ import { useTranslations } from 'next-intl'
 import { RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 
-type HomeDrawerKey = 'sendToFriends' | 'withdrawToOwnAccounts'
-type HomeDrawerBodyKey = 'sendToFriendsDescription' | 'withdrawToOwnAccountsDescription'
+type HomeDrawerKey = 'sendToFriends' | 'withdrawToOwnAccounts' | 'shareRequestLink' | 'shareBankDetails'
+type HomeDrawerBodyKey =
+    | 'sendToFriendsDescription'
+    | 'withdrawToOwnAccountsDescription'
+    | 'shareRequestLinkDescription'
+    | 'shareBankDetailsDescription'
 type AddMethodKey = 'bankTransfer' | 'crypto'
 type AddMethodBodyKey = 'bankTransferDescription' | 'cryptoDescription'
 
@@ -67,6 +71,34 @@ const DRAWER_OPTIONS: Record<HomeDrawer, DrawerOption[]> = {
         },
         BANK_ONE_OFF,
     ],
+    // Two ways to be paid. A request link asks one person for one amount and is
+    // answered inside Peanut; standing bank details take any amount from anybody
+    // straight into the requester's account, with no link. The bank row is added
+    // in `requestOptions` only where the provider will open an account.
+    request: [
+        {
+            key: 'share-link',
+            titleKey: ['drawers', 'shareRequestLink'],
+            bodyKey: ['drawers', 'shareRequestLinkDescription'],
+            icon: 'link',
+            href: '/request',
+        },
+    ],
+}
+
+// The standing bank details row, reachable only when the get-paid flow is open
+// for business: the same `/add-money?method=bank` country entry the Add drawer
+// uses, which lands on the deposit-account details + share screen.
+const SHARE_BANK_DETAILS: DrawerOption = {
+    key: 'share-bank',
+    titleKey: ['drawers', 'shareBankDetails'],
+    bodyKey: ['drawers', 'shareBankDetailsDescription'],
+    icon: 'bank',
+    href: '/add-money?method=bank',
+}
+
+function requestOptions(depositAccountsEnabled: boolean): DrawerOption[] {
+    return depositAccountsEnabled ? [...DRAWER_OPTIONS.request, SHARE_BANK_DETAILS] : DRAWER_OPTIONS.request
 }
 
 /**
@@ -121,7 +153,14 @@ export function HomeActionDrawers() {
     if (drawer) lastDrawerRef.current = drawer
     const content = drawer ?? lastDrawerRef.current
     const depositAccounts = useDepositAccountsEnabled()
-    const options = content === 'add' ? addOptions(depositAccounts) : content ? DRAWER_OPTIONS[content] : []
+    const options =
+        content === 'add'
+            ? addOptions(depositAccounts)
+            : content === 'request'
+              ? requestOptions(depositAccounts)
+              : content
+                ? DRAWER_OPTIONS[content]
+                : []
 
     const navigate = async (option: DrawerOption) => {
         const href = option.href

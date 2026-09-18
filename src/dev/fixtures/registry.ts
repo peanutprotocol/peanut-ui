@@ -1128,6 +1128,10 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/home?drawer=add',
         about: 'The Add drawer — where bank transfer now leads to the standing account.',
     },
+    'home-request-drawer': {
+        route: '/home?drawer=request',
+        about: 'The Request drawer — share a request link, or share standing bank details.',
+    },
     'request-with-bank-alternative': {
         route: '/request',
         about: 'Asking one person for one amount, with the standing-details alternative named below it.',
