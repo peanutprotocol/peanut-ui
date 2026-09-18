@@ -217,7 +217,8 @@ describe('UnlockPayments', () => {
         const peanutHeading = screen.getByText('Peanut')
         expect(accountsHeading.compareDocumentPosition(peanutHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
         expect(screen.getByText('Peanut-to-Peanut payments')).toBeInTheDocument()
-        expect(screen.getByText('Always on')).toBeInTheDocument()
+        // P2P and crypto both carry the always-on chip.
+        expect(screen.getAllByText('Always on').length).toBeGreaterThanOrEqual(2)
     })
 
     it('a region-restricted user gets the region screen instead of an unlock offer', () => {
@@ -259,7 +260,8 @@ describe('UnlockPayments', () => {
         mockRestrictions = { banking: true, card: true }
         render()
         expect(screen.getAllByText('Not available').length).toBeGreaterThanOrEqual(4)
-        expect(screen.getByText('Always on')).toBeInTheDocument()
+        // Both P2P and crypto are always-on and untouched by a bank/card restriction.
+        expect(screen.getAllByText('Always on').length).toBeGreaterThanOrEqual(2)
         fireEvent.click(screen.getByText('Euro bank transfers'))
         expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
     })
@@ -335,7 +337,9 @@ describe('UnlockPayments', () => {
 
         const drawer = screen.getByRole('dialog')
         expect(within(drawer).getByText('Send and receive money with other Peanut users.')).toBeInTheDocument()
-        expect(within(drawer).getByText('No limits on Peanut-to-Peanut payments')).toBeInTheDocument()
+        expect(
+            within(drawer).getByText('No limits or KYC required for Peanut-to-Peanut payments or crypto')
+        ).toBeInTheDocument()
         expect(mockInitiateKyc).not.toHaveBeenCalled()
     })
 
@@ -349,7 +353,7 @@ describe('UnlockPayments', () => {
         expect(screen.getByText('Your accounts')).toBeInTheDocument()
         fireEvent.click(screen.getByText('EUR · SEPA'))
         expect(mockPush).toHaveBeenCalledWith(
-            '/add-money?method=bank&step=details&corridor=SEPA_EU&returnTo=%2Fprofile%2Fidentity-verification'
+            '/add-money?method=bank&step=details&corridor=SEPA_EU&returnTo=%2Fprofile%2Faccounts-and-payments'
         )
         // A held EUR VA covers the same corridor as the "Euro bank transfers"
         // unlock row (2026-09-18 currency-first merge) — the merged list
@@ -369,7 +373,9 @@ describe('UnlockPayments', () => {
 
     it('states the P2P no-limit fact even before anything is unlocked', () => {
         render()
-        expect(screen.getByText('No limits on Peanut-to-Peanut payments')).toBeInTheDocument()
+        expect(
+            screen.getByText('No limits or KYC required for Peanut-to-Peanut payments or crypto')
+        ).toBeInTheDocument()
     })
 
     // A residence-parked rail. The TOP-LEVEL status is `blocked` (the backend maps

@@ -17,12 +17,13 @@ const group = (groups: ReturnType<typeof buildUnlockGroups>, id: string) => {
 }
 
 describe('buildUnlockGroups', () => {
-    it('leads with Everywhere: always-on P2P, then the card', () => {
+    it('leads with Everywhere: always-on P2P, then the card, then crypto', () => {
         const groups = buildUnlockGroups(base())
         expect(groups[0].id).toBe('everywhere')
         expect(groups[0].rows.map((r) => [r.id, r.chip])).toEqual([
             ['p2p', 'alwaysOn'],
             ['card', 'unlock'],
+            ['crypto', 'alwaysOn'],
         ])
     })
 

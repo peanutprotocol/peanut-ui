@@ -1,5 +1,7 @@
 'use client'
 
+import Image from 'next/image'
+import { PEANUTMAN } from '@/assets/mascot'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
@@ -329,7 +331,7 @@ const UnlockPayments = () => {
     // no-limit rule, so the drawer can never state a cap the section beside it
     // does not. The Limits block is hidden when a method publishes none.
     const detailSummaries = detailsRow ? limitSummariesForRows([detailsRow], mantecaLimits, bridgeLimits, locale) : []
-    const detailNoLimit = detailsRow?.labelKey === 'p2p'
+    const detailNoLimit = detailsRow?.labelKey === 'p2p' || detailsRow?.labelKey === 'crypto'
     const showDetailLimits = detailNoLimit || detailSummaries.length > 0
 
     return (
@@ -612,7 +614,7 @@ const UnlockPayments = () => {
                                 Mirrors InitiateKycModal's drawer hero (IconBubble
                                 + DrawerHeader/DrawerTitle + a secondary line). */}
                             <div className="flex flex-col items-center gap-4 text-center">
-                                <IconBubble icon={detailsRow.icon as IconName} color={BUBBLE_COLOR[detailsRow.chip]} />
+                                {peanutRowLeading(detailsRow, 'm')}
                                 <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                                     <DrawerTitle>{t(`rows.${detailsRow.labelKey}`)}</DrawerTitle>
                                     <DrawerDescription>{t(`valueProp.${detailsRow.labelKey}`)}</DrawerDescription>
@@ -668,6 +670,29 @@ function regionGroupKey(path: 'europe' | 'north-america' | 'latam'): 'europe' | 
  * `AccountsList`, alongside the held VA rows, so this component only ever
  * renders `groups[0]` (id `everywhere`).
  */
+/**
+ * Peanut-native rows keep their own brand mark instead of the generic
+ * status-color bubble every other row uses — same assets as elsewhere in the
+ * app (grep, don't invent): the mascot-on-yellow from the Contacts entry row
+ * (SendRouter.view.tsx) and the card-on-yellow avatar background rows use for
+ * a card spend with no merchant logo (TransactionAvatarBadge's AVATAR_WALLET_BG).
+ */
+function peanutRowLeading(row: UnlockRow, size: 's' | 'm' = 's') {
+    if (row.labelKey === 'p2p') {
+        return (
+            <IconBubble
+                icon={<Image src={PEANUTMAN} alt="" className={size === 's' ? 'h-5 w-auto' : 'h-8 w-auto'} />}
+                size={size}
+                color="yellow"
+            />
+        )
+    }
+    if (row.labelKey === 'card') {
+        return <IconBubble icon="credit-card" size={size} color="yellow" />
+    }
+    return <IconBubble icon={row.icon as IconName} size={size} color={BUBBLE_COLOR[row.chip]} />
+}
+
 const PeanutSection = ({
     group,
     onRowClick,
@@ -691,7 +716,7 @@ const PeanutSection = ({
                             key={row.id}
                             className="min-h-18"
                             disabled={row.chip === 'notAvailable'}
-                            leading={<IconBubble icon={row.icon as IconName} size="s" color={BUBBLE_COLOR[row.chip]} />}
+                            leading={peanutRowLeading(row)}
                             title={<span className="break-words whitespace-normal">{t(`rows.${row.labelKey}`)}</span>}
                             trailing={rowStatusBadge(row, t)}
                             chevron={tappable}

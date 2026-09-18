@@ -18,6 +18,7 @@ export type BankRegionChip = Exclude<UnlockChip, 'alwaysOn' | 'notAvailable'>
 export type UnlockRowLabelKey =
     | 'p2p'
     | 'card'
+    | 'crypto'
     | 'saBank'
     | 'pixBank'
     | 'pixQr'
@@ -33,7 +34,7 @@ export interface UnlockRow {
     id: string
     /** i18n key under profile.unlockPayments.rows */
     labelKey: UnlockRowLabelKey
-    icon: 'qr-code' | 'bank' | 'credit-card' | 'wallet'
+    icon: 'qr-code' | 'bank' | 'credit-card' | 'wallet' | 'coins'
     chip: UnlockChip
     /** region path the tap routes into (existing region modal machinery); absent = not tappable */
     regionPath?: 'europe' | 'north-america' | 'latam'
@@ -131,7 +132,14 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
             id: 'everywhere',
             labelKey: 'everywhere',
             isYourRegion: false,
-            rows: [{ id: 'p2p', labelKey: 'p2p', icon: 'wallet', chip: 'alwaysOn' }, cardRow],
+            rows: [
+                { id: 'p2p', labelKey: 'p2p', icon: 'wallet', chip: 'alwaysOn' },
+                cardRow,
+                // On-chain, no KYC and no Peanut unlock gates it — same
+                // always-on layer as P2P (regression fix, ui#3271 QA pass 2:
+                // the currency-first merge dropped this row entirely).
+                { id: 'crypto', labelKey: 'crypto', icon: 'coins', chip: 'alwaysOn' },
+            ],
         },
         // Brazil + Argentina share one Manteca verification (one unlock opens
         // both), so they present as a single South America group with ONE
