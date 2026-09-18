@@ -68,8 +68,10 @@ DevOps setup:
      `screen-library-deploy` environment. For a custom domain it also needs
      Zone Read and DNS Edit, as described below. The deployment job exposes
      this separate value under the same `CLOUDFLARE_API_TOKEN` runtime name.
-     The publisher verifies its token ID and derives the S3 secret from its
-     SHA-256 hash at runtime; no separate R2 keys are stored.
+     The publisher accepts account-owned or user-owned API token values, verifies
+     them at the matching Cloudflare endpoint, and derives the S3 secret from the
+     SHA-256 hash at runtime; do not store an already-derived R2 Secret Access Key
+     in `CLOUDFLARE_API_TOKEN`. No separate R2 keys are stored.
 3. In GitHub Actions repository variables set `CLOUDFLARE_ACCOUNT_ID`,
    `SCREEN_LIBRARY_R2_BUCKET`, `SCREEN_LIBRARY_R2_JURISDICTION` (`eu` for screenshots-library),
    `SCREEN_LIBRARY_PUBLIC_URL` (gallery HTTPS origin,

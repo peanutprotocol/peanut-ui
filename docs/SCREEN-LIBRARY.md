@@ -214,8 +214,10 @@ DevOps setup:
    - a deployment token with Workers Scripts Edit scoped to this gallery's
      Worker. Save it as the `CLOUDFLARE_API_TOKEN` secret in the
      `screen-library-deploy` environment. The publisher token is not passed to
-     this job. The publisher verifies its token ID and derives the S3 secret from
-     its SHA-256 hash at runtime; no separate R2 keys are stored.
+     this job. The publisher accepts account-owned or user-owned API token values,
+     verifies them at the matching Cloudflare endpoint, and derives the S3 secret
+     from the SHA-256 hash at runtime. Do not store an already-derived R2 Secret
+     Access Key in `CLOUDFLARE_API_TOKEN`; no separate R2 keys are stored.
 3. In GitHub Actions repository variables set `CLOUDFLARE_ACCOUNT_ID`,
    `SCREEN_LIBRARY_R2_BUCKET`, `SCREEN_LIBRARY_R2_JURISDICTION` (`eu` for screenshots-library),
    `SCREEN_LIBRARY_PUBLIC_URL` (gallery HTTPS origin,
