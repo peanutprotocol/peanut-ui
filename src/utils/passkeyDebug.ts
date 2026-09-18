@@ -1,6 +1,4 @@
 import * as Sentry from '@sentry/nextjs'
-import posthog from 'posthog-js'
-import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 /**
  * captures debug information about passkey and device capabilities
@@ -57,11 +55,10 @@ export const capturePasskeyDebugInfo = async (context: string) => {
             }
         }
 
-        // PostHog, not Sentry: this is device capability state, queryable
-        // against the passkey funnel. As a Sentry message it was a billed
-        // event with a synthetic stack and no defect behind it.
-        posthog.capture(ANALYTICS_EVENTS.PASSKEY_DEBUG_INFO, debugInfo)
-
+        // Console only. This is device capability state, not a fault: as a
+        // Sentry message at level info it was a billed event with a synthetic
+        // stack and nothing to act on (1,558 in 90 days). A real failure below
+        // still reports.
         console.log('[PasskeyDebug]', debugInfo)
         return debugInfo
     } catch (error) {

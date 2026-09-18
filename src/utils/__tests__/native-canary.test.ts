@@ -1,6 +1,8 @@
+import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { runCanary, scheduleTransportCanary } from '../native-canary'
 
+jest.mock('@sentry/nextjs', () => ({ captureMessage: jest.fn() }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('../capacitor', () => ({ isNativeBridge: jest.fn(() => true), isCapacitor: jest.fn(() => true) }))
 jest.mock('../passkey-auth-capture', () => ({ getUnderlyingFetch: () => null }))
@@ -12,6 +14,7 @@ jest.mock('../app-version', () => ({ getBinaryInfo: async () => ({ appVersion: '
 
 const { nativeHttpRequest } = jest.requireMock('../native-http') as { nativeHttpRequest: jest.Mock }
 const { isNativeBridge } = jest.requireMock('../capacitor') as { isNativeBridge: jest.Mock }
+const captureMessage = Sentry.captureMessage as jest.Mock
 const capturePosthog = posthog.capture as jest.Mock
 
 const ok = (status = 200) => ({ status }) as Response
@@ -40,6 +43,7 @@ describe('transport canary', () => {
     it('stays silent and skips the control when every primary probe succeeds', async () => {
         await runCanary()
 
+        expect(captureMessage).not.toHaveBeenCalled()
         expect(capturePosthog).not.toHaveBeenCalled()
         expect(nativeHttpRequest).toHaveBeenCalledTimes(1)
     })
@@ -49,10 +53,10 @@ describe('transport canary', () => {
 
         await runCanary()
 
-        expect(capturePosthog).not.toHaveBeenCalled()
+        expect(captureMessage).not.toHaveBeenCalled()
     })
 
-    it('reports the Android asymmetric transport shape', async () => {
+    it('reports and fingerprints the Android asymmetric transport shape', async () => {
         mockWebFetch(async (_url, init) => {
             if ((init?.method ?? 'GET') === 'GET') throw new TypeError('Failed to fetch: net::ERR_FAILED')
             return ok(405)
@@ -60,27 +64,40 @@ describe('transport canary', () => {
 
         await runCanary()
 
-        expect(capturePosthog).toHaveBeenCalledTimes(1)
-        const [event, properties] = capturePosthog.mock.calls[0]
-        expect(event).toBe('native_transport_canary_failed')
-        expect(properties).toMatchObject({
-            canary_version: '7',
-            canary_signature: 'get:fail post:ok native:ok',
+        expect(captureMessage).toHaveBeenCalledTimes(1)
+        const [message, options] = captureMessage.mock.calls[0]
+        expect(message).toBe('native canary: get:fail post:ok native:ok')
+        expect(options.level).toBe('warning')
+        expect(options.fingerprint).toEqual([
+            'native-canary-v7',
+            'transport-asymmetry',
+            'get:fail post:ok native:ok',
+            'direct',
+        ])
+        expect(options.tags).toMatchObject({
+            canary: 'transport',
+            canaryVersion: '7',
             canary_classification: 'transport-asymmetry',
             canary_get: 'network-error',
             canary_post: 'http-405',
             canary_native: 'http-200',
-            webview_transport: 'direct',
-            app_version: '1.0.57',
-            app_build: '412',
+            canary_internet: 'not-run',
+            appVersion: '1.0.57',
+            appBuild: '412',
         })
-        expect(properties.canary_internet).toBeUndefined()
         // the net:: code is the field most likely to name the root cause
-        expect(properties.canary_get_error).toContain('net::ERR_FAILED')
+        expect(options.extra.get.errorMessage).toContain('net::ERR_FAILED')
+        expect(capturePosthog).toHaveBeenCalledWith(
+            'native_transport_canary_failed',
+            expect.objectContaining({
+                canary_classification: 'transport-asymmetry',
+                sentry_sampled: true,
+            })
+        )
         expect(nativeHttpRequest).toHaveBeenCalledTimes(1)
     })
 
-    it('never lets a PostHog failure escape into app startup', async () => {
+    it('does not let a PostHog failure suppress the actionable Sentry warning', async () => {
         mockWebFetch(async (_url, init) => {
             if ((init?.method ?? 'GET') === 'GET') throw new TypeError('Failed to fetch')
             return ok(405)
@@ -89,7 +106,10 @@ describe('transport canary', () => {
             throw new Error('PostHog unavailable')
         })
 
-        await expect(runCanary()).resolves.toBeUndefined()
+        await runCanary()
+
+        expect(captureMessage).toHaveBeenCalledTimes(1)
+        expect(captureMessage.mock.calls[0][1].tags.canary_classification).toBe('transport-asymmetry')
     })
 
     it('classifies an aborted probe as a timeout', async () => {
@@ -101,10 +121,9 @@ describe('transport canary', () => {
 
         await runCanary()
 
-        expect(capturePosthog.mock.calls[0][1]).toMatchObject({
-            canary_signature: 'get:fail post:fail native:ok',
-            canary_get: 'timeout',
-        })
+        const [message, options] = captureMessage.mock.calls[0]
+        expect(message).toBe('native canary: get:fail post:fail native:ok')
+        expect(options.tags.canary_get).toBe('timeout')
     })
 
     it('reports an API-host outage when the independent internet control succeeds', async () => {
@@ -118,30 +137,37 @@ describe('transport canary', () => {
 
         await runCanary()
 
-        expect(capturePosthog).toHaveBeenCalledTimes(1)
-        expect(capturePosthog.mock.calls[0][1]).toMatchObject({
-            canary_signature: 'get:fail post:fail native:fail',
-            canary_classification: 'api-unreachable',
-            canary_capgo: 'http-204',
-            canary_internet: 'http-204',
+        expect(captureMessage).toHaveBeenCalledTimes(1)
+        expect(captureMessage.mock.calls[0][0]).toBe('native canary: get:fail post:fail native:fail')
+        expect(captureMessage.mock.calls[0][1]).toMatchObject({
+            level: 'warning',
+            fingerprint: ['native-canary-v7', 'api-unreachable', 'get:fail post:fail native:fail', 'direct'],
+            tags: {
+                canary_classification: 'api-unreachable',
+                canary_capgo: 'http-204',
+                canary_internet: 'http-204',
+            },
         })
         expect(nativeHttpRequest).toHaveBeenCalledTimes(3)
     })
 
-    it('persists whole-device connectivity so an offline launch is not lost', async () => {
+    it('keeps whole-device connectivity in PostHog when the daily Sentry sample is not selected', async () => {
         mockWebFetch(async () => {
             throw new TypeError('Failed to fetch')
         })
         nativeHttpRequest.mockRejectedValue(new TypeError('Unable to resolve host'))
+        jest.spyOn(Math, 'random').mockReturnValue(0.5)
 
         await runCanary()
 
+        expect(captureMessage).not.toHaveBeenCalled()
         expect(capturePosthog).toHaveBeenCalledWith(
             'native_transport_canary_failed',
             expect.objectContaining({
                 canary_classification: 'device-connectivity',
                 canary_capgo: 'network-error',
                 canary_internet: 'network-error',
+                sentry_sampled: false,
                 canary_replayed: false,
             }),
             expect.objectContaining({ uuid: expect.any(String) })
@@ -155,6 +181,7 @@ describe('transport canary', () => {
             throw new TypeError('Failed to fetch')
         })
         nativeHttpRequest.mockRejectedValue(new TypeError('Unable to resolve host'))
+        jest.spyOn(Math, 'random').mockReturnValue(0.5)
 
         await runCanary()
 
@@ -187,11 +214,12 @@ describe('transport canary', () => {
         )
     })
 
-    it('keeps one durable event per failing launch', async () => {
+    it('samples whole-device connectivity into Sentry at info level at most once per day', async () => {
         mockWebFetch(async () => {
             throw new TypeError('Failed to fetch')
         })
         nativeHttpRequest.mockRejectedValue(new TypeError('Unable to resolve host'))
+        jest.spyOn(Math, 'random').mockReturnValue(0)
 
         await runCanary()
         await runCanary()
@@ -200,6 +228,11 @@ describe('transport canary', () => {
         expect(capturePosthog.mock.calls[1][2].uuid).toBe(capturePosthog.mock.calls[0][2].uuid)
         expect(capturePosthog.mock.calls[2][2].uuid).not.toBe(capturePosthog.mock.calls[0][2].uuid)
         expect(JSON.parse(localStorage.getItem('nativeCanaryConnectivityOutboxV1') ?? '[]')).toHaveLength(2)
+        expect(captureMessage).toHaveBeenCalledTimes(1)
+        expect(captureMessage.mock.calls[0][1]).toMatchObject({
+            level: 'info',
+            fingerprint: ['native-canary-v7', 'device-connectivity', 'get:fail post:fail native:fail', 'direct'],
+        })
     })
 
     it('uses a simple POST without an application/json preflight', async () => {
@@ -218,8 +251,8 @@ describe('transport canary', () => {
         await jest.advanceTimersByTimeAsync(10_000)
         await run
 
-        expect(capturePosthog).toHaveBeenCalledTimes(1)
-        expect(capturePosthog.mock.calls[0][1]).toMatchObject({
+        expect(captureMessage).toHaveBeenCalledTimes(1)
+        expect(captureMessage.mock.calls[0][1].tags).toMatchObject({
             canary_get: 'timeout',
             canary_post: 'timeout',
             canary_native: 'http-200',
@@ -231,6 +264,7 @@ describe('transport canary', () => {
             throw new TypeError('Failed to fetch')
         })
         nativeHttpRequest.mockRejectedValue(new TypeError('Failed to fetch'))
+        jest.spyOn(Math, 'random').mockReturnValue(0.5)
 
         await runCanary()
 

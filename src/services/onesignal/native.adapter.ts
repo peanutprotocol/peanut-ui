@@ -46,10 +46,8 @@ const snapshotTriggersFired = new Set<string>()
  * and login are async) and again on the first subscription change (opt-in
  * often lands after the init snapshot). Deliberately omits the raw token.
  *
- * This is a state fact, not a fault, so it goes to PostHog — a failure to read
- * it included, on the same event under `snapshot_error`. It used to be a
- * separate stackless Sentry message (~410 a month) that said no more than the
- * missing PostHog event already did.
+ * This is a state fact, not a fault, so it goes to PostHog. Only a failure to
+ * read the state is an error worth Sentry.
  */
 function captureSubscriptionSnapshot(trigger: string) {
     if (snapshotTriggersFired.has(trigger)) return
@@ -74,9 +72,10 @@ function captureSubscriptionSnapshot(trigger: string) {
                 onesignal_id: onesignalId,
             })
         } catch (err) {
-            posthog.capture(ANALYTICS_EVENTS.NOTIFICATION_SUBSCRIPTION_SNAPSHOT, {
-                trigger,
-                snapshot_error: String(err),
+            captureMessage('onesignal subscription snapshot failed', {
+                level: 'warning',
+                tags: { feature: 'onesignal', onesignal: 'subscription-snapshot', 'onesignal.trigger': trigger },
+                extra: { error: String(err) },
             })
         }
     })()
