@@ -87,7 +87,23 @@ export const Profile = () => {
 
     return (
         <div className="h-full w-full bg-background-page">
-            <NavHeader hideLabel showLogoutBtn onPrev={onBack} />
+            <NavHeader
+                hideLabel
+                onPrev={onBack}
+                rightElement={
+                    // Log Out already has its own button at the bottom of this
+                    // screen (below) — a second one up here was redundant. Edit
+                    // profile earns the top-right slot instead: it's the one
+                    // action worth reaching without scrolling.
+                    <Button
+                        variant="stroke"
+                        href="/profile/edit"
+                        icon="edit"
+                        aria-label={t('menu.personalDetails')}
+                        className="relative size-10 w-10 p-0 shadow-none after:absolute after:-inset-0.5"
+                    />
+                }
+            />
             <div className="space-y-8">
                 {/* the share pill is the profile's one share affordance — the
                     copy-username icon it used to lean on was removed
@@ -109,7 +125,7 @@ export const Profile = () => {
                         <ProfileMenuItem
                             icon="globe-lock"
                             label={t('menu.unlockedRegions')}
-                            href="/profile/identity-verification"
+                            href="/profile/accounts-and-payments"
                             // same chip treatment as the card row's "New!" — a
                             // pulsing dot was a second attention language on
                             // one screen.
@@ -139,7 +155,6 @@ export const Profile = () => {
                             label={t('menu.points')}
                             href="/rewards"
                         />
-                        <ProfileMenuItem icon="user" label={t('menu.personalDetails')} href="/profile/edit" />
                     </ListGroup>
 
                     <ListGroup>
