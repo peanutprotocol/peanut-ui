@@ -18,8 +18,10 @@
  * - Native Capgo and public-internet control probes run only after all three
  *   primary probes fail. They separate an API-host incident from ordinary
  *   device connectivity without adding round trips to healthy launches.
- * - Asymmetric/API-host failures stay `warning`; whole-device connectivity is
- *   measured in PostHog and sampled into Sentry at `info` level.
+ * - Reported to PostHog only. The duplicate Sentry message this used to send
+ *   alongside it carried the same verdict at a per-event price, and every
+ *   consumer of it — the per-build split, the classification rates — is a
+ *   PostHog query over `native_transport_canary_failed`.
  *
  * NO `no-cors` PROBE, which is what makes this safe to run on iOS. WKWebView
  * serves no opaque responses at all: the retired canary measured that probe
@@ -36,12 +38,10 @@
  * so per-build rates (the split that surfaced 3% on `8016c68` vs 21% on
  * `d4bd3ab`) can be reproduced by splitting on those.
  *
- * Query: message starts `native canary:`. An explicit fingerprint includes the
- * signature because the browser SDK attaches a synthetic stack to messages;
- * without it, Sentry groups every shape at this file's captureMessage callsite.
+ * Query: event `native_transport_canary_failed`, split on
+ * `canary_classification` and `canary_signature`.
  */
 
-import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { isNativeBridge } from './capacitor'
@@ -53,8 +53,6 @@ import { readStoredValue, removeStoredValue, writeStoredValue } from './safe-sto
 const CANARY_TIMEOUT_MS = 10_000
 const CAPGO_CONTROL_URL = 'https://plugin.capgo.app/'
 const INTERNET_CONTROL_URL = 'https://www.gstatic.com/generate_204'
-const CONNECTIVITY_SENTRY_SAMPLE_RATE = 0.1
-const CONNECTIVITY_SENTRY_DAY_KEY = 'nativeCanaryConnectivitySentryDay'
 const CONNECTIVITY_OUTBOX_KEY = 'nativeCanaryConnectivityOutboxV1'
 const CONNECTIVITY_OUTBOX_RETENTION_DAYS = 7
 const CANARY_EVENT_NAME = 'native_transport_canary_failed'
@@ -135,15 +133,6 @@ async function nativeProbe(url: string): Promise<ProbeResult> {
     } catch (error) {
         return toProbeError(error, startedAt)
     }
-}
-
-function shouldSampleConnectivityToSentry(): boolean {
-    const day = new Date().toISOString().slice(0, 10)
-    if (readStoredValue(CONNECTIVITY_SENTRY_DAY_KEY) === day) return false
-    // Persist the daily decision, including a decision not to sample. Otherwise
-    // repeated launches would turn 10% sampling into near-certain reporting.
-    writeStoredValue(CONNECTIVITY_SENTRY_DAY_KEY, day)
-    return Math.random() < CONNECTIVITY_SENTRY_SAMPLE_RATE
 }
 
 function utcDay(date: Date = new Date()): string {
@@ -295,7 +284,6 @@ export async function runCanary(): Promise<void> {
     const baseFetch = getUnderlyingFetch() ?? window.fetch
     const webviewTransport = !!capWebFetch && baseFetch !== capWebFetch ? 'cap-http-proxy' : 'direct'
     const { appVersion, appBuild } = (await getBinaryInfo()) ?? { appVersion: 'unknown', appBuild: 'unknown' }
-    const sentrySampled = classification !== 'device-connectivity' || shouldSampleConnectivityToSentry()
 
     const eventProperties: CanaryEventProperties = {
         canary_version: '7',
@@ -309,57 +297,26 @@ export async function runCanary(): Promise<void> {
         canary_get_ms: results[0].durationMs,
         canary_post_ms: results[1].durationMs,
         canary_native_ms: results[2].durationMs,
+        // Android WebView TypeErrors carry net:: codes here — the one field
+        // most likely to name the root cause. It used to ride only on the
+        // Sentry event's `extra`.
+        canary_get_error: results[0].errorMessage,
+        canary_post_error: results[1].errorMessage,
+        canary_native_error: results[2].errorMessage,
         canary_capgo_ms: capgo?.durationMs,
         canary_internet_ms: internet?.durationMs,
         webview_transport: webviewTransport,
         app_version: appVersion,
         app_build: appBuild,
         online: navigator.onLine,
-        sentry_sampled: sentrySampled,
     }
 
     try {
         const pending = classification === 'device-connectivity' ? persistConnectivityEvent(eventProperties) : undefined
         capturePostHog(eventProperties, pending)
     } catch {
-        // Diagnostics must never affect app startup or the Sentry signal.
+        // Diagnostics must never affect app startup.
     }
-
-    if (!sentrySampled) return
-
-    Sentry.captureMessage(`native canary: ${signature}`, {
-        level: classification === 'device-connectivity' ? 'info' : 'warning',
-        fingerprint: ['native-canary-v7', classification, signature, webviewTransport],
-        tags: {
-            canary: 'transport',
-            canaryVersion: '7',
-            canary_signature: signature,
-            canary_classification: classification,
-            canary_get: outcomes.get,
-            canary_post: outcomes.post,
-            canary_native: outcomes.native,
-            canary_capgo: capgo?.outcome ?? 'not-run',
-            canary_internet: internet?.outcome ?? 'not-run',
-            webviewTransport,
-            appVersion,
-            appBuild,
-            online: String(navigator.onLine),
-        },
-        extra: {
-            ...Object.fromEntries(
-                probes.map(({ name }, i) => [
-                    name,
-                    {
-                        durationMs: results[i].durationMs,
-                        errorName: results[i].errorName,
-                        errorMessage: results[i].errorMessage,
-                    },
-                ])
-            ),
-            ...(capgo ? { capgo } : {}),
-            ...(internet ? { internet } : {}),
-        },
-    })
 }
 
 /*

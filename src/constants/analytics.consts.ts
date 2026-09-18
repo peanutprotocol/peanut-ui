@@ -331,6 +331,11 @@ export const ANALYTICS_EVENTS = {
     // refused/wedged, e.g. 1Password on iOS), `context` is the signing call site.
     PASSKEY_SIGN_FAILED: 'passkey_sign_failed',
 
+    // Device and WebAuthn capability snapshot, taken when a passkey step
+    // fails. A state fact, not a fault — it used to be a Sentry message at
+    // `info` level (1,558 in 90 days) that no triage ever opened.
+    PASSKEY_DEBUG_INFO: 'passkey_debug_info',
+
     // One event per WebAuthn ceremony our code requests, tagged with the purpose
     // stack (`kernel_migration>user_op`, `admin_eip712`, …) and the flow it ran
     // in. `webauthn_ceremony_flow` closes a flow with the total count — that
