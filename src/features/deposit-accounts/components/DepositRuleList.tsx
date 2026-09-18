@@ -17,7 +17,10 @@ export interface DepositRuleListItem {
 export function RuleWithInfo({ text, why }: { text: string; why: string }) {
     return (
         <span className="inline">
-            {text}{' '}
+            {text}
+            {/* Non-breaking space binds the (i) to the last word so it never
+                orphans onto a line of its own when the sentence wraps. */}
+            {' '}
             <span className="inline-flex translate-y-0.5 align-baseline">
                 <MoreInfo text={why} />
             </span>

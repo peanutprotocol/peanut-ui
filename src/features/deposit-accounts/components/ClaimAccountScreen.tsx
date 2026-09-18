@@ -87,15 +87,15 @@ export function ClaimAccountScreen({
                  */}
                 <ListGroup>
                     <ListItem
-                        leading={<Icon name="wallet" size={24} className="text-foreground-primary" />}
+                        leading={<Icon name="wallet" size={24} className="self-start text-foreground-primary" />}
                         title={<span>{t('claim.benefitBalance')}</span>}
                     />
                     <ListItem
-                        leading={<Icon name="clock" size={24} className="text-foreground-primary" />}
+                        leading={<Icon name="clock" size={24} className="self-start text-foreground-primary" />}
                         title={<span>{arrivalDetail(rail.corridor)}</span>}
                     />
                     <ListItem
-                        leading={<Icon name="link" size={24} className="text-foreground-primary" />}
+                        leading={<Icon name="link" size={24} className="self-start text-foreground-primary" />}
                         title={<span>{t('claim.benefitStable')}</span>}
                     />
                 </ListGroup>
