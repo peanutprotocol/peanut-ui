@@ -695,6 +695,7 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        accountCategory?: string;
                         accountNumber: string;
                         accountOwnerName: {
                             businessName?: string;
@@ -702,7 +703,7 @@ export interface paths {
                             lastName?: string;
                         };
                         accountOwnerType: "business" | "individual";
-                        accountType: "iban" | "us" | "clabe" | "gb";
+                        accountType: "iban" | "us" | "clabe" | "gb" | "co_bank_transfer";
                         address?: {
                             city: string;
                             country: string;
@@ -710,8 +711,12 @@ export interface paths {
                             state?: string;
                             street: string;
                         };
+                        bankCode?: string;
                         bic?: string;
                         country: string;
+                        documentNumber?: string;
+                        documentType?: string;
+                        phoneNumber?: string;
                         reuseOnError?: boolean;
                         routingNumber?: string;
                         sortCode?: string;
@@ -781,7 +786,7 @@ export interface paths {
         get: {
             parameters: {
                 query: {
-                    accountType: "iban" | "us" | "clabe" | "gb";
+                    accountType: "iban" | "us" | "clabe" | "gb" | "co_bank_transfer";
                 };
                 header?: never;
                 path?: never;
@@ -835,10 +840,10 @@ export interface paths {
                         amount?: string;
                         destination: {
                             achReference?: string;
-                            currency: "usd" | "eur" | "mxn" | "gbp";
+                            currency: "usd" | "eur" | "mxn" | "gbp" | "cop";
                             externalAccountId: string;
                             fasterPaymentsReference?: string;
-                            paymentRail: "ach" | "ach_push" | "ach_same_day" | "wire" | "sepa" | "swift" | "spei" | "faster_payments";
+                            paymentRail: "ach" | "ach_push" | "ach_same_day" | "wire" | "sepa" | "swift" | "spei" | "faster_payments" | "co_bank_transfer";
                             sepaReference?: string;
                             wireMessage?: string;
                         };
@@ -942,9 +947,9 @@ export interface paths {
                         beneficiaryName?: string;
                         destination: {
                             achReference?: string;
-                            currency: "usd" | "eur" | "mxn" | "gbp";
+                            currency: "usd" | "eur" | "mxn" | "gbp" | "cop";
                             externalAccountId: string;
-                            paymentRail: "ach" | "ach_push" | "ach_same_day" | "wire" | "sepa" | "swift" | "spei" | "faster_payments";
+                            paymentRail: "ach" | "ach_push" | "ach_same_day" | "wire" | "sepa" | "swift" | "spei" | "faster_payments" | "co_bank_transfer";
                             sepaReference?: string;
                             wireMessage?: string;
                         };
@@ -1059,8 +1064,8 @@ export interface paths {
                         chargeId?: string;
                         recipientAddress?: string;
                         source: {
-                            currency: "usd" | "eur" | "mxn" | "gbp";
-                            paymentRail: "ach" | "ach_push" | "ach_same_day" | "wire" | "sepa" | "swift" | "spei" | "faster_payments";
+                            currency: "usd" | "eur" | "mxn" | "gbp" | "cop";
+                            paymentRail: "ach" | "ach_push" | "ach_same_day" | "wire" | "sepa" | "swift" | "spei" | "faster_payments" | "co_bank_transfer";
                         };
                     };
                 };
@@ -1135,7 +1140,7 @@ export interface paths {
         get: {
             parameters: {
                 query: {
-                    accountType: "iban" | "us" | "clabe" | "gb";
+                    accountType: "iban" | "us" | "clabe" | "gb" | "co_bank_transfer";
                     sourceAmount?: string;
                 };
                 header?: never;
@@ -6621,7 +6626,9 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    includePending?: "true" | "false";
+                };
                 header: {
                     Authorization: string;
                 };
@@ -8525,6 +8532,372 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rain/cards/{cardId}/provisioning-authorization": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Peanut's internal card id. */
+                    cardId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        wallet: "apple" | "google";
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            walletAuthorizationExpiresIn: number;
+                            walletAuthorizationToken: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rain/cards/{cardId}/provisioning-data": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @description Peanut's internal card id. */
+                    cardId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        wallet: "apple" | "google";
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            billingAddress: {
+                                city: string;
+                                countryCode: string;
+                                line1: string;
+                                line2?: string;
+                                postalCode: string;
+                                region: string;
+                            };
+                            /** @description MeaWallet processor card id — the MPP SDK's `cardId`, unrelated to Peanut's card id in the path. */
+                            cardId: string;
+                            /** @description Short-lived MeaWallet provisioning secret. PAN-equivalent: never log or store. */
+                            cardSecret: string;
+                            cardholderName?: string;
+                            last4: string;
+                            network: string;
+                            walletAuthorizationExpiresIn?: number;
+                            walletAuthorizationToken?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rain/cards/{cardId}/provisioning-data/wallet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Card-scoped Wallet authorization credential. */
+                    "x-wallet-provisioning-token": string;
+                };
+                path: {
+                    /** @description Peanut's internal card id. */
+                    cardId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        wallet: "apple" | "google";
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            billingAddress: {
+                                city: string;
+                                countryCode: string;
+                                line1: string;
+                                line2?: string;
+                                postalCode: string;
+                                region: string;
+                            };
+                            /** @description MeaWallet processor card id — the MPP SDK's `cardId`, unrelated to Peanut's card id in the path. */
+                            cardId: string;
+                            /** @description Short-lived MeaWallet provisioning secret. PAN-equivalent: never log or store. */
+                            cardSecret: string;
+                            cardholderName?: string;
+                            last4: string;
+                            network: string;
+                            walletAuthorizationExpiresIn?: number;
+                            walletAuthorizationToken?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rain/webhooks": {
         parameters: {
             query?: never;
@@ -8733,12 +9106,13 @@ export interface paths {
                     content: {
                         "application/json": {
                             attachmentUrl: string | null;
+                            bankFulfilment: "none" | "partial" | "paid";
                             bankInstructionsShared: boolean;
                             chainId: string | null;
                             createdAt: string;
-                            fulfilledByIntentId: string | null;
                             paidAt: string | null;
-                            receivedAmount: string | null;
+                            payerName?: string | null;
+                            receivedAmount?: string | null;
                             recipientAddress: string;
                             reference: string | null;
                             status: string;
@@ -8859,7 +9233,6 @@ export interface paths {
                             depositAccount: {
                                 country: string;
                                 currency: string;
-                                id: string;
                                 instructions?: {
                                     accountHolderName: string;
                                     accountNumber?: string;
@@ -8871,12 +9244,12 @@ export interface paths {
                                     brCode?: string;
                                     breBKey?: string;
                                     clabe?: string;
+                                    depositMessage?: string;
                                     iban?: string;
                                     paymentRails: string[];
                                     routingNumber?: string;
                                     sortCode?: string;
                                 };
-                                isPrimary: boolean;
                                 matching: {
                                     nameOnAccount: "user" | "provider";
                                     sender: "anyone" | "business-only" | "own-name-only" | "unknown";
@@ -8918,7 +9291,6 @@ export interface paths {
                                         };
                                     };
                                 };
-                                status: "provisioning" | "active" | "retiring" | "revoked";
                             };
                             paymentReference: string;
                         };
@@ -10024,6 +10396,7 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
+                        accountCategory?: string;
                         accountNumber: string;
                         accountOwnerName: {
                             businessName?: string;
@@ -10031,17 +10404,21 @@ export interface paths {
                             lastName?: string;
                         };
                         accountOwnerType: "individual" | "business";
-                        accountType: "iban" | "us" | "clabe" | "gb";
-                        address: {
+                        accountType: "iban" | "us" | "clabe" | "gb" | "co_bank_transfer";
+                        address?: {
                             city: string;
                             country: string;
                             postalCode: string;
                             state?: string;
                             street: string;
                         };
+                        bankCode?: string;
                         bic?: string;
                         countryCode: string;
                         countryName: string;
+                        documentNumber?: string;
+                        documentType?: string;
+                        phoneNumber?: string;
                         routingNumber?: string;
                         sortCode?: string;
                     };
