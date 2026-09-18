@@ -35,8 +35,7 @@ import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { useDepositAccountsEnabled } from '../useDepositAccountsEnabled'
 import { useDepositCountryRouting } from '../useDepositCountryRouting'
 import { useResidenceIso2s } from '../useResidenceIso2s'
-import { getFlagUrl } from '@/constants/countryCurrencyMapping'
-import Image from 'next/image'
+import { CorridorFlag } from './CorridorFlag'
 
 /** the crypto entry point, reached from this screen and from the home Add drawer */
 const CRYPTO_HREF = '/add-money/crypto'
@@ -422,23 +421,5 @@ export function DepositAccountsListScreen({
                 )}
             </div>
         </PageStack>
-    )
-}
-
-/**
- * ListItem leading for a corridor row. The list-item usage board
- * (17312:136171) lists a flag as a valid leading but no flag primitive exists,
- * so this mirrors the shipped `AddWithdrawCountriesList` leading: one 32px
- * round image, no overlay. Flagged in the PR, not invented.
- */
-function CorridorFlag({ iso2 }: { iso2: string }) {
-    return (
-        <Image
-            src={getFlagUrl(iso2)}
-            alt=""
-            width={32}
-            height={32}
-            className="size-8 shrink-0 rounded-round object-cover"
-        />
     )
 }

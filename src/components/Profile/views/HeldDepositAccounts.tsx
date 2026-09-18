@@ -5,6 +5,7 @@ import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Section } from '@/components/0_Bruddle/Section'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import { CorridorFlag } from '@/features/deposit-accounts/components/CorridorFlag'
 import { DEPOSIT_RAIL_ORDER, DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
 import { canShare, isHeld } from '@/features/deposit-accounts/resolveScreen'
 import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccounts'
@@ -40,6 +41,7 @@ function HeldAccounts() {
                         <ListItem
                             key={corridor}
                             title={`${DEPOSIT_RAILS[corridor].currency} · ${railName(corridor)}`}
+                            leading={<CorridorFlag iso2={DEPOSIT_RAILS[corridor].flagIso2} />}
                             trailing={
                                 canShare(accounts[corridor], gates[corridor]) ? (
                                     <StatusBadge status="completed" customText={t('list.badgeReady')} />
