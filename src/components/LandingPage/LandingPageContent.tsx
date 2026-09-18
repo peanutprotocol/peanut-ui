@@ -72,7 +72,6 @@ export function LandingPageContent({ locale }: { locale: Locale }) {
                 <LandingPageClient
                     heroConfig={heroConfig}
                     marqueeMessages={marqueeMessages}
-                    locale={locale}
                     strings={strings}
                     contentHrefs={contentHrefs}
                     problemSlot={<ProblemFold strings={strings} />}
