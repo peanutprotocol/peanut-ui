@@ -8,6 +8,23 @@
  * never short of what was asked.
  */
 
+import { STABLE_COINS } from '@/constants/general.consts'
+
+/**
+ * Whether a request's asked amount is a US-dollar figure the payer conversion
+ * can trust.
+ *
+ * The payer screen converts the request amount from dollars into the account's
+ * currency. That is only right when the request is denominated in dollars. A
+ * Peanut wallet request carries no token symbol and settles in USDC, so it is
+ * dollars; a request denominated in a non-USD token is not, and its amount must
+ * not be shown to a bank payer as though it were.
+ */
+export function isUsdPeggedRequest(tokenSymbol: string | null | undefined): boolean {
+    if (!tokenSymbol) return true
+    return STABLE_COINS.includes(tokenSymbol.toUpperCase())
+}
+
 /** how many decimals the currency is paid in; two where we cannot tell */
 export function minorUnitDigits(currency: string): number {
     try {

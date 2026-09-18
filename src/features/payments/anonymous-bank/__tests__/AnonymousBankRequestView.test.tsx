@@ -10,6 +10,11 @@ jest.mock('@/features/deposit-accounts/useRequestDepositInstructions', () => ({
     useRequestDepositInstructions: (...args: unknown[]) => useRequestDepositInstructions(...args),
 }))
 
+const useDepositAccountsEnabled = jest.fn()
+jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
+    useDepositAccountsEnabled: () => useDepositAccountsEnabled(),
+}))
+
 const getRequest = jest.fn()
 jest.mock('@/services/requests', () => ({
     requestsApi: { get: (...args: unknown[]) => getRequest(...args) },
@@ -48,7 +53,8 @@ const wrapper = ({ children }: { children: ReactNode }) => {
 
 beforeEach(() => {
     jest.clearAllMocks()
-    getRequest.mockResolvedValue({ uuid: 'req-1', tokenAmount: '250' })
+    getRequest.mockResolvedValue({ uuid: 'req-1', tokenAmount: '250', tokenSymbol: 'USDC' })
+    useDepositAccountsEnabled.mockReturnValue(true)
 })
 
 describe('AnonymousBankRequestView', () => {
@@ -82,5 +88,21 @@ describe('AnonymousBankRequestView', () => {
         fireEvent.click(await screen.findByText('Pay another way'))
 
         await waitFor(() => expect(screen.getByTestId('contribute-pot')).toBeInTheDocument())
+    })
+
+    it('does not read the deposit instructions while the feature flag is off', async () => {
+        useDepositAccountsEnabled.mockReturnValue(false)
+        useRequestDepositInstructions.mockReturnValue({
+            instructions: undefined,
+            isLoading: false,
+            isUnavailable: false,
+        })
+
+        render(<AnonymousBankRequestView requestId="req-1" />, { wrapper })
+
+        // The hook is called with enabled=false, so no request goes out; the page
+        // hands off to the normal flow.
+        await screen.findByTestId('contribute-pot')
+        expect(useRequestDepositInstructions).toHaveBeenCalledWith('req-1', false)
     })
 })

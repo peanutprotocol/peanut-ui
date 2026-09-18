@@ -69,7 +69,6 @@ export interface TRequestResponse {
      * Both are optional while the backend that returns them ships.
      */
     paidAt: string | null
-    fulfilledByIntentId: string | null
     receivedAmount: string | null
     bankFulfilment?: BankFulfilment
     payerName?: string | null

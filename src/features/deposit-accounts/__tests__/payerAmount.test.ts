@@ -1,4 +1,23 @@
-import { minorUnitDigits, payerAmount } from '../payerAmount'
+import { isUsdPeggedRequest, minorUnitDigits, payerAmount } from '../payerAmount'
+
+describe('isUsdPeggedRequest', () => {
+    // A Peanut wallet request carries no token symbol and settles in USDC.
+    it('treats a request with no token symbol as dollars', () => {
+        expect(isUsdPeggedRequest(null)).toBe(true)
+        expect(isUsdPeggedRequest(undefined)).toBe(true)
+    })
+
+    it('treats USD stablecoins as dollars, whatever the case', () => {
+        expect(isUsdPeggedRequest('USDC')).toBe(true)
+        expect(isUsdPeggedRequest('usdt')).toBe(true)
+    })
+
+    // A non-USD token amount must not be shown to a bank payer as dollars.
+    it('does not treat a non-USD token as dollars', () => {
+        expect(isUsdPeggedRequest('EURC')).toBe(false)
+        expect(isUsdPeggedRequest('ETH')).toBe(false)
+    })
+})
 
 describe('minorUnitDigits', () => {
     it('reads the decimals the currency is paid in', () => {

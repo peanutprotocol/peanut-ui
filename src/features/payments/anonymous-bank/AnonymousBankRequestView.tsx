@@ -7,6 +7,8 @@ import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import { ContributePotPageWrapper } from '@/features/payments/flows/contribute-pot/ContributePotPageWrapper'
 import { useRequestDepositInstructions } from '@/features/deposit-accounts/useRequestDepositInstructions'
+import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
+import { isUsdPeggedRequest } from '@/features/deposit-accounts/payerAmount'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { requestsApi } from '@/services/requests'
 import { useQuery } from '@tanstack/react-query'
@@ -34,11 +36,14 @@ export function AnonymousBankRequestView({ requestId }: { requestId: string }) {
     const onBack = useSafeBack('/home')
     const [showOtherWays, setShowOtherWays] = useState(false)
 
+    // Gate the deposit-instructions read on the launch flag: with the feature
+    // off, a signed-out visit must not hit an endpoint that only 404s.
+    const depositAccountsEnabled = useDepositAccountsEnabled()
     const {
         instructions,
         isLoading: isLoadingInstructions,
         isUnavailable,
-    } = useRequestDepositInstructions(requestId, true)
+    } = useRequestDepositInstructions(requestId, depositAccountsEnabled)
     // Only for the amount to send. The request read is public (optional auth),
     // so a signed-out payer gets the figure the request asks for.
     const requestQuery = useQuery({
@@ -68,7 +73,17 @@ export function AnonymousBankRequestView({ requestId }: { requestId: string }) {
             <NavHeader title={t('headers.pay')} onPrev={onBack} />
             <PageStack.Center className="gap-6">
                 <Section title={t('bankTransfer.title')}>
-                    <CurrencyBankOption instructions={instructions} usdAmount={requestQuery.data?.tokenAmount} />
+                    <CurrencyBankOption
+                        instructions={instructions}
+                        // Only a dollar-denominated request has an amount the payer
+                        // conversion can trust; otherwise show the details without a
+                        // wrongly-converted figure.
+                        usdAmount={
+                            isUsdPeggedRequest(requestQuery.data?.tokenSymbol)
+                                ? requestQuery.data?.tokenAmount
+                                : undefined
+                        }
+                    />
                 </Section>
                 <Button variant="transparent-dark" size="small" onClick={() => setShowOtherWays(true)}>
                     {t('bankTransfer.otherWays')}
