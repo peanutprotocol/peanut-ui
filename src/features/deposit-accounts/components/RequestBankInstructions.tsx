@@ -10,8 +10,19 @@ import { useFormatter, useTranslations } from 'next-intl'
 import { instructionRows } from '../instructionRows'
 import { minorUnitDigits, payerAmount } from '../payerAmount'
 import { corridorFromRailId } from '../rails'
+import type { SenderPolicy } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { DepositDetailsCard } from './DepositDetailsCard'
+
+/**
+ * The payer-facing warning for a corridor that does not take everyone's money.
+ * `anyone` needs none; `own-name-only` never reaches a payer (it is not
+ * shareable). Same rule the requester reads before sharing the link.
+ */
+const SENDER_NOTE_KEY: Partial<Record<SenderPolicy, string>> = {
+    'business-only': 'bankTransfer.senderBusinessOnly',
+    unknown: 'bankTransfer.senderUnknown',
+}
 
 /**
  * The requester's bank details, shown to the payer of one request.
@@ -52,9 +63,14 @@ export function RequestBankInstructions({
     const corridor = corridorFromRailId(account.railId)
     const toSend = payerAmount(usdAmount, currency, exchangeRate)
     const digits = minorUnitDigits(currency)
+    const senderNoteKey = SENDER_NOTE_KEY[account.matching.sender]
 
     return (
         <div className="flex flex-col gap-4">
+            {senderNoteKey && (
+                <Notification priority="attention">{t(senderNoteKey as Parameters<typeof t>[0])}</Notification>
+            )}
+
             <Section title={tDeposit('details.sectionTitle')}>
                 <DepositDetailsCard rows={rows} />
             </Section>
@@ -64,15 +80,19 @@ export function RequestBankInstructions({
                     <Card position="single" className="px-4 py-0">
                         <DataRow
                             label={t('bankTransfer.amountLabel')}
-                            value={t('bankTransfer.amountValue', {
+                            // Cross-currency amounts come from the client's indicative rate,
+                            // and no exact local amount is locked, so they are shown as an
+                            // estimate and never as a copyable exact figure. Only a
+                            // same-currency (USD) amount is exact and copyable.
+                            value={t(sameCurrency ? 'bankTransfer.amountValue' : 'bankTransfer.amountValueApprox', {
                                 amount: format.number(toSend, {
                                     minimumFractionDigits: digits,
                                     maximumFractionDigits: digits,
                                 }),
                                 currency,
                             })}
-                            allowCopy={true}
-                            copyValue={toSend.toFixed(digits)}
+                            allowCopy={sameCurrency}
+                            copyValue={sameCurrency ? toSend.toFixed(digits) : undefined}
                         />
                     </Card>
                     <p className="text-body-s text-foreground-secondary">

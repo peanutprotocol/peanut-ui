@@ -1215,8 +1215,11 @@
             "unavailable": "Bank transfer is not available for this request.",
             "amountLabel": "Amount to send",
             "amountValue": "{amount} {currency}",
-            "amountNote": "At today’s rate. Send this amount and the request is marked paid.",
-            "amountNoteSameCurrency": "Send this amount and the request is marked paid."
+            "amountValueApprox": "≈ {amount} {currency}",
+            "amountNote": "Estimated at today’s rate. Your bank may convert at a different rate, so the exact amount can change.",
+            "amountNoteSameCurrency": "Send this amount and the request is marked paid.",
+            "senderBusinessOnly": "Only a business account can pay this. A transfer from a personal account is returned.",
+            "senderUnknown": "This account has not confirmed it accepts payments from other people, so your transfer may be returned."
         }
     },
     "claim": {
