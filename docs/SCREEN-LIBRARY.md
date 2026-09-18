@@ -86,12 +86,13 @@ Browser Rendering possible without changing the collection API.
 
 Required repository variables are `SCREEN_LIBRARY_COLLECTION_API_URL`,
 `SCREEN_LIBRARY_ACCESS_AUD`, and `SCREEN_LIBRARY_MCP_URL`; the two URL variables
-are custom HTTPS origins and the audience is the expected Cloudflare Access
-application audience for both control-plane Workers. Both generated Workers set
-`workers_dev = false` and disable preview URLs. Configure Cloudflare Access with
-Google and an `@peanut.me` allow rule for the collection origin and the MCP
-origin. Configure the MCP Access application as the OAuth provider for remote
-MCP clients.
+are either custom HTTPS origins or the Workers' configured `workers.dev`
+origins, and the audience is the expected Cloudflare Access application audience
+for both control-plane Workers. Custom-domain deployments set
+`workers_dev = false`; `workers.dev` deployments omit custom routes. Both modes
+disable preview URLs. Configure Cloudflare Access with Google and an
+`@peanut.me` allow rule for the collection origin and the MCP origin. Configure
+the MCP Access application as the OAuth provider for remote MCP clients.
 
 Two Worker secrets are configured once, outside GitHub logs:
 
