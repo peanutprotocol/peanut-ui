@@ -4,13 +4,11 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
-import HeldDepositAccounts from './HeldDepositAccounts'
+import AccountsList from './AccountsList'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { DataRow } from '@/components/0_Bruddle/DataRow'
-import Card from '@/components/Global/Card'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
@@ -32,8 +30,8 @@ import { LIMITS } from '@/constants/query.consts'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useLimits } from '@/hooks/useLimits'
-import ProgressBar from '@/components/0_Bruddle/ProgressBar'
-import { getCurrencySymbol, getLimitColorClass, getLimitData } from '@/features/limits/utils'
+import { limitSummariesForRows, MethodLimits, type RowLimitSummary } from './MethodLimits'
+import { rowStatusBadge, isRowTappable, BUBBLE_COLOR } from './RowStatusBadge'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
@@ -43,16 +41,9 @@ import posthog from 'posthog-js'
 import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { type RailCapability } from '@/types/capabilities'
-import type { MantecaLimit, BridgeLimits } from '@/interfaces/interfaces'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useAuth } from '@/context/authContext'
-import {
-    buildUnlockGroups,
-    type BankRegionChip,
-    type UnlockChip,
-    type UnlockGroup,
-    type UnlockRow,
-} from '@/utils/unlock-payments.utils'
+import { buildUnlockGroups, type BankRegionChip, type UnlockGroup, type UnlockRow } from '@/utils/unlock-payments.utils'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { readDeclaredResidence, readSecondResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 import { countryData } from '@/components/AddMoney/consts'
@@ -79,59 +70,6 @@ function getModalVariant(rail: RailCapability | undefined, hasSumsubAction: bool
         default:
             return 'start'
     }
-}
-
-/** Legacy bank-transfer limits do not apply to reusable deposit accounts. */
-type RowLimitSummary =
-    | { kind: 'manteca'; asset: string; remaining: string; limit: string; usedPercent: number }
-    | { kind: 'bridge'; direction: 'deposit' | 'withdrawal'; perTransaction: string }
-
-// Whole-unit cap with locale grouping ($100,000, not $100000): the shared
-// formatter only abbreviates from seven digits and never groups.
-function formatCap(amount: number, currency: string, locale: string): string {
-    const symbol = getCurrencySymbol(currency)
-    const separator = symbol.length > 1 && symbol === symbol.toUpperCase() ? ' ' : ''
-    return `${symbol}${separator}${new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(amount)}`
-}
-
-function limitSummariesForRows(
-    rows: readonly UnlockRow[],
-    mantecaLimits: MantecaLimit[] | null,
-    bridgeLimits: BridgeLimits | null,
-    locale: string
-): RowLimitSummary[] {
-    const refs = new Set(rows.filter((row) => row.chip === 'active').flatMap((row) => row.limitRefs ?? []))
-    const summaries: RowLimitSummary[] = []
-    for (const ref of refs) {
-        if (ref === 'bridge') {
-            for (const [direction, rawCap] of [
-                ['deposit', bridgeLimits?.onRampPerTransaction],
-                ['withdrawal', bridgeLimits?.offRampPerTransaction],
-            ] as const) {
-                const cap = Number(rawCap)
-                if (bridgeLimits && Number.isFinite(cap) && cap > 0) {
-                    summaries.push({
-                        kind: 'bridge',
-                        direction,
-                        perTransaction: formatCap(cap, bridgeLimits.asset || 'USD', locale),
-                    })
-                }
-            }
-            continue
-        }
-        const limit = mantecaLimits?.find((l) => l.asset === ref)
-        if (limit) {
-            const monthly = getLimitData(limit, 'monthly')
-            summaries.push({
-                kind: 'manteca',
-                asset: ref,
-                remaining: formatCap(monthly.remaining, ref, locale),
-                limit: formatCap(monthly.limit, ref, locale),
-                usedPercent: monthly.limit > 0 ? (monthly.remaining / monthly.limit) * 100 : 0,
-            })
-        }
-    }
-    return summaries
 }
 
 type BankRegionPath = 'europe' | 'north-america' | 'latam'
@@ -459,11 +397,6 @@ const UnlockPayments = () => {
             {/* Pending Bridge verification tasks (ToS / hosted re-verification). */}
             <PendingVerificationTasks />
 
-            {/* Held bank accounts lead the payment content: a user who already
-                holds accounts sees them before the region list (or the empty
-                state), so the page reads as their accounts first. */}
-            <HeldDepositAccounts />
-
             {groups.length === 0 && (
                 <EmptyState
                     title={tRegions('empty.title')}
@@ -472,15 +405,28 @@ const UnlockPayments = () => {
                 />
             )}
 
-            {groups.map((group) => (
-                <UnlockSection
-                    key={group.id}
-                    group={group}
+            {/* Currency-first merge (2026-09-18): every receiving corridor —
+                held VA accounts and the KYC-unlock bank/QR rows alike — in one
+                "Your accounts" list, flag-led, region headers dropped. The
+                first group is always "everywhere" (buildUnlockGroups), and its
+                own-region-first sort survives into the flattened row order. */}
+            <AccountsList
+                bankRows={groups.slice(1).flatMap((group) => group.rows)}
+                onRowClick={handleRowClick}
+                isKycDegraded={isKycDegraded}
+                mantecaLimits={mantecaLimits}
+                bridgeLimits={bridgeLimits}
+                locale={locale}
+            />
+
+            {groups[0] && (
+                <PeanutSection
+                    group={groups[0]}
                     onRowClick={handleRowClick}
                     isKycDegraded={isKycDegraded}
-                    limitSummaries={limitSummariesForRows(group.rows, mantecaLimits, bridgeLimits, locale)}
+                    limitSummaries={limitSummariesForRows(groups[0].rows, mantecaLimits, bridgeLimits, locale)}
                 />
-            ))}
+            )}
 
             {showBankRestrictionNote && (
                 <p className="text-body-xs text-foreground-secondary">{t('bankNotAvailableNote')}</p>
@@ -674,8 +620,8 @@ const UnlockPayments = () => {
                             </div>
 
                             {/* What you can do: the same Section + ListGroup +
-                                ListItem row vocabulary UnlockSection uses on the
-                                page, with a green check to read as a capability. */}
+                                ListItem row vocabulary the page's own row lists
+                                use, with a green check to read as a capability. */}
                             <Section title={t('detailsDrawer.aboutTitle')}>
                                 <ListGroup>
                                     <ListItem
@@ -715,19 +661,14 @@ function regionGroupKey(path: 'europe' | 'north-america' | 'latam'): 'europe' | 
     return 'southAmerica'
 }
 
-type IconBubbleColor = NonNullable<React.ComponentProps<typeof IconBubble>['color']>
-
-const BUBBLE_COLOR: Record<UnlockChip, IconBubbleColor> = {
-    active: 'green',
-    alwaysOn: 'green',
-    unlock: 'blue',
-    processing: 'blue',
-    attention: 'yellow',
-    notAvailable: 'gray',
-}
-
-/** Keep each region's limits beside the methods they govern. */
-const UnlockSection = ({
+/**
+ * The "Peanut" group only now (2026-09-18 currency-first merge): P2P + card,
+ * always-on Peanut-native ways to pay, kept apart from the "Your accounts"
+ * list of receiving corridors. The region bank/QR rows moved to
+ * `AccountsList`, alongside the held VA rows, so this component only ever
+ * renders `groups[0]` (id `everywhere`).
+ */
+const PeanutSection = ({
     group,
     onRowClick,
     isKycDegraded,
@@ -740,50 +681,11 @@ const UnlockSection = ({
 }) => {
     const t = useTranslations('profile.unlockPayments')
 
-    const rowTrailing = (row: UnlockRow) => {
-        switch (row.chip) {
-            case 'active':
-            case 'alwaysOn':
-                return <StatusBadge status="completed" customText={t(`chips.${row.chip}`)} />
-            case 'processing':
-                return <StatusBadge status="processing" customText={t('chips.processing')} />
-            case 'attention':
-                return <StatusBadge status="pending" customText={t('chips.attention')} />
-            case 'notAvailable':
-                if (row.labelKey === 'card') {
-                    return (
-                        <StatusBadge
-                            status="custom"
-                            customText={t('chips.notAvailable')}
-                            className="bg-background-badge-helper"
-                        />
-                    )
-                }
-                return <span className="text-body-s text-foreground-secondary">{t('chips.notAvailable')}</span>
-            case 'unlock':
-                return <span className="text-body-s text-foreground-secondary">{t('chips.unlock')}</span>
-        }
-    }
-
     return (
-        <Section
-            title={
-                <span className="flex items-center gap-2">
-                    {t(`groups.${group.labelKey}`)}
-                    {group.isYourRegion && <StatusBadge status="custom" customText={t('yourRegion')} />}
-                </span>
-            }
-        >
+        <Section title={t(`groups.${group.labelKey}`)}>
             <ListGroup>
                 {group.rows.map((row) => {
-                    // During a verification outage the unlock path is closed (the tap
-                    // guard would no-op), so render those rows inert instead of
-                    // letting them look actionable under the degraded banner.
-                    const tappable =
-                        !!row.href ||
-                        row.chip === 'active' ||
-                        row.chip === 'alwaysOn' ||
-                        (!!row.regionPath && !isKycDegraded)
+                    const tappable = isRowTappable(row, isKycDegraded)
                     return (
                         <ListItem
                             key={row.id}
@@ -791,78 +693,14 @@ const UnlockSection = ({
                             disabled={row.chip === 'notAvailable'}
                             leading={<IconBubble icon={row.icon as IconName} size="s" color={BUBBLE_COLOR[row.chip]} />}
                             title={<span className="break-words whitespace-normal">{t(`rows.${row.labelKey}`)}</span>}
-                            trailing={rowTrailing(row)}
+                            trailing={rowStatusBadge(row, t)}
                             chevron={tappable}
                             onClick={tappable ? () => onRowClick(row) : undefined}
                         />
                     )
                 })}
             </ListGroup>
-            <MethodLimits noLimit={group.id === 'everywhere'} summaries={limitSummaries} />
+            <MethodLimits noLimit summaries={limitSummaries} />
         </Section>
-    )
-}
-
-function MethodLimits({ noLimit, summaries }: { noLimit: boolean; summaries: RowLimitSummary[] }) {
-    const t = useTranslations('profile.unlockPayments')
-    if (!noLimit && summaries.length === 0) return null
-
-    // A monthly limit needs the label + used-bar shape (ListItem body + ProgressBar);
-    // a per-transfer bank cap is a plain labelled value, so it reads as a receipt row.
-    const mantecaSummaries = summaries.filter(
-        (s): s is Extract<RowLimitSummary, { kind: 'manteca' }> => s.kind === 'manteca'
-    )
-    const bridgeSummaries = summaries.filter(
-        (s): s is Extract<RowLimitSummary, { kind: 'bridge' }> => s.kind === 'bridge'
-    )
-
-    return (
-        <>
-            {(noLimit || mantecaSummaries.length > 0) && (
-                <ListGroup>
-                    {noLimit && <ListItem title={t('limits.p2pNoLimit')} />}
-                    {mantecaSummaries.map((summary) => (
-                        <ListItem
-                            key={summary.asset}
-                            title={summary.asset}
-                            body={
-                                <div className="flex flex-col gap-2">
-                                    <span>
-                                        {t('limits.monthlyLeft', {
-                                            remaining: summary.remaining,
-                                            limit: summary.limit,
-                                        })}
-                                    </span>
-                                    <ProgressBar
-                                        value={summary.usedPercent}
-                                        fillClassName={getLimitColorClass(summary.usedPercent, 'bg')}
-                                    />
-                                </div>
-                            }
-                            bodyWrap
-                        />
-                    ))}
-                </ListGroup>
-            )}
-            {/* Per-transfer bank caps are labelled values: the DS DataRow-in-Card
-                receipt recipe (same as DepositDetailsCard) — label left, value right —
-                replaces the hand-rolled ListItem title/trailing pair. The card owns the
-                dashed dividers; DataRow draws no border of its own. */}
-            {bridgeSummaries.length > 0 && (
-                <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">
-                    {bridgeSummaries.map((summary) => (
-                        <DataRow
-                            key={summary.direction}
-                            label={t(
-                                summary.direction === 'deposit'
-                                    ? 'limits.depositPerTransfer'
-                                    : 'limits.withdrawalPerTransfer'
-                            )}
-                            value={summary.perTransaction}
-                        />
-                    ))}
-                </Card>
-            )}
-        </>
     )
 }

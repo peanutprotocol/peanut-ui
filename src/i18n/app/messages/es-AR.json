@@ -167,7 +167,7 @@
             },
             "yourRegion": "Tu región",
             "groups": {
-                "everywhere": "En todas partes",
+                "everywhere": "Peanut",
                 "southAmerica": "América del Sur",
                 "northAmerica": "América del Norte",
                 "europe": "Europa"
@@ -234,7 +234,7 @@
                 "short": "Los intentos de verificación están limitados temporalmente. Volvé a intentarlo en un rato.",
                 "dismiss": "Lo intentaré más tarde"
             },
-            "accountsTitle": "Tus cuentas bancarias",
+            "accountsTitle": "Tus cuentas",
             "accountsSubtitle": "Números de cuenta que podés compartir para recibir dinero en Peanut.",
             "details": {
                 "p2p": "Mandá y recibí plata de otros usuarios de Peanut.",
@@ -630,7 +630,8 @@
         },
         "bankDetailsAlternative": "Compartí los datos de tu cuenta bancaria",
         "bankInstructions": {
-            "description": "Compartí tus datos bancarios con quien abra este enlace.",
+            "title": "Compartí los datos de tu cuenta bancaria",
+            "description": "Cualquier persona que abra este enlace ve tus datos bancarios y tu nombre completo.",
             "unknownPays": "Una transferencia de alguien que no seas vos no está confirmada en esta cuenta y puede devolverse."
         }
     },

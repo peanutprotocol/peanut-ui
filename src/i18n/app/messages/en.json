@@ -350,7 +350,7 @@
             },
             "yourRegion": "Your region",
             "groups": {
-                "everywhere": "Everywhere",
+                "everywhere": "Peanut",
                 "southAmerica": "South America",
                 "northAmerica": "North America",
                 "europe": "Europe"
@@ -417,7 +417,7 @@
                 "short": "Verification attempts are temporarily limited. Please try again in a little while.",
                 "dismiss": "I'll try later"
             },
-            "accountsTitle": "Your bank accounts",
+            "accountsTitle": "Your accounts",
             "accountsSubtitle": "Account numbers you can share to receive money into Peanut.",
             "details": {
                 "p2p": "Send and receive money with other Peanut users.",
@@ -1079,9 +1079,9 @@
         },
         "bankDetailsAlternative": "Share your bank account details",
         "bankInstructions": {
-            "title": "Let them pay by bank transfer",
-            "description": "Share your bank details with whoever opens this link.",
-            "anyonePays": "Anyone can pay this by bank transfer.",
+            "title": "Share your bank account details",
+            "description": "Anyone who opens this link sees your bank details and full name.",
+            "anyonePays": "They can then pay you by bank transfer.",
             "businessPays": "Only businesses can pay this by bank transfer. A friend's transfer is returned.",
             "unknownPays": "A transfer from anyone but you is not confirmed on this account, and it may be returned."
         },

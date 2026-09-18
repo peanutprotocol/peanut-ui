@@ -45,6 +45,14 @@ export interface UnlockRow {
      * A merged row (one unlock covering two countries) carries several.
      */
     limitRefs?: readonly ('BRL' | 'ARS' | 'bridge')[]
+    /**
+     * Currency-first accounts list (2026-09-18): the flag(s) that replace the
+     * generic qr-code/bank icon as this row's leading glyph. Two entries for a
+     * row whose one unlock covers two countries (naBank, the unsplit saBank) —
+     * every other bank/QR row carries exactly one. Absent on `p2p`/`card`,
+     * which stay in the separate "Peanut" group with their existing icons.
+     */
+    flags?: readonly string[]
 }
 
 export interface UnlockGroup {
@@ -72,6 +80,19 @@ export interface BuildUnlockGroupsInput {
 
 const CARD_ROW_BASE = { id: 'card', labelKey: 'card', icon: 'credit-card' } as const
 
+/** Leading flag(s) per row — see `UnlockRow.flags`. `p2p`/`card` carry none (the Peanut group keeps its icons). */
+const ROW_FLAGS: Partial<Record<UnlockRowLabelKey, readonly string[]>> = {
+    saBank: ['br', 'ar'],
+    pixBank: ['br'],
+    pixQr: ['br'],
+    brBank: ['br'],
+    arQrBank: ['ar'],
+    arQr: ['ar'],
+    arBank: ['ar'],
+    naBank: ['us', 'mx'],
+    sepa: ['eu'],
+}
+
 export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] {
     const { regionChips, qrOnly, restrictions, card, residenceIso2, secondResidenceIso2, isEuropeResidence } = input
     const residences = new Set([residenceIso2, secondResidenceIso2].filter(Boolean) as string[])
@@ -91,6 +112,7 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
             icon,
             chip,
             limitRefs,
+            flags: ROW_FLAGS[labelKey],
             // active and unavailable rows are facts, not actions
             ...(chip === 'active' || chip === 'notAvailable' ? {} : { regionPath }),
         }
@@ -134,6 +156,7 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
                                         icon: 'qr-code',
                                         chip: bankChip('active'),
                                         limitRefs: ['BRL'],
+                                        flags: ROW_FLAGS.pixQr,
                                     } as UnlockRow,
                                     bankRow('br-bank', 'brBank', 'bank', 'latam', ['BRL']),
                                 ]
@@ -146,6 +169,7 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
                                         icon: 'qr-code',
                                         chip: bankChip('active'),
                                         limitRefs: ['ARS'],
+                                        flags: ROW_FLAGS.arQr,
                                     } as UnlockRow,
                                     bankRow('ar-bank', 'arBank', 'bank', 'latam', ['ARS']),
                                 ]
@@ -174,4 +198,22 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
     const [everywhere, ...rest] = groups
     rest.sort((a, b) => Number(b.isYourRegion) - Number(a.isYourRegion))
     return [everywhere, ...rest]
+}
+
+/**
+ * The bank/QR rows that survive the currency-first "Your accounts" merge
+ * (2026-09-18), once a held VA account already covers the same corridor.
+ *
+ * Scoped to the two rows that map 1:1 onto a single VA product: `sepa`
+ * (Europe/EUR) and `naBank` (North America, one Bridge unlock behind both
+ * USD and MXN). Brazil/Argentina are deliberately left alone — the Manteca
+ * PIX/QR rows are a distinct product from any Bridge BRL/ARS VA, not a
+ * duplicate of it, so both may legitimately show at once.
+ */
+export function dedupeHeldBankRows(rows: readonly UnlockRow[], heldCurrencies: ReadonlySet<string>): UnlockRow[] {
+    return rows.filter((row) => {
+        if (row.labelKey === 'sepa') return !heldCurrencies.has('EUR')
+        if (row.labelKey === 'naBank') return !heldCurrencies.has('USD') && !heldCurrencies.has('MXN')
+        return true
+    })
 }

@@ -96,7 +96,7 @@ describe('BankInstructionsToggle', () => {
 
             renderToggle()
 
-            expect(screen.getByText(/Anyone can pay this by bank transfer\./)).toBeInTheDocument()
+            expect(screen.getByText(/They can then pay you by bank transfer\./)).toBeInTheDocument()
         })
 
         // A friend's transfer into a business-only corridor comes back to them.
@@ -137,6 +137,6 @@ describe('BankInstructionsToggle', () => {
 
         renderToggle()
 
-        expect(screen.getByText(/Anyone can pay this by bank transfer\./)).toBeInTheDocument()
+        expect(screen.getByText(/They can then pay you by bank transfer\./)).toBeInTheDocument()
     })
 })
