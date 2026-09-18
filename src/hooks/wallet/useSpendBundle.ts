@@ -19,6 +19,7 @@ import { tryMixedEphemeralSpend } from './mixedEphemeralSpend'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useGrantSessionKey } from './useGrantSessionKey'
+import { useRainControllerRepair } from './useRainControllerRepair'
 import { usdcUnitsToRainCents, isRainBalanceKnown } from '@/utils/balance.utils'
 import { useModalsContextOptional } from '@/context/ModalsContext'
 import { isDemoMode } from '@/utils/demo'
@@ -115,6 +116,7 @@ export const useSpendBundle = () => {
     const { user } = useAuth()
     const { overview } = useRainCardOverview()
     const { grant } = useGrantSessionKey()
+    const repairRainController = useRainControllerRepair()
     // Optional — overlay is UI polish, not correctness. If ModalsProvider
     // isn't mounted (isolated component tests, future Storybook stories,
     // etc.), the toggle silently no-ops instead of throwing and blocking
@@ -182,6 +184,10 @@ export const useSpendBundle = () => {
             // may cancel this draft — not even a later ceremony rejection on
             // the fallback attempt: the earlier broadcast may have landed.
             let ambiguousBroadcast = false
+            // The crossed-but-failed Rain attempt itself, retained ONLY so a
+            // later user cancellation of the passkey fallback can't hide it
+            // from the controller-cache repair below.
+            let crossedRainFailure: Error | undefined
             try {
                 // Shared collateral pre-flights (root-validator migration gate +
                 // session-key grant) — ONE ordered sequence for both spend
@@ -331,7 +337,10 @@ export const useSpendBundle = () => {
                     // forever — the fallback passkey attempt reuses the SAME
                     // prep (only one can execute on-chain), so the draft must
                     // never be cancelled after this point.
-                    if (!attempt.ok && ephemeralCrossed) ambiguousBroadcast = true
+                    if (!attempt.ok && ephemeralCrossed) {
+                        ambiguousBroadcast = true
+                        crossedRainFailure = new Error(attempt.reason)
+                    }
                     if (attempt.ok) {
                         /*
                          * Stamp only a real transaction hash. With the receipt
@@ -456,6 +465,11 @@ export const useSpendBundle = () => {
                 if (livePreparationId && !ambiguousBroadcast && (!broadcastAttempted || ceremonyRejection)) {
                     void rainApi.cancelPreparation(livePreparationId)
                 }
+                // This engine broadcasts the mixed UserOp itself, so the backend
+                // never sees the failure. Judge repair on the earlier crossed
+                // Rain attempt when there was one — the final error may be a
+                // cancellation of the fallback. Cache-only, nothing re-sent.
+                void repairRainController({ strategy, error: crossedRainFailure ?? e })
                 const errorKind =
                     e instanceof SessionKeyGrantRequiredError
                         ? `session-key:${e.cause.kind}`
@@ -477,6 +491,7 @@ export const useSpendBundle = () => {
             user,
             overview,
             grant,
+            repairRainController,
             modals,
             queryClient,
         ]

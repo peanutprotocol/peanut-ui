@@ -19,6 +19,7 @@ import { useModalsContextOptional } from '@/context/ModalsContext'
 import { rainApi, type RainCollateralKind } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useGrantSessionKey } from './useGrantSessionKey'
+import { useRainControllerRepair } from './useRainControllerRepair'
 import { useSignUserOp, type SignedUserOpData } from './useSignUserOp'
 import {
     InsufficientSpendableError,
@@ -113,6 +114,7 @@ export const useSignSpendBundle = () => {
     const { signCallsUserOp } = useSignUserOp()
     const { overview } = useRainCardOverview()
     const { grant } = useGrantSessionKey()
+    const repairRainController = useRainControllerRepair()
     const queryClient = useQueryClient()
 
     const signSpendInner = useCallback(
@@ -367,6 +369,10 @@ export const useSignSpendBundle = () => {
                 // Rain signature could still execute, and the TTL sweep is the
                 // guaranteed cleanup either way (TASK-21815).
                 if (livePreparationId) void rainApi.cancelPreparation(livePreparationId)
+                // A Rain leg that died client-side may have been built on a
+                // controller the backend cached before Rain rotated it.
+                // Cache-only: nothing is re-signed and the error below stands.
+                void repairRainController({ strategy, error: e })
                 posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED, {
                     strategy,
                     kind,
@@ -386,6 +392,7 @@ export const useSignSpendBundle = () => {
             signCallsUserOp,
             overview,
             grant,
+            repairRainController,
             queryClient,
         ]
     )

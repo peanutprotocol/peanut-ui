@@ -28,10 +28,12 @@ export interface RainCardApplicationStatus {
     /** Collateral proxy address. */
     contractAddress?: string
     /** Rain Coordinator (controller) contract — target of `withdrawAsset`.
-     *  Resolved LIVE by the backend on every overview read; Rain rotates it
-     *  on a controller upgrade, so never pin a grant to a cached copy — the
-     *  grant hook refetches the overview first. Absent when the live read
-     *  failed (UI gates on presence; the grant then reports `no-contracts`). */
+     *  Served from the backend's validated cache (repaired by
+     *  `refreshControllerAddress` after a failed Rain operation), not a live
+     *  Rain read per request. Rain rotates it on a controller upgrade, so never
+     *  pin a grant to a client-side copy — the grant hook refetches the overview
+     *  first. Absent when the backend has none (UI gates on presence; the grant
+     *  then reports `no-contracts`). */
     coordinatorAddress?: string
 }
 
@@ -61,10 +63,11 @@ export interface RainCardSummary {
     issuedAt: string
     /** Whether the user has granted the one-time session-key permission
      *  used to submit collateral withdrawals with a single passkey tap — AND
-     *  it still targets the live coordinator. After a Rain controller upgrade
-     *  the backend reports `false` for grants pinned to the old controller, so
-     *  the existing prompts (EnableAutoBalanceBanner, the collateral-only
-     *  spend preflight) drive a re-grant without any new UI. */
+     *  it still targets the coordinator the backend has on record. After a Rain
+     *  controller upgrade the backend reports `false` for grants pinned to the
+     *  old controller, so the existing prompts (EnableAutoBalanceBanner, the
+     *  collateral-only spend preflight) drive a re-grant without any new UI —
+     *  a fresh address can NOT retarget an already-signed CallPolicy grant. */
     hasWithdrawApproval: boolean
 }
 
@@ -160,6 +163,12 @@ export interface SubmitRainWithdrawalInput {
 
 export interface SubmitRainWithdrawalResponse {
     txHash: string
+}
+
+/** `changed` is true only when the stored controller actually moved. */
+export interface RefreshRainControllerResponse {
+    coordinatorAddress: string
+    changed: boolean
 }
 
 // ─── Funds-recovery types ────────────────────────────────────────────────────
@@ -304,7 +313,8 @@ export class StaleCardApprovalError extends Error {
  *  Gate the branch on it so an unrelated 409 elsewhere stays a generic error. */
 const RAIN_WITHDRAW_SUBMIT_PATH = '/rain/cards/withdraw/submit'
 /** The grant store refuses (400 STALE_CARD_APPROVAL) an approval that does not
- *  target the live coordinator. Typed so the grant surfaces "try again" copy,
+ *  target the coordinator the backend has on record. Typed so the grant
+ *  surfaces "try again" copy,
  *  but NO re-enable event: the caller IS the re-enable flow, and re-dispatching
  *  from inside it would reopen the modal on top of itself. */
 const RAIN_SESSION_APPROVE_PATH = '/rain/cards/withdraw/session-approve'
@@ -560,6 +570,20 @@ export const rainApi = {
             path: '/rain/cards/withdraw/submit',
             body: input,
             timeoutMs: 120_000,
+        })
+    },
+
+    /**
+     * Ask the backend to re-read Rain's contracts and re-persist the cached
+     * controller. Cache-only (no signing, no money, no grant), rate-limited to
+     * 10/min — so call it on a FAILED Rain leg only, never on success.
+     */
+    refreshControllerAddress: async (): Promise<RefreshRainControllerResponse> => {
+        return rainRequest<RefreshRainControllerResponse>({
+            method: 'POST',
+            path: '/rain/cards/controller/refresh',
+            // Always send an object — see cancelCard on the empty-body rule.
+            body: {},
         })
     },
 

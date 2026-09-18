@@ -11,7 +11,7 @@
  *     with the response lost); the backend's probe-verified TTL sweep owns
  *     cleanup.
  */
-import { renderHook, act } from '@testing-library/react'
+import { renderHook, act, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { useSpendBundle } from '../useSpendBundle'
@@ -55,7 +55,13 @@ jest.mock('@/app/actions/clients', () => ({ peanutPublicClient: {} }))
 jest.mock('./../mixedEphemeralSpend', () => ({ tryMixedEphemeralSpend: jest.fn() }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 jest.mock('@/services/rain', () => ({
-    rainApi: { prepareWithdrawal: jest.fn(), cancelPreparation: jest.fn(), submitWithdrawal: jest.fn() },
+    rainApi: {
+        prepareWithdrawal: jest.fn(),
+        cancelPreparation: jest.fn(),
+        submitWithdrawal: jest.fn(),
+        stampWithdrawal: jest.fn(),
+        refreshControllerAddress: jest.fn(),
+    },
 }))
 jest.mock('../spendPreflight', () => ({
     ...jest.requireActual('../spendPreflight'),
@@ -68,6 +74,7 @@ const mockPreflight = runCollateralSpendPreflight as jest.Mock
 const mockPrepareWithdrawal = rainApi.prepareWithdrawal as jest.Mock
 const mockSubmitWithdrawal = rainApi.submitWithdrawal as jest.Mock
 const mockCancelPreparation = rainApi.cancelPreparation as jest.Mock
+const mockRefreshController = rainApi.refreshControllerAddress as jest.Mock
 
 const PREP = {
     preparationId: 'prep-1',
@@ -102,6 +109,8 @@ beforeEach(() => {
     mockPrepareWithdrawal.mockResolvedValue(PREP)
     mockSignTypedData.mockResolvedValue('0xadminsig')
     mockSubmitWithdrawal.mockResolvedValue({ txHash: '0x' + 'a'.repeat(64) })
+    mockRefreshController.mockResolvedValue({ coordinatorAddress: PREP.coordinatorAddress, changed: false })
+    ;(rainApi.stampWithdrawal as jest.Mock).mockResolvedValue(undefined)
 })
 
 function spendInput(overrides: Record<string, unknown> = {}) {
@@ -201,6 +210,122 @@ describe('useSpendBundle — draft back-out boundaries', () => {
                 await expect(result.current.spend(spendInput())).rejects.toThrow('ceremony dismissed')
             })
             expect(mockCancelPreparation).not.toHaveBeenCalled()
+            // ...and the cancellation must not hide the Rain failure that
+            // preceded it from the controller-cache repair.
+            expect(mockRefreshController).toHaveBeenCalledTimes(1)
+        })
+    })
+})
+
+/**
+ * Controller-cache repair (TASK-22734). The backend serves the Rain controller
+ * from its own cache, so a rotation only shows up when something built against
+ * the stale address fails — and the mixed/ephemeral UserOps this engine
+ * broadcasts CLIENT-side are exactly the failures the backend never sees.
+ * Repair is cache-only: one call, no resubmission, original error untouched.
+ */
+describe('useSpendBundle — cached-controller repair', () => {
+    it('a successful spend never asks for a refresh', async () => {
+        const { result } = renderHook(() => useSpendBundle(), { wrapper })
+        await act(async () => {
+            await result.current.spend(spendInput())
+        })
+        expect(mockRefreshController).not.toHaveBeenCalled()
+    })
+
+    it('a wallet-only (smart-only) failure never asks for a refresh — no Rain leg was involved', async () => {
+        mockResolveSpendStrategy.mockResolvedValue({ strategy: 'smart-only', smartBalance: 200_000_000n })
+        mockHandleSendUserOpEncoded.mockRejectedValueOnce(new Error('bundler 502'))
+        const { result } = renderHook(() => useSpendBundle(), { wrapper })
+        await act(async () => {
+            await expect(result.current.spend(spendInput())).rejects.toThrow('bundler 502')
+        })
+        expect(mockRefreshController).not.toHaveBeenCalled()
+    })
+
+    it('a failed Rain leg repairs the cache exactly once and still throws the original error', async () => {
+        mockSubmitWithdrawal.mockRejectedValueOnce(new Error('gateway timeout'))
+        const { result } = renderHook(() => useSpendBundle(), { wrapper })
+        await act(async () => {
+            await expect(result.current.spend(spendInput())).rejects.toThrow('gateway timeout')
+        })
+        expect(mockRefreshController).toHaveBeenCalledTimes(1)
+    })
+
+    it('a refresh failure does not mask the original failure', async () => {
+        mockSubmitWithdrawal.mockRejectedValueOnce(new Error('gateway timeout'))
+        mockRefreshController.mockRejectedValueOnce(new Error('provider lookup failed'))
+        const { result } = renderHook(() => useSpendBundle(), { wrapper })
+        await act(async () => {
+            await expect(result.current.spend(spendInput())).rejects.toThrow('gateway timeout')
+        })
+        expect(mockRefreshController).toHaveBeenCalledTimes(1)
+    })
+
+    it('a changed address refreshes the displayed overview; an unchanged one leaves it alone', async () => {
+        const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries')
+        mockSubmitWithdrawal.mockRejectedValue(new Error('gateway timeout'))
+        const { result } = renderHook(() => useSpendBundle(), { wrapper })
+        await act(async () => {
+            await expect(result.current.spend(spendInput())).rejects.toThrow('gateway timeout')
+        })
+        expect(invalidateSpy).not.toHaveBeenCalledWith({ queryKey: ['rain-card-overview'] })
+
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: `0x${'e'.repeat(40)}`, changed: true })
+        await act(async () => {
+            await expect(result.current.spend(spendInput())).rejects.toThrow('gateway timeout')
+        })
+        await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['rain-card-overview'] }))
+    })
+
+    describe('mixed path', () => {
+        beforeEach(() => {
+            mockAccounts.splice(0, mockAccounts.length, { type: 'peanut-wallet', identifier: ACCOUNT })
+            mockResolveSpendStrategy.mockResolvedValue({ strategy: 'mixed', smartBalance: 50_000_000n })
+            mockPrepareWithdrawal.mockResolvedValue({ ...PREP, directTransfer: false })
+        })
+        afterEach(() => mockAccounts.splice(0, mockAccounts.length))
+
+        it('an ambiguous broadcast timeout repairs the cache WITHOUT a second submission', async () => {
+            // The client broadcast and then lost the answer: funds may have
+            // moved. Repairing the cache is safe; re-preparing or re-sending is
+            // not, and must not happen.
+            mockHandleSendUserOpEncoded.mockImplementationOnce(async (_calls, _chain, opts) => {
+                opts?.onBroadcastAttempt?.()
+                throw new Error('timeout waiting for receipt')
+            })
+            const { result } = renderHook(() => useSpendBundle(), { wrapper })
+            await act(async () => {
+                await expect(result.current.spend(spendInput())).rejects.toThrow('timeout waiting for receipt')
+            })
+            expect(mockRefreshController).toHaveBeenCalledTimes(1)
+            expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
+            expect(mockHandleSendUserOpEncoded).toHaveBeenCalledTimes(1)
+            expect(tryMixedEphemeralSpend).toHaveBeenCalledTimes(1)
+            expect(mockSubmitWithdrawal).not.toHaveBeenCalled()
+        })
+
+        it('a dismissed passkey prompt does not spend the provider-repair budget', async () => {
+            mockHandleSendUserOpEncoded.mockImplementationOnce(async () => {
+                const err = new Error('ceremony dismissed')
+                err.name = 'NotAllowedError'
+                throw err
+            })
+            const { result } = renderHook(() => useSpendBundle(), { wrapper })
+            await act(async () => {
+                await expect(result.current.spend(spendInput())).rejects.toThrow('ceremony dismissed')
+            })
+            expect(mockRefreshController).not.toHaveBeenCalled()
+        })
+
+        it('the one-tap attempt falling back to a SUCCESSFUL passkey spend asks for no refresh', async () => {
+            ;(tryMixedEphemeralSpend as jest.Mock).mockResolvedValueOnce({ ok: false, reason: 'no session key' })
+            mockHandleSendUserOpEncoded.mockResolvedValueOnce({ userOpHash: '0xuserop', receipt: null })
+            const { result } = renderHook(() => useSpendBundle(), { wrapper })
+            await act(async () => {
+                await result.current.spend(spendInput())
+            })
+            expect(mockRefreshController).not.toHaveBeenCalled()
         })
     })
 })

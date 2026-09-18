@@ -207,8 +207,8 @@ describe('useGrantSessionKey — the call policy pins the LIVE coordinator (TASK
     const NEW_COORDINATOR = '0x00000000000000000000000000000000000000ee'
 
     it('A→B: builds the withdrawAsset permission for the coordinator the FRESH overview reports, not the cached one', async () => {
-        // Cached overview still says A (pre-upgrade); the refetch — which the
-        // backend resolves live from Rain — now says B.
+        // Client-cached overview still says A (pre-upgrade); the refetch reads
+        // the backend's own (repaired) metadata, which now says B.
         mockFreshOverview = {
             status: { contractAddress: COLLATERAL_PROXY, coordinatorAddress: NEW_COORDINATOR },
             cards: [{ id: 'card-1', status: 'ACTIVE' }],
@@ -244,7 +244,7 @@ describe('useGrantSessionKey — the call policy pins the LIVE coordinator (TASK
         expect(mockSubmitWithdrawSessionApproval).not.toHaveBeenCalled()
     })
 
-    it('reports no-contracts when the fresh overview has no coordinator (live read failed backend-side)', async () => {
+    it('reports no-contracts when the fresh overview has no coordinator (backend has none cached)', async () => {
         mockFreshOverview = {
             status: { contractAddress: COLLATERAL_PROXY },
             cards: [{ id: 'card-1', status: 'ACTIVE' }],

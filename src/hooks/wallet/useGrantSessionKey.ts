@@ -7,8 +7,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { findActiveCard } from '@/components/Card/cardState.utils'
-import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
-import { useQueryClient } from '@tanstack/react-query'
+import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { rainCoordinatorAbi } from '@/constants/rain.consts'
 import { toPermissionValidator } from '@zerodev/permissions'
@@ -102,7 +101,6 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
     const { overview, refetch } = useRainCardOverview()
     const { ensureClientForChain, getPatchedSudoValidator, rebuildClientForChain } = useKernelClient()
     const { handleSendUserOpEncoded } = useZeroDev()
-    const queryClient = useQueryClient()
     const [isGranting, setIsGranting] = useState(false)
     const [lastError, setLastError] = useState<GrantSessionKeyError | null>(null)
 
@@ -112,10 +110,10 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
      * proxy + coordinator addresses (available once Rain has approved KYC).
      *
      * The coordinator is read from a FRESH overview fetch, never the cached
-     * one: the backend resolves it live from Rain on every overview read, and
-     * Rain rotates it on a controller upgrade (TASK-22734). A grant pinned to
-     * a stale coordinator is dead on arrival — the backend refuses to store
-     * it (400 STALE_CARD_APPROVAL) and every collateral spend would 409.
+     * one: it surfaces the latest SERVER metadata, which a failed Rain
+     * operation repairs after Rain rotates the controller (TASK-22734). A grant
+     * pinned to a stale coordinator is dead on arrival — the backend refuses to
+     * store it (400 STALE_CARD_APPROVAL) and every collateral spend would 409.
      */
     const runSerialize = useCallback(async (): Promise<
         { ok: true; serialized: string } | { ok: false; error: GrantSessionKeyError }
@@ -392,14 +390,15 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
             // Flip the `hasWithdrawApproval` flag in UI by refetching overview.
             // refetch() resolves (never throws) with an error state on network
             // failure — surface that so the caller can tell "flag is stale"
-            // apart from "flag genuinely didn't flip".
+            // apart from "flag genuinely didn't flip". No invalidateQueries
+            // after it: awaiting the shared query's own refetch already gives
+            // every observer the post-grant data.
             const refetchResult = await refetch()
-            queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
             return { ok: true as const, value: refetchResult.isSuccess }
         })
         if (result.ok) return { ok: true, overviewFresh: result.value === true }
         return result
-    }, [wrap, runSerialize, overview, refetch, queryClient])
+    }, [wrap, runSerialize, overview, refetch])
 
     return { grant, serializeGrant, isGranting, lastError }
 }

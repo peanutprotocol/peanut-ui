@@ -80,7 +80,9 @@ jest.mock('../useGrantSessionKey', () => ({ useGrantSessionKey: () => ({ grant: 
 const mockSignCallsUserOp = jest.fn(async () => ({ signedUserOp: { signature: '0xpasskey' } }))
 jest.mock('../useSignUserOp', () => ({ useSignUserOp: () => ({ signCallsUserOp: mockSignCallsUserOp }) }))
 jest.mock('@/utils/rainWithdraw.utils', () => ({ buildRainWithdrawTypedData: jest.fn(() => ({})) }))
-jest.mock('@/services/rain', () => ({ rainApi: { prepareWithdrawal: jest.fn(), cancelPreparation: jest.fn() } }))
+jest.mock('@/services/rain', () => ({
+    rainApi: { prepareWithdrawal: jest.fn(), cancelPreparation: jest.fn(), refreshControllerAddress: jest.fn() },
+}))
 // Keep the real InsufficientSpendableError class (instanceof must hold);
 // mock only the two engine entry points.
 jest.mock('../spendPreflight', () => ({
@@ -92,6 +94,7 @@ jest.mock('../spendPreflight', () => ({
 const mockResolveSpendStrategy = resolveSpendStrategy as jest.Mock
 const mockPreflight = runCollateralSpendPreflight as jest.Mock
 const mockPrepareWithdrawal = rainApi.prepareWithdrawal as jest.Mock
+const mockRefreshController = rainApi.refreshControllerAddress as jest.Mock
 const mockCapture = posthog.capture as jest.Mock
 
 const PREP = {
@@ -123,6 +126,7 @@ beforeEach(() => {
     mockPreflight.mockImplementation(async ({ kernelClient }) => kernelClient)
     mockPrepareWithdrawal.mockResolvedValue(PREP)
     mockSignTypedData.mockResolvedValue('0xadminsig')
+    mockRefreshController.mockResolvedValue({ coordinatorAddress: PREP.coordinatorAddress, changed: false })
 })
 
 describe('useSignSpendBundle — forceStrategy: collateral-only', () => {
@@ -200,6 +204,45 @@ describe('useSignSpendBundle — forceStrategy: collateral-only', () => {
             ).rejects.toThrow('ceremony dismissed')
         })
         expect(mockCancelPreparation).toHaveBeenCalledWith('prep-1')
+    })
+})
+
+describe('useSignSpendBundle — cached-controller repair (TASK-22734)', () => {
+    function signCollateralOnly() {
+        const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
+        return act(async () =>
+            result.current
+                .signSpend({
+                    requiredUsdcAmount: 150_000_000n,
+                    recipient: RECIPIENT,
+                    rainSpendingPower: 200_000_000n,
+                    kind: 'FIAT_OFFRAMP',
+                    forceStrategy: 'collateral-only',
+                })
+                .catch((e: Error) => e)
+        )
+    }
+
+    it('signing a Rain leg successfully asks for no refresh', async () => {
+        await signCollateralOnly()
+        expect(mockRefreshController).not.toHaveBeenCalled()
+    })
+
+    it('a failed Rain leg repairs the cache once and surfaces the original error', async () => {
+        mockPrepareWithdrawal.mockRejectedValueOnce(new Error('rain prepare 502'))
+        const error = (await signCollateralOnly()) as unknown as Error
+        expect(error.message).toBe('rain prepare 502')
+        expect(mockRefreshController).toHaveBeenCalledTimes(1)
+        // Cache-only: the failed order/preparation is never retried from here.
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
+    })
+
+    it('a dismissed passkey prompt is not treated as evidence of a stale controller', async () => {
+        const cancelled = new Error('ceremony dismissed')
+        cancelled.name = 'NotAllowedError'
+        mockSignTypedData.mockRejectedValueOnce(cancelled)
+        await signCollateralOnly()
+        expect(mockRefreshController).not.toHaveBeenCalled()
     })
 })
 

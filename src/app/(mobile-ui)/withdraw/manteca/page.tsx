@@ -8,6 +8,7 @@ import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
+import { useRainControllerRepair } from '@/hooks/wallet/useRainControllerRepair'
 import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
 import { friendlyError } from '@/utils/friendly-error.utils'
@@ -167,6 +168,7 @@ function MantecaBankWithdrawFlow() {
     const router = useRouter()
     const { spendableBalance: balance, formattedSpendableBalance } = useWallet()
     const { signSpend } = useSignSpendBundle()
+    const repairRainController = useRainControllerRepair()
     const handleStaleSession = useStaleSessionGuard()
     const { overview: rainCardOverview } = useRainCardOverview()
     const { isLoading, loadingState, setLoadingState } = useContext(loadingStateContext)
@@ -574,39 +576,44 @@ function MantecaBankWithdrawFlow() {
             // Manteca order FIRST, then either broadcasts the signed UserOp
             // (smart-only / mixed) or submits the Rain withdrawal via the
             // user's session-key UserOp (collateral-only). No stuck funds.
-            const result = await submitSignedSpend(signedArtifact, () =>
-                mantecaApi.withdrawWithSignedTx(
-                    signedArtifact.strategy === 'collateral-only'
-                        ? {
-                              kind: 'rainWithdrawal' as const,
-                              priceLockCode: priceLock.priceLockCode,
-                              amount: usdAmount,
-                              destinationAddress: destinationAddress.toLowerCase(),
-                              bankCode: selectedBank?.code,
-                              accountType: accountType ?? undefined,
-                              currency: currencyCode,
-                              signedRainWithdrawal: signedArtifact.rainWithdrawal,
-                              chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                          }
-                        : {
-                              kind: 'userOp' as const,
-                              priceLockCode: priceLock.priceLockCode,
-                              amount: usdAmount,
-                              destinationAddress: destinationAddress.toLowerCase(),
-                              bankCode: selectedBank?.code,
-                              accountType: accountType ?? undefined,
-                              currency: currencyCode,
-                              signedUserOp: signedArtifact.signedUserOp.signedUserOp,
-                              chainId: signedArtifact.signedUserOp.chainId,
-                              entryPointAddress: signedArtifact.signedUserOp.entryPointAddress,
-                              // For mixed: tell backend about the Rain prepare intent
-                              // embedded in the UserOp's batched callData so it can
-                              // reconcile the collateral webhook to OFFRAMP in history.
-                              ...(signedArtifact.strategy === 'mixed'
-                                  ? { rainPreparationId: signedArtifact.rainPreparationId }
-                                  : {}),
-                          }
-                )
+            const result = await submitSignedSpend(
+                signedArtifact,
+                () =>
+                    mantecaApi.withdrawWithSignedTx(
+                        signedArtifact.strategy === 'collateral-only'
+                            ? {
+                                  kind: 'rainWithdrawal' as const,
+                                  priceLockCode: priceLock.priceLockCode,
+                                  amount: usdAmount,
+                                  destinationAddress: destinationAddress.toLowerCase(),
+                                  bankCode: selectedBank?.code,
+                                  accountType: accountType ?? undefined,
+                                  currency: currencyCode,
+                                  signedRainWithdrawal: signedArtifact.rainWithdrawal,
+                                  chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                              }
+                            : {
+                                  kind: 'userOp' as const,
+                                  priceLockCode: priceLock.priceLockCode,
+                                  amount: usdAmount,
+                                  destinationAddress: destinationAddress.toLowerCase(),
+                                  bankCode: selectedBank?.code,
+                                  accountType: accountType ?? undefined,
+                                  currency: currencyCode,
+                                  signedUserOp: signedArtifact.signedUserOp.signedUserOp,
+                                  chainId: signedArtifact.signedUserOp.chainId,
+                                  entryPointAddress: signedArtifact.signedUserOp.entryPointAddress,
+                                  // For mixed: tell backend about the Rain prepare intent
+                                  // embedded in the UserOp's batched callData so it can
+                                  // reconcile the collateral webhook to OFFRAMP in history.
+                                  ...(signedArtifact.strategy === 'mixed'
+                                      ? { rainPreparationId: signedArtifact.rainPreparationId }
+                                      : {}),
+                              }
+                    ),
+                // A Rain leg that failed after signing may have been built on a
+                // stale cached controller — repair the cache, retry nothing.
+                (failure) => void repairRainController({ strategy: signedArtifact.strategy, error: failure })
             )
 
             if (result.error) {

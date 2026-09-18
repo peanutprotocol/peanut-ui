@@ -18,6 +18,7 @@ import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
+import { useRainControllerRepair } from '@/hooks/wallet/useRainControllerRepair'
 import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
 import { friendlyError } from '@/utils/friendly-error.utils'
@@ -91,6 +92,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
 
     const { spendableBalance: balance } = useWallet()
     const { signSpend } = useSignSpendBundle()
+    const repairRainController = useRainControllerRepair()
     const handleStaleSession = useStaleSessionGuard()
     const { overview: rainCardOverview } = useRainCardOverview()
     const { user } = useAuth()
@@ -606,8 +608,12 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                               ? { rainPreparationId: signedArtifact.rainPreparationId }
                               : {}),
                       } as const)
-            const qrPaymentResponse = await submitSignedSpend(signedArtifact, () =>
-                mantecaApi.completeQrPaymentWithSignedTx(requestBody)
+            const qrPaymentResponse = await submitSignedSpend(
+                signedArtifact,
+                () => mantecaApi.completeQrPaymentWithSignedTx(requestBody),
+                // A Rain leg that failed after signing may have been built on a
+                // stale cached controller — repair the cache, retry nothing.
+                (failure) => void repairRainController({ strategy: signedArtifact.strategy, error: failure })
             )
             // clear the timer since we got a response
             if (payingStateTimerRef.current) {
@@ -678,6 +684,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         tErrors,
         paymentLock,
         signSpend,
+        repairRainController,
         rainCardOverview,
         qrCode,
         currencyAmount,

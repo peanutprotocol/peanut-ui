@@ -96,6 +96,37 @@ describe('rainApi.submitWithdrawal — stale card approval', () => {
         expect(err.message).toBe('Invalid approval — could not deserialize')
     })
 
+    /**
+     * The cache-repair endpoint (TASK-22734) must stay inert UI-wise: it can
+     * be called from any failed Rain leg, so it must never be the thing that
+     * pops the global re-enable modal.
+     */
+    it('refreshControllerAddress posts an empty body and returns the cache state', async () => {
+        mockFetchWithSentry.mockResolvedValue(jsonResponse(200, { coordinatorAddress: '0xnew', changed: true }))
+
+        await expect(rainApi.refreshControllerAddress()).resolves.toEqual({
+            coordinatorAddress: '0xnew',
+            changed: true,
+        })
+        const [url, init] = mockFetchWithSentry.mock.calls[0]
+        expect(url).toContain('/rain/cards/controller/refresh')
+        expect(init).toMatchObject({ method: 'POST', body: '{}' })
+    })
+
+    it('a failing refresh is a plain error and fires NO re-enable event', async () => {
+        mockFetchWithSentry.mockResolvedValue(jsonResponse(502, { error: 'Rain contracts unavailable' }))
+        const onEvent = jest.fn()
+        window.addEventListener(RAIN_STALE_APPROVAL_EVENT, onEvent)
+
+        const err = await rainApi.refreshControllerAddress().catch((e) => e)
+        expect(err).toBeInstanceOf(Error)
+        expect(err).not.toBeInstanceOf(StaleCardApprovalError)
+        expect(err.message).toBe('Rain contracts unavailable')
+        expect(onEvent).not.toHaveBeenCalled()
+
+        window.removeEventListener(RAIN_STALE_APPROVAL_EVENT, onEvent)
+    })
+
     it('a non-409 failure is unchanged (generic Error, no event)', async () => {
         mockFetchWithSentry.mockResolvedValue(jsonResponse(500, { error: 'boom' }))
         const onEvent = jest.fn()
