@@ -29,11 +29,13 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[]; erro
     // reads as a success (`typedCampaignOnly`). Both are expected outcomes of a
     // typed code, surfaced inline to the user — not server bugs.
     { pattern: /\/invites\/validate/, statuses: [400, 409] },
-    // Public exchange rates are fetched by every mounted rate hook and are
-    // deliberately rate-limited upstream. A 429 is the quota doing its job; the
-    // UI keeps the last rate and retries. peanut-api already reports the
-    // upstream cause, so reporting here just multiplies one fault by the hooks.
-    { pattern: /\/bridge\/exchange-rate/, statuses: [429] },
+    // NOT here on purpose: /bridge/exchange-rate 429. It looks like ordinary
+    // quota noise and is not. useGetExchangeRate swallows the failure and
+    // returns a rate of '1', which bankWithdrawMinUsd turns into a wrong
+    // withdrawal minimum (MX shows $50 instead of ~$3) with nothing gating
+    // submission — so this 429 is the only alert for a wrong number on a money
+    // screen, and for the open FX-stampede P2 behind it. It reports until the
+    // keyed single-flight fix in no-cache.ts lands.
     // /tokens/price 404 means the upstream price provider declined the lookup —
     // in practice a Mobula 429. The UI falls back to token denomination, so it is
     // a degraded display, never a wrong number. The backend already downgraded

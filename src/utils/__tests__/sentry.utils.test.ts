@@ -87,17 +87,12 @@ describe('fetchWithSentry — expected-response suppression', () => {
         expect(Sentry.captureMessage).not.toHaveBeenCalled()
     })
 
-    it('does NOT report /bridge/exchange-rate 429 (the upstream quota doing its job)', async () => {
-        global.fetch = jest.fn().mockResolvedValue(mockResponse(429, { error: 'RATE_LIMITED' }))
-
-        const res = await fetchWithSentry('https://api.peanut.me/bridge/exchange-rate?accountType=iban')
-
-        expect(res.status).toBe(429)
-        expect(Sentry.captureMessage).not.toHaveBeenCalled()
-    })
-
-    it('still reports /bridge/exchange-rate 500', async () => {
-        global.fetch = jest.fn().mockResolvedValue(mockResponse(500, { error: 'boom' }))
+    // Deliberately NOT skipped: useGetExchangeRate swallows the failure into a
+    // rate of '1', which bankWithdrawMinUsd turns into a wrong withdrawal
+    // minimum. This 429 is the alert for that, and for the FX stampede behind
+    // it. Do not add a skip rule without fixing the fallback first.
+    it.each([429, 500])('still reports /bridge/exchange-rate %i', async (status) => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(status, { error: 'RATE_LIMITED' }))
 
         await fetchWithSentry('https://api.peanut.me/bridge/exchange-rate?accountType=iban')
 
