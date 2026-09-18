@@ -29,7 +29,6 @@ const HomeCarouselCTA = () => {
                     secondaryIcon={cta.secondaryIcon}
                     iconSize={16}
                     logoSize={cta.logoSize}
-                    isPerkClaim={cta.isPerkClaim}
                 />
             ))}
         </Carousel>

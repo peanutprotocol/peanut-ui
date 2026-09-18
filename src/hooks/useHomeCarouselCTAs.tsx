@@ -50,8 +50,6 @@ export type CarouselCTA = {
     iconContainerClassName?: string
     secondaryIcon?: StaticImageData | string
     iconSize?: number
-    // perk claim indicator - shows pink dot instead of X close button
-    isPerkClaim?: boolean
 }
 
 /** Read dismissals from preferences, dropping any whose cooldown has expired.
