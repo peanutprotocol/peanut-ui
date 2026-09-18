@@ -20,3 +20,15 @@ export function inferSentryEnvironment(): string {
     }
     return 'development'
 }
+
+/**
+ * The environments we pay Sentry for. Every build reports into the same
+ * project, so ad-hoc PR previews and local builds were billed alongside
+ * production and mixed into its issues — 2,649 error + 1,374 warning events
+ * from `preview` in 30 days, plus 336 from `development`, that nobody reads.
+ */
+const REPORTING_ENVIRONMENTS = new Set(['production', 'native', 'staging'])
+
+export function isSentryReportingEnvironment(): boolean {
+    return REPORTING_ENVIRONMENTS.has(inferSentryEnvironment())
+}

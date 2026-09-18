@@ -16,7 +16,7 @@ jest.mock('posthog-js', () => ({
 
 type SentryMock = { init: jest.Mock; getClient: jest.Mock }
 
-const ENV_KEYS = ['NEXT_PUBLIC_CAPACITOR_BUILD', 'NEXT_PUBLIC_PERF_BARE'] as const
+const ENV_KEYS = ['NEXT_PUBLIC_CAPACITOR_BUILD', 'NEXT_PUBLIC_PERF_BARE', 'NEXT_PUBLIC_VERCEL_ENV'] as const
 const savedEnv: Partial<Record<(typeof ENV_KEYS)[number], string | undefined>> = {}
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
@@ -53,8 +53,18 @@ describe('initSentry', () => {
         expect(Sentry.init).not.toHaveBeenCalled()
     })
 
+    it('never inits on a PR preview — those events are billed and nobody reads them', async () => {
+        const { initSentry, Sentry } = load({ NEXT_PUBLIC_VERCEL_ENV: 'preview' })
+        Sentry.getClient.mockReturnValue(undefined)
+
+        initSentry()
+        await flush()
+
+        expect(Sentry.init).not.toHaveBeenCalled()
+    })
+
     it('inits exactly once on web, however many times it is called', async () => {
-        const { initSentry, Sentry } = load({})
+        const { initSentry, Sentry } = load({ NEXT_PUBLIC_VERCEL_ENV: 'production' })
         Sentry.getClient.mockReturnValue(undefined)
 
         initSentry()
@@ -68,7 +78,7 @@ describe('initSentry', () => {
     })
 
     it('leaves an existing client alone', async () => {
-        const { initSentry, Sentry } = load({})
+        const { initSentry, Sentry } = load({ NEXT_PUBLIC_VERCEL_ENV: 'production' })
         Sentry.getClient.mockReturnValue({})
 
         initSentry()

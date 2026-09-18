@@ -5,22 +5,28 @@
 import * as Sentry from '@sentry/nextjs'
 
 import { beforeSendRouteAwareHandler, beforeSendRouteAwareTransaction } from './sentry.utils'
-import { inferSentryEnvironment } from '@/utils/sentry-env'
+import { inferSentryEnvironment, isSentryReportingEnvironment } from '@/utils/sentry-env'
 
-if (process.env.NODE_ENV !== 'development') {
+// Skipped outside production / staging / native: an ad-hoc PR preview reported
+// into the same project as production, where nobody triaged it.
+if (isSentryReportingEnvironment()) {
     Sentry.init({
         dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
         environment: inferSentryEnvironment(),
         enabled: true,
-        tracesSampleRate: 1,
+        // Matches the client. Full server tracing bought no insight nobody
+        // could get from 10% of it, and every span is a billed event.
+        tracesSampleRate: 0.1,
         debug: false,
 
         beforeSend: beforeSendRouteAwareHandler,
         beforeSendTransaction: beforeSendRouteAwareTransaction,
 
         integrations: [
+            // `error` only — a console.warn costs the same as an exception, and
+            // the warn-level output of this app is handled conditions, not defects.
             Sentry.captureConsoleIntegration({
-                levels: ['error', 'warn'],
+                levels: ['error'],
             }),
         ],
 
