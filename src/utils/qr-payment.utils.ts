@@ -66,7 +66,8 @@ export function qrInitIdempotencyKey(input: {
      *  Stable per recovery event, so that quote's own retries still replay. */
     replacement?: string
 }): string {
-    const canonical = [input.timestamp ?? '', input.qrCode, input.amount ?? '', input.replacement ?? ''].join('\u0000')
+    const base = [input.timestamp ?? '', input.qrCode, input.amount ?? ''].join('\u0000')
+    const canonical = input.replacement === undefined ? base : `${base}\u0000${input.replacement}`
     // Two independently seeded 64-bit halves; the separator is a byte that
     // cannot appear in any of the fields, so adjacent values can never blur.
     return `${fnv1a64(canonical)}${fnv1a64(`${canonical.length}\u0000${canonical}`)}`
