@@ -256,11 +256,11 @@
             "sendToFriends": "Send to friends",
             "sendToFriendsDescription": "Link, Contacts, Bank, Crypto",
             "withdrawToOwnAccounts": "Withdraw to own accounts",
-            "withdrawToOwnAccountsDescription": "Bank, Mercado, Crypto",
+            "withdrawToOwnAccountsDescription": "Euro, Dollars, crypto and more",
             "shareRequestLink": "Share a request link",
-            "shareRequestLinkDescription": "Ask one person for an amount",
+            "shareRequestLinkDescription": "Request an amount with a shareable link",
             "shareBankDetails": "Share bank details",
-            "shareBankDetailsDescription": "Get paid straight to your account"
+            "shareBankDetailsDescription": "Get paid through your EUR, USD and other virtual accounts"
         }
     },
     "profile": {
@@ -358,6 +358,7 @@
             "rows": {
                 "p2p": "Peanut-to-Peanut payments",
                 "card": "Peanut card",
+                "crypto": "Crypto",
                 "saBank": "PIX (Brazil), QR & bank transfers (Argentina)",
                 "pixBank": "PIX payments & transfers (Brazil)",
                 "pixQr": "PIX QR payments (Brazil)",
@@ -407,7 +408,7 @@
             },
             "limits": {
                 "monthlyLeft": "{remaining} of {limit} left this month",
-                "p2pNoLimit": "No limits on Peanut-to-Peanut payments",
+                "p2pNoLimit": "No limits or KYC required for Peanut-to-Peanut payments or crypto",
                 "depositPerTransfer": "Per bank deposit",
                 "withdrawalPerTransfer": "Per bank withdrawal"
             },
@@ -421,6 +422,7 @@
             "accountsSubtitle": "Account numbers you can share to receive money into Peanut.",
             "details": {
                 "p2p": "Send and receive money with other Peanut users.",
+                "crypto": "Add or withdraw crypto from any wallet or exchange — no verification required.",
                 "saBank": "Pay by QR and transfer money through bank accounts in Brazil and Argentina.",
                 "pixBank": "Pay Pix QR codes and transfer money through Brazilian bank accounts.",
                 "pixQr": "Pay Pix QR codes in Brazil.",
@@ -435,6 +437,7 @@
             "valueProp": {
                 "p2p": "Split bills and pay friends in one tap.",
                 "card": "Spend your Peanut balance in the real world.",
+                "crypto": "Send and receive on-chain, no bank needed.",
                 "saBank": "Bank like a local across Brazil and Argentina.",
                 "pixBank": "Move money across Brazil the instant way.",
                 "pixQr": "Scan, pay, done — anywhere Pix works.",
@@ -1077,13 +1080,14 @@
             "goToHome": "Go to home",
             "createWallet": "Create your Peanut Wallet"
         },
-        "bankDetailsAlternative": "Share your bank account details",
         "bankInstructions": {
             "title": "Share your bank account details",
             "description": "Anyone who opens this link sees your bank details and full name.",
             "anyonePays": "They can then pay you by bank transfer.",
             "businessPays": "Only businesses can pay this by bank transfer. A friend's transfer is returned.",
-            "unknownPays": "A transfer from anyone but you is not confirmed on this account, and it may be returned."
+            "unknownPays": "A transfer from anyone but you is not confirmed on this account, and it may be returned.",
+            "titleOff": "Don't share bank account details",
+            "descriptionOff": "You won't share your account details; only Peanut and crypto ways to pay."
         },
         "paidByBank": {
             "rowLabel": "Bank transfer",
@@ -3467,11 +3471,12 @@
             "copied": "Copied"
         },
         "peanutActionCard": {
-            "requestTitle": "Request money from friends",
-            "requestDescription": "They don't need an account to pay",
+            "requestTitle": "Request money",
+            "requestDescription": "For friends, your employer, or anyone in the world",
             "sendTitle": "Create a payment link",
             "sendDescription": "Anyone with the link can receive the money",
-            "perfectToDm": "Perfect to DM friends!"
+            "perfectToDm": "Perfect to DM friends!",
+            "requestPerfectToShare": "Perfect to send via DM or WhatsApp!"
         },
         "peanutActionDetailsCard": {
             "sendingTo": "You're sending {recipient}",

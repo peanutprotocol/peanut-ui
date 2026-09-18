@@ -175,6 +175,7 @@
             "rows": {
                 "p2p": "Pagos de Peanut a Peanut",
                 "card": "Tarjeta Peanut",
+                "crypto": "Cripto",
                 "saBank": "PIX (Brasil), QR y transferencias bancarias (Argentina)",
                 "pixBank": "Pagos y transferencias PIX (Brasil)",
                 "pixQr": "Pagos QR con PIX (Brasil)",
@@ -224,7 +225,7 @@
             },
             "limits": {
                 "monthlyLeft": "Te quedan {remaining} de {limit} este mes",
-                "p2pNoLimit": "Los pagos de Peanut a Peanut no tienen límite",
+                "p2pNoLimit": "Los pagos de Peanut a Peanut y las cripto no tienen límite ni requieren verificación",
                 "depositPerTransfer": "Por depósito bancario",
                 "withdrawalPerTransfer": "Por retiro bancario"
             },
@@ -238,6 +239,7 @@
             "accountsSubtitle": "Números de cuenta que podés compartir para recibir dinero en Peanut.",
             "details": {
                 "p2p": "Mandá y recibí plata de otros usuarios de Peanut.",
+                "crypto": "Agregá o retirá cripto desde cualquier billetera o exchange, sin verificación.",
                 "saBank": "Pagá con QR y transferí plata a través de cuentas bancarias en Brasil y Argentina.",
                 "pixBank": "Pagá códigos QR Pix y transferí plata a través de cuentas bancarias brasileñas.",
                 "pixQr": "Pagá códigos QR Pix en Brasil.",
@@ -252,6 +254,7 @@
             "valueProp": {
                 "p2p": "Dividí cuentas y pagá a tus amigos en un toque.",
                 "card": "Usá tu saldo de Peanut en el mundo real.",
+                "crypto": "Enviá y recibí on-chain, sin necesidad de banco.",
                 "saBank": "Manejá tu plata como local en Brasil y Argentina.",
                 "pixBank": "Mové plata por Brasil al instante.",
                 "pixQr": "Escaneá, pagá y listo, donde funcione Pix.",
@@ -628,7 +631,6 @@
             "missingRecipientMessage": "No se incluyó un nombre de usuario en la URL. Revisá el enlace e intentalo de nuevo.",
             "createWallet": "Creá tu Peanut Wallet"
         },
-        "bankDetailsAlternative": "Compartí los datos de tu cuenta bancaria",
         "bankInstructions": {
             "title": "Compartí los datos de tu cuenta bancaria",
             "description": "Cualquier persona que abra este enlace ve tus datos bancarios y tu nombre completo.",
@@ -1561,7 +1563,7 @@
             "description": "No se detectó conexión a internet. Revisá la configuración de tu red e intentalo de nuevo."
         },
         "peanutActionCard": {
-            "requestTitle": "Pedí dinero a tus amigos",
+            "requestTitle": "Pedí dinero",
             "sendTitle": "Creá un enlace de pago"
         },
         "createAccountButton": {
