@@ -61,9 +61,7 @@ export function CurrencyBankOption({
                     <DrawerHeader>
                         <DrawerTitle className="text-start">{title}</DrawerTitle>
                     </DrawerHeader>
-                    <div className="max-h-[70vh] overflow-auto">
-                        <RequestBankInstructions instructions={instructions} usdAmount={usdAmount} />
-                    </div>
+                    <RequestBankInstructions instructions={instructions} usdAmount={usdAmount} />
                 </DrawerContent>
             </Drawer>
         </>

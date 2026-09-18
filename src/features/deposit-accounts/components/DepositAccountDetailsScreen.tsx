@@ -64,10 +64,10 @@ export function DepositAccountDetailsScreen({
                              * to a button that loops.
                              */
                             <div className="flex w-full flex-col gap-2">
-                                <Button variant="purple" size="small" onClick={onContactSupport}>
+                                <Button variant="purple" className="w-full" onClick={onContactSupport}>
                                     {t('details.revokedCta')}
                                 </Button>
-                                <Button variant="transparent" size="small" onClick={onBack}>
+                                <Button variant="stroke" className="w-full" onClick={onBack}>
                                     {t('details.unavailableCta')}
                                 </Button>
                             </div>
@@ -95,7 +95,7 @@ export function DepositAccountDetailsScreen({
                     <Button variant="purple" className="w-full" onClick={onRetry}>
                         {t('details.timedOutRetry')}
                     </Button>
-                    <Button variant="transparent" className="w-full" onClick={onBack}>
+                    <Button variant="stroke" className="w-full" onClick={onBack}>
                         {t('details.unavailableCta')}
                     </Button>
                 </PageStack.Center>

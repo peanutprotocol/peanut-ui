@@ -85,7 +85,7 @@ export function AnonymousBankRequestView({ requestId }: { requestId: string }) {
                         }
                     />
                 </Section>
-                <Button variant="transparent-dark" size="small" onClick={() => setShowOtherWays(true)}>
+                <Button variant="transparent" size="small" onClick={() => setShowOtherWays(true)}>
                     {t('bankTransfer.otherWays')}
                 </Button>
             </PageStack.Center>
