@@ -94,13 +94,19 @@ jest.mock('@/components/AddMoney/consts', () => ({
 // `setCapabilities` lets each test pick the gate kind + the rail set so we can
 // reproduce the exact bug fixture: ready gate + a pending sibling rail.
 const mockUseCapabilities = jest.fn()
+// captures the operation the screen asks the gate for, so a test can assert the
+// withdraw flow requests the 'withdraw' capability and the add flow 'deposit'.
+const mockGateForOp = jest.fn()
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => mockUseCapabilities(),
 }))
 function setCapabilities(gateKind: string, rails: Array<{ status: string; channel?: string; country?: string }>) {
     mockUseCapabilities.mockReturnValue({
         isKycApproved: rails.some((r) => r.status === 'enabled'),
-        gateFor: () => ({ kind: gateKind }),
+        gateFor: (op: string) => {
+            mockGateForOp(op)
+            return { kind: gateKind }
+        },
         // bankRails is intentionally NOT consumed by the component any more;
         // expose a faithful (scope-honoring) impl so a future re-introduction
         // of an unscoped read is caught rather than silently passing.
@@ -683,5 +689,61 @@ it('a direct Manteca country link preserves the send marker and incoming amount'
         rail.path = previousPath
         mockSearchParams = new URLSearchParams()
         mockUrlAmount = ''
+    }
+})
+
+// The screen serves both flows off one component. Gating a withdrawal against
+// the deposit capability wrongly blocks a withdraw-enabled/deposit-blocked user.
+describe('AddWithdrawCountriesList — gates on the flow it is running', () => {
+    beforeEach(() => {
+        mockGateForOp.mockClear()
+        setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
+    })
+
+    it('the withdraw flow asks the gate for the withdraw capability, never deposit', () => {
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+        expect(mockGateForOp).toHaveBeenCalledWith('withdraw')
+        expect(mockGateForOp).not.toHaveBeenCalledWith('deposit')
+    })
+
+    it('the add flow asks the gate for the deposit capability', () => {
+        render(<AddWithdrawCountriesList flow="add" />)
+        expect(mockGateForOp).toHaveBeenCalledWith('deposit')
+        expect(mockGateForOp).not.toHaveBeenCalledWith('withdraw')
+    })
+})
+
+// A multi-rail country shows the rail list; clicking its Manteca rail must carry
+// the send origin in the dedicated `sendMethod` param. The rail path already
+// holds a `method=<rail>`, so a second `method=bank` would lose to the first and
+// exit Back to Withdraw instead of Send.
+it('a Manteca rail clicked from a multi-rail list forwards the send origin as sendMethod', () => {
+    const { COUNTRY_SPECIFIC_METHODS } = jest.requireMock('@/components/AddMoney/consts')
+    const previousWithdraw = COUNTRY_SPECIFIC_METHODS.US.withdraw
+    mockSearchParams = new URLSearchParams('method=bank')
+    // two live rails so the list renders and the single-rail auto-redirect does not fire
+    mockLiveRails = [
+        { id: 'us-default-bank-withdraw', title: 'To Bank' },
+        { id: 'ar-manteca-withdraw', title: 'Cash' },
+    ]
+    COUNTRY_SPECIFIC_METHODS.US.withdraw = [
+        {
+            id: 'ar-manteca-withdraw',
+            title: 'Cash',
+            description: 'Manteca cash-out',
+            icon: 'bank',
+            isSoon: false,
+            path: '/withdraw/ar/manteca?method=bank-transfer',
+        },
+    ]
+    setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
+    try {
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+        fireEvent.click(screen.getByTestId('method-cash'))
+        expect(mockPush).toHaveBeenCalledWith('/withdraw/ar/manteca?method=bank-transfer&sendMethod=bank')
+    } finally {
+        COUNTRY_SPECIFIC_METHODS.US.withdraw = previousWithdraw
+        mockLiveRails = null
+        mockSearchParams = new URLSearchParams()
     }
 })

@@ -186,7 +186,13 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     const bankRegionIntent = useBankRegionIntent()
     const isUserKycApproved = isKycApproved
     const bankCountry = useMemo(() => railJurisdictionForBank(currentCountry?.id), [currentCountry?.id])
-    const gate = useMemo(() => gateFor('deposit', { channel: 'bank', country: bankCountry }), [gateFor, bankCountry])
+    // This screen serves both the add-money (deposit) and withdraw flows. Gate on
+    // the operation that matches the flow — a withdraw-enabled but deposit-blocked
+    // user must not be blocked here, and the reverse.
+    const gate = useMemo(
+        () => gateFor(flow === 'withdraw' ? 'withdraw' : 'deposit', { channel: 'bank', country: bankCountry }),
+        [gateFor, flow, bankCountry]
+    )
     const { guardWithTos, showBridgeTos, hideTos } = useTosGuard()
     const [showProvideEmail, setShowProvideEmail] = useState(false)
     const { setIsSupportModalOpen } = useModalsContext()
@@ -340,8 +346,13 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
     const handleWithdrawMethodClick = (method: SpecificPaymentMethod) => {
         if (method.path && method.path.includes('/manteca')) {
-            // Manteca methods route directly (has own amount input)
-            const extraParams = isBankFromSend ? `method=${methodParam}` : undefined
+            // Manteca methods route directly (has own amount input). The path
+            // already carries its own `method=<rail>` (bank-transfer/pix), so the
+            // send origin travels in the dedicated `sendMethod` param — appending a
+            // second `method=` would lose to the first and drop the send origin,
+            // sending Back to Withdraw instead of Send. Mirror the single-rail
+            // redirect above, which already writes sendMethod.
+            const extraParams = isBankFromSend ? `sendMethod=${methodParam}` : undefined
             router.push(rewriteMethodPath(method.path, extraParams))
         } else if (method.id.includes('default-bank-withdraw')) {
             if (checkBridgeGate(() => handleWithdrawMethodClick(method))) return
@@ -352,8 +363,10 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
             void setViewParam('form')
             return
         } else if (method.path) {
-            // other methods with paths — rewrite dynamic routes for native
-            const extraParams = isBankFromSend ? `method=${methodParam}` : undefined
+            // other methods with paths — rewrite dynamic routes for native. Forward
+            // the send origin in the dedicated `sendMethod` param, same as the
+            // manteca branch, so a path that carries its own `method=` never masks it.
+            const extraParams = isBankFromSend ? `sendMethod=${methodParam}` : undefined
             router.push(rewriteMethodPath(method.path, extraParams))
         }
     }
