@@ -4098,7 +4098,7 @@
                 "railName": "Pix",
                 "residenceTitle": "CPF required",
                 "residenceOnly": "Needs a Brazilian tax ID (CPF)",
-                "residenceRequired": "A BRL account needs a Brazilian tax ID (CPF). We check the residence on your account first, so set it to Brazil if you have one.",
+                "residenceRequired": "A BRL account needs a Brazilian tax ID (CPF) and a verified Brazilian residence. Your residence is verified at your ID check, so it must be where you genuinely live.",
                 "qrPay": "You can still pay Pix codes in Brazil from your balance."
             },
             "BANK_TRANSFER_CO": {
@@ -4234,7 +4234,7 @@
         },
         "fees": {
             "noFee": "No Peanut fee.",
-            "converted": "No Peanut fee. Money is converted to USD at the exchange rate.",
+            "converted": "Converted to USD at the exchange rate. A conversion fee applies.",
             "seeRates": "See exchange rates"
         }
     }
