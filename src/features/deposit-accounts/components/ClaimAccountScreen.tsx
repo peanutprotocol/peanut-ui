@@ -56,13 +56,17 @@ export function ClaimAccountScreen({
     onClaim: () => void
     onBack: () => void
 }) {
-    const { t, arrivalDetail, ruleLines } = useDepositAccountCopy()
+    const { t, arrivalDetail, ruleLines, minimumDeposit } = useDepositAccountCopy()
     // "Good to know" already exists as a title for a bank's-rules-not-ours
     // aside (BalanceWarningDrawer) — reused rather than re-authored so the
     // catalog does not carry two English strings with two translations.
     const tGlobal = useTranslations('global')
 
     const rules = terms ? ruleLines(terms.matching, terms.rules, userName) : undefined
+    // The floor renders in the payer rules too; the "good to know" aside repeats
+    // it because that is where a user looks for "what should I know before I
+    // open this", and the smallest deposit is one of those facts.
+    const minimum = minimumDeposit(terms?.rules)
     // The terms were resolved without one input, and only the dollar rail
     // reads it: the state on the user's residence can forbid a third-party
     // payment outright. The lines below are the rail's published terms without
@@ -143,6 +147,13 @@ export function ClaimAccountScreen({
                         items={[
                             // what it costs, before the account is opened
                             <DepositFeeLine key="fee" rail={rail} />,
+                            // the smallest deposit the corridor accepts, where it publishes one
+                            ...(minimum ? [t('claim.faqMinimum', { min: minimum })] : []),
+                            // A euro account is a shared SEPA one, so the IBAN can
+                            // be issued in another EU country — said plainly here so
+                            // a user who reached it by picking, say, France is not
+                            // surprised by a non-French IBAN.
+                            ...(rail.corridor === 'SEPA_EU' ? [t('claim.faqSepaShared')] : []),
                             // The terms are on the screen now, so promising
                             // them later would contradict the lines above.
                             ...(rules ? [] : [t('claim.conditionTerms', { currency: rail.currency })]),

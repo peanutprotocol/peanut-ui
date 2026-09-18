@@ -71,9 +71,6 @@ beforeEach(() => {
 
 const READY: GateState = { kind: 'ready' }
 
-/** what the BRL row says instead of an arrival time: the CPF it asks for */
-const BR_CAVEAT = messages.depositAccounts.corridors.BANK_TRANSFER_BR.residenceOnly
-
 /** one gate for every corridor, the way a user with every rail enabled looks */
 const allGates = (gate: GateState = READY): Record<DepositCorridor, GateState> => corridorRecord(() => gate)
 
@@ -140,21 +137,21 @@ describe('DepositAccountsListScreen', () => {
         expect(screen.queryByText(/not set up/i)).not.toBeInTheDocument()
     })
 
-    // Status belongs to the badge on every row, and the body to the arrival
-    // time alone. A row that said both ended up reading "Not set up yet"
-    // under a "Ready" pill.
+    // Status belongs to the badge on every row, and the rows carry no subtitle:
+    // the arrival time and the residence caveat moved off the hub so the list
+    // reads as one consistent column of "currency · rail" and a status badge.
     it('says a corridor is not set up once it knows that is true, in the badge', () => {
         const { container } = list(false)
 
         expect(inRow(container, 'SEPA_EU').getByText('Not set up')).toBeInTheDocument()
-        expect(inRow(container, 'SEPA_EU').getByText('Same business day')).toBeInTheDocument()
+        expect(inRow(container, 'SEPA_EU').queryByText('Same business day')).not.toBeInTheDocument()
     })
 
-    it('carries a held corridor the same way — badge for status, body for arrival', () => {
+    it('carries a held corridor with a Ready badge and no subtitle', () => {
         const { container } = list(false, { accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') } })
 
         expect(inRow(container, 'SEPA_EU').getByText('Ready')).toBeInTheDocument()
-        expect(inRow(container, 'SEPA_EU').getByText('Same business day')).toBeInTheDocument()
+        expect(inRow(container, 'SEPA_EU').queryByText('Same business day')).not.toBeInTheDocument()
     })
 
     /**
@@ -191,10 +188,6 @@ describe('DepositAccountsListScreen', () => {
         expect(onOpen).toHaveBeenCalledWith('SEPA_EU')
 
         expect(inRow(container, 'SEPA_EU').getByText(messages.depositAccounts.list.badgeRevoked)).toBeInTheDocument()
-        expect(inRow(container, 'SEPA_EU').getByText(messages.depositAccounts.list.rowRevoked)).toBeInTheDocument()
-        expect(
-            inRow(container, 'SEPA_EU').queryByText(messages.depositAccounts.list.rowBlocked)
-        ).not.toBeInTheDocument()
     })
 
     /**
@@ -243,9 +236,10 @@ describe("DepositAccountsListScreen renders the user's corridors and no others",
 
     /**
      * Their own corridors, plus the residence-gated ones everybody sees. The
-     * ARS row is no longer absent for a European user — it is present with the
-     * rule in its body, because the account is worth knowing about before the
-     * move and the screen behind it states what it costs to open.
+     * ARS and BRL rows are no longer absent for a European user — they are
+     * present because the account is worth knowing about before the move, and
+     * the screen behind the row states the residence rule (the row itself is
+     * just "currency · rail" and a badge now).
      */
     it('shows a European user their Bridge corridors plus the residence-gated rows', () => {
         const { container } = list(false, { corridors: ['SEPA_EU', 'FASTER_PAYMENTS_GB', 'ACH_US', 'SPEI_MX'] })
@@ -253,8 +247,8 @@ describe("DepositAccountsListScreen renders the user's corridors and no others",
         for (const corridor of ['SEPA_EU', 'FASTER_PAYMENTS_GB', 'ACH_US', 'SPEI_MX'] as const) {
             expect(rowOf(container, corridor)).toBeInTheDocument()
         }
-        expect(inRow(container, 'BANK_TRANSFER_AR').getByText(/residents of Argentina/i)).toBeInTheDocument()
-        expect(inRow(container, 'BANK_TRANSFER_BR').getByText(BR_CAVEAT)).toBeInTheDocument()
+        expect(rowOf(container, 'BANK_TRANSFER_AR')).toBeInTheDocument()
+        expect(rowOf(container, 'BANK_TRANSFER_BR')).toBeInTheDocument()
         // a corridor with neither a rail nor the residence rule stays absent
         expect(rowOf(container, 'PIX_BR')).not.toBeInTheDocument()
     })
@@ -265,7 +259,8 @@ describe("DepositAccountsListScreen renders the user's corridors and no others",
      * crypto below answer the rest.
      */
     it('keeps only the rows everybody gets when the user has no bank rail', () => {
-        const { container } = list(false, { corridors: [] })
+        // a verified user whose region has no rail reads needs-enrollment
+        const { container } = list(false, { corridors: [], gates: allGates({ kind: 'needs-enrollment' }) })
 
         expect(rowOf(container, 'SEPA_EU')).not.toBeInTheDocument()
         expect(rowOf(container, 'BANK_TRANSFER_BR')).toBeInTheDocument()
@@ -273,6 +268,32 @@ describe("DepositAccountsListScreen renders the user's corridors and no others",
         // COP is not residence-gated, so its row belongs to the users whose
         // rails name it, like MXN
         expect(rowOf(container, 'BANK_TRANSFER_CO')).not.toBeInTheDocument()
+    })
+
+    /**
+     * A user who has not verified holds a rail for nothing. Rather than hide the
+     * standing accounts, the hub shows the claimable ones with a "verify to
+     * unlock" badge, disabled — so the user learns the accounts exist and what
+     * opens them. Only the identity gate does this: a verified user in a region
+     * with no rail reads needs-enrollment and is spared rows they cannot open
+     * (the test above).
+     */
+    it('shows the claimable accounts to an unverified user, badged to unlock', () => {
+        const { container } = list(false, { corridors: [], gates: allGates({ kind: 'needs-identity' }) })
+
+        for (const corridor of ['SEPA_EU', 'FASTER_PAYMENTS_GB', 'ACH_US', 'SPEI_MX', 'BANK_TRANSFER_CO'] as const) {
+            expect(rowOf(container, corridor)).toBeInTheDocument()
+            expect(rowOf(container, corridor)).toHaveAttribute('aria-disabled', 'true')
+        }
+        expect(inRow(container, 'SEPA_EU').getByText(messages.depositAccounts.list.badgeVerify)).toBeInTheDocument()
+        // a top-up-only corridor is not a standing account, so it stays out
+        expect(rowOf(container, 'PIX_BR')).not.toBeInTheDocument()
+    })
+
+    it('signals the standing-account limit in the accounts section', () => {
+        list(false)
+
+        expect(screen.getByText(messages.depositAccounts.list.accountLimitNote)).toBeInTheDocument()
     })
 })
 
@@ -409,9 +430,9 @@ describe('DepositAccountsListScreen when a corridor is blocked after the fact', 
 
 describe('the residence-gated rows and the tap behind them', () => {
     /**
-     * The BR and CO rows are everybody's. They keep their caveat and stay
-     * tappable whatever the identity gate says — the explainer behind them is
-     * where the residence rule is stated.
+     * The BR and CO rows are everybody's. They stay present and tappable
+     * whatever the identity gate says — the explainer behind them is where the
+     * residence rule is stated now that the row carries no caveat subtitle.
      */
     it('leaves the residence-gated rows alone when residence is unknown', () => {
         const gates = allGates({ kind: 'needs-identity' })
@@ -421,18 +442,14 @@ describe('the residence-gated rows and the tap behind them', () => {
             accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') },
         })
 
-        expect(inRow(container, 'BANK_TRANSFER_BR').getByText(BR_CAVEAT)).toBeInTheDocument()
+        expect(rowOf(container, 'BANK_TRANSFER_BR')).toBeInTheDocument()
         expect(rowOf(container, 'BANK_TRANSFER_BR')).not.toHaveAttribute('aria-disabled', 'true')
     })
 
-    it('carries an Argentine row for everybody, naming the rails and the rule', () => {
+    it('carries an Argentine row for everybody', () => {
         const { container } = list(false, { corridors: ['SEPA_EU'] })
 
-        expect(
-            inRow(container, 'BANK_TRANSFER_AR').getByText(
-                messages.depositAccounts.corridors.BANK_TRANSFER_AR.residenceOnly
-            )
-        ).toBeInTheDocument()
+        expect(rowOf(container, 'BANK_TRANSFER_AR')).toBeInTheDocument()
     })
 
     /**
@@ -716,28 +733,27 @@ describe('the countries collapsible', () => {
 
 /**
  * Brazil and Argentina are open to residents alone. Everybody sees the row —
- * the account is worth knowing about before you move — and the row says the
- * rule before the tap rather than after a refused claim.
+ * the account is worth knowing about before you move — and the screen behind
+ * the tap states the rule (the row itself carries no caveat subtitle now).
  */
 describe('the residence-gated rows', () => {
-    it('shows BRL and ARS to every user, with the rule in the body', () => {
+    it('shows BRL and ARS to every user', () => {
         const { container } = list(false, { corridors: ['SEPA_EU'] })
 
-        expect(inRow(container, 'BANK_TRANSFER_BR').getByText(BR_CAVEAT)).toBeInTheDocument()
-        expect(inRow(container, 'BANK_TRANSFER_AR').getByText(/residents of Argentina/i)).toBeInTheDocument()
+        expect(rowOf(container, 'BANK_TRANSFER_BR')).toBeInTheDocument()
+        expect(rowOf(container, 'BANK_TRANSFER_AR')).toBeInTheDocument()
     })
 
     /**
      * COP is not one of them. Bridge opened a Bre-B account for a resident of
-     * Portugal, so the row reads like MXN: when it arrives, it says when the
-     * money lands.
+     * Portugal, so the row reads like MXN: a claimable account with a status
+     * badge, not a residence-gated pointer.
      */
-    it('reads the COP row like any ungated corridor', () => {
+    it('shows the COP row as a claimable account, not a residence-gated one', () => {
         const { container } = list(false, { corridors: ['BANK_TRANSFER_CO'] })
 
-        expect(
-            inRow(container, 'BANK_TRANSFER_CO').getByText(messages.depositAccounts.corridors.BANK_TRANSFER_CO.arrival)
-        ).toBeInTheDocument()
+        expect(rowOf(container, 'BANK_TRANSFER_CO')).toBeInTheDocument()
+        expect(inRow(container, 'BANK_TRANSFER_CO').getByText('Not set up')).toBeInTheDocument()
     })
 
     it('keeps them tappable, because the screen behind them states the rule', () => {

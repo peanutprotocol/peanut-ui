@@ -3984,7 +3984,9 @@
             "badgeActive": "Ativo",
             "badgeNotSetUp": "Não configurada",
             "badgeUnavailable": "Indisponível",
+            "badgeVerify": "Verifique para desbloquear",
             "badgeRevoked": "Revogada",
+            "accountLimitNote": "Você pode ter até duas contas bancárias. Precisa de outra? Fale com o suporte.",
             "errorTitle": "Não conseguimos carregar suas contas",
             "errorBody": "Suas contas estão bem: só não conseguimos lê-las. Verifique sua conexão e tente de novo.",
             "errorRetry": "Tentar de novo",
@@ -3999,7 +4001,9 @@
             "benefitBalance": "O dinheiro chega no seu saldo da Peanut em USD.",
             "conditionNoReference": "Sem referência nem código para lembrar.",
             "cta": "Abrir conta em {currency}",
-            "errorTitle": "Não conseguimos abrir a conta"
+            "errorTitle": "Não conseguimos abrir a conta",
+            "faqMinimum": "O depósito mínimo é {min}.",
+            "faqSepaShared": "Uma conta em euros (SEPA) funciona em toda a zona do euro. O IBAN pode ser emitido em outro país da UE."
         },
         "details": {
             "heading": "{currency} · {rail}",

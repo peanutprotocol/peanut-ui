@@ -3984,7 +3984,9 @@
             "badgeActive": "Active",
             "badgeNotSetUp": "Not set up",
             "badgeUnavailable": "Unavailable",
+            "badgeVerify": "Verify to unlock",
             "badgeRevoked": "Revoked",
+            "accountLimitNote": "You can hold up to two bank accounts. Need another? Contact support.",
             "errorTitle": "We could not load your accounts",
             "errorBody": "Your accounts are fine — we just could not read them. Check your connection and try again.",
             "errorRetry": "Try again",
@@ -3999,7 +4001,9 @@
             "benefitBalance": "Money arrives in your Peanut balance as USD.",
             "conditionNoReference": "No reference or memo to remember.",
             "cta": "Open {currency} account",
-            "errorTitle": "We could not open the account"
+            "errorTitle": "We could not open the account",
+            "faqMinimum": "Minimum deposit is {min}.",
+            "faqSepaShared": "A Euro (SEPA) account works across the Eurozone. The IBAN may be issued in another EU country."
         },
         "details": {
             "heading": "{currency} · {rail}",
