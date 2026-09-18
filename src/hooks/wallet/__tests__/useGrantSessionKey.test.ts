@@ -244,6 +244,41 @@ describe('useGrantSessionKey — the call policy pins the LIVE coordinator (TASK
         expect(mockSubmitWithdrawSessionApproval).not.toHaveBeenCalled()
     })
 
+    // The 400 the grant store returns when the controller moved while this
+    // approval was being saved. Keeping it typed is what lets a spend treat it
+    // as a rotation candidate instead of a dead-end failure.
+    it('preserves the stale-approval refusal as its own error kind', async () => {
+        mockSubmitWithdrawSessionApproval.mockRejectedValueOnce(
+            Object.assign(new Error('This approval targets an outdated card contract'), {
+                name: 'StaleCardApprovalError',
+                code: 'STALE_CARD_APPROVAL',
+            })
+        )
+        const { result } = renderHook(() => useGrantSessionKey())
+
+        let out: Awaited<ReturnType<typeof result.current.grant>> | undefined
+        await act(async () => {
+            out = await result.current.grant()
+        })
+
+        expect(out).toEqual({
+            ok: false,
+            error: { kind: 'stale-approval', message: 'This approval targets an outdated card contract' },
+        })
+    })
+
+    it('a grant-store failure without that code stays unexpected', async () => {
+        mockSubmitWithdrawSessionApproval.mockRejectedValueOnce(new Error('could not deserialize'))
+        const { result } = renderHook(() => useGrantSessionKey())
+
+        let out: Awaited<ReturnType<typeof result.current.grant>> | undefined
+        await act(async () => {
+            out = await result.current.grant()
+        })
+
+        expect(out).toEqual({ ok: false, error: { kind: 'unexpected', message: 'could not deserialize' } })
+    })
+
     it('reports no-contracts when the fresh overview has no coordinator (backend has none cached)', async () => {
         mockFreshOverview = {
             status: { contractAddress: COLLATERAL_PROXY },

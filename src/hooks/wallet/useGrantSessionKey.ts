@@ -19,6 +19,7 @@ import { serializePermissionAccount } from '@zerodev/permissions'
 import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
 import { peanutPublicClient } from '@/app/actions/clients'
 import { rainApi } from '@/services/rain'
+import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { ensureRootValidatorMigrated, isMigrationWrapperAccount } from '@/utils/kernelMigration.utils'
 import { repairEnableNonce, type NoncePublicClient } from '@/utils/kernelNonceRepair.utils'
@@ -79,6 +80,11 @@ export type GrantSessionKeyError =
     | { kind: 'no-contracts' }
     | { kind: 'session-key-unavailable'; message: string }
     | { kind: 'user-cancelled' }
+    /** The grant store refused the approval (400 STALE_CARD_APPROVAL): the
+     *  controller moved between this overview read and the save. Kept distinct
+     *  from `unexpected` because it is the ONE grant failure a spend may treat
+     *  as a rotation candidate — and the re-enable modal can say so. */
+    | { kind: 'stale-approval'; message: string }
     | { kind: 'unexpected'; message: string }
 
 export interface GrantSessionKeyResult {
@@ -384,7 +390,13 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
             try {
                 await rainApi.submitWithdrawSessionApproval({ serializedApproval: r.serialized })
             } catch (e) {
-                return { ok: false, error: { kind: 'unexpected', message: (e as Error).message } as const }
+                // Structured code only — the approval we just signed targets a
+                // controller the backend no longer has on record.
+                const kind =
+                    wireErrorCode(e) === API_ERROR_CODES.STALE_CARD_APPROVAL
+                        ? 'stale-approval'
+                        : ('unexpected' as const)
+                return { ok: false, error: { kind, message: (e as Error).message } as const }
             }
 
             // Flip the `hasWithdrawApproval` flag in UI by refetching overview.

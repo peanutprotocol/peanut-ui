@@ -31,6 +31,7 @@ import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
 import { WebAuthnErrorName } from '@/utils/webauthn.utils'
 import {
     ensurePreparedControllerApproval,
+    isStaleGrantApproval,
     resolveSpendStrategy,
     runCollateralSpendPreflight,
     SessionKeyGrantRequiredError,
@@ -232,6 +233,15 @@ export const useSpendBundle = () => {
                 if ((recoveringController || mixedRecovered) && unmountedRef.current) throw recoveryTrigger
             }
 
+            /** True only when the server's controller really differs from the
+             *  one THIS payment prepared against. Never inferred from an error. */
+            const controllerMovedSincePrepare = async (): Promise<boolean> => {
+                if (!preparedCoordinator) return false
+                const current = await rainApi.refreshControllerAddress().catch(() => null)
+                if (unmountedRef.current) return false
+                return !!current && current.coordinatorAddress.toLowerCase() !== preparedCoordinator.toLowerCase()
+            }
+
             /**
              * Runs a recovery leg, absorbing ONE Rain cooldown: wait out the
              * backend's own `retryAfterSec` (bounded, cancellable) and prepare
@@ -298,6 +308,7 @@ export const useSpendBundle = () => {
                         // A charge-backed prep IS the charge — never back it out
                         // through the draft-cancel door.
                         if (!chargeId) livePreparationId = prep.preparationId
+                        preparedCoordinator = prep.coordinatorAddress
 
                         // The prep states the coordinator this withdrawal targets;
                         // make sure the stored approval covers THAT one before signing.
@@ -353,16 +364,32 @@ export const useSpendBundle = () => {
                         //
                         // A user who has left takes no further side effects: the
                         // failure above keeps its own meaning and reconciliation.
-                        if (!isRainControllerChanged(e) || unmountedRef.current) throw e
+                        /*
+                         * The rotation can also surface one step earlier, while
+                         * the inline grant is SAVED: `/session-approve` refuses
+                         * the approval we just signed (400 STALE_CARD_APPROVAL)
+                         * because another request already moved the record. That
+                         * is a rotation CANDIDATE, not proof — confirm it against
+                         * the controller this payment prepared against before
+                         * re-preparing. Nothing has been signed for the wire or
+                         * sent at that point.
+                         */
+                        const staleGrant = isStaleGrantApproval(e) && !recoveringController && !unmountedRef.current
+                        const rotationConfirmed = staleGrant && (await controllerMovedSincePrepare())
+                        if ((!isRainControllerChanged(e) && !rotationConfirmed) || unmountedRef.current) throw e
                         recoveryTrigger = e
                         posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_ATTEMPTED, {
                             strategy,
                             kind,
-                            recovery: 'controller-changed',
+                            recovery: rotationConfirmed ? 'controller-changed-on-grant' : 'controller-changed',
                         })
-                        // The verify failure already failed that intent, so a
-                        // cancel would only be refused; nothing about Rain's own
-                        // signature state changes either way.
+                        // A refused grant leaves the standalone draft pending.
+                        // Preserve its best-effort cleanup; charge-backed IDs
+                        // never enter livePreparationId. This does not unlock Rain.
+                        if (rotationConfirmed && livePreparationId) {
+                            void rainApi.cancelPreparation(livePreparationId)
+                        }
+                        // Verify failures already failed their preparation.
                         livePreparationId = undefined
                         broadcastAttempted = false
                         recoveringController = true
@@ -617,11 +644,7 @@ export const useSpendBundle = () => {
                     // no-effect late failure — is proof on its own: it can
                     // arrive before this leg ever had a prepared coordinator to
                     // compare against.
-                    if (!isRainControllerChanged(e)) {
-                        const current = await rainApi.refreshControllerAddress().catch(() => null)
-                        if (!current || !preparedCoordinator) throw e
-                        if (current.coordinatorAddress.toLowerCase() === preparedCoordinator.toLowerCase()) throw e
-                    }
+                    if (!isRainControllerChanged(e) && !(await controllerMovedSincePrepare())) throw e
                     // The controller read above is awaited — re-check before the
                     // replacement prepare it authorises.
                     if (unmountedRef.current) throw e

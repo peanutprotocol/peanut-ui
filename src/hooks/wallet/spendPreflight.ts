@@ -47,6 +47,16 @@ export class SessionKeyGrantRequiredError extends Error {
 }
 
 /**
+ * The grant store refused the approval because the controller moved while it
+ * was being saved (400 STALE_CARD_APPROVAL). A rotation CANDIDATE only — the
+ * caller still has to see a real controller change before re-preparing. Every
+ * other grant failure (cancelled, unexpected, no-contracts) is not this.
+ */
+export function isStaleGrantApproval(error: unknown): boolean {
+    return error instanceof SessionKeyGrantRequiredError && error.cause.kind === 'stale-approval'
+}
+
+/**
  * Live smart-account USDC balance for ROUTING, read through the SAME TanStack
  * query that backs the displayed balance (`smartUsdcBalanceQueryOptions`) — one
  * source of truth, one `readContract`. `staleTime: 0` forces a fresh on-chain

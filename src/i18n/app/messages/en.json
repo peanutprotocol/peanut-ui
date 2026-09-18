@@ -3356,6 +3356,7 @@
             "successTitle": "Card re-enabled",
             "successDescription": "Your card is ready — please try your withdrawal again.",
             "cancelledError": "Re-enabling was cancelled. Tap Re-enable card to try again.",
+            "rotatedError": "Your card was updated while we were saving. Tap Re-enable card once more.",
             "unexpectedError": "We couldn't re-enable your card. Please try again.",
             "reEnableCta": "Re-enable card",
             "workingCta": "Working…",

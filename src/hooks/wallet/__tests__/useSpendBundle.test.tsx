@@ -641,6 +641,143 @@ describe('useSpendBundle — RAIN_CONTROLLER_CHANGED recovery', () => {
         expect(mockSubmitWithdrawal).toHaveBeenCalledTimes(1)
     })
 
+    /*
+     * The rotation can also land one step earlier: prepare(A) succeeds, the
+     * inline grant is signed for A, and `/session-approve` refuses it (400
+     * STALE_CARD_APPROVAL) because another request already moved the record to
+     * B. Nothing is signed for the wire and nothing is sent at that point, so
+     * the same payment re-prepares against B — after the controller read
+     * CONFIRMS the move.
+     */
+    describe('rotation detected while the grant is saved', () => {
+        const COORD_B = `0x${'b'.repeat(40)}`
+
+        // These cases queue per-call behaviour; a leftover queue would leak into
+        // the next one (clearAllMocks keeps queued `*Once` values).
+        beforeEach(() => {
+            mockGrant.mockReset()
+            mockGrant.mockResolvedValue({ ok: true, overviewFresh: true })
+            mockRefreshController.mockReset()
+            mockRefreshController.mockResolvedValue({ coordinatorAddress: PREP.coordinatorAddress, changed: false })
+        })
+
+        const staleGrantSequence = () => {
+            mockOverview = {
+                status: { coordinatorAddress: PREP.coordinatorAddress },
+                cards: [{ id: 'card-1', status: 'ACTIVE', hasWithdrawApproval: false }],
+            }
+            mockFreshOverview = mockOverview
+            mockGrant
+                .mockResolvedValueOnce({ ok: false, error: { kind: 'stale-approval', message: 'outdated contract' } })
+                .mockResolvedValueOnce({ ok: true, overviewFresh: true })
+        }
+
+        it.each([undefined, 'charge-42'])(
+            'recovers once without duplicating money or cancelling charge %s',
+            async (chargeId) => {
+                staleGrantSequence()
+                mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: false })
+                mockPrepareWithdrawal
+                    .mockResolvedValueOnce(PREP)
+                    .mockResolvedValueOnce({ ...PREP, preparationId: 'prep-2', coordinatorAddress: COORD_B })
+
+                const { result } = renderHook(() => useSpendBundle(), { wrapper })
+                let out: Awaited<ReturnType<typeof result.current.spend>> | undefined
+                await act(async () => {
+                    out = await result.current.spend(spendInput({ chargeId }))
+                })
+
+                expect(out).toMatchObject({ strategy: 'collateral-only', intentId: 'prep-2' })
+                expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(2)
+                expect(mockGrant).toHaveBeenCalledTimes(2)
+                for (const [input] of mockPrepareWithdrawal.mock.calls) {
+                    expect(input).toMatchObject({ amount: '15000', recipientAddress: RECIPIENT, chargeId })
+                }
+                if (chargeId) {
+                    expect(mockCancelPreparation).not.toHaveBeenCalled()
+                } else {
+                    expect(mockCancelPreparation).toHaveBeenCalledTimes(1)
+                    expect(mockCancelPreparation).toHaveBeenCalledWith('prep-1')
+                }
+                // Signed and submitted exactly once — only for the replacement.
+                expect(mockSignTypedData).toHaveBeenCalledTimes(1)
+                expect(mockSubmitWithdrawal).toHaveBeenCalledTimes(1)
+                expect(mockSubmitWithdrawal.mock.calls[0][0]).toMatchObject({
+                    preparationId: 'prep-2',
+                    preparedCoordinatorAddress: COORD_B,
+                })
+            }
+        )
+
+        it('does NOT re-prepare when the controller did not actually move', async () => {
+            staleGrantSequence()
+            mockRefreshController.mockResolvedValue({ coordinatorAddress: PREP.coordinatorAddress, changed: false })
+
+            const { result } = renderHook(() => useSpendBundle(), { wrapper })
+            await act(async () => {
+                await expect(result.current.spend(spendInput())).rejects.toBeInstanceOf(SessionKeyGrantRequiredError)
+            })
+            expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
+            expect(mockSubmitWithdrawal).not.toHaveBeenCalled()
+        })
+
+        it('does NOT re-prepare when the controller read is unavailable', async () => {
+            staleGrantSequence()
+            mockRefreshController.mockRejectedValue(new Error('provider lookup failed'))
+
+            const { result } = renderHook(() => useSpendBundle(), { wrapper })
+            await act(async () => {
+                await expect(result.current.spend(spendInput())).rejects.toBeInstanceOf(SessionKeyGrantRequiredError)
+            })
+            expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
+        })
+
+        it.each([
+            ['a cancelled grant', { kind: 'user-cancelled' }],
+            ['a generic grant failure', { kind: 'unexpected', message: 'boom' }],
+        ])('%s is never treated as a rotation, even with a moved controller', async (_label, error) => {
+            mockOverview = {
+                status: { coordinatorAddress: PREP.coordinatorAddress },
+                cards: [{ id: 'card-1', status: 'ACTIVE', hasWithdrawApproval: false }],
+            }
+            mockFreshOverview = mockOverview
+            mockGrant.mockResolvedValue({ ok: false, error })
+            mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
+
+            const { result } = renderHook(() => useSpendBundle(), { wrapper })
+            await act(async () => {
+                await expect(result.current.spend(spendInput())).rejects.toBeInstanceOf(SessionKeyGrantRequiredError)
+            })
+            expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
+            expect(mockSubmitWithdrawal).not.toHaveBeenCalled()
+        })
+
+        it('leaving during the controller read stops the recovery', async () => {
+            staleGrantSequence()
+            let releaseRefresh: (value: { coordinatorAddress: string; changed: boolean }) => void = () => {}
+            mockRefreshController.mockReturnValueOnce(
+                new Promise((resolve) => {
+                    releaseRefresh = resolve
+                })
+            )
+
+            const { result, unmount } = renderHook(() => useSpendBundle(), { wrapper })
+            let settled: Promise<unknown> | undefined
+            await act(async () => {
+                settled = result.current.spend(spendInput()).catch((e) => e)
+                await waitFor(() => expect(mockRefreshController).toHaveBeenCalledTimes(1))
+            })
+            unmount()
+            await act(async () => {
+                releaseRefresh({ coordinatorAddress: COORD_B, changed: true })
+                expect(await settled).toBeInstanceOf(SessionKeyGrantRequiredError)
+            })
+
+            expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
+            expect(mockSubmitWithdrawal).not.toHaveBeenCalled()
+        })
+    })
+
     it('a generic transport failure is never replayed', async () => {
         mockSubmitWithdrawal.mockRejectedValueOnce(new Error('gateway timeout'))
         const { result } = renderHook(() => useSpendBundle(), { wrapper })
