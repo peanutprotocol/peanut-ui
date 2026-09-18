@@ -1,6 +1,7 @@
 /**
  * Returns the Sentry `environment` tag for the current build, so issues from
- * staging / production / preview / native / local are filterable in Sentry.
+ * the environments we report from are filterable in Sentry. It also decides
+ * which those are — see `isSentryReportingEnvironment` below.
  *
  * Without this every Vercel build defaulted to NODE_ENV=production and all
  * events tagged "production" — `environment:staging` queries returned zero

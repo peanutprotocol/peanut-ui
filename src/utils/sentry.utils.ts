@@ -541,10 +541,10 @@ const reportNonOkResponse = async (
     // the status falls through and is reported.
     if (skipRule?.errorCodes && bodyCarriesSkippedCode(skipRule.errorCodes, errorContent)) return
 
-    // console.info, not warn — captureConsoleIntegration listens on
-    // ['error','warn'], so a warn here became a SECOND Sentry event for every
-    // non-2xx in the app, grouped by this call site rather than by request.
-    // The explicit captureMessage below is the real report: it fingerprints on
+    // console.info, not error — captureConsoleIntegration listens on error, so
+    // an error here would be a SECOND Sentry event for every non-2xx in the
+    // app, grouped by this call site rather than by request. The explicit
+    // captureMessage below is the real report: it fingerprints on
     // [method, url, status] and carries headers, body and response.
     console.info(`Request to ${String(url).replace(/[\r\n]/g, '')} failed with status ${response.status}`)
     const method = options.method || 'GET'
@@ -670,8 +670,8 @@ export const fetchWithSentry = async (
                 })
             } catch (error) {
                 if (attempt < maxAttempts && error instanceof Error && error.name === 'AbortError') {
-                    // console.info, not warn: captureConsoleIntegration listens on
-                    // warn, and the retry outcome is reported explicitly below.
+                    // console.info: a retry that succeeds is not a failure, and
+                    // the retry outcome is reported explicitly below.
                     console.info(`Request to ${String(telemetryUrl).replace(/[\r\n]/g, '')} timed out — retrying`)
                     await new Promise((resolve) => setTimeout(resolve, TRANSPORT_TIMEOUT_RETRY_DELAY_MS))
                     continue
