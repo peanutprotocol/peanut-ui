@@ -111,10 +111,14 @@ export const CountryList = ({
     const [easterEggCountry, setEasterEggCountry] = useState<string | null>(null)
     const [waitlistCountry, setWaitlistCountry] = useState<CountryData | null>(null)
 
-    const supportedCountries = countryData.filter(
-        (country) =>
-            country.type === 'country' &&
-            (!currencyFilter || country.currency?.toUpperCase() === currencyFilter.toUpperCase())
+    const supportedCountries = useMemo(
+        () =>
+            countryData.filter(
+                (country) =>
+                    country.type === 'country' &&
+                    (!currencyFilter || country.currency?.toUpperCase() === currencyFilter.toUpperCase())
+            ),
+        [currencyFilter]
     )
 
     // catalog titles are English; the displayed name comes from Intl.DisplayNames
@@ -146,7 +150,7 @@ export const CountryList = ({
 
             return countryName(a).localeCompare(countryName(b), locale)
         })
-    }, [homeCountryCode, countryName, locale, currencyFilter])
+    }, [homeCountryCode, countryName, locale, supportedCountries])
 
     // filter countries based on deferred search term to prevent blocking ui.
     // The English title stays searchable so "Brazil" still finds "Brasil".
