@@ -61,15 +61,17 @@ const DRAWER_OPTIONS: Record<HomeDrawer, DrawerOption[]> = {
         },
     ],
     add: [
-        // crypto first: the KYC-free path leads per product/activation-funnel.md
+        // bank first (2026-09-18 decision, per product/activation-funnel.md):
+        // most users already have a bank account, so bank leads and crypto —
+        // the KYC-free path — is the second option.
+        BANK_ONE_OFF,
         {
             key: 'crypto',
             titleKey: ['methods', 'crypto'],
             bodyKey: ['methods', 'cryptoDescription'],
-            icon: 'credit-card',
+            icon: 'coins',
             href: '/add-money/crypto',
         },
-        BANK_ONE_OFF,
     ],
     // Two ways to be paid. A request link asks one person for one amount and is
     // answered inside Peanut; standing bank details take any amount from anybody

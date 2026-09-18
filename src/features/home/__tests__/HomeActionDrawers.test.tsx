@@ -100,6 +100,15 @@ describe('HomeActionDrawers', () => {
         expect(screen.queryByTestId('home-drawer-add-withdraw')).not.toBeInTheDocument()
     })
 
+    it('lists bank before crypto (2026-09-18 decision: bank leads the add drawer)', () => {
+        renderWithUrl('?drawer=add')
+
+        const bank = screen.getByTestId('home-drawer-add-bank')
+        const crypto = screen.getByTestId('home-drawer-add-crypto')
+        // Node.DOCUMENT_POSITION_FOLLOWING: bank comes before crypto in the DOM
+        expect(bank.compareDocumentPosition(crypto) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
     /*
      * The middle link of the returnTo chain (chip P23): bare /add-money
      * redirects to /home?drawer=add&returnTo=X, and choosing an option must
