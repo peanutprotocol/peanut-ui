@@ -30,6 +30,7 @@ import {
 } from './spendPreflight'
 import {
     isRainControllerChanged,
+    isSpendRecoveryOutcome,
     registerEphemeralArtifact,
     registerSpendArtifactMeta,
     requiresPasskeyRetry,
@@ -511,7 +512,11 @@ export const useSignSpendBundle = () => {
                 }
                 const eligible = !signRecovered && !userCancelled && !unmountedRef.current
                 const rotated = eligible && (isRainControllerChanged(e) || (await controllerMovedSincePrepare()))
-                if (rotated) {
+
+                /** The replacement attempt. Returns the fresh artifact, or
+                 *  throws what the caller should see — every exit from here
+                 *  lands on the ONE cleanup path below. */
+                const runReplacement = async (): Promise<SignedSpendArtifact> => {
                     abortIfGone()
                     signRecovered = true
                     recoveryTrigger = e
@@ -559,23 +564,46 @@ export const useSignSpendBundle = () => {
                         }
                     }
                 }
-                // Back the abandoned draft out (cancelled passkey prompt, grant
-                // failure, …). Fire-and-forget: the backend refuses while the
-                // Rain signature could still execute, and the TTL sweep is the
-                // guaranteed cleanup either way (TASK-21815).
+
+                // What the caller ends up seeing: the original failure, or the
+                // one the replacement ended on.
+                let failure: unknown = e
+                if (rotated) {
+                    try {
+                        return await runReplacement()
+                    } catch (recoveryFailure) {
+                        failure = recoveryFailure
+                    }
+                }
+
+                /*
+                 * ONE failure exit for both attempts. Back the abandoned draft
+                 * out — the replacement's prep included, since a recovery that
+                 * ended badly leaves its own standalone draft behind.
+                 * Fire-and-forget: the backend refuses while the Rain signature
+                 * could still execute, and the TTL sweep is the guaranteed
+                 * cleanup either way (TASK-21815). Cancelling is local hygiene,
+                 * never a Rain unlock.
+                 */
                 if (livePreparationId) void rainApi.cancelPreparation(livePreparationId)
-                // A Rain leg that died client-side may have been built on a
-                // controller the backend cached before Rain rotated it.
-                // Cache-only: nothing is re-signed and the error below stands.
-                void repairRainController({ strategy, error: e })
-                posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED, {
-                    strategy,
-                    kind,
-                    flow: 'sign-only',
-                    error_kind: (e as Error)?.name ?? 'unknown',
-                    error_message: (e as Error)?.message,
-                })
-                throw e
+                // Typed recovery outcomes are control flow — the payment is
+                // still open at the call site, so no cache repair and no
+                // failed-payment telemetry for them.
+                if (!isSpendRecoveryOutcome(failure)) {
+                    // A Rain leg that died client-side may have been built on a
+                    // controller the backend cached before Rain rotated it.
+                    // Cache-only: nothing is re-signed and the error below stands.
+                    void repairRainController({ strategy, error: failure })
+                    posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED, {
+                        strategy,
+                        kind,
+                        flow: 'sign-only',
+                        error_kind: (failure as Error)?.name ?? 'unknown',
+                        error_message: (failure as Error)?.message,
+                        ...(failure === e ? {} : { recovery: 'controller-changed' }),
+                    })
+                }
+                throw failure
             }
         },
         [

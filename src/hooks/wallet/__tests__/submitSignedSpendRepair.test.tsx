@@ -4,7 +4,7 @@
  * catch. Both callers therefore hand `submitSignedSpend` the repair callback
  * exercised below: cache-only, outcome-preserving, never a retry.
  */
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import {
@@ -302,6 +302,73 @@ describe('recovery via submitSignedSpend + useSignedSpendRecovery', () => {
         expect(outcome).toBeInstanceOf(SpendRecoveryQuoteReviewError)
         expect(submit).toHaveBeenCalledTimes(1)
     })
+
+    /*
+     * fitsLock === true: the re-sign hits Rain's cooldown, but the wait plus
+     * signing still fits inside the ORIGINAL lock — so the recovery waits it
+     * out itself and submits the replacement under that same lock. No quote
+     * renewal, no second confirmation.
+     */
+    it('waits out a cooldown that fits the lock, then submits the replacement under the SAME lock', async () => {
+        jest.useFakeTimers({ advanceTimers: true })
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: NEW_COORD, changed: true })
+        const first = mixedArtifact('prep-1', 'broadcast-first-revert-v1')
+        const replacement = mixedArtifact('prep-2', 'broadcast-first-revert-v1')
+        const resign = jest
+            .fn<Promise<SignedSpendArtifact>, []>()
+            .mockRejectedValueOnce(new RainCooldownError('cooling down', 2))
+            .mockResolvedValueOnce(replacement)
+        const submit = jest.fn(async (candidate: SignedSpendArtifact) =>
+            candidate === first
+                ? // Definitive no-effect rejection from the backend.
+                  { error: 'rejected', code: API_ERROR_CODES.USER_OP_REJECTED }
+                : { status: 'COMPLETED' }
+        )
+
+        const settled = submitWithRecovery(first, submit, resign, { lockExpiresAt: Date.now() + 120_000 })
+        await waitFor(() => expect(resign).toHaveBeenCalledTimes(1))
+        // Still cooling down: nothing else has been submitted.
+        expect(submit).toHaveBeenCalledTimes(1)
+
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(2_100)
+        })
+
+        await expect(settled).resolves.toEqual({ status: 'COMPLETED' })
+        expect(resign).toHaveBeenCalledTimes(2)
+        // Exactly one replacement submission, and the callback received the
+        // REPLACEMENT artifact — the caller builds its body from that, so the
+        // lock it carries is the one the caller already holds.
+        expect(submit).toHaveBeenCalledTimes(2)
+        expect(submit.mock.calls[0][0]).toBe(first)
+        expect(submit.mock.calls[1][0]).toBe(replacement)
+        jest.useRealTimers()
+    }, 20_000)
+
+    it('leaving mid-wait aborts the recovery and submits nothing more', async () => {
+        jest.useFakeTimers({ advanceTimers: true })
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: NEW_COORD, changed: true })
+        const first = mixedArtifact('prep-1', 'broadcast-first-revert-v1')
+        const resign = jest
+            .fn<Promise<SignedSpendArtifact>, []>()
+            .mockRejectedValueOnce(new RainCooldownError('cooling down', 2))
+            .mockResolvedValueOnce(mixedArtifact('prep-2', 'broadcast-first-revert-v1'))
+        const submit = jest.fn(async () => ({ error: 'rejected', code: API_ERROR_CODES.USER_OP_REJECTED }))
+
+        const settled = submitWithRecovery(first, submit, resign, { lockExpiresAt: Date.now() + 120_000 }).catch(
+            (e) => e
+        )
+        await waitFor(() => expect(resign).toHaveBeenCalledTimes(1))
+        leaveScreen()
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(2_100)
+        })
+
+        expect(await settled).toBeInstanceOf(SpendRecoveryAbortedError)
+        expect(resign).toHaveBeenCalledTimes(1)
+        expect(submit).toHaveBeenCalledTimes(1)
+        jest.useRealTimers()
+    }, 20_000)
 
     it('an UNEXPECTED recovery error keeps the ORIGINAL outcome', async () => {
         const submit = jest.fn(async () => {

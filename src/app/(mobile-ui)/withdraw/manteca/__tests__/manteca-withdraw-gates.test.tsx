@@ -15,7 +15,8 @@
  */
 import React from 'react'
 import { render as rtlRender, screen, fireEvent, waitFor, act } from '@testing-library/react'
-import { SpendRecoveryQuoteReviewError } from '@/hooks/wallet/signSpendRetry'
+import { registerSpendArtifactMeta, SpendRecoveryQuoteReviewError } from '@/hooks/wallet/signSpendRetry'
+import { MANTECA_DEPOSIT_ADDRESS } from '@/constants/manteca.consts'
 
 // ---------- module-level mocks ----------
 
@@ -267,6 +268,25 @@ jest.mock('@tanstack/react-query', () => ({
     useQueryClient: () => ({ invalidateQueries: jest.fn() }),
 }))
 
+// Only what the controller-recovery path reads: the cache repair and the
+// controller comparison that authorises a replacement.
+const mockRefreshControllerAddress = jest.fn()
+jest.mock('@/services/rain', () => ({
+    rainApi: {
+        refreshControllerAddress: (...args: unknown[]) => mockRefreshControllerAddress(...args),
+        cancelPreparation: jest.fn(),
+    },
+    RainCooldownError: class RainCooldownError extends Error {
+        readonly retryAfterSec: number | null
+        constructor(message: string, retryAfterSec: number | null) {
+            super(message)
+            this.name = 'RainCooldownError'
+            this.retryAfterSec = retryAfterSec
+        }
+    },
+    RAIN_STALE_APPROVAL_EVENT: 'rain:stale-card-approval',
+}))
+
 // URL stepper: mutable step, like crypto-withdraw-confirm.test.tsx
 const mockStepperGoTo = jest.fn()
 const mockStepper = {
@@ -391,6 +411,73 @@ describe('manteca withdraw — submit-time gates (Chip review round 5)', () => {
         expect(mockSignSpend).not.toHaveBeenCalled()
         expect(mockWithdrawWithSignedTx).not.toHaveBeenCalled()
     })
+
+    /*
+     * The offramp twin of the QR replacement case: the backend's definitive
+     * no-effect rejection created no Manteca order, so the SAME payment is
+     * re-signed and re-submitted under the SAME price lock — same money, same
+     * bank destination — with only the preparation/artifact fresh. No quote is
+     * re-minted and the user is asked for nothing.
+     */
+    it('a definitive no-effect rejection replays once under the SAME price lock with a fresh artifact', async () => {
+        const OLD_COORD = `0x${'a'.repeat(40)}`
+        const NEW_COORD = `0x${'b'.repeat(40)}`
+        const mixedArtifact = (prep: string, coordinatorAddress: string) =>
+            registerSpendArtifactMeta(
+                {
+                    strategy: 'mixed' as const,
+                    rainPreparationId: prep,
+                    signedUserOp: { signedUserOp: '0xsigned', chainId: '42161', entryPointAddress: '0xep' },
+                },
+                { coordinatorAddress, mixedSpendContract: 'broadcast-first-revert-v1' }
+            )
+        mockSignSpend
+            .mockResolvedValueOnce(mixedArtifact('prep-1', OLD_COORD))
+            .mockResolvedValueOnce(mixedArtifact('prep-2', NEW_COORD))
+        mockRefreshControllerAddress.mockResolvedValue({ coordinatorAddress: NEW_COORD, changed: true })
+        mockWithdrawWithSignedTx
+            .mockResolvedValueOnce({ error: 'Failed to broadcast UserOp', code: 'USER_OP_REVERTED' })
+            .mockResolvedValueOnce({ transactionHash: '0xhash' })
+
+        await reachReview()
+        mockInitiateWithdraw.mockClear()
+        clickConfirm()
+
+        await waitFor(() => expect(mockWithdrawWithSignedTx).toHaveBeenCalledTimes(2))
+        const firstBody = mockWithdrawWithSignedTx.mock.calls[0][0]
+        const secondBody = mockWithdrawWithSignedTx.mock.calls[1][0]
+        expect(firstBody).toMatchObject({
+            priceLockCode: 'lock-1',
+            amount: '50.00',
+            destinationAddress: '0000003100010000000009',
+            currency: 'ARS',
+        })
+        // Same quote and same payout instruction on both submissions.
+        expect(secondBody.priceLockCode).toBe(firstBody.priceLockCode)
+        expect(secondBody.amount).toBe(firstBody.amount)
+        expect(secondBody.destinationAddress).toBe(firstBody.destinationAddress)
+        expect(firstBody.bankCode).toBeUndefined()
+        expect(secondBody.bankCode).toBeUndefined()
+        expect(firstBody.accountType).toBeUndefined()
+        expect(secondBody.accountType).toBeUndefined()
+        expect(secondBody.currency).toBe(firstBody.currency)
+        // Fresh replacement artifact.
+        expect(firstBody.rainPreparationId).toBe('prep-1')
+        expect(secondBody.rainPreparationId).toBe('prep-2')
+        // Re-signed for the same money and recipient — and no new quote.
+        expect(mockSignSpend).toHaveBeenCalledTimes(2)
+        expect(mockSignSpend.mock.calls[0][0]).toMatchObject({
+            requiredUsdcAmount: 50_000_000n,
+            recipient: MANTECA_DEPOSIT_ADDRESS,
+            kind: 'FIAT_OFFRAMP',
+        })
+        expect(mockSignSpend.mock.calls[1][0].requiredUsdcAmount).toBe(
+            mockSignSpend.mock.calls[0][0].requiredUsdcAmount
+        )
+        expect(mockSignSpend.mock.calls[1][0].recipient).toBe(mockSignSpend.mock.calls[0][0].recipient)
+        expect(mockInitiateWithdraw).not.toHaveBeenCalled()
+        expect(mockStepperGoTo).not.toHaveBeenCalledWith('failure')
+    }, 20_000)
 
     /*
      * Controller-rotation quote handoff: nothing was ordered or broadcast, so

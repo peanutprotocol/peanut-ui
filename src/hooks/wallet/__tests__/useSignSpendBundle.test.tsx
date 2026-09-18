@@ -510,6 +510,156 @@ describe('useSignSpendBundle — pre-artifact rotation recovery', () => {
         expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(1)
     })
 
+    /*
+     * fitsLock === true: the replacement prepare hits Rain's cooldown, but the
+     * wait plus signing still fits INSIDE this payment's own quote — so the
+     * recovery waits it out itself and signs, with no quote renewal and no
+     * second confirmation from the user.
+     */
+    it('waits out a cooldown that fits the lock, then signs a fresh artifact under the SAME lock', async () => {
+        jest.useFakeTimers({ advanceTimers: true })
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
+        mockSignCallsUserOp.mockRejectedValueOnce(new Error('execution reverted during gas estimation'))
+        mockPrepareWithdrawal
+            .mockResolvedValueOnce(PREP)
+            .mockRejectedValueOnce(new RainCooldownError('cooling down', 2))
+            .mockResolvedValueOnce({ ...PREP, preparationId: 'prep-2', coordinatorAddress: COORD_B })
+
+        const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
+        let settled: Promise<unknown> | undefined
+        await act(async () => {
+            settled = result.current.signSpend({
+                requiredUsdcAmount: 150_000_000n,
+                recipient: RECIPIENT,
+                rainSpendingPower: 200_000_000n,
+                kind: 'QR_PAY',
+                lockExpiresAt: Date.now() + 120_000,
+            })
+            await Promise.resolve()
+        })
+        // Inside the cooldown nothing more is prepared.
+        await waitFor(() => expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(2))
+
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(2_100)
+        })
+        const artifact = (await settled) as unknown as { rainPreparationId?: string }
+
+        // initial prepare, cooled-down replacement prepare, successful retry.
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(3)
+        expect(artifact.rainPreparationId).toBe('prep-2')
+        // Same money and recipient throughout; only the prep is fresh.
+        expect(mockPrepareWithdrawal.mock.calls[2][0]).toEqual(mockPrepareWithdrawal.mock.calls[0][0])
+        // The recovery owns its own 425 — no global cooldown explainer.
+        expect(mockPrepareWithdrawal.mock.calls[1][1]).toEqual({ suppressCooldownEvent: true })
+        jest.useRealTimers()
+    }, 20_000)
+
+    it('leaving the screen mid-wait aborts the recovery without signing a replacement', async () => {
+        jest.useFakeTimers({ advanceTimers: true })
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
+        mockSignCallsUserOp.mockRejectedValueOnce(new Error('execution reverted during gas estimation'))
+        mockPrepareWithdrawal
+            .mockResolvedValueOnce(PREP)
+            .mockRejectedValueOnce(new RainCooldownError('cooling down', 2))
+
+        const { result, unmount } = renderHook(() => useSignSpendBundle(), { wrapper })
+        let settled: Promise<unknown> | undefined
+        await act(async () => {
+            settled = result.current
+                .signSpend({
+                    requiredUsdcAmount: 150_000_000n,
+                    recipient: RECIPIENT,
+                    rainSpendingPower: 200_000_000n,
+                    kind: 'QR_PAY',
+                    lockExpiresAt: Date.now() + 120_000,
+                })
+                .catch((e: Error) => e)
+            await Promise.resolve()
+        })
+        await waitFor(() => expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(2))
+        unmount()
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(2_100)
+        })
+
+        expect(await settled).toBeInstanceOf(SpendRecoveryAbortedError)
+        expect(mockPrepareWithdrawal).toHaveBeenCalledTimes(2)
+        jest.useRealTimers()
+    }, 20_000)
+
+    /*
+     * A replacement that ends badly must still run the same cleanup the first
+     * attempt would have: its standalone draft is backed out, and a real
+     * failure (not a typed handoff) is reported once.
+     */
+    it('a failed replacement backs its own draft out and reports the FINAL failure once', async () => {
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
+        mockSignCallsUserOp
+            .mockRejectedValueOnce(new Error('execution reverted during gas estimation'))
+            .mockRejectedValueOnce(new Error('bundler 502'))
+        mockPrepareWithdrawal
+            .mockResolvedValueOnce(PREP)
+            .mockResolvedValueOnce({ ...PREP, preparationId: 'prep-2', coordinatorAddress: COORD_B })
+
+        const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
+        const error = (await act(async () =>
+            result.current
+                .signSpend({
+                    requiredUsdcAmount: 150_000_000n,
+                    recipient: RECIPIENT,
+                    rainSpendingPower: 200_000_000n,
+                    kind: 'QR_PAY',
+                })
+                .catch((e: Error) => e)
+        )) as unknown as Error
+
+        expect(error.message).toBe('bundler 502')
+        // Both drafts are released: the original before the retry, the
+        // replacement's own on the shared failure exit.
+        expect(rainApi.cancelPreparation).toHaveBeenCalledWith('prep-1')
+        expect(rainApi.cancelPreparation).toHaveBeenCalledWith('prep-2')
+        // Exactly ONE failure event for the whole payment — the recovered first
+        // attempt must not report one of its own.
+        const failures = mockCapture.mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED)
+        expect(failures).toHaveLength(1)
+        expect(failures[0][1]).toMatchObject({
+            flow: 'sign-only',
+            error_message: 'bundler 502',
+            recovery: 'controller-changed',
+        })
+    })
+
+    it('a quote-review handoff releases the original draft and reports no failed payment', async () => {
+        mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
+        mockSignCallsUserOp.mockRejectedValueOnce(new Error('execution reverted during gas estimation'))
+        // The replacement prepare itself is cooled down for longer than any
+        // quote could survive, so the call site has to re-quote.
+        mockPrepareWithdrawal
+            .mockResolvedValueOnce(PREP)
+            .mockRejectedValueOnce(new RainCooldownError('cooling down', 600))
+
+        const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
+        const error = (await act(async () =>
+            result.current
+                .signSpend({
+                    requiredUsdcAmount: 150_000_000n,
+                    recipient: RECIPIENT,
+                    rainSpendingPower: 200_000_000n,
+                    kind: 'QR_PAY',
+                })
+                .catch((e: Error) => e)
+        )) as unknown as Error
+
+        expect(error).toBeInstanceOf(SpendRecoveryQuoteReviewError)
+        // The original draft is released; the replacement never got one.
+        expect(rainApi.cancelPreparation).toHaveBeenCalledWith('prep-1')
+        expect(mockCapture).not.toHaveBeenCalledWith(
+            ANALYTICS_EVENTS.CARD_WITHDRAW_FAILED,
+            expect.objectContaining({ flow: 'sign-only' })
+        )
+    })
+
     it('a second failure after the recovery stops and surfaces', async () => {
         mockRefreshController.mockResolvedValue({ coordinatorAddress: COORD_B, changed: true })
         mockSignCallsUserOp

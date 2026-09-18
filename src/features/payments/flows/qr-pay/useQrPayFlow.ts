@@ -105,6 +105,15 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
      *  stays available and one more tap retries the whole thing. */
     const [requoteFailed, setRequoteFailed] = useState(false)
     const quoteRecoveryCancelledRef = useRef(false)
+    // Leaving the screen — including a browser/gesture back that never runs the
+    // in-app handler — cancels a recovery in flight: no replacement quote is
+    // requested and nothing is signed or submitted afterwards.
+    useEffect(
+        () => () => {
+            quoteRecoveryCancelledRef.current = true
+        },
+        []
+    )
     const quoteRecoveryAttemptRef = useRef(0)
     const quoteRecoveryInFlightRef = useRef(false)
     /** Identity of the CURRENT replacement quote; held across its retries. */
@@ -518,6 +527,9 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                  * backend replays that quote instead of minting another. A new
                  * identity is allocated only for a genuinely new event.
                  */
+                // Covers a cancel that landed while the flow was setting up, or
+                // any path that reaches here without a cooldown wait.
+                if (quoteRecoveryCancelledRef.current) return
                 if (!replacementQuoteKeyRef.current) {
                     replacementQuoteKeyRef.current = `recovery-${++quoteRecoveryAttemptRef.current}`
                 }

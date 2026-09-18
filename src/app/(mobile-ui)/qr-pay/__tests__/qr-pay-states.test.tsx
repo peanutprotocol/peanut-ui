@@ -15,6 +15,7 @@ import en from '@/i18n/app/messages/en.json'
 import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react-query'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { parseUnits } from 'viem'
+import { MANTECA_QR_DEPOSIT_ADDRESS_AR } from '@/constants/manteca.consts'
 import type { RailCapability } from '@/types/capabilities'
 import {
     registerSpendArtifactMeta,
@@ -1639,8 +1640,22 @@ describe('GROUP 5: Error States', () => {
         expect(secondBody.recoveryAttemptId).toBeUndefined()
         // Same payment lock, fresh preparation.
         expect(secondBody.paymentLockCode).toBe(firstBody.paymentLockCode)
+        expect(firstBody.paymentLockCode).toBe('LOCK123')
         expect(firstBody.rainPreparationId).toBe('prep-1')
         expect(secondBody.rainPreparationId).toBe('prep-2')
+        // The replacement is signed for the SAME money and the SAME recipient —
+        // only the preparation behind it is new.
+        expect(mockSignSpend).toHaveBeenCalledTimes(2)
+        const [firstSignInput] = mockSignSpend.mock.calls[0]
+        const [secondSignInput] = mockSignSpend.mock.calls[1]
+        expect(firstSignInput).toMatchObject({
+            requiredUsdcAmount: 10_000_000n,
+            recipient: MANTECA_QR_DEPOSIT_ADDRESS_AR,
+            kind: 'QR_PAY',
+        })
+        expect(secondSignInput.requiredUsdcAmount).toBe(firstSignInput.requiredUsdcAmount)
+        expect(secondSignInput.recipient).toBe(firstSignInput.recipient)
+        expect(secondSignInput.kind).toBe(firstSignInput.kind)
         // Recovered in-flow: no error copy, no stale-approval modal.
         expect(screen.queryByText(en.qrPay.errors.paymentStatusUnknown)).not.toBeInTheDocument()
     })
@@ -1713,6 +1728,31 @@ describe('GROUP 5: Error States', () => {
         })
         await waitFor(() => expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2))
         expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+        jest.useRealTimers()
+    })
+
+    test('leaving the screen during the cooldown wait requests no replacement quote', async () => {
+        jest.useFakeTimers({ advanceTimers: true })
+        mockSignSpend.mockRejectedValueOnce(new SpendRecoveryQuoteReviewError(new Error('cooling down'), 2))
+
+        const view = renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+        await waitFor(() => expect(mockSignSpend).toHaveBeenCalledTimes(1))
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+
+        // A browser/gesture back never runs the in-app handler — the unmount
+        // itself has to stop the recovery.
+        view.unmount()
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(3_100)
+        })
+
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+        expect(mockSignSpend).toHaveBeenCalledTimes(1)
         jest.useRealTimers()
     })
 
