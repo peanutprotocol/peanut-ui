@@ -391,13 +391,6 @@ export const useCreateRequestLink = () => {
         }
     }, [isConnected, address, setSelectedChainID, setSelectedTokenAddress])
 
-    // Auto-create request for bill payments
-    useEffect(() => {
-        if (recipientAddress && !generatedLink && merchantComment && tokenValue) {
-            generateLink()
-        }
-    }, [merchantComment, tokenValue, generateLink, recipientAddress])
-
     return {
         tokenValue,
         attachmentOptions,

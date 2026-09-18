@@ -11,6 +11,14 @@ import { createElement, type ReactNode } from 'react'
 const NuqsAdapter = withNuqsTestingAdapter({ searchParams: '' })
 const wrapper = ({ children }: { children: ReactNode }) =>
     createElement(NuqsAdapter, null, createElement(IntlWrapper, null, children))
+// The split-bill CTA prefills `?amount=&merchant=` (buildSplitBillRequestUrl).
+// A dedicated wrapper carries those into the hook via the same nuqs adapter.
+const splitBillWrapper = ({ children }: { children: ReactNode }) =>
+    createElement(
+        withNuqsTestingAdapter({ searchParams: '?amount=25&merchant=Tigers%20%26%20Lions' }),
+        null,
+        createElement(IntlWrapper, null, children)
+    )
 import { useCreateRequestLink } from '../useCreateRequestLink'
 
 const toastSuccess = jest.fn()
@@ -236,6 +244,21 @@ describe('useCreateRequestLink', () => {
         })
         expect(result.current.requestId).toBeNull()
         expect(result.current.generatedLink).toBeNull()
+    })
+
+    // ui#3271 QA pass 2: this used to auto-call generateLink() the moment
+    // `merchant` + `amount` were both present, skipping the create step where
+    // BankInstructionsToggle lives — a split-bill request could never offer
+    // bank-sharing. It must now behave exactly like any other prefilled
+    // request: seed the form and wait for an explicit generateLink() call.
+    it('does not auto-generate a split-bill request — it only prefills the form', () => {
+        const { result } = renderHook(() => useCreateRequestLink(), { wrapper: splitBillWrapper })
+
+        expect(result.current.tokenValue).toBe('25')
+        expect(result.current.attachmentOptions.message).toBe('Bill split for Tigers & Lions')
+        expect(result.current.requestId).toBeNull()
+        expect(result.current.generatedLink).toBeNull()
+        expect(apiCreate).not.toHaveBeenCalled()
     })
 
     it('autosaves attachment changes to an existing request', async () => {

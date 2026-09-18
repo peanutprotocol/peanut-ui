@@ -892,12 +892,16 @@ describe('GROUP 5: Merchant / Bill Split Flow', () => {
         expect(commentField).toHaveValue('Bill split for CoolCafe')
     })
 
-    test('merchant + amount params auto-create request link', async () => {
+    // ui#3271 QA pass 2: this used to auto-create the link the instant both
+    // params were present, skipping the create step where BankInstructionsToggle
+    // lives — a split-bill request could never offer bank-sharing. It must now
+    // behave like any other prefilled request: show the create form and wait
+    // for an explicit tap.
+    test('merchant + amount params prefill the form instead of auto-creating', () => {
         renderCreateRequest({ merchant: 'CoolCafe', amount: '25' })
 
-        await waitFor(() => {
-            expect(mockRequestsApi.create).toHaveBeenCalled()
-        })
+        expect(screen.getByRole('button', { name: 'Create request' })).toBeInTheDocument()
+        expect(mockRequestsApi.create).not.toHaveBeenCalled()
     })
 })
 
