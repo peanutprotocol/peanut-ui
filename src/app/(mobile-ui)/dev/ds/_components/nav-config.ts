@@ -146,7 +146,7 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             label: 'Tabs',
             icon: 'docs',
             href: '/dev/ds/primitives/tabs',
-            description: 'Content tabs joined to a bordered panel, plus the pill variant for value toggles',
+            description: 'One look, no variants — type only. Content tabs and value toggles, same row',
             status: 'production',
         },
         {
