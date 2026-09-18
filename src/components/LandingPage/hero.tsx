@@ -10,7 +10,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { CloudsCss, type CloudConfig } from './CloudsCss'
 import { AnimateOnView } from '@/components/Global/AnimateOnView'
 import type { LandingStrings } from './landingStrings'
-import type { Locale } from '@/i18n/types'
+import type { LandingContentHrefs } from './landingContentHrefs'
 import { type CTAButton } from '@/components/LandingPage/landing.types'
 
 /**
@@ -104,7 +104,7 @@ const heroClouds: CloudConfig[] = [
 
 type HeroProps = {
     strings: LandingStrings
-    locale: Locale
+    contentHrefs: LandingContentHrefs
     primaryCta?: CTAButton
     secondaryCta?: CTAButton
     buttonVisible?: boolean
@@ -130,7 +130,7 @@ const getCtaStyle = (variant: 'primary' | 'secondary', buttonVisible?: boolean):
 const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
     `relative z-20 mt-8 flex flex-col items-center justify-center ${variant === 'primary' ? 'mx-auto w-fit' : 'right-[calc(50%-120px)]'}`
 
-export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strings, locale }: HeroProps) {
+export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strings, contentHrefs }: HeroProps) {
     const migrationOn = useMigrationFlag()
     const renderCTAButton = (cta: CTAButton, variant: 'primary' | 'secondary') => {
         return (
@@ -214,16 +214,16 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                     className="mt-2 block text-center text-xl leading-tight text-n-1 md:mt-4 md:text-5xl"
                     style={{ fontWeight: 500, letterSpacing: '-0.5px' }}
                 >
-                    <Link prefetch={false} href={`/${locale}/argentina`} className="hover:underline">
-                        Buenos Aires
+                    <Link prefetch={false} href={contentHrefs.unitedStates} className="hover:underline">
+                        {strings.heroCityNewYork}
                     </Link>
                     .{' '}
-                    <Link prefetch={false} href={`/${locale}/brazil`} className="hover:underline">
-                        São Paulo
+                    <Link prefetch={false} href={contentHrefs.spain} className="hover:underline">
+                        {strings.heroCityMadrid}
                     </Link>
                     .{' '}
-                    <Link prefetch={false} href={`/${locale}/brazil`} className="hover:underline">
-                        Floripa
+                    <Link prefetch={false} href={contentHrefs.mexico} className="hover:underline">
+                        {strings.heroCityMexicoCity}
                     </Link>
                     .
                 </span>

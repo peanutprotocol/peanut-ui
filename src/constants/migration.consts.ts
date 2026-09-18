@@ -19,8 +19,8 @@ export const PWA_SUNSET_FLAG = 'pwa-sunset'
 export const APP_ENTRY_QUERY_PARAM = 'app_entry'
 
 // ponytail: cutover date is a constant; move to flag payload only if the date
-// needs to move without a deploy. placeholder — set the real date before flag-on.
-export const MIGRATION_CUTOVER_DATE = new Date('2026-12-31T00:00:00Z')
+// needs to move without a deploy.
+export const MIGRATION_CUTOVER_DATE = new Date('2026-10-09T00:00:00Z')
 
 // how long "Remind me later" snoozes the download prompt modal
 export const DOWNLOAD_PROMPT_SNOOZE_DAYS = 3
