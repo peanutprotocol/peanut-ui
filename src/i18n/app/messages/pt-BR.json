@@ -1786,7 +1786,7 @@
             "minDepositForLabel": "Depósito mínimo para {network}",
             "maxDepositForLabel": "Depósito máximo para {network}",
             "bridgingVarianceNote": "Os depósitos passam por ponte até a Arbitrum e podem variar um pouco (±0,1%).",
-            "bridgingVarianceNoteEvm": "USDC na Arbitrum chega exato. Depósitos de outras redes ou tokens passam por ponte e podem variar um pouco (±0,1%).",
+            "bridgingVarianceNoteEvm": "Depósitos de USDC na Arbitrum são creditados pelo valor total. Depósitos de outras redes ou tokens passam por ponte e podem variar um pouco (±0,1%).",
             "addressErrorTitle": "Não conseguimos preparar seu endereço de depósito",
             "addressErrorDescription": "Nada foi enviado. Tente de novo: se continuar acontecendo, fale com o suporte.",
             "marketMovedTitle": "Ops! O mercado mudou",

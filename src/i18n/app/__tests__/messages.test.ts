@@ -90,37 +90,49 @@ describe('navigation action labels', () => {
     })
 })
 
-describe('deposit screen headings', () => {
+describe('deposit screen copy', () => {
     const EXPECTED = {
         en: {
             howToDeposit: 'How to deposit',
             supportedNetworks: 'Supported Networks',
             supportedTokens: 'Supported Tokens',
+            bridgingNote:
+                'USDC on Arbitrum arrives at the full amount. Deposits from other chains or tokens are bridged and can vary slightly (±0.1%).',
         },
         'es-419': {
             howToDeposit: 'Cómo depositar',
             supportedNetworks: 'Redes compatibles',
             supportedTokens: 'Tokens compatibles',
+            bridgingNote:
+                'Los depósitos de USDC en Arbitrum se acreditan por el monto total. Los depósitos desde otras redes o tokens se puentean y pueden variar un poco (±0.1%).',
         },
         'es-AR': {
             howToDeposit: 'Cómo depositar',
             supportedNetworks: 'Redes compatibles',
             supportedTokens: 'Tokens compatibles',
+            bridgingNote:
+                'Los depósitos de USDC en Arbitrum se acreditan por el monto total. Los depósitos desde otras redes o tokens se puentean y pueden variar un poco (±0.1%).',
         },
         'pt-BR': {
             howToDeposit: 'Como depositar',
             supportedNetworks: 'Redes compatíveis',
             supportedTokens: 'Tokens compatíveis',
+            bridgingNote:
+                'Depósitos de USDC na Arbitrum são creditados pelo valor total. Depósitos de outras redes ou tokens passam por ponte e podem variar um pouco (±0,1%).',
         },
-    } satisfies Record<AppLocale, { howToDeposit: string; supportedNetworks: string; supportedTokens: string }>
+    } satisfies Record<
+        AppLocale,
+        { howToDeposit: string; supportedNetworks: string; supportedTokens: string; bridgingNote: string }
+    >
 
-    it.each(APP_LOCALES)('%s uses sentence-case headings without trailing colons', async (locale) => {
+    it.each(APP_LOCALES)('%s uses the approved localized copy', async (locale) => {
         const { addMoney } = await loadMessages(locale)
 
         expect({
             howToDeposit: addMoney.howToDeposit.title,
             supportedNetworks: addMoney.crypto.supportedNetworks,
             supportedTokens: addMoney.crypto.supportedTokens,
+            bridgingNote: addMoney.crypto.bridgingVarianceNoteEvm,
         }).toEqual(EXPECTED[locale])
     })
 })
