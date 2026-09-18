@@ -1740,7 +1740,7 @@
         },
         "claim": {
             "benefitStable": "Compartí estos datos una sola vez — quedan igual para cada pago después.",
-            "benefitBalance": "La plata llega a tu saldo de Peanut en USD."
+            "benefitBalance": "El dinero llega a tu saldo de Peanut en USD."
         },
         "details": {
             "unavailableTitle": "Todavía no tenés datos en {currency}",
@@ -1774,9 +1774,6 @@
             },
             "individualCap": {
                 "why": "Un pago único de otra persona tiene un límite de {cap}. Una empresa puede pagar cualquier monto. Para recibir más de {cap} de una persona en un solo pago, escribí a soporte."
-            },
-            "individualCapFamily": {
-                "why": "Un pago único de otra persona tiene un límite de {cap}. Una empresa puede pagar cualquier monto, y también los familiares con tu mismo apellido. Para recibir más de {cap} de una persona en un solo pago, escribí a soporte."
             },
             "individualVolume": {
                 "line": "Desde otra persona: hasta {limit} en total. Preguntá a soporte por el periodo.",

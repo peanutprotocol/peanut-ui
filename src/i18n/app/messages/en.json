@@ -4175,9 +4175,9 @@
                 "why": "A single payment from another person is capped at {cap}. A business can pay any amount. To receive more than {cap} from one person in a single payment, contact support."
             },
             "individualCapFamily": {
-                "line": "From another person: less than {cap} each time. Family who share your surname: any amount.",
-                "payer": "From another person: less than {cap} each time. Family who share the account holder surname: any amount.",
-                "why": "A single payment from another person is capped at {cap}. A business can pay any amount, and so can family who share your surname. To receive more than {cap} from one person in a single payment, contact support."
+                "line": "Family who share your surname: any amount.",
+                "payer": "Family who share the account holder surname: any amount.",
+                "why": "Family members who share your surname can pay any amount in this currency; anyone else is held to the per-payment cap."
             },
             "individualVolume": {
                 "line": "From another person: up to {limit} in total. Ask support about the period.",

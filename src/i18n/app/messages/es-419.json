@@ -4135,7 +4135,7 @@
                 "why": "El dinero que entra igual llega a tu saldo de Peanut. El nombre de la cuenta no es el tuyo, así que un formulario de nómina que revise el nombre necesita el titular que se muestra arriba."
             },
             "ownAccount": {
-                "line": "Desde tu propia cuenta: sí.",
+                "line": "Desde tu propia cuenta: permitido.",
                 "payer": "Desde la cuenta propia del titular: sí.",
                 "why": "Puedes transferir desde tu propia cuenta bancaria. Contacta a soporte antes de enviar más de US$100.000."
             },
@@ -4175,9 +4175,9 @@
                 "why": "Un pago único de otra persona tiene un límite de {cap}. Una empresa puede pagar cualquier monto. Para recibir más de {cap} de una persona en un solo pago, escribe a soporte."
             },
             "individualCapFamily": {
-                "line": "Desde otra persona: menos de {cap} por pago. Los familiares con tu mismo apellido: cualquier monto.",
-                "payer": "Desde otra persona: menos de {cap} por pago. Los familiares con el apellido del titular: cualquier monto.",
-                "why": "Un pago único de otra persona tiene un límite de {cap}. Una empresa puede pagar cualquier monto, y también los familiares con tu mismo apellido. Para recibir más de {cap} de una persona en un solo pago, escribe a soporte."
+                "line": "Los familiares con tu mismo apellido: cualquier monto.",
+                "payer": "Los familiares con el apellido del titular: cualquier monto.",
+                "why": "Los familiares que comparten tu apellido pueden pagar cualquier monto en esta moneda; el resto tiene el límite por pago."
             },
             "individualVolume": {
                 "line": "Desde otra persona: hasta {limit} en total. Pregunta a soporte por el periodo.",

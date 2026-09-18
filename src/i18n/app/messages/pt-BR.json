@@ -4175,9 +4175,9 @@
                 "why": "Um pagamento único de outra pessoa tem limite de {cap}. Uma empresa pode pagar qualquer valor. Para receber mais de {cap} de uma pessoa em um único pagamento, fale com o suporte."
             },
             "individualCapFamily": {
-                "line": "De outra pessoa: menos de {cap} por pagamento. Familiares com o seu sobrenome: qualquer valor.",
-                "payer": "De outra pessoa: menos de {cap} por pagamento. Familiares com o sobrenome do titular: qualquer valor.",
-                "why": "Um pagamento único de outra pessoa tem limite de {cap}. Uma empresa pode pagar qualquer valor, e familiares com o seu sobrenome também. Para receber mais de {cap} de uma pessoa em um único pagamento, fale com o suporte."
+                "line": "Familiares com o seu sobrenome: qualquer valor.",
+                "payer": "Familiares com o sobrenome do titular: qualquer valor.",
+                "why": "Familiares que compartilham o seu sobrenome podem pagar qualquer valor nesta moeda; os demais têm o limite por pagamento."
             },
             "individualVolume": {
                 "line": "De outra pessoa: até {limit} no total. Pergunte ao suporte sobre o período.",
