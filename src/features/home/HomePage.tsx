@@ -44,7 +44,7 @@ export function HomePage() {
 
     return (
         <PageContainer>
-            <div className="flex h-full w-full flex-col gap-6 p-4">
+            <div className="flex h-full w-full flex-col gap-6">
                 <HomeTopNav showRewards={isActivated} />
                 <BalanceSection
                     balance={spendableBalance}

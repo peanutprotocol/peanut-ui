@@ -15,6 +15,8 @@ export type ValidationErrorViewProps = {
     message: string
     buttonText: string
     redirectTo: string
+    /** Runs before the redirect. Return true to keep it (guest store hand-off). */
+    onButtonClick?: () => boolean
     showLearnMore?: boolean
     supportMessageTemplate?: string
     supportButtonText?: string
@@ -25,6 +27,7 @@ function ValidationErrorView({
     message,
     buttonText,
     redirectTo,
+    onButtonClick,
     showLearnMore = true,
     supportMessageTemplate,
     supportButtonText,
@@ -59,6 +62,7 @@ function ValidationErrorView({
             <div className="flex w-full flex-col gap-2">
                 <Button
                     onClick={() => {
+                        if (onButtonClick?.()) return
                         router.push(redirectTo)
                     }}
                     size="medium"

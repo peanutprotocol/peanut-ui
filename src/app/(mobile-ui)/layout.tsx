@@ -34,7 +34,6 @@ import { useNativePlugins } from '@/hooks/useNativePlugins'
 // Side-effect import: useSafeBack patches history.pushState at module load. Importing here
 // guarantees the patch is installed before any child page's mount-time router.push.
 import '@/hooks/useSafeBack'
-import { isCapacitor } from '@/utils/capacitor'
 import { isDemoMode, enableDemoMode } from '@/utils/demo'
 import SunsetScreen from '@/components/Migration/SunsetScreen'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
@@ -196,7 +195,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 contentClassName={twMerge(
                     'pb-[calc(6rem_+_var(--safe-bottom))]',
                     isSupport && 'p-0 pb-[calc(5rem_+_var(--safe-bottom))]',
-                    isHome && 'p-0',
                     // Receipt owns its 16px page inset so the same shell also
                     // renders correctly on the public web receipt route.
                     isReceipt && 'p-0',
@@ -205,12 +203,14 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     isUserLoggedIn && !isProfileMenu
                         ? 'pb-[calc(6rem_+_var(--safe-bottom))]'
                         : 'pb-[calc(1rem_+_var(--safe-bottom))]',
-                    isDev && 'p-0 pb-0',
-                    isHome && isCapacitor() && 'px-0 pt-0'
+                    isDev && 'p-0 pb-0'
                 )}
                 innerClassName={twMerge(
                     alignStart && 'items-start',
                     isSupport && 'h-full',
+                    // the shell inset now lives on the capped column, so a page that
+                    // owns its own inset opts out here instead of with p-0 above
+                    (isSupport || isReceipt || isDev) && 'px-0',
                     isUserLoggedIn
                         ? 'min-h-[calc(100dvh_-_160px_-_var(--safe-top)_-_var(--safe-bottom))]'
                         : 'min-h-[calc(100dvh_-_64px_-_var(--safe-top)_-_var(--safe-bottom))]',
