@@ -281,7 +281,6 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                                         <Button
                                             shadowSize="4"
                                             icon="link"
-                                            iconSize={10}
                                             onClick={handleLinkCtaClick}
                                             className="mt-4"
                                         >
