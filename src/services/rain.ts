@@ -149,6 +149,12 @@ export interface PrepareRainWithdrawalResponse {
 }
 
 export interface SubmitRainWithdrawalInput {
+    /** Coordinator the prep was built against. A classification HINT only: the
+     *  server always takes its target, domain and cache from its own record /
+     *  Rain, never from this value. It lets an otherwise-rejected older
+     *  artifact be recognised as rotation-stale once another request has
+     *  already updated the record. */
+    preparedCoordinatorAddress?: string
     preparationId: string
     amount: string
     recipientAddress: string
@@ -400,6 +406,14 @@ interface RequestOpts {
      * ID unless a proof from the last few minutes is still good.
      */
     stepUp?: boolean
+    /**
+     * Suppress the GLOBAL cooldown explainer for a 425 (the typed
+     * `RainCooldownError` and its telemetry are unchanged). Only the internal
+     * controller-recovery re-prepare sets this: it owns the wait itself, and a
+     * modal about an attempt the user never made would be the visible failure
+     * the recovery exists to avoid.
+     */
+    suppressCooldownEvent?: boolean
 }
 
 async function rainRequest<T>(opts: RequestOpts): Promise<T> {
@@ -442,8 +456,11 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
             // retryAfterSec-less shape that shows no cooldown UI at all
             // (the PEANUT-UI-QJ1 blind spot). Flow context comes from
             // PostHog's auto-captured $pathname.
-            posthog.capture(ANALYTICS_EVENTS.RAIN_COOLDOWN_HIT, { retry_after_sec: retryAfterSec })
-            if (retryAfterSec !== null) {
+            posthog.capture(ANALYTICS_EVENTS.RAIN_COOLDOWN_HIT, {
+                retry_after_sec: retryAfterSec,
+                ...(opts.suppressCooldownEvent ? { recovery: true } : {}),
+            })
+            if (retryAfterSec !== null && !opts.suppressCooldownEvent) {
                 window.dispatchEvent(
                     new CustomEvent<RainCooldownEventDetail>('rain:cooldown', {
                         detail: { retryAfterSec, message },
@@ -541,11 +558,15 @@ export const rainApi = {
      * its own. Step-up here made every collateral-funded send cost three
      * fingerprint prompts instead of two (the 2026-07 triple-prompt reports).
      */
-    prepareWithdrawal: async (input: PrepareRainWithdrawalInput): Promise<PrepareRainWithdrawalResponse> => {
+    prepareWithdrawal: async (
+        input: PrepareRainWithdrawalInput,
+        opts?: { suppressCooldownEvent?: boolean }
+    ): Promise<PrepareRainWithdrawalResponse> => {
         return rainRequest<PrepareRainWithdrawalResponse>({
             method: 'POST',
             path: '/rain/cards/withdraw/prepare',
             body: input,
+            suppressCooldownEvent: opts?.suppressCooldownEvent,
         })
     },
 

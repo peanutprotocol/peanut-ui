@@ -57,8 +57,16 @@ export function isArgentinaMantecaQrPayment(qrType: string | null, paymentProces
  * `amount` is part of the identity: an open-amount QR re-inits with the user's
  * number, and a different amount is a genuinely different lock.
  */
-export function qrInitIdempotencyKey(input: { qrCode: string; timestamp: string | null; amount?: string }): string {
-    const canonical = [input.timestamp ?? '', input.qrCode, input.amount ?? ''].join('\u0000')
+export function qrInitIdempotencyKey(input: {
+    qrCode: string
+    timestamp: string | null
+    amount?: string
+    /** Set by a controller-recovery re-quote: the SAME scan deliberately needs a
+     *  NEW lock, so the key must not replay the one that just became unusable.
+     *  Stable per recovery event, so that quote's own retries still replay. */
+    replacement?: string
+}): string {
+    const canonical = [input.timestamp ?? '', input.qrCode, input.amount ?? '', input.replacement ?? ''].join('\u0000')
     // Two independently seeded 64-bit halves; the separator is a byte that
     // cannot appear in any of the fields, so adjacent values can never blur.
     return `${fnv1a64(canonical)}${fnv1a64(`${canonical.length}\u0000${canonical}`)}`

@@ -170,8 +170,10 @@ export const mantecaApi = {
      *   withdrawal via the user's session-key UserOp with `directTransfer=true`
      *   straight to MANTECA's deposit address. One passkey tap (admin EIP-712).
      *
-     * In all cases, backend creates the Manteca order FIRST so funds don't
-     * leave the user's side if Manteca fails.
+     * Order vs funding depends on the branch: the modern mixed/userOp route
+     * broadcasts the funding UserOp FIRST (its revert is definitive, so a
+     * failure creates no provider order at all), while the legacy
+     * `rainWithdrawal` branch creates the Manteca order first and funds after.
      */
     completeQrPaymentWithSignedTx: async (
         body:
@@ -210,6 +212,8 @@ export const mantecaApi = {
                   paymentLockCode: string
                   qrType?: string
                   signedRainWithdrawal: {
+                      /** Classification hint only — never a target address. */
+                      preparedCoordinatorAddress?: string
                       preparationId: string
                       amount: string
                       recipientAddress: Address
@@ -399,10 +403,14 @@ export const mantecaApi = {
      *  - 'rainWithdrawal' (collateral-only): backend submits the signed
      *    Rain withdrawal via the user's session-key UserOp with
      *    `directTransfer=true` straight to MANTECA's deposit address.
-     *    One passkey tap (admin EIP-712).
+     *    One passkey tap (admin EIP-712). Ordinary collateral funding no
+     *    longer routes here — only forced flows (lock/cancel card) do.
      *
-     * In all cases, backend creates the Manteca order FIRST so funds
-     * don't leave the user's side if Manteca fails.
+     * Order vs funding depends on the branch: the modern mixed/userOp route
+     * broadcasts the funding UserOp FIRST (a definitive revert leaves no
+     * provider order behind), while the legacy `rainWithdrawal` branch creates
+     * the Manteca order first and funds after — which is why it has no safe
+     * resume and ordinary collateral spends avoid it.
      */
     withdrawWithSignedTx: async (
         body:
@@ -445,6 +453,8 @@ export const mantecaApi = {
                   bankCode?: string
                   accountType?: string
                   signedRainWithdrawal: {
+                      /** Classification hint only — never a target address. */
+                      preparedCoordinatorAddress?: string
                       preparationId: string
                       amount: string
                       recipientAddress: Address

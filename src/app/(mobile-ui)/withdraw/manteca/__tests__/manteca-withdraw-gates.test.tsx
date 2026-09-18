@@ -14,7 +14,8 @@
  * and the real price-lock handler (mantecaApi.initiateWithdraw mocked).
  */
 import React from 'react'
-import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { SpendRecoveryQuoteReviewError } from '@/hooks/wallet/signSpendRetry'
 
 // ---------- module-level mocks ----------
 
@@ -297,8 +298,8 @@ const render = (ui: React.ReactElement) => rtlRender(ui)
  * amount step (advancing via the mocked stepper), bank-details submits with
  * the ?destination=-prefilled CBU (locks the price), review renders Confirm.
  */
-const reachReview = async () => {
-    mockInitiateWithdraw.mockResolvedValue({ data: PRICE_LOCK })
+const reachReview = async (lock: Record<string, unknown> = PRICE_LOCK) => {
+    mockInitiateWithdraw.mockResolvedValue({ data: lock })
     mockStepper.step = 'amount'
     const view = render(<MantecaWithdrawFlow />)
     // the seed consumed ?amount= and asked to advance
@@ -390,6 +391,79 @@ describe('manteca withdraw — submit-time gates (Chip review round 5)', () => {
         expect(mockSignSpend).not.toHaveBeenCalled()
         expect(mockWithdrawWithSignedTx).not.toHaveBeenCalled()
     })
+
+    /*
+     * Controller-rotation quote handoff: nothing was ordered or broadcast, so
+     * the SAME payment stays on review — Rain's cooldown is waited out first,
+     * then the quote is re-locked for the SAME USD amount and the user must
+     * confirm again. No submission happens under terms they did not see.
+     */
+    it('a quote-review handoff waits, re-locks the same amount, and cannot be re-entered meanwhile', async () => {
+        jest.useFakeTimers({ advanceTimers: true })
+        mockSignSpend.mockRejectedValueOnce(new SpendRecoveryQuoteReviewError(new Error('cooling down'), 2))
+        await reachReview()
+        mockInitiateWithdraw.mockClear()
+
+        clickConfirm()
+        await waitFor(() => expect(mockSignSpend).toHaveBeenCalledTimes(1))
+
+        // Inside the cooldown: no new quote yet, and a second tap re-enters
+        // nothing — no signature, no submission.
+        expect(mockInitiateWithdraw).not.toHaveBeenCalled()
+        clickConfirm()
+        expect(mockSignSpend).toHaveBeenCalledTimes(1)
+        expect(mockWithdrawWithSignedTx).not.toHaveBeenCalled()
+
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(3_100)
+        })
+        // Re-locked for the SAME USD amount; the review step never bounced.
+        await waitFor(() => expect(mockInitiateWithdraw).toHaveBeenCalledWith({ amount: '50.00', currency: 'ARS' }))
+        expect(mockWithdrawWithSignedTx).not.toHaveBeenCalled()
+        expect(mockStepperGoTo).not.toHaveBeenCalledWith('amount')
+        jest.useRealTimers()
+    }, 20_000)
+
+    it('a failed re-lock leaves review usable: the next tap re-quotes only, the one after pays', async () => {
+        mockSignSpend.mockRejectedValueOnce(new SpendRecoveryQuoteReviewError(new Error('cooling down')))
+        mockSignSpend.mockResolvedValue({
+            strategy: 'smart-only',
+            signedUserOp: { signedUserOp: '0xsigned', chainId: '42161', entryPointAddress: '0xep' },
+        })
+        await reachReview()
+        mockInitiateWithdraw.mockClear()
+        mockInitiateWithdraw.mockResolvedValueOnce({ error: 'provider down' })
+
+        // Tap 1: the handoff re-quotes, and the re-quote fails.
+        clickConfirm()
+        await waitFor(() => expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1))
+        expect(mockWithdrawWithSignedTx).not.toHaveBeenCalled()
+
+        // Tap 2: quote ONLY — never a signature against the dead lock.
+        mockInitiateWithdraw.mockResolvedValueOnce({ data: { priceLockCode: 'lock-2', fiatAmount: '76000.00' } })
+        clickConfirm()
+        await waitFor(() => expect(mockInitiateWithdraw).toHaveBeenCalledTimes(2))
+        expect(mockSignSpend).toHaveBeenCalledTimes(1)
+        expect(mockWithdrawWithSignedTx).not.toHaveBeenCalled()
+
+        // Tap 3 confirms the fresh terms and pays under the NEW lock.
+        clickConfirm()
+        await waitFor(() => expect(mockWithdrawWithSignedTx).toHaveBeenCalledTimes(1))
+        expect(mockWithdrawWithSignedTx).toHaveBeenCalledWith(
+            expect.objectContaining({ priceLockCode: 'lock-2', amount: '50.00' })
+        )
+    }, 20_000)
+
+    it('an expired quote never signs: it re-locks and waits for a new confirmation', async () => {
+        await reachReview({ ...PRICE_LOCK, expiresAt: new Date(Date.now() - 60_000).toISOString() })
+        mockInitiateWithdraw.mockClear()
+
+        clickConfirm()
+
+        await waitFor(() => expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1))
+        expect(mockSignSpend).not.toHaveBeenCalled()
+        expect(mockWithdrawWithSignedTx).not.toHaveBeenCalled()
+    }, 20_000)
 
     it('limits still loading at the price-lock boundary: bank-details submit bounces to amount', async () => {
         mockInitiateWithdraw.mockResolvedValue({ data: PRICE_LOCK })

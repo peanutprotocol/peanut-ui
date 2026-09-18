@@ -6285,6 +6285,7 @@ export interface paths {
                             expiresAt: number;
                             preparationId: string;
                             recipientAddress: string;
+                            preparedCoordinatorAddress?: string;
                         };
                     };
                 };
@@ -6541,6 +6542,7 @@ export interface paths {
                             expiresAt: number;
                             preparationId: string;
                             recipientAddress: string;
+                            preparedCoordinatorAddress?: string;
                         };
                     };
                 };
@@ -8167,6 +8169,18 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            code?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
                 422: {
                     headers: {
                         [name: string]: unknown;
@@ -8502,6 +8516,7 @@ export interface paths {
                         expiresAt: number;
                         preparationId: string;
                         recipientAddress: string;
+                        preparedCoordinatorAddress?: string;
                     };
                 };
             };
@@ -8548,8 +8563,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            /** @enum {string} */
-                            code?: "STALE_CARD_APPROVAL";
+                            code?: "STALE_CARD_APPROVAL" | "RAIN_CONTROLLER_CHANGED";
                             error: string;
                         };
                     };
@@ -8740,6 +8754,7 @@ export interface paths {
                             expiresAt: number;
                             preparationId: string;
                             recipientAddress: string;
+                            preparedCoordinatorAddress?: string;
                         };
                     };
                 };
@@ -9008,6 +9023,7 @@ export interface paths {
                             expiresAt: number;
                             preparationId: string;
                             recipientAddress: string;
+                            preparedCoordinatorAddress?: string;
                         };
                     };
                 };

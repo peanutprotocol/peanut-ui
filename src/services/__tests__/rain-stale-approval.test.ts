@@ -97,6 +97,44 @@ describe('rainApi.submitWithdrawal — stale card approval', () => {
     })
 
     /**
+     * The global cooldown explainer belongs to attempts the USER made. The
+     * internal controller-recovery re-prepare owns its own wait, so it opts out
+     * of the event — while still getting the typed error + retryAfterSec.
+     */
+    it('a 425 dispatches the cooldown event for a normal prepare', async () => {
+        mockFetchWithSentry.mockResolvedValue(jsonResponse(425, { error: 'cooling down', retryAfterSec: 42 }))
+        const onCooldown = jest.fn()
+        window.addEventListener('rain:cooldown', onCooldown)
+
+        const err = await rainApi
+            .prepareWithdrawal({ amount: '100', recipientAddress: '0xr', directTransfer: true })
+            .catch((e) => e)
+        expect(err.name).toBe('RainCooldownError')
+        expect(err.retryAfterSec).toBe(42)
+        expect(onCooldown).toHaveBeenCalledTimes(1)
+
+        window.removeEventListener('rain:cooldown', onCooldown)
+    })
+
+    it('the internal recovery re-prepare suppresses the event but keeps the typed error', async () => {
+        mockFetchWithSentry.mockResolvedValue(jsonResponse(425, { error: 'cooling down', retryAfterSec: 42 }))
+        const onCooldown = jest.fn()
+        window.addEventListener('rain:cooldown', onCooldown)
+
+        const err = await rainApi
+            .prepareWithdrawal(
+                { amount: '100', recipientAddress: '0xr', directTransfer: true },
+                { suppressCooldownEvent: true }
+            )
+            .catch((e) => e)
+        expect(err.name).toBe('RainCooldownError')
+        expect(err.retryAfterSec).toBe(42)
+        expect(onCooldown).not.toHaveBeenCalled()
+
+        window.removeEventListener('rain:cooldown', onCooldown)
+    })
+
+    /**
      * The cache-repair endpoint (TASK-22734) must stay inert UI-wise: it can
      * be called from any failed Rain leg, so it must never be the thing that
      * pops the global re-enable modal.

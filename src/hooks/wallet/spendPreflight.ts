@@ -4,6 +4,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
 import { findActiveCard } from '@/components/Card/cardState.utils'
+import type { RainCardOverview } from '@/services/rain'
 import type { GrantSessionKeyError } from './useGrantSessionKey'
 import { smartUsdcBalanceQueryOptions } from './useBalance'
 import {
@@ -154,9 +155,6 @@ export interface CollateralSpendPreflightArgs<TClient extends { account?: unknow
      *  optimistically would crash on the backend submission. The broadcasting
      *  engine proceeds (no card visible → nothing to grant). */
     requireOverview: boolean
-    grant: () => Promise<{ ok: true } | { ok: false; error: GrantSessionKeyError }>
-    /** Fires right before the one-time session-key grant prompt appears. */
-    onGrantRequired?: () => void
     /** Sends the migration no-op userOp through the CURRENT (wrapper) client. */
     sendNoopUserOp: (call: ReturnType<typeof buildMigrationNoopCall>) => Promise<{ receipt: TransactionReceipt | null }>
     /** Rebuilds the kernel client so post-migration signatures route to v0.0.3. */
@@ -178,8 +176,11 @@ export interface CollateralSpendPreflightArgs<TClient extends { account?: unknow
  *    `collateral-only` is exempt on purpose: its withdrawal is submitted
  *    against the CURRENT (pre-migration) on-chain state, where the old
  *    validator still verifies — no reason to add a passkey tap there.
- * 2. One-time session-key grant. If missing, run the inline grant flow now
- *    (one extra passkey tap the FIRST time, zero after).
+ * 2. Overview validation for the sign-only engine.
+ *
+ * The session-key grant does NOT belong here: it binds to a coordinator, and
+ * the prep is what states which one the withdrawal uses — see
+ * `ensurePreparedControllerApproval`, which both engines call right after it.
  *
  * Returns the client every subsequent signature MUST come from (rebuilt when
  * a migration ran; the caller's original client otherwise).
@@ -193,8 +194,6 @@ export async function runCollateralSpendPreflight<TClient extends { account?: un
         kernelClient,
         overview,
         requireOverview,
-        grant,
-        onGrantRequired,
         sendNoopUserOp,
         rebuildClient,
         setSecurityOverlay,
@@ -235,27 +234,60 @@ export async function runCollateralSpendPreflight<TClient extends { account?: un
         }
     }
 
-    /*
-     * Grant gate for collateral-only ONLY. The granted session key is consumed
-     * exclusively by the backend's collateral-only submit path
-     * (`verifyRainWithdrawal` 409s without it); the mixed path broadcasts the
-     * user's own root-signed UserOp and never touches the stored approval —
-     * gating it here charged first-time mixed spenders a third passkey tap
-     * for nothing. Auto-balance activation (the grant's side effect) still
-     * happens on the user's first collateral-only spend or card activation.
-     */
-    if (strategy === 'collateral-only') {
-        const card = findActiveCard(overview)
-        if (card && !card.hasWithdrawApproval) {
-            onGrantRequired?.()
-            const grantResult = await grant()
-            if (!grantResult.ok) {
-                throw new SessionKeyGrantRequiredError(grantResult.error)
-            }
-            // `grant()` refetches the overview; by the time we continue the
-            // flag is flipped and the backend will accept the submit call.
-        }
-    }
-
     return activeClient
+}
+
+function sameAddress(a: string | undefined, b: string | undefined): boolean {
+    return !!a && !!b && a.toLowerCase() === b.toLowerCase()
+}
+
+/** An overview covers the prepared target only when its OWN controller is that
+ *  target — a live flag read against a different controller proves nothing. */
+function coversPreparedController(overview: RainCardOverview | undefined, preparedCoordinator: string): boolean {
+    return (
+        !!findActiveCard(overview)?.hasWithdrawApproval &&
+        sameAddress(overview?.status?.coordinatorAddress, preparedCoordinator)
+    )
+}
+
+export interface PreparedControllerApprovalArgs {
+    /** `prep.coordinatorAddress` — the coordinator the withdrawal will target. */
+    preparedCoordinator: string
+    /** Cached overview; the hook's current snapshot. */
+    overview: RainCardOverview | undefined
+    /** Overview refetch; resolves to the newest data, or undefined when it failed. */
+    refetchOverview: () => Promise<RainCardOverview | undefined>
+    grant: () => Promise<{ ok: true } | { ok: false; error: GrantSessionKeyError }>
+    onGrantRequired?: () => void
+}
+
+/**
+ * The collateral-only grant gate, run AFTER `/prepare`. The prep states the
+ * coordinator this withdrawal is built against — the backend serves it from its
+ * DB record, and a rotation is caught by its verify step (RAIN_CONTROLLER_CHANGED),
+ * not by a controller read on every payment. Granting BEFORE the prep could pin
+ * the approval to a coordinator the withdrawal will not use.
+ *
+ * Returns whether a grant ran, so the caller can pick up a client the grant's
+ * own migration may have rebuilt. Costs nothing when the cached overview
+ * already covers the prepared controller.
+ */
+export async function ensurePreparedControllerApproval(
+    args: PreparedControllerApprovalArgs
+): Promise<{ granted: boolean }> {
+    const { preparedCoordinator, overview, refetchOverview, grant, onGrantRequired } = args
+
+    // No visible card → nothing to grant (the sign-only engine fails closed on a
+    // missing overview earlier, in runCollateralSpendPreflight).
+    if (!findActiveCard(overview)) return { granted: false }
+    if (coversPreparedController(overview, preparedCoordinator)) return { granted: false }
+
+    // A failed refetch resolves undefined and falls through to the grant: the
+    // stale snapshot is not evidence about the prepared controller.
+    if (coversPreparedController(await refetchOverview(), preparedCoordinator)) return { granted: false }
+
+    onGrantRequired?.()
+    const grantResult = await grant()
+    if (!grantResult.ok) throw new SessionKeyGrantRequiredError(grantResult.error)
+    return { granted: true }
 }

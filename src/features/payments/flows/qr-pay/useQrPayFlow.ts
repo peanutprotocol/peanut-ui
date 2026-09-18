@@ -1,11 +1,17 @@
 'use client'
 
 import { verifiedPixKeyLabel } from '@/utils/pix.utils'
-import { submitSignedSpend } from '@/hooks/wallet/signSpendRetry'
+import {
+    isSpendRecoveryOutcome,
+    SpendRecoveryAbortedError,
+    SpendRecoveryQuoteReviewError,
+    submitSignedSpend,
+} from '@/hooks/wallet/signSpendRetry'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import { qrPaymentDisplayStatus } from '@/utils/qr-payment.utils'
 
-import { useCallback, useContext, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { sleepUnlessCancelled } from '@/utils/cancellable-wait'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
@@ -19,6 +25,7 @@ import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { useRainControllerRepair } from '@/hooks/wallet/useRainControllerRepair'
+import { useSignedSpendRecovery } from '@/hooks/wallet/useSignedSpendRecovery'
 import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
 import { SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
 import { friendlyError } from '@/utils/friendly-error.utils'
@@ -90,9 +97,23 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
      */
     const scanIdempotencyKey = useMemo(() => qrInitIdempotencyKey({ qrCode, timestamp }), [qrCode, timestamp])
 
+    // Controller-recovery quote handoff: neutral notice + a blocked Pay while
+    // the replacement quote is being obtained, cancellable by leaving.
+    const [quoteUpdatedNotice, setQuoteUpdatedNotice] = useState<string | null>(null)
+    const [isQuoteRecovering, setIsQuoteRecovering] = useState(false)
+    /** A replacement quote failed to mint: the payment did NOT fail, so Pay
+     *  stays available and one more tap retries the whole thing. */
+    const [requoteFailed, setRequoteFailed] = useState(false)
+    const quoteRecoveryCancelledRef = useRef(false)
+    const quoteRecoveryAttemptRef = useRef(0)
+    const quoteRecoveryInFlightRef = useRef(false)
+    /** Identity of the CURRENT replacement quote; held across its retries. */
+    const replacementQuoteKeyRef = useRef<string | null>(null)
+
     const { spendableBalance: balance } = useWallet()
     const { signSpend } = useSignSpendBundle()
     const repairRainController = useRainControllerRepair()
+    const recoverSignedSpend = useSignedSpendRecovery()
     const handleStaleSession = useStaleSessionGuard()
     const { overview: rainCardOverview } = useRainCardOverview()
     const { user } = useAuth()
@@ -212,6 +233,9 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     const isBlockingError = useMemo(() => {
         // The settling failure says "try again in a few seconds" — keep the Pay
         // button enabled so the user can retry, don't dead-end it like a hard error.
+        // A failed replacement quote is the same shape: the payment did not
+        // fail, the re-quote did, and tapping Pay tries the whole thing again.
+        if (requoteFailed) return false
         return (
             !!errorMessage &&
             errorCode !== 'confirmTransaction' &&
@@ -219,7 +243,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             // A rejection the user can clear by typing a different amount.
             errorCode !== 'amountRetryable'
         )
-    }, [errorMessage, errorCode])
+    }, [errorMessage, errorCode, requoteFailed])
 
     const usdAmount = useMemo(() => {
         if (!paymentLock) return null
@@ -460,8 +484,111 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         }
     }, [])
 
+    /*
+     * Controller-rotation handoff. Nothing moved and no provider order exists
+     * (a broadcast may well have happened and reverted definitively), so the
+     * SAME payment stays open: wait out Rain's cooldown (cancellable, Pay blocked),
+     * then mint a REPLACEMENT quote for the same scan and amount under a new
+     * identity — replaying the scan key would hand back the lock that just
+     * became unusable — publish it, and wait for the user to confirm it.
+     */
+    const handleQuoteRecovery = useCallback(
+        async (recovery: SpendRecoveryQuoteReviewError) => {
+            if (!qrCode) return
+            // One refresh at a time: a second entry would race two quotes.
+            if (quoteRecoveryInFlightRef.current) return
+            quoteRecoveryInFlightRef.current = true
+            quoteRecoveryCancelledRef.current = false
+            setIsSuccess(false)
+            setQrPayment(null)
+            setLoadingState('Idle')
+            setIsQuoteRecovering(true)
+            setQuoteUpdatedNotice(t('cardUpdatedReviewQuote'))
+            try {
+                if (recovery.retryAfterSec) {
+                    const proceed = await sleepUnlessCancelled(
+                        recovery.retryAfterSec * 1000 + 1_000,
+                        () => quoteRecoveryCancelledRef.current
+                    )
+                    if (!proceed) return
+                }
+                /*
+                 * ONE identity per recovery event, reused by every retry of it
+                 * (including after an uncertain transport failure) so the
+                 * backend replays that quote instead of minting another. A new
+                 * identity is allocated only for a genuinely new event.
+                 */
+                if (!replacementQuoteKeyRef.current) {
+                    replacementQuoteKeyRef.current = `recovery-${++quoteRecoveryAttemptRef.current}`
+                }
+                const fresh = await mantecaApi.initiateQrPayment({
+                    qrCode,
+                    amount: currencyAmount,
+                    qrType: qrType ?? undefined,
+                    idempotencyKey: qrInitIdempotencyKey({
+                        qrCode,
+                        timestamp,
+                        amount: currencyAmount,
+                        replacement: replacementQuoteKeyRef.current,
+                    }),
+                })
+                if (quoteRecoveryCancelledRef.current) return
+                setRequoteFailed(false)
+                setErrorMessage('')
+                setPaymentLock(fresh)
+                // The event is closed; a later rotation gets its own identity.
+                replacementQuoteKeyRef.current = null
+            } catch (error) {
+                // Re-quoting failed: this is still not a failed payment — the
+                // user stays on review, and the next tap RETRIES THE QUOTE with
+                // the same identity, never the dead lock.
+                setRequoteFailed(true)
+                setErrorMessage(toFriendlyError(error))
+            } finally {
+                setIsQuoteRecovering(false)
+                quoteRecoveryInFlightRef.current = false
+            }
+        },
+        [
+            qrCode,
+            qrType,
+            timestamp,
+            currencyAmount,
+            t,
+            toFriendlyError,
+            setErrorMessage,
+            setIsSuccess,
+            setLoadingState,
+            setPaymentLock,
+            setQrPayment,
+        ]
+    )
+
+    const cancelQuoteRecovery = useCallback(() => {
+        quoteRecoveryCancelledRef.current = true
+        setIsQuoteRecovering(false)
+    }, [])
+
+    /** Leaving the screen is the user's explicit cancel: no quote is minted and
+     *  nothing is prepared, signed or submitted afterwards. */
+    const onBackFromQrPay = useCallback(() => {
+        cancelQuoteRecovery()
+        onBack()
+    }, [cancelQuoteRecovery, onBack])
+
     const handleMantecaPayment = useCallback(async () => {
         if (!paymentLock || !qrCode || !currencyAmount) return
+        // A refresh already owns the flow (cooldown wait or init in flight).
+        if (isQuoteRecovering) return
+        // The previous re-quote never landed: this tap retries the QUOTE only —
+        // signing the old lock is exactly what must not happen. The user then
+        // sees the fresh terms and taps again to pay.
+        if (requoteFailed) {
+            await handleQuoteRecovery(new SpendRecoveryQuoteReviewError(new Error('quote refresh retry')))
+            return
+        }
+        // This tap IS the confirmation of whatever quote is on screen.
+        setQuoteUpdatedNotice(null)
 
         let finalPaymentLock = paymentLock
         if (finalPaymentLock.code === '') {
@@ -519,31 +646,63 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         }
 
         setLoadingState('Preparing transaction')
-        // Route across smart-only / mixed / collateral-only — pure-collateral
-        // payments (smart wallet empty, card collateral covers it) used to fail
-        // here because ZeroDev's paymaster simulated a USDC transfer from a
-        // zero-balance smart account and refused to sponsor. The signSpend
-        // hook now picks the right routing, including a single-tap
-        // collateral-only path that lets Rain transfer straight from the
-        // collateral proxy to MANTECA's deposit address.
+        // Routing picks the funding SOURCE; execution runs on the mixed
+        // pipeline whenever collateral is involved (even a fully-collateral
+        // payment from an empty smart account), because that is the route with
+        // a durable reservation and definitive failure codes — so a late
+        // controller rotation is recoverable on this same lock. Cost: the
+        // passkey fallback is two taps, one where the ephemeral path is on.
+        // Same terms on a recovery re-sign: only the prep and the signature are
+        // fresh — amount, recipient and the payment lock below are not.
+        const signSpendInput = () => ({
+            requiredUsdcAmount: parseUnits(finalPaymentLock.paymentAgainstAmount, PEANUT_WALLET_TOKEN_DECIMALS),
+            // Entity-aware deposit address served by the API (per-entity
+            // balances from 2026-09-14) — the backend resolves the entity
+            // from the QR and the paying Manteca account. The per-rail
+            // constants remain only as a fallback for an older API that
+            // does not return the field yet.
+            recipient: pickMantecaDepositAddress(
+                finalPaymentLock.depositAddress,
+                qrType === EQrType.PIX ? MANTECA_QR_DEPOSIT_ADDRESS_NON_AR : MANTECA_QR_DEPOSIT_ADDRESS_AR
+            ),
+            rainSpendingPower: rainCentsToUsdcUnits(rainCardOverview?.balance?.spendingPower),
+            kind: 'QR_PAY' as const,
+            // Lets an internal recovery wait out a Rain cooldown that still
+            // fits this lock instead of re-quoting.
+            lockExpiresAt: Date.parse(finalPaymentLock.expireAt) || undefined,
+        })
+
+        /*
+         * The quote bounds EVERY attempt, not just the first signature: a
+         * passkey sheet is unbounded and a replacement is signed later still.
+         * An expired lock is a neutral re-quote + reconfirm — never a signature
+         * and never a submission under terms the user did not see.
+         */
+        const quoteExpired = () => {
+            const deadline = Date.parse(finalPaymentLock.expireAt)
+            return Number.isFinite(deadline) && Date.now() >= deadline
+        }
+        if (quoteExpired()) {
+            void handleQuoteRecovery(new SpendRecoveryQuoteReviewError(new Error('quote expired')))
+            return
+        }
+
         let signedArtifact
         try {
-            const requiredUsdcAmount = parseUnits(finalPaymentLock.paymentAgainstAmount, PEANUT_WALLET_TOKEN_DECIMALS)
-            signedArtifact = await signSpend({
-                requiredUsdcAmount,
-                // Entity-aware deposit address served by the API (per-entity
-                // balances from 2026-09-14) — the backend resolves the entity
-                // from the QR and the paying Manteca account. The per-rail
-                // constants remain only as a fallback for an older API that
-                // does not return the field yet.
-                recipient: pickMantecaDepositAddress(
-                    finalPaymentLock.depositAddress,
-                    qrType === EQrType.PIX ? MANTECA_QR_DEPOSIT_ADDRESS_NON_AR : MANTECA_QR_DEPOSIT_ADDRESS_AR
-                ),
-                rainSpendingPower: rainCentsToUsdcUnits(rainCardOverview?.balance?.spendingPower),
-                kind: 'QR_PAY',
-            })
+            signedArtifact = await signSpend(signSpendInput())
         } catch (error) {
+            // Controller-recovery control flow (nothing signed, nothing sent):
+            // back to the same review screen, with a refreshed quote when the
+            // replacement could not be prepared inside the current lock.
+            if (error instanceof SpendRecoveryQuoteReviewError) {
+                void handleQuoteRecovery(error)
+                return
+            }
+            if (error instanceof SpendRecoveryAbortedError) {
+                setIsSuccess(false)
+                setLoadingState('Idle')
+                return
+            }
             // Route through the shared classifier so backend wire codes reach this
             // screen too; the two branches ahead of it are deliberately per-flow.
             const classified = friendlyError(error)
@@ -578,42 +737,67 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             return
         }
 
-        // Send signed artifact to backend for coordinated execution.
-        // Backend creates the Manteca order FIRST, then either broadcasts the
-        // signed UserOp (smart-only / mixed) or submits the Rain withdrawal via
-        // the user's session-key UserOp (collateral-only).
+        if (quoteExpired()) {
+            void handleQuoteRecovery(new SpendRecoveryQuoteReviewError(new Error('quote expired while signing')))
+            return
+        }
+
+        // Send signed artifact to backend for coordinated execution. The modern
+        // mixed/userOp route broadcasts the funding op FIRST — a definitive
+        // revert leaves no provider order behind, which is what makes the
+        // replacement below safe.
         // Schedule "paying" state after 3s so the user sees something is happening.
         payingStateTimerRef.current = setTimeout(() => setLoadingState('Paying'), 3000)
         try {
-            const requestBody =
-                signedArtifact.strategy === 'collateral-only'
+            // Built from the artifact actually being submitted: a recovery
+            // replacement carries a fresh prep + signature under the SAME lock.
+            const requestBody = (artifact: typeof signedArtifact) =>
+                artifact.strategy === 'collateral-only'
                     ? ({
                           kind: 'rainWithdrawal' as const,
                           paymentLockCode: finalPaymentLock.code,
                           qrType: qrType ?? undefined,
-                          signedRainWithdrawal: signedArtifact.rainWithdrawal,
+                          signedRainWithdrawal: artifact.rainWithdrawal,
                           chainId: PEANUT_WALLET_CHAIN.id.toString(),
                       } as const)
                     : ({
                           kind: 'userOp' as const,
                           paymentLockCode: finalPaymentLock.code,
                           qrType: qrType ?? undefined,
-                          signedUserOp: signedArtifact.signedUserOp.signedUserOp,
-                          chainId: signedArtifact.signedUserOp.chainId,
-                          entryPointAddress: signedArtifact.signedUserOp.entryPointAddress,
+                          signedUserOp: artifact.signedUserOp.signedUserOp,
+                          chainId: artifact.signedUserOp.chainId,
+                          entryPointAddress: artifact.signedUserOp.entryPointAddress,
                           // For mixed: tell backend about the Rain prepare intent
                           // embedded in the UserOp's batched callData so it can
                           // reconcile the collateral webhook to QR_PAY in history.
-                          ...(signedArtifact.strategy === 'mixed'
-                              ? { rainPreparationId: signedArtifact.rainPreparationId }
-                              : {}),
+                          ...(artifact.strategy === 'mixed' ? { rainPreparationId: artifact.rainPreparationId } : {}),
                       } as const)
             const qrPaymentResponse = await submitSignedSpend(
                 signedArtifact,
-                () => mantecaApi.completeQrPaymentWithSignedTx(requestBody),
-                // A Rain leg that failed after signing may have been built on a
-                // stale cached controller — repair the cache, retry nothing.
-                (failure) => void repairRainController({ strategy: signedArtifact.strategy, error: failure })
+                // Guards EVERY attempt, the recovery replacement included: the
+                // replacement is signed later still, and the lock may have died
+                // in between.
+                (candidate) => {
+                    if (quoteExpired()) throw new SpendRecoveryQuoteReviewError(new Error('quote expired before send'))
+                    return mantecaApi.completeQrPaymentWithSignedTx(requestBody(candidate))
+                },
+                {
+                    // Observes the FINAL failure only — cache repair, no retry.
+                    // A typed recovery outcome is control flow, not a Rain leg.
+                    onFailure: (failure) =>
+                        isSpendRecoveryOutcome(failure)
+                            ? undefined
+                            : void repairRainController({ strategy: signedArtifact.strategy, error: failure }),
+                    recover: (failure, artifact) =>
+                        recoverSignedSpend(
+                            failure,
+                            artifact,
+                            // Same terms, same lock — only the prep and the
+                            // signature are fresh, and its own 425 is ours.
+                            () => signSpend({ ...signSpendInput(), suppressCooldownEvent: true }),
+                            { lockExpiresAt: Date.parse(finalPaymentLock.expireAt) || undefined }
+                        ),
+                }
             )
             // clear the timer since we got a response
             if (payingStateTimerRef.current) {
@@ -649,6 +833,22 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                 clearTimeout(payingStateTimerRef.current)
                 payingStateTimerRef.current = null
             }
+            /*
+             * Controller-recovery control flow, handled BEFORE any failure
+             * copy: the payment never left the client, so the user goes back to
+             * the same review screen — with a refreshed quote when the old one
+             * could not survive Rain's cooldown — and pays again explicitly.
+             * Nothing is submitted under refreshed terms without that tap.
+             */
+            if (error instanceof SpendRecoveryQuoteReviewError) {
+                void handleQuoteRecovery(error)
+                return
+            }
+            if (error instanceof SpendRecoveryAbortedError) {
+                setIsSuccess(false)
+                setLoadingState('Idle')
+                return
+            }
             if (wireErrorCode(error) === API_ERROR_CODES.MANTECA_TEMPORARILY_UNAVAILABLE) {
                 setErrorMessage(tErrors('transferTemporarilyUnavailable'))
                 setIsSuccess(false)
@@ -682,9 +882,13 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     }, [
         queryClient,
         tErrors,
+        handleQuoteRecovery,
+        isQuoteRecovering,
+        requoteFailed,
         paymentLock,
         signSpend,
         repairRainController,
+        recoverSignedSpend,
         rainCardOverview,
         qrCode,
         currencyAmount,
@@ -831,6 +1035,10 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         errorInitiatingPayment,
         isBlockingError,
         balanceErrorMessage,
+        // controller-rotation quote handoff
+        quoteUpdatedNotice,
+        isQuoteRecovering,
+        cancelQuoteRecovery,
         // the wallet's spendable balance, surfaced here so views read ONE flow
         // object instead of re-calling useWallet next to it
         balance,
@@ -847,7 +1055,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         pointsData,
         pointsDivRef,
         // actions
-        onBack,
+        onBack: onBackFromQrPay,
         payQR,
         handleCurrencyAmountChange,
         retryOrderNotReady,
