@@ -129,7 +129,11 @@ PAGE_CAPTURES.push(
         ],
         fixture: 'withdraw',
     },
-    { id: 'p65-withdraw-argentina', name: 'Withdraw — Argentina', route: '/withdraw/argentina', fixture: 'withdraw' },
+    // p65-withdraw-argentina removed: Argentina has one live withdraw rail
+    // (Manteca), so /withdraw/argentina redirects straight to /withdraw/manteca
+    // (AddWithdrawCountriesList redirect, added 2026-09-16). A screenshot there
+    // never settles on /withdraw/argentina, and the Manteca form it lands on is
+    // already covered by p16-withdraw-manteca.
     { id: 'p67-recipient', name: 'Recipient profile', route: '/demo' },
     {
         id: 'p68-invite',
