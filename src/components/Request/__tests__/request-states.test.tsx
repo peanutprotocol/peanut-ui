@@ -50,12 +50,13 @@ jest.mock('@sentry/nextjs', () => ({
 // PostHog
 jest.mock('posthog-js', () => ({
     __esModule: true,
+    // onFeatureFlags: the guest store hand-off CTA reads the migration flag and
+    // the bank-hub link on this screen is flag-gated — both subscribe through it.
     default: {
         capture: jest.fn(),
         init: jest.fn(),
-        // the bank-hub link on this screen is flag-gated
         isFeatureEnabled: jest.fn(() => false),
-        onFeatureFlags: jest.fn(() => () => {}),
+        onFeatureFlags: jest.fn(() => jest.fn()),
     },
 }))
 

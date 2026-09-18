@@ -90,14 +90,19 @@ export const AppShell = ({
                     // Reserve the scrollbar gutter so a fold/expander that grows
                     // the page and shows a scrollbar does not narrow this box and
                     // shift the centered mx-auto content sideways.
-                    'relative w-full flex-1 [scrollbar-gutter:stable] overflow-y-auto bg-background-page px-4 pt-4 pb-6',
+                    'relative w-full flex-1 [scrollbar-gutter:stable] overflow-y-auto bg-background-page pt-4 pb-6',
                     contentClassName
                 )}
             >
                 {/* TabSlide IS the centering wrapper: it stays inside #scrollable-content
-                    (pull-to-refresh reads that element) and adds no extra layout node. */}
+                    (pull-to-refresh reads that element) and adds no extra layout node.
+                    The L/16 screen inset lives HERE, inside the cap, not on the scroll
+                    container: outside it the centering margins swallow it past 448px, so
+                    a page rendered 448 wide on desktop while /home — the only page that
+                    re-applied p-4 inside the column — rendered 416 and matched the bottom
+                    nav. One inset, one width, every page (bottom nav span = 448 - 32). */}
                 <TabSlide
-                    className={twMerge('mx-auto flex w-full max-w-md items-center justify-center', innerClassName)}
+                    className={twMerge('mx-auto flex w-full max-w-md items-center justify-center px-4', innerClassName)}
                 >
                     {children}
                 </TabSlide>

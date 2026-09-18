@@ -117,6 +117,7 @@
         "userOpReverted": "This payment could not be completed. Please try again."
     },
     "migration": {
+        "downloadPeanut": "Download Peanut",
         "downloadPrompt": {
             "earlyTitle": "The Peanut app is here!",
             "earlyDescription": "Peanut is now an app, on the App Store and Google Play. Same account, faster experience, instant alerts when money lands.",
