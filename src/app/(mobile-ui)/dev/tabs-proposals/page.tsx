@@ -190,7 +190,7 @@ const PROPOSALS: Proposal[] = [
         name: 'Weight',
         pitch: 'Type only: no rule, no border, no fill. The active label goes black and semibold, the rest stay secondary.',
         selectedToken:
-            'text-foreground-primary + font-semibold. Nothing else — the most restrained option on the page.',
+            'text-foreground-primary + the body-m-semibold type token (the inactive state carries body-m, so no weight is stacked on a token). Nothing else — the most restrained option on the page.',
         newToken: 'No.',
         weakerMode:
             'Standalone, badly. With no rule and no fill a row of words in a header is not obviously a control at all, and at fullWidth nothing marks where one segment ends and the next begins.',
@@ -246,7 +246,13 @@ export default function TabsProposalsPage() {
                 </Notification>
 
                 {PROPOSALS.map((proposal, index) => (
-                    <Section key={proposal.key} title={`${index + 1} — ${proposal.name}`} className="gap-4">
+                    // id so a look can be linked directly (#blush) when discussing it
+                    <Section
+                        key={proposal.key}
+                        id={proposal.key}
+                        title={`${index + 1} — ${proposal.name}`}
+                        className="gap-4"
+                    >
                         <p className="text-body-s text-foreground-secondary">{proposal.pitch}</p>
 
                         <Demo label="a · standalone, compact — limits period">
