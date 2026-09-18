@@ -2021,6 +2021,7 @@
             "issuedBy": "Emitido por:",
             "reference": "Referencia",
             "issuedOn": "Fecha de emisión",
+            "footer": "Enviado desde Peanut · peanut.me",
             "pdf": {
                 "title": "Comprobante de la transacción",
                 "issuedBy": "Emitido por Squirrel Labs Ltd",

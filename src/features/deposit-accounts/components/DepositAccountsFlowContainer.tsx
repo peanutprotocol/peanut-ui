@@ -61,7 +61,9 @@ export function DepositAccountsFlowContainer({ onExit }: DepositAccountsFlowCont
                     openSupportWithMessage(
                         reason === 'account-limit'
                             ? `Another deposit account: ${corridor}`
-                            : `Revoked deposit details: ${corridor}`
+                            : reason === 'blocked'
+                              ? `Couldn't open deposit account: ${corridor}`
+                              : `Revoked deposit details: ${corridor}`
                     )
                 }
             />

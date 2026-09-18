@@ -649,6 +649,20 @@ describe('the hub carries the accounts, crypto and the countries together', () =
         expect(rowOf(container, 'SEPA_EU')).not.toBeInTheDocument()
         expect(countriesTrigger()).toBeInTheDocument()
     })
+
+    /**
+     * Standing accounts are dark in production, so this is the order most users
+     * see. Crypto sits below the bank options, not above them: the hub must not
+     * lead with crypto.
+     */
+    it('renders the bank options above crypto while accounts are dark', () => {
+        depositAccountsEnabled = false
+        list(false)
+
+        const countries = screen.getByTestId('other-countries')
+        const crypto = screen.getByTestId('add-money-crypto')
+        expect(countries.compareDocumentPosition(crypto) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
 })
 
 /**

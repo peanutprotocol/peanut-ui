@@ -373,9 +373,6 @@ export function DepositAccountsListScreen({
                     </Section>
                 )}
 
-                {/* crypto keeps its row where there is no accounts card to carry it */}
-                {!showAccounts && cryptoRow && <ListGroup>{cryptoRow}</ListGroup>}
-
                 {/*
                  * Every other way in. A country resolves to the corridor its
                  * rail catalogue names — the standing account opens above, the
@@ -419,6 +416,11 @@ export function DepositAccountsListScreen({
                         )}
                     </ListGroup>
                 )}
+
+                {/* Crypto comes after the bank options, not before them: with no
+                    accounts card to carry its row, it sits below the countries so
+                    the hub does not lead with crypto. */}
+                {!showAccounts && cryptoRow && <ListGroup>{cryptoRow}</ListGroup>}
             </div>
         </PageStack>
     )

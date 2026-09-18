@@ -156,7 +156,7 @@ describe('the fee line on the claim screen', () => {
         expect(screen.getByText(messages.depositAccounts.fees.converted)).toBeInTheDocument()
         expect(screen.getByTestId('deposit-fee-rates')).toHaveAttribute(
             'href',
-            '/profile/exchange-rate?from=USD&to=EUR'
+            '/profile/exchange-rate?from=EUR&to=USD'
         )
     })
 
@@ -165,7 +165,7 @@ describe('the fee line on the claim screen', () => {
 
         expect(screen.getByTestId('deposit-fee-rates')).toHaveAttribute(
             'href',
-            '/profile/exchange-rate?from=USD&to=MXN'
+            '/profile/exchange-rate?from=MXN&to=USD'
         )
     })
 })
