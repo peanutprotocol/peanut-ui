@@ -162,8 +162,7 @@ export const Notification = ({
     // floating swaps the 16px icon for a 24px bubble, so it clears 32px
     const indent = showIcon ? (isFloating ? 'pl-8' : 'pl-6') : ''
     // an empty `items` array used to fall through to `children` (undefined at
-    // every migrated call site) and paint a bare icon-only box — WelcomeUnlockDrawer
-    // hits that when the user unlocked no channel at all
+    // every migrated call site) and paint a bare icon-only box
     if (!body && !title && !ctas?.length) return null
     return (
         <div

@@ -14,7 +14,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import NavHeader from '@/components/Global/NavHeader'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
-import InviteFriendsDrawer from '@/components/Global/InviteFriendsDrawer'
+import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import PointsCard from '@/components/Common/PointsCard'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
@@ -39,7 +39,7 @@ export function QrPaySuccessView() {
     const { rewardOffered, perkClaimed, holdProgress, isShaking, shakeIntensity, startHold, cancelHold } =
         usePerkHoldToClaim(qrPayment, setQrPayment)
     const { openTransactionDetails, isTransactionSelected, closeTransactionDetails } = useTransactionDetailsDrawer()
-    const [showInviteFriendsDrawer, setShowInviteFriendsDrawer] = useState(false)
+    const [showInviteFriendsModal, setShowInviteFriendsModal] = useState(false)
 
     // Live card-vs-local-rail markup, driven by Manteca's rate + (for ARS)
     // BCRA's official rate. Same hook (and cache entry) the confirm screen's
@@ -261,7 +261,7 @@ export function QrPaySuccessView() {
                         QR pay that flag is still false server-side. Hidden while a reward
                         is claimable so it cannot compete with the hold-to-claim gesture. */}
                     {user?.user.username && !rewardClaimable && (
-                        <LinkButton onClick={() => setShowInviteFriendsDrawer(true)} className="w-full justify-center">
+                        <LinkButton onClick={() => setShowInviteFriendsModal(true)} className="w-full justify-center">
                             <Icon name="invite-heart" size={16} className="shrink-0" />
                             {t('success.inviteFriendsCta')}
                         </LinkButton>
@@ -277,10 +277,10 @@ export function QrPaySuccessView() {
                 for the mount, so a persistent mount would swallow the MODAL_SHOWN /
                 REFERRAL_CTA_SHOWN pair on every re-open. The modal fires every
                 referral capture; this page fires none. */}
-            {showInviteFriendsDrawer && user?.user.username && (
-                <InviteFriendsDrawer
+            {showInviteFriendsModal && user?.user.username && (
+                <InviteFriendsModal
                     visible
-                    onClose={() => setShowInviteFriendsDrawer(false)}
+                    onClose={() => setShowInviteFriendsModal(false)}
                     username={user.user.username}
                     source={REFERRAL_SOURCES.QR_PAY_SUCCESS}
                 />

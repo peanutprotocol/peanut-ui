@@ -163,53 +163,15 @@
             "noTransactionsTitle": "Ainda não há transações!",
             "emptyDescription": "Comece enviando ou cobrando dinheiro"
         },
-        "welcomeUnlock": {
-            "title": "Acesso liberado",
-            "cta": "Enviar dinheiro",
-            "youCanNow": "Agora você pode:",
-            "items": {
-                "qr": {
-                    "label": "Argentina e Brasil",
-                    "value": "Pagamentos QR"
-                },
-                "us": {
-                    "label": "Estados Unidos",
-                    "value": "Transferências bancárias em dólares americanos"
-                },
-                "europe": {
-                    "label": "Europa",
-                    "value": "Transferências bancárias em euros"
-                },
-                "mexico": {
-                    "label": "México",
-                    "value": "Transferências bancárias em pesos mexicanos"
-                },
-                "ownCountry": {
-                    "value": "Transferências para suas próprias contas"
-                }
-            }
-        },
         "perk": {
-            "surpriseTitle": "Você acabou de ganhar ${amount}!",
-            "surpriseDescriptionFirst": "Confira suas recompensas agora e ganhe mais.",
-            "surpriseDescriptionNext": "Confira suas recompensas e como ganhar mais.",
             "usedPeanut": "<name>{inviteeName}</name> usou o Peanut",
-            "rewardClaimed": "Recompensa resgatada!",
-            "shareAndEarn": "Compartilhe e ganhe",
-            "inviteFriendsToEarnMore": "Convide amigos para ganhar mais",
             "holdToUnwrap": "Segure para abrir sua recompensa",
             "iosCopy": {
-                "surpriseDescriptionFirst": "Confira seu cashback e como ganhar mais.",
-                "surpriseDescriptionNext": "Confira seu cashback e como ganhar mais.",
                 "usedPeanut": "<name>{inviteeName}</name> pagou com o Peanut",
-                "rewardClaimed": "Cashback resgatado!",
                 "holdToUnwrap": "Segure para abrir seu cashback"
             }
         },
         "carousel": {
-            "rewardReady": "Recompensa de <b>+${amount}</b> pronta!",
-            "usedPeanutTapToClaim": "<name>{inviteeName}</name> usou o Peanut. Toque para resgatar.",
-            "tapToClaim": "Toque para resgatar sua recompensa.",
             "invite": {
                 "title": "Convide amigos. Ganhe recompensas",
                 "description": "Ganhe recompensas sempre que seus amigos usarem o Peanut."
@@ -245,9 +207,6 @@
             "closeNotificationPrompt": "Fechar aviso de notificações",
             "claimablePerk": "Recompensa disponível",
             "iosCopy": {
-                "rewardReady": "Cashback de <b>+${amount}</b> pronto!",
-                "usedPeanutTapToClaim": "<name>{inviteeName}</name> pagou com o Peanut. Toque para resgatar.",
-                "tapToClaim": "Toque para resgatar seu cashback.",
                 "invite": {
                     "title": "Convide amigos. Ganhe cashback",
                     "description": "Ganhe cashback sempre que seus amigos pagarem com o Peanut."

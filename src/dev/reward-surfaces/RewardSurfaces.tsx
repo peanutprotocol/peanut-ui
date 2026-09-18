@@ -36,35 +36,6 @@ const GROUPS: { title: string; rows: Row[] }[] = [
         title: 'Reward & celebration',
         rows: [
             {
-                name: 'PerkClaimDrawer',
-                file: 'src/components/Home/PerkClaimDrawer.tsx',
-                presentation: 'Drawer',
-                importers: [
-                    'src/components/Home/HomeCarouselCTA/index.tsx (rendered by src/features/home/HomePage.tsx)',
-                ],
-                gate: 'A pending perk from perksApi.getPendingPerks() whose name contains "Card Pioneer", tapped in the home carousel. Referral and surprise-moment perks are claimed inline after QR pay, not here.',
-                galleryId: '46-c-perkclaimmodal',
-                history: 'Modal → Drawer in efb93f9ce (2026-09-10); renamed *Modal → *Drawer in 4c9e7528f.',
-            },
-            {
-                name: 'PerkClaimSuccessDrawer',
-                file: 'src/components/Home/PerkClaimSuccessDrawer.tsx',
-                presentation: 'Drawer',
-                importers: ['src/components/Home/PerkClaimDrawer.tsx'],
-                gate: 'The success phase of the claim flow (usePerkClaimFlow). It replaces the gift-box sheet, so it is only reachable behind PerkClaimDrawer.',
-                galleryId: '69-d-perkclaimsuccess',
-                history: 'Modal → Drawer in efb93f9ce (2026-09-10); renamed in 4c9e7528f.',
-            },
-            {
-                name: 'WelcomeUnlockDrawer',
-                file: 'src/components/Home/WelcomeUnlockDrawer/index.tsx',
-                presentation: 'Drawer',
-                importers: ['src/features/home/components/HomeModals.tsx (lazy)'],
-                gate: 'isKycApproved and user.activationCelebratedAt is null — once per account, stamped server-side on dismiss. Suppressed while the balance warning, migration prompt, jail celebration or early-user drawer is up.',
-                galleryId: '47-c-welcomeunlockmodal',
-                history: 'Modal → Drawer in 45d6f0d11 (2026-09-09); renamed in 4c9e7528f.',
-            },
-            {
                 name: 'NoMoreJailDrawer',
                 file: 'src/components/Global/NoMoreJailDrawer/index.tsx',
                 presentation: 'Drawer',
@@ -74,19 +45,19 @@ const GROUPS: { title: string; rows: Row[] }[] = [
                 history: 'Modal → Drawer in efb93f9ce (2026-09-10).',
             },
             {
-                name: 'InviteFriendsDrawer',
-                file: 'src/components/Global/InviteFriendsDrawer/index.tsx',
-                presentation: 'Drawer',
+                name: 'InviteFriendsModal',
+                file: 'src/components/Global/InviteFriendsModal/index.tsx',
+                presentation: 'Modal',
                 importers: [
                     'src/components/Profile/index.tsx',
-                    'src/components/Home/HomeCarouselCTA/index.tsx',
                     'src/app/(mobile-ui)/rewards/invites/page.tsx',
                     'src/features/rewards/RewardsPage.tsx',
                     'src/features/payments/flows/qr-pay/views/QrPaySuccessView.tsx',
                 ],
-                gate: 'User tap only — profile row, home CTA, rewards page, invites page, QR-pay success. The most-opened surface in this list.',
+                gate: 'User tap only — profile row, rewards page, invites page, QR-pay success. The most-opened surface in this list. The home-carousel entry point went with the perk claim flow.',
                 galleryId: '15-a-invitefriendsmodal',
-                history: 'Modal → Drawer in 45d6f0d11 (2026-09-09); renamed in 4c9e7528f.',
+                history:
+                    'Modal → Drawer in 45d6f0d11 (2026-09-09); renamed in 4c9e7528f; back to Modal for TASK-22680.',
             },
             {
                 name: 'BadgeDetailDrawer',
@@ -238,6 +209,7 @@ export default function RewardSurfaces() {
                 priority="helper"
                 title="Already removed"
                 items={[
+                    "PerkClaimDrawer, PerkClaimSuccessDrawer and WelcomeUnlockDrawer — deleted outright for TASK-22680 on Kush's call: a celebration carries the App Store review prompt and the invite ask, and a compact drawer weakens both. They went instead of getting a facelift, taking the Card Pioneer claim path and the reward_claimed app-review trigger with them.",
                     'UnlockRegionModal — deleted in 45d6f0d11 (2026-09-09, TASK-22202) because no production importer was left. Only the DS audit data still names it.',
                     'src/components/Points/CashCard.tsx — deleted earlier, in 1a93de1e7 (2026-03-27, rewards v2 cleanup), for the same reason.',
                 ]}

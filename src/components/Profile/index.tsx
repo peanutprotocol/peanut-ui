@@ -24,17 +24,17 @@ import dynamic from 'next/dynamic'
 const AvatarPicker = dynamic(() => import('@/components/Avatar/AvatarPicker').then((m) => m.AvatarPicker), {
     ssr: false,
 })
-const InviteFriendsDrawer = dynamic(() => import('../Global/InviteFriendsDrawer'), { ssr: false })
+const InviteFriendsModal = dynamic(() => import('../Global/InviteFriendsModal'), { ssr: false })
 const OtaUpdateModal = dynamic(() => import('./components/OtaUpdateModal'), { ssr: false })
 const StoreUpdateModal = dynamic(() => import('./components/StoreUpdateModal'), { ssr: false })
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
-    const [isInviteFriendsDrawerOpen, setIsInviteFriendsDrawerOpen] = useState(false)
-    const [isInviteFriendsDrawerMounted, setIsInviteFriendsDrawerMounted] = useState(false)
-    const openInviteFriendsDrawer = () => {
-        setIsInviteFriendsDrawerMounted(true)
-        setIsInviteFriendsDrawerOpen(true)
+    const [isInviteFriendsModalOpen, setIsInviteFriendsModalOpen] = useState(false)
+    const [isInviteFriendsModalMounted, setIsInviteFriendsModalMounted] = useState(false)
+    const openInviteFriendsModal = () => {
+        setIsInviteFriendsModalMounted(true)
+        setIsInviteFriendsModalOpen(true)
     }
     // URL state so the badge-earned toast can deep-link straight into the picker
     const [avatarPickerOpen, setAvatarPickerOpen] = useQueryState(AVATAR_PICKER_PARAM, avatarPickerParser)
@@ -130,7 +130,7 @@ export const Profile = () => {
                         <ProfileMenuItem
                             icon="smile"
                             label={t('menu.inviteFriends')}
-                            onClick={openInviteFriendsDrawer}
+                            onClick={openInviteFriendsModal}
                             href="/dummy" // Dummy link, wont be called
                         />
                         <ProfileMenuItem icon="achievements" label={t('menu.yourBadges')} href="/badges" />
@@ -194,11 +194,11 @@ export const Profile = () => {
             </div>
 
             {/* Load on first use, then retain the controlled root so visible=false
-                can run Vaul's close transition before the page unmounts. */}
-            {isInviteFriendsDrawerMounted && (
-                <InviteFriendsDrawer
-                    visible={isInviteFriendsDrawerOpen}
-                    onClose={() => setIsInviteFriendsDrawerOpen(false)}
+                can run the modal's close transition before the page unmounts. */}
+            {isInviteFriendsModalMounted && (
+                <InviteFriendsModal
+                    visible={isInviteFriendsModalOpen}
+                    onClose={() => setIsInviteFriendsModalOpen(false)}
                     username={user?.user.username ?? ''}
                     source="profile"
                 />

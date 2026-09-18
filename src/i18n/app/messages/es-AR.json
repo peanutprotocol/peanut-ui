@@ -63,26 +63,13 @@
             "errorDescription": "Por favor contactá a Soporte.",
             "emptyDescription": "Empezá enviando o solicitando dinero"
         },
-        "welcomeUnlock": {
-            "title": "Ya tenés acceso",
-            "cta": "Empezá a enviar dinero",
-            "youCanNow": "Ahora podés:"
-        },
         "perk": {
-            "surpriseDescriptionFirst": "Mirá tus recompensas ahora y ganá más.",
-            "surpriseDescriptionNext": "Mirá tus recompensas y cómo ganar más.",
-            "shareAndEarn": "Compartí y ganá",
-            "inviteFriendsToEarnMore": "Invitá amigos para ganar más",
             "holdToUnwrap": "Mantené presionado para abrir tu recompensa",
             "iosCopy": {
-                "surpriseDescriptionFirst": "Mirá tu cashback y cómo ganar más.",
-                "surpriseDescriptionNext": "Mirá tu cashback y cómo ganar más.",
                 "holdToUnwrap": "Mantené presionado para abrir tu cashback"
             }
         },
         "carousel": {
-            "usedPeanutTapToClaim": "<name>{inviteeName}</name> usó Peanut. Tocá para reclamar.",
-            "tapToClaim": "Tocá para reclamar tu recompensa.",
             "invite": {
                 "title": "Invitá amigos. Ganá recompensas",
                 "description": "Ganá recompensas cada vez que tus amigos usan Peanut."
@@ -113,8 +100,6 @@
                 "description": "Confirmá tu identidad para pagar códigos QR de <b>Mercado Pago</b> y <b>PIX</b>"
             },
             "iosCopy": {
-                "usedPeanutTapToClaim": "<name>{inviteeName}</name> pagó con Peanut. Tocá para reclamar.",
-                "tapToClaim": "Tocá para reclamar tu cashback.",
                 "invite": {
                     "title": "Invitá amigos. Ganá cashback",
                     "description": "Ganá cashback cada vez que tus amigos pagan con Peanut."
