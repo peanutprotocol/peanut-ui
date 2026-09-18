@@ -2,6 +2,7 @@
 
 import { type ReactNode } from 'react'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { Section } from '@/components/0_Bruddle/Section'
 import Card from '@/components/Global/Card'
@@ -237,6 +238,13 @@ export default function TabsProposalsPage() {
             width="prose"
         >
             <div className="flex flex-col gap-10">
+                <Notification priority="info" title="The same 6 looks on the real screens">
+                    This page compares the looks on abstract tab rows.{' '}
+                    <LinkButton href="/dev/tabs-proposals/surfaces">/dev/tabs-proposals/surfaces</LinkButton> mounts the
+                    actual product and marketing components — limits, explorer, crypto deposit, token selector,
+                    marketing content tabs — and re-skins each one six times.
+                </Notification>
+
                 <Notification priority="info" title="Picking one also rules the selected surface">
                     The design system has no selected-surface token. SegmentedControl painted selection with
                     bg-action-primary/10, an alpha-modified brand token; NetworkListItem copied it, and ui#3232 changed
