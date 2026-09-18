@@ -5,6 +5,10 @@
  * fix that changed `||` to `&&`). HARNESS_ENABLED is read from the env at import,
  * so each case re-evaluates the module with the flag set or unset.
  */
+// No top-level import, so mark the file a module — otherwise its consts land in
+// global scope and collide with another script's globals under tsconfig.json.
+export {}
+
 const KEY = '__harness_skip_passkey'
 const ENV = 'NEXT_PUBLIC_HARNESS_SKIP_PASSKEY_CHECK'
 
@@ -22,18 +26,18 @@ describe('harnessPasskeyBypass', () => {
     afterEach(() => {
         if (original === undefined) delete process.env[ENV]
         else process.env[ENV] = original
-        window.localStorage.clear()
+        localStorage.clear()
         jest.resetModules()
     })
 
     it('bypasses only when the harness flag AND the localStorage key are both set', async () => {
-        window.localStorage.setItem(KEY, 'true')
+        localStorage.setItem(KEY, 'true')
         const harnessPasskeyBypass = await loadBypass(true)
         expect(harnessPasskeyBypass()).toBe(true)
     })
 
     it('does NOT bypass on the localStorage key alone — the security fix', async () => {
-        window.localStorage.setItem(KEY, 'true')
+        localStorage.setItem(KEY, 'true')
         const harnessPasskeyBypass = await loadBypass(false)
         expect(harnessPasskeyBypass()).toBe(false)
     })
