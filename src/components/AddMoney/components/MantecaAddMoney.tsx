@@ -303,7 +303,7 @@ const MantecaAddMoney: FC = () => {
                 residenceIso2="AR"
                 qrPayHref="/qr-pay"
                 residenceChangeHref={withReturnTo(
-                    '/profile/identity-verification?open=residence',
+                    '/profile/accounts-and-payments?open=residence',
                     '/add-money?method=bank'
                 )}
                 onBack={onBack}

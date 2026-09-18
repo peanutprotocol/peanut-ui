@@ -118,7 +118,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
             // in a browser we don't control, and keeps no partial progress — a
             // user who leaves mid-check to find a document restarts from step
             // one. That is a page's worth of prep, and it owns the handoff.
-            router.push('/profile/identity-verification/additional')
+            router.push('/profile/accounts-and-payments/additional')
         },
         [router]
     )

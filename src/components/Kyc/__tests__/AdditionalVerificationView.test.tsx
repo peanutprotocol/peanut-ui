@@ -84,7 +84,7 @@ describe('AdditionalVerificationView', () => {
             configurable: true,
             value: {
                 get href() {
-                    return 'http://localhost/profile/identity-verification/additional'
+                    return 'http://localhost/profile/accounts-and-payments/additional'
                 },
                 set href(value: string) {
                     mockAssignHref(value)

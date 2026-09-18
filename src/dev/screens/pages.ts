@@ -43,11 +43,11 @@ export const PAGE_CAPTURES: PageCapture[] = [
     { id: 'p09-profile-about', name: 'Profile — about', route: '/profile/about' },
     { id: 'p10-exchange-rate', name: 'Exchange rate', route: '/profile/exchange-rate' },
 
-    { id: 'p11-identity-verification', name: 'Identity verification', route: '/profile/identity-verification' },
+    { id: 'p11-identity-verification', name: 'Identity verification', route: '/profile/accounts-and-payments' },
     {
         id: 'p12-identity-additional',
         name: 'Identity — additional',
-        route: '/profile/identity-verification/additional',
+        route: '/profile/accounts-and-payments/additional',
     },
     { id: 'p13-limits', name: 'Limits', route: '/limits' },
 
@@ -90,7 +90,7 @@ export const PAGE_CAPTURES: PageCapture[] = [
     {
         id: 'p38-kyc-action-required',
         name: 'Identity — action required',
-        route: '/profile/identity-verification',
+        route: '/profile/accounts-and-payments',
         fixture: 'kyc-action-required',
     },
     { id: 'p39-language', name: 'Language', route: '/settings/language', fixture: 'settings-language' },

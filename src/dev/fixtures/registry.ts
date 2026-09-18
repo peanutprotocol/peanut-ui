@@ -508,7 +508,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'identity-verification': {
-        route: '/profile/identity-verification',
+        route: '/profile/accounts-and-payments',
         about: 'Unlocked regions for a user whose ID check passed.',
     },
     'settings-language': { route: '/settings/language', about: 'Language picker, English selected.' },
@@ -852,7 +852,7 @@ export const FIXTURES: Record<string, Fixture> = {
     // fully unlocked user whatever the status says.
     // ---------------------------------------------------------------------
     unverified: {
-        route: '/profile/identity-verification',
+        route: '/profile/accounts-and-payments',
         about: 'ID check never started: no region unlocked, all four locked.',
         responses: {
             'GET /users/me': {
@@ -862,7 +862,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'kyc-action-required': {
-        route: '/profile/identity-verification',
+        route: '/profile/accounts-and-payments',
         about: 'Bridge asks for more verification: the task card and its Complete verification button.',
         responses: {
             'GET /users/me': {

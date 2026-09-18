@@ -34,7 +34,15 @@ export function classifySignupEntryFlow(redirectUri: string | null): SignupEntry
         const path = destination.pathname.replace(/\/+$/, '') || '/'
         if (path === '/' || path === '/home') return 'default'
         if (path === '/add-money' || path.startsWith('/add-money/')) return 'add-money'
-        if (path === '/profile/identity-verification' || path.startsWith('/profile/identity-verification/')) {
+        // Matches both the current path and the pre-2026-09-19 URL (redirect_uri
+        // values from old links/bookmarks still arrive with the old segment) —
+        // both bucket into the same stable analytics label.
+        if (
+            path === '/profile/accounts-and-payments' ||
+            path.startsWith('/profile/accounts-and-payments/') ||
+            path === '/profile/identity-verification' ||
+            path.startsWith('/profile/identity-verification/')
+        ) {
             return 'identity-verification'
         }
         if (path === '/card' || path.startsWith('/card/')) return 'card'

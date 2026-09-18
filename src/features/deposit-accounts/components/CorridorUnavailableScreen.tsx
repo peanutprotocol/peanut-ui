@@ -11,7 +11,7 @@ import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { ResidenceRequiredScreen } from './ResidenceRequiredScreen'
 
 /** the Unlock payments residence row, opened by its own query param */
-const RESIDENCE_CHANGE_HREF = '/profile/identity-verification?open=residence'
+const RESIDENCE_CHANGE_HREF = '/profile/accounts-and-payments?open=residence'
 
 /** the QR payment flow, which any balance can pay from */
 const QR_PAY_HREF = '/qr-pay'

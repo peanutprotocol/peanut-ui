@@ -125,7 +125,7 @@ function VaAwareRows({
                                 router.push(
                                     withReturnTo(
                                         `/add-money?method=bank&step=details&corridor=${corridor}`,
-                                        '/profile/identity-verification'
+                                        '/profile/accounts-and-payments'
                                     )
                                 )
                             }

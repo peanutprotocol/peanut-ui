@@ -90,7 +90,7 @@ describe('tapping a residence-gated corridor', () => {
         expect(screen.getByText(/tax id \(cpf\)/i)).toBeInTheDocument()
 
         const cta = screen.getByRole('link', { name: messages.depositAccounts.details.residenceCta })
-        expect(cta).toHaveAttribute('href', expect.stringContaining('/profile/identity-verification?open=residence'))
+        expect(cta).toHaveAttribute('href', expect.stringContaining('/profile/accounts-and-payments?open=residence'))
     })
 
     /**

@@ -1,6 +1,6 @@
-import type React from 'react'
-import { AdditionalVerificationView } from '@/components/Kyc/AdditionalVerificationView'
+import { redirect } from 'next/navigation'
 
-export default function AdditionalVerificationPage(): React.JSX.Element {
-    return <AdditionalVerificationView />
+/** See ../page.tsx — the additional-verification screen moved alongside its parent. */
+export default function AdditionalVerificationRedirect() {
+    redirect('/profile/accounts-and-payments/additional')
 }
