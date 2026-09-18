@@ -28,6 +28,12 @@ const groups: { title: string; tools: DevTool[] }[] = [
                 path: '/dev/ds',
                 icon: 'docs',
             },
+            {
+                name: 'Token selector looks',
+                description: 'What a selected row, a leading slot and the picker trigger should be',
+                path: '/dev/token-selector',
+                icon: 'coins',
+            },
         ],
     },
     {
