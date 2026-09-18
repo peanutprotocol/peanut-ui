@@ -201,8 +201,9 @@ jobs:
             contents: read
             actions: read
             pull-requests: write
-        # Resolve the secret-bearing publisher only from trusted dev code.
-        uses: peanutprotocol/peanut-ui/.github/workflows/screen-library-publish.yml@dev
+        # Temporary same-repository smoke test for TASK-22669. Restore the
+        # trusted dev pin immediately after the account-token path is verified.
+        uses: peanutprotocol/peanut-ui/.github/workflows/screen-library-publish.yml@innolope/TASK-22669-screen-library-r2-token
         secrets:
             # The dev-pinned publisher accepts this compatibility alias until
             # its standard CLOUDFLARE_API_TOKEN input is deployed.
