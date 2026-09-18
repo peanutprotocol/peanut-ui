@@ -49,6 +49,10 @@ jest.mock('../AppGlobals', () => passthrough('AppGlobals'))
 jest.mock('@/components/Global/ConsoleGreeting', () => ({ ConsoleGreeting: () => null }))
 jest.mock('@/components/Global/ScreenOrientationLocker', () => ({ ScreenOrientationLocker: () => null }))
 jest.mock('@/components/Analytics/PathnamePageviewTracker', () => ({ PathnamePageviewTracker: () => null }))
+// ScreenTransitionTracker reads query state through nuqs; this spec mocks the
+// adapter to a passthrough, so stub the tracker like the pageview one above —
+// the reproduce-manifest assertions do not depend on analytics.
+jest.mock('@/components/Analytics/ScreenTransitionTracker', () => ({ ScreenTransitionTracker: () => null }))
 jest.mock('@/components/Global/UnsupportedWebViewScreen', () => ({
     UnsupportedWebViewScreen: () => null,
     hasUnsupportedWebViewBypass: () => true,
