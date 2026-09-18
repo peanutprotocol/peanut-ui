@@ -413,7 +413,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                             onClick={() => void handlePasteInto(name, field.onChange)}
                                             aria-label={t('pasteAria')}
                                             title={t('pasteAria')}
-                                            className="absolute top-1/2 right-1 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-round text-foreground-secondary transition-colors duration-fast hover:text-foreground-primary"
+                                            className="absolute top-1/2 right-1 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-round text-foreground-secondary transition-colors duration-fast hover:text-foreground-primary active:text-foreground-primary"
                                         >
                                             <Icon name="paste" size={18} />
                                         </button>
