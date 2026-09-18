@@ -1,7 +1,6 @@
 'use client'
 
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
-import IndicatorDot from '@/components/Global/IndicatorDot'
 import PeanutMascot from '@/components/Global/PeanutMascot'
 import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
 import type { StaticImageData } from 'next/image'
@@ -25,8 +24,6 @@ interface CarouselCTAProps {
     iconContainerClassName?: string
     secondaryIcon?: StaticImageData | string
     iconSize?: number
-    // Perk claim indicator - shows pink dot instead of X close button
-    isPerkClaim?: boolean
 }
 
 const CarouselCTA = ({
@@ -41,7 +38,6 @@ const CarouselCTA = ({
     secondaryIcon,
     iconSize = 22,
     logoSize = 36,
-    isPerkClaim,
 }: CarouselCTAProps) => {
     const t = useTranslations('home.carousel')
     const { triggerHaptic } = useAppHaptic()
@@ -82,25 +78,18 @@ const CarouselCTA = ({
             onClick={handleClick}
             className="embla__slide relative flex flex-row items-center justify-around px-2 py-2 md:py-3"
         >
-            {/* Close button or pink dot indicator for perk claims */}
-            {isPerkClaim ? (
-                <div className={twMerge(CAROUSEL_CLOSE_BUTTON_POSITION, 'z-10')} aria-label={t('claimablePerk')}>
-                    <IndicatorDot />
-                </div>
-            ) : (
-                <button
-                    type="button"
-                    aria-label={getAriaLabel()}
-                    onClick={handleClose}
-                    className={twMerge(
-                        CAROUSEL_CLOSE_BUTTON_POSITION,
-                        // 16px glyph keeps its spot; pseudo-element grows the hit area past 44px (touch law)
-                        'z-10 cursor-pointer p-0 text-black transition-opacity duration-instant after:absolute after:-inset-4 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60'
-                    )}
-                >
-                    <Icon name="cancel" size={CAROUSEL_CLOSE_ICON_SIZE} />
-                </button>
-            )}
+            <button
+                type="button"
+                aria-label={getAriaLabel()}
+                onClick={handleClose}
+                className={twMerge(
+                    CAROUSEL_CLOSE_BUTTON_POSITION,
+                    // 16px glyph keeps its spot; pseudo-element grows the hit area past 44px (touch law)
+                    'z-10 cursor-pointer p-0 text-black transition-opacity duration-instant after:absolute after:-inset-4 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60'
+                )}
+            >
+                <Icon name="cancel" size={CAROUSEL_CLOSE_ICON_SIZE} />
+            </button>
 
             {/* Icon container */}
             <div

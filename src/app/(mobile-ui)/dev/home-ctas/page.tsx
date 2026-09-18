@@ -39,29 +39,9 @@ type CarouselPreview = {
     logo?: StaticImageData
     logoSize?: number
     mascotPose?: MascotPose
-    isPerkClaim?: boolean
 }
 
 const CAROUSEL_PREVIEWS: CarouselPreview[] = [
-    {
-        id: 'perk-claim',
-        label: 'Perk claim (pink-dot, no X) — Card Pioneer reward',
-        icon: 'gift',
-        iconContainerClassName: 'bg-action-primary',
-        iconSize: 16,
-        isPerkClaim: true,
-        title: (
-            <p>
-                <b>+$5</b> reward ready!
-            </p>
-        ),
-        description: (
-            <p>
-                <b>Alice</b> used Peanut. Tap to claim.
-            </p>
-        ),
-    },
-
     {
         id: 'qr-payment',
         label: 'QR payment nudge (KYC-approved user)',
@@ -166,7 +146,6 @@ export default function HomeCTAsPreviewPage() {
                                 logo={cta.logo}
                                 mascotPose={cta.mascotPose}
                                 logoSize={cta.logoSize}
-                                isPerkClaim={cta.isPerkClaim}
                                 onClose={noop(`close ${cta.id}`)}
                                 onClick={noop(`click ${cta.id}`)}
                             />

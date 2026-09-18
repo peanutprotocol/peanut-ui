@@ -164,53 +164,15 @@
             "noTransactionsTitle": "No transactions yet!",
             "emptyDescription": "Start by sending or requesting money"
         },
-        "welcomeUnlock": {
-            "title": "You're unlocked",
-            "cta": "Send money",
-            "youCanNow": "You can now:",
-            "items": {
-                "qr": {
-                    "label": "Argentina & Brazil",
-                    "value": "QR payments"
-                },
-                "us": {
-                    "label": "United States",
-                    "value": "US dollar bank transfers"
-                },
-                "europe": {
-                    "label": "Europe",
-                    "value": "Euro bank transfers"
-                },
-                "mexico": {
-                    "label": "Mexico",
-                    "value": "Mexican peso bank transfers"
-                },
-                "ownCountry": {
-                    "value": "Bank transfers to your own accounts"
-                }
-            }
-        },
         "perk": {
-            "surpriseTitle": "You just earned ${amount}!",
-            "surpriseDescriptionFirst": "Check out your rewards now and earn more.",
-            "surpriseDescriptionNext": "Check out your rewards and how to earn more.",
             "usedPeanut": "<name>{inviteeName}</name> used Peanut",
-            "rewardClaimed": "Reward claimed!",
-            "shareAndEarn": "Share & earn",
-            "inviteFriendsToEarnMore": "Invite friends to earn more",
             "holdToUnwrap": "Hold to unwrap your reward",
             "iosCopy": {
-                "surpriseDescriptionFirst": "Check out your cashback and how to earn more.",
-                "surpriseDescriptionNext": "Check out your cashback and how to earn more.",
                 "usedPeanut": "<name>{inviteeName}</name> paid with Peanut",
-                "rewardClaimed": "Cashback claimed!",
                 "holdToUnwrap": "Hold to unwrap your cashback"
             }
         },
         "carousel": {
-            "rewardReady": "<b>+${amount}</b> reward ready!",
-            "usedPeanutTapToClaim": "<name>{inviteeName}</name> used Peanut. Tap to claim.",
-            "tapToClaim": "Tap to claim your reward.",
             "invite": {
                 "title": "Invite friends. Earn rewards",
                 "description": "Earn rewards every time your friends use Peanut."
@@ -244,11 +206,7 @@
             "closeTitled": "Close {title}",
             "closeVerificationPrompt": "Close verification prompt",
             "closeNotificationPrompt": "Close notification prompt",
-            "claimablePerk": "Claimable perk",
             "iosCopy": {
-                "rewardReady": "<b>+${amount}</b> cashback ready!",
-                "usedPeanutTapToClaim": "<name>{inviteeName}</name> paid with Peanut. Tap to claim.",
-                "tapToClaim": "Tap to claim your cashback.",
                 "invite": {
                     "title": "Invite friends. Earn cashback",
                     "description": "Earn cashback every time your friends pay with Peanut."

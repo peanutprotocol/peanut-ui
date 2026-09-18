@@ -28,13 +28,13 @@ import { useRewardsFlow } from './useRewardsFlow'
 import { getTierBadge, getTierProgressPercent } from './utils'
 
 const InvitesGraph = dynamic(() => import('@/components/Global/InvitesGraph'), { ssr: false })
-const InviteFriendsDrawer = dynamic(() => import('@/components/Global/InviteFriendsDrawer'), { ssr: false })
+const InviteFriendsModal = dynamic(() => import('@/components/Global/InviteFriendsModal'), { ssr: false })
 
 export function RewardsPage() {
     const t = useAppTranslations('rewards')
     const router = useRouter()
     const onBack = useSafeBack('/home')
-    const [isInviteDrawerMounted, setIsInviteDrawerMounted] = useState(false)
+    const [isInviteModalMounted, setIsInviteModalMounted] = useState(false)
 
     const {
         user,
@@ -54,8 +54,8 @@ export function RewardsPage() {
         cashStatus,
         animatedTotal,
     } = useRewardsFlow()
-    const openInviteDrawer = () => {
-        setIsInviteDrawerMounted(true)
+    const openInviteModal = () => {
+        setIsInviteModalMounted(true)
         setIsInviteModalOpen(true)
     }
 
@@ -118,7 +118,7 @@ export function RewardsPage() {
                             )
                         })()}
 
-                    <Button variant="purple" shadowSize="4" onClick={openInviteDrawer} className="w-full">
+                    <Button variant="purple" shadowSize="4" onClick={openInviteModal} className="w-full">
                         {t('inviteNow')}
                     </Button>
 
@@ -321,7 +321,7 @@ export function RewardsPage() {
                                     shadowSize="4"
                                     size="small"
                                     className="mt-2"
-                                    onClick={openInviteDrawer}
+                                    onClick={openInviteModal}
                                 >
                                     {t('shareInviteLink')}
                                 </Button>
@@ -332,9 +332,9 @@ export function RewardsPage() {
 
                 {/* Invite Modal */}
                 {/* Load on first use, then keep the controlled root mounted so
-                    visible=false can animate the drawer closed. */}
-                {isInviteDrawerMounted && (
-                    <InviteFriendsDrawer
+                    visible=false can animate the modal closed. */}
+                {isInviteModalMounted && (
+                    <InviteFriendsModal
                         visible={isInviteModalOpen}
                         onClose={() => setIsInviteModalOpen(false)}
                         username={username ?? ''}

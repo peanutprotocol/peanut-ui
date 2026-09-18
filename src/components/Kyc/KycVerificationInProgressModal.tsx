@@ -167,9 +167,10 @@ export const KycVerificationInProgressModal = ({
     }
 
     // phase === 'complete'
-    // Deliberately neutral (not "You're unlocked"): the rich WelcomeUnlockDrawer
-    // on home is THE single celebration — it lists what unlocked. This terminal
-    // must not stamp activationCelebratedAt, or home's celebration never shows.
+    // Deliberately neutral (not "You're unlocked"): home's rich activation
+    // celebration was deleted with TASK-22680 and nothing replaces it yet, so
+    // this terminal is the only KYC-complete surface. It still does not stamp
+    // activationCelebratedAt.
     return (
         <ActionModal
             visible={isOpen}

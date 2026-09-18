@@ -26,7 +26,7 @@ import ConfirmInviteModal from '@/components/Global/ConfirmInviteModal'
 import EarlyUserDrawer from '@/components/Global/EarlyUserDrawer'
 import EasterEggDrawer from '@/components/Global/EasterEggDrawer'
 import { GuestVerificationModal } from '@/components/Global/GuestVerificationModal'
-import InviteFriendsDrawer from '@/components/Global/InviteFriendsDrawer'
+import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import UnsupportedBrowserModal from '@/components/Global/UnsupportedBrowserModal'
 import AdvisoryPreemptModal from '@/components/Kyc/AdvisoryPreemptModal'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
@@ -49,7 +49,6 @@ import SupportedNetworksDrawer from '@/components/AddMoney/components/SupportedN
 import ScanToDownloadModal from '@/components/Migration/ScanToDownloadModal'
 import OtaUpdateModal from '@/components/Profile/components/OtaUpdateModal'
 import ResidenceChangeDrawer from '@/components/Profile/views/ResidenceChangeDrawer'
-import WelcomeUnlockDrawer from '@/components/Home/WelcomeUnlockDrawer'
 import BalanceWarningDrawer from '@/components/Global/BalanceWarningDrawer'
 import TokenAndNetworkConfirmationDrawer from '@/components/Global/TokenAndNetworkConfirmationDrawer'
 import CancelSendLinkDrawer from '@/components/Global/CancelSendLinkDrawer'
@@ -65,8 +64,6 @@ import { BackupFaqDrawers } from '@/components/Profile/BackupFaqDrawers'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { ContributorsDrawer } from '@/features/payments/flows/contribute-pot/components/ContributorsDrawer'
 import MigrationDownloadModal from '@/components/Migration/MigrationDownloadModal'
-import PerkClaimDrawer from '@/components/Home/PerkClaimDrawer'
-import { PerkClaimSuccessDrawer } from '@/components/Home/PerkClaimSuccessDrawer'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
 import NoMoreJailDrawer from '@/components/Global/NoMoreJailDrawer'
 import SendLinkActionList from '@/components/Claim/Link/SendLinkActionList'
@@ -240,9 +237,9 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     '15-a-invitefriendsmodal': {
-        name: 'InviteFriendsDrawer',
-        path: 'Global/InviteFriendsDrawer/index.tsx',
-        render: () => <InviteFriendsDrawer visible onClose={noop} username="demo" />,
+        name: 'InviteFriendsModal',
+        path: 'Global/InviteFriendsModal/index.tsx',
+        render: () => <InviteFriendsModal visible onClose={noop} username="demo" />,
     },
     '17-a-nomorejailmodal': {
         ...SURFACE_META['17-a-nomorejailmodal'],
@@ -406,28 +403,6 @@ export const SURFACES: Record<string, Surface> = {
                 onReverify={noop}
             />
         ),
-    },
-    '46-c-perkclaimmodal': {
-        ...SURFACE_META['46-c-perkclaimmodal'],
-        render: () => (
-            <PerkClaimDrawer
-                visible
-                onClose={noop}
-                onClaimed={noop}
-                perk={{
-                    id: 'perk-1',
-                    name: 'Invite bonus',
-                    amountUsd: 5,
-                    createdAt: '2026-08-01T10:00:00.000Z',
-                    inviteeName: 'Ana',
-                }}
-            />
-        ),
-    },
-    '47-c-welcomeunlockmodal': {
-        name: 'WelcomeUnlockDrawer',
-        path: 'Home/WelcomeUnlockDrawer/index.tsx',
-        render: () => <WelcomeUnlockDrawer isOpen onClose={noop} />,
     },
     '48-c-balancewarningmodal': {
         name: 'BalanceWarningDrawer',
@@ -774,24 +749,6 @@ export const SURFACES: Record<string, Surface> = {
     '86-f-choice-not-found': {
         ...SURFACE_META['86-f-choice-not-found'],
         render: () => <NotFoundScreen />,
-    },
-    '69-d-perkclaimsuccess': {
-        name: 'PerkClaimSuccessDrawer',
-        path: 'Home/PerkClaimSuccessDrawer.tsx',
-        render: () => (
-            <PerkClaimSuccessDrawer
-                perk={{
-                    id: 'perk-1',
-                    name: 'Invite bonus',
-                    amountUsd: 5,
-                    createdAt: '2026-08-01T10:00:00.000Z',
-                    inviteeName: 'Ana',
-                }}
-                claimPhase="revealed"
-                onClose={noop}
-                onDismiss={noop}
-            />
-        ),
     },
     '70-d-activationctas-outbound': {
         // the spend chooser opens on the card's CTA tap — the shot spec (or a

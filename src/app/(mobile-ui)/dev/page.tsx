@@ -88,6 +88,12 @@ const groups: { title: string; tools: DevTool[] }[] = [
                 icon: 'info',
             },
             {
+                name: 'Reward surfaces',
+                description: 'Every reward/celebration overlay: who opens it in production, and a link to it',
+                path: '/dev/reward-surfaces',
+                icon: 'trophy',
+            },
+            {
                 name: 'Activation Journey',
                 description: 'Every in-app surface and lifecycle email/push per funnel state',
                 path: '/dev/journey',

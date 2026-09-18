@@ -1,13 +1,11 @@
 'use client'
 
-import { updateUserById } from '@/app/actions/users'
 import LazyLoadErrorBoundary from '@/components/Global/LazyLoadErrorBoundary'
 import { PostSignupActionManager } from '@/components/Global/PostSignupActionManager'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
-import { useCapabilities } from '@/hooks/useCapabilities'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
@@ -21,7 +19,6 @@ const BalanceWarningDrawer = lazy(() => import('@/components/Global/BalanceWarni
 const SetupNotificationsModal = lazy(() => import('@/components/Notifications/SetupNotificationsModal'))
 const NoMoreJailDrawer = lazy(() => import('@/components/Global/NoMoreJailDrawer'))
 const EarlyUserDrawer = lazy(() => import('@/components/Global/EarlyUserDrawer'))
-const WelcomeUnlockDrawer = lazy(() => import('@/components/Home/WelcomeUnlockDrawer'))
 const MigrationDownloadModal = lazy(() => import('@/components/Migration/MigrationDownloadModal'))
 const ScanToDownloadModal = lazy(() => import('@/components/Migration/ScanToDownloadModal'))
 
@@ -34,19 +31,17 @@ const BALANCE_WARNING_EXPIRY = Number.isNaN(parsedExpiry) ? 1814400 : parsedExpi
 
 /**
  * home modal orchestration — the priority chain the old home page carried
- * inline. migration download outranks everything, then notifications, kyc
- * celebration, post-signup, and balance warning.
+ * inline. migration download outranks everything, then notifications,
+ * post-signup, and balance warning.
  */
 export function HomeModals() {
     const { showPermissionModal } = useNotifications()
     const { isGetAppModalOpen, setIsGetAppModalOpen } = useModalsContext()
     const { balance, isFetchingBalance } = useWallet()
-    const { user, fetchUser } = useAuth()
-    const { isKycApproved } = useCapabilities()
+    const { user } = useAuth()
 
     const [showBalanceWarningDrawer, setShowBalanceWarningDrawer] = useState(false)
     const [isPostSignupActionModalVisible, setIsPostSignupActionModalVisible] = useState(false)
-    const [showKycModal, setShowKycModal] = useState(false)
     // migration download prompt outranks every other home modal (self-gating,
     // only during the native-migration notice window)
     const [showMigrationModal, setShowMigrationModal] = useState(false)
@@ -57,29 +52,12 @@ export function HomeModals() {
     const [jailCelebrationPending, setJailCelebrationPending] = useState(
         () => typeof window !== 'undefined' && sessionStorage.getItem('showNoMoreJailModal') === 'true'
     )
-    // Derived synchronously from the user flag, not from the child's effect:
-    // the drawer only reports itself open after mount, and that one-commit gap
-    // let the activation celebration flash open between two drawers. The flag
-    // holds the queue until the drawer reports its dismissal.
-    const [earlyUserDone, setEarlyUserDone] = useState(false)
-    const [earlyUserOpen, setEarlyUserOpen] = useState(false)
-    const earlyUserPending = (!!user?.showEarlyUserModal && !earlyUserDone) || earlyUserOpen
-
     // the migration prompt outranks the post-signup modal; unmounting the
     // manager skips its onVisibilityChange(false), so clear the state here or
     // it stays stuck true and suppresses the balance-warning modal
     useEffect(() => {
         if (showMigrationModal) setIsPostSignupActionModalVisible(false)
     }, [showMigrationModal])
-
-    // show the "you're unlocked" celebration exactly once: the user has a usable
-    // rail (isKycApproved) and has never dismissed it (activationCelebratedAt is
-    // null, stamped server-side on dismiss). a kyc re-approval can't resurface it.
-    useEffect(() => {
-        if (isKycApproved && !user?.user.activationCelebratedAt) {
-            setShowKycModal(true)
-        }
-    }, [isKycApproved, user?.user.activationCelebratedAt])
 
     // balance warning: only when balance is above threshold, unseen recently,
     // and no higher-priority modal is active
@@ -98,20 +76,11 @@ export function HomeModals() {
             !hasSeenBalanceWarning &&
             !showMigrationModal && // highest priority
             !showPermissionModal &&
-            !showKycModal &&
             !isPostSignupActionModalVisible
         ) {
             setShowBalanceWarningDrawer(true)
         }
-    }, [
-        balance,
-        isFetchingBalance,
-        showMigrationModal,
-        showPermissionModal,
-        showKycModal,
-        isPostSignupActionModalVisible,
-        user,
-    ])
+    }, [balance, isFetchingBalance, showMigrationModal, showPermissionModal, isPostSignupActionModalVisible, user])
 
     return (
         <>
@@ -154,45 +123,11 @@ export function HomeModals() {
                     {!jailCelebrationPending && (
                         <LazyLoadErrorBoundary>
                             <Suspense fallback={null}>
-                                <EarlyUserDrawer
-                                    onVisibilityChange={(visible) => {
-                                        setEarlyUserOpen(visible)
-                                        if (!visible) setEarlyUserDone(true)
-                                    }}
-                                />
+                                <EarlyUserDrawer />
                             </Suspense>
                         </LazyLoadErrorBoundary>
                     )}
                 </>
-            )}
-
-            {/* mount-gated so the ~20-30KB chunk only loads when the modal can show */}
-            {showKycModal && (
-                <LazyLoadErrorBoundary>
-                    <Suspense fallback={null}>
-                        <WelcomeUnlockDrawer
-                            isOpen={
-                                showKycModal &&
-                                !showBalanceWarningDrawer &&
-                                !showMigrationModal &&
-                                !jailCelebrationPending &&
-                                !earlyUserPending
-                            }
-                            onClose={async () => {
-                                // close the modal immediately for better ux
-                                setShowKycModal(false)
-                                // update the database and refetch user to ensure sync
-                                if (user?.user.userId) {
-                                    await updateUserById({
-                                        userId: user.user.userId,
-                                        dismissActivationCelebration: true,
-                                    })
-                                    await fetchUser()
-                                }
-                            }}
-                        />
-                    </Suspense>
-                </LazyLoadErrorBoundary>
             )}
 
             <LazyLoadErrorBoundary>
