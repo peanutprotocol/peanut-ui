@@ -17,34 +17,6 @@ concurrency:
     cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-    # Temporary read-only smoke probe for TASK-22669. Remove after the branch
-    # implementation has verified the repository credential against R2.
-    r2_token_smoke:
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        runs-on: ubuntu-24.04
-        steps:
-            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-              with:
-                  ref: ${{ github.event.pull_request.head.sha }}
-                  persist-credentials: false
-            - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-              with:
-                  node-version: '22'
-            - run: npm ci --ignore-scripts --no-audit --no-fund --prefix scripts/screens/publisher
-            - run: ln -s "$GITHUB_WORKSPACE/scripts/screens/publisher/node_modules" node_modules
-            - name: Verify Cloudflare token and read-only R2 access
-              env:
-                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-                  CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-                  SCREEN_LIBRARY_R2_BUCKET: ${{ vars.SCREEN_LIBRARY_R2_BUCKET }}
-                  SCREEN_LIBRARY_R2_JURISDICTION: ${{ vars.SCREEN_LIBRARY_R2_JURISDICTION }}
-                  SCREEN_LIBRARY_PUBLIC_URL: ${{ vars.SCREEN_LIBRARY_PUBLIC_URL }}
-              run: >-
-                  node --input-type=module -e "import { createStorage } from './scripts/screens/cloudflare-storage.mjs';
-                  const storage = await createStorage();
-                  await storage.list({ prefix: '', limit: 1 });
-                  console.log('Cloudflare token and read-only R2 access verified')"
-
     refs:
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         runs-on: ubuntu-24.04
@@ -229,9 +201,8 @@ jobs:
             contents: read
             actions: read
             pull-requests: write
-        # Temporary same-repository smoke test for TASK-22669. Restore the
-        # trusted dev pin immediately after the account-token path is verified.
-        uses: peanutprotocol/peanut-ui/.github/workflows/screen-library-publish.yml@innolope/TASK-22669-screen-library-r2-token
+        # Resolve the secret-bearing publisher only from trusted dev code.
+        uses: peanutprotocol/peanut-ui/.github/workflows/screen-library-publish.yml@dev
         secrets:
             # The dev-pinned publisher accepts this compatibility alias until
             # its standard CLOUDFLARE_API_TOKEN input is deployed.
