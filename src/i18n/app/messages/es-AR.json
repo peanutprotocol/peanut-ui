@@ -1719,6 +1719,8 @@
         "list": {
             "searchPlaceholder": "Buscá país, moneda o cuenta",
             "rowBlocked": "Verificá tu identidad para abrir esta cuenta",
+            "badgeVerify": "Verificá para desbloquear",
+            "accountLimitNote": "Podés tener hasta dos cuentas bancarias. ¿Necesitás otra? Escribí a soporte.",
             "errorBody": "Tus cuentas están bien: solo no pudimos leerlas. Revisá tu conexión y probá de nuevo.",
             "accountsPitch": "Datos bancarios a tu nombre. Compartilos una vez y cobrá directo en Peanut.",
             "countriesPitch": "Enviate plata desde un banco de otro país."

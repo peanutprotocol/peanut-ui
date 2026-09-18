@@ -165,6 +165,14 @@ export function useDepositAccountCopy() {
         return { text: t('fees.converted'), ratesFor: rail.currency }
     }
 
+    /**
+     * The smallest deposit a corridor accepts, already formatted, or undefined
+     * where the rail publishes no floor. The claim screen surfaces it in its
+     * "good to know" aside so the amount is not buried in the payer rules.
+     */
+    const minimumDeposit = (rules: DepositRules | undefined): string | undefined =>
+        rules?.min ? formatCurrencyAmount(rules.min.amount, rules.min.currency) : undefined
+
     const railName = (corridor: DepositCorridor) => t(RAIL_NAME_KEYS[corridor])
     const arrival = (corridor: DepositCorridor) => t(ARRIVAL_KEYS[corridor])
     const arrivalDetail = (corridor: DepositCorridor) => t(ARRIVAL_DETAIL_KEYS[corridor])
@@ -210,5 +218,6 @@ export function useDepositAccountCopy() {
         qrPayLine,
         claimErrorBody,
         feeLine,
+        minimumDeposit,
     }
 }

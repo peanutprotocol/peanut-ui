@@ -92,7 +92,7 @@ export function DepositAccountsListScreen({
     onOpen: (corridor: DepositCorridor) => void
     onRetry: () => void
 }) {
-    const { t, arrival, railName, residenceLine } = useDepositAccountCopy()
+    const { t, railName } = useDepositAccountCopy()
     const tMethods = useTranslations('addMoney.methods')
     const locale = useLocale()
     const router = useRouter()
@@ -151,33 +151,27 @@ export function DepositAccountsListScreen({
      * The rows: this user's own corridors, plus the residence-gated ones, which
      * everybody sees. A Brazilian account is worth knowing about before you
      * live in Brazil, and the screen behind the row is what states the rule.
+     *
+     * A user who has not verified holds a rail for nothing, so the standing
+     * accounts they could open by verifying would be missing from the hub
+     * entirely — they never learn the accounts exist or what unlocks them. Show
+     * the claimable ones with a "verify to unlock" badge, but ONLY where the
+     * gate is `needs-identity` (identity not cleared yet). A verified user whose
+     * region has no such corridor resolves to `needs-enrollment` instead, and
+     * showing them a USD or ARS row they can never open is the noise these rows
+     * are meant to avoid.
      */
     const hubCorridors = useMemo(() => {
         const shown = new Set([...corridors, ...RESIDENCE_GATED_CORRIDORS])
+        for (const corridor of DEPOSIT_RAIL_ORDER) {
+            if (isClaimable(DEPOSIT_RAILS[corridor]) && gates[corridor]?.kind === 'needs-identity') shown.add(corridor)
+        }
         return DEPOSIT_RAIL_ORDER.filter((corridor) => shown.has(corridor))
-    }, [corridors])
+    }, [corridors, gates])
 
     const views = hubCorridors
         .filter((corridor) => matchesCorridor(corridor))
         .map((corridor) => ({ corridor, view: depositGateView(gates[corridor]) }))
-    // Status lives in the badge on every row, so the body only ever answers
-    // "when does the money land". Saying it in both places is how a row ended
-    // up reading "Not set up yet" under a "Ready" pill.
-    const rowBody = (corridor: DepositCorridor, openable: boolean): string => {
-        // The residence rule outranks every other line: it is why the tap will
-        // not open an account, and it is true before the accounts arrive.
-        const residence = isResidenceGated(corridor) ? residenceLine(corridor) : undefined
-        if (residence) return residence.caveat
-        // The rows can paint before the accounts arrive. The arrival time is
-        // true in that gap too; the status is not, so the badge carries it.
-        if (isLoading) return arrival(corridor)
-        // A revoked row is closed, not blocked: "verify your identity" would be
-        // an instruction that changes nothing. The badge says revoked and the
-        // body says what a payer sending money there gets.
-        if (accounts[corridor]?.status === 'revoked') return t('list.rowRevoked')
-        if (!openable) return t('list.rowBlocked')
-        return arrival(corridor)
-    }
 
     /**
      * Where the corridor stands, in the one slot that carries status.
@@ -195,6 +189,10 @@ export function DepositAccountsListScreen({
         if (isLoading) return <div className="h-5 w-16 animate-pulse rounded bg-foreground-primary/10" />
         if (isResidenceGated(rail.corridor) && !account)
             return <StatusBadge status="custom" customText={t('list.badgeNotSetUp')} />
+        // A claimable corridor the user has no rail for, shown because verifying
+        // identity is what opens it. Say what unlocks it rather than "Not set up".
+        if (!account && gate.kind === 'needs-identity')
+            return <StatusBadge status="custom" customText={t('list.badgeVerify')} />
         if (!isClaimable(rail) || account?.status === 'unavailable')
             return <StatusBadge status="custom" customText={t('list.badgeUnavailable')} />
         // A read that failed says nothing about what the user holds. "Not set
@@ -330,6 +328,9 @@ export function DepositAccountsListScreen({
                 {showAccounts && (
                     <Section title={t('list.sectionTitle')} data-testid="your-accounts">
                         <p className="text-body-s text-foreground-secondary">{t('list.accountsPitch')}</p>
+                        {/* the standing-account cap, said before a user meets it
+                            at claim time — support opens more on request */}
+                        <p className="text-body-xs text-foreground-secondary">{t('list.accountLimitNote')}</p>
                         <ListGroup>
                             {views.map(({ corridor, view }) => {
                                 const rail = DEPOSIT_RAILS[corridor]
@@ -358,8 +359,6 @@ export function DepositAccountsListScreen({
                                                "GBP · Faster Payments" does not fit
                                                at 375 */
                                         title={<span>{`${rail.currency} · ${railName(corridor)}`}</span>}
-                                        body={rowBody(corridor, openable)}
-                                        bodyWrap
                                         trailing={rowBadge(rail, account, gates[corridor])}
                                         chevron={!disabled}
                                         disabled={disabled}
