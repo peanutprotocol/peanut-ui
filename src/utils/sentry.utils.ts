@@ -25,8 +25,15 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[]; erro
     { pattern: /users/, statuses: [400, 401, 403, 404] },
     { pattern: /perks/, statuses: [400, 401, 403, 404] },
     // /invites/validate 400 = "Invalid Invite": the user mistyped an invite code.
-    // Expected input validation, surfaced inline to the user — not a server bug.
-    { pattern: /\/invites\/validate/, statuses: [400] },
+    // 409 = a code that resolves to a campaign only, which validateInviteCode
+    // reads as a success (`typedCampaignOnly`). Both are expected outcomes of a
+    // typed code, surfaced inline to the user — not server bugs.
+    { pattern: /\/invites\/validate/, statuses: [400, 409] },
+    // Public exchange rates are fetched by every mounted rate hook and are
+    // deliberately rate-limited upstream. A 429 is the quota doing its job; the
+    // UI keeps the last rate and retries. peanut-api already reports the
+    // upstream cause, so reporting here just multiplies one fault by the hooks.
+    { pattern: /\/bridge\/exchange-rate/, statuses: [429] },
     // /tokens/price 404 means the upstream price provider declined the lookup —
     // in practice a Mobula 429. The UI falls back to token denomination, so it is
     // a degraded display, never a wrong number. The backend already downgraded

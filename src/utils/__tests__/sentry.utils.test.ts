@@ -76,6 +76,56 @@ describe('fetchWithSentry — expected-response suppression', () => {
         )
     })
 
+    // A 409 means the code resolves to a campaign only — validateInviteCode
+    // treats it as a success (`typedCampaignOnly`), so it is never a failure.
+    it('does NOT report /invites/validate 409 (campaign-only code is a success here)', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(409, { error: 'CAMPAIGN_ONLY' }))
+
+        const res = await fetchWithSentry('https://api.peanut.me/invites/validate', { method: 'POST', body: '{}' })
+
+        expect(res.status).toBe(409)
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    })
+
+    it('does NOT report /bridge/exchange-rate 429 (the upstream quota doing its job)', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(429, { error: 'RATE_LIMITED' }))
+
+        const res = await fetchWithSentry('https://api.peanut.me/bridge/exchange-rate?accountType=iban')
+
+        expect(res.status).toBe(429)
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    })
+
+    it('still reports /bridge/exchange-rate 500', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(500, { error: 'boom' }))
+
+        await fetchWithSentry('https://api.peanut.me/bridge/exchange-rate?accountType=iban')
+
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
+    })
+
+    // A stale session is the normal way this endpoint 401s — the UI just shows
+    // no perks. Pins the "Expected stale-session 401 on /perks/pending" row.
+    it('does NOT report /perks/pending 401 (stale session)', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(401, { error: 'Unauthorized' }))
+
+        const res = await fetchWithSentry('https://api.peanut.me/perks/pending')
+
+        expect(res.status).toBe(401)
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    })
+
+    it('still reports /manteca/qr-payment/init 500 (a real payment failure)', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(500, { error: 'boom' }))
+
+        await fetchWithSentry('https://api.peanut.me/manteca/qr-payment/init', { method: 'POST', body: '{}' })
+
+        expect(Sentry.captureMessage).toHaveBeenCalledWith(
+            'POST to https://api.peanut.me/manteca/qr-payment/init failed with status 500',
+            expect.objectContaining({ level: 'error' })
+        )
+    })
+
     it('does not report an expected exact-username quota response', async () => {
         global.fetch = jest
             .fn()
