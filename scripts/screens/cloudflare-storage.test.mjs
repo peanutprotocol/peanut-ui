@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { configuration, deleteHostedImage, r2Endpoint, tokenCredentials } from './cloudflare-storage.mjs'
+import { configuration, createStorage, deleteHostedImage, r2Endpoint, tokenCredentials } from './cloudflare-storage.mjs'
 
 const config = {
     CLOUDFLARE_ACCOUNT_ID: 'a'.repeat(32),
@@ -85,6 +85,39 @@ test('inactive, invalid and rejected Cloudflare tokens fail closed', async () =>
         tokenCredentials('abc', 'invalid', async () => Response.json({ success: true })),
         /account ID/
     )
+})
+
+test('R2 reads remain callable when passed as detached publisher callbacks', async () => {
+    class Command {
+        constructor(input) {
+            this.input = input
+        }
+    }
+    class S3Client {
+        async send(command) {
+            assert.deepEqual(command.input, { Bucket: config.SCREEN_LIBRARY_R2_BUCKET, Key: 'existing.json' })
+            return {
+                Body: { transformToByteArray: async () => Buffer.from('{"ok":true}') },
+                ETag: 'etag',
+            }
+        }
+    }
+    const storage = await createStorage(config, {
+        request: async () => Response.json({ success: true, result: { id: 'b'.repeat(32), status: 'active' } }),
+        loadS3: async () => ({
+            S3Client,
+            PutObjectCommand: Command,
+            GetObjectCommand: Command,
+            ListObjectsV2Command: Command,
+        }),
+    })
+
+    const read = storage.read
+    assert.equal((await read('existing.json')).toString(), '{"ok":true}')
+    assert.deepEqual(await storage.readWithMetadata('existing.json'), {
+        body: Buffer.from('{"ok":true}'),
+        etag: 'etag',
+    })
 })
 
 test('legacy Cloudflare Images deletion is strict and idempotent', async () => {

@@ -57,16 +57,23 @@ export async function tokenCredentials(token, accountId, request = fetch) {
     }
     throw new Error(`Cloudflare token verification failed (HTTP ${statuses.join(', ')})`)
 }
-export async function createStorage(env = process.env) {
+export async function createStorage(
+    env = process.env,
+    { request = fetch, loadS3 = () => import('@aws-sdk/client-s3') } = {}
+) {
     const config = configuration(env)
-    const { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command } = await import('@aws-sdk/client-s3')
+    const { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command } = await loadS3()
     const client = new S3Client({
         region: 'auto',
         endpoint: r2Endpoint(config),
-        credentials: await tokenCredentials(config.CLOUDFLARE_API_TOKEN, config.CLOUDFLARE_ACCOUNT_ID),
+        credentials: await tokenCredentials(config.CLOUDFLARE_API_TOKEN, config.CLOUDFLARE_ACCOUNT_ID, request),
     })
     const Bucket = config.SCREEN_LIBRARY_R2_BUCKET
     const url = (key) => `${config.SCREEN_LIBRARY_PUBLIC_URL}/screen-data/${key}`
+    const readWithMetadata = async (key) => {
+        const result = await client.send(new GetObjectCommand({ Bucket, Key: key }))
+        return { body: Buffer.from(await result.Body.transformToByteArray()), etag: result.ETag }
+    }
     return {
         async put(key, body, options = {}) {
             await client.send(
@@ -82,12 +89,9 @@ export async function createStorage(env = process.env) {
             )
             return { url: url(key), pathname: key }
         },
-        async readWithMetadata(key) {
-            const result = await client.send(new GetObjectCommand({ Bucket, Key: key }))
-            return { body: Buffer.from(await result.Body.transformToByteArray()), etag: result.ETag }
-        },
+        readWithMetadata,
         async read(key) {
-            return (await this.readWithMetadata(key)).body
+            return (await readWithMetadata(key)).body
         },
         async list({ prefix, cursor, limit = 1000 }) {
             const result = await client.send(
