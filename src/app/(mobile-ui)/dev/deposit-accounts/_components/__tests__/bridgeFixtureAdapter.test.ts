@@ -51,13 +51,13 @@ describe('bridge adapter', () => {
     /**
      * The harness mirrors peanut-api-ts `src/deposit-accounts/bridge-adapter.ts`,
      * which reads `product/providers/fiat/bridge-contracts-and-rail-rules.md`
-     * §3 and Bridge's rail-specific docs: USD and MXN permit third parties on
-     * published terms, EUR and GBP take business payments only.
+     * §3 and Bridge's rail-specific docs: USD, EUR and MXN permit third parties
+     * on published terms, GBP takes business payments only.
      */
     it('carries the per-rail sender policy the backend publishes', () => {
         expect(byCurrency('USD').matching.sender).toBe('anyone')
         expect(byCurrency('GBP').matching.sender).toBe('business-only')
-        expect(byCurrency('EUR').matching.sender).toBe('business-only')
+        expect(byCurrency('EUR').matching.sender).toBe('anyone')
         expect(byCurrency('MXN').matching.sender).toBe('anyone')
     })
 
@@ -75,7 +75,11 @@ describe('bridge adapter', () => {
         expect(byCurrency('EUR').rules).toEqual({
             ownAccount: { allowed: true },
             thirdPartyBusiness: 'unlimited',
-            thirdPartyIndividual: { policy: 'unavailable' },
+            thirdPartyIndividual: {
+                policy: 'capped',
+                capBelow: { amount: '4000', currency: 'EUR' },
+                familySameSurnameExempt: true,
+            },
             min: { amount: '1', currency: 'EUR' },
         })
         expect(byCurrency('GBP').rules).toEqual({
