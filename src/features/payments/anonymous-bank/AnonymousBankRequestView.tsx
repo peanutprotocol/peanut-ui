@@ -7,7 +7,6 @@ import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import { ContributePotPageWrapper } from '@/features/payments/flows/contribute-pot/ContributePotPageWrapper'
 import { useRequestDepositInstructions } from '@/features/deposit-accounts/useRequestDepositInstructions'
-import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { isUsdPeggedRequest } from '@/features/deposit-accounts/payerAmount'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { requestsApi } from '@/services/requests'
@@ -36,14 +35,17 @@ export function AnonymousBankRequestView({ requestId }: { requestId: string }) {
     const onBack = useSafeBack('/home')
     const [showOtherWays, setShowOtherWays] = useState(false)
 
-    // Gate the deposit-instructions read on the launch flag: with the feature
-    // off, a signed-out visit must not hit an endpoint that only 404s.
-    const depositAccountsEnabled = useDepositAccountsEnabled()
+    // The server decides payer access: the deposit-instructions endpoint checks
+    // the request's OWN opt-in flag and answers 404 (isUnavailable) when the
+    // requester did not opt in. The read is NOT gated on the payer's own rollout
+    // cohort — doing so re-evaluated the flag in the payer's browser and dropped
+    // an out-of-cohort payer out of a request the requester opted into. The
+    // rollout flag gates CREATION only.
     const {
         instructions,
         isLoading: isLoadingInstructions,
         isUnavailable,
-    } = useRequestDepositInstructions(requestId, depositAccountsEnabled)
+    } = useRequestDepositInstructions(requestId, true)
     // Only for the amount to send. The request read is public (optional auth),
     // so a signed-out payer gets the figure the request asks for.
     const requestQuery = useQuery({
@@ -62,9 +64,12 @@ export function AnonymousBankRequestView({ requestId }: { requestId: string }) {
         )
     }
 
-    // Not opted in, retired since the link went out, or the payer chose another
-    // way — the normal flow owns all three.
-    if (isUnavailable || !instructions || showOtherWays) {
+    // Not opted in (404), retired since the link went out, the payer chose
+    // another way, OR the request read failed — the normal flow owns all of
+    // these. A failed request read means no trustworthy amount, so the bank
+    // view is withheld rather than shown without one; the normal flow does its
+    // own request load and shows the right error for a request that will not load.
+    if (isUnavailable || requestQuery.isError || !instructions || showOtherWays) {
         return <ContributePotPageWrapper requestId={requestId} />
     }
 

@@ -10,11 +10,6 @@ jest.mock('@/features/deposit-accounts/useRequestDepositInstructions', () => ({
     useRequestDepositInstructions: (...args: unknown[]) => useRequestDepositInstructions(...args),
 }))
 
-const useDepositAccountsEnabled = jest.fn()
-jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
-    useDepositAccountsEnabled: () => useDepositAccountsEnabled(),
-}))
-
 const getRequest = jest.fn()
 jest.mock('@/services/requests', () => ({
     requestsApi: { get: (...args: unknown[]) => getRequest(...args) },
@@ -54,7 +49,6 @@ const wrapper = ({ children }: { children: ReactNode }) => {
 beforeEach(() => {
     jest.clearAllMocks()
     getRequest.mockResolvedValue({ uuid: 'req-1', tokenAmount: '250', tokenSymbol: 'USDC' })
-    useDepositAccountsEnabled.mockReturnValue(true)
 })
 
 describe('AnonymousBankRequestView', () => {
@@ -90,19 +84,27 @@ describe('AnonymousBankRequestView', () => {
         await waitFor(() => expect(screen.getByTestId('contribute-pot')).toBeInTheDocument())
     })
 
-    it('does not read the deposit instructions while the feature flag is off', async () => {
-        useDepositAccountsEnabled.mockReturnValue(false)
-        useRequestDepositInstructions.mockReturnValue({
-            instructions: undefined,
-            isLoading: false,
-            isUnavailable: false,
-        })
+    // The payer's own rollout cohort must not decide access — the server's
+    // opt-in/404 does. The read is always enabled; a request that did not opt in
+    // is answered by isUnavailable, not by withholding the request.
+    it('reads the deposit instructions regardless of the payer rollout cohort', async () => {
+        useRequestDepositInstructions.mockReturnValue({ instructions, isLoading: false, isUnavailable: false })
 
         render(<AnonymousBankRequestView requestId="req-1" />, { wrapper })
 
-        // The hook is called with enabled=false, so no request goes out; the page
-        // hands off to the normal flow.
-        await screen.findByTestId('contribute-pot')
-        expect(useRequestDepositInstructions).toHaveBeenCalledWith('req-1', false)
+        expect(await screen.findByText('Pay in EUR · SEPA')).toBeInTheDocument()
+        expect(useRequestDepositInstructions).toHaveBeenCalledWith('req-1', true)
+    })
+
+    // A failed request read means no trustworthy amount, so the bank view is
+    // withheld and the normal flow (which loads the request itself) takes over.
+    it('hands off to the normal flow when the request read fails', async () => {
+        getRequest.mockRejectedValue(new Error('network'))
+        useRequestDepositInstructions.mockReturnValue({ instructions, isLoading: false, isUnavailable: false })
+
+        render(<AnonymousBankRequestView requestId="req-1" />, { wrapper })
+
+        expect(await screen.findByTestId('contribute-pot')).toBeInTheDocument()
+        expect(screen.queryByText('Pay in EUR · SEPA')).not.toBeInTheDocument()
     })
 })
