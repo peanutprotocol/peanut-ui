@@ -427,7 +427,6 @@
             },
             "limits": {
                 "monthlyLeft": "Restam {remaining} de {limit} neste mês",
-                "perTransfer": "Até {amount} por transferência",
                 "p2pNoLimit": "Os pagamentos de Peanut para Peanut não têm limite",
                 "depositPerTransfer": "Por depósito bancário",
                 "withdrawalPerTransfer": "Por saque bancário"
@@ -2052,7 +2051,6 @@
             "feeExceedsAmount": "A taxa de rede é maior que este saque. Informe um valor maior ou escolha uma rede mais barata."
         },
         "resolvesTo": "resolve para",
-        "addNewAccount": "Adicionar nova conta",
         "withdrawToBank": "Saque para uma conta bancária",
         "withdrawToCrypto": "Saque para um endereço cripto"
     },

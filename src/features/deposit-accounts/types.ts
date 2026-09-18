@@ -110,9 +110,6 @@ export type SenderPolicy = DepositMatching['sender']
  */
 export type DepositRules = NonNullable<DepositAccount['rules']>
 
-/** an amount with its currency, as every limit in `DepositRules` carries it */
-export type DepositAmount = NonNullable<DepositRules['min']>
-
 /**
  * Provider instructions, normalised. Every field is optional except the
  * holder name, because corridors genuinely differ: Mexican SPEI returns a

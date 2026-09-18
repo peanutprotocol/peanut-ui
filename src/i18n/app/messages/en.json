@@ -427,7 +427,6 @@
             },
             "limits": {
                 "monthlyLeft": "{remaining} of {limit} left this month",
-                "perTransfer": "Up to {amount} per transfer",
                 "p2pNoLimit": "No limits on Peanut-to-Peanut payments",
                 "depositPerTransfer": "Per bank deposit",
                 "withdrawalPerTransfer": "Per bank withdrawal"
@@ -2052,7 +2051,6 @@
             "feeExceedsAmount": "The network fee is more than this withdrawal. Enter a larger amount or pick a cheaper network."
         },
         "resolvesTo": "resolves to",
-        "addNewAccount": "Add new account",
         "withdrawToBank": "Withdraw to a bank account",
         "withdrawToCrypto": "Withdraw to a crypto address"
     },
