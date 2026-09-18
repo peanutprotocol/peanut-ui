@@ -34,7 +34,6 @@ import { useBridgeBankFlow } from '../useBridgeBankFlow'
 export function BridgeBankOnrampView() {
     const {
         urlState,
-        setUrlState,
         user,
         selectedCountry,
         onBack,
@@ -108,7 +107,10 @@ export function BridgeBankOnrampView() {
         if (!onrampData?.transferId) {
             return <Loading variant="mascot" />
         }
-        return <AddMoneyBankDetails onBack={() => setUrlState({ step: 'inputAmount' })} />
+        // Settled screen: the deposit is already created. Leave the flow the way the
+        // input step does, not back to `inputAmount` (which would let the user start a
+        // second deposit).
+        return <AddMoneyBankDetails onBack={onBack} />
     }
 
     if (urlState.step === 'verify') {

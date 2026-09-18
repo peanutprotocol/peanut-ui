@@ -398,7 +398,10 @@ const MantecaAddMoney: FC = () => {
             <MantecaDepositShareDetails
                 depositDetails={depositDetails}
                 currencyAmount={localCurrencyAmount}
-                onBack={() => setUrlState({ step: 'inputAmount' })}
+                // Settled screen: the deposit is already created. Leave the flow the
+                // way the input step does, not back to `inputAmount` (which would let
+                // the user start a second deposit).
+                onBack={onBack}
             />
         )
     }
@@ -411,7 +414,10 @@ const MantecaAddMoney: FC = () => {
             <MantecaPixQrDeposit
                 depositDetails={depositDetails}
                 currencyAmount={localCurrencyAmount}
-                onBack={() => setUrlState({ step: 'inputAmount' })}
+                // Settled screen: the deposit is already created. Back leaves the flow
+                // the way the input step does, not to `inputAmount` (which would let the
+                // user start a second deposit).
+                onBack={onBack}
                 // Terminal exit — `replace` so device/browser back can't pop into the
                 // finished deposit (whose step=showQR would redirect to a new one).
                 onDone={() => router.replace('/home')}
