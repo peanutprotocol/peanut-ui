@@ -50,6 +50,10 @@ jest.mock('@/app/actions/ibanToBic', () => ({
     getBicFromIban: jest.fn(async () => ({ bic: null })),
 }))
 
+jest.mock('@/components/0_Bruddle/Toast', () => ({
+    useToast: () => ({ info: jest.fn(), error: jest.fn(), success: jest.fn(), warning: jest.fn() }),
+}))
+
 jest.mock('@/components/Global/PeanutActionDetailsCard', () => ({
     __esModule: true,
     default: () => null,

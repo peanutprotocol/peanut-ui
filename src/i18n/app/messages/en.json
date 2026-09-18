@@ -1848,9 +1848,9 @@
         "bankNotAvailableNote": "Bank transfers aren't available in your country. You can still add and withdraw crypto."
     },
     "withdraw": {
-        "amountToWithdraw": "Amount to withdraw",
+        "amountToWithdraw": "Amount to cash out",
         "amountToSend": "Amount to send",
-        "howWouldYouLikeToWithdraw": "How would you like to withdraw?",
+        "howWouldYouLikeToWithdraw": "How would you like to cash out?",
         "howWouldYouLikeToSend": "How would you like to send?",
         "chooseWithdrawingMethod": "Choose withdrawing method",
         "addAccount": "Add account",
@@ -1940,6 +1940,7 @@
             "accountNumberUk": "Account number must be 6-8 digits",
             "accountNumberInvalid": "Invalid account number",
             "bic": "BIC",
+            "bicOptional": "BIC (optional)",
             "bicRequired": "BIC is required",
             "bicInvalid": "Invalid BIC code",
             "routingNumber": "Routing Number",
@@ -1984,7 +1985,10 @@
             "phoneNumber": "Phone number",
             "phoneNumberRequired": "Phone number is required",
             "phoneNumberInvalid": "Enter a Colombian number, for example +573001234567",
-            "phoneNumberHelper": "The number registered with your bank."
+            "phoneNumberHelper": "The number registered with your bank.",
+            "pasteAria": "Paste from clipboard",
+            "pasteEmpty": "Nothing to paste",
+            "pasteUnavailable": "Can't read the clipboard"
         },
         "errors": {
             "invalidNumber": "Please enter a valid number.",
@@ -2017,7 +2021,13 @@
         },
         "resolvesTo": "resolves to",
         "withdrawToBank": "Withdraw to a bank account",
-        "withdrawToCrypto": "Withdraw to a crypto address"
+        "withdrawToCrypto": "Withdraw to a crypto address",
+        "currencyList": {
+            "searchPlaceholder": "Search currency or country",
+            "flagAlt": "{currency} flag",
+            "otherCountriesTitle": "Other countries",
+            "otherCountriesPitch": "Find your country and cash out in its local currency"
+        }
     },
     "transaction": {
         "drawerTitle": "Transaction Details",
