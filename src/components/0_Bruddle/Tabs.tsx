@@ -5,26 +5,29 @@ import { type ReactNode } from 'react'
 import { twMerge } from '@/utils/tw'
 
 /**
- * The one tab component for product and marketing. Two shapes, one primitive
- * (TASK-22707 — it absorbed the old `SegmentedControl`):
+ * The ONE tab component for product and marketing. One look, no variants
+ * (TASK-22707 — it absorbed the old `SegmentedControl`, and kush ruled the
+ * "Weight" look on 2026-09-18 after the six-look proposals page).
  *
- * - `variant="card"` (default) — content tabs. Variant B ("contained") from the
- *   tabs proposals page, ruled by kush 2026-09-16. The active tab is a bordered
- *   card-top joined to the bordered panel below it.
- * - `variant="pill"` — a value toggle (period, network, view mode). Compact pill
- *   row, the active segment gets the action-primary border + tint. Its switched
- *   content usually lives elsewhere in the layout, so give no tab a `content`
- *   and the component renders the trigger row alone.
+ * Weight is type only: no rule, no border, no fill anywhere on the trigger row.
+ * The active label carries the strong foreground token at semibold, the rest
+ * stay secondary. The two states carry two DIFFERENT type tokens rather than
+ * one token plus a `font-semibold` utility — a type token owns its own weight
+ * (ds-lint `fontWeightOnTypeToken`), and the states are mutually exclusive so
+ * nothing stacks.
+ *
+ * Because there is no fill, this look says NOTHING about how a selected list
+ * row should look. The app-wide selected-surface question is still open — see
+ * ui#3232's pink NetworkListItem.
  *
  * Radix headless base, semantic tokens only.
- * code-first per the owner ruling 2026-09-16 — figma board pending (❓).
+ * code-first per the owner ruling 2026-09-16 — figma board pending.
  *
- * API is a `tabs` array, not an Accordion-style compound: the joined
- * card-top→panel geometry depends on the List and the Contents being exact
- * siblings in one order, so the component owns that structure instead of
- * trusting every caller to rebuild it. Both consumers hand over a flat list of
- * labelled panels anyway (the MDX adapter derives it from <TabPanel> children,
- * product screens from data).
+ * API is a `tabs` array, not an Accordion-style compound: both consumers hand
+ * over a flat list of labelled panels anyway (the MDX adapter derives it from
+ * <TabPanel> children, product screens from data), and keeping the List and the
+ * Contents as exact siblings in one order is the component's job, not every
+ * caller's.
  */
 
 interface TabDef {
@@ -49,27 +52,23 @@ interface TabsProps {
      *  omit both and the first tab is the uncontrolled default */
     value?: string
     onValueChange?: (value: string) => void
-    /** 'card' = content tabs joined to a panel; 'pill' = value toggle */
-    variant?: 'card' | 'pill'
-    /** pill only: stretch the segments to fill the row (network toggles) */
+    /** stretch the tabs to fill the row (network toggles) */
     fullWidth?: boolean
 }
 
 // the one focus treatment (matches .btn in globals.css). radix Content has
 // tabIndex=0, so panels get the same ring instead of an invisible focus stop.
+// The old pill had no ring at all; Weight has no border to lean on either, so
+// this is the only thing that marks keyboard focus.
 const focusRing =
     'focus-visible:z-10 focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-action-focus'
 
 // the ring must not clip at the scroll edges, so the wrapper owns overflow with
-// a 4px inner gutter (>=3px ring) and a negative margin to keep the layout; the
-// list spans the scrolled width (w-max min-w-full).
+// a 4px inner gutter (>=3px ring) and a negative margin to keep the layout.
 const scrollWrap = '-m-1 overflow-x-auto p-1'
 
-const cardTrigger =
-    'relative min-h-11 shrink-0 rounded-t-sm border border-b-0 border-transparent px-4 text-body-m whitespace-nowrap text-foreground-secondary transition-colors duration-instant active:text-action-ghost-hover data-[state=active]:z-10 data-[state=active]:border-border-default data-[state=active]:bg-background-default data-[state=active]:text-foreground-primary'
-
-const pillTrigger =
-    'rounded-sm border border-transparent px-3 py-1.5 text-label-m text-foreground-secondary transition-all duration-fast data-[state=active]:border-action-primary data-[state=active]:bg-action-primary/10 data-[state=active]:text-action-primary'
+const trigger =
+    'relative flex min-h-11 shrink-0 items-center justify-center gap-1 px-0 text-foreground-secondary whitespace-nowrap transition-colors duration-instant active:text-action-ghost-hover data-[state=inactive]:text-body-m data-[state=active]:text-body-m-semibold data-[state=active]:text-foreground-primary'
 
 export const Tabs = ({
     tabs,
@@ -77,23 +76,11 @@ export const Tabs = ({
     forceMount,
     value,
     onValueChange,
-    variant = 'card',
     fullWidth = false,
 }: TabsProps) => {
-    const isPill = variant === 'pill'
     // no tab carries a panel → render the trigger row alone. A bordered empty
     // panel under a value toggle is the reason this branch exists.
     const hasPanels = tabs.some((tab) => tab.content !== undefined)
-
-    const triggers = tabs.map((tab) => (
-        <Trigger
-            key={tab.value}
-            value={tab.value}
-            className={twMerge(isPill ? pillTrigger : twMerge(cardTrigger, focusRing), isPill && fullWidth && 'flex-1')}
-        >
-            {tab.label}
-        </Trigger>
-    ))
 
     return (
         // radix ignores defaultValue when value is set but warns on both — pass
@@ -102,22 +89,24 @@ export const Tabs = ({
             value={value}
             onValueChange={onValueChange}
             defaultValue={value === undefined ? tabs[0]?.value : undefined}
-            className={isPill && fullWidth ? 'w-full' : undefined}
+            className={fullWidth ? 'w-full' : undefined}
         >
-            {isPill ? (
+            <div className={scrollWrap}>
                 <List
                     aria-label={ariaLabel}
-                    className={twMerge('flex items-center rounded-sm p-0', fullWidth && 'w-full')}
+                    className={twMerge('flex items-stretch gap-6', fullWidth ? 'w-full' : 'w-max min-w-full')}
                 >
-                    {triggers}
+                    {tabs.map((tab) => (
+                        <Trigger
+                            key={tab.value}
+                            value={tab.value}
+                            className={twMerge(trigger, focusRing, fullWidth && 'flex-1')}
+                        >
+                            {tab.label}
+                        </Trigger>
+                    ))}
                 </List>
-            ) : (
-                <div className={scrollWrap}>
-                    <List aria-label={ariaLabel} className="flex w-max min-w-full px-2">
-                        {triggers}
-                    </List>
-                </div>
-            )}
+            </div>
             {hasPanels &&
                 tabs.map((tab) => (
                     <Content
@@ -127,9 +116,11 @@ export const Tabs = ({
                         // data-[state=inactive]:hidden is what hides a forceMount panel:
                         // radix computes its own hidden attribute from `forceMount ||
                         // isSelected`, so with forceMount on it never sets it and every
-                        // panel would render stacked
+                        // panel would render stacked.
+                        // mt-4, not the old -mt-px weld: Weight draws no card-top, so
+                        // the panel stands on its own with a normal gap above it.
                         className={twMerge(
-                            '-mt-px rounded-sm border border-border-default bg-background-default p-4 data-[state=inactive]:hidden',
+                            'mt-4 rounded-sm border border-border-default bg-background-default p-4 data-[state=inactive]:hidden',
                             focusRing
                         )}
                     >

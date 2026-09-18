@@ -123,7 +123,6 @@ const RhinoDepositView = ({
                     />
                 )}
                 <Tabs
-                    variant="pill"
                     tabs={[
                         { value: 'EVM', label: 'EVM' },
                         { value: 'SOL', label: 'Solana' },

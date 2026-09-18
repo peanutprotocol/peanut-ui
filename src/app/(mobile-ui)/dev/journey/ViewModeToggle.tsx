@@ -18,7 +18,6 @@ export default function ViewModeToggle({
 }) {
     return (
         <Tabs
-            variant="pill"
             value={value}
             tabs={OPTIONS}
             onValueChange={(next) => onChange(next as JourneyViewMode)}

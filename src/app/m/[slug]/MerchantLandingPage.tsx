@@ -5,6 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Tabs } from '@/components/0_Bruddle/Tabs'
 import { Marquee } from '@/components/LandingPage'
 import { FAQsPanel } from '@/components/Global/FAQs'
 import { useExchangeRate } from '@/hooks/useExchangeRate'
@@ -302,20 +303,20 @@ function MenuFold({ fold }: { fold: Extract<Merchant['fold2'], { type: 'menu' }>
                 </h2>
                 <p className="font-roboto-flex mx-auto mt-6 max-w-2xl text-body-l">{fold.tagline}</p>
 
-                <div className="mt-10 inline-flex rounded-sm border-2 border-border-default bg-white shadow-4">
-                    {(['USD', 'EUR'] as const).map((c) => (
-                        <button
-                            key={c}
-                            type="button"
-                            onClick={() => setCurrency(c)}
-                            aria-pressed={currency === c}
-                            className={`min-w-20 border-r-2 border-border-default px-6 py-3 text-label-l tracking-wider uppercase last:border-r-0 ${
-                                currency === c ? 'bg-action-primary' : 'bg-white'
-                            }`}
-                        >
-                            {c}
-                        </button>
-                    ))}
+                {/* TASK-22707: the one tabs look. This was a 2-button pill and is NOT on
+                    the original task list — it is here because the ruling was "one tabs UI
+                    everywhere". Weight is type-only, so on this yellow fold the inactive
+                    label is quieter than the pill was. Easy to revert on its own. */}
+                <div className="mt-10 inline-block">
+                    <Tabs
+                        aria-label="Currency"
+                        value={currency}
+                        onValueChange={(v) => setCurrency(v as Currency)}
+                        tabs={[
+                            { value: 'USD', label: 'USD' },
+                            { value: 'EUR', label: 'EUR' },
+                        ]}
+                    />
                 </div>
 
                 {fold.showLiveRate && (

@@ -99,7 +99,6 @@ export default function EmailPreviewPanel({
                     <div className="flex flex-wrap items-center justify-between gap-2">
                         {siblings.length > 1 ? (
                             <Tabs
-                                variant="pill"
                                 aria-label="Copy variant"
                                 value={String(active.example)}
                                 tabs={siblings.map((sibling) => ({

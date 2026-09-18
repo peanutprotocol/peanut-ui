@@ -25,7 +25,6 @@ export default function ExplorerHeader({ view, searching, searchError, onViewCha
             <SearchBox busy={searching} error={searchError} onSearch={onSearch} />
             <div className="flex items-center justify-between gap-3 lg:justify-end">
                 <Tabs
-                    variant="pill"
                     value={view}
                     onValueChange={(value) => onViewChange(value as ExplorerView)}
                     tabs={[

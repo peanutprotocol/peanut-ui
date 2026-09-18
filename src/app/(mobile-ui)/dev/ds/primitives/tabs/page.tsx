@@ -26,7 +26,7 @@ export default function TabsPage() {
         <DocPage>
             <DocHeader
                 title="Tabs"
-                description="The one tab component for product and marketing. variant='card' (default) is variant B (contained) from the tabs proposals, ruled 2026-09-16 — a bordered card-top joined to the panel. variant='pill' is the value toggle that used to be SegmentedControl (TASK-22707). Code-first, figma board pending."
+                description="The ONE tab component for product and marketing — one look, no variants. 'Weight' from the six-look proposals, ruled 2026-09-18 (TASK-22707, which also absorbed SegmentedControl). Type only: no rule, no border, no fill. The active label is the strong foreground token at semibold, the rest are secondary. Code-first, figma board pending."
                 status="production"
             />
 
@@ -117,13 +117,12 @@ export default function TabsPage() {
             <SectionDivider />
 
             <DocSection
-                title="Pill variant — value toggles"
-                description="Period, network and view-mode switches. The switched content lives elsewhere on the screen, so no tab carries `content` and the component renders the trigger row alone — no panel. `fullWidth` stretches the segments."
+                title="Value toggles — no panel"
+                description="Period, network and view-mode switches. Same look as content tabs; the only difference is that the switched content lives elsewhere on the screen, so no tab carries `content` and the component renders the trigger row alone. `fullWidth` stretches the tabs."
             >
                 <DocSection.Content>
                     <div className="flex flex-col gap-4">
                         <Tabs
-                            variant="pill"
                             aria-label="Period"
                             value={period}
                             onValueChange={setPeriod}
@@ -133,7 +132,6 @@ export default function TabsPage() {
                             ]}
                         />
                         <Tabs
-                            variant="pill"
                             fullWidth
                             aria-label="Network"
                             value={network}
@@ -148,11 +146,10 @@ export default function TabsPage() {
                 </DocSection.Content>
                 <DocSection.Code>
                     <CodeBlock
-                        label="Pill"
+                        label="Value toggle"
                         code={`import { Tabs } from '@/components/0_Bruddle/Tabs'
 
 <Tabs
-    variant="pill"
     fullWidth
     aria-label="Network"
     value={network}
@@ -178,16 +175,10 @@ export default function TabsPage() {
                             'Trigger labels and their panels, in order. First tab is active. Omit content on every tab and no panel renders',
                     },
                     {
-                        name: 'variant',
-                        type: "'card' | 'pill'",
-                        default: "'card'",
-                        description: 'card = content tabs joined to a panel; pill = value toggle (period, network)',
-                    },
-                    {
                         name: 'fullWidth',
                         type: 'boolean',
                         default: 'false',
-                        description: 'Pill only — stretch the segments to fill the row',
+                        description: 'Stretch the tabs to fill the row',
                     },
                     {
                         name: 'value / onValueChange',
