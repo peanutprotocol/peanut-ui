@@ -166,9 +166,14 @@ const PaymentSuccessView = ({
             : undefined
 
         let details: Partial<TransactionDetails> = {
-            // the drawer selection is `?tx=<id>` in the url — fall back to the
-            // charge uuid so the receipt stays openable when the hash is absent
-            id: paymentDetails?.payerTransactionHash ?? chargeDetails.uuid,
+            // The receipt id must be the intent uuid, never the tx hash. The
+            // receipt page and its PDF twin resolve a DIRECT_TRANSFER through
+            // GET /history/:id, which only accepts `transaction_intents.id`
+            // (the charge uuid) — a tx hash is not a resolvable key and 404s
+            // ("receipt PDF unavailable"). This is also the `?tx=<id>`
+            // drawer-selection key; the on-chain hash still renders from
+            // `txHash` below.
+            id: chargeDetails.uuid,
             txHash: paymentDetails?.payerTransactionHash,
             status: 'completed' as StatusPillType,
             amount: parseFloat(amountValue),
