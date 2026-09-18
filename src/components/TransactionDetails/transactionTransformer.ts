@@ -425,8 +425,9 @@ export interface TransactionDetails {
             merchantCountry: string | null
             merchantMcc: string | null
             /** Rain-enriched brand logo URL when their enrichment identified the
-             *  merchant. Drawer keeps the generic card icon for v1; this is
-             *  plumbed so a future swap doesn't need a backend change. */
+             *  merchant. Rendered as the row and receipt avatar (MerchantLogoIcon),
+             *  falling back to the generic card icon when null/empty or on a load
+             *  error. */
             merchantLogo: string | null
             merchantId: string | null
             localAmount: string | null

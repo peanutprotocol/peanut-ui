@@ -276,6 +276,10 @@ export const TransactionDetailsReceipt = ({
                 onClose={onClose}
                 setIsModalOpen={setIsModalOpen}
             />
+
+            {/* A quiet attribution line at the foot of the receipt so it reads
+                as an official record, not just a screen. Kept in print. */}
+            <p className="pt-1 text-center text-body-xs text-foreground-secondary">{t('officialReceipt.footer')}</p>
         </div>
     )
 }

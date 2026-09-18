@@ -54,7 +54,7 @@ export interface DepositAccountsFlowProps {
      * than we open by default. The reason rides along so support does not have
      * to ask which conversation this is.
      */
-    onContactSupport: (corridor: DepositCorridor, reason: 'revoked' | 'account-limit') => void
+    onContactSupport: (corridor: DepositCorridor, reason: 'revoked' | 'account-limit' | 'blocked') => void
 }
 
 /**
@@ -165,18 +165,33 @@ export function DepositAccountsFlow({
      * Ready accounts to verify their identity. It belongs here: one corridor,
      * its own reason, and the button that clears it.
      */
-    const gateNotice = depositGateView(gate, terms).notice
+    // A failed claim can leave the backend briefly reporting an account cap for
+    // a user who holds nothing: on staging the shared provider customer already
+    // has accounts this user never opened, so the read right after a failure can
+    // say "at the limit". "You already have two accounts" is provably wrong to a
+    // user looking at zero, so the cap screen only renders when the client can
+    // see the accounts it names; otherwise the honest "we couldn't open an
+    // account" support screen shows.
+    const heldAccountCount = Object.values(accounts).filter(isHeld).length
+    const rawGateNotice = depositGateView(gate, terms).notice
+    const gateNotice =
+        rawGateNotice?.action === 'account-limit' && heldAccountCount === 0
+            ? { ...rawGateNotice, action: 'support' as const }
+            : rawGateNotice
     if (screen !== 'list' && !isLoading && !isError && isClaimable(rail) && !isHeld(account) && gateNotice) {
         return (
             <CorridorGateScreen
                 rail={rail}
                 notice={gateNotice}
                 onBack={() => setParams({ step: 'list' })}
-                onAct={() =>
-                    gateNotice.action === 'account-limit'
-                        ? onContactSupport(corridor, 'account-limit')
-                        : onResolveGate(gate)
-                }
+                onAct={() => {
+                    if (gateNotice.action === 'account-limit') return onContactSupport(corridor, 'account-limit')
+                    // A terms-level block the capability gate cannot clear — the
+                    // phantom cap above rides on a `ready` gate — has nothing for
+                    // resolveGate to do, so it goes to the same support door.
+                    if (gate.kind === 'ready') return onContactSupport(corridor, 'blocked')
+                    return onResolveGate(gate)
+                }}
             />
         )
     }

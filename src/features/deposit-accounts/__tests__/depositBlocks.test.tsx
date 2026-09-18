@@ -46,10 +46,25 @@ const terms = (blockedBy?: ClaimableCorridor['blockedBy']): ClaimableCorridor =>
     ...(blockedBy ? { blockedBy } : {}),
 })
 
-function flowProps(blockedBy?: ClaimableCorridor['blockedBy']) {
+// A genuinely-held account on ANOTHER corridor, so the cap the backend reports
+// on the selected (still unheld) corridor has accounts the client can see.
+const heldAccount: DepositAccountView = {
+    id: 'held-ach',
+    railId: 'bridge.ach_us',
+    country: 'US',
+    currency: 'USD',
+    isPrimary: true,
+    status: 'active',
+    matching: { nameOnAccount: 'user', sender: 'anyone' },
+    instructions: { accountHolderName: 'Demo User', paymentRails: ['ach_push'] },
+}
+
+function flowProps(blockedBy?: ClaimableCorridor['blockedBy'], heldElsewhere = false) {
+    const accounts = emptyCorridorRecord<DepositAccountView>()
+    if (heldElsewhere) accounts.ACH_US = heldAccount
     return {
         corridors: [CORRIDOR],
-        accounts: emptyCorridorRecord<DepositAccountView>(),
+        accounts,
         claimable: { ...emptyCorridorRecord<ClaimableCorridor>(), [CORRIDOR]: terms(blockedBy) },
         gates: corridorRecord(() => READY),
         isLoading: false,
@@ -110,7 +125,9 @@ describe('what a block does to the gate view', () => {
 
 describe('the screen a blocked corridor lands on', () => {
     it('offers support for the cap, through the one support door the app has', () => {
-        const props = flowProps('account-limit')
+        // The backend reports the cap AND the client can see the accounts it
+        // names — a genuinely-held account elsewhere — so the cap screen is true.
+        const props = flowProps('account-limit', true)
         render(flow(props))
         expect(screen.getByText(GATE.limitTitle)).toBeInTheDocument()
         expect(screen.getByText(GATE.limitBody)).toBeInTheDocument()
@@ -118,6 +135,21 @@ describe('the screen a blocked corridor lands on', () => {
         expect(props.onContactSupport).toHaveBeenCalledWith(CORRIDOR, 'account-limit')
         // Support is the answer, never the identity flow: verifying again
         // cannot open a third account.
+        expect(props.onResolveGate).not.toHaveBeenCalled()
+    })
+
+    it('does not claim two accounts the user does not hold after a failed claim', () => {
+        // A failed claim can leave the backend reporting the cap for a user who
+        // holds zero accounts (on staging the shared provider customer already
+        // has some). "You already have two accounts" is then false, so the
+        // honest "we cannot open an account" support screen shows instead.
+        const props = flowProps('account-limit')
+        render(flow(props))
+        expect(screen.queryByText(GATE.limitTitle)).not.toBeInTheDocument()
+        expect(screen.getByText(GATE.blockedTitle)).toBeInTheDocument()
+        expect(screen.queryByTestId('corridor-gate-account-limit')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByTestId('corridor-gate-support'))
+        expect(props.onContactSupport).toHaveBeenCalledWith(CORRIDOR, 'blocked')
         expect(props.onResolveGate).not.toHaveBeenCalled()
     })
 
