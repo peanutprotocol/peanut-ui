@@ -57,7 +57,7 @@ export function CurrencyBankOption({
                 data-testid="currency-bank-option"
             />
             <Drawer open={isOpen} onOpenChange={setIsOpen}>
-                <DrawerContent className="px-4 py-6">
+                <DrawerContent className="py-6">
                     <DrawerHeader>
                         <DrawerTitle className="text-start">{title}</DrawerTitle>
                     </DrawerHeader>
