@@ -7,6 +7,15 @@ const mockIsCapacitor = jest.fn()
 
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => mockIsCapacitor() }))
 
+// The AND gate itself lives in harness.consts (tested there). Here we only need
+// to drive "is the harness bypass active" — the hook consults it via
+// checkPasskeyCapability.
+const mockHarnessBypass = jest.fn()
+jest.mock('@/constants/harness.consts', () => ({
+    HARNESS_ENABLED: false,
+    harnessPasskeyBypass: () => mockHarnessBypass(),
+}))
+
 const mockBrowserSupportsWebAuthn = jest.mocked(browserSupportsWebAuthn)
 const mockPlatformAuthenticatorIsAvailable = jest.mocked(platformAuthenticatorIsAvailable)
 
@@ -15,6 +24,7 @@ describe('usePasskeySupport', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
+        mockHarnessBypass.mockReturnValue(false)
         localStorage.removeItem('__harness_skip_passkey')
         mockIsCapacitor.mockReturnValue(false)
         mockBrowserSupportsWebAuthn.mockReturnValue(true)
@@ -36,10 +46,10 @@ describe('usePasskeySupport', () => {
      * before a scenario reaches its first screen. The harness signs with its
      * own key and needs no authenticator; production sets neither signal.
      */
-    it('treats passkeys as available when the harness bypass is set', async () => {
+    it('treats passkeys as available when the harness bypass is active', async () => {
         mockBrowserSupportsWebAuthn.mockReturnValue(false)
         mockPlatformAuthenticatorIsAvailable.mockResolvedValue(false)
-        localStorage.setItem('__harness_skip_passkey', 'true')
+        mockHarnessBypass.mockReturnValue(true)
 
         const { result } = renderHook(() => usePasskeySupport())
         await waitFor(() => expect(result.current.isLoading).toBe(false))
@@ -49,8 +59,6 @@ describe('usePasskeySupport', () => {
         expect(result.current.error).toBeNull()
         // the real probe is never reached, so a QA browser cannot fail it
         expect(mockPlatformAuthenticatorIsAvailable).not.toHaveBeenCalled()
-
-        localStorage.removeItem('__harness_skip_passkey')
     })
 
     it('still refuses a browser with no authenticator once the bypass is gone', async () => {
