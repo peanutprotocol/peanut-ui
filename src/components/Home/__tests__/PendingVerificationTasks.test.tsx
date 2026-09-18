@@ -138,6 +138,31 @@ describe('PendingVerificationTasks', () => {
         expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
     })
 
+    it('a hosted task with a known currency NAMES the corridor instead of "bank transfers"', () => {
+        // The 2026-09 fix: a blocking hosted task must not read as a generic
+        // "additional verification needed" for the whole account — it names the
+        // corridor the backend scoped it to via NextAction.currency.
+        mockNextActions = [{ ...hostedAction, currency: 'EUR' }]
+        render(<PendingVerificationTasks />)
+        expect(screen.getByText('Verify to unlock Euro bank transfers')).toBeInTheDocument()
+        expect(screen.getByText('Finish verifying to unlock Euro bank transfers.')).toBeInTheDocument()
+        expect(screen.queryByText('Additional verification needed')).not.toBeInTheDocument()
+    })
+
+    it('an advisory hosted task with a currency keeps-access copy names the corridor', () => {
+        mockNextActions = [{ ...hostedAction, currency: 'MXN', effectiveDate: '2099-09-01' }]
+        render(<PendingVerificationTasks />)
+        expect(screen.getByText('Finish verifying to keep Mexican peso bank transfers available.')).toBeInTheDocument()
+    })
+
+    it('an unknown currency falls back to the generic copy', () => {
+        // Manteca-only corridors (e.g. BRL) never scope a Bridge hosted task; if
+        // one ever arrives, degrade to the generic copy rather than show nothing.
+        mockNextActions = [{ ...hostedAction, currency: 'BRL' }]
+        render(<PendingVerificationTasks />)
+        expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
+    })
+
     describe('dismissal (home mount)', () => {
         // Only ADVISORY (future-dated) tasks are dismissible — a blocking
         // fingerprint is constant over time, so honoring one would hide a NEW
