@@ -157,17 +157,39 @@ describe('RequestPotActionList', () => {
         })
 
         // The bank amounts were computed from the API's own remainder, so that
-        // is the number the payer amount is compared with.
-        it('hands the drawer the API remainder in dollars, over the screen total', () => {
+        // is the number the payer amount is compared with. A smaller remainder
+        // than the screen's knows of a payment the screen has not loaded.
+        it('hands the drawer the API remainder in dollars, when it is not above the screen remainder', () => {
             mockPayAmounts = {
                 requestCurrency: 'EUR',
                 requestAmount: '100.00',
                 remainingAmount: '100.00',
                 rails: [usdRail, bankRail('EUR', 'bridge.sepa_eu', false)],
             }
-            renderList({ requestCurrency: 'EUR', remainingUsd: 100 })
+            renderList({ requestCurrency: 'EUR', remainingUsd: 120 })
 
-            expect(mockDrawer).toHaveBeenCalledWith(expect.objectContaining({ remainingUsd: 108 }))
+            expect(mockDrawer).toHaveBeenCalledWith(
+                expect.objectContaining({ remainingUsd: 108, serverCountsAllPayments: true })
+            )
+        })
+
+        /**
+         * Somebody paid $51 from a wallet. An API remainder that counts bank
+         * deposits only still says $108, and its bank figure is a copyable
+         * "EUR 100.00 · Exact" for a request with $57 open.
+         */
+        it('drops the API figures when its remainder missed a wallet contribution', () => {
+            mockPayAmounts = {
+                requestCurrency: 'EUR',
+                requestAmount: '100.00',
+                remainingAmount: '100.00',
+                rails: [usdRail, bankRail('EUR', 'bridge.sepa_eu', false)],
+            }
+            renderList({ requestCurrency: 'EUR', remainingUsd: 57 })
+
+            expect(mockDrawer).toHaveBeenCalledWith(
+                expect.objectContaining({ remainingUsd: 57, serverCountsAllPayments: false })
+            )
         })
 
         it('states what is left on a part-paid non-dollar request', () => {
@@ -177,9 +199,22 @@ describe('RequestPotActionList', () => {
                 remainingAmount: '40.00',
                 rails: [usdRail],
             }
-            renderList({ bankPayable: false, requestCurrency: 'EUR' })
+            renderList({ bankPayable: false, requestCurrency: 'EUR', remainingUsd: 108 })
 
             expect(screen.getByText(/asks for 100\.00 EUR, and 40\.00 EUR is left to pay\./)).toBeInTheDocument()
+        })
+
+        it('states no remainder where the API missed a payment', () => {
+            mockPayAmounts = {
+                requestCurrency: 'EUR',
+                requestAmount: '100.00',
+                remainingAmount: '90.00',
+                rails: [usdRail],
+            }
+            renderList({ bankPayable: false, requestCurrency: 'EUR', remainingUsd: 57 })
+
+            expect(screen.getByText(/This request asks for 100\.00 EUR\./)).toBeInTheDocument()
+            expect(screen.queryByText(/is left to pay/)).not.toBeInTheDocument()
         })
 
         // A euro request is paid in dollars on the Peanut and crypto rails.

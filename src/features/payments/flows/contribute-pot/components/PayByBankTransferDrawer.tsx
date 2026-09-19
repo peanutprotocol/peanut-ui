@@ -36,6 +36,7 @@ export function PayByBankTransferDrawer({
     bankPayable,
     usdAmount,
     remainingUsd,
+    serverCountsAllPayments,
     rail,
 }: {
     requestId: string
@@ -44,6 +45,8 @@ export function PayByBankTransferDrawer({
     usdAmount?: string
     /** what the request still needs, in dollars */
     remainingUsd?: number
+    /** false when the API's remainder misses money the screen has counted — see `resolveBankPayAmount` */
+    serverCountsAllPayments?: boolean
     /** the requester's bank rail this row pays into, with what the request still needs on it */
     rail?: RequestPayRail
 }) {
@@ -74,6 +77,7 @@ export function PayByBankTransferDrawer({
               server: readServerPayerAmount(rail?.payerAmount),
               payerUsd: usdAmount,
               remainingUsd,
+              serverCountsAllPayments,
               accountCurrency: railCurrency,
               clientRate: 0,
           })
@@ -132,6 +136,7 @@ export function PayByBankTransferDrawer({
                                 instructions={instructions}
                                 usdAmount={usdAmount}
                                 remainingUsd={remainingUsd}
+                                serverCountsAllPayments={serverCountsAllPayments}
                             />
                         )}
                     </div>

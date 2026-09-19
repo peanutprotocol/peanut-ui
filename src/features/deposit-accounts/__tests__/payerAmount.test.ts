@@ -203,6 +203,39 @@ describe('resolveBankPayAmount', () => {
     })
 
     // A figure in another currency than the account is not a figure for it.
+    /**
+     * Somebody paid part of the request from a wallet, and the API remainder
+     * counted bank deposits only. Its figure is the full sum, marked exact.
+     */
+    describe('an API remainder that missed a payment', () => {
+        it('converts the screen remainder at the API rate, as an estimate', () => {
+            const server = { value: 100, currency: 'EUR', isEstimate: false, usdRate: 0.92 }
+            expect(
+                resolveBankPayAmount({ ...base, server, remainingUsd: 57, serverCountsAllPayments: false })
+            ).toMatchObject({ kind: 'local', currency: 'EUR', value: 52.44, estimate: true })
+        })
+
+        it('states dollars alone when the API quoted no rate', () => {
+            const server = { value: 100, currency: 'EUR', isEstimate: false }
+            expect(resolveBankPayAmount({ ...base, server, remainingUsd: 57, serverCountsAllPayments: false })).toEqual(
+                { kind: 'usd-only', usd: 57, accountCurrency: 'EUR' }
+            )
+        })
+
+        it('uses the screen remainder in a dollar account', () => {
+            const server = { value: 108, currency: 'USD', isEstimate: false }
+            expect(
+                resolveBankPayAmount({
+                    ...base,
+                    accountCurrency: 'USD',
+                    server,
+                    remainingUsd: 57,
+                    serverCountsAllPayments: false,
+                })
+            ).toMatchObject({ value: 57, currency: 'USD' })
+        })
+    })
+
     it('ignores an API figure whose currency is not the account currency', () => {
         const server = { value: 100, currency: 'GBP', isEstimate: false }
         expect(resolveBankPayAmount({ ...base, server, clientRate: 0.92 })).toEqual({

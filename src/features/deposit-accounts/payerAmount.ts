@@ -112,11 +112,20 @@ export function resolveBankPayAmount(params: {
     accountCurrency: string
     /** account-currency units per dollar from the client rate feed; read only when the API sent no amount object */
     clientRate: number
+    /**
+     * False when the API's remainder is known to miss money the screen has
+     * counted (a wallet or crypto contribution). Its figure would then ask the
+     * payer for the full sum as a copyable "exact" amount. The rate it quoted
+     * is still good, so the screen's own remainder is converted with it and
+     * shown as an estimate.
+     */
+    serverCountsAllPayments?: boolean
 }): BankPayAmount | undefined {
     const accountCurrency = params.accountCurrency.toUpperCase()
     // An API figure in another currency than the account is not a figure for
     // this account. Ignore it and convert here.
-    const server = params.server?.currency === accountCurrency ? params.server : undefined
+    const quoted = params.server?.currency === accountCurrency ? params.server : undefined
+    const server = quoted && params.serverCountsAllPayments === false ? { ...quoted, value: null } : quoted
 
     const typed = Number(params.payerUsd)
     const payerUsd = Number.isFinite(typed) && typed > 0 ? typed : undefined

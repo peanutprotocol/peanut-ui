@@ -186,14 +186,27 @@ export function RequestPotActionList({
     const bankRails = bankPayable ? (payAmounts?.rails.filter((rail) => rail.kind === 'bank') ?? []) : []
 
     // The API's own "left to pay" in dollars, when it sent one: the Peanut rail
-    // is always dollars and exact. It is the figure the bank amounts were
-    // computed from, so comparing the payer's amount to it decides correctly
-    // whether they pay the rest. The screen's own number is the fallback.
+    // is always dollars and exact, and it is the figure the bank amounts were
+    // computed from.
+    //
+    // It is only used while it does not exceed what the screen still needs. The
+    // screen counts every contribution it has loaded, wallet and crypto
+    // included. An API remainder above that has missed one of them, and its
+    // bank figures would ask this payer for money somebody already paid — as a
+    // copyable "exact" amount. A smaller one knows of a payment the screen has
+    // not loaded yet, and wins.
     const apiRemainingUsd = Number(payAmounts?.rails.find((rail) => rail.kind === 'peanut_balance')?.payerAmount.amount)
+    const serverCountsAllPayments =
+        remainingUsd === undefined || (apiRemainingUsd > 0 && apiRemainingUsd <= remainingUsd + 0.005)
     const bankRowProps = {
         bankPayable,
         usdAmount: isDollarRequest ? usdAmount : undefined,
-        remainingUsd: !isDollarRequest ? undefined : apiRemainingUsd > 0 ? apiRemainingUsd : remainingUsd,
+        remainingUsd: !isDollarRequest
+            ? undefined
+            : serverCountsAllPayments && apiRemainingUsd > 0
+              ? apiRemainingUsd
+              : remainingUsd,
+        serverCountsAllPayments,
     }
     // No rails — an API that predates pay-amounts, or a failed read — keeps the
     // one generic row, and the backend picks the account.
@@ -222,11 +235,13 @@ export function RequestPotActionList({
         const asked = Number(payAmounts.requestAmount)
         const left = Number(payAmounts.remainingAmount)
         if (!(asked > 0)) return undefined
-        // A part-paid request states what is left: that is what a payer can still send.
-        return left > 0 && left < asked
+        // A part-paid request states what is left: that is what a payer can still
+        // send. Not where the API's remainder missed a payment: the screen has
+        // no figure of its own in this currency, so it states none.
+        return serverCountsAllPayments && left > 0 && left < asked
             ? t('requestCurrencyNotePartPaid', { amount: show(asked), remaining: show(left), currency })
             : t('requestCurrencyNote', { amount: show(asked), currency })
-    }, [payAmounts, format, t])
+    }, [payAmounts, serverCountsAllPayments, format, t])
 
     if (isGeoLoading) {
         return (

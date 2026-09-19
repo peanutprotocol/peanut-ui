@@ -41,12 +41,15 @@ export function RequestBankInstructions({
     instructions,
     usdAmount,
     remainingUsd,
+    serverCountsAllPayments,
 }: {
     instructions: RequestDepositInstructions
     /** what THIS payer entered, in dollars — their own contribution, which can be less than the request */
     usdAmount?: string
     /** what the request still needs, in dollars; undefined on an open-amount request */
     remainingUsd?: number
+    /** false when the API's remainder misses money the screen has counted — see `resolveBankPayAmount` */
+    serverCountsAllPayments?: boolean
 }) {
     const t = useTranslations('payment')
     const format = useFormatter()
@@ -71,6 +74,7 @@ export function RequestBankInstructions({
         server: serverAmount,
         payerUsd: usdAmount,
         remainingUsd,
+        serverCountsAllPayments,
         accountCurrency,
         clientRate: exchangeRate,
     })
