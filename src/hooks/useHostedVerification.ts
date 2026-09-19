@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { refreshKycState, startHostedVerification } from '@/app/actions/sumsub'
 import { useAuth } from '@/context/authContext'
+import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { IN_APP_BROWSER_CLOSED_EVENT, isNativeBridge, openExternalUrl } from '@/utils/capacitor'
 
 /**
@@ -14,13 +15,15 @@ import { IN_APP_BROWSER_CLOSED_EVENT, isNativeBridge, openExternalUrl } from '@/
  * `start` must be called STRAIGHT out of a click handler — it reserves the tab
  * synchronously, inside the user-activation window (see below).
  *
- * Coming back opens a SETTLE window: the app asks the API to poll the
- * provider soon and keeps refetching for a minute, until the task clears or
- * the window ends. Nothing else reports the result — the provider's page never
- * hands the user back (Bridge issues no redirect for most customers), the
- * ~4s user auto-refresh only runs while a rail is `pending`, and a webhook can
- * arrive hours later or never. Without the window a finished check looked like
- * nothing had happened, and users ran it again (TASK-22818).
+ * A Bridge return opens ONE settle window per launch: the app asks the API to
+ * expedite the provider poll, re-arms the shared user poller (the submission
+ * window, 4s refetches with an in-flight guard) and repeats both at 20s and
+ * 40s, until the task clears or a minute passes. Nothing else reports the
+ * result — the provider's page never hands the user back (Bridge issues no
+ * redirect for most customers) and a webhook can arrive hours later or never.
+ * Without the window a finished check looked like nothing had happened, and
+ * users ran it again (TASK-22818). A Rain return, or any signal before a
+ * launch or inside an open window, is one refetch, as before.
  */
 interface HostedVerification {
     /** Call STRAIGHT out of a click — the tab reservation needs the gesture. */
@@ -28,7 +31,7 @@ interface HostedVerification {
     isStarting: boolean
     /** Friendly copy for a failed launch; never the raw server detail. */
     error: string | null
-    /** The user came back and the app is still asking the provider for the result. */
+    /** The user came back from Bridge and the app is still waiting for the result. */
     isSettling: boolean
     /** The settle window ended with the task still pending — say so, don't re-offer silently. */
     stillPendingAfterReturn: boolean
@@ -43,15 +46,9 @@ interface HostedVerificationOptions {
     taskPending?: boolean
 }
 
-/**
- * How long the app keeps asking after a return, how often it refetches, and
- * how often it also asks the API to expedite the provider poll. One expedite
- * is enough for the poller; three per window (at 0s, 20s, 40s) keep the row
- * on the fresh cadence if the vendor is slow. The refetch in between is cheap.
- */
+/** The settle window, and when inside it the app nudges the API and the poller again. */
 const SETTLE_WINDOW_MS = 60_000
-const SETTLE_INTERVAL_MS = 5_000
-const PROVIDER_READ_EVERY_N_ROUNDS = 4
+const SETTLE_NUDGES_MS = [20_000, 40_000]
 
 export function useHostedVerification(
     actionKey: 'bridge-hosted' | 'rain-hosted' = 'bridge-hosted',
@@ -61,22 +58,85 @@ export function useHostedVerification(
     const [isStarting, setIsStarting] = useState(false)
     const [awaitingReturn, setAwaitingReturn] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    // The settle window: its deadline while open, null otherwise. `settleRound`
-    // advances after every refresh so the scheduling effect below re-arms.
-    const [settleDeadline, setSettleDeadline] = useState<number | null>(null)
-    const [settleRound, setSettleRound] = useState(0)
+    const [isSettling, setIsSettling] = useState(false)
     const [stillPendingAfterReturn, setStillPendingAfterReturn] = useState(false)
     // Synchronous re-entry guard. `isStarting` is React state, set a tick later,
     // so a fast second tap (Capacitor especially) re-enters start() before the
     // disable takes effect and reserves/opens a SECOND portal tab. The ref
     // blocks the duplicate in the same tick; reset on every exit path via finally.
     const startingRef = useRef(false)
+    // Return-leg bookkeeping. `startedRef`: a launch happened since mount, so a
+    // return signal is a return (a BFCache restore or a tab switch before any
+    // launch is not). `windowOpenRef`: one settle window per launch; later
+    // signals inside it only refetch. `expediteRef`: stop asking the API once
+    // it answers that there is nothing to expedite. `timersRef`: the window's
+    // timers, so unmount and a new launch can clear them.
+    const startedRef = useRef(false)
+    const windowOpenRef = useRef(false)
+    const expediteRef = useRef(true)
+    const timersRef = useRef<ReturnType<typeof setTimeout>[]>([])
+    const taskPendingRef = useRef(taskPending)
+    taskPendingRef.current = taskPending
+
+    const clearTimers = useCallback(() => {
+        for (const timer of timersRef.current) clearTimeout(timer)
+        timersRef.current = []
+    }, [])
+    const closeWindow = useCallback(
+        (stillPending: boolean) => {
+            windowOpenRef.current = false
+            clearTimers()
+            setIsSettling(false)
+            setStillPendingAfterReturn(stillPending)
+        },
+        [clearTimers]
+    )
+
+    // One nudge: re-arm the shared user poller, ask the API to expedite the
+    // provider poll unless it already said there is nothing to expedite, then
+    // refetch once right away. All best effort.
+    const nudge = useCallback(async () => {
+        markSubmitted()
+        if (expediteRef.current) {
+            const { expedited } = await refreshKycState()
+            if (!expedited) expediteRef.current = false
+        }
+        await fetchUser().catch(() => undefined)
+    }, [fetchUser])
+
+    const onReturn = useCallback(() => {
+        if (actionKey !== 'bridge-hosted' || !startedRef.current || windowOpenRef.current) {
+            void fetchUser().catch(() => undefined)
+            return
+        }
+        windowOpenRef.current = true
+        expediteRef.current = true
+        setStillPendingAfterReturn(false)
+        setIsSettling(true)
+        void nudge()
+        timersRef.current = [
+            ...SETTLE_NUDGES_MS.map((ms) => setTimeout(() => void nudge(), ms)),
+            // Wall clock, not round count: a slow request cannot stretch the window.
+            setTimeout(() => {
+                if (windowOpenRef.current) closeWindow(taskPendingRef.current)
+            }, SETTLE_WINDOW_MS),
+        ]
+    }, [actionKey, fetchUser, nudge, closeWindow])
+
+    // The task clearing — capabilities re-derived by any refetch — ends the window.
+    useEffect(() => {
+        if (windowOpenRef.current && !taskPending) closeWindow(false)
+    }, [taskPending, closeWindow])
+
+    useEffect(() => () => clearTimers(), [clearTimers])
 
     const start = useCallback(async () => {
         if (startingRef.current) return
         startingRef.current = true
         try {
             setError(null)
+            startedRef.current = true
+            if (windowOpenRef.current) closeWindow(false)
             setStillPendingAfterReturn(false)
             // NOT an iframe: `bridge.withpersona.com` serves
             // `X-Frame-Options: SAMEORIGIN`, so embedding it rendered
@@ -155,50 +215,7 @@ export function useHostedVerification(
         } finally {
             startingRef.current = false
         }
-    }, [fetchUser, actionKey])
-
-    // One settle round: on the paced rounds ask the API to expedite the
-    // provider poll first, then refetch the user so capabilities re-derive
-    // from whatever the poller has written. Both are best effort.
-    const settleRoundRun = useCallback(
-        async (round: number) => {
-            try {
-                if (round % PROVIDER_READ_EVERY_N_ROUNDS === 0) await refreshKycState()
-                await fetchUser()
-            } catch {
-                // a failed round is a skipped round — the next one retries
-            } finally {
-                setSettleRound(round + 1)
-            }
-        },
-        [fetchUser]
-    )
-
-    // A return signal: refetch at once (the DB may already know), then open the
-    // settle window so the provider read below catches what the DB does not.
-    const onReturn = useCallback(() => {
-        void fetchUser().catch(() => undefined)
-        setStillPendingAfterReturn(false)
-        setSettleDeadline(Date.now() + SETTLE_WINDOW_MS)
-        void settleRoundRun(0)
-    }, [fetchUser, settleRoundRun])
-
-    // Schedule the next round until the task clears or the window ends. Each
-    // round bumps `settleRound`, which re-runs this effect.
-    useEffect(() => {
-        if (settleDeadline === null) return
-        if (!taskPending) {
-            setSettleDeadline(null)
-            return
-        }
-        if (Date.now() >= settleDeadline) {
-            setSettleDeadline(null)
-            setStillPendingAfterReturn(true)
-            return
-        }
-        const timer = setTimeout(() => void settleRoundRun(settleRound), SETTLE_INTERVAL_MS)
-        return () => clearTimeout(timer)
-    }, [settleDeadline, settleRound, taskPending, settleRoundRun])
+    }, [fetchUser, actionKey, closeWindow])
 
     // The same-tab fallback navigates THIS tab away, so the listener below is
     // never armed for it — and a Back that restores from BFCache re-runs no
@@ -261,5 +278,5 @@ export function useHostedVerification(
         return () => document.removeEventListener('visibilitychange', onVisible)
     }, [awaitingReturn, onReturn, actionKey])
 
-    return { start, isStarting, error, isSettling: settleDeadline !== null, stillPendingAfterReturn }
+    return { start, isStarting, error, isSettling, stillPendingAfterReturn }
 }

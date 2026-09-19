@@ -13,7 +13,7 @@ import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/Peanut
 import { useHostedVerification } from '@/hooks/useHostedVerification'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { selectBridgeTasks } from '@/utils/bridge-tasks.utils'
+import { hasNativeBridgeStep, selectBridgeTasks } from '@/utils/bridge-tasks.utils'
 
 /**
  * "What to expect" screen in front of Bridge's hosted verification (Persona).
@@ -57,6 +57,9 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
     // Same selection as the Home card: a hosted task stands down while a Bridge
     // rail carries a native step, so a deep link here reads the same truth.
     const hostedTask = selectBridgeTasks(nextActions, rails ?? []).find((action) => action.kind === 'bridge-hosted')
+    // The hosted task stood down because a Bridge rail carries a Sumsub step:
+    // the document Bridge asked for is collected in the app, not at the vendor.
+    const nativeStepPending = !hostedTask && hasNativeBridgeStep(nextActions, rails ?? [])
     const { start, isStarting, error, isSettling, stillPendingAfterReturn } = useHostedVerification('bridge-hosted', {
         taskPending: !!hostedTask,
     })
@@ -64,24 +67,33 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
     // screen must not tell that user their transfers are blocked.
     const isAdvisory = !!hostedTask?.effectiveDate
 
-    // Loaded, and the task is gone: it was completed, or the partner stopped
-    // asking. Either way there is nothing here to start.
+    // Loaded, and there is no hosted task to start. Either the app collects
+    // the item itself (say so, and point at the upload) or the task is gone:
+    // completed, or the partner stopped asking.
     if (!isLoadingCapabilities && !hostedTask) {
+        const panel = nativeStepPending ? 'nativeInstead' : 'done'
         return (
             <PageStack gap="6">
                 <NavHeader title={t('title')} onPrev={onBack} />
                 <PageStack.Center>
-                    <Card className="flex flex-col items-center gap-3 p-4 text-center" data-testid="hosted-task-done">
-                        <IconBubble icon="check-circle" size="l" color="green" />
-                        <p className="text-body-m-semibold">{t('done.title')}</p>
-                        <p className="text-body-s text-foreground-secondary">{t('done.description')}</p>
+                    <Card
+                        className="flex flex-col items-center gap-3 p-4 text-center"
+                        data-testid={nativeStepPending ? 'hosted-task-native-instead' : 'hosted-task-done'}
+                    >
+                        <IconBubble
+                            icon={nativeStepPending ? 'user-id' : 'check-circle'}
+                            size="l"
+                            color={nativeStepPending ? 'blue' : 'green'}
+                        />
+                        <p className="text-body-m-semibold">{t(`${panel}.title`)}</p>
+                        <p className="text-body-s text-foreground-secondary">{t(`${panel}.description`)}</p>
                         <Button
                             variant="purple"
                             shadowSize="4"
                             className="mt-1"
                             onClick={() => router.replace(IDENTITY_ROUTE)}
                         >
-                            {t('done.cta')}
+                            {t(`${panel}.cta`)}
                         </Button>
                     </Card>
                 </PageStack.Center>

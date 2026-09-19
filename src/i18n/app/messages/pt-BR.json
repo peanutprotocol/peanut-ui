@@ -3041,6 +3041,11 @@
                 "title": "Não há mais nada a fazer aqui",
                 "description": "Esta etapa de verificação não é mais necessária. Seu status atual está no seu perfil.",
                 "cta": "Ver meu status"
+            },
+            "nativeInstead": {
+                "title": "Envie o documento pelo app",
+                "description": "Nosso parceiro de pagamentos pediu um documento. A verificação externa não consegue recebê-lo; o envio pelo seu perfil, sim.",
+                "cta": "Ir para meu perfil"
             }
         }
     },

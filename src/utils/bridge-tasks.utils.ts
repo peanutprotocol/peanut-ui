@@ -23,7 +23,7 @@ export function selectBridgeTasks(nextActions: NextAction[], rails: RailCapabili
 }
 
 /** A requires-info Bridge rail whose blocking actions include a Sumsub step the app runs itself. */
-function hasNativeBridgeStep(nextActions: NextAction[], rails: RailCapability[]): boolean {
+export function hasNativeBridgeStep(nextActions: NextAction[], rails: RailCapability[]): boolean {
     const kindByKey = new Map(nextActions.map((action) => [action.key, action.kind]))
     return rails.some(
         (rail) =>

@@ -1,4 +1,4 @@
-import { bridgeTaskDismissalKey, selectBridgeTasks } from '../bridge-tasks.utils'
+import { bridgeTaskDismissalKey, hasNativeBridgeStep, selectBridgeTasks } from '../bridge-tasks.utils'
 import type { NextAction, RailCapability } from '@/types/capabilities'
 
 const action = (overrides: Partial<NextAction>): NextAction => ({
@@ -63,6 +63,11 @@ describe('selectBridgeTasks', () => {
                 [rail({ id: 'manteca.pix_br', provider: 'manteca', blockingActions: ['sumsub:proof_of_address'] })]
             )
         ).toEqual([hosted])
+    })
+
+    it('hasNativeBridgeStep is the predicate the prep screen branches on', () => {
+        expect(hasNativeBridgeStep([poaUpload], [rail({ blockingActions: ['sumsub:proof_of_address'] })])).toBe(true)
+        expect(hasNativeBridgeStep([poaUpload], [])).toBe(false)
     })
 
     it('an ADVISORY hosted task (future-dated, rail still working) stays beside a native step', () => {
