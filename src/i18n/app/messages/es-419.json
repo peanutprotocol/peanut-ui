@@ -3051,6 +3051,11 @@
                 "title": "Aquí ya no queda nada por hacer",
                 "description": "Este paso de verificación ya no es necesario. Tu estado actual está en tu perfil.",
                 "cta": "Ver mi estado"
+            },
+            "nativeInstead": {
+                "title": "El documento se carga desde la app",
+                "description": "Nuestro socio de pagos pidió un documento. La verificación externa no puede recibirlo; la carga desde tu perfil, sí.",
+                "cta": "Ir a mi perfil"
             }
         },
         "correction": {

@@ -12,7 +12,7 @@
 import React from 'react'
 import { act, screen, fireEvent, waitFor } from '@testing-library/react'
 import { renderWithIntl as render } from '@/test-utils/intl'
-import type { NextAction } from '@/types/capabilities'
+import type { NextAction, RailCapability } from '@/types/capabilities'
 import { AdditionalVerificationView } from '../AdditionalVerificationView'
 
 const hostedAction: NextAction = {
@@ -24,7 +24,9 @@ const hostedAction: NextAction = {
 
 const mockFetchUser = jest.fn(() => Promise.resolve(null))
 const mockStartHosted = jest.fn<Promise<{ url?: string; error?: string }>, []>()
-const mockRefreshKyc = jest.fn(() => Promise.resolve({ expedited: false }))
+const mockRefreshKyc = jest.fn(() => Promise.resolve({ expedited: true }))
+const mockMarkSubmitted = jest.fn()
+jest.mock('@/hooks/useSubmissionWindow', () => ({ markSubmitted: () => mockMarkSubmitted() }))
 let mockReservedTab: { location: { href: string }; close: jest.Mock; closed: boolean; opener: unknown }
 const mockAssignHref = jest.fn()
 let mockWindowOpen: jest.SpyInstance
@@ -62,9 +64,10 @@ jest.mock('next/navigation', () => ({
     usePathname: () => '/kyc/additional-verification',
 }))
 let mockNextActions: NextAction[] = []
+let mockRails: RailCapability[] = []
 let mockCapabilitiesLoading = false
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ nextActions: mockNextActions, isLoading: mockCapabilitiesLoading }),
+    useCapabilities: () => ({ nextActions: mockNextActions, rails: mockRails, isLoading: mockCapabilitiesLoading }),
 }))
 
 const startVerification = () => fireEvent.click(screen.getByRole('button', { name: /i have these, start/i }))
@@ -72,7 +75,10 @@ const startVerification = () => fireEvent.click(screen.getByRole('button', { nam
 describe('AdditionalVerificationView', () => {
     beforeEach(() => {
         mockNextActions = [hostedAction]
+        mockRails = []
         mockCapabilitiesLoading = false
+        mockMarkSubmitted.mockClear()
+        mockRefreshKyc.mockImplementation(() => Promise.resolve({ expedited: true }))
         mockRouterReplace.mockReset()
         mockFetchUser.mockReset()
         mockFetchUser.mockResolvedValue(null)
@@ -259,10 +265,36 @@ describe('AdditionalVerificationView', () => {
         await waitFor(() => expect(mockFetchUser).toHaveBeenCalled())
         await waitFor(() => expect(mockRefreshKyc).toHaveBeenCalledTimes(1))
 
-        // NOT one-shot: an incidental switch-back must not burn the refetch,
-        // so a later real return refreshes again.
+        // NOT one-shot: a later switch-back refetches again — inside the open
+        // settle window it does not open a second one.
+        const fetches = mockFetchUser.mock.calls.length
         document.dispatchEvent(new Event('visibilitychange'))
-        await waitFor(() => expect(mockRefreshKyc).toHaveBeenCalledTimes(2))
+        await waitFor(() => expect(mockFetchUser.mock.calls.length).toBeGreaterThan(fetches))
+        expect(mockRefreshKyc).toHaveBeenCalledTimes(1)
+    })
+
+    it('when the app collects the item itself, the screen points at the upload, not at "done"', () => {
+        // The hosted task stands down beside a Sumsub step (selectBridgeTasks);
+        // a deep link here must not read "nothing left to do" to a user whose
+        // rail is still blocked on a document.
+        mockNextActions = [{ key: 'sumsub:proof_of_address', kind: 'sumsub', purpose: 'unlock-bridge' }, hostedAction]
+        mockRails = [
+            {
+                id: 'bridge.sepa_eu',
+                provider: 'bridge',
+                method: 'SEPA_EU',
+                channel: 'bank',
+                country: 'EU',
+                currency: 'EUR',
+                status: 'requires-info',
+                blockingActions: ['sumsub:proof_of_address'],
+            },
+        ]
+        render(<AdditionalVerificationView />)
+        expect(screen.getByTestId('hosted-task-native-instead')).toHaveTextContent(/upload the document in the app/i)
+        expect(screen.queryByTestId('hosted-task-done')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: /go to my profile/i }))
+        expect(mockRouterReplace).toHaveBeenCalledWith('/profile/identity-verification')
     })
 
     it('coming back holds the CTA while the provider is asked, and the task clearing ends it', async () => {
@@ -284,19 +316,13 @@ describe('AdditionalVerificationView', () => {
             expect(screen.getByRole('button', { name: /i have these, start/i })).toBeDisabled()
             expect(mockRefreshKyc).toHaveBeenCalledTimes(1)
 
-            // later rounds while the task is still pending: refetch every 5s,
-            // the provider read paced to 0s / 20s / 40s
+            expect(mockMarkSubmitted).toHaveBeenCalledTimes(1)
+            // the second nudge lands at 20s while the task is still pending
             await act(async () => {
-                jest.advanceTimersByTime(5_000)
+                jest.advanceTimersByTime(20_000)
             })
-            expect(mockRefreshKyc).toHaveBeenCalledTimes(1)
-            // each round re-arms through state, so step the clock one round at a time
-            for (let i = 0; i < 3; i++) {
-                await act(async () => {
-                    jest.advanceTimersByTime(5_000)
-                })
-            }
             expect(mockRefreshKyc).toHaveBeenCalledTimes(2)
+            expect(mockMarkSubmitted).toHaveBeenCalledTimes(2)
 
             // the task clears → the window closes, the done state shows
             mockNextActions = []
