@@ -10,7 +10,7 @@
  * is safe.
  */
 import React from 'react'
-import { render, act } from '@testing-library/react'
+import { render, act, screen, fireEvent, waitFor } from '@testing-library/react'
 
 // ---------- module-level mocks ----------
 
@@ -46,8 +46,22 @@ jest.mock('@/hooks/useSavedAccounts', () => ({
     default: () => [SAVED_US_ACCOUNT],
 }))
 
-jest.mock('@/app/actions/ibanToBic', () => ({
-    getBicFromIban: jest.fn(async () => ({ bic: null })),
+// `getBicFromIban` is NOT mocked: it reads a table bundled with the app, so the
+// IBAN tests below run against the real derivation (and its real gaps).
+
+// the two provider checks are network calls
+const mockValidateBankAccount = jest.fn(async (_account: string) => true)
+const mockValidateBic = jest.fn(async (_bic: string) => true)
+jest.mock('@/utils/bridge-accounts.utils', () => ({
+    ...jest.requireActual('@/utils/bridge-accounts.utils'),
+    validateBankAccount: (account: string) => mockValidateBankAccount(account),
+    validateBic: (bic: string) => mockValidateBic(bic),
+}))
+
+const mockReadClipboard = jest.fn()
+jest.mock('@/utils/clipboard-extract.utils', () => ({
+    ...jest.requireActual('@/utils/clipboard-extract.utils'),
+    readClipboard: () => mockReadClipboard(),
 }))
 
 jest.mock('@/components/0_Bruddle/Toast', () => ({
@@ -104,6 +118,8 @@ const renderForm = (props: {
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockValidateBankAccount.mockResolvedValue(true)
+    mockValidateBic.mockResolvedValue(true)
 })
 
 // ---------- tests ----------
@@ -246,5 +262,213 @@ describe('DynamicBankAccountForm — the UK corridor sends a beneficiary address
                 country: 'GBR',
             },
         })
+    })
+})
+
+// ---------- the IBAN corridor: the BIC follows the IBAN ----------
+
+// Real, checksum-valid IBANs. The bundled table knows the two German banks and
+// has no data for Italy (nor PT/IE/LT…), which is the gap the required field covers.
+const DE_IBAN = 'DE89370400440532013000'
+const DE_BIC = 'COBADEFFXXX'
+const DE_IBAN_OTHER_BANK = 'DE75512108001245126199'
+const DE_BIC_OTHER_BANK = 'SOGEDEFFXXX'
+const IT_IBAN = 'IT60X0542811101000000123456'
+
+const IBAN_INITIAL_DATA = {
+    accountOwnerName: 'Anna Rossi',
+    street: '1 Via Roma',
+    city: 'Rome',
+    postalCode: '00100',
+}
+
+const renderIbanForm = (onSuccess: jest.Mock, country = 'DEU') => {
+    const ref = React.createRef<{ handleSubmit: () => void }>()
+    const view = render(
+        <DynamicBankAccountForm
+            ref={ref}
+            country={country}
+            flow="withdraw"
+            initialData={IBAN_INITIAL_DATA}
+            error={null}
+            onSuccess={onSuccess}
+        />
+    )
+    return { ref, ...view }
+}
+
+const ibanInput = () => document.getElementById('bank-accountNumber') as HTMLInputElement
+const bicInput = () => document.getElementById('bank-bic') as HTMLInputElement | null
+
+const typeIban = async (value: string, { blur }: { blur: boolean }) => {
+    await act(async () => {
+        fireEvent.change(ibanInput(), { target: { value } })
+    })
+    if (blur) {
+        await act(async () => {
+            fireEvent.blur(ibanInput())
+        })
+    }
+}
+
+const submitWithEnter = async (container: HTMLElement) => {
+    await act(async () => {
+        fireEvent.submit(container.querySelector('form')!)
+    })
+}
+
+const payloadOf = (onSuccess: jest.Mock) => onSuccess.mock.calls[0][0] as Record<string, unknown>
+
+describe('DynamicBankAccountForm — the BIC follows the IBAN', () => {
+    it('an IBAN the table knows: the BIC field hides and the derived BIC is submitted', async () => {
+        const onSuccess = jest.fn(async () => ({}))
+        const { container } = renderIbanForm(onSuccess)
+        expect(bicInput()).toBeInTheDocument()
+
+        await typeIban(DE_IBAN, { blur: true })
+        await waitFor(() => expect(bicInput()).not.toBeInTheDocument())
+
+        await submitWithEnter(container)
+        await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+        expect(payloadOf(onSuccess)).toMatchObject({
+            accountType: 'iban',
+            accountNumber: DE_IBAN,
+            bic: DE_BIC,
+            countryCode: 'DEU',
+        })
+    })
+
+    it('an IBAN the table does not know: the BIC field stays, is required, and an empty one blocks submit', async () => {
+        const onSuccess = jest.fn(async () => ({}))
+        const { container } = renderIbanForm(onSuccess, 'ITA')
+
+        await typeIban(IT_IBAN, { blur: true })
+        expect(bicInput()).toBeInTheDocument()
+        // the label no longer says the field is optional
+        expect(screen.getByText('withdraw.bankForm.bic')).toBeInTheDocument()
+        expect(screen.queryByText('withdraw.bankForm.bicOptional')).not.toBeInTheDocument()
+
+        await submitWithEnter(container)
+        expect(onSuccess).not.toHaveBeenCalled()
+
+        // touching the empty field names the problem
+        await act(async () => {
+            fireEvent.blur(bicInput()!)
+        })
+        expect(await screen.findByText('withdraw.bankForm.bicRequired')).toBeInTheDocument()
+    })
+
+    it('an IBAN the table does not know: a typed BIC is submitted with it', async () => {
+        const onSuccess = jest.fn(async () => ({}))
+        const { container } = renderIbanForm(onSuccess, 'ITA')
+
+        await typeIban(IT_IBAN, { blur: true })
+        await act(async () => {
+            fireEvent.change(bicInput()!, { target: { value: 'BPMOIT22XXX' } })
+        })
+        await act(async () => {
+            fireEvent.blur(bicInput()!)
+        })
+
+        await submitWithEnter(container)
+        await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+        expect(payloadOf(onSuccess)).toMatchObject({ accountNumber: IT_IBAN, bic: 'BPMOIT22XXX', countryCode: 'ITA' })
+    })
+
+    it('IBAN A then IBAN B (blurred): the BIC derived for A is cleared and never submitted', async () => {
+        const onSuccess = jest.fn(async () => ({}))
+        const { container } = renderIbanForm(onSuccess)
+
+        await typeIban(DE_IBAN, { blur: true })
+        await waitFor(() => expect(bicInput()).not.toBeInTheDocument())
+
+        await typeIban(IT_IBAN, { blur: true })
+        await waitFor(() => expect(bicInput()).toBeInTheDocument())
+        expect(bicInput()!.value).toBe('')
+
+        await submitWithEnter(container)
+        expect(onSuccess).not.toHaveBeenCalled()
+    })
+
+    it('IBAN A then IBAN B with Enter and no blur: the hidden BIC of A is not sent with B', async () => {
+        const onSuccess = jest.fn(async () => ({}))
+        const { container } = renderIbanForm(onSuccess)
+
+        await typeIban(DE_IBAN, { blur: true })
+        await waitFor(() => expect(bicInput()).not.toBeInTheDocument())
+
+        await typeIban(IT_IBAN, { blur: false })
+        await submitWithEnter(container)
+
+        expect(onSuccess).not.toHaveBeenCalled()
+        // the field is back, empty, and says why the submit stopped
+        await waitFor(() => expect(bicInput()).toBeInTheDocument())
+        expect(bicInput()!.value).toBe('')
+        expect(await screen.findByText('withdraw.bankForm.bicRequired')).toBeInTheDocument()
+    })
+
+    it('IBAN A then another derivable IBAN with Enter and no blur: the BIC of the new IBAN is sent', async () => {
+        const onSuccess = jest.fn(async () => ({}))
+        const { container } = renderIbanForm(onSuccess)
+
+        await typeIban(DE_IBAN, { blur: true })
+        await waitFor(() => expect(bicInput()).not.toBeInTheDocument())
+
+        await typeIban(DE_IBAN_OTHER_BANK, { blur: false })
+        await submitWithEnter(container)
+
+        await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+        expect(payloadOf(onSuccess)).toMatchObject({ accountNumber: DE_IBAN_OTHER_BANK, bic: DE_BIC_OTHER_BANK })
+    })
+
+    it('clearing the IBAN drops the BIC that was derived from it', async () => {
+        const onSuccess = jest.fn(async () => ({}))
+        renderIbanForm(onSuccess)
+
+        await typeIban(DE_IBAN, { blur: true })
+        await waitFor(() => expect(bicInput()).not.toBeInTheDocument())
+
+        await typeIban('', { blur: true })
+        await waitFor(() => expect(bicInput()).toBeInTheDocument())
+        expect(bicInput()!.value).toBe('')
+    })
+})
+
+describe('DynamicBankAccountForm — tap-to-paste', () => {
+    const pasteButtonFor = (input: HTMLElement) =>
+        input.closest('.relative')!.parentElement!.querySelector('button[aria-label="withdraw.bankForm.pasteAria"]')!
+
+    it('pasting an IBAN validates it, derives the BIC and enables Continue with no manual blur', async () => {
+        mockReadClipboard.mockResolvedValue({ ok: true, text: `IBAN: ${DE_IBAN}` })
+        const onSuccess = jest.fn(async () => ({}))
+        const { container } = renderIbanForm(onSuccess)
+        const submit = container.querySelector('button[type="submit"]') as HTMLButtonElement
+        expect(submit).toBeDisabled()
+
+        await act(async () => {
+            fireEvent.click(pasteButtonFor(ibanInput()))
+        })
+
+        await waitFor(() => expect(ibanInput().value).toBe(DE_IBAN))
+        expect(mockValidateBankAccount).toHaveBeenCalledWith(DE_IBAN)
+        await waitFor(() => expect(bicInput()).not.toBeInTheDocument())
+        await waitFor(() => expect(submit).toBeEnabled())
+
+        await act(async () => {
+            fireEvent.click(submit)
+        })
+        await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+        expect(payloadOf(onSuccess)).toMatchObject({ accountNumber: DE_IBAN, bic: DE_BIC })
+    })
+
+    it('pasting an invalid IBAN shows the error at once', async () => {
+        mockReadClipboard.mockResolvedValue({ ok: true, text: 'DE00000000000000000000' })
+        renderIbanForm(jest.fn(async () => ({})))
+
+        await act(async () => {
+            fireEvent.click(pasteButtonFor(ibanInput()))
+        })
+
+        expect(await screen.findByText('withdraw.bankForm.ibanInvalid')).toBeInTheDocument()
     })
 })
