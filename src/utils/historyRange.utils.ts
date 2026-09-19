@@ -61,3 +61,19 @@ export function presetDates(preset: HistoryRangePreset, today: Date = new Date()
             return { from: toLocalDateString(new Date(today.getFullYear(), 0, 1)), to }
     }
 }
+
+/** Analytics shape for a range. Deliberately the window's NAME and LENGTH, never
+ *  the dates: which months a person exports says when they bank. `null` days is
+ *  the unbounded all-time window. */
+export function rangeAnalytics(range: {
+    activePreset?: HistoryRangePreset
+    from?: string | null
+    to?: string | null
+}): { range_preset: string; range_days: number | null } {
+    const preset = range.activePreset ?? (range.from || range.to ? 'custom' : 'allTime')
+    if (!range.from || !range.to) return { range_preset: preset, range_days: null }
+    const days = Math.round(
+        (startOfLocalDay(range.to).getTime() - startOfLocalDay(range.from).getTime()) / 86_400_000 + 1
+    )
+    return { range_preset: preset, range_days: days }
+}

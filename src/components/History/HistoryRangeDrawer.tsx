@@ -11,10 +11,14 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/G
 import { useHistoryRange } from '@/hooks/useHistoryRange'
 import {
     HISTORY_RANGE_PRESETS,
+    presetDates,
+    rangeAnalytics,
     startOfLocalDay,
     toLocalDateString,
     type HistoryRangePreset,
 } from '@/utils/historyRange.utils'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import posthog from 'posthog-js'
 
 interface HistoryRangeDrawerProps {
     open: boolean
@@ -61,12 +65,23 @@ export const HistoryRangeDrawer = ({ open, onOpenChange, nested, onDownload }: H
 
     const isCustom = selected === CUSTOM
     const save = () => {
+        let applied: Parameters<typeof rangeAnalytics>[0]
         if (isCustom) {
             if (!draftRange?.from) return
-            setCustom(toLocalDateString(draftRange.from), toLocalDateString(draftRange.to ?? draftRange.from))
+            const from = toLocalDateString(draftRange.from)
+            const to = toLocalDateString(draftRange.to ?? draftRange.from)
+            setCustom(from, to)
+            applied = { from, to }
         } else {
-            setPreset(selected as HistoryRangePreset)
+            const preset = selected as HistoryRangePreset
+            setPreset(preset)
+            applied = { activePreset: preset, ...(presetDates(preset) ?? {}) }
         }
+        posthog.capture(ANALYTICS_EVENTS.ACTIVITY_RANGE_APPLIED, {
+            ...rangeAnalytics(applied),
+            // where the pick came from: the history header, or the export sheet
+            source: nested ? 'export' : 'history',
+        })
         onOpenChange(false)
     }
 
@@ -91,20 +106,27 @@ export const HistoryRangeDrawer = ({ open, onOpenChange, nested, onDownload }: H
                         {isCustom && (
                             <Calendar selected={draftRange} onSelect={setDraftRange} defaultMonth={draftRange?.from} />
                         )}
-                        <Button
-                            variant="purple"
-                            shadowSize="4"
-                            className="mt-1 w-full justify-center"
-                            disabled={isCustom && !draftRange?.from}
-                            onClick={save}
-                        >
-                            {tCommon('save')}
-                        </Button>
-                        {onDownload && (
-                            <Button variant="stroke" className="w-full justify-center" onClick={onDownload}>
-                                {t('export.download')}
+                        {/* An open calendar is taller than the sheet at 375x667, which
+                            left Save under the fold. The CTAs stick to the bottom of the
+                            drawer's scroll area instead. -mx-4/px-4 bleeds the backdrop to
+                            the panel edges, since the scroll area owns the L/16 inset. The
+                            DS has no drawer-footer recipe — flagged in the PR body. */}
+                        <div className="sticky bottom-0 -mx-4 flex flex-col gap-3 bg-background-default px-4 pt-3">
+                            <Button
+                                variant="purple"
+                                shadowSize="4"
+                                className="w-full justify-center"
+                                disabled={isCustom && !draftRange?.from}
+                                onClick={save}
+                            >
+                                {tCommon('save')}
                             </Button>
-                        )}
+                            {onDownload && (
+                                <Button variant="stroke" className="w-full justify-center" onClick={onDownload}>
+                                    {t('export.download')}
+                                </Button>
+                            )}
+                        </div>
                     </div>
                 </div>
             </DrawerContent>

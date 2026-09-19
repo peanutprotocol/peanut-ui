@@ -19,6 +19,9 @@ import {
 } from '@/utils/activityExport.utils'
 import { isCapacitor } from '@/utils/capacitor'
 import { Notification } from '@/components/0_Bruddle/Notification'
+import { rangeAnalytics } from '@/utils/historyRange.utils'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import posthog from 'posthog-js'
 import { HistoryRangeDrawer } from './HistoryRangeDrawer'
 
 interface ExportActivityDrawerProps {
@@ -41,7 +44,7 @@ export const ExportActivityDrawer = ({ open, onOpenChange }: ExportActivityDrawe
     const t = useTranslations('history')
     const toast = useToast()
     const { user } = useAuth()
-    const { fromIso, toIso } = useHistoryRange()
+    const { fromIso, toIso, from, to, activePreset } = useHistoryRange()
     const rangeLabel = useHistoryRangeLabel()
     const [format, setFormat] = useState<ActivityExportFormat>('pdf')
     const [rangeOpen, setRangeOpen] = useState(false)
@@ -71,9 +74,16 @@ export const ExportActivityDrawer = ({ open, onOpenChange }: ExportActivityDrawe
         setIsExporting(true)
         setError(null)
         const current = identity
+        // one shape for all four events, so a funnel can be built on it
+        const event = {
+            format,
+            platform: isCapacitor() ? 'native' : 'web',
+            ...rangeAnalytics({ activePreset, from, to }),
+        }
         try {
             let file = prepared
             if (!file) {
+                posthog.capture(ANALYTICS_EVENTS.ACTIVITY_EXPORT_STARTED, event)
                 file = await prepareActivityExport({ format, fromIso, toIso })
                 if (!mounted.current || identityRef.current !== current) return
                 setPrepared(file)
@@ -81,11 +91,14 @@ export const ExportActivityDrawer = ({ open, onOpenChange }: ExportActivityDrawe
                 if (isCapacitor()) return
             }
             const result = await saveActivityExport(file)
+            if (result === 'saved') posthog.capture(ANALYTICS_EVENTS.ACTIVITY_EXPORT_SAVED, event)
             if (result === 'saved' && mounted.current && identityRef.current === current) {
                 toast.success(t('export.success'))
                 onOpenChange(false)
             }
         } catch (cause) {
+            const reason = cause instanceof Error ? cause.message : 'EXPORT_FAILED'
+            posthog.capture(ANALYTICS_EVENTS.ACTIVITY_EXPORT_FAILED, { ...event, reason })
             if (!mounted.current || identityRef.current !== current) return
             const key = (
                 {
@@ -94,7 +107,7 @@ export const ExportActivityDrawer = ({ open, onOpenChange }: ExportActivityDrawe
                     EXPORT_BUSY: 'busy',
                     EXPORT_SAVE_UNAVAILABLE: 'saveUnavailable',
                 } as Record<string, 'tooLarge' | 'unverified' | 'busy' | 'saveUnavailable'>
-            )[cause instanceof Error ? cause.message : 'EXPORT_FAILED']
+            )[reason]
             setError(t(key ? `export.${key}` : 'export.error'))
         } finally {
             busy.current = false

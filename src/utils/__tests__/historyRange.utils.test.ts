@@ -1,4 +1,11 @@
-import { endOfLocalDay, presetDates, startOfLocalDay, toLocalDateString, LOCAL_DATE_RE } from '../historyRange.utils'
+import {
+    endOfLocalDay,
+    presetDates,
+    rangeAnalytics,
+    startOfLocalDay,
+    toLocalDateString,
+    LOCAL_DATE_RE,
+} from '../historyRange.utils'
 
 describe('historyRange.utils', () => {
     const today = new Date(2026, 8, 15) // 2026-09-15 local
@@ -24,5 +31,18 @@ describe('historyRange.utils', () => {
         expect(presetDates('last3m', new Date(2026, 4, 31))).toEqual({ from: '2026-02-28', to: '2026-05-31' })
         // year boundary
         expect(presetDates('last6m', new Date(2026, 1, 10))).toEqual({ from: '2025-08-10', to: '2026-02-10' })
+    })
+
+    it('reports the window name and length, never the dates', () => {
+        expect(rangeAnalytics({ activePreset: 'last30d', from: '2026-08-17', to: '2026-09-15' })).toEqual({
+            range_preset: 'last30d',
+            range_days: 30,
+        })
+        // no preset match = a hand-picked window
+        expect(rangeAnalytics({ from: '2026-09-01', to: '2026-09-01' })).toEqual({
+            range_preset: 'custom',
+            range_days: 1,
+        })
+        expect(rangeAnalytics({})).toEqual({ range_preset: 'allTime', range_days: null })
     })
 })
