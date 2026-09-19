@@ -3980,16 +3980,17 @@
             "badgeActive": "Ativo",
             "badgeNotSetUp": "Não configurada",
             "badgeUnavailable": "Indisponível",
-            "badgeVerify": "Verifique para desbloquear",
+            "badgeVerify": "Requer verificação",
             "badgeRevoked": "Revogada",
             "accountLimitNote": "Você pode abrir até {cap} contas bancárias. Precisa de mais? Fale com o suporte.",
             "accountCounter": "{used} de {cap} usadas",
             "accountLimitReached": "Você já usou suas {cap} contas. Precisa de outra? Fale com o suporte.",
-            "accountLimitWhy": "Por que só {cap}? Manter cada conta virtual custa dinheiro pra gente, e não cobramos nada por isso.",
+            "accountLimitWhy": "Por que existe um limite? Manter cada conta bancária aberta custa dinheiro pra gente, e não cobramos nada por isso.",
             "errorTitle": "Não conseguimos carregar suas contas",
             "errorBody": "Suas contas estão bem: só não conseguimos lê-las. Verifique sua conexão e tente de novo.",
             "errorRetry": "Tentar de novo",
-            "rowRevoked": "Fechada: o que for enviado para estes dados volta"
+            "rowRevoked": "Fechada: o que for enviado para estes dados volta",
+            "badgeActionNeeded": "Ação necessária"
         },
         "claim": {
             "heading": "Dados bancários em {currency}",
@@ -4125,11 +4126,16 @@
             "emailCta": "Adicione seu e-mail",
             "notYetTitle": "Ainda não está disponível para você",
             "notYetBody": "Estamos abrindo aos poucos.",
-            "limitTitle": "Você já tem duas contas",
-            "limitBody": "Duas contas bancárias é o padrão. Se precisar de outra, o suporte pode abrir.",
+            "limitTitle": "Você já tem {count, plural, one {# conta} other {# contas}}",
+            "limitBody": "Esse é o seu limite atual. Se precisar de outra, o suporte pode abrir.",
             "reviewTitle": "Estamos criando sua conta",
             "reviewBody": "Costuma levar alguns minutos. A gente avisa quando estiver pronta.",
-            "reviewCta": "Voltar para Adicionar dinheiro"
+            "reviewCta": "Voltar para Adicionar dinheiro",
+            "blockedBody": "Não conseguimos abrir esta conta, e não é algo que dê para resolver pelo app. Fale com o suporte e a gente verifica.",
+            "finishReviewTitle": "Mais uma checagem para esta conta",
+            "finishReviewBody": "Sua identidade já está verificada. As contas em {currency} precisam de uma checagem extra do nosso parceiro de pagamentos antes de abrir.",
+            "finishReviewSupportBody": "Sua identidade já está verificada. As contas em {currency} precisam de uma checagem extra do nosso parceiro de pagamentos, e ainda não dá para iniciá-la pelo app. Fale com o suporte e a gente ajuda você a concluir.",
+            "finishReviewCta": "Continuar"
         },
         "rules": {
             "providerHeld": {

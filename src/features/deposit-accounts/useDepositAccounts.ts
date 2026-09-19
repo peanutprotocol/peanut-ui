@@ -23,6 +23,7 @@ import {
     isClaimable,
     railIdFor,
 } from './rails'
+import { holdsSlot } from './resolveScreen'
 import type { ClaimableCorridor, DepositAccount, DepositAccountView, DepositCorridor } from './types'
 
 export const DEPOSIT_ACCOUNTS_QUERY_KEY = ['deposit-accounts'] as const
@@ -71,6 +72,12 @@ export interface UseDepositAccountsResult {
      * one the claim step can say nothing about.
      */
     claimable: Record<DepositCorridor, ClaimableCorridor | undefined>
+    /**
+     * How many account slots the user has taken, counted the way the backend's
+     * cap counts them. Every returned account counts, not one per corridor: a
+     * rotation holds the new account and the retiring one at once.
+     */
+    slotsHeld: number
     /** the capability gate for EACH corridor, asked one rail id at a time */
     gates: Record<DepositCorridor, GateState>
     /** true until both the corridors and the held accounts are known */
@@ -210,6 +217,8 @@ export function useDepositAccounts({ enabled = true }: { enabled?: boolean } = {
         return byCorridor
     }, [query.data, provisioningPolls])
 
+    const slotsHeld = useMemo(() => (query.data?.accounts ?? []).filter(holdsSlot).length, [query.data])
+
     const claimable = useMemo((): Record<DepositCorridor, ClaimableCorridor | undefined> => {
         const byCorridor = emptyCorridorRecord<ClaimableCorridor>()
         for (const corridorTerms of query.data?.claimable ?? []) {
@@ -284,6 +293,7 @@ export function useDepositAccounts({ enabled = true }: { enabled?: boolean } = {
         corridors,
         accounts,
         claimable,
+        slotsHeld,
         gates,
         // a flow that is not asking for accounts is never waiting for them
         isLoading: enabled && (!userId || query.isLoading || capabilitiesLoading),

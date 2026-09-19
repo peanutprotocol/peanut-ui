@@ -1,9 +1,9 @@
 /**
- * The two reasons a corridor a verified user CAN see still cannot be opened.
+ * The reasons a corridor a verified user CAN see still cannot be opened.
  *
- * Neither comes from the capability gate, which only knows about identity:
- * the account cap is a billing decision, and a provider review is somebody
- * else's queue. Both arrive on the corridor's own terms, and both are stated
+ * None comes from the capability gate, which only knows about identity:
+ * the account cap is a billing decision, and a provider review is a queue at
+ * the provider — waiting on the provider, or on the user. All arrive on the corridor's own terms, and both are stated
  * on the screen behind the row rather than on the row — the row stays
  * tappable, because the tap is what asks for the review in the first place.
  */
@@ -59,14 +59,15 @@ const heldAccount: DepositAccountView = {
     instructions: { accountHolderName: 'Demo User', paymentRails: ['ach_push'] },
 }
 
-function flowProps(blockedBy?: ClaimableCorridor['blockedBy'], heldElsewhere = false) {
+function flowProps(blockedBy?: ClaimableCorridor['blockedBy'], heldElsewhere = false, gate: GateState = READY) {
     const accounts = emptyCorridorRecord<DepositAccountView>()
     if (heldElsewhere) accounts.ACH_US = heldAccount
     return {
         corridors: [CORRIDOR],
         accounts,
+        slotsHeld: heldElsewhere ? 1 : 0,
         claimable: { ...emptyCorridorRecord<ClaimableCorridor>(), [CORRIDOR]: terms(blockedBy) },
-        gates: corridorRecord(() => READY),
+        gates: corridorRecord(() => gate),
         isLoading: false,
         userName: 'Demo User',
         onExit: jest.fn(),
@@ -74,6 +75,7 @@ function flowProps(blockedBy?: ClaimableCorridor['blockedBy'], heldElsewhere = f
         onResolveGate: jest.fn(),
         onRetry: jest.fn(),
         onContactSupport: jest.fn(),
+        onFinishReview: jest.fn() as jest.Mock | undefined,
     }
 }
 
@@ -102,19 +104,54 @@ describe('what a block does to the gate view', () => {
         expect(depositGateView(READY, terms('endorsement-pending')).notice?.action).toBe('pending-review')
     })
 
-    it('sends a review waiting on the user to the identity gate it already has', () => {
-        // Not a third screen: the user has to verify something, which is the
-        // one flow that can clear it.
+    it('gives a review waiting on the user its own kind, never the identity gate', () => {
+        // The user is verified already, and identity verification cannot grant
+        // a provider review.
         expect(depositGateView(READY, terms('endorsement-required')).notice).toEqual({
-            kind: 'needs-identity',
+            kind: 'endorsement-required',
             message: null,
-            action: 'verify',
+            action: 'finish-review',
         })
     })
 
     it('lets the capability gate answer first', () => {
         // An unverified user is not told about a cap they are nowhere near.
         expect(depositGateView({ kind: 'needs-identity' }, terms('account-limit')).notice?.action).toBe('verify')
+    })
+
+    it('keeps an unverified user on identity, whatever the review says', () => {
+        expect(depositGateView({ kind: 'needs-identity' }, terms('endorsement-required')).notice).toEqual({
+            kind: 'needs-identity',
+            message: null,
+            action: 'verify',
+        })
+    })
+
+    /**
+     * The real path. A corridor offered before the user has a rail can never
+     * read `ready` first: a verified user reads `needs-enrollment`, and after
+     * the tap records the request, `pending`. Both used to win over the
+     * backend's terms — one sent the user to identity verification, the other
+     * told them there was nothing to do.
+     */
+    it.each([['needs-enrollment'], ['pending'], ['waiting-on-provider']] as const)(
+        'lets the backend terms decide for an offered corridor whose gate is %s',
+        (kind) => {
+            const gate = { kind } as GateState
+            expect(depositGateView(gate, terms())).toEqual({ claimable: true })
+            expect(depositGateView(gate, terms('endorsement-required')).notice?.action).toBe('finish-review')
+            expect(depositGateView(gate, terms('endorsement-pending')).notice?.action).toBe('pending-review')
+        }
+    )
+
+    it('keeps the capability gate for a corridor the backend does not offer', () => {
+        expect(depositGateView({ kind: 'needs-enrollment' }).notice?.action).toBe('verify')
+        expect(depositGateView({ kind: 'pending' }).notice?.action).toBe('none')
+    })
+
+    it('never lets the terms override a rejection on the rail itself', () => {
+        const rejected: GateState = { kind: 'blocked-rejection', userMessage: null } as GateState
+        expect(depositGateView(rejected, terms()).notice?.action).toBe('support')
     })
 
     it('keeps a blocked corridor off the claim step', () => {
@@ -129,7 +166,7 @@ describe('the screen a blocked corridor lands on', () => {
         // names — a genuinely-held account elsewhere — so the cap screen is true.
         const props = flowProps('account-limit', true)
         render(flow(props))
-        expect(screen.getByText(GATE.limitTitle)).toBeInTheDocument()
+        expect(screen.getByText('You already have 1 account')).toBeInTheDocument()
         expect(screen.getByText(GATE.limitBody)).toBeInTheDocument()
         fireEvent.click(screen.getByTestId('corridor-gate-account-limit'))
         expect(props.onContactSupport).toHaveBeenCalledWith(CORRIDOR, 'account-limit')
@@ -145,12 +182,63 @@ describe('the screen a blocked corridor lands on', () => {
         // honest "we cannot open an account" support screen shows instead.
         const props = flowProps('account-limit')
         render(flow(props))
-        expect(screen.queryByText(GATE.limitTitle)).not.toBeInTheDocument()
+        expect(screen.queryByText(GATE.limitBody)).not.toBeInTheDocument()
         expect(screen.getByText(GATE.blockedTitle)).toBeInTheDocument()
         expect(screen.queryByTestId('corridor-gate-account-limit')).not.toBeInTheDocument()
         fireEvent.click(screen.getByTestId('corridor-gate-support'))
         expect(props.onContactSupport).toHaveBeenCalledWith(CORRIDOR, 'blocked')
         expect(props.onResolveGate).not.toHaveBeenCalled()
+    })
+
+    it('never shows the identity sentence on a support screen', () => {
+        render(flow(flowProps('account-limit')))
+        expect(screen.getByText(GATE.blockedBody)).toBeInTheDocument()
+        expect(screen.queryByText(GATE.verifyBody)).not.toBeInTheDocument()
+    })
+
+    it('states the number of accounts the user holds, not a default', () => {
+        render(flow({ ...flowProps('account-limit', true), slotsHeld: 3 }))
+        expect(screen.getByText('You already have 3 accounts')).toBeInTheDocument()
+    })
+
+    describe('a review that waits on a verified user', () => {
+        const PENDING: GateState = { kind: 'pending' }
+
+        it('starts the hosted check, and never identity verification', () => {
+            const props = flowProps('endorsement-required', false, PENDING)
+            render(flow(props))
+            expect(screen.getByText(GATE.finishReviewTitle)).toBeInTheDocument()
+            expect(screen.getByText(GATE.finishReviewBody.replace('{currency}', 'EUR'))).toBeInTheDocument()
+            expect(screen.queryByText(GATE.verifyTitle)).not.toBeInTheDocument()
+            expect(screen.queryByText(GATE.waitTitle)).not.toBeInTheDocument()
+            fireEvent.click(screen.getByTestId('corridor-gate-finish-review'))
+            expect(props.onFinishReview).toHaveBeenCalledTimes(1)
+            expect(props.onResolveGate).not.toHaveBeenCalled()
+        })
+
+        it('says what is needed and offers support when the app cannot start the check', () => {
+            const props = { ...flowProps('endorsement-required', false, PENDING), onFinishReview: undefined }
+            render(flow(props))
+            expect(screen.getByText(GATE.finishReviewTitle)).toBeInTheDocument()
+            expect(screen.getByText(GATE.finishReviewSupportBody.replace('{currency}', 'EUR'))).toBeInTheDocument()
+            fireEvent.click(screen.getByTestId('corridor-gate-finish-review-support'))
+            expect(props.onContactSupport).toHaveBeenCalledWith(CORRIDOR, 'review')
+            expect(props.onResolveGate).not.toHaveBeenCalled()
+        })
+
+        it('leaves an unverified user on identity verification', () => {
+            const props = flowProps('endorsement-required', false, { kind: 'needs-identity' })
+            render(flow(props))
+            expect(screen.getByText(GATE.verifyTitle)).toBeInTheDocument()
+            fireEvent.click(screen.getByTestId('corridor-gate-verify'))
+            expect(props.onResolveGate).toHaveBeenCalledTimes(1)
+            expect(props.onFinishReview).not.toHaveBeenCalled()
+        })
+
+        it('keeps the under-review wait for a review the provider is still running', () => {
+            render(flow(flowProps('endorsement-pending', false, PENDING)))
+            expect(screen.getByText(GATE.reviewTitle)).toBeInTheDocument()
+        })
     })
 
     it('waits while the review runs, with nothing for the user to press but back', () => {

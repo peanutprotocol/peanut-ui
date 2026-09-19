@@ -7,7 +7,8 @@ import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { DepositAccountsFlow } from '../components/DepositAccountsFlow'
 import { DepositAccountsListScreen } from '../components/DepositAccountsListScreen'
 import { corridorRecord, DEPOSIT_RAIL_ORDER, emptyCorridorRecord } from '../rails'
-import type { DepositAccount, DepositCorridor } from '../types'
+import { holdsSlot } from '../resolveScreen'
+import type { ClaimableCorridor, DepositAccount, DepositCorridor } from '../types'
 import type { GateState } from '@/utils/capability-gate'
 import { withReturnTo } from '@/utils/return-to.utils'
 
@@ -95,6 +96,10 @@ const list = (
         gates?: Record<DepositCorridor, GateState>
         isError?: boolean
         accounts?: Record<DepositCorridor, DepositAccount | undefined>
+        /** the corridors the backend offers, with the block it put on each */
+        claimable?: Partial<Record<DepositCorridor, ClaimableCorridor>>
+        /** defaults to what the accounts imply; set it to stand for a rotation */
+        slotsHeld?: number
         onOpen?: (corridor: DepositCorridor) => void
         /** the hub reads `?method=` to decide whether crypto is still a question */
         searchParams?: string
@@ -106,6 +111,8 @@ const list = (
                 <DepositAccountsListScreen
                     corridors={opts.corridors ?? DEPOSIT_RAIL_ORDER}
                     accounts={opts.accounts ?? NONE}
+                    claimable={{ ...emptyCorridorRecord<ClaimableCorridor>(), ...opts.claimable }}
+                    slotsHeld={opts.slotsHeld ?? Object.values(opts.accounts ?? NONE).filter(holdsSlot).length}
                     gates={opts.gates ?? allGates()}
                     isLoading={isLoading}
                     isError={opts.isError ?? false}
@@ -116,6 +123,16 @@ const list = (
             </NuqsTestingAdapter>
         </NextIntlClientProvider>
     )
+
+/** a corridor the backend offers this user, with the block it carries, if any */
+const offered = (corridor: DepositCorridor, blockedBy?: ClaimableCorridor['blockedBy']): ClaimableCorridor => ({
+    railId: `bridge.${corridor.toLowerCase()}`,
+    method: corridor,
+    country: 'CO',
+    currency: 'COP',
+    matching: { sender: 'unknown' },
+    ...(blockedBy ? { blockedBy } : {}),
+})
 
 const rowOf = (container: HTMLElement, corridor: DepositCorridor) =>
     container.querySelector(`[data-testid="deposit-account-${corridor}"]`)
@@ -290,31 +307,121 @@ describe("DepositAccountsListScreen renders the user's corridors and no others",
         expect(rowOf(container, 'PIX_BR')).not.toBeInTheDocument()
     })
 
-    it('signals the standing-account limit with a live counter, before the wall', () => {
-        list(false)
+    describe('the account counter', () => {
+        const LIST = messages.depositAccounts.list
+        const counter = (used: number, cap: number) =>
+            LIST.accountCounter.replace('{used}', String(used)).replace('{cap}', String(cap))
 
-        // the counter is present up front, so the cap is information not a wall
-        expect(screen.getByTestId('account-counter')).toHaveTextContent(
-            messages.depositAccounts.list.accountCounter.replace('{used}', '0').replace('{cap}', '2')
-        )
-        // under the cap: the note says how to hold more
-        expect(
-            screen.getByText(messages.depositAccounts.list.accountLimitNote.replace('{cap}', '2'))
-        ).toBeInTheDocument()
-    })
+        it('shows the count up front, so the limit is information and not a wall', () => {
+            list(false)
 
-    it('counts only held accounts and switches the note once the cap is reached', () => {
-        list(false, {
-            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU'), ACH_US: heldAccount('ACH_US') },
+            expect(screen.getByTestId('account-counter')).toHaveTextContent(counter(0, 2))
+            expect(screen.getByText(LIST.accountLimitNote.replace('{cap}', '2'))).toBeInTheDocument()
         })
 
-        expect(screen.getByTestId('account-counter')).toHaveTextContent(
-            messages.depositAccounts.list.accountCounter.replace('{used}', '2').replace('{cap}', '2')
-        )
-        // at the cap: the reached note replaces the "open more" note
-        expect(
-            screen.getByText(messages.depositAccounts.list.accountLimitReached.replace('{cap}', '2'))
-        ).toBeInTheDocument()
+        it('says the limit is reached when the backend says so', () => {
+            list(false, {
+                accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU'), ACH_US: heldAccount('ACH_US') },
+                claimable: { SPEI_MX: offered('SPEI_MX', 'account-limit') },
+            })
+
+            expect(screen.getByTestId('account-counter')).toHaveTextContent(counter(2, 2))
+            expect(screen.getByText(LIST.accountLimitReached.replace('{cap}', '2'))).toBeInTheDocument()
+        })
+
+        it('uses the limit support raised, not the default', () => {
+            list(false, { slotsHeld: 3, claimable: { SPEI_MX: offered('SPEI_MX', 'account-limit') } })
+
+            expect(screen.getByTestId('account-counter')).toHaveTextContent(counter(3, 3))
+        })
+
+        it('shows no number for a raised limit it cannot read', () => {
+            // two accounts and the backend still offers a third: the limit is
+            // above the default, and the response does not say what it is
+            list(false, { slotsHeld: 2, claimable: { SPEI_MX: offered('SPEI_MX') } })
+
+            expect(screen.queryByTestId('account-counter')).not.toBeInTheDocument()
+            expect(screen.queryByText(LIST.accountLimitReached.replace('{cap}', '2'))).not.toBeInTheDocument()
+        })
+
+        it('does not count a revoked account, which takes no slot', () => {
+            list(false, { accounts: { ...NONE, SEPA_EU: { ...heldAccount('SEPA_EU'), status: 'revoked' } } })
+
+            expect(screen.getByTestId('account-counter')).toHaveTextContent(counter(0, 2))
+        })
+
+        it.each([
+            ['the read is in flight', true, false],
+            ['the read failed', false, true],
+        ])('is hidden while %s', (_, isLoading, isError) => {
+            list(isLoading, { isError })
+
+            expect(screen.queryByTestId('account-counter')).not.toBeInTheDocument()
+            expect(screen.queryByText(LIST.accountLimitNote.replace('{cap}', '2'))).not.toBeInTheDocument()
+        })
+
+        it('explains the limit from a real button, for touch and keyboard', () => {
+            list(false)
+
+            const why = within(screen.getByTestId('account-counter')).getByRole('button')
+            fireEvent.click(why)
+            expect(screen.getByText(LIST.accountLimitWhy)).toBeInTheDocument()
+        })
+    })
+
+    /**
+     * Two corridors are offered before the user has a rail: the tap asks the
+     * provider for a review. A verified user reads `needs-enrollment` there, and
+     * after the tap `pending`, so the capability gate alone would close the row
+     * for good. The backend's offer is what opens it.
+     */
+    describe('a corridor the backend offers a verified user with no rail', () => {
+        const gates = { ...allGates(), BANK_TRANSFER_CO: { kind: 'needs-enrollment' } as GateState }
+
+        it('stays tappable, because the tap is what asks for the review', () => {
+            const onOpen = jest.fn()
+            const { container } = list(false, {
+                gates,
+                claimable: { BANK_TRANSFER_CO: offered('BANK_TRANSFER_CO') },
+                onOpen,
+            })
+
+            expect(rowOf(container, 'BANK_TRANSFER_CO')).not.toHaveAttribute('aria-disabled', 'true')
+            fireEvent.click(rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement)
+            expect(onOpen).toHaveBeenCalledWith('BANK_TRANSFER_CO')
+        })
+
+        it('says something is needed when the review waits on the user, and never "verify"', () => {
+            const onOpen = jest.fn()
+            const { container } = list(false, {
+                gates: { ...gates, BANK_TRANSFER_CO: { kind: 'pending' } },
+                claimable: { BANK_TRANSFER_CO: offered('BANK_TRANSFER_CO', 'endorsement-required') },
+                onOpen,
+            })
+
+            const row = inRow(container, 'BANK_TRANSFER_CO')
+            expect(row.getByText(messages.depositAccounts.list.badgeActionNeeded)).toBeInTheDocument()
+            expect(row.queryByText(messages.depositAccounts.list.badgeVerify)).not.toBeInTheDocument()
+            // the screen behind the row says what to do, so the row opens
+            fireEvent.click(rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement)
+            expect(onOpen).toHaveBeenCalledWith('BANK_TRANSFER_CO')
+        })
+
+        it('keeps the under-review badge while the provider reviews', () => {
+            const { container } = list(false, {
+                gates: { ...gates, BANK_TRANSFER_CO: { kind: 'pending' } },
+                claimable: { BANK_TRANSFER_CO: offered('BANK_TRANSFER_CO', 'endorsement-pending') },
+            })
+
+            expect(inRow(container, 'BANK_TRANSFER_CO').getByText('Pending')).toBeInTheDocument()
+            expect(rowOf(container, 'BANK_TRANSFER_CO')).not.toHaveAttribute('aria-disabled', 'true')
+        })
+
+        it('leaves a corridor the backend does not offer closed', () => {
+            const { container } = list(false, { gates })
+
+            expect(rowOf(container, 'BANK_TRANSFER_CO')).toHaveAttribute('aria-disabled', 'true')
+        })
     })
 })
 

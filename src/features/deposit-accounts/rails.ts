@@ -95,12 +95,13 @@ export const DEPOSIT_RAIL_ORDER: DepositCorridor[] = [
 ]
 
 /**
- * How many standing bank accounts one user may hold. The backend owns the
- * enforcement (a claim past the cap is refused); the hub shows the count so a
- * user meets the limit as information, not as a wall at claim time. Support
- * opens more on request. Keep this in step with the backend cap.
+ * How many bank accounts the backend opens for a user by default
+ * (`MAX_ACTIVE_DEPOSIT_ACCOUNTS`). It is NOT this user's limit: support can
+ * raise that per user, and the accounts response does not carry it. The backend
+ * enforces the real limit and reports it as reached; the hub only uses this
+ * default where no answer from the backend contradicts it.
  */
-export const STANDING_ACCOUNT_CAP = 2
+export const DEFAULT_ACCOUNT_LIMIT = 2
 
 /**
  * A record with a slot for every corridor, built from the catalogue.

@@ -11,9 +11,9 @@ import { countryData } from '@/components/AddMoney/consts'
 import { CountryList } from '@/components/Common/CountryList'
 import { matchesCountryQuery } from '@/components/Common/country-search'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
-import { Tooltip } from '@/components/Tooltip'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Icon } from '@/components/Global/Icons/Icon'
+import MoreInfo from '@/components/Global/MoreInfo'
 import NavHeader from '@/components/Global/NavHeader'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { SearchInput } from '@/components/SearchInput'
@@ -27,8 +27,8 @@ import { useRouter } from 'next/navigation'
 import { parseAsStringEnum, useQueryStates } from 'nuqs'
 import { useMemo, useState } from 'react'
 import { corridorsForCountry } from '../countryCorridor'
-import { depositGateView } from '../depositGate'
-import { DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, isClaimable, STANDING_ACCOUNT_CAP, topUpOnlyHref } from '../rails'
+import { depositGateView, isDepositBlock } from '../depositGate'
+import { DEFAULT_ACCOUNT_LIMIT, DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, isClaimable, topUpOnlyHref } from '../rails'
 import { isResidenceGated, residenceAllows, RESIDENCE_GATED_CORRIDORS } from '../residenceGate'
 import { canShare, isHeld } from '../resolveScreen'
 import type { ClaimableCorridor, DepositAccountView, DepositCorridor, DepositRail } from '../types'
@@ -68,6 +68,7 @@ export function DepositAccountsListScreen({
     corridors,
     accounts,
     claimable,
+    slotsHeld,
     gates,
     isLoading,
     isError,
@@ -84,6 +85,8 @@ export function DepositAccountsListScreen({
      * has no account yet and still has a status worth showing.
      */
     claimable?: Record<DepositCorridor, ClaimableCorridor | undefined>
+    /** account slots taken, counted as the backend's cap counts them — see `holdsSlot` */
+    slotsHeld: number
     /** the app's own answer to "can this user deposit here" — one gate per corridor */
     gates: Record<DepositCorridor, GateState>
     /** the corridors and the accounts are both network answers */
@@ -156,9 +159,9 @@ export function DepositAccountsListScreen({
      *
      * A user who has not verified holds a rail for nothing, so the standing
      * accounts they could open by verifying would be missing from the hub
-     * entirely — they never learn the accounts exist or what unlocks them. Show
-     * the claimable ones with a "verify to unlock" badge, but ONLY where the
-     * gate is `needs-identity` (identity not cleared yet). A verified user whose
+     * entirely — they never learn the accounts exist or what they need. Show
+     * the claimable ones with a "requires verification" badge, but ONLY where
+     * the gate is `needs-identity` (identity not cleared yet). A verified user whose
      * region has no such corridor resolves to `needs-enrollment` instead, and
      * showing them a USD or ARS row they can never open is the noise these rows
      * are meant to avoid.
@@ -173,7 +176,9 @@ export function DepositAccountsListScreen({
 
     const views = hubCorridors
         .filter((corridor) => matchesCorridor(corridor))
-        .map((corridor) => ({ corridor, view: depositGateView(gates[corridor]) }))
+        // With the corridor's own terms: for a corridor the backend offers, those
+        // terms decide, and the capability gate alone would call it closed.
+        .map((corridor) => ({ corridor, view: depositGateView(gates[corridor], claimable?.[corridor]) }))
 
     /**
      * Where the corridor stands, in the one slot that carries status.
@@ -191,8 +196,9 @@ export function DepositAccountsListScreen({
         if (isLoading) return <div className="h-5 w-16 animate-pulse rounded bg-foreground-primary/10" />
         if (isResidenceGated(rail.corridor) && !account)
             return <StatusBadge status="custom" customText={t('list.badgeNotSetUp')} />
-        // A claimable corridor the user has no rail for, shown because verifying
-        // identity is what opens it. Say what unlocks it rather than "Not set up".
+        // A claimable corridor the user has no rail for, shown because identity
+        // verification comes first. The badge states the requirement and promises
+        // nothing: verifying opens the corridors the user's region has, not all.
         if (!account && gate.kind === 'needs-identity')
             return <StatusBadge status="custom" customText={t('list.badgeVerify')} />
         if (!isClaimable(rail) || account?.status === 'unavailable')
@@ -207,6 +213,10 @@ export function DepositAccountsListScreen({
         // "nothing is happening" to a user who just asked for it.
         if (claimable?.[rail.corridor]?.blockedBy === 'endorsement-pending' && !account)
             return <StatusBadge status="pending" />
+        // The review waits on the user. The user is verified already, so the row
+        // says something is needed and the screen behind it says what.
+        if (claimable?.[rail.corridor]?.blockedBy === 'endorsement-required' && !account)
+            return <StatusBadge status="pending" customText={t('list.badgeActionNeeded')} />
         switch (account?.status) {
             case 'active':
             case 'retiring':
@@ -279,22 +289,28 @@ export function DepositAccountsListScreen({
             data-testid="add-money-crypto"
         />
     ) : null
-    // The standing-account cap, shown as a live count so the user meets it as
-    // information up front, not as a wall at claim time. Count only accounts
-    // that actually hold a slot — a failed or unclaimed corridor is not one, so
-    // the count never tells a user they hold accounts they could not open.
-    const heldAccountCount = useMemo(
-        () =>
-            DEPOSIT_RAIL_ORDER.reduce((count, corridor) => {
-                const status = accounts[corridor]?.status
-                return status === 'active' || status === 'retiring' || status === 'provisioning' ? count + 1 : count
-            }, 0),
-        [accounts]
-    )
-    const atAccountCap = STANDING_ACCOUNT_CAP - heldAccountCount <= 0
+    /**
+     * The account limit, shown as a live count so the user meets it as
+     * information up front and not as a wall at claim time.
+     *
+     * The limit is per user — support can raise it — and the accounts response
+     * does not carry it. The backend does say when it is reached, on every
+     * corridor still on offer, so the count is only shown where it is known to
+     * be true: at the limit the limit IS the count, and below the default the
+     * default holds. A user past the default with room left has a raised limit
+     * this screen cannot read, and gets no number rather than a wrong one.
+     */
+    const limitReached = DEPOSIT_RAIL_ORDER.some((corridor) => claimable?.[corridor]?.blockedBy === 'account-limit')
+    const accountLimit = limitReached
+        ? slotsHeld
+        : slotsHeld < DEFAULT_ACCOUNT_LIMIT
+          ? DEFAULT_ACCOUNT_LIMIT
+          : undefined
 
     // A corridor with no row left after the search has nothing to label.
     const showAccounts = accountsEnabled && views.length > 0
+    // hidden while the read is in flight or has failed — a count then is a guess
+    const showCounter = !isLoading && !isError && accountLimit !== undefined
     const showCountries = !term || matchingCountries.length > 0
     const nothingMatches = !!term && views.length === 0 && !matchesCrypto && !showCountries
     // Two characters is where a search stops matching half the world, so it is
@@ -342,40 +358,39 @@ export function DepositAccountsListScreen({
                 )}
 
                 {showAccounts && (
-                    <Section title={t('list.sectionTitle')} data-testid="your-accounts">
-                        {/* Pitch on the left, the live "how many of your accounts
-                            are used" counter on the right: the cap is met as a
-                            number up front, not as a wall at claim time. The
-                            counter is hidden while the read is in flight or has
-                            failed — a count then would be a guess. */}
-                        <div className="flex items-start justify-between gap-2">
-                            <p className="text-body-s text-foreground-secondary">{t('list.accountsPitch')}</p>
-                            {!isLoading && !isError && (
-                                <Tooltip
-                                    content={t('list.accountLimitWhy', { cap: STANDING_ACCOUNT_CAP })}
-                                    position="left"
-                                    className="shrink-0"
-                                >
-                                    <span className="flex items-center gap-1" data-testid="account-counter">
+                    <Section
+                        title={
+                            // The count sits beside the heading so the pitch keeps the
+                            // full width at 320px. MoreInfo is a real button: the
+                            // reason opens on tap and from the keyboard.
+                            <span className="flex items-center justify-between gap-2">
+                                {t('list.sectionTitle')}
+                                {showCounter && (
+                                    <span className="flex shrink-0 items-center gap-1" data-testid="account-counter">
                                         <StatusBadge
                                             status="custom"
                                             customText={t('list.accountCounter', {
-                                                used: heldAccountCount,
-                                                cap: STANDING_ACCOUNT_CAP,
+                                                used: slotsHeld,
+                                                cap: accountLimit,
                                             })}
                                         />
-                                        <Icon name="info" size={14} className="text-foreground-secondary" />
+                                        <MoreInfo text={t('list.accountLimitWhy')} />
                                     </span>
-                                </Tooltip>
-                            )}
-                        </div>
+                                )}
+                            </span>
+                        }
+                        data-testid="your-accounts"
+                    >
+                        <p className="text-body-s text-foreground-secondary">{t('list.accountsPitch')}</p>
                         {/* Support opens more on request; the wording changes once
                             every slot is used so the counter and the note agree. */}
-                        <p className="text-body-xs text-foreground-secondary">
-                            {atAccountCap
-                                ? t('list.accountLimitReached', { cap: STANDING_ACCOUNT_CAP })
-                                : t('list.accountLimitNote', { cap: STANDING_ACCOUNT_CAP })}
-                        </p>
+                        {showCounter && (
+                            <p className="text-body-xs text-foreground-secondary">
+                                {limitReached
+                                    ? t('list.accountLimitReached', { cap: accountLimit })
+                                    : t('list.accountLimitNote', { cap: accountLimit })}
+                            </p>
+                        )}
                         <ListGroup>
                             {views.map(({ corridor, view }) => {
                                 const rail = DEPOSIT_RAILS[corridor]
@@ -388,10 +403,13 @@ export function DepositAccountsListScreen({
                                 // Revoked details still explain returned payments and provide support.
                                 // A residence-gated row always opens: the screen behind
                                 // it states the rule, and a disabled row states nothing.
+                                // A block from the corridor's own terms keeps the row
+                                // open too: the screen behind it says what to do.
                                 const openable =
                                     isResidenceGated(corridor) ||
                                     !isClaimable(rail) ||
                                     view.claimable ||
+                                    (view.notice !== undefined && isDepositBlock(view.notice.kind)) ||
                                     isHeld(account)
                                 const disabled = isError || isLoading || !openable
 

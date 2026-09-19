@@ -19,16 +19,23 @@ const TITLES = {
     verify: 'gate.verifyTitle',
     'account-limit': 'gate.limitTitle',
     'pending-review': 'gate.reviewTitle',
+    'finish-review': 'gate.finishReviewTitle',
+    'finish-review-support': 'gate.finishReviewTitle',
 } as const
 
 const BODIES = {
     none: 'gate.waitBody',
     'provide-email': 'gate.emailBody',
     'accept-tos': 'gate.verifyBody',
-    support: 'gate.verifyBody',
+    // Support is offered to users who are already verified: a terminal
+    // rejection, or a block the backend could not explain. The identity
+    // sentence is false for both.
+    support: 'gate.blockedBody',
     verify: 'gate.verifyBody',
     'account-limit': 'gate.limitBody',
     'pending-review': 'gate.reviewBody',
+    'finish-review': 'gate.finishReviewBody',
+    'finish-review-support': 'gate.finishReviewSupportBody',
 } as const
 
 const LABELS = {
@@ -41,6 +48,8 @@ const LABELS = {
     // screen that offers a person — never a second wording for one door.
     'account-limit': 'gate.supportCta',
     'pending-review': 'gate.reviewCta',
+    'finish-review': 'gate.finishReviewCta',
+    'finish-review-support': 'gate.supportCta',
 } as const
 
 /** the picture each reason gets; the default says "closed to you", which a wait is not */
@@ -48,6 +57,8 @@ const ICONS = {
     none: 'clock',
     'pending-review': 'clock',
     'account-limit': 'peanut-support',
+    'finish-review': 'user-id',
+    'finish-review-support': 'peanut-support',
 } as const
 
 /** Reasons with nothing to press: the button goes back, and the screen updates by itself. */
@@ -64,18 +75,23 @@ const WAITS: ReadonlySet<string> = new Set(['none', 'pending-review'])
  * Each kind gets its own words and its own button, because they are not the
  * same problem: `pending` and `waiting-on-provider` are a wait with nothing to
  * press, `accept-tos` is a document to agree to, `provide-email` is one missing
- * address on an already-verified user, and a terminal rejection needs a person.
+ * address on an already-verified user, a terminal rejection needs a person, and
+ * a provider review that waits on the user needs the provider's own hosted
+ * check — identity verification cannot clear it.
  * The provider's own message wins over ours whenever it sent one — it knows why
  * it said no.
  */
 export function CorridorGateScreen({
     rail,
     notice,
+    slotsHeld = 0,
     onBack,
     onAct,
 }: {
     rail: DepositRail
     notice: NonNullable<DepositGateView['notice']>
+    /** how many accounts the cap screen says the user has — their own count, never a default */
+    slotsHeld?: number
     onBack: () => void
     onAct: () => void
 }) {
@@ -96,8 +112,8 @@ export function CorridorGateScreen({
                 )}
                 <EmptyState
                     icon={ICONS[notice.action as keyof typeof ICONS] ?? 'globe-lock'}
-                    title={t(TITLES[notice.action])}
-                    description={notice.message ?? t(BODIES[notice.action])}
+                    title={t(TITLES[notice.action], { count: slotsHeld })}
+                    description={notice.message ?? t(BODIES[notice.action], { currency: rail.currency })}
                     cta={
                         <div className="mt-4 flex w-full flex-col items-center gap-4">
                             <Button

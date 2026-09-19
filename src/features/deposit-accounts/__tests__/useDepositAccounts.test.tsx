@@ -83,6 +83,25 @@ describe('useDepositAccounts', () => {
     })
 
     /**
+     * The backend's cap counts every account the provider bills for. One
+     * corridor holds two of them during a rotation, and a revoked one is free,
+     * so the count comes from the rows and never from one-per-corridor.
+     */
+    it('counts slots the way the cap does: every live row, and no revoked one', async () => {
+        resolveAccounts([
+            account({ id: 'new', isPrimary: true }),
+            account({ id: 'old', isPrimary: false, status: 'retiring' }),
+            account({ id: 'usd', railId: 'bridge.ach_us', status: 'provisioning' }),
+            account({ id: 'dead', railId: 'bridge.spei_mx', status: 'revoked' }),
+        ])
+
+        const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+        expect(result.current.slotsHeld).toBe(3)
+    })
+
+    /**
      * A rail that leaves the catalogue disappears from the capability block and
      * leaves the account standing — the accounts endpoint keeps it on purpose.
      * Reading the rails alone dropped the row, and the details a payer may

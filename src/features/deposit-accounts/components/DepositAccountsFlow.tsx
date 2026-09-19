@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { trackDetailsViewed, trackGateBlocked } from '../analytics'
 import { DEPOSIT_ACCOUNT_PARAMS } from '../params'
 import { DEPOSIT_RAILS, isClaimable } from '../rails'
-import { depositGateView } from '../depositGate'
+import { depositGateView, isDepositBlock } from '../depositGate'
 import { isResidenceGated, residenceAllows } from '../residenceGate'
 import { canShare, isHeld, resolveScreen } from '../resolveScreen'
 import type { ClaimableCorridor, DepositAccountView, DepositCorridor } from '../types'
@@ -34,6 +34,8 @@ export interface DepositAccountsFlowProps {
      * none, and the claim step then states no terms rather than inventing them.
      */
     claimable?: Record<DepositCorridor, ClaimableCorridor | undefined>
+    /** account slots taken, counted as the backend's cap counts them — see `holdsSlot` */
+    slotsHeld?: number
     /** `gateFor('deposit', { railId })` per corridor — the app primitive, one rail at a time */
     gates: Record<DepositCorridor, GateState>
     /** true until the corridors and the held accounts are known */
@@ -49,13 +51,22 @@ export interface DepositAccountsFlowProps {
     onResolveGate: (gate: GateState) => void
     onRetry: () => void
     /**
-     * The one shared support door, for the two things the app cannot settle
-     * itself: details the provider revoked, and a user who wants more accounts
-     * than we open by default. The reason rides along so support does not have
-     * to ask which conversation this is.
+     * The one shared support door, for the things the app cannot settle
+     * itself: details the provider revoked, a user who wants more accounts than
+     * we open by default, and a provider review the app cannot start. The
+     * reason rides along so support does not have to ask which conversation
+     * this is.
      */
-    onContactSupport: (corridor: DepositCorridor, reason: 'revoked' | 'account-limit' | 'blocked') => void
+    onContactSupport: (corridor: DepositCorridor, reason: DepositSupportReason) => void
+    /**
+     * Starts the provider's hosted check, which is what clears a review that
+     * waits on the user. Absent when the backend offers this user no such
+     * action: the screen then says what is needed and offers support.
+     */
+    onFinishReview?: () => void
 }
+
+export type DepositSupportReason = 'revoked' | 'account-limit' | 'blocked' | 'review'
 
 /**
  * The bank flow: one NavHeader title across every step, the step in the URL,
@@ -71,6 +82,7 @@ export function DepositAccountsFlow({
     corridors,
     accounts,
     claimable,
+    slotsHeld = 0,
     gates,
     isLoading = false,
     isError = false,
@@ -82,6 +94,7 @@ export function DepositAccountsFlow({
     onResolveGate,
     onRetry,
     onContactSupport,
+    onFinishReview,
 }: DepositAccountsFlowProps) {
     const [{ step: screen, corridor, screen: legacyStep }, setParams] = useQueryStates(DEPOSIT_ACCOUNT_PARAMS)
     const [openingCorridor, setOpeningCorridor] = useState<DepositCorridor>()
@@ -171,26 +184,32 @@ export function DepositAccountsFlow({
     // say "at the limit". "You already have two accounts" is provably wrong to a
     // user looking at zero, so the cap screen only renders when the client can
     // see the accounts it names; otherwise the honest "we couldn't open an
-    // account" support screen shows.
-    const heldAccountCount = Object.values(accounts).filter(isHeld).length
+    // account" support screen shows. "Names" means takes a slot: a revoked
+    // account is held and the cap does not count it.
     const rawGateNotice = depositGateView(gate, terms).notice
     const gateNotice =
-        rawGateNotice?.action === 'account-limit' && heldAccountCount === 0
+        rawGateNotice?.action === 'account-limit' && slotsHeld === 0
             ? { ...rawGateNotice, action: 'support' as const }
-            : rawGateNotice
+            : rawGateNotice?.action === 'finish-review' && !onFinishReview
+              ? { ...rawGateNotice, action: 'finish-review-support' as const }
+              : rawGateNotice
     if (screen !== 'list' && !isLoading && !isError && isClaimable(rail) && !isHeld(account) && gateNotice) {
         return (
             <CorridorGateScreen
                 rail={rail}
                 notice={gateNotice}
+                slotsHeld={slotsHeld}
                 onBack={() => setParams({ step: 'list' })}
                 onAct={() => {
-                    if (gateNotice.action === 'account-limit') return onContactSupport(corridor, 'account-limit')
-                    // A terms-level block the capability gate cannot clear — the
-                    // phantom cap above rides on a `ready` gate — has nothing for
-                    // resolveGate to do, so it goes to the same support door.
-                    if (gate.kind === 'ready') return onContactSupport(corridor, 'blocked')
-                    return onResolveGate(gate)
+                    // A block from the backend's own terms has nothing for the
+                    // capability gate to resolve, whatever that gate reads.
+                    if (!isDepositBlock(gateNotice.kind)) return onResolveGate(gate)
+                    if (gateNotice.action === 'finish-review') return onFinishReview?.()
+                    if (gateNotice.action === 'finish-review-support') return onContactSupport(corridor, 'review')
+                    return onContactSupport(
+                        corridor,
+                        gateNotice.action === 'account-limit' ? 'account-limit' : 'blocked'
+                    )
                 }}
             />
         )
@@ -276,6 +295,7 @@ export function DepositAccountsFlow({
             corridors={corridors}
             accounts={accounts}
             claimable={claimable}
+            slotsHeld={slotsHeld}
             gates={gates}
             isLoading={isLoading}
             isError={isError}

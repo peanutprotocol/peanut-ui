@@ -3980,16 +3980,17 @@
             "badgeActive": "Active",
             "badgeNotSetUp": "Not set up",
             "badgeUnavailable": "Unavailable",
-            "badgeVerify": "Verify to unlock",
+            "badgeVerify": "Requires verification",
             "badgeRevoked": "Revoked",
             "accountLimitNote": "You can open up to {cap} bank accounts. Need more? Contact support.",
             "accountCounter": "{used} of {cap} used",
             "accountLimitReached": "You’ve used all {cap} accounts. Need another? Contact support.",
-            "accountLimitWhy": "Why only {cap}? Keeping each virtual account open costs us money, and we don’t charge you for it.",
+            "accountLimitWhy": "Why a limit? Keeping each bank account open costs us money, and we don’t charge you for it.",
             "errorTitle": "We could not load your accounts",
             "errorBody": "Your accounts are fine — we just could not read them. Check your connection and try again.",
             "errorRetry": "Try again",
-            "rowRevoked": "Closed — anything sent to these details is returned"
+            "rowRevoked": "Closed — anything sent to these details is returned",
+            "badgeActionNeeded": "Action needed"
         },
         "claim": {
             "heading": "Bank details in {currency}",
@@ -4125,11 +4126,16 @@
             "emailCta": "Add your email",
             "notYetTitle": "Not available to you yet",
             "notYetBody": "We are opening this gradually.",
-            "limitTitle": "You already have two accounts",
-            "limitBody": "Two bank accounts is the default. If you need another, support can turn one on for you.",
+            "limitTitle": "You already have {count, plural, one {# account} other {# accounts}}",
+            "limitBody": "That is your current limit. If you need another, support can turn one on for you.",
             "reviewTitle": "We're creating your account",
             "reviewBody": "This usually takes a few minutes. We'll let you know when it's ready.",
-            "reviewCta": "Back to Add money"
+            "reviewCta": "Back to Add money",
+            "blockedBody": "We could not open this account, and nothing in the app can fix it. Contact support and we will look into it.",
+            "finishReviewTitle": "One more check for this account",
+            "finishReviewBody": "Your identity is verified. {currency} accounts need one extra check by our payment partner before they can open.",
+            "finishReviewSupportBody": "Your identity is verified. {currency} accounts need one extra check by our payment partner, and we cannot start it from the app yet. Contact support and we will help you finish it.",
+            "finishReviewCta": "Continue"
         },
         "rules": {
             "providerHeld": {
