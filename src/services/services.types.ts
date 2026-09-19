@@ -36,51 +36,32 @@ export interface CreateRequestRequest {
  * payer must type. Derived from the generated contract rather than restated,
  * so a field the API drops fails the build at every reader.
  */
-export type RequestDepositInstructions =
-    paths['/requests/{uuid}/deposit-instructions']['get']['responses'][200]['content']['application/json'] & {
-        /** the amount to send in this account's currency; absent on an API that predates it */
-        payerAmount?: RequestPayerAmount
-    }
+export type RequestDepositInstructions = Omit<
+    paths['/requests/{uuid}/deposit-instructions']['get']['responses'][200]['content']['application/json'],
+    'payerAmount'
+> & {
+    /**
+     * The amount to send in this account's currency. Optional here although
+     * the contract makes it required: an API that predates the field is still
+     * answering during the deploy window, so every reader must handle it
+     * missing.
+     */
+    payerAmount?: RequestPayerAmount
+}
 
 /**
- * The amount a payer settles on one rail, in that rail's currency.
- *
- * Hand-written until the OpenAPI snapshot is regenerated with the
- * multi-currency request routes; then derive it from `paths` like its
- * neighbours.
+ * `GET /requests/:uuid/pay-amounts` — what is left to pay, on every rail the
+ * requester can receive on. Derived from the generated contract, so a field the
+ * API drops fails the build at every reader.
  */
-export interface RequestPayerAmount {
-    /** what is LEFT to pay, as a decimal string in `currency`; null when open, not priceable, or no rate */
-    amount: string | null
-    currency: string
-    /** false for a figure the request fixes: the dollar amount, or the amount asked in this currency */
-    isEstimate: boolean
-    /** present only for a produced cross-currency estimate */
-    rate?: { from: string; to: string; rate: string; source: string; asOf: string | null }
-}
+export type RequestPayAmounts =
+    paths['/requests/{uuid}/pay-amounts']['get']['responses'][200]['content']['application/json']
 
 /** One way to pay a request, with the amount in that rail's own currency. */
-export interface RequestPayRail {
-    kind: 'peanut_balance' | 'crypto' | 'bank'
-    payerAmount: RequestPayerAmount
-    /** bank rails only: the `provider.method` id */
-    railId?: string
-    /** bank rails only: ISO country of the receiving method */
-    country?: string
-    /** bank rails only: what the payer types so the deposit finds the request */
-    reference?: string
-}
+export type RequestPayRail = RequestPayAmounts['rails'][number]
 
-/** `GET /requests/:uuid/pay-amounts` — what is left to pay, on every rail the requester can receive on. */
-export interface RequestPayAmounts {
-    /** the currency the requester asked in; USD when they named none */
-    requestCurrency: string
-    /** the full amount asked, in `requestCurrency`; null on an open-amount request */
-    requestAmount: string | null
-    /** what is left to pay, in `requestCurrency`; null when open or not priceable */
-    remainingAmount?: string | null
-    rails: RequestPayRail[]
-}
+/** The amount a payer settles on one rail, in that rail's currency. */
+export type RequestPayerAmount = RequestPayRail['payerAmount']
 
 /**
  * How much of a request money arriving by bank answered, as the backend
