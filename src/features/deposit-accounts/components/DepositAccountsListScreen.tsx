@@ -162,22 +162,27 @@ export function DepositAccountsListScreen({
      * everybody sees. A Brazilian account is worth knowing about before you
      * live in Brazil, and the screen behind the row is what states the rule.
      *
-     * A user who has not verified holds a rail for nothing, so the standing
-     * accounts they could open by verifying would be missing from the hub
-     * entirely — they never learn the accounts exist or what they need. Show
-     * the claimable ones with a "requires verification" badge, but ONLY where
-     * the gate is `needs-identity` (identity not cleared yet). A verified user whose
-     * region has no such corridor resolves to `needs-enrollment` instead, and
-     * showing them a USD or ARS row they can never open is the noise these rows
-     * are meant to avoid.
+     * A corridor the backend has said NOTHING about gets no row. The hub used
+     * to add every claimable corridor in the catalogue whose gate read
+     * `needs-identity`, badged "Requires verification". The gate answers
+     * `needs-identity` for "no functional rail in scope and identity not
+     * verified", which is also its answer for a corridor this user's world has
+     * never contained — so the hub promised Colombia to a user no Colombian
+     * rail exists for, and the row vanished the moment they verified. That is a
+     * row naming an action the user cannot take, and then unnaming it.
+     *
+     * Nothing is lost by dropping it. A corridor the backend offers is in
+     * `claimable`, one it withholds is in `unavailable`, one the user holds is
+     * in `accounts`, and each of the three is already a row — with the identity
+     * gate still reading `needs-identity` on it, still badged, still tapping
+     * through to verification. Only the corridors nobody mentioned go quiet,
+     * and silence is the honest answer to silence: "Not available" would be a
+     * claim about this user that the backend never made either.
      */
     const hubCorridors = useMemo(() => {
         const shown = new Set([...corridors, ...RESIDENCE_GATED_CORRIDORS])
-        for (const corridor of DEPOSIT_RAIL_ORDER) {
-            if (isClaimable(DEPOSIT_RAILS[corridor]) && gates[corridor]?.kind === 'needs-identity') shown.add(corridor)
-        }
         return DEPOSIT_RAIL_ORDER.filter((corridor) => shown.has(corridor))
-    }, [corridors, gates])
+    }, [corridors])
 
     /**
      * Why the backend withholds a corridor, where it said so.

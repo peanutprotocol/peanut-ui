@@ -289,23 +289,48 @@ describe("DepositAccountsListScreen renders the user's corridors and no others",
 
     /**
      * A user who has not verified holds a rail for nothing. Rather than hide the
-     * standing accounts, the hub shows the claimable ones badged with what they
-     * need — so the user learns the accounts exist and what opens them. The row
-     * leads to verification: a badge naming an action, on a row that does not
-     * take the tap, is the dead end Hugo rejected. Only the identity gate does
-     * this: a verified user in a region with no rail reads needs-enrollment and
-     * is spared rows they cannot open (the test above).
+     * standing accounts, the hub shows the ones the backend named for them,
+     * badged with what they need — so the user learns the accounts exist and
+     * what opens them. The row leads to verification: a badge naming an action,
+     * on a row that does not take the tap, is the dead end Hugo rejected.
      */
-    it('shows the claimable accounts to an unverified user, badged with what they need', () => {
-        const { container } = list(false, { corridors: [], gates: allGates({ kind: 'needs-identity' }) })
+    it('shows an unverified user the corridors the backend named, badged with what they need', () => {
+        const { container } = list(false, {
+            corridors: ['SEPA_EU', 'FASTER_PAYMENTS_GB', 'ACH_US', 'SPEI_MX'],
+            gates: allGates({ kind: 'needs-identity' }),
+        })
 
-        for (const corridor of ['SEPA_EU', 'FASTER_PAYMENTS_GB', 'ACH_US', 'SPEI_MX', 'BANK_TRANSFER_CO'] as const) {
+        for (const corridor of ['SEPA_EU', 'FASTER_PAYMENTS_GB', 'ACH_US', 'SPEI_MX'] as const) {
             expect(rowOf(container, corridor)).toBeInTheDocument()
             expect(rowOf(container, corridor)).not.toHaveAttribute('aria-disabled', 'true')
         }
         expect(inRow(container, 'SEPA_EU').getByText(messages.depositAccounts.list.badgeVerify)).toBeInTheDocument()
         // a top-up-only corridor is not a standing account, so it stays out
         expect(rowOf(container, 'PIX_BR')).not.toBeInTheDocument()
+    })
+
+    /**
+     * The hub must not invent a corridor out of the catalogue.
+     *
+     * The gate answers `needs-identity` both for "you have this rail, verify
+     * and it opens" and for "this corridor is not part of your world at all",
+     * so a catalogue fallback keyed on that gate promised Colombia to a user no
+     * Colombian rail exists for — and took the row away again the moment they
+     * verified. Neither state was a statement the backend made.
+     */
+    it.each([
+        ['unverified', { kind: 'needs-identity' } as GateState],
+        ['verified', { kind: 'needs-enrollment' } as GateState],
+    ])('gives no row to a corridor the backend never mentioned (%s)', (_state, gate) => {
+        const { container } = list(false, {
+            corridors: ['SEPA_EU'],
+            gates: allGates(gate),
+            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') },
+        })
+
+        expect(rowOf(container, 'BANK_TRANSFER_CO')).not.toBeInTheDocument()
+        // the corridor it did mention is still a row, and still the user's
+        expect(rowOf(container, 'SEPA_EU')).toBeInTheDocument()
     })
 
     describe('the account counter', () => {

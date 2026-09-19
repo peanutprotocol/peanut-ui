@@ -83,6 +83,34 @@ describe('useDepositAccounts', () => {
     })
 
     /**
+     * A withheld corridor is a corridor the backend named, so it gets a row
+     * that says it is not available — and being withheld is often exactly why
+     * it has no rail. The hub keeps no catalogue fallback that would carry it.
+     */
+    it('keeps a corridor the backend withholds, rail or no rail', async () => {
+        userRails = [bankRail('bridge.sepa_eu', 'SEPA_EU')]
+        fetchDepositAccounts.mockResolvedValue({
+            accounts: [],
+            claimable: [],
+            unavailable: [
+                {
+                    railId: 'bridge.bank_transfer_co',
+                    method: 'BANK_TRANSFER_CO',
+                    country: 'CO',
+                    currency: 'COP',
+                    reason: 'not-offered',
+                },
+            ],
+        })
+
+        const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+        expect(result.current.corridors).toContain('BANK_TRANSFER_CO')
+        expect(result.current.unavailable.BANK_TRANSFER_CO?.reason).toBe('not-offered')
+    })
+
+    /**
      * The backend's cap counts every account the provider bills for. One
      * corridor holds two of them during a rotation, and a revoked one is free,
      * so the count comes from the rows and never from one-per-corridor.

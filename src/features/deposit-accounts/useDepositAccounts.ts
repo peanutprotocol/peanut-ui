@@ -277,6 +277,11 @@ export function useDepositAccounts({ enabled = true }: { enabled?: boolean } = {
      * row is what asks for the review — so waiting for the rail before showing
      * the row is a corridor nobody can ever reach. That is what dropped the
      * Colombian row and sent the country pick to the waitlist.
+     *
+     * A withheld corridor is the fourth group, and it is here for the same
+     * reason: the backend named it, so it gets a row that says it is not
+     * available. It may have no rail — being withheld is often why — and the
+     * hub no longer keeps a catalogue fallback that would have carried it.
      */
     const corridors = useMemo(
         () =>
@@ -284,16 +289,19 @@ export function useDepositAccounts({ enabled = true }: { enabled?: boolean } = {
                 ? []
                 : corridorsFromRails(
                       rails,
-                      DEPOSIT_RAIL_ORDER.filter((corridor) => accounts[corridor] || claimable[corridor])
+                      DEPOSIT_RAIL_ORDER.filter(
+                          (corridor) => accounts[corridor] || claimable[corridor] || unavailable[corridor]
+                      )
                   ).filter(
                       (corridor) =>
                           !query.data ||
                           accounts[corridor] ||
                           !isClaimable(DEPOSIT_RAILS[corridor]) ||
                           gateFor('deposit', { railId: railIdFor(corridor) }).kind !== 'ready' ||
-                          claimable[corridor]
+                          claimable[corridor] ||
+                          unavailable[corridor]
                   ),
-        [enabled, rails, accounts, query.data, gateFor, claimable]
+        [enabled, rails, accounts, query.data, gateFor, claimable, unavailable]
     )
 
     const gates = useMemo((): Record<DepositCorridor, GateState> => {
