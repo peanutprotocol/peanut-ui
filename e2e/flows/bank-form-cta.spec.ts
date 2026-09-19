@@ -65,14 +65,24 @@ test.describe('bank form submit button at 375x667', () => {
         // smooth scroll: give it the time to land
         await expect.poll(() => tapTargetAtCentre(page), { timeout: 10_000 }).toBe('button')
 
-        // and its box does not touch the nav's
-        const overlap = await page.evaluate(() => {
-            const cta = document.querySelector('[data-testid="bank-form-cta"] button')?.getBoundingClientRect()
-            const nav = document.querySelector('nav')?.getBoundingClientRect()
-            if (!cta || !nav) return null
-            return Math.max(0, Math.min(cta.bottom, nav.bottom) - Math.max(cta.top, nav.top))
-        })
-        expect(overlap).toBe(0)
+        // and its box does not touch the nav's. Polled, not read once: the
+        // scroll that brings it clear is `behavior: 'smooth'`, and reading the
+        // box mid-animation caught it 19px into the nav on 1 run of 7 while the
+        // hit-test above had already passed.
+        await expect
+            .poll(
+                () =>
+                    page.evaluate(() => {
+                        const cta = document
+                            .querySelector('[data-testid="bank-form-cta"] button')
+                            ?.getBoundingClientRect()
+                        const nav = document.querySelector('nav')?.getBoundingClientRect()
+                        if (!cta || !nav) return null
+                        return Math.max(0, Math.min(cta.bottom, nav.bottom) - Math.max(cta.top, nav.top))
+                    }),
+                { timeout: 10_000 }
+            )
+            .toBe(0)
     })
 
     /*

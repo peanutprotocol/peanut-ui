@@ -20,6 +20,7 @@ import {
     type TRequestChargeResponse,
     type PaymentCreationResponse,
 } from '@/services/services.types'
+import { collectedTotal } from './collected'
 
 // view states for contribute pot flow
 export type ContributePotFlowView = 'INITIAL' | 'STATUS' | 'EXTERNAL_WALLET'
@@ -157,9 +158,8 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
         return request?.tokenAmount ? parseFloat(request.tokenAmount) : 0
     }, [request?.tokenAmount])
 
-    const totalCollected = useMemo(() => {
-        return request?.totalCollectedAmount ?? 0
-    }, [request?.totalCollectedAmount])
+    /** charges and bank deposits together — see `collectedTotal` */
+    const totalCollected = useMemo(() => collectedTotal(request), [request])
 
     // derive contributors from charges
     const contributors = useMemo<PotContributor[]>(() => {
