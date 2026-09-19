@@ -46,8 +46,20 @@ jest.mock('@/hooks/useSavedAccounts', () => ({
     default: () => [SAVED_US_ACCOUNT],
 }))
 
-// `getBicFromIban` is NOT mocked: it reads a table bundled with the app, so the
-// IBAN tests below run against the real derivation (and its real gaps).
+// `getBicFromIban` runs for real: it reads a table bundled with the app, so the
+// IBAN tests below run against the real derivation (and its real gaps). The
+// wrapper only lets one test make the server action fail.
+let mockBicLookupFails = false
+jest.mock('@/app/actions/ibanToBic', () => {
+    const actual = jest.requireActual('@/app/actions/ibanToBic')
+    return {
+        ...actual,
+        getBicFromIban: async (iban: string) => {
+            if (mockBicLookupFails) throw new Error('server action failed')
+            return actual.getBicFromIban(iban)
+        },
+    }
+})
 
 // the two provider checks are network calls
 const mockValidateBankAccount = jest.fn(async (_account: string) => true)
@@ -120,6 +132,7 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockValidateBankAccount.mockResolvedValue(true)
     mockValidateBic.mockResolvedValue(true)
+    mockBicLookupFails = false
 })
 
 // ---------- tests ----------
@@ -374,6 +387,56 @@ describe('DynamicBankAccountForm — the BIC follows the IBAN', () => {
         await submitWithEnter(container)
         await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
         expect(payloadOf(onSuccess)).toMatchObject({ accountNumber: IT_IBAN, bic: 'BPMOIT22XXX', countryCode: 'ITA' })
+    })
+
+    it('refuses a typed BIC from another country than the IBAN, with no request', async () => {
+        const onSuccess = jest.fn(async () => ({}))
+        const { container } = renderIbanForm(onSuccess, 'ITA')
+
+        await typeIban(IT_IBAN, { blur: true })
+        mockValidateBic.mockClear()
+        await act(async () => {
+            fireEvent.change(bicInput()!, { target: { value: 'COBADEFFXXX' } })
+        })
+        await act(async () => {
+            fireEvent.blur(bicInput()!)
+        })
+
+        await submitWithEnter(container)
+        expect(onSuccess).not.toHaveBeenCalled()
+        expect(await screen.findByText('withdraw.bankForm.bicCountryMismatch')).toBeInTheDocument()
+        expect(mockValidateBic).not.toHaveBeenCalled()
+    })
+
+    /**
+     * The lookup is a server action, and it runs again at submit. A failure
+     * there is not "the table does not know this bank": the BIC derived a
+     * moment ago for the same IBAN is still right.
+     */
+    it('a lookup that fails at submit keeps the BIC already derived for the same IBAN', async () => {
+        const onSuccess = jest.fn(async () => ({}))
+        const { container } = renderIbanForm(onSuccess)
+
+        await typeIban(DE_IBAN, { blur: true })
+        mockBicLookupFails = true
+        await submitWithEnter(container)
+
+        await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+        expect(payloadOf(onSuccess)).toMatchObject({ accountNumber: DE_IBAN, bic: DE_BIC })
+        expect(bicInput()).not.toBeInTheDocument()
+    })
+
+    it('a lookup that fails on a NEW IBAN does not reuse the BIC of the old one', async () => {
+        const onSuccess = jest.fn(async () => ({}))
+        const { container } = renderIbanForm(onSuccess)
+
+        await typeIban(DE_IBAN, { blur: true })
+        mockBicLookupFails = true
+        await typeIban(IT_IBAN, { blur: false })
+        await submitWithEnter(container)
+
+        expect(onSuccess).not.toHaveBeenCalled()
+        expect(bicInput()).toBeInTheDocument()
     })
 
     it('IBAN A then IBAN B (blurred): the BIC derived for A is cleared and never submitted', async () => {

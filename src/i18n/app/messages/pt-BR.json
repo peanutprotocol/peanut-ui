@@ -2030,7 +2030,8 @@
             "phoneNumberHelper": "O número cadastrado no seu banco.",
             "pasteAria": "Colar da área de transferência",
             "pasteEmpty": "Nada para colar",
-            "pasteUnavailable": "Não foi possível ler a área de transferência"
+            "pasteUnavailable": "Não foi possível ler a área de transferência",
+            "bicCountryMismatch": "Este BIC é de um banco de outro país que o IBAN"
         },
         "errors": {
             "invalidNumber": "Digite um número válido.",

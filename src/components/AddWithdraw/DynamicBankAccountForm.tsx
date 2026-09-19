@@ -12,6 +12,7 @@ import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import { useParams, useSearchParams } from 'next/navigation'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { validateIban, validateBankAccount, validateBic } from '@/utils/bridge-accounts.utils'
+import { bicMatchesIbanCountry } from './bicIbanCountry.utils'
 import { bankCorridorFor, type BankCorridorField } from '@/components/AddWithdraw/bank-corridors'
 import { getBicFromIban } from '@/app/actions/ibanToBic'
 import PeanutActionDetailsCard, { type PeanutActionDetailsCardProps } from '../Global/PeanutActionDetailsCard'
@@ -121,6 +122,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         // The BIC the form derived, so a change of IBAN can tell a derived BIC
         // (now stale) from one the user typed.
         const derivedBicRef = useRef<string | null>(null)
+        // the IBAN that BIC was derived from, so a failed lookup can tell "same IBAN" from "new one"
+        const derivedForIbanRef = useRef<string | null>(null)
         const toast = useToast()
         const STREET_ADDRESS_MAX_LENGTH = 35 // From bridge docs: street address can be max 35 characters
 
@@ -198,12 +201,17 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 try {
                     derivedBic = (await getBicFromIban(iban)) || null
                 } catch {
-                    derivedBic = null
+                    // The lookup FAILED, which is not "the table does not know
+                    // this bank". A BIC already derived for this same IBAN is
+                    // still right; dropping it made a network blip at submit
+                    // demand a BIC by hand from a user who never saw the field.
+                    derivedBic = derivedForIbanRef.current === iban ? derivedBicRef.current : null
                 }
             }
 
             if (derivedBic) {
                 derivedBicRef.current = derivedBic
+                derivedForIbanRef.current = iban
                 setValue('bic', derivedBic, { shouldValidate: true })
                 setBicAutoFilled(true)
                 return derivedBic
@@ -213,6 +221,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 setValue('bic', '', { shouldValidate: true })
             }
             derivedBicRef.current = null
+            derivedForIbanRef.current = null
             setBicAutoFilled(false)
             return null
         }
@@ -662,6 +671,10 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                     required: t('bicRequired'),
                                     validate: async (value: string) => {
                                         if (!value || value.trim().length === 0) return t('bicRequired')
+                                        // no request needed to see a BIC from another country
+                                        if (!bicMatchesIbanCountry(value, getValues('accountNumber') ?? '')) {
+                                            return t('bicCountryMismatch')
+                                        }
 
                                         // Only validate if the value matches the debounced value (to prevent API calls on every keystroke)
                                         if (value.trim() !== debouncedBicValue?.trim()) {
