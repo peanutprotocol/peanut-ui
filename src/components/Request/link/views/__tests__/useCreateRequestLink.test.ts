@@ -248,21 +248,42 @@ describe('useCreateRequestLink', () => {
         expect(toastError).toHaveBeenCalled()
     })
 
-    it('changing the amount resets the generated request', async () => {
+    /**
+     * After creation the amount field is disabled, so a change that still
+     * arrives is the input re-rendering its own value: a currency swap,
+     * "100.50" shown as "100.5", a refreshed FX rate. Each used to clear the
+     * request, bring the Create button back, and the next tap made a duplicate.
+     */
+    it.each([['5.0'], ['4.99'], [''], [undefined]])(
+        'keeps the created request when the input reports %p afterwards',
+        async (echo) => {
+            const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
+            act(() => {
+                result.current.handleRequestAmountChange('5')
+            })
+            await act(async () => {
+                await result.current.generateLink()
+            })
+            expect(result.current.requestId).toBe('req-1')
+
+            act(() => {
+                result.current.handleRequestAmountChange(echo)
+            })
+            expect(result.current.requestId).toBe('req-1')
+            expect(result.current.generatedLink).not.toBeNull()
+            expect(result.current.requestAmount).toBe('5')
+        }
+    )
+
+    it('still takes amount edits before a request exists', () => {
         const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
         act(() => {
             result.current.handleRequestAmountChange('5')
         })
-        await act(async () => {
-            await result.current.generateLink()
-        })
-        expect(result.current.requestId).toBe('req-1')
-
         act(() => {
             result.current.handleRequestAmountChange('7')
         })
-        expect(result.current.requestId).toBeNull()
-        expect(result.current.generatedLink).toBeNull()
+        expect(result.current.requestAmount).toBe('7')
     })
 
     // ui#3271 QA pass 2: this used to auto-call generateLink() the moment

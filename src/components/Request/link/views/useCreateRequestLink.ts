@@ -376,21 +376,16 @@ export const useCreateRequestLink = () => {
 
     const handleRequestAmountChange = useCallback(
         (value: string | undefined) => {
-            const newValue = value || ''
-            setRequestAmount(newValue)
-
-            // Reset link and request when the amount changes
-            if (newValue !== requestAmount) {
-                setGeneratedLink(null)
-                setRequestId(null)
-                lastSavedAttachmentRef.current = {
-                    message: '',
-                    fileUrl: '',
-                    rawFile: undefined,
-                }
-            }
+            // The amount is part of what the request was created with. Once it
+            // exists the field is disabled, and every change that still arrives
+            // is the input talking to itself: a currency swap, "100.50"
+            // re-rendered as "100.5", a new FX rate. Treating those as edits
+            // dropped the created request off the screen, and the Create button
+            // that came back made a duplicate.
+            if (requestId) return
+            setRequestAmount(value || '')
         },
-        [requestAmount]
+        [requestId]
     )
 
     const handleCurrencyChange = useCallback(

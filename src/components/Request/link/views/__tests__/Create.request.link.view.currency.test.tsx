@@ -98,6 +98,14 @@ describe('CreateRequestLinkView — request currency', () => {
 
         expect(screen.getByRole('button', { name: 'Request currency: EUR' })).toBeDisabled()
         expect(screen.getByRole('button', { name: 'Share 100 EUR request' })).toBeInTheDocument()
+        // `disabled` leaves the swap button live, so the toggle goes too
+        expect(amountInputProps()).toEqual(expect.objectContaining({ disabled: true, hideCurrencyToggle: true }))
+    })
+
+    it('keeps the currency swap while the request is still being written', () => {
+        renderView({ currency: 'EUR', requestAmount: '100', exchangeRate: 0.8 })
+
+        expect(amountInputProps().hideCurrencyToggle).toBe(false)
     })
 
     it('keeps the dollar share label for a dollar request', () => {

@@ -997,7 +997,11 @@ describe('GROUP 7: Edge Cases', () => {
         })
     })
 
-    test('changing amount after link creation resets request state', async () => {
+    // The field is disabled once the request exists, so a change that still
+    // arrives is the input echoing its own value (currency swap, reformat, new
+    // FX rate). It must not bring the Create button back: the next tap there
+    // made a duplicate request.
+    test('an amount change after link creation keeps the created request', async () => {
         renderCreateRequest()
 
         const field = screen.getByTestId('amount-field')
@@ -1007,20 +1011,17 @@ describe('GROUP 7: Edge Cases', () => {
             fireEvent.click(screen.getByRole('button', { name: 'Create request' }))
         })
 
-        // Wait for link creation
         await waitFor(() => {
             expect(screen.getByTestId('share-button')).toBeInTheDocument()
         })
 
-        // Now change the amount — this should reset the request
         await act(async () => {
             fireEvent.change(field, { target: { value: '20' } })
         })
 
-        // The Create request button should reappear (since requestId is reset)
-        await waitFor(() => {
-            expect(screen.getByRole('button', { name: 'Create request' })).toBeInTheDocument()
-        })
+        expect(screen.getByTestId('share-button')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Create request' })).not.toBeInTheDocument()
+        expect(mockRequestsApi.create).toHaveBeenCalledTimes(1)
     })
 
     test('aborted request does not show error', async () => {

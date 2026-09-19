@@ -67,6 +67,9 @@ export const CreateRequestLinkView = () => {
                     setPrimaryAmount={handleRequestAmountChange}
                     onSubmit={handleTokenAmountSubmit}
                     disabled={!!requestId}
+                    // `disabled` does not cover the swap button, and a swap
+                    // after creation shows a figure the request does not carry
+                    hideCurrencyToggle={!!requestId}
                     {...(currency !== 'USD' && {
                         primaryDenomination: { symbol: currency, price: exchangeRate || 1, decimals: 2 },
                         secondaryDenomination: exchangeRate > 0 ? { symbol: 'USD', price: 1, decimals: 2 } : undefined,
