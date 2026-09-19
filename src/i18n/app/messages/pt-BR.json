@@ -1198,8 +1198,8 @@
             "requestNotFoundTitle": "Cobrança não encontrada",
             "requestNotFoundDescription": "Esta cobrança não existe ou foi removida. Peça um novo link para quem enviou."
         },
-        "requestCurrencyNote": "Esta solicitação pede {amount} {currency}. Com Peanut ou cripto você paga em USD por uma cotação estimada.",
-        "requestCurrencyNotePartPaid": "Esta solicitação pede {amount} {currency} e faltam {remaining} {currency} a pagar. Com Peanut ou cripto você paga em USD por uma cotação estimada.",
+        "requestCurrencyNote": "Esta solicitação pede {amount} {currency}. Com Peanut, cripto ou transferência bancária em dólar você paga o valor em dólar, que foi fixado quando a solicitação foi criada.",
+        "requestCurrencyNotePartPaid": "Esta solicitação pede {amount} {currency} e faltam {remaining} {currency} a pagar. Com Peanut, cripto ou transferência bancária em dólar você paga o valor em dólar, que foi fixado quando a solicitação foi criada.",
         "bankTransfer": {
             "title": "Pagar por transferência bancária",
             "description": "Envie do seu banco para a conta de quem pediu o pagamento.",
@@ -1207,7 +1207,7 @@
             "transferSection": "O que enviar",
             "referenceLabel": "Referência do pagamento",
             "referenceNote": "Adicione esta referência à sua transferência. Sem ela, o pagamento não é associado a esta solicitação.",
-            "unavailable": "A transferência bancária não está disponível para esta solicitação.",
+            "unavailable": "A transferência bancária não está disponível para esta solicitação no momento.",
             "amountLabel": "Valor a enviar",
             "amountValue": "{amount} {currency}",
             "amountValueApprox": "≈ {amount} {currency}",
@@ -1217,8 +1217,11 @@
             "amountNoteSameCurrency": "Envie este valor e a solicitação fica paga.",
             "amountNoteBankConverts": "Não há uma estimativa em {currency} agora. Envie o valor em {currency} equivalente a este valor em USD. Seu banco define a cotação.",
             "senderBusinessOnly": "Só uma conta empresarial pode pagar isto. Uma transferência de uma conta pessoal é devolvida.",
-            "senderUnknown": "Esta conta não confirmou que aceita pagamentos de outras pessoas, então sua transferência pode ser devolvida."
-        }
+            "senderUnknown": "Esta conta não confirmou que aceita pagamentos de outras pessoas, então sua transferência pode ser devolvida.",
+            "otherWays": "Ver outras formas de pagar"
+        },
+        "requestAsksFor": "Pedido de {amount} {currency}",
+        "requestAsksForDollars": "${amount} em dólar, fixado quando a solicitação foi criada"
     },
     "claim": {
         "receive": "Receber",

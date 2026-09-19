@@ -1198,8 +1198,8 @@
             "requestNotFoundTitle": "Request not found",
             "requestNotFoundDescription": "This payment request doesn't exist or was removed. Ask the sender for a new link."
         },
-        "requestCurrencyNote": "This request asks for {amount} {currency}. With Peanut or crypto you pay in USD at an estimated rate.",
-        "requestCurrencyNotePartPaid": "This request asks for {amount} {currency}, and {remaining} {currency} is left to pay. With Peanut or crypto you pay in USD at an estimated rate.",
+        "requestCurrencyNote": "This request asks for {amount} {currency}. With Peanut, crypto or a dollar bank transfer you pay its dollar amount, which was fixed when the request was made.",
+        "requestCurrencyNotePartPaid": "This request asks for {amount} {currency}, and {remaining} {currency} is left to pay. With Peanut, crypto or a dollar bank transfer you pay the dollar amount, which was fixed when the request was made.",
         "bankTransfer": {
             "title": "Pay by bank transfer",
             "description": "Send from your bank to the requester's account.",
@@ -1207,7 +1207,7 @@
             "transferSection": "What to send",
             "referenceLabel": "Payment reference",
             "referenceNote": "Add this reference to your transfer. Without it the payment is not matched to this request.",
-            "unavailable": "Bank transfer is not available for this request.",
+            "unavailable": "Bank transfer is not available for this request right now.",
             "amountLabel": "Amount to send",
             "amountValue": "{amount} {currency}",
             "amountValueApprox": "≈ {amount} {currency}",
@@ -1217,8 +1217,11 @@
             "amountNoteSameCurrency": "Send this amount and the request is marked paid.",
             "amountNoteBankConverts": "There is no {currency} estimate right now. Send the {currency} amount that equals this USD amount. Your bank sets the rate.",
             "senderBusinessOnly": "Only a business account can pay this. A transfer from a personal account is returned.",
-            "senderUnknown": "This account has not confirmed it accepts payments from other people, so your transfer may be returned."
-        }
+            "senderUnknown": "This account has not confirmed it accepts payments from other people, so your transfer may be returned.",
+            "otherWays": "See other ways to pay"
+        },
+        "requestAsksFor": "{amount} {currency} requested",
+        "requestAsksForDollars": "${amount} in dollars, fixed when the request was made"
     },
     "claim": {
         "receive": "Receive",

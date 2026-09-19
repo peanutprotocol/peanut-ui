@@ -10,7 +10,7 @@ const mockUseInstructions = jest.fn()
 jest.mock('@/features/deposit-accounts/useRequestDepositInstructions', () => ({
     useRequestDepositInstructions: (...args: unknown[]) => {
         mockUseInstructions(...args)
-        return { instructions: mockInstructions, isLoading: false, isUnavailable: false }
+        return { instructions: mockInstructions, isLoading: false, isUnavailable: mockUnavailable }
     },
 }))
 const mockBankInstructions = jest.fn()
@@ -22,6 +22,7 @@ jest.mock('@/features/deposit-accounts/components/RequestBankInstructions', () =
 }))
 
 let mockInstructions: unknown
+let mockUnavailable = false
 
 import { PayByBankTransferDrawer } from '../PayByBankTransferDrawer'
 
@@ -47,6 +48,7 @@ const renderRow = (props: Partial<React.ComponentProps<typeof PayByBankTransferD
 beforeEach(() => {
     jest.clearAllMocks()
     mockInstructions = undefined
+    mockUnavailable = false
 })
 
 describe('PayByBankTransferDrawer', () => {
@@ -130,6 +132,20 @@ describe('PayByBankTransferDrawer', () => {
             instructions: { payerAmount: { amount: string } }
         }
         expect(instructions.payerAmount.amount).toBe('92.31')
+    })
+
+    /**
+     * The API can offer a rail and then fail to serve its details (404). The
+     * drawer used to say "not available" and nothing else.
+     */
+    it('gives a dead end a way on, and tells the list to stop offering the row', () => {
+        mockUnavailable = true
+        const onUnavailable = jest.fn()
+        renderRow({ rail: eurExact, onUnavailable })
+        fireEvent.click(screen.getByText('Pay in EUR · SEPA'))
+
+        fireEvent.click(screen.getByTestId('bank-transfer-other-ways'))
+        expect(onUnavailable).toHaveBeenCalledTimes(1)
     })
 
     // An API that predates pay-amounts: the backend picks the account.

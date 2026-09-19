@@ -24,11 +24,14 @@ import { useState } from 'react'
 import { useAuth } from '@/context/authContext'
 import { RequestPotActionList } from '../components/RequestPotActionList'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { useTranslations } from 'next-intl'
+import { useFormatter, useTranslations } from 'next-intl'
+import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
+import { minorUnitDigits } from '@/features/deposit-accounts/payerAmount'
 
 export function ContributePotInputView() {
     const onBack = useSafeBack('/')
     const t = useTranslations('payment')
+    const format = useFormatter()
     const { isFetchingUser } = useAuth()
     const {
         amount,
@@ -75,6 +78,19 @@ export function ContributePotInputView() {
         }
     }
 
+    const askedCurrency = request?.currency?.toUpperCase()
+    const askedValue = Number(request?.requestedAmount)
+    const askedAmount =
+        askedCurrency && askedCurrency !== 'USD' && askedValue > 0
+            ? {
+                  currency: askedCurrency,
+                  amount: format.number(askedValue, {
+                      minimumFractionDigits: minorUnitDigits(askedCurrency),
+                      maximumFractionDigits: minorUnitDigits(askedCurrency),
+                  }),
+              }
+            : undefined
+
     // determine button state
     const isAmountEntered = !!amount && parseFloat(amount) > 0
 
@@ -97,6 +113,20 @@ export function ContributePotInputView() {
                         isRequestPot={true}
                         contributors={contributors}
                         avatarKey={recipient.avatarKey}
+                    />
+                )}
+
+                {/* A request asked in another currency leads with what it asks for.
+                    The card above and the field below are in dollars, because that
+                    is what Peanut settles in; without this line the asked amount
+                    only showed in a grey note under the payment methods. */}
+                {askedAmount && (
+                    <TitleBlock
+                        size="s"
+                        align="center"
+                        title={t('requestAsksFor', askedAmount)}
+                        description={t('requestAsksForDollars', { amount: totalAmount.toFixed(2) })}
+                        data-testid="request-asked-amount"
                     />
                 )}
 

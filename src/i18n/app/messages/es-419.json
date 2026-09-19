@@ -1198,8 +1198,8 @@
             "requestNotFoundTitle": "Solicitud no encontrada",
             "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pide un nuevo enlace a quien la envió."
         },
-        "requestCurrencyNote": "Esta solicitud pide {amount} {currency}. Con Peanut o cripto pagas en USD a un tipo de cambio estimado.",
-        "requestCurrencyNotePartPaid": "Esta solicitud pide {amount} {currency} y faltan {remaining} {currency} por pagar. Con Peanut o cripto pagas en USD a un tipo de cambio estimado.",
+        "requestCurrencyNote": "Esta solicitud pide {amount} {currency}. Con Peanut, cripto o una transferencia bancaria en dólares pagas su monto en dólares, que quedó fijado al crear la solicitud.",
+        "requestCurrencyNotePartPaid": "Esta solicitud pide {amount} {currency} y faltan {remaining} {currency} por pagar. Con Peanut, cripto o una transferencia bancaria en dólares pagas el monto en dólares, que quedó fijado al crear la solicitud.",
         "bankTransfer": {
             "title": "Pagar por transferencia bancaria",
             "description": "Envía desde tu banco a la cuenta de quien te pide el pago.",
@@ -1207,7 +1207,7 @@
             "transferSection": "Qué enviar",
             "referenceLabel": "Referencia del pago",
             "referenceNote": "Agrega esta referencia a tu transferencia. Sin ella, el pago no se asocia a esta solicitud.",
-            "unavailable": "La transferencia bancaria no está disponible para esta solicitud.",
+            "unavailable": "La transferencia bancaria no está disponible para esta solicitud por ahora.",
             "amountLabel": "Monto a enviar",
             "amountValue": "{amount} {currency}",
             "amountValueApprox": "≈ {amount} {currency}",
@@ -1217,8 +1217,11 @@
             "amountNoteSameCurrency": "Envía este monto y la solicitud queda pagada.",
             "amountNoteBankConverts": "Ahora no hay un estimado en {currency}. Envía el monto en {currency} que equivale a este monto en USD. Tu banco fija el tipo de cambio.",
             "senderBusinessOnly": "Solo una cuenta de empresa puede pagar esto. Una transferencia desde una cuenta personal se devuelve.",
-            "senderUnknown": "Esta cuenta no confirmó que acepta pagos de otras personas, así que tu transferencia puede devolverse."
-        }
+            "senderUnknown": "Esta cuenta no confirmó que acepta pagos de otras personas, así que tu transferencia puede devolverse.",
+            "otherWays": "Ver otras formas de pagar"
+        },
+        "requestAsksFor": "Se piden {amount} {currency}",
+        "requestAsksForDollars": "${amount} en dólares, fijado al crear la solicitud"
     },
     "claim": {
         "receive": "Recibir",

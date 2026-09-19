@@ -89,6 +89,9 @@ export function RequestPotActionList({
     const [showUsePeanutBalanceModal, setShowUsePeanutBalanceModal] = useState(false)
     const [isUsePeanutBalanceModalShown, setIsUsePeanutBalanceModalShown] = useState(false)
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null)
+    // Bank rails whose details the API could not serve, for as long as this
+    // screen lives. A row that opens onto "not available" is not offered twice.
+    const [unavailableRails, setUnavailableRails] = useState<ReadonlySet<string>>(new Set())
 
     const isLoggedIn = !!user?.user?.userId
 
@@ -185,7 +188,17 @@ export function RequestPotActionList({
     const { payAmounts, isLoading: isPayAmountsLoading } = useRequestPayAmounts(
         bankPayable || asksInOtherCurrency ? requestId : undefined
     )
-    const bankRails = bankPayable ? (payAmounts?.rails.filter((rail) => rail.kind === 'bank') ?? []) : []
+    // The currency the request asks in leads: it is the one a bank payer can
+    // settle exactly. The rest keep the order the API sent them in.
+    const askedCurrency = (payAmounts?.requestCurrency ?? requestCurrency ?? 'USD').toUpperCase()
+    const bankRails = (bankPayable ? (payAmounts?.rails.filter((rail) => rail.kind === 'bank') ?? []) : [])
+        // a rail whose details turned out to be unavailable is not offered again
+        .filter((rail) => !unavailableRails.has(rail.railId ?? rail.payerAmount.currency))
+        .sort(
+            (a, b) =>
+                Number(b.payerAmount.currency.toUpperCase() === askedCurrency) -
+                Number(a.payerAmount.currency.toUpperCase() === askedCurrency)
+        )
 
     // The API's own "left to pay" in dollars, when it sent one: the Peanut rail
     // is always dollars and exact, and it is the figure the bank amounts were
@@ -229,6 +242,9 @@ export function RequestPotActionList({
                 key={rail.railId ?? rail.payerAmount.currency}
                 requestId={requestId}
                 rail={rail}
+                onUnavailable={() =>
+                    setUnavailableRails((current) => new Set(current).add(rail.railId ?? rail.payerAmount.currency))
+                }
                 {...bankRowProps}
             />
         ))

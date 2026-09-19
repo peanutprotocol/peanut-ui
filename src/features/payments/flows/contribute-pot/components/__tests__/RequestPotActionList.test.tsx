@@ -6,7 +6,7 @@
  * signed-out payer can pay with no account: that row leads and the generic one
  * is hidden.
  */
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 
 jest.mock('next/navigation', () => ({
@@ -39,10 +39,18 @@ jest.mock('@/hooks/useGeoFilteredPaymentOptions', () => ({
 
 const mockDrawer = jest.fn()
 jest.mock('../PayByBankTransferDrawer', () => ({
-    PayByBankTransferDrawer: (props: { bankPayable: boolean; rail?: { payerAmount: { currency: string } } }) => {
+    PayByBankTransferDrawer: (props: {
+        bankPayable: boolean
+        rail?: { payerAmount: { currency: string } }
+        onUnavailable?: () => void
+    }) => {
         mockDrawer(props)
         if (!props.bankPayable) return null
-        return <div>{props.rail ? `Pay in ${props.rail.payerAmount.currency}` : 'Pay by bank transfer'}</div>
+        return (
+            <div onClick={props.onUnavailable}>
+                {props.rail ? `Pay in ${props.rail.payerAmount.currency}` : 'Pay by bank transfer'}
+            </div>
+        )
     },
 }))
 
@@ -232,6 +240,35 @@ describe('RequestPotActionList', () => {
             renderList()
 
             expect(screen.queryByText(/This request asks for/)).not.toBeInTheDocument()
+        })
+
+        // the currency the request asks in is the one a bank payer settles exactly
+        it('leads the bank rows with the currency the request asks in', () => {
+            mockPayAmounts = {
+                requestCurrency: 'EUR',
+                requestAmount: '50.00',
+                rails: [
+                    usdRail,
+                    bankRail('USD', 'bridge.ach_us', false),
+                    bankRail('GBP', 'bridge.faster_payments_gb', true),
+                    bankRail('EUR', 'bridge.sepa_eu', false),
+                ],
+            }
+            renderList({ requestCurrency: 'EUR', remainingUsd: 108 })
+
+            expect(rowOrder().slice(2)).toEqual(['Pay in EUR', 'Pay in USD', 'Pay in GBP'])
+        })
+
+        it('stops offering a rail whose details turned out to be unavailable', () => {
+            mockPayAmounts = {
+                requestCurrency: 'EUR',
+                requestAmount: '50.00',
+                rails: [usdRail, bankRail('EUR', 'bridge.sepa_eu', false), bankRail('USD', 'bridge.ach_us', false)],
+            }
+            renderList({ requestCurrency: 'EUR', remainingUsd: 108 })
+
+            fireEvent.click(screen.getByText('Pay in USD'))
+            expect(rowOrder().slice(2)).toEqual(['Pay in EUR'])
         })
 
         /**

@@ -1,5 +1,6 @@
 'use client'
 
+import { Button } from '@/components/0_Bruddle/Button'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
@@ -38,6 +39,7 @@ export function PayByBankTransferDrawer({
     remainingUsd,
     serverCountsAllPayments,
     rail,
+    onUnavailable,
 }: {
     requestId: string
     bankPayable: boolean
@@ -49,6 +51,11 @@ export function PayByBankTransferDrawer({
     serverCountsAllPayments?: boolean
     /** the requester's bank rail this row pays into, with what the request still needs on it */
     rail?: RequestPayRail
+    /**
+     * The details for this rail could not be served. Called when the payer
+     * leaves the dead end, so the list stops offering the row.
+     */
+    onUnavailable?: () => void
 }) {
     const t = useTranslations('payment')
     const format = useFormatter()
@@ -126,10 +133,23 @@ export function PayByBankTransferDrawer({
                                 <Loading />
                             </div>
                         )}
+                        {/* A dead end needs a way on: the other ways to pay are
+                            on the list this drawer covers. */}
                         {!isLoading && isUnavailable && (
-                            <p className="py-4 text-body-s text-foreground-secondary">
-                                {t('bankTransfer.unavailable')}
-                            </p>
+                            <div className="flex flex-col gap-4 py-4">
+                                <p className="text-body-s text-foreground-secondary">{t('bankTransfer.unavailable')}</p>
+                                <Button
+                                    variant="purple"
+                                    className="w-full"
+                                    onClick={() => {
+                                        setIsOpen(false)
+                                        onUnavailable?.()
+                                    }}
+                                    data-testid="bank-transfer-other-ways"
+                                >
+                                    {t('bankTransfer.otherWays')}
+                                </Button>
+                            </div>
                         )}
                         {instructions && (
                             <RequestBankInstructions
