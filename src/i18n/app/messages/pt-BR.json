@@ -408,7 +408,7 @@
             },
             "limits": {
                 "monthlyLeft": "Restam {remaining} de {limit} neste mês",
-                "p2pNoLimit": "Pagamentos de Peanut para Peanut e cripto não têm valor máximo",
+                "p2pNoLimit": "Pagamentos de Peanut para Peanut e cripto não têm limite de valor",
                 "depositPerTransfer": "Por depósito bancário",
                 "withdrawalPerTransfer": "Por saque bancário"
             },

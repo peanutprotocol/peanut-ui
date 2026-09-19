@@ -10,7 +10,7 @@ import { DEPOSIT_RAILS, isClaimable } from '../rails'
 import { depositGateView, isDepositBlock } from '../depositGate'
 import { isResidenceGated } from '../residenceGate'
 import { canShare, isHeld, resolveScreen } from '../resolveScreen'
-import type { ClaimableCorridor, DepositAccountView, DepositCorridor } from '../types'
+import type { ClaimableCorridor, DepositAccountView, DepositCorridor, DepositSupportReason } from '../types'
 import type { DepositClaimError } from '../useDepositAccounts'
 import type { EndorsementReview } from '../useEndorsementReview'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -68,8 +68,6 @@ export interface DepositAccountsFlowProps {
      */
     review?: EndorsementReview
 }
-
-export type DepositSupportReason = 'revoked' | 'account-limit' | 'blocked' | 'review'
 
 /**
  * The bank flow: one NavHeader title across every step, the step in the URL,

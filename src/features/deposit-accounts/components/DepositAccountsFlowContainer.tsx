@@ -2,7 +2,8 @@
 
 import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
-import { DepositAccountsFlow, type DepositSupportReason } from './DepositAccountsFlow'
+import { DepositAccountsFlow } from './DepositAccountsFlow'
+import type { DepositSupportReason } from '../types'
 import { useDepositAccounts } from '../useDepositAccounts'
 import { useDepositAccountsEnabled } from '../useDepositAccountsEnabled'
 import { useDepositGateRemediation } from '../useDepositGateRemediation'

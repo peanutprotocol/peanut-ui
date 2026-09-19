@@ -2,7 +2,8 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { useAuth } from '@/context/authContext'
-import NavHeader, { NAV_CIRCLE_BUTTON_CLASSES } from '../Global/NavHeader'
+import NavHeader from '../Global/NavHeader'
+import { NAV_CIRCLE_BUTTON_CLASSES } from '../Global/NavHeader/navHeader.consts'
 import ProfileHeader from './components/ProfileHeader'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import ProfileMenuItem from './components/ProfileMenuItem'

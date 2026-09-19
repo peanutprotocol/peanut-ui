@@ -337,9 +337,7 @@ describe('UnlockPayments', () => {
 
         const drawer = screen.getByRole('dialog')
         expect(within(drawer).getByText('Send and receive money with other Peanut users.')).toBeInTheDocument()
-        expect(
-            within(drawer).getByText('No maximum amount and no KYC for Peanut-to-Peanut payments or crypto')
-        ).toBeInTheDocument()
+        expect(within(drawer).getByText('No amount limits on Peanut-to-Peanut payments or crypto')).toBeInTheDocument()
         expect(mockInitiateKyc).not.toHaveBeenCalled()
     })
 
@@ -419,9 +417,7 @@ describe('UnlockPayments', () => {
 
     it('states the P2P no-limit fact even before anything is unlocked', () => {
         render()
-        expect(
-            screen.getByText('No maximum amount and no KYC for Peanut-to-Peanut payments or crypto')
-        ).toBeInTheDocument()
+        expect(screen.getByText('No amount limits on Peanut-to-Peanut payments or crypto')).toBeInTheDocument()
     })
 
     // A residence-parked rail. The TOP-LEVEL status is `blocked` (the backend maps

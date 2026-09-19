@@ -178,3 +178,10 @@ export interface DepositDetailRow {
     /** informational rows opt out of the copy button */
     copyable?: boolean
 }
+
+/**
+ * Why the flow hands the user to support: details the provider revoked, more
+ * accounts than the limit, a claim the app cannot explain, or a provider review
+ * the app cannot start. It rides along so support does not have to ask.
+ */
+export type DepositSupportReason = 'revoked' | 'account-limit' | 'blocked' | 'review'
