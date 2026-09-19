@@ -101,6 +101,32 @@ describe('useDepositAccounts', () => {
         expect(result.current.slotsHeld).toBe(3)
     })
 
+    it('prefers the backend count and limit where it sends them', async () => {
+        fetchDepositAccounts.mockResolvedValue({
+            accounts: [account()],
+            claimable: [],
+            accountLimit: 5,
+            // a provisioning row the provider never opened is listed and not counted
+            accountsHeld: 0,
+        })
+
+        const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+        expect(result.current.accountLimit).toBe(5)
+        expect(result.current.slotsHeld).toBe(0)
+    })
+
+    it('sends no limit on an API that predates it', async () => {
+        resolveAccounts([account()])
+
+        const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+        expect(result.current.accountLimit).toBeUndefined()
+        expect(result.current.slotsHeld).toBe(1)
+    })
+
     /**
      * A rail that leaves the catalogue disappears from the capability block and
      * leaves the account standing — the accounts endpoint keeps it on purpose.

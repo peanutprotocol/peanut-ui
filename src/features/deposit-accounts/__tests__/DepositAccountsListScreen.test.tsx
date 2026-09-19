@@ -100,6 +100,8 @@ const list = (
         claimable?: Partial<Record<DepositCorridor, ClaimableCorridor>>
         /** defaults to what the accounts imply; set it to stand for a rotation */
         slotsHeld?: number
+        /** the user's own limit, as the backend sends it */
+        accountLimit?: number
         onOpen?: (corridor: DepositCorridor) => void
         /** the hub reads `?method=` to decide whether crypto is still a question */
         searchParams?: string
@@ -113,6 +115,7 @@ const list = (
                     accounts={opts.accounts ?? NONE}
                     claimable={{ ...emptyCorridorRecord<ClaimableCorridor>(), ...opts.claimable }}
                     slotsHeld={opts.slotsHeld ?? Object.values(opts.accounts ?? NONE).filter(holdsSlot).length}
+                    accountLimit={opts.accountLimit}
                     gates={opts.gates ?? allGates()}
                     isLoading={isLoading}
                     isError={opts.isError ?? false}
@@ -312,6 +315,20 @@ describe("DepositAccountsListScreen renders the user's corridors and no others",
 
             expect(screen.getByTestId('account-counter')).toHaveTextContent(counter(2, 2))
             expect(screen.getByText(LIST.accountLimitReached.replace('{cap}', '2'))).toBeInTheDocument()
+        })
+
+        it('states the limit the backend sends, raised or not', () => {
+            // two accounts with room left: the fallback cannot read this limit
+            list(false, { slotsHeld: 2, accountLimit: 5, claimable: { SPEI_MX: offered('SPEI_MX') } })
+
+            expect(screen.getByTestId('account-counter')).toHaveTextContent(counter(2, 5))
+            expect(screen.getByText(LIST.accountLimitNote.replace('{cap}', '5'))).toBeInTheDocument()
+        })
+
+        it('says the limit is reached from the numbers alone', () => {
+            list(false, { slotsHeld: 3, accountLimit: 3 })
+
+            expect(screen.getByText(LIST.accountLimitReached.replace('{cap}', '3'))).toBeInTheDocument()
         })
 
         it('uses the limit support raised, not the default', () => {

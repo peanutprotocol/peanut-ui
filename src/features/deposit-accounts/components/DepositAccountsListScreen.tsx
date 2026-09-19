@@ -68,6 +68,7 @@ export function DepositAccountsListScreen({
     accounts,
     claimable,
     slotsHeld,
+    accountLimit: userAccountLimit,
     gates,
     isLoading,
     isError,
@@ -86,6 +87,8 @@ export function DepositAccountsListScreen({
     claimable?: Record<DepositCorridor, ClaimableCorridor | undefined>
     /** account slots taken, counted as the backend's cap counts them — see `holdsSlot` */
     slotsHeld: number
+    /** this user's account limit, where the backend sends it */
+    accountLimit?: number
     /** the app's own answer to "can this user deposit here" — one gate per corridor */
     gates: Record<DepositCorridor, GateState>
     /** the corridors and the accounts are both network answers */
@@ -278,19 +281,18 @@ export function DepositAccountsListScreen({
      * The account limit, shown as a live count so the user meets it as
      * information up front and not as a wall at claim time.
      *
-     * The limit is per user — support can raise it — and the accounts response
-     * does not carry it. The backend does say when it is reached, on every
-     * corridor still on offer, so the count is only shown where it is known to
-     * be true: at the limit the limit IS the count, and below the default the
-     * default holds. A user past the default with room left has a raised limit
-     * this screen cannot read, and gets no number rather than a wrong one.
+     * The limit is per user — support can raise it — and the backend sends it.
+     * An API deployed before that field still says when the limit is reached,
+     * on every corridor on offer, so the fallback shows a number only where it
+     * is known to be true: at the limit the limit IS the count, and below the
+     * default the default holds. Past the default with room left, the limit was
+     * raised to a number this screen cannot read, and it shows none.
      */
-    const limitReached = DEPOSIT_RAIL_ORDER.some((corridor) => claimable?.[corridor]?.blockedBy === 'account-limit')
-    const accountLimit = limitReached
-        ? slotsHeld
-        : slotsHeld < DEFAULT_ACCOUNT_LIMIT
-          ? DEFAULT_ACCOUNT_LIMIT
-          : undefined
+    const blockedByLimit = DEPOSIT_RAIL_ORDER.some((corridor) => claimable?.[corridor]?.blockedBy === 'account-limit')
+    const accountLimit =
+        userAccountLimit ??
+        (blockedByLimit ? slotsHeld : slotsHeld < DEFAULT_ACCOUNT_LIMIT ? DEFAULT_ACCOUNT_LIMIT : undefined)
+    const limitReached = accountLimit !== undefined && slotsHeld >= accountLimit
 
     // A corridor with no row left after the search has nothing to label.
     const showAccounts = accountsEnabled && views.length > 0

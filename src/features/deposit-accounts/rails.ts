@@ -84,9 +84,9 @@ export const DEPOSIT_RAIL_ORDER: DepositCorridor[] = [
 /**
  * How many bank accounts the backend opens for a user by default
  * (`MAX_ACTIVE_DEPOSIT_ACCOUNTS`). It is NOT this user's limit: support can
- * raise that per user, and the accounts response does not carry it. The backend
- * enforces the real limit and reports it as reached; the hub only uses this
- * default where no answer from the backend contradicts it.
+ * raise that per user, and the accounts response carries the real one as
+ * `accountLimit`. This default is read only against an API deployed before
+ * that field, and only where no answer from the backend contradicts it.
  */
 export const DEFAULT_ACCOUNT_LIMIT = 2
 

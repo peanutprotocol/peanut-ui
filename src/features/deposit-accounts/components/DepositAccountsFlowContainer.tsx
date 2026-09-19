@@ -40,6 +40,7 @@ export function DepositAccountsFlowContainer({ onExit }: DepositAccountsFlowCont
         accounts,
         claimable,
         slotsHeld,
+        accountLimit,
         gates,
         isLoading,
         isError,
@@ -60,6 +61,7 @@ export function DepositAccountsFlowContainer({ onExit }: DepositAccountsFlowCont
                 accounts={accounts}
                 claimable={claimable}
                 slotsHeld={slotsHeld}
+                accountLimit={accountLimit}
                 gates={gates}
                 isLoading={isLoading}
                 isError={isError}

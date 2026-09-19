@@ -75,9 +75,12 @@ export interface UseDepositAccountsResult {
     /**
      * How many account slots the user has taken, counted the way the backend's
      * cap counts them. Every returned account counts, not one per corridor: a
-     * rotation holds the new account and the retiring one at once.
+     * rotation holds the new account and the retiring one at once. The
+     * backend's own count where it sends one.
      */
     slotsHeld: number
+    /** this user's account limit, which support can raise; undefined on an API that does not send it */
+    accountLimit?: number
     /** the capability gate for EACH corridor, asked one rail id at a time */
     gates: Record<DepositCorridor, GateState>
     /** true until both the corridors and the held accounts are known */
@@ -217,7 +220,10 @@ export function useDepositAccounts({ enabled = true }: { enabled?: boolean } = {
         return byCorridor
     }, [query.data, provisioningPolls])
 
-    const slotsHeld = useMemo(() => (query.data?.accounts ?? []).filter(holdsSlot).length, [query.data])
+    const slotsHeld = useMemo(
+        () => query.data?.accountsHeld ?? (query.data?.accounts ?? []).filter(holdsSlot).length,
+        [query.data]
+    )
 
     const claimable = useMemo((): Record<DepositCorridor, ClaimableCorridor | undefined> => {
         const byCorridor = emptyCorridorRecord<ClaimableCorridor>()
@@ -294,6 +300,7 @@ export function useDepositAccounts({ enabled = true }: { enabled?: boolean } = {
         accounts,
         claimable,
         slotsHeld,
+        accountLimit: query.data?.accountLimit,
         gates,
         // a flow that is not asking for accounts is never waiting for them
         isLoading: enabled && (!userId || query.isLoading || capabilitiesLoading),

@@ -37,6 +37,8 @@ export interface DepositAccountsFlowProps {
     claimable?: Record<DepositCorridor, ClaimableCorridor | undefined>
     /** account slots taken, counted as the backend's cap counts them — see `holdsSlot` */
     slotsHeld?: number
+    /** this user's account limit, where the backend sends it */
+    accountLimit?: number
     /** `gateFor('deposit', { railId })` per corridor — the app primitive, one rail at a time */
     gates: Record<DepositCorridor, GateState>
     /** true until the corridors and the held accounts are known */
@@ -84,6 +86,7 @@ export function DepositAccountsFlow({
     accounts,
     claimable,
     slotsHeld = 0,
+    accountLimit,
     gates,
     isLoading = false,
     isError = false,
@@ -302,6 +305,7 @@ export function DepositAccountsFlow({
             accounts={accounts}
             claimable={claimable}
             slotsHeld={slotsHeld}
+            accountLimit={accountLimit}
             gates={gates}
             isLoading={isLoading}
             isError={isError}
