@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { startHostedVerification } from '@/app/actions/sumsub'
+import { refreshKycState, startHostedVerification } from '@/app/actions/sumsub'
 import { useAuth } from '@/context/authContext'
 import { IN_APP_BROWSER_CLOSED_EVENT, isNativeBridge, openExternalUrl } from '@/utils/capacitor'
 
@@ -13,6 +13,14 @@ import { IN_APP_BROWSER_CLOSED_EVENT, isNativeBridge, openExternalUrl } from '@/
  *
  * `start` must be called STRAIGHT out of a click handler — it reserves the tab
  * synchronously, inside the user-activation window (see below).
+ *
+ * Coming back opens a SETTLE window: the app asks the API to poll the
+ * provider soon and keeps refetching for a minute, until the task clears or
+ * the window ends. Nothing else reports the result — the provider's page never
+ * hands the user back (Bridge issues no redirect for most customers), the
+ * ~4s user auto-refresh only runs while a rail is `pending`, and a webhook can
+ * arrive hours later or never. Without the window a finished check looked like
+ * nothing had happened, and users ran it again (TASK-22818).
  */
 interface HostedVerification {
     /** Call STRAIGHT out of a click — the tab reservation needs the gesture. */
@@ -20,15 +28,44 @@ interface HostedVerification {
     isStarting: boolean
     /** Friendly copy for a failed launch; never the raw server detail. */
     error: string | null
+    /** The user came back and the app is still asking the provider for the result. */
+    isSettling: boolean
+    /** The settle window ended with the task still pending — say so, don't re-offer silently. */
+    stillPendingAfterReturn: boolean
 }
 
+interface HostedVerificationOptions {
+    /**
+     * Whether the task this screen serves is still pending. Ends the settle
+     * window early when it clears. Screens with no task in scope leave it
+     * `true`, so the window runs to its end.
+     */
+    taskPending?: boolean
+}
+
+/**
+ * How long the app keeps asking after a return, how often it refetches, and
+ * how often it also asks the API to expedite the provider poll. One expedite
+ * is enough for the poller; three per window (at 0s, 20s, 40s) keep the row
+ * on the fresh cadence if the vendor is slow. The refetch in between is cheap.
+ */
+const SETTLE_WINDOW_MS = 60_000
+const SETTLE_INTERVAL_MS = 5_000
+const PROVIDER_READ_EVERY_N_ROUNDS = 4
+
 export function useHostedVerification(
-    actionKey: 'bridge-hosted' | 'rain-hosted' = 'bridge-hosted'
+    actionKey: 'bridge-hosted' | 'rain-hosted' = 'bridge-hosted',
+    { taskPending = true }: HostedVerificationOptions = {}
 ): HostedVerification {
     const { fetchUser } = useAuth()
     const [isStarting, setIsStarting] = useState(false)
     const [awaitingReturn, setAwaitingReturn] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    // The settle window: its deadline while open, null otherwise. `settleRound`
+    // advances after every refresh so the scheduling effect below re-arms.
+    const [settleDeadline, setSettleDeadline] = useState<number | null>(null)
+    const [settleRound, setSettleRound] = useState(0)
+    const [stillPendingAfterReturn, setStillPendingAfterReturn] = useState(false)
     // Synchronous re-entry guard. `isStarting` is React state, set a tick later,
     // so a fast second tap (Capacitor especially) re-enters start() before the
     // disable takes effect and reserves/opens a SECOND portal tab. The ref
@@ -40,6 +77,7 @@ export function useHostedVerification(
         startingRef.current = true
         try {
             setError(null)
+            setStillPendingAfterReturn(false)
             // NOT an iframe: `bridge.withpersona.com` serves
             // `X-Frame-Options: SAMEORIGIN`, so embedding it rendered
             // "refused to connect" for EVERY user. It has to be a real
@@ -119,6 +157,49 @@ export function useHostedVerification(
         }
     }, [fetchUser, actionKey])
 
+    // One settle round: on the paced rounds ask the API to expedite the
+    // provider poll first, then refetch the user so capabilities re-derive
+    // from whatever the poller has written. Both are best effort.
+    const settleRoundRun = useCallback(
+        async (round: number) => {
+            try {
+                if (round % PROVIDER_READ_EVERY_N_ROUNDS === 0) await refreshKycState()
+                await fetchUser()
+            } catch {
+                // a failed round is a skipped round — the next one retries
+            } finally {
+                setSettleRound(round + 1)
+            }
+        },
+        [fetchUser]
+    )
+
+    // A return signal: refetch at once (the DB may already know), then open the
+    // settle window so the provider read below catches what the DB does not.
+    const onReturn = useCallback(() => {
+        void fetchUser().catch(() => undefined)
+        setStillPendingAfterReturn(false)
+        setSettleDeadline(Date.now() + SETTLE_WINDOW_MS)
+        void settleRoundRun(0)
+    }, [fetchUser, settleRoundRun])
+
+    // Schedule the next round until the task clears or the window ends. Each
+    // round bumps `settleRound`, which re-runs this effect.
+    useEffect(() => {
+        if (settleDeadline === null) return
+        if (!taskPending) {
+            setSettleDeadline(null)
+            return
+        }
+        if (Date.now() >= settleDeadline) {
+            setSettleDeadline(null)
+            setStillPendingAfterReturn(true)
+            return
+        }
+        const timer = setTimeout(() => void settleRoundRun(settleRound), SETTLE_INTERVAL_MS)
+        return () => clearTimeout(timer)
+    }, [settleDeadline, settleRound, taskPending, settleRoundRun])
+
     // The same-tab fallback navigates THIS tab away, so the listener below is
     // never armed for it — and a Back that restores from BFCache re-runs no
     // effects at all. `refetchOnWindowFocus` does fire on that restore, but the
@@ -127,11 +208,11 @@ export function useHostedVerification(
     // having the task. `refetch` ignores staleness, which is the point.
     useEffect(() => {
         const onPageShow = (event: PageTransitionEvent) => {
-            if (event.persisted) void fetchUser().catch(() => undefined)
+            if (event.persisted) onReturn()
         }
         window.addEventListener('pageshow', onPageShow)
         return () => window.removeEventListener('pageshow', onPageShow)
-    }, [fetchUser])
+    }, [onReturn])
 
     // Nothing polls for this cohort — the ~4s user auto-refresh only runs
     // while a rail is `pending`, and these are `requires-info` — so pick the
@@ -143,7 +224,7 @@ export function useHostedVerification(
     // so we keep listening for as long as this screen is mounted.
     useEffect(() => {
         if (!awaitingReturn) return
-        const refresh = () => void fetchUser().catch(() => undefined)
+        const refresh = onReturn
 
         if (isNativeBridge()) {
             // Android WebViews don't reliably fire `visibilitychange` on
@@ -173,12 +254,12 @@ export function useHostedVerification(
             }
         }
 
-        const onReturn = () => {
+        const onVisible = () => {
             if (document.visibilityState === 'visible') refresh()
         }
-        document.addEventListener('visibilitychange', onReturn)
-        return () => document.removeEventListener('visibilitychange', onReturn)
-    }, [awaitingReturn, fetchUser, actionKey])
+        document.addEventListener('visibilitychange', onVisible)
+        return () => document.removeEventListener('visibilitychange', onVisible)
+    }, [awaitingReturn, onReturn, actionKey])
 
-    return { start, isStarting, error }
+    return { start, isStarting, error, isSettling: settleDeadline !== null, stillPendingAfterReturn }
 }
