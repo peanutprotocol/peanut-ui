@@ -1,4 +1,4 @@
-import { scrollClearOfBottomNav } from '../bottom-nav-clearance.utils'
+import { heightAboveBottomNav, scrollClearOfBottomNav } from '../bottom-nav-clearance.utils'
 
 const elementAt = (bottom: number) =>
     ({ getBoundingClientRect: () => ({ bottom }) as DOMRect }) as unknown as HTMLElement
@@ -33,5 +33,26 @@ describe('scrollClearOfBottomNav', () => {
     it('does nothing without an element', () => {
         scrollClearOfBottomNav(null)
         expect(scrollBy).not.toHaveBeenCalled()
+    })
+})
+
+describe('heightAboveBottomNav', () => {
+    beforeEach(() => {
+        Object.defineProperty(window, 'innerHeight', { configurable: true, value: 667 })
+        document.documentElement.style.removeProperty('--safe-bottom')
+    })
+
+    // a panel opening at y=300 on 375x667 can run to 571, the lowest clear line
+    it('gives the room between the panel top and the nav', () => {
+        expect(heightAboveBottomNav(300)).toBe(271)
+    })
+
+    it('gives nothing when the room is too small for a list, so the caller scrolls instead', () => {
+        expect(heightAboveBottomNav(450)).toBeUndefined()
+    })
+
+    it('counts the device safe area', () => {
+        document.documentElement.style.setProperty('--safe-bottom', '34px')
+        expect(heightAboveBottomNav(300)).toBe(237)
     })
 })

@@ -2,6 +2,7 @@
 import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import countryCurrencyMappings, { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { SUPPORTED_EXCHANGE_CURRENCIES } from '@/constants/exchange-currencies.consts'
+import { heightAboveBottomNav, scrollClearOfBottomNav } from '@/utils/bottom-nav-clearance.utils'
 import { twMerge } from '@/utils/tw'
 import Image from 'next/image'
 import React, { cloneElement, isValidElement, useEffect, useId, useMemo, useRef, useState } from 'react'
@@ -84,6 +85,19 @@ const CurrencySelect = ({
             block: 'nearest',
         })
     }, [open, activeIndex])
+
+    // The panel opens downward and is not modal. Near the bottom of a small
+    // screen its last rows landed behind the bottom nav and could only be
+    // reached by scrolling the page under the open list. It is capped to the
+    // room above the nav and scrolls inside itself; with too little room for a
+    // list, the page is moved instead.
+    const [panelMaxHeight, setPanelMaxHeight] = useState<number>()
+    useEffect(() => {
+        if (!open || !listRef.current) return
+        const room = heightAboveBottomNav(listRef.current.getBoundingClientRect().top)
+        setPanelMaxHeight(room)
+        if (room === undefined) scrollClearOfBottomNav(listRef.current)
+    }, [open])
 
     const openList = () => {
         setActiveIndex(
@@ -193,6 +207,8 @@ const CurrencySelect = ({
                     onTouchMove={(event) => event.stopPropagation()}
                     // keep the list focused (and open) while a row is being tapped
                     onMouseDown={(event) => event.preventDefault()}
+                    // a smaller cap than the class's own max height wins; never a larger one
+                    style={panelMaxHeight ? { maxHeight: Math.min(panelMaxHeight, 288) } : undefined}
                     className={twMerge(
                         CARD_SURFACE,
                         'absolute top-full right-0 z-50 mt-4 max-h-72 w-72 overflow-y-auto p-4 shadow-lg outline-action-focus focus-visible:outline-[3px] focus-visible:outline-action-focus sm:w-80 md:w-96'

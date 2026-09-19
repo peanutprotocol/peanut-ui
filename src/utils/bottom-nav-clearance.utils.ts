@@ -22,3 +22,18 @@ export function scrollClearOfBottomNav(element: HTMLElement | null): void {
     const overlap = element.getBoundingClientRect().bottom - lowestClearY
     if (overlap > 0) window.scrollBy({ top: overlap, behavior: 'smooth' })
 }
+
+/** A list shorter than this is no list; below it the page scrolls instead. */
+const MIN_PANEL_HEIGHT_PX = 160
+
+/**
+ * The height a panel opening downward from `top` can take and still end above
+ * the bottom nav, so it scrolls inside itself and its last rows are not behind
+ * the nav. Undefined when there is room for less than a usable list.
+ */
+export function heightAboveBottomNav(top: number): number | undefined {
+    if (typeof window === 'undefined') return undefined
+    const safeBottom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom')) || 0
+    const room = window.innerHeight - BOTTOM_NAV_RESERVATION_PX - safeBottom - top
+    return room >= MIN_PANEL_HEIGHT_PX ? Math.floor(room) : undefined
+}
