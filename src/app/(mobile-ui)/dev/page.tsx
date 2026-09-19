@@ -170,6 +170,18 @@ const groups: { title: string; tools: DevTool[] }[] = [
                 path: '/dev/loading-words',
                 icon: 'processing',
             },
+            {
+                name: 'Tabs looks',
+                description: 'TASK-22707 — 6 candidate looks for the one Tabs component, standalone and panelled',
+                path: '/dev/tabs-proposals',
+                icon: 'switch',
+            },
+            {
+                name: 'Tabs looks — real surfaces',
+                description: 'TASK-22707 — the same 6 looks on the real product and marketing screens',
+                path: '/dev/tabs-proposals/surfaces',
+                icon: 'switch',
+            },
         ],
     },
 ]

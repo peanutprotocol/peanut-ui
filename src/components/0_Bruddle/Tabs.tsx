@@ -3,6 +3,7 @@
 import { Content, List, Root, Trigger } from '@radix-ui/react-tabs'
 import { type ReactNode } from 'react'
 import { twMerge } from '@/utils/tw'
+import { TAB_TRIGGER_BASE, useTabsLook } from './TabsLook'
 
 /**
  * The one content-tab component for product and marketing — variant B
@@ -54,42 +55,59 @@ const focusRing =
 // list spans the scrolled width (w-max min-w-full).
 const scrollWrap = '-m-1 overflow-x-auto p-1'
 
-export const Tabs = ({ tabs, 'aria-label': ariaLabel, forceMount, value, onValueChange }: TabsProps) => (
-    // radix ignores defaultValue when value is set but warns on both — pass
-    // exactly one
-    <Root value={value} onValueChange={onValueChange} defaultValue={value === undefined ? tabs[0]?.value : undefined}>
-        <div className={scrollWrap}>
-            <List aria-label={ariaLabel} className="flex w-max min-w-full px-2">
-                {tabs.map((tab) => (
-                    <Trigger
-                        key={tab.value}
-                        value={tab.value}
-                        className={twMerge(
-                            'relative min-h-11 shrink-0 rounded-t-sm border border-b-0 border-transparent px-4 text-body-m whitespace-nowrap text-foreground-secondary transition-colors duration-instant active:text-action-ghost-hover data-[state=active]:z-10 data-[state=active]:border-border-default data-[state=active]:bg-background-default data-[state=active]:text-foreground-primary',
-                            focusRing
-                        )}
-                    >
-                        {tab.label}
-                    </Trigger>
-                ))}
-            </List>
-        </div>
-        {tabs.map((tab) => (
-            <Content
-                key={tab.value}
-                value={tab.value}
-                forceMount={forceMount || undefined}
-                // data-[state=inactive]:hidden is what hides a forceMount panel:
-                // radix computes its own hidden attribute from `forceMount ||
-                // isSelected`, so with forceMount on it never sets it and every
-                // panel would render stacked
-                className={twMerge(
-                    '-mt-px rounded-sm border border-border-default bg-background-default p-4 data-[state=inactive]:hidden',
-                    focusRing
-                )}
-            >
-                {tab.content}
-            </Content>
-        ))}
-    </Root>
-)
+export const Tabs = ({ tabs, 'aria-label': ariaLabel, forceMount, value, onValueChange }: TabsProps) => {
+    // null on every shipped screen; a /dev/tabs-proposals look otherwise (TASK-22707)
+    const look = useTabsLook()
+
+    return (
+        // radix ignores defaultValue when value is set but warns on both — pass
+        // exactly one
+        <Root
+            value={value}
+            onValueChange={onValueChange}
+            defaultValue={value === undefined ? tabs[0]?.value : undefined}
+        >
+            <div className={scrollWrap}>
+                <List
+                    aria-label={ariaLabel}
+                    className={twMerge('flex w-max min-w-full px-2', look && `items-stretch px-0 ${look.list}`)}
+                >
+                    {tabs.map((tab) => (
+                        <Trigger
+                            key={tab.value}
+                            value={tab.value}
+                            className={twMerge(
+                                look
+                                    ? `${TAB_TRIGGER_BASE} ${look.trigger}`
+                                    : 'relative min-h-11 shrink-0 rounded-t-sm border border-b-0 border-transparent px-4 text-body-m whitespace-nowrap text-foreground-secondary transition-colors duration-instant active:text-action-ghost-hover data-[state=active]:z-10 data-[state=active]:border-border-default data-[state=active]:bg-background-default data-[state=active]:text-foreground-primary',
+                                focusRing
+                            )}
+                        >
+                            {tab.label}
+                        </Trigger>
+                    ))}
+                </List>
+            </div>
+            {tabs.map((tab) => (
+                <Content
+                    key={tab.value}
+                    value={tab.value}
+                    forceMount={forceMount || undefined}
+                    // data-[state=inactive]:hidden is what hides a forceMount panel:
+                    // radix computes its own hidden attribute from `forceMount ||
+                    // isSelected`, so with forceMount on it never sets it and every
+                    // panel would render stacked
+                    className={twMerge(
+                        '-mt-px rounded-sm border border-border-default bg-background-default p-4 data-[state=inactive]:hidden',
+                        // no look welds its trigger row to the panel, so the panel
+                        // stands on its own with a normal gap above it
+                        look && 'mt-4',
+                        focusRing
+                    )}
+                >
+                    {tab.content}
+                </Content>
+            ))}
+        </Root>
+    )
+}
