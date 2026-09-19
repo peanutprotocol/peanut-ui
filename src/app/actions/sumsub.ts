@@ -253,6 +253,26 @@ export const startHostedVerification = async (
     }
 }
 
+/**
+ * Ask the API to re-read the caller's Bridge customer now
+ * (POST /users/kyc/refresh) instead of waiting for a webhook or the poller.
+ * Called on the way back from a hosted flow: the user has just done something
+ * at the vendor, and the app should reflect it within seconds, not hours. Best
+ * effort by design — a missing route (an API that predates it), a rate-limit
+ * answer or a network error all read as "not refreshed", and the caller falls
+ * back to plain refetching.
+ */
+export const refreshKycState = async (): Promise<{ refreshed: boolean }> => {
+    try {
+        const response = await serverFetch('/users/kyc/refresh', { method: 'POST' })
+        if (!response.ok) return { refreshed: false }
+        const responseJson = await response.json()
+        return { refreshed: responseJson?.refreshed === true }
+    } catch {
+        return { refreshed: false }
+    }
+}
+
 export interface StartKycActionResponse {
     token: string
     levelName: string

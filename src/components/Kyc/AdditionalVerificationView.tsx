@@ -13,6 +13,7 @@ import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/Peanut
 import { useHostedVerification } from '@/hooks/useHostedVerification'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { selectBridgeTasks } from '@/utils/bridge-tasks.utils'
 
 /**
  * "What to expect" screen in front of Bridge's hosted verification (Persona).
@@ -37,6 +38,12 @@ import { useSafeBack } from '@/hooks/useSafeBack'
  * and a wrong guess yanks a reader off the page mid-sentence. Swapping the
  * panel costs nothing if a later tick puts the task back, so the question
  * stops needing an answer.
+ *
+ * Coming back from the vendor opens the hook's settle window: the CTA is held
+ * while the app asks the provider for the result, and if the task is still
+ * pending when the window ends the screen says so instead of re-offering the
+ * same button in silence — that silence is what sent users through the check
+ * again and again (TASK-22818).
  */
 const IDENTITY_ROUTE = '/profile/identity-verification'
 
@@ -46,9 +53,13 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
     const tCommon = useTranslations('common')
     const router = useRouter()
     const onBack = useSafeBack(IDENTITY_ROUTE)
-    const { nextActions, isLoading: isLoadingCapabilities } = useCapabilities()
-    const { start, isStarting, error } = useHostedVerification('bridge-hosted')
-    const hostedTask = nextActions.find((action) => action.kind === 'bridge-hosted')
+    const { nextActions, rails, isLoading: isLoadingCapabilities } = useCapabilities()
+    // Same selection as the Home card: a hosted task stands down while a Bridge
+    // rail carries a native step, so a deep link here reads the same truth.
+    const hostedTask = selectBridgeTasks(nextActions, rails ?? []).find((action) => action.kind === 'bridge-hosted')
+    const { start, isStarting, error, isSettling, stillPendingAfterReturn } = useHostedVerification('bridge-hosted', {
+        taskPending: !!hostedTask,
+    })
     // A future-dated action is advisory: those rails still work today, and this
     // screen must not tell that user their transfers are blocked.
     const isAdvisory = !!hostedTask?.effectiveDate
@@ -100,12 +111,22 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
                             {error}
                         </Notification>
                     )}
+                    {isSettling && (
+                        <Notification priority="info" data-testid="hosted-settling">
+                            {t('checking')}
+                        </Notification>
+                    )}
+                    {stillPendingAfterReturn && !isSettling && (
+                        <Notification priority="attention" data-testid="hosted-still-pending">
+                            {t('stillPending')}
+                        </Notification>
+                    )}
                     <Button
                         variant="purple"
                         shadowSize="4"
                         icon="check-circle"
                         iconPosition="left"
-                        disabled={isStarting}
+                        disabled={isStarting || isSettling}
                         onClick={start}
                     >
                         {isStarting ? tCommon('loading') : tPrep('startCta')}

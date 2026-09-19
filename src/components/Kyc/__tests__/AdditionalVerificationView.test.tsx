@@ -10,7 +10,7 @@
  * restarts from step one.
  */
 import React from 'react'
-import { screen, fireEvent, waitFor } from '@testing-library/react'
+import { act, screen, fireEvent, waitFor } from '@testing-library/react'
 import { renderWithIntl as render } from '@/test-utils/intl'
 import type { NextAction } from '@/types/capabilities'
 import { AdditionalVerificationView } from '../AdditionalVerificationView'
@@ -24,6 +24,7 @@ const hostedAction: NextAction = {
 
 const mockFetchUser = jest.fn(() => Promise.resolve(null))
 const mockStartHosted = jest.fn<Promise<{ url?: string; error?: string }>, []>()
+const mockRefreshKyc = jest.fn(() => Promise.resolve({ refreshed: false }))
 let mockReservedTab: { location: { href: string }; close: jest.Mock; closed: boolean; opener: unknown }
 const mockAssignHref = jest.fn()
 let mockWindowOpen: jest.SpyInstance
@@ -33,6 +34,7 @@ jest.mock('@/context/authContext', () => ({
 }))
 jest.mock('@/app/actions/sumsub', () => ({
     startHostedVerification: () => mockStartHosted(),
+    refreshKycState: () => mockRefreshKyc(),
 }))
 const mockOpenExternalUrl = jest.fn<Promise<void>, [string]>()
 let mockIsCapacitor = false
@@ -74,6 +76,7 @@ describe('AdditionalVerificationView', () => {
         mockRouterReplace.mockReset()
         mockFetchUser.mockReset()
         mockFetchUser.mockResolvedValue(null)
+        mockRefreshKyc.mockClear()
         mockStartHosted.mockReset()
         mockOpenExternalUrl.mockReset()
         mockOpenExternalUrl.mockResolvedValue(undefined)
@@ -213,7 +216,9 @@ describe('AdditionalVerificationView', () => {
 
         const onFinished = mockBrowserAddListener.mock.calls[0][1]
         onFinished()
-        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalled())
+        // the return also asks the API to re-read the provider (settle window)
+        await waitFor(() => expect(mockRefreshKyc).toHaveBeenCalledTimes(1))
     })
 
     it('closes the reserved tab when the hosted URL never arrives', async () => {
@@ -251,12 +256,79 @@ describe('AdditionalVerificationView', () => {
 
         Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true })
         document.dispatchEvent(new Event('visibilitychange'))
-        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalled())
+        await waitFor(() => expect(mockRefreshKyc).toHaveBeenCalledTimes(1))
 
         // NOT one-shot: an incidental switch-back must not burn the refetch,
         // so a later real return refreshes again.
         document.dispatchEvent(new Event('visibilitychange'))
-        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(2))
+        await waitFor(() => expect(mockRefreshKyc).toHaveBeenCalledTimes(2))
+    })
+
+    it('coming back holds the CTA while the provider is asked, and the task clearing ends it', async () => {
+        jest.useFakeTimers()
+        try {
+            mockIsCapacitor = true
+            mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
+            const { rerender } = render(<AdditionalVerificationView />)
+
+            startVerification()
+            await waitFor(() =>
+                expect(mockBrowserAddListener).toHaveBeenCalledWith('browserFinished', expect.any(Function))
+            )
+            const onFinished = mockBrowserAddListener.mock.calls[0][1]
+            await act(async () => {
+                onFinished()
+            })
+            expect(screen.getByTestId('hosted-settling')).toBeInTheDocument()
+            expect(screen.getByRole('button', { name: /i have these, start/i })).toBeDisabled()
+            expect(mockRefreshKyc).toHaveBeenCalledTimes(1)
+
+            // a later round while the task is still pending
+            await act(async () => {
+                jest.advanceTimersByTime(5_000)
+            })
+            expect(mockRefreshKyc).toHaveBeenCalledTimes(2)
+
+            // the task clears → the window closes, the done state shows
+            mockNextActions = []
+            rerender(<AdditionalVerificationView />)
+            expect(await screen.findByTestId('hosted-task-done')).toBeInTheDocument()
+            expect(screen.queryByTestId('hosted-settling')).not.toBeInTheDocument()
+            await act(async () => {
+                jest.advanceTimersByTime(10_000)
+            })
+            expect(mockRefreshKyc).toHaveBeenCalledTimes(2)
+        } finally {
+            jest.useRealTimers()
+        }
+    })
+
+    it('a settle window that ends with the task still pending says so and re-enables the CTA', async () => {
+        jest.useFakeTimers()
+        try {
+            mockIsCapacitor = true
+            mockStartHosted.mockResolvedValue({ url: 'https://bridge.withpersona.com/verify?x=1' })
+            render(<AdditionalVerificationView />)
+
+            startVerification()
+            await waitFor(() =>
+                expect(mockBrowserAddListener).toHaveBeenCalledWith('browserFinished', expect.any(Function))
+            )
+            await act(async () => {
+                mockBrowserAddListener.mock.calls[0][1]()
+            })
+            expect(screen.getByTestId('hosted-settling')).toBeInTheDocument()
+
+            await act(async () => {
+                jest.advanceTimersByTime(61_000)
+            })
+            expect(screen.queryByTestId('hosted-settling')).not.toBeInTheDocument()
+            expect(screen.getByTestId('hosted-still-pending')).toHaveTextContent(/nothing more to do/i)
+            expect(screen.getByRole('button', { name: /i have these, start/i })).toBeEnabled()
+        } finally {
+            jest.useRealTimers()
+        }
     })
 
     it('replaces the CTA with a done state once the task clears — the ONLY success signal', async () => {
@@ -339,7 +411,8 @@ describe('AdditionalVerificationView', () => {
         const restore = new Event('pageshow') as PageTransitionEvent
         Object.defineProperty(restore, 'persisted', { value: true })
         window.dispatchEvent(restore)
-        await waitFor(() => expect(mockFetchUser).toHaveBeenCalledTimes(1))
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalled())
+        await waitFor(() => expect(mockRefreshKyc).toHaveBeenCalledTimes(1))
     })
 
     it('a fresh (non-BFCache) pageshow does not refetch', () => {

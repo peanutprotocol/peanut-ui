@@ -3035,6 +3035,8 @@
             "title": "O que esperar",
             "description": "Nosso parceiro de pagamentos precisa de mais algumas coisas antes que suas transferências bancárias funcionem.",
             "descriptionAdvisory": "Nosso parceiro de pagamentos precisa de mais algumas coisas para que suas transferências bancárias continuem funcionando.",
+            "checking": "Consultando nosso parceiro de pagamentos…",
+            "stillPending": "Se você concluiu a verificação, não precisa fazer mais nada. O status pode levar alguns minutos para atualizar, e começar de novo cria uma nova verificação.",
             "done": {
                 "title": "Não há mais nada a fazer aqui",
                 "description": "Esta etapa de verificação não é mais necessária. Seu status atual está no seu perfil.",
