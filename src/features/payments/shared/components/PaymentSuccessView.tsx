@@ -29,7 +29,7 @@ import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { type RecipientType } from '@/lib/url-parser/types/payment'
 import { useAuth } from '@/context/authContext'
-import type { TRequestChargeResponse, PaymentCreationResponse, ChargeEntry } from '@/services/services.types'
+import type { TRequestChargeResponse, PaymentCreationResponse } from '@/services/services.types'
 import { formatAmount, getInitialsFromName } from '@/utils/general.utils'
 import { resolveRecipientDisplay } from '@/utils/recipient-display'
 import { isDemoMode } from '@/utils/demo'
@@ -48,6 +48,7 @@ import PointsCard from '@/components/Common/PointsCard'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import type { ParsedURL } from '@/lib/url-parser/types/payment'
 import { payLinkUrl } from '@/utils/url.utils'
+import { receiptKindForCharge } from '@/features/payments/shared/utils/charge-receipt.utils'
 
 // minimal user info needed for display
 type UserDisplayInfo = {
@@ -82,7 +83,7 @@ type DirectSuccessViewProps = {
     onComplete?: () => void
     points?: number
     // props to receive data directly instead of from redux
-    chargeDetails?: TRequestChargeResponse | ChargeEntry | null
+    chargeDetails?: TRequestChargeResponse | null
     paymentDetails?: PaymentCreationResponse | null
     parsedPaymentData?: ParsedURL | null
     usdAmount?: string
@@ -166,11 +167,10 @@ const PaymentSuccessView = ({
             : undefined
 
         let details: Partial<TransactionDetails> = {
-            // The receipt id must be the intent uuid, never the tx hash. The
-            // receipt page and its PDF twin resolve a DIRECT_TRANSFER through
-            // GET /history/:id, which only accepts `transaction_intents.id`
-            // (the charge uuid) — a tx hash is not a resolvable key and 404s
-            // ("receipt PDF unavailable"). This is also the `?tx=<id>`
+            // The receipt page and its PDF twin resolve a charge through
+            // GET /history/:id, which matches `transaction_intents.id` (the
+            // charge uuid) AND the intent kind. A tx hash, or the wrong kind,
+            // 404s ("receipt PDF unavailable"). This id is also the `?tx=<id>`
             // drawer-selection key; the on-chain hash still renders from
             // `txHash` below.
             id: chargeDetails.uuid,
@@ -186,7 +186,7 @@ const PaymentSuccessView = ({
                 isLinkTransaction: false,
                 originalType: 'TRANSACTION_INTENT',
                 originalUserRole: EHistoryUserRole.SENDER,
-                kind: 'DIRECT_TRANSFER',
+                kind: receiptKindForCharge(chargeDetails.transactionType),
                 link: receiptLink,
             },
             // external-wallet withdrawals have no username/identifier — fall back to
