@@ -22,6 +22,9 @@ test.use({ viewport: { width: 375, height: 667 } })
 // CaixaBank: a bank the bundled table knows, so the BIC derives and its field hides
 const DERIVABLE_IBAN = 'ES9121000418450200051332'
 
+// an Italian IBAN: the bundled table has no BIC for it, so the field stays
+const UNDERIVABLE_IBAN = 'IT60X0542811101000000123456'
+
 /** What a tap at the button's centre lands on: the button itself, or whatever covers it. */
 async function tapTargetAtCentre(page: Page) {
     return page.getByTestId('bank-form-cta').evaluate((cta) => {
@@ -70,5 +73,34 @@ test.describe('bank form submit button at 375x667', () => {
             return Math.max(0, Math.min(cta.bottom, nav.bottom) - Math.max(cta.top, nav.top))
         })
         expect(overlap).toBe(0)
+    })
+
+    /*
+     * The taller of the form's two heights. A BIC the bundled table cannot
+     * derive keeps its field, which pushes the button a further 88px down, and
+     * the page then scrolls 137px rather than 49 to bring it clear. Held
+     * separately because the short form passing says nothing about this one:
+     * the two differ by exactly the field that decides the height.
+     */
+    test('is clear of the bottom nav on the taller form, where the BIC field stays', async ({ page }) => {
+        await page.goto('/withdraw/italy?step=form&__fixture=withdraw-bank-form', { waitUntil: 'domcontentloaded' })
+        await page.addStyleTag({ content: '[data-fixture-banner]{display:none!important}' })
+        const button = page.getByTestId('bank-form-cta').locator('button')
+        await expect(button).toBeVisible({ timeout: 60_000 })
+
+        await page.locator('#bank-accountOwnerName').fill('Giulia Rossi')
+        await page.locator('#bank-accountNumber').fill(UNDERIVABLE_IBAN)
+        await page.locator('#bank-accountNumber').blur()
+        // the field stays: this is the form's taller height
+        await expect(page.locator('#bank-bic')).toBeVisible({ timeout: 30_000 })
+        await page.locator('#bank-bic').fill('BCITITMM')
+        await page.locator('#bank-bic').blur()
+        await page.locator('#bank-street').fill('Via Roma 1')
+        await page.locator('#bank-city').fill('Roma')
+        await page.locator('#bank-postalCode').fill('00100')
+        await page.locator('#bank-postalCode').blur()
+
+        await expect(button).toBeEnabled({ timeout: 30_000 })
+        await expect.poll(() => tapTargetAtCentre(page), { timeout: 10_000 }).toBe('button')
     })
 })

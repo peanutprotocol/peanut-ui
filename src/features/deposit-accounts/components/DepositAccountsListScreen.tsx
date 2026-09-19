@@ -27,7 +27,7 @@ import { useRouter } from 'next/navigation'
 import { parseAsStringEnum, useQueryStates } from 'nuqs'
 import { useMemo, useState } from 'react'
 import { corridorsForCountry } from '../countryCorridor'
-import { depositGateView, isDepositBlock } from '../depositGate'
+import { depositGateView, isDepositBlock, type DepositGateView } from '../depositGate'
 import { DEFAULT_ACCOUNT_LIMIT, DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, isClaimable, topUpOnlyHref } from '../rails'
 import { isResidenceGated, RESIDENCE_GATED_CORRIDORS } from '../residenceGate'
 import { canShare, isHeld } from '../resolveScreen'
@@ -39,6 +39,18 @@ import { CorridorFlag } from './CorridorFlag'
 
 /** the crypto entry point, reached from this screen and from the home Add drawer */
 const CRYPTO_HREF = '/add-money/crypto'
+
+/**
+ * Gate answers that only exist after identity verification. Any one of them on
+ * any corridor means this user has verified, whatever another corridor's gate
+ * says about itself.
+ */
+const PAST_IDENTITY_GATES: ReadonlySet<GateState['kind'] | undefined> = new Set([
+    'ready',
+    'needs-enrollment',
+    'pending',
+    'waiting-on-provider',
+])
 
 /**
  * The hub: the accounts this user holds or can claim, and every country they
@@ -175,11 +187,56 @@ export function DepositAccountsListScreen({
         return DEPOSIT_RAIL_ORDER.filter((corridor) => shown.has(corridor))
     }, [corridors, gates])
 
+    /**
+     * Has this user cleared identity verification?
+     *
+     * The capability gate answers `needs-identity` for a corridor whose rail it
+     * cannot read, which is not the same question — a verified user with three
+     * live accounts was told "Requires verification" on a fourth corridor and
+     * had nowhere to go. What the user holds settles it: an account the
+     * provider opened, or any corridor past the identity step, only exists
+     * after verification.
+     */
+    const identityCleared = DEPOSIT_RAIL_ORDER.some(
+        (corridor) => isHeld(accounts[corridor]) || PAST_IDENTITY_GATES.has(gates[corridor]?.kind)
+    )
+
+    /**
+     * Whether the row leads somewhere. No row on this screen may name an action
+     * the user cannot take, so the only rows that stay closed are the ones whose
+     * own words are the whole answer.
+     *
+     * The gate governs opening a NEW account, not reading one that already
+     * exists — `resolveScreen` serves those details read-only. Revoked details
+     * still explain returned payments and offer support. A residence-gated row
+     * always opens: the screen behind it states the rule, and a closed row
+     * states nothing. A block from the corridor's own terms keeps the row open
+     * too, for the same reason. So does identity verification, when the user
+     * has genuinely not verified — that row leads to the verification flow.
+     */
+    const isOpenable = (corridor: DepositCorridor, view: DepositGateView) =>
+        isResidenceGated(corridor) ||
+        !isClaimable(DEPOSIT_RAILS[corridor]) ||
+        view.claimable ||
+        (view.notice !== undefined && isDepositBlock(view.notice.kind)) ||
+        isHeld(accounts[corridor]) ||
+        (gates[corridor]?.kind === 'needs-identity' && !identityCleared)
+
     const views = hubCorridors
         .filter((corridor) => matchesCorridor(corridor))
         // With the corridor's own terms: for a corridor the backend offers, those
         // terms decide, and the capability gate alone would call it closed.
-        .map((corridor) => ({ corridor, view: depositGateView(gates[corridor], claimable?.[corridor]) }))
+        .map((corridor) => {
+            const view = depositGateView(gates[corridor], claimable?.[corridor])
+            return { corridor, view, openable: isOpenable(corridor, view) }
+        })
+        /*
+         * A row the user cannot act on sits last. Hugo, on the greyed COP row
+         * five of seven: "always have grey items at bottom". `sort` is stable,
+         * so within each group the catalogue order holds and the list does not
+         * reshuffle as the reads land.
+         */
+        .sort((a, b) => Number(b.openable) - Number(a.openable))
 
     /**
      * Where the corridor stands, in the one slot that carries status.
@@ -200,8 +257,18 @@ export function DepositAccountsListScreen({
         // A claimable corridor the user has no rail for, shown because identity
         // verification comes first. The badge states the requirement and promises
         // nothing: verifying opens the corridors the user's region has, not all.
+        //
+        // Unless the user verified long ago. The gate answers `needs-identity`
+        // for a corridor whose rail it cannot read as well, and telling a
+        // verified user to verify is both false and a dead end — the row simply
+        // is not offered to them.
         if (!account && gate.kind === 'needs-identity')
-            return <StatusBadge status="custom" customText={t('list.badgeVerify')} />
+            return (
+                <StatusBadge
+                    status="custom"
+                    customText={identityCleared ? t('list.badgeNotOffered') : t('list.badgeVerify')}
+                />
+            )
         if (!isClaimable(rail) || account?.status === 'unavailable')
             return <StatusBadge status="custom" customText={t('list.badgeUnavailable')} />
         // A read that failed says nothing about what the user holds. "Not set
@@ -293,6 +360,13 @@ export function DepositAccountsListScreen({
         userAccountLimit ??
         (blockedByLimit ? slotsHeld : slotsHeld < DEFAULT_ACCOUNT_LIMIT ? DEFAULT_ACCOUNT_LIMIT : undefined)
     const limitReached = accountLimit !== undefined && slotsHeld >= accountLimit
+    /*
+     * More accounts than the limit allows. It happens: support raised the limit
+     * and lowered it again, or a lost account was adopted onto the user's row
+     * after the fact. "3 of 2 used" and "You've used all 2 accounts" are both
+     * wrong, so the count stands on its own and the note says what is true.
+     */
+    const overCap = accountLimit !== undefined && slotsHeld > accountLimit
 
     // A corridor with no row left after the search has nothing to label.
     const showAccounts = accountsEnabled && views.length > 0
@@ -356,10 +430,14 @@ export function DepositAccountsListScreen({
                                     <span className="flex shrink-0 items-center gap-1" data-testid="account-counter">
                                         <StatusBadge
                                             status="custom"
-                                            customText={t('list.accountCounter', {
-                                                used: slotsHeld,
-                                                cap: accountLimit,
-                                            })}
+                                            customText={
+                                                overCap
+                                                    ? t('list.accountCounterOverCap', { used: slotsHeld })
+                                                    : t('list.accountCounter', {
+                                                          used: slotsHeld,
+                                                          cap: accountLimit,
+                                                      })
+                                            }
                                         />
                                         <MoreInfo text={t('list.accountLimitWhy')} />
                                     </span>
@@ -373,31 +451,17 @@ export function DepositAccountsListScreen({
                             every slot is used so the counter and the note agree. */}
                         {showCounter && (
                             <p className="text-body-xs text-foreground-secondary">
-                                {limitReached
-                                    ? t('list.accountLimitReached', { cap: accountLimit })
-                                    : t('list.accountLimitNote', { cap: accountLimit })}
+                                {overCap
+                                    ? t('list.accountLimitOverCap', { used: slotsHeld })
+                                    : limitReached
+                                      ? t('list.accountLimitReached', { cap: accountLimit })
+                                      : t('list.accountLimitNote', { cap: accountLimit })}
                             </p>
                         )}
                         <ListGroup>
-                            {views.map(({ corridor, view }) => {
+                            {views.map(({ corridor, openable }) => {
                                 const rail = DEPOSIT_RAILS[corridor]
                                 const account = accounts[corridor]
-                                // The gate governs opening a NEW account, not
-                                // reading one that already exists — resolveScreen
-                                // serves those details read-only. A corridor with
-                                // nothing to claim is always open: its details are
-                                // the user's own top-up route.
-                                // Revoked details still explain returned payments and provide support.
-                                // A residence-gated row always opens: the screen behind
-                                // it states the rule, and a disabled row states nothing.
-                                // A block from the corridor's own terms keeps the row
-                                // open too: the screen behind it says what to do.
-                                const openable =
-                                    isResidenceGated(corridor) ||
-                                    !isClaimable(rail) ||
-                                    view.claimable ||
-                                    (view.notice !== undefined && isDepositBlock(view.notice.kind)) ||
-                                    isHeld(account)
                                 const disabled = isError || isLoading || !openable
 
                                 return (

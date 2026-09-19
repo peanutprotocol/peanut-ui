@@ -1742,7 +1742,9 @@
             "accountLimitReached": "Ya usaste tus {cap} cuentas. ¿Necesitás otra? Escribí a soporte.",
             "errorBody": "Tus cuentas están bien: solo no pudimos leerlas. Revisá tu conexión y probá de nuevo.",
             "accountsPitch": "Datos bancarios a tu nombre. Compartilos una vez y cobrá directo en Peanut.",
-            "countriesPitch": "Enviate plata desde un banco de otro país."
+            "countriesPitch": "Enviate plata desde un banco de otro país.",
+            "accountCounterOverCap": "{used} cuentas",
+            "accountLimitOverCap": "Tenés {used} cuentas bancarias, más que el límite actual. Escribí a soporte para abrir otra."
         },
         "claim": {
             "benefitStable": "Compartí estos datos una sola vez — quedan igual para cada pago después.",

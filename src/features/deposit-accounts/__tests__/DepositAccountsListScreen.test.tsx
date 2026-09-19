@@ -277,18 +277,19 @@ describe("DepositAccountsListScreen renders the user's corridors and no others",
 
     /**
      * A user who has not verified holds a rail for nothing. Rather than hide the
-     * standing accounts, the hub shows the claimable ones with a "verify to
-     * unlock" badge, disabled — so the user learns the accounts exist and what
-     * opens them. Only the identity gate does this: a verified user in a region
-     * with no rail reads needs-enrollment and is spared rows they cannot open
-     * (the test above).
+     * standing accounts, the hub shows the claimable ones badged with what they
+     * need — so the user learns the accounts exist and what opens them. The row
+     * leads to verification: a badge naming an action, on a row that does not
+     * take the tap, is the dead end Hugo rejected. Only the identity gate does
+     * this: a verified user in a region with no rail reads needs-enrollment and
+     * is spared rows they cannot open (the test above).
      */
-    it('shows the claimable accounts to an unverified user, badged to unlock', () => {
+    it('shows the claimable accounts to an unverified user, badged with what they need', () => {
         const { container } = list(false, { corridors: [], gates: allGates({ kind: 'needs-identity' }) })
 
         for (const corridor of ['SEPA_EU', 'FASTER_PAYMENTS_GB', 'ACH_US', 'SPEI_MX', 'BANK_TRANSFER_CO'] as const) {
             expect(rowOf(container, corridor)).toBeInTheDocument()
-            expect(rowOf(container, corridor)).toHaveAttribute('aria-disabled', 'true')
+            expect(rowOf(container, corridor)).not.toHaveAttribute('aria-disabled', 'true')
         }
         expect(inRow(container, 'SEPA_EU').getByText(messages.depositAccounts.list.badgeVerify)).toBeInTheDocument()
         // a top-up-only corridor is not a standing account, so it stays out
@@ -1009,5 +1010,74 @@ describe('the hub copy exists in every catalog', () => {
             const listCopy = (catalog as any).depositAccounts.list as Record<string, string>
             for (const key of HUB_KEYS) expect(listCopy[key]).toBeTruthy()
         }
+    })
+})
+
+/*
+ * Hugo, reading the hub with a greyed COP row five of seven: "why is colombia
+ * grey? also always have grey items at bottom" — and, on the same row, "as a
+ * user, how do I action 'requires verification'?". The screen answered neither:
+ * the row sat mid-list, said a verified user must verify, and was not tappable.
+ */
+describe('a row the user cannot act on', () => {
+    /** every account row, in the order the screen renders them */
+    const renderedCorridors = (container: HTMLElement) =>
+        Array.from(container.querySelectorAll('[data-testid^="deposit-account-"]')).map((row) =>
+            row.getAttribute('data-testid')!.replace('deposit-account-', '')
+        )
+
+    const gatesWith = (corridor: DepositCorridor, gate: GateState) => ({ ...allGates(), [corridor]: gate })
+
+    it('sorts below every row that leads somewhere, catalogue order kept inside each group', () => {
+        // BANK_TRANSFER_CO sits fifth of seven in the catalogue; nothing can be
+        // done with it, so it goes last.
+        const { container } = list(false, { gates: gatesWith('BANK_TRANSFER_CO', { kind: 'blocked-rejection', userMessage: null }) })
+        const order = renderedCorridors(container)
+        expect(order.at(-1)).toBe('BANK_TRANSFER_CO')
+        // the rest keep the catalogue's own order
+        expect(order.slice(0, -1)).toEqual(DEPOSIT_RAIL_ORDER.filter((c) => c !== 'BANK_TRANSFER_CO'))
+    })
+
+    it('never names an action the user cannot take: no closed row carries an action badge', () => {
+        const { container } = list(false, {
+            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') },
+            gates: gatesWith('BANK_TRANSFER_CO', { kind: 'needs-identity' }),
+        })
+        for (const row of Array.from(container.querySelectorAll('[data-testid^="deposit-account-"]'))) {
+            if (row.getAttribute('aria-disabled') !== 'true') continue
+            expect(row.textContent).not.toMatch(/requires verification|action needed/i)
+        }
+    })
+
+    it('tells a user who has not verified to verify, and lets them tap through to it', () => {
+        const onOpen = jest.fn()
+        // no account anywhere and no gate past the identity step: not verified
+        const { container } = list(false, { gates: allGates({ kind: 'needs-identity' }), onOpen })
+        const row = rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement
+        expect(within(row).getByText(/requires verification/i)).toBeInTheDocument()
+        expect(row.getAttribute('aria-disabled')).not.toBe('true')
+        fireEvent.click(row)
+        expect(onOpen).toHaveBeenCalledWith('BANK_TRANSFER_CO')
+    })
+
+    it('does not tell a verified user to verify: the corridor is simply not offered to them', () => {
+        // three live accounts, so identity is long cleared; the gate still says
+        // `needs-identity` for a corridor whose rail it cannot read
+        const { container } = list(false, {
+            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') },
+            gates: gatesWith('BANK_TRANSFER_CO', { kind: 'needs-identity' }),
+        })
+        const row = rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement
+        expect(within(row).queryByText(/requires verification/i)).not.toBeInTheDocument()
+        expect(within(row).getByText(/not available/i)).toBeInTheDocument()
+    })
+
+    it('keeps the provider-review row tappable, where the endorsement page is the answer', () => {
+        const { container } = list(false, {
+            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') },
+            claimable: { BANK_TRANSFER_CO: offered('BANK_TRANSFER_CO', 'endorsement-required') },
+        })
+        const row = rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement
+        expect(row.getAttribute('aria-disabled')).not.toBe('true')
     })
 })
