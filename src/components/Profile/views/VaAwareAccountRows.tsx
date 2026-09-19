@@ -64,7 +64,9 @@ export default function VaAwareAccountRows({
                     held.map((corridor) => (
                         <ListItem
                             key={corridor}
-                            title={`${DEPOSIT_RAILS[corridor].currency} · ${railName(corridor)}`}
+                            // a ReactNode title wraps, as the hub's rows do;
+                            // "GBP · Faster Payments" does not fit at 375
+                            title={<span>{`${DEPOSIT_RAILS[corridor].currency} · ${railName(corridor)}`}</span>}
                             leading={<CorridorFlag iso2={DEPOSIT_RAILS[corridor].flagIso2} />}
                             trailing={
                                 canShare(accounts[corridor], gates[corridor]) ? (

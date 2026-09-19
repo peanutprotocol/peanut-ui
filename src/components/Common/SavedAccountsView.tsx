@@ -81,7 +81,9 @@ export default function SavedAccountsView({
                             <ListItem
                                 position="single"
                                 leading={<IconBubble icon="bank" size="s" color="gray" />}
-                                title={tWithdraw('withdrawToBank')}
+                                // a ReactNode title wraps; a bare string is cut to one
+                                // line, and the pt-BR label does not fit at 375
+                                title={<span>{tWithdraw('withdrawToBank')}</span>}
                                 body={tSend('methods.bankDescription')}
                                 trailing={plusTrailing}
                                 onClick={onSelectNewMethodClick}

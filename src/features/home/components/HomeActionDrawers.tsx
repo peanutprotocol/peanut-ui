@@ -78,6 +78,9 @@ export function HomeActionDrawers() {
                                                 : t(option.bodyKey[1])
                                             : undefined
                                     }
+                                    // the descriptions are a sentence, and a one-line
+                                    // cut ate half of it in pt-BR and es-419
+                                    bodyWrap
                                     chevron
                                     onClick={() => navigate(option)}
                                     data-testid={`home-drawer-${content}-${option.key}`}

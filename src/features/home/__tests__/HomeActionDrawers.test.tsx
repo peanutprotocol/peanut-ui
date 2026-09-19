@@ -159,6 +159,10 @@ describe('HomeActionDrawers', () => {
         // both ways to be paid are offered on one screen
         expect(screen.getByText('shareRequestLink')).toBeInTheDocument()
         expect(screen.getByText('shareBankDetails')).toBeInTheDocument()
+        // A description is a sentence. Cut to one line it lost half of itself in
+        // pt-BR and es-419, so it wraps.
+        expect(screen.getByText('shareBankDetailsDescription')).toHaveClass('whitespace-normal')
+        expect(screen.getByText('shareBankDetailsDescription')).not.toHaveClass('truncate')
 
         fireEvent.click(screen.getByTestId('home-drawer-request-share-link'))
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/request'))
