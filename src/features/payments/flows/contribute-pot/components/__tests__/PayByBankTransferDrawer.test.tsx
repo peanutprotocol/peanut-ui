@@ -1,0 +1,103 @@
+/**
+ * PayByBankTransferDrawer — what the row says before the tap, and which
+ * account the drawer asks for.
+ */
+import { IntlWrapper } from '@/test-utils/intl'
+import type { RequestPayRail } from '@/services/services.types'
+import { fireEvent, render, screen } from '@testing-library/react'
+
+const mockUseInstructions = jest.fn()
+jest.mock('@/features/deposit-accounts/useRequestDepositInstructions', () => ({
+    useRequestDepositInstructions: (...args: unknown[]) => {
+        mockUseInstructions(...args)
+        return { instructions: undefined, isLoading: false, isUnavailable: false }
+    },
+}))
+jest.mock('@/features/deposit-accounts/components/RequestBankInstructions', () => ({
+    RequestBankInstructions: () => null,
+}))
+
+import { PayByBankTransferDrawer } from '../PayByBankTransferDrawer'
+
+const eurExact: RequestPayRail = {
+    kind: 'bank',
+    railId: 'bridge.sepa_eu',
+    payerAmount: { amount: '100.00', currency: 'EUR', isEstimate: false },
+}
+const eurEstimate: RequestPayRail = {
+    kind: 'bank',
+    railId: 'bridge.sepa_eu',
+    payerAmount: {
+        amount: '92.00',
+        currency: 'EUR',
+        isEstimate: true,
+        rate: { from: 'USD', to: 'EUR', rate: '0.92', source: 'bridge', asOf: null },
+    },
+}
+
+const renderRow = (props: Partial<React.ComponentProps<typeof PayByBankTransferDrawer>> = {}) =>
+    render(<PayByBankTransferDrawer requestId="req-1" bankPayable {...props} />, { wrapper: IntlWrapper })
+
+beforeEach(() => jest.clearAllMocks())
+
+describe('PayByBankTransferDrawer', () => {
+    it('renders nothing for a request that shares no bank details', () => {
+        const { container } = renderRow({ bankPayable: false })
+        expect(container).toBeEmptyDOMElement()
+    })
+
+    // Same currency as the request: the figure the requester asked for.
+    it('names the rail and marks a same-currency amount as exact', () => {
+        renderRow({ rail: eurExact, remainingUsd: 108 })
+
+        expect(screen.getByText('Pay in EUR · SEPA')).toBeInTheDocument()
+        expect(screen.getByText('100.00 EUR')).toBeInTheDocument()
+        expect(screen.getByText('Exact amount')).toBeInTheDocument()
+    })
+
+    it('marks a cross-currency amount as an estimate', () => {
+        renderRow({ rail: eurEstimate, remainingUsd: 100 })
+
+        expect(screen.getByText('≈ 92.00 EUR')).toBeInTheDocument()
+        expect(screen.getByText('Estimate')).toBeInTheDocument()
+    })
+
+    // The row must agree with the details it opens: a part contribution is the
+    // payer's own amount, never the whole request.
+    it('shows the payer their own contribution, not the whole request', () => {
+        renderRow({ rail: eurEstimate, usdAmount: '20', remainingUsd: 100 })
+
+        expect(screen.getByText('≈ 18.40 EUR')).toBeInTheDocument()
+        expect(screen.queryByText(/92\.00/)).not.toBeInTheDocument()
+    })
+
+    it('stays generic when the API sent no figure for the rail', () => {
+        renderRow({
+            rail: {
+                kind: 'bank',
+                railId: 'bridge.sepa_eu',
+                payerAmount: { amount: null, currency: 'EUR', isEstimate: true },
+            },
+        })
+
+        expect(screen.getByText('Pay in EUR · SEPA')).toBeInTheDocument()
+        expect(screen.getByText("Send from your bank to the requester's account.")).toBeInTheDocument()
+        expect(screen.queryByText('Estimate')).not.toBeInTheDocument()
+    })
+
+    it('reads no bank details until the payer opens the drawer, then asks for the rail currency', () => {
+        renderRow({ rail: eurExact })
+        expect(mockUseInstructions).toHaveBeenLastCalledWith('req-1', false, 'EUR')
+
+        fireEvent.click(screen.getByText('Pay in EUR · SEPA'))
+        expect(mockUseInstructions).toHaveBeenLastCalledWith('req-1', true, 'EUR')
+    })
+
+    // An API that predates pay-amounts: the backend picks the account.
+    it('asks for no currency when it was given no rail', () => {
+        renderRow()
+
+        expect(screen.getByText('Pay by bank transfer')).toBeInTheDocument()
+        expect(mockUseInstructions).toHaveBeenLastCalledWith('req-1', false, undefined)
+    })
+})

@@ -38,7 +38,17 @@ describe('useRequestDepositInstructions', () => {
         await waitFor(() => expect(result.current.instructions).toEqual(INSTRUCTIONS))
         expect(result.current.instructions?.paymentReference).toBe('a1b2c3d4')
         expect(result.current.isUnavailable).toBe(false)
-        expect(depositInstructions).toHaveBeenCalledWith('req-1')
+        expect(depositInstructions).toHaveBeenCalledWith('req-1', undefined)
+    })
+
+    // A requester with a dollar and a euro account: the payer chose the euro rail.
+    it('asks for the account in the currency the payer chose', async () => {
+        depositInstructions.mockResolvedValue(INSTRUCTIONS)
+
+        const { result } = renderHook(() => useRequestDepositInstructions('req-1', true, 'EUR'), { wrapper })
+
+        await waitFor(() => expect(result.current.instructions).toEqual(INSTRUCTIONS))
+        expect(depositInstructions).toHaveBeenCalledWith('req-1', 'EUR')
     })
 
     // A 404 is the backend's answer for a requester who did not opt in, and

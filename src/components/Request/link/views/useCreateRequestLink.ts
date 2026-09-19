@@ -1,6 +1,7 @@
 'use client'
 import { fetchTokenDetails } from '@/app/actions/tokens'
 import { useToast } from '@/components/0_Bruddle/Toast'
+import { toSupportedExchangeCurrency } from '@/constants/exchange-currencies.consts'
 import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
@@ -8,6 +9,7 @@ import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { useAuth } from '@/context/authContext'
 import { useDebounce } from '@/hooks/useDebounce'
+import { useExchangeRate } from '@/hooks/useExchangeRate'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccounts'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
@@ -15,6 +17,7 @@ import { firstPayableCorridor } from '@/features/deposit-accounts/rails'
 import { canShare } from '@/features/deposit-accounts/resolveScreen'
 import { type IToken } from '@/interfaces/interfaces'
 import { type IAttachmentOptions } from '@/interfaces/attachment'
+import { wireErrorCode, apiErrorStatus } from '@/services/api-error'
 import { requestsApi } from '@/services/requests'
 import { beginClipboardCopy } from '@/utils/clipboard.utils'
 import { fetchTokenSymbol, formatTokenAmount, getRequestLink, isNativeCurrency } from '@/utils/general.utils'
@@ -25,6 +28,7 @@ import { useTranslations } from 'next-intl'
 import { parseAsString, useQueryStates } from 'nuqs'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { payLinkUrl, shareableUrl } from '@/utils/url.utils'
+import { usdEquivalent } from '../requestCurrency'
 
 /**
  * State and behaviour for the create-request-link screen: amount/attachment
@@ -40,8 +44,16 @@ export const useCreateRequestLink = () => {
         useContext(tokenSelectorContext)
     const { setLoadingState } = useContext(loadingStateContext)
     const queryClient = useQueryClient()
-    // read-only url params — nuqs per the url-as-state rule
-    const [{ amount: paramsAmount, merchant }] = useQueryStates({ amount: parseAsString, merchant: parseAsString })
+    // url params — nuqs per the url-as-state rule. `amount` and `merchant` are
+    // read once (the split-bill deep link); `currency` is the requester's live
+    // choice, so a reload or a shared link keeps it. No `currency` means USD,
+    // which is what every link made before the field existed means.
+    const [{ amount: paramsAmount, merchant, currency: paramsCurrency }, setQuery] = useQueryStates({
+        amount: parseAsString,
+        merchant: parseAsString,
+        currency: parseAsString,
+    })
+    const currency = toSupportedExchangeCurrency(paramsCurrency) ?? 'USD'
     // Sanitize amount and limit to 2 decimal places
     const sanitizedAmount = useMemo(() => {
         if (!paramsAmount || isNaN(parseFloat(paramsAmount))) return ''
@@ -50,7 +62,21 @@ export const useCreateRequestLink = () => {
     const merchantComment = merchant ? t('billSplitFor', { merchant }) : null
 
     // Core state
-    const [tokenValue, setTokenValue] = useState<string>(sanitizedAmount)
+    // What the requester typed, in `currency`.
+    const [requestAmount, setRequestAmount] = useState<string>(sanitizedAmount)
+    // `exchangeRate` is units of `currency` per dollar.
+    const { exchangeRate } = useExchangeRate({
+        sourceCurrency: 'USD',
+        destinationCurrency: currency,
+        enabled: currency !== 'USD',
+    })
+    // The dollar side of the request. Peanut settles in dollars, so the pay
+    // link, the wallet and the share label all read this one. For a non-USD
+    // request it is an estimate until the API answers with its own figure.
+    const tokenValue = useMemo(
+        () => (currency === 'USD' ? requestAmount : usdEquivalent(requestAmount, exchangeRate)),
+        [currency, requestAmount, exchangeRate]
+    )
     const [attachmentOptions, setAttachmentOptions] = useState<IAttachmentOptions>({
         message: merchantComment || '',
         fileUrl: '',
@@ -147,6 +173,25 @@ export const useCreateRequestLink = () => {
         return shareableUrl(`/send/${user?.user.username}`)
     }, [user?.user.username, tokenValue, generatedLink])
 
+    // What a failed create says. A request asked in a fiat currency fails in
+    // ways a dollar request cannot, and "failed to create link" tells the
+    // requester nothing they can act on.
+    const createErrorMessage = useCallback(
+        (error: unknown) => {
+            if (currency === 'USD') return t('errors.createFailed')
+            const code = wireErrorCode(error)
+            if (code === 'FX_UNAVAILABLE' || code === 'UNSUPPORTED_REQUEST_CURRENCY') {
+                return t('errors.rateUnavailable', { currency })
+            }
+            if (code === 'INVALID_REQUESTED_AMOUNT') return t('errors.invalidRequestedAmount', { currency })
+            // An API that predates `requestedAmount` refuses the unknown field
+            // with a plain 400 and no code.
+            if (apiErrorStatus(error) === 400 && !code) return t('errors.currencyNotAvailable', { currency })
+            return t('errors.createFailed')
+        },
+        [currency, t]
+    )
+
     const createRequestLink = useCallback(
         async (attachmentOptions: IAttachmentOptions) => {
             if (!recipientAddress) {
@@ -191,7 +236,9 @@ export const useCreateRequestLink = () => {
 
                 const requestData = {
                     chainId: tokenData.chainId,
-                    tokenAmount: tokenValue,
+                    // For a non-USD request this is the client's estimate. The
+                    // API ignores it and prices `requestedAmount` itself.
+                    tokenAmount: tokenValue || undefined,
                     recipientAddress,
                     tokenAddress: tokenData.address,
                     tokenDecimals: tokenData.decimals.toString(),
@@ -202,6 +249,11 @@ export const useCreateRequestLink = () => {
                     mimeType: attachmentOptions.rawFile?.type || undefined,
                     filename: attachmentOptions.rawFile?.name || undefined,
                     bankInstructionsShared,
+                    // Sent for a non-USD amount alone, so a USD request is the
+                    // same body an API without the field accepts.
+                    ...(currency !== 'USD' && parseFloat(requestAmount) > 0
+                        ? { requestedAmount: { amount: requestAmount, currency } }
+                        : {}),
                 }
 
                 // POST new request
@@ -221,13 +273,11 @@ export const useCreateRequestLink = () => {
                 if (error && typeof error === 'object' && 'name' in error && error.name === 'AbortError') {
                     return null
                 }
-                setErrorState({
-                    showError: true,
-                    errorMessage: t('errors.createFailed'),
-                })
+                const errorMessage = createErrorMessage(error)
+                setErrorState({ showError: true, errorMessage })
                 console.error('Failed to create link:', error)
                 Sentry.captureException(error)
-                toast.error(t('errors.createFailed'))
+                toast.error(errorMessage)
                 return null
             } finally {
                 setLoadingState('Idle')
@@ -237,10 +287,13 @@ export const useCreateRequestLink = () => {
         [
             recipientAddress,
             tokenValue,
+            requestAmount,
+            currency,
             selectedTokenData,
             selectedTokenAddress,
             selectedChainID,
             bankInstructionsShared,
+            createErrorMessage,
             toast,
             queryClient,
             setLoadingState,
@@ -321,13 +374,13 @@ export const useCreateRequestLink = () => {
         handleDebouncedChange()
     }, [handleDebouncedChange])
 
-    const handleTokenValueChange = useCallback(
+    const handleRequestAmountChange = useCallback(
         (value: string | undefined) => {
             const newValue = value || ''
-            setTokenValue(newValue)
+            setRequestAmount(newValue)
 
-            // Reset link and request when token value changes
-            if (newValue !== tokenValue) {
+            // Reset link and request when the amount changes
+            if (newValue !== requestAmount) {
                 setGeneratedLink(null)
                 setRequestId(null)
                 lastSavedAttachmentRef.current = {
@@ -337,7 +390,32 @@ export const useCreateRequestLink = () => {
                 }
             }
         },
-        [tokenValue]
+        [requestAmount]
+    )
+
+    const handleCurrencyChange = useCallback(
+        (value: string) => {
+            const next = toSupportedExchangeCurrency(value)
+            // The currency is part of what the request is created with, like
+            // the amount: it cannot change once the request exists.
+            if (!next || requestId) return
+            setQuery({ currency: next === 'USD' ? null : next })
+            setErrorState({ showError: false, errorMessage: '' })
+        },
+        [requestId, setQuery]
+    )
+
+    // The requester's own account currencies lead the picker: a request in the
+    // currency of an account they hold is the one a payer can pay exactly.
+    const accountCurrencies = useMemo(
+        () => [
+            ...new Set(
+                Object.values(depositAccounts)
+                    .filter((account) => account?.status === 'active')
+                    .map((account) => account!.currency.toUpperCase())
+            ),
+        ],
+        [depositAccounts]
     )
 
     const handleAttachmentOptionsChange = useCallback((options: IAttachmentOptions) => {
@@ -393,6 +471,10 @@ export const useCreateRequestLink = () => {
 
     return {
         tokenValue,
+        requestAmount,
+        currency,
+        accountCurrencies,
+        exchangeRate,
         attachmentOptions,
         errorState,
         generatedLink,
@@ -402,7 +484,8 @@ export const useCreateRequestLink = () => {
         qrCodeLink,
         bankInstructionsShared,
         setBankInstructionsShared: handleBankInstructionsSharedChange,
-        handleTokenValueChange,
+        handleRequestAmountChange,
+        handleCurrencyChange,
         handleAttachmentOptionsChange,
         handleTokenAmountSubmit,
         generateLink,

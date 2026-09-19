@@ -32,7 +32,10 @@ import { EInviteType } from '@/services/services.types'
 import { saveRedirectUrl, saveToLocalStorage, toInviteCode, inviteFlowUrl } from '@/utils/general.utils'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { PayByBankTransferDrawer } from './PayByBankTransferDrawer'
-import { useTranslations } from 'next-intl'
+import { isUsdPeggedRequest, minorUnitDigits } from '@/features/deposit-accounts/payerAmount'
+import { useRequestPayAmounts } from '@/components/Request/Pay/useRequestPayAmounts'
+import { Notification } from '@/components/0_Bruddle/Notification'
+import { useFormatter, useTranslations } from 'next-intl'
 import { stashInvite } from '@/utils/invite-stash'
 
 interface RequestPotActionListProps {
@@ -44,6 +47,12 @@ interface RequestPotActionListProps {
     requestId?: string
     /** the requester lets this request be settled by bank transfer */
     bankPayable?: boolean
+    /** what the request still needs, in dollars; undefined on an open-amount request */
+    remainingUsd?: number
+    /** the token the request is denominated in; a bank payer is shown an amount only when it is a dollar token */
+    requestTokenSymbol?: string | null
+    /** the fiat currency the requester asked in; absent or null means USD */
+    requestCurrency?: string | null
     onPayWithPeanut: () => void
     isPaymentLoading?: boolean
     isExternalWalletLoading?: boolean
@@ -57,6 +66,9 @@ export function RequestPotActionList({
     recipientUsername,
     requestId,
     bankPayable = false,
+    remainingUsd,
+    requestTokenSymbol,
+    requestCurrency,
     onPayWithPeanut,
     isPaymentLoading = false,
     isExternalWalletLoading = false,
@@ -65,7 +77,8 @@ export function RequestPotActionList({
     const router = useRouter()
     const t = useTranslations('payment')
     const tCommon = useTranslations('common')
-    const { user } = useAuth()
+    const format = useFormatter()
+    const { user, isFetchingUser } = useAuth()
     const { hasSufficientSpendableBalance: hasSufficientBalance, isFetchingSpendableBalance } = useWallet()
     // MIGRATION-REVIEW: mercadopago/pix are QR `pay` methods over Manteca. Old gate was
     // `isUserMantecaKycApproved`; mapped to canDo('pay', { provider: 'manteca' }) (operation-specific).
@@ -155,6 +168,66 @@ export function RequestPotActionList({
         }
     }
 
+    // A signed-out payer who taps the generic "Bank" method is sent to signup,
+    // because that method funds a Peanut balance first. When the requester
+    // shares bank details, a signed-out payer — a business paying an invoice,
+    // say — can pay with no account, so that row leads and the generic one goes.
+    // A signed-in payer keeps both: the transfer asks them to leave the app and
+    // type a reference, so it stays the last option.
+    const requesterBankFirst = bankPayable && !!requestId && !isLoggedIn && !isFetchingUser
+    const visibleMethods = requesterBankFirst ? sortedMethods.filter((method) => method.id !== 'bank') : sortedMethods
+    const isDollarRequest = isUsdPeggedRequest(requestTokenSymbol)
+
+    // Per-rail amounts matter in two cases: the requester shares bank details
+    // (one row per currency they can receive), or asked in another currency
+    // than dollars. Any other request reads nothing.
+    const asksInOtherCurrency = !!requestCurrency && requestCurrency.toUpperCase() !== 'USD'
+    const { payAmounts } = useRequestPayAmounts(bankPayable || asksInOtherCurrency ? requestId : undefined)
+    const bankRails = bankPayable ? (payAmounts?.rails.filter((rail) => rail.kind === 'bank') ?? []) : []
+
+    // The API's own "left to pay" in dollars, when it sent one: the Peanut rail
+    // is always dollars and exact. It is the figure the bank amounts were
+    // computed from, so comparing the payer's amount to it decides correctly
+    // whether they pay the rest. The screen's own number is the fallback.
+    const apiRemainingUsd = Number(payAmounts?.rails.find((rail) => rail.kind === 'peanut_balance')?.payerAmount.amount)
+    const bankRowProps = {
+        bankPayable,
+        usdAmount: isDollarRequest ? usdAmount : undefined,
+        remainingUsd: !isDollarRequest ? undefined : apiRemainingUsd > 0 ? apiRemainingUsd : remainingUsd,
+    }
+    // No rails — an API that predates pay-amounts, or a failed read — keeps the
+    // one generic row, and the backend picks the account.
+    const requesterBankRows = !requestId ? null : bankRails.length > 0 ? (
+        bankRails.map((rail) => (
+            <PayByBankTransferDrawer
+                key={rail.railId ?? rail.payerAmount.currency}
+                requestId={requestId}
+                rail={rail}
+                {...bankRowProps}
+            />
+        ))
+    ) : (
+        <PayByBankTransferDrawer requestId={requestId} {...bankRowProps} />
+    )
+
+    // A request asked in euros is paid in dollars on the Peanut and crypto
+    // rails. Say so once, with the asked amount, instead of leaving the payer
+    // to wonder why the screen shows dollars.
+    const otherCurrencyNote = useMemo(() => {
+        if (!payAmounts || payAmounts.requestCurrency.toUpperCase() === 'USD') return undefined
+        const currency = payAmounts.requestCurrency.toUpperCase()
+        const digits = minorUnitDigits(currency)
+        const show = (value: number) =>
+            format.number(value, { minimumFractionDigits: digits, maximumFractionDigits: digits })
+        const asked = Number(payAmounts.requestAmount)
+        const left = Number(payAmounts.remainingAmount)
+        if (!(asked > 0)) return undefined
+        // A part-paid request states what is left: that is what a payer can still send.
+        return left > 0 && left < asked
+            ? t('requestCurrencyNotePartPaid', { amount: show(asked), remaining: show(left), currency })
+            : t('requestCurrencyNote', { amount: show(asked), currency })
+    }, [payAmounts, format, t])
+
     if (isGeoLoading) {
         return (
             <div className="flex w-full items-center justify-center py-8">
@@ -165,6 +238,8 @@ export function RequestPotActionList({
 
     return (
         <div className="space-y-2">
+            {otherCurrencyNote && <Notification priority="helper">{otherCurrencyNote}</Notification>}
+
             {/* pay with peanut button */}
             <SendWithPeanutCta
                 onClick={onPayWithPeanut}
@@ -178,7 +253,8 @@ export function RequestPotActionList({
 
             {/* payment methods */}
             <div className="space-y-2">
-                {sortedMethods.map((method) => {
+                {requesterBankFirst && requesterBankRows}
+                {visibleMethods.map((method) => {
                     let methodRequiresVerification = method.id === 'bank' && requiresVerification
                     if (!isMantecaPayEnabled && ['mercadopago', 'pix'].includes(method.id)) {
                         methodRequiresVerification = true
@@ -207,16 +283,7 @@ export function RequestPotActionList({
                     )
                 })}
 
-                {/*
-                    Straight into the requester's own bank account. It sits
-                    with the other methods rather than above them: it asks the
-                    payer to leave the app and type a reference, so it is the
-                    fallback for a payer whose bank is the only thing they
-                    have, not the first thing offered.
-                */}
-                {requestId && (
-                    <PayByBankTransferDrawer requestId={requestId} bankPayable={bankPayable} usdAmount={usdAmount} />
-                )}
+                {!requesterBankFirst && requesterBankRows}
             </div>
 
             {/* minimum amount error modal */}
