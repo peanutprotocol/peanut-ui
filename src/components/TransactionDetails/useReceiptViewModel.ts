@@ -210,6 +210,9 @@ export function useReceiptViewModel(
                 (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim') &&
                 transaction.status !== 'cancelled'
             ),
+            senderReference: !!(
+                transaction.direction === 'bank_deposit' && transaction.extraDataForDrawer?.senderReference
+            ),
             depositInstructions: !!(
                 (isOnrampEntry(transaction) ||
                     (isPendingBankRequest &&

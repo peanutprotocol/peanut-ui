@@ -14,6 +14,7 @@ export type TransactionDetailsRowKey =
     | 'exchangeRate'
     | 'bankAccountDetails'
     | 'transferId'
+    | 'senderReference'
     | 'depositInstructions'
     | 'networkFee'
     | 'fee'
@@ -44,6 +45,7 @@ export const transactionDetailsRowKeys: TransactionDetailsRowKey[] = [
     'exchangeRate',
     'bankAccountDetails',
     'transferId',
+    'senderReference',
     'depositInstructions',
     'points',
     'comment',

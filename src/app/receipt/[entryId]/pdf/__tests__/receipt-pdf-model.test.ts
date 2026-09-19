@@ -395,3 +395,19 @@ describe('buildReceiptPdfModel — representative private kinds', () => {
         expect(model.rows.at(-1)?.label).toBe('transaction.officialReceipt.reference')
     })
 })
+
+describe('buildReceiptPdfModel — bank deposit sender reference', () => {
+    test('a deposit that carries the payer reference prints it', () => {
+        const model = buildReceiptPdfModel(
+            withOverrides({ direction: 'bank_deposit' }, { kind: 'ONRAMP', senderReference: 'INVOICE 4471' }),
+            t,
+            'en'
+        )
+        expect(row(model, 'transaction.rows.senderReference')).toBe('INVOICE 4471')
+    })
+
+    test('no reference, no row', () => {
+        const model = buildReceiptPdfModel(withOverrides({ direction: 'bank_deposit' }, { kind: 'ONRAMP' }), t, 'en')
+        expect(labels(model)).not.toContain('transaction.rows.senderReference')
+    })
+})

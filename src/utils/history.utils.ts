@@ -144,6 +144,9 @@ export interface HistoryEntryExtraData {
      * still in progress.
      */
     refundInFlight?: boolean | null
+    /** What the payer wrote on a bank transfer into a deposit account.
+     *  Third-party text, so the API sends it to the account owner only. */
+    senderReference?: string | null
 
     // Card-spend cluster. Populated for Rain CARD_SPEND / card-refund
     // intents only.

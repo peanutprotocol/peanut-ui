@@ -876,4 +876,24 @@ describe('mapTransactionDataForDrawer', () => {
             expect(result.avatarKey).toBeNull()
         })
     })
+
+    describe('sender reference on a bank deposit', () => {
+        const deposit = (senderReference?: string | null) =>
+            mapTransactionDataForDrawer(
+                baseEntry({
+                    userRole: EHistoryUserRole.RECIPIENT,
+                    recipientAccount: aliceUser,
+                    extraData: { kind: 'ONRAMP', provider: 'BRIDGE', senderReference },
+                })
+            ).transactionDetails
+
+        it('reaches the drawer trimmed', () => {
+            expect(deposit('  INVOICE 4471 ').extraDataForDrawer?.senderReference).toBe('INVOICE 4471')
+        })
+
+        it('is absent when the API sends none or blank', () => {
+            expect(deposit().extraDataForDrawer?.senderReference).toBeUndefined()
+            expect(deposit('   ').extraDataForDrawer?.senderReference).toBeUndefined()
+        })
+    })
 })
