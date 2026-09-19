@@ -338,7 +338,7 @@ describe('UnlockPayments', () => {
         const drawer = screen.getByRole('dialog')
         expect(within(drawer).getByText('Send and receive money with other Peanut users.')).toBeInTheDocument()
         expect(
-            within(drawer).getByText('No limits or KYC required for Peanut-to-Peanut payments or crypto')
+            within(drawer).getByText('No maximum amount and no KYC for Peanut-to-Peanut payments or crypto')
         ).toBeInTheDocument()
         expect(mockInitiateKyc).not.toHaveBeenCalled()
     })
@@ -420,7 +420,7 @@ describe('UnlockPayments', () => {
     it('states the P2P no-limit fact even before anything is unlocked', () => {
         render()
         expect(
-            screen.getByText('No limits or KYC required for Peanut-to-Peanut payments or crypto')
+            screen.getByText('No maximum amount and no KYC for Peanut-to-Peanut payments or crypto')
         ).toBeInTheDocument()
     })
 

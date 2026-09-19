@@ -408,7 +408,7 @@
             },
             "limits": {
                 "monthlyLeft": "{remaining} of {limit} left this month",
-                "p2pNoLimit": "No limits or KYC required for Peanut-to-Peanut payments or crypto",
+                "p2pNoLimit": "No maximum amount and no KYC for Peanut-to-Peanut payments or crypto",
                 "depositPerTransfer": "Per bank deposit",
                 "withdrawalPerTransfer": "Per bank withdrawal"
             },

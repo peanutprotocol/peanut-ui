@@ -408,7 +408,7 @@
             },
             "limits": {
                 "monthlyLeft": "Restam {remaining} de {limit} neste mês",
-                "p2pNoLimit": "Pagamentos de Peanut para Peanut e cripto não têm limite nem exigem verificação",
+                "p2pNoLimit": "Pagamentos de Peanut para Peanut e cripto não têm valor máximo",
                 "depositPerTransfer": "Por depósito bancário",
                 "withdrawalPerTransfer": "Por saque bancário"
             },
@@ -932,7 +932,7 @@
         },
         "accountReady": {
             "worksNowTitle": "Funciona agora mesmo",
-            "worksNowBody": "Receba dólares, envie para qualquer @usuário e guarde seu saldo: sem verificar identidade.",
+            "worksNowBody": "Receba dólares, envie para qualquer @usuário e guarde seu saldo desde já.",
             "laterTitle": "Quando quiser pagamentos bancários ou um cartão",
             "laterBody": "Vai ser preciso verificar sua identidade: alguns minutos, ou de 1 a 3 dias úteis se alguém revisar com calma.",
             "cta": "Ir para minha conta"

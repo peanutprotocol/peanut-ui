@@ -84,7 +84,11 @@ const RULES: Record<Exclude<(typeof APP_LOCALES)[number], 'en'>, Rule[]> = {
         { name: '"sem CPF" framing is banned (trust rules)', pattern: word('sem\\s+CPF') },
         {
             name: 'no circumvention language (trust rules)',
-            pattern: word('sem\\s+documentos|elimina\\s+essa\\s+barreira|sem\\s+verifica[cç][aã]o|sem\\s+burocracia'),
+            // "não/nem exige verificação" is the same claim as "sem verificação": a
+            // reworded sentence passed the narrower pattern and shipped it
+            pattern: word(
+                'sem\\s+documentos|elimina\\s+essa\\s+barreira|(?:sem|n[aã]o\\s+exig\\p{L}+|nem\\s+exig\\p{L}+)\\s+verifica\\p{L}*|sem\\s+burocracia'
+            ),
         },
     ],
 }
