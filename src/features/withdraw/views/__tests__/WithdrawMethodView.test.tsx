@@ -96,11 +96,19 @@ jest.mock('@/features/withdraw/components/WithdrawCurrencyList', () => ({
     WithdrawCurrencyList: ({
         onCountryClick,
         onCryptoClick,
+        enforceSupportedCountries,
+        initialQuery,
     }: {
         onCountryClick: (c: unknown) => void
         onCryptoClick: () => void
+        enforceSupportedCountries?: boolean
+        initialQuery?: string
     }) => (
-        <div>
+        <div
+            data-testid="currency-list"
+            data-send-gate={String(!!enforceSupportedCountries)}
+            data-initial-query={initialQuery}
+        >
             {[
                 { id: 'DE', path: 'germany', currency: 'EUR', title: 'Germany' },
                 { id: 'AR', path: 'argentina', currency: 'ARS', title: 'Argentina' },
@@ -389,8 +397,25 @@ describe('WithdrawMethodView — picking a country', () => {
 it('preserves the bank rail and Send origin through the real URL helper', () => {
     mockIsBankFromSend = true
     renderView({ showAll: 'true', method: 'bank' })
-    fireEvent.click(screen.getByTestId('country-argentina'))
-    expect(mockRouterPush).toHaveBeenCalledWith(
-        '/withdraw/manteca?method=bank-transfer&country=argentina&sendMethod=bank'
-    )
+    // Brazil, not Argentina: the send-to-bank list never offers Argentina
+    fireEvent.click(screen.getByTestId('country-brazil'))
+    expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil&sendMethod=bank')
+})
+
+describe('WithdrawMethodView — what it tells the currency list', () => {
+    it('send-to-bank turns the country gate on; own-account withdraw leaves it off', () => {
+        mockIsBankFromSend = true
+        const { unmount } = renderView({ showAll: 'true', method: 'bank' })
+        expect(screen.getByTestId('currency-list')).toHaveAttribute('data-send-gate', 'true')
+        unmount()
+
+        mockIsBankFromSend = false
+        renderView({ showAll: 'true' })
+        expect(screen.getByTestId('currency-list')).toHaveAttribute('data-send-gate', 'false')
+    })
+
+    it('/withdraw?currencyCode=EUR opens the list filtered to that currency', () => {
+        renderView({ currencyCode: 'EUR' })
+        expect(screen.getByTestId('currency-list')).toHaveAttribute('data-initial-query', 'EUR')
+    })
 })

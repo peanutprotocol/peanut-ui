@@ -5,7 +5,7 @@
  * change would silently move users onto — or off — the shortcut.
  */
 import { COUNTRY_SPECIFIC_METHODS } from '@/components/AddMoney/consts'
-import { liveRailsForCountry, soleLiveRailForCountry } from '../country-rails'
+import { isSendToBankCountry, liveRailsForCountry, soleLiveRailForCountry } from '../country-rails'
 
 describe('liveRailsForCountry — withdraw', () => {
     it('a SEPA country has one rail: the bank transfer', () => {
@@ -62,4 +62,25 @@ it('never offers crypto again inside any country withdrawal list', () => {
     for (const methods of Object.values(COUNTRY_SPECIFIC_METHODS)) {
         expect(methods.withdraw.some((method) => method.id === 'crypto-withdraw')).toBe(false)
     }
+})
+
+describe('isSendToBankCountry — who a send-to-bank can pay', () => {
+    it('a Bridge bank corridor, by 2- or 3-letter id', () => {
+        expect(isSendToBankCountry({ id: 'DEU', path: 'germany' })).toBe(true)
+        expect(isSendToBankCountry({ id: 'PL', path: 'poland' })).toBe(true)
+        expect(isSendToBankCountry({ id: 'US', path: 'usa' })).toBe(true)
+        expect(isSendToBankCountry({ id: 'CO', path: 'colombia' })).toBe(true)
+    })
+
+    it('Brazil, over PIX to a third-party key', () => {
+        expect(isSendToBankCountry({ id: 'BR', path: 'brazil' })).toBe(true)
+    })
+
+    it('not Argentina: its rails are own-account offramps', () => {
+        expect(isSendToBankCountry({ id: 'AR', path: 'argentina' })).toBe(false)
+    })
+
+    it('not a country with no rail', () => {
+        expect(isSendToBankCountry({ id: 'IN', path: 'india' })).toBe(false)
+    })
 })

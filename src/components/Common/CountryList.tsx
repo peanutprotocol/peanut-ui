@@ -16,7 +16,7 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import EasterEggDrawer, { EASTER_EGG_COUNTRIES } from '@/components/Global/EasterEggDrawer'
 import { CountryWaitlist } from './CountryWaitlist'
-import { liveRailsForCountry } from '@/features/destinations/country-rails'
+import { isSendToBankCountry, liveRailsForCountry } from '@/features/destinations/country-rails'
 import Loading from '../Global/Loading'
 import { useSearchParams } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
@@ -56,11 +56,13 @@ interface CountryListViewProps {
      */
     continuesGroup?: boolean
     /**
-     * Restrict the list to one currency (ISO-4217 code). The withdraw
-     * currency-first selector uses this to disambiguate a shared currency —
-     * tapping EUR shows only the SEPA countries, country as the secondary step.
+     * Show these countries only. The withdraw currency-first selector uses this
+     * to disambiguate a shared payout currency — tapping EUR shows the countries
+     * that pay out in euros, country as the secondary step. The caller owns the
+     * set because "pays out in EUR" is not the country's own currency: Poland
+     * (PLN) cashes out in euros over SEPA.
      */
-    currencyFilter?: string
+    countries?: CountryData[]
 }
 
 /**
@@ -89,7 +91,7 @@ export const CountryList = ({
     isCountrySupported,
     searchTerm: controlledSearchTerm,
     continuesGroup = false,
-    currencyFilter,
+    countries,
 }: CountryListViewProps) => {
     const t = useTranslations('global')
     const locale = useLocale()
@@ -112,13 +114,8 @@ export const CountryList = ({
     const [waitlistCountry, setWaitlistCountry] = useState<CountryData | null>(null)
 
     const supportedCountries = useMemo(
-        () =>
-            countryData.filter(
-                (country) =>
-                    country.type === 'country' &&
-                    (!currencyFilter || country.currency?.toUpperCase() === currencyFilter.toUpperCase())
-            ),
-        [currencyFilter]
+        () => countries ?? countryData.filter((country) => country.type === 'country'),
+        [countries]
     )
 
     // catalog titles are English; the displayed name comes from Intl.DisplayNames
@@ -227,13 +224,10 @@ export const CountryList = ({
                             if (isCountrySupported) {
                                 isSupported = isCountrySupported(country)
                             } else if (viewMode === 'add-withdraw') {
-                                // send->bank flow: bridge countries, plus Brazil — a PIX send to a
-                                // third-party key rides the Manteca QR-payment endpoint (see the
-                                // method=pix delegation in /withdraw/manteca). Argentina stays
-                                // gated: its Manteca rails here are own-account offramps, same
-                                // ruling that keeps Mercado Pago off the send list (PR #2813).
+                                // send->bank has a stricter gate (Argentina stays out) —
+                                // see isSendToBankCountry
                                 if (enforceSupportedCountries) {
-                                    isSupported = hasBankCorridor || country.path === 'brazil'
+                                    isSupported = isSendToBankCountry(country)
                                 } else {
                                     isSupported = liveRailsForCountry(country.id, flow ?? 'withdraw').length > 0
                                 }

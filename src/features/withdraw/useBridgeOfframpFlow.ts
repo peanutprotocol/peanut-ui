@@ -42,6 +42,7 @@ import { validateBankOfframpAmount, bankWithdrawMinUsd, bankWithdrawMinNeedsRate
 import useGetExchangeRate from '@/hooks/useGetExchangeRate'
 import { AccountType } from '@/interfaces/interfaces'
 import { WITHDRAW_BANK_STEPS } from './types'
+import { bankReferenceDestinationFields, bankReferenceProblem, bankReferenceSpecForRail } from './bank-reference'
 
 /**
  * Flow hook for the Bridge bank-withdraw review page
@@ -90,6 +91,15 @@ export function useBridgeOfframpFlow() {
     // read country from path params (web) or query params (native/capacitor)
     const country = (params.country as string) || countryFromQuery
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
+    // The optional reference the user sends with the payment. Form state only:
+    // it has no place in a shared link.
+    const [reference, setReference] = useState('')
+    // null when the account's rail takes no reference — the field then stays hidden
+    const referenceSpec = useMemo(
+        () => (bankAccount ? bankReferenceSpecForRail(getOfframpConfigFromAccount(bankAccount).paymentRail) : null),
+        [bankAccount]
+    )
+    const referenceProblem = referenceSpec ? bankReferenceProblem(reference, referenceSpec) : null
     const { hasPendingTransactions } = usePendingTransactions()
 
     const stepper = useFlowStepper({
@@ -272,6 +282,9 @@ export function useBridgeOfframpFlow() {
         // error: no-op rather than under-enforce.
         if (!isMinReady) return
 
+        // the submit is disabled while the reference breaks the rail's limits
+        if (referenceProblem) return
+
         // The amount is a user-editable URL param — revalidate synchronously
         // before anything fires (Chip review, PR #2917): finite, positive, at
         // or above the destination's rail minimum (round 5 — was a flat $1),
@@ -339,6 +352,7 @@ export function useBridgeOfframpFlow() {
                 destination: {
                     ...destination,
                     externalAccountId: destination.externalAccountId,
+                    ...bankReferenceDestinationFields(destination.paymentRail, reference),
                 },
             }
             const { data, error } = await createOfframp(createPayload)
@@ -488,6 +502,10 @@ export function useBridgeOfframpFlow() {
         submittedTxHash,
         balanceErrorMessage,
         confirmPendingCopy,
+        reference,
+        setReference,
+        referenceSpec,
+        referenceProblem,
         pointsData,
         onBack,
         handleCreateAndInitiateOfframp,

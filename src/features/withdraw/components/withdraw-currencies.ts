@@ -1,6 +1,10 @@
+import { BridgeAccountType } from '@/app/actions/types/users.types'
 import { countryData, type CountryData } from '@/components/AddMoney/consts'
+import { bankCorridorFor } from '@/components/AddWithdraw/bank-corridors'
 import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
-import { liveRailsForCountry } from '@/features/destinations/country-rails'
+import { isSendToBankCountry, liveRailsForCountry } from '@/features/destinations/country-rails'
+import { localizedCountryTitle } from '@/utils/country-name.utils'
+import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 
 /**
  * A currency a user can cash out in, and the supported countries behind it.
@@ -28,19 +32,38 @@ export interface WithdrawCurrency {
 const PREFERRED_CURRENCY_ORDER = ['EUR', 'GBP', 'USD', 'MXN', 'BRL', 'ARS', 'COP'] as const
 
 /**
- * The distinct currencies with at least one live withdraw rail today, ordered
- * by the preferred list then alphabetically. A currency with no live rail is
- * absent rather than present-and-disabled — the same rule the country list and
- * the add-money hub read from `liveRailsForCountry`.
+ * The currency a withdrawal to this country arrives in — not always the
+ * country's own. Every country on the IBAN corridor is paid in euros over SEPA:
+ * Poland, Sweden, Switzerland, Denmark, Norway, Czechia, Hungary and Romania
+ * keep their own currency, and their banks convert the euros on arrival
+ * (product/countries.md, SEPA note). A "PLN" row would promise zloty and pay euros.
  */
-export function liveWithdrawCurrencies(): WithdrawCurrency[] {
+export function withdrawPayoutCurrency(country: CountryData): string | undefined {
+    const corridor = bankCorridorFor(getCountryCodeForWithdraw(country.id))
+    return corridor?.accountType === BridgeAccountType.IBAN ? 'EUR' : country.currency
+}
+
+/**
+ * The distinct payout currencies with at least one live withdraw rail today,
+ * ordered by the preferred list then alphabetically. A currency with no live
+ * rail is absent rather than present-and-disabled — the same rule the country
+ * list and the add-money hub read from `liveRailsForCountry`.
+ *
+ * `sendToBankOnly` is the send-to-bank flow: it keeps only the countries that
+ * flow can pay, so a single-country row (ARS) cannot route past the gate the
+ * country list applies.
+ */
+export function liveWithdrawCurrencies({ sendToBankOnly = false } = {}): WithdrawCurrency[] {
     const byCurrency = new Map<string, CountryData[]>()
     for (const country of countryData) {
-        if (country.type !== 'country' || !country.currency) continue
+        if (country.type !== 'country') continue
         if (liveRailsForCountry(country.id, 'withdraw').length === 0) continue
-        const list = byCurrency.get(country.currency) ?? []
+        if (sendToBankOnly && !isSendToBankCountry(country)) continue
+        const payoutCurrency = withdrawPayoutCurrency(country)
+        if (!payoutCurrency) continue
+        const list = byCurrency.get(payoutCurrency) ?? []
         list.push(country)
-        byCurrency.set(country.currency, list)
+        byCurrency.set(payoutCurrency, list)
     }
 
     const rows: WithdrawCurrency[] = []
@@ -62,11 +85,32 @@ export function liveWithdrawCurrencies(): WithdrawCurrency[] {
     })
 }
 
-/** A currency row matches a search over its code, its name, or any of its countries' titles. */
-export function currencyMatchesQuery(currency: WithdrawCurrency, term: string): boolean {
-    if (!term) return true
+/**
+ * Does the search name this country? The English catalog title stays searchable
+ * beside the localized name, so "Germany" and "Alemanha" both find it.
+ */
+export function countryNameMatchesQuery(country: CountryData, term: string, locale: string): boolean {
     const t = term.trim().toLowerCase()
+    if (!t) return true
+    return country.title.toLowerCase().includes(t) || localizedCountryTitle(locale, country).toLowerCase().includes(t)
+}
+
+/** A currency row matches a search over its code, its name, or the name of any of its countries. */
+export function currencyMatchesQuery(currency: WithdrawCurrency, term: string, locale: string): boolean {
+    const t = term.trim().toLowerCase()
+    if (!t) return true
     if (currency.code.toLowerCase().includes(t)) return true
     if (currency.name.toLowerCase().includes(t)) return true
-    return currency.countries.some((country) => country.title.toLowerCase().includes(t))
+    return currency.countries.some((country) => countryNameMatchesQuery(country, t, locale))
+}
+
+/**
+ * The countries a currency row expands to. A search that names some of them
+ * ("Poland") narrows the list to those; a search that names the currency
+ * ("eur", "euro") keeps them all.
+ */
+export function countriesForQuery(currency: WithdrawCurrency, term: string, locale: string): CountryData[] {
+    if (!term.trim()) return currency.countries
+    const named = currency.countries.filter((country) => countryNameMatchesQuery(country, term, locale))
+    return named.length > 0 ? named : currency.countries
 }
