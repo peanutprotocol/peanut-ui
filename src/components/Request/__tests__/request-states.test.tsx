@@ -163,7 +163,10 @@ jest.mock('@/components/Global/AmountInput', () => ({
                 data-testid="amount-field"
                 value={props.initialAmount ?? ''}
                 onChange={(e) => {
+                    // the real field reports all three in one pass, the dollar side last
+                    props.setDisplayedAmount?.(e.target.value)
                     props.setPrimaryAmount?.(e.target.value)
+                    props.setSecondaryAmount?.('')
                 }}
                 disabled={props.disabled}
             />
@@ -892,12 +895,16 @@ describe('GROUP 5: Merchant / Bill Split Flow', () => {
         expect(commentField).toHaveValue('Bill split for CoolCafe')
     })
 
-    test('merchant + amount params auto-create request link', async () => {
+    // ui#3271 QA pass 2: this used to auto-create the link the instant both
+    // params were present, skipping the create step where BankInstructionsToggle
+    // lives — a split-bill request could never offer bank-sharing. It must now
+    // behave like any other prefilled request: show the create form and wait
+    // for an explicit tap.
+    test('merchant + amount params prefill the form instead of auto-creating', () => {
         renderCreateRequest({ merchant: 'CoolCafe', amount: '25' })
 
-        await waitFor(() => {
-            expect(mockRequestsApi.create).toHaveBeenCalled()
-        })
+        expect(screen.getByRole('button', { name: 'Create request' })).toBeInTheDocument()
+        expect(mockRequestsApi.create).not.toHaveBeenCalled()
     })
 })
 
@@ -993,7 +1000,11 @@ describe('GROUP 7: Edge Cases', () => {
         })
     })
 
-    test('changing amount after link creation resets request state', async () => {
+    // The field is disabled once the request exists, so a change that still
+    // arrives is the input echoing its own value (currency swap, reformat, new
+    // FX rate). It must not bring the Create button back: the next tap there
+    // made a duplicate request.
+    test('an amount change after link creation keeps the created request', async () => {
         renderCreateRequest()
 
         const field = screen.getByTestId('amount-field')
@@ -1003,20 +1014,17 @@ describe('GROUP 7: Edge Cases', () => {
             fireEvent.click(screen.getByRole('button', { name: 'Create request' }))
         })
 
-        // Wait for link creation
         await waitFor(() => {
             expect(screen.getByTestId('share-button')).toBeInTheDocument()
         })
 
-        // Now change the amount — this should reset the request
         await act(async () => {
             fireEvent.change(field, { target: { value: '20' } })
         })
 
-        // The Create request button should reappear (since requestId is reset)
-        await waitFor(() => {
-            expect(screen.getByRole('button', { name: 'Create request' })).toBeInTheDocument()
-        })
+        expect(screen.getByTestId('share-button')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Create request' })).not.toBeInTheDocument()
+        expect(mockRequestsApi.create).toHaveBeenCalledTimes(1)
     })
 
     test('aborted request does not show error', async () => {

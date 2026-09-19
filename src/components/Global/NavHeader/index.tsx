@@ -6,9 +6,9 @@ import type enMessages from '@/i18n/app/messages/en.json'
 import { Button } from '@/components/0_Bruddle/Button'
 import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Icons/Icon'
-import { useAuth } from '@/context/authContext'
 import { Banner } from '@/components/Global/Banner'
 import { useRegisterNavHeader } from '@/components/Global/Banner/navHeaderPresence'
+import { NAV_CIRCLE_BUTTON_CLASSES } from './navHeader.consts'
 
 interface NavHeaderProps {
     onPrev?: () => void
@@ -22,7 +22,6 @@ interface NavHeaderProps {
     href?: string
     hideLabel?: boolean
     icon?: IconName
-    showLogoutBtn?: boolean
     titleClassName?: string
     /** trailing slot (board navigation.top.trailing) — step indicators, actions */
     rightElement?: React.ReactNode
@@ -36,11 +35,6 @@ interface NavHeaderProps {
     hideMaintenanceBanner?: boolean
 }
 
-// board 17802:61534 top-nav circle button: 40px visual, no shadow, pseudo-element
-// extends the hit area to 44px (touch-target law — was 28px, the "opened support
-// instead of going back" bug)
-const navCircleBtn = 'relative size-10 w-10 p-0 shadow-none after:absolute after:-inset-0.5'
-
 const NavHeader = ({
     title,
     titleKey,
@@ -49,24 +43,11 @@ const NavHeader = ({
     hideLabel = false,
     onPrev,
     disableBackBtn,
-    showLogoutBtn = false,
     titleClassName,
     rightElement,
     hideBackBtn = false,
     hideMaintenanceBanner = false,
 }: NavHeaderProps) => {
-    // marketing routes mount NavHeader without the app provider tree, where
-    // useAuth throws by design. Auth only feeds the logout button, so "no
-    // provider" just hides it. try/catch, not a separate optional hook: the
-    // hook still runs unconditionally, and every test that mocks useAuth
-    // keeps working without also having to mock a second export.
-    let auth: ReturnType<typeof useAuth> | undefined
-    try {
-        // eslint-disable-next-line react-hooks/rules-of-hooks -- not conditional: the hook body (useContext) always executes in the same order; only its provider-missing throw is caught
-        auth = useAuth()
-    } catch {
-        auth = undefined
-    }
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const label = title ?? (titleKey ? tNav(titleKey) : undefined)
@@ -90,7 +71,7 @@ const NavHeader = ({
                         <Button
                             variant="stroke"
                             href={href ?? '/home'}
-                            className={navCircleBtn}
+                            className={NAV_CIRCLE_BUTTON_CLASSES}
                             aria-label={tCommon('back')}
                             data-testid="nav-back"
                         >
@@ -103,7 +84,7 @@ const NavHeader = ({
                     ) : (
                         <Button
                             variant="stroke"
-                            className={navCircleBtn}
+                            className={NAV_CIRCLE_BUTTON_CLASSES}
                             onClick={onPrev}
                             disabled={disableBackBtn}
                             aria-label={tCommon('back')}
@@ -131,19 +112,7 @@ const NavHeader = ({
                         {label}
                     </div>
                 )}
-                <div className="col-start-3 row-start-1 flex justify-end gap-3">
-                    {rightElement}
-                    {showLogoutBtn && auth && (
-                        <Button
-                            onClick={() => auth.logoutUser()}
-                            loading={auth.isLoggingOut}
-                            variant="stroke"
-                            icon="logout"
-                            aria-label={tNav('logout')}
-                            className={navCircleBtn}
-                        />
-                    )}
-                </div>
+                <div className="col-start-3 row-start-1 flex justify-end gap-3">{rightElement}</div>
             </div>
             {/* maintenance announcement renders below the nav header (designer
                 ruling 2026-09-03) — null outside maintenance mode. The page's

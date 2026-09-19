@@ -83,6 +83,79 @@ describe('useDepositAccounts', () => {
     })
 
     /**
+     * A withheld corridor is a corridor the backend named, so it gets a row
+     * that says it is not available — and being withheld is often exactly why
+     * it has no rail. The hub keeps no catalogue fallback that would carry it.
+     */
+    it('keeps a corridor the backend withholds, rail or no rail', async () => {
+        userRails = [bankRail('bridge.sepa_eu', 'SEPA_EU')]
+        fetchDepositAccounts.mockResolvedValue({
+            accounts: [],
+            claimable: [],
+            unavailable: [
+                {
+                    railId: 'bridge.bank_transfer_co',
+                    method: 'BANK_TRANSFER_CO',
+                    country: 'CO',
+                    currency: 'COP',
+                    reason: 'not-offered',
+                },
+            ],
+        })
+
+        const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+        expect(result.current.corridors).toContain('BANK_TRANSFER_CO')
+        expect(result.current.unavailable.BANK_TRANSFER_CO?.reason).toBe('not-offered')
+    })
+
+    /**
+     * The backend's cap counts every account the provider bills for. One
+     * corridor holds two of them during a rotation, and a revoked one is free,
+     * so the count comes from the rows and never from one-per-corridor.
+     */
+    it('counts slots the way the cap does: every live row, and no revoked one', async () => {
+        resolveAccounts([
+            account({ id: 'new', isPrimary: true }),
+            account({ id: 'old', isPrimary: false, status: 'retiring' }),
+            account({ id: 'usd', railId: 'bridge.ach_us', status: 'provisioning' }),
+            account({ id: 'dead', railId: 'bridge.spei_mx', status: 'revoked' }),
+        ])
+
+        const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+        expect(result.current.slotsHeld).toBe(3)
+    })
+
+    it('prefers the backend count and limit where it sends them', async () => {
+        fetchDepositAccounts.mockResolvedValue({
+            accounts: [account()],
+            claimable: [],
+            accountLimit: 5,
+            // a provisioning row the provider never opened is listed and not counted
+            accountsHeld: 0,
+        })
+
+        const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+        expect(result.current.accountLimit).toBe(5)
+        expect(result.current.slotsHeld).toBe(0)
+    })
+
+    it('sends no limit on an API that predates it', async () => {
+        resolveAccounts([account()])
+
+        const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+        expect(result.current.accountLimit).toBeUndefined()
+        expect(result.current.slotsHeld).toBe(1)
+    })
+
+    /**
      * A rail that leaves the catalogue disappears from the capability block and
      * leaves the account standing — the accounts endpoint keeps it on purpose.
      * Reading the rails alone dropped the row, and the details a payer may

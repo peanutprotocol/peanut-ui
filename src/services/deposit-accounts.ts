@@ -12,7 +12,7 @@
 
 import { apiErrorFromResponse } from '@/services/api-error'
 import { apiFetch } from '@/utils/api-fetch'
-import type { ClaimableCorridor, DepositAccount } from '@/features/deposit-accounts/types'
+import type { ClaimableCorridor, DepositAccount, UnavailableCorridor } from '@/features/deposit-accounts/types'
 import type { paths } from '@/types/api.generated'
 
 type DepositAccountsResponse = paths['/users/deposit-accounts']['get']['responses'][200]['content']['application/json']
@@ -27,16 +27,41 @@ type ClaimResponse = paths['/users/deposit-accounts']['post']['responses'][200][
 export interface DepositAccountsSnapshot {
     accounts: DepositAccount[]
     claimable: ClaimableCorridor[]
+    /**
+     * Why the backend withholds a corridor. Empty on an API that predates it,
+     * and empty is not "everything is on offer": a corridor it would not guess
+     * about is in no list at all.
+     */
+    unavailable: UnavailableCorridor[]
+    /** this user's own account limit, which support can raise; absent on an API that predates it */
+    accountLimit?: number
+    /** the accounts the cap counts, as the backend counts them; absent on an API that predates it */
+    accountsHeld?: number
 }
+
+/**
+ * Two fields of api#1638 the committed OpenAPI snapshot does not carry yet.
+ * Read as optional numbers, so an API without them changes nothing.
+ */
+type AccountCapFields = { accountLimit?: unknown; accountsHeld?: unknown }
+
+const countOrUndefined = (value: unknown): number | undefined =>
+    typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : undefined
 
 export async function fetchDepositAccounts(): Promise<DepositAccountsSnapshot> {
     const response = await apiFetch('/users/deposit-accounts', { method: 'GET' })
     if (!response.ok) throw await apiErrorFromResponse(response, 'Could not load your deposit accounts')
-    const body = (await response.json()) as DepositAccountsResponse
+    const body = (await response.json()) as DepositAccountsResponse & AccountCapFields
     // An API that predates the preview sends no `claimable` at all. The claim
     // step then states no terms, which is what it did before this field
     // existed — never a row of defaults the screen would read as promises.
-    return { accounts: body.depositAccounts, claimable: body.claimable ?? [] }
+    return {
+        accounts: body.depositAccounts,
+        claimable: body.claimable ?? [],
+        unavailable: body.unavailable ?? [],
+        accountLimit: countOrUndefined(body.accountLimit),
+        accountsHeld: countOrUndefined(body.accountsHeld),
+    }
 }
 
 /**

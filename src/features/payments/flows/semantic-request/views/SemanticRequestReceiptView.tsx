@@ -21,6 +21,7 @@ import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
 import { payLinkUrl } from '@/utils/url.utils'
+import { receiptKindForCharge } from '@/features/payments/shared/utils/charge-receipt.utils'
 
 export function SemanticRequestReceiptView() {
     const onBack = useSafeBack('/home')
@@ -57,7 +58,9 @@ export function SemanticRequestReceiptView() {
         const payerName = successfulPayment.payerAccount?.user?.username || successfulPayment.payerAddress || 'Unknown'
 
         const details: Partial<TransactionDetails> = {
-            id: successfulPayment.payerTransactionHash || charge.uuid,
+            // the charge uuid + the charge's own kind are what GET /history/:id
+            // resolves; a tx hash is not a receipt key
+            id: charge.uuid,
             txHash: successfulPayment.payerTransactionHash,
             status: 'completed' as StatusPillType,
             amount: parseFloat(charge.tokenAmount),
@@ -70,7 +73,7 @@ export function SemanticRequestReceiptView() {
                 isLinkTransaction: false,
                 originalType: 'TRANSACTION_INTENT',
                 originalUserRole: EHistoryUserRole.RECIPIENT,
-                kind: 'P2P_REQUEST_FULFILL',
+                kind: receiptKindForCharge(charge),
                 link: receiptLink,
             },
             userName: payerName,

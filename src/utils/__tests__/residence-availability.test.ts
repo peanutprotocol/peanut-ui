@@ -160,7 +160,9 @@ describe('residenceAvailability vs buildUnlockGroups', () => {
     it('a banking-restricted residence lists no rail and Unlock payments marks every bank row unavailable', () => {
         for (const iso2 of ['JP', 'RU']) {
             expect(residenceAvailability(sets, iso2).available.filter(isRail)).toEqual([])
-            const bankRows = unlockRowsFor(iso2).filter((row) => row.id !== 'p2p' && row.id !== 'card')
+            const bankRows = unlockRowsFor(iso2).filter(
+                (row) => row.id !== 'p2p' && row.id !== 'card' && row.id !== 'crypto'
+            )
             expect(bankRows.every((row) => row.chip === 'notAvailable')).toBe(true)
         }
     })

@@ -1,8 +1,8 @@
 'use client'
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
 import { Field } from '@/components/0_Bruddle/Field'
 import { Notification } from '@/components/0_Bruddle/Notification'
-import { useForm, Controller, type ControllerRenderProps, type FieldPath, type RegisterOptions } from 'react-hook-form'
+import { useForm, Controller, type FieldPath, type PathValue, type RegisterOptions } from 'react-hook-form'
 import { useAuth } from '@/context/authContext'
 import { Button } from '@/components/0_Bruddle/Button'
 import { type AddBankAccountPayload, BridgeAccountOwnerType, BridgeAccountType } from '@/app/actions/types/users.types'
@@ -12,12 +12,21 @@ import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import { useParams, useSearchParams } from 'next/navigation'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { validateIban, validateBankAccount, validateBic } from '@/utils/bridge-accounts.utils'
+import { scrollClearOfBottomNav } from '@/utils/bottom-nav-clearance.utils'
+import { bicCountryDiffersFromIban } from './bicIbanCountry.utils'
 import { bankCorridorFor, type BankCorridorField } from '@/components/AddWithdraw/bank-corridors'
 import { getBicFromIban } from '@/app/actions/ibanToBic'
 import PeanutActionDetailsCard, { type PeanutActionDetailsCardProps } from '../Global/PeanutActionDetailsCard'
 import { type Account } from '@/interfaces/interfaces'
 import { getCountryFromIban, getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
-import { createSmartPasteHandler, type PasteFieldKind } from '@/utils/clipboard-extract.utils'
+import {
+    createSmartPasteHandler,
+    extractPaymentValue,
+    readClipboard,
+    type PasteFieldKind,
+} from '@/utils/clipboard-extract.utils'
+import { useToast } from '@/components/0_Bruddle/Toast'
+import { twMerge } from '@/utils/tw'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
 import { useDebounce } from '@/hooks/useDebounce'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
@@ -106,6 +115,18 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const framedAsSend = isFromSendFlow && flow === 'withdraw'
         const savedAccounts = useSavedAccounts()
         const [isCheckingBICValid, setisCheckingBICValid] = useState(false)
+        // The provider needs a BIC with every IBAN. Where the bundled table knows
+        // the bank (AT/BE/DE/ES/FR/LU/NL) the form derives the BIC and hides the
+        // field; for every other IBAN the field shows and is required. See
+        // syncBicWithIban.
+        const [bicAutoFilled, setBicAutoFilled] = useState(false)
+        // The BIC the form derived, so a change of IBAN can tell a derived BIC
+        // (now stale) from one the user typed.
+        const ctaRef = useRef<HTMLDivElement>(null)
+        const derivedBicRef = useRef<string | null>(null)
+        // the IBAN that BIC was derived from, so a failed lookup can tell "same IBAN" from "new one"
+        const derivedForIbanRef = useRef<string | null>(null)
+        const toast = useToast()
         const STREET_ADDRESS_MAX_LENGTH = 35 // From bridge docs: street address can be max 35 characters
 
         let selectedCountry = (
@@ -123,6 +144,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             control,
             handleSubmit,
             setValue,
+            setError,
             getValues,
             watch,
             formState: { errors, isValid, isValidating, touchedFields },
@@ -167,6 +189,54 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 setValue('bic', debouncedBicValue, { shouldValidate: true })
             }
         }, [debouncedBicValue, isIban, setValue])
+
+        // The form is taller than a small phone, and at 375x667 its button rests
+        // half behind the bottom nav: on screen, and a tap on it switches tabs.
+        // The moment the form can be submitted, the button is brought clear of
+        // the nav. The page moves only as far as that takes, so a user still
+        // typing in the last field keeps it in view.
+        const canSubmit = isValid && !isValidating
+        useEffect(() => {
+            if (canSubmit) scrollClearOfBottomNav(ctaRef.current)
+        }, [canSubmit])
+
+        /**
+         * Keeps the BIC in step with the IBAN and returns the derived BIC, if any.
+         * An IBAN the table knows sets its BIC and hides the field. Any other IBAN
+         * (unknown bank, invalid, empty) shows the field and drops a BIC derived
+         * from an earlier IBAN, so the form never holds a pair that does not match.
+         */
+        const syncBicWithIban = async (rawIban: string): Promise<string | null> => {
+            const iban = (rawIban ?? '').replace(/\s/g, '')
+            let derivedBic: string | null = null
+            if (iban && (await validateIban(iban))) {
+                try {
+                    derivedBic = (await getBicFromIban(iban)) || null
+                } catch {
+                    // The lookup FAILED, which is not "the table does not know
+                    // this bank". A BIC already derived for this same IBAN is
+                    // still right; dropping it made a network blip at submit
+                    // demand a BIC by hand from a user who never saw the field.
+                    derivedBic = derivedForIbanRef.current === iban ? derivedBicRef.current : null
+                }
+            }
+
+            if (derivedBic) {
+                derivedBicRef.current = derivedBic
+                derivedForIbanRef.current = iban
+                setValue('bic', derivedBic, { shouldValidate: true })
+                setBicAutoFilled(true)
+                return derivedBic
+            }
+
+            if (derivedBicRef.current !== null && getValues('bic') === derivedBicRef.current) {
+                setValue('bic', '', { shouldValidate: true })
+            }
+            derivedBicRef.current = null
+            derivedForIbanRef.current = null
+            setBicAutoFilled(false)
+            return null
+        }
 
         const onSubmit = async (data: IBankAccountDetails) => {
             // If validation is still running, don't proceed
@@ -218,8 +288,24 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                     lastName = data.lastName || ''
                 }
 
-                let bic = data.bic || getValues('bic')
                 const iban = data.iban || getValues('iban')
+
+                // Enter submits without a blur, so the BIC may still belong to the
+                // IBAN typed before this one. Derive again from the IBAN that is
+                // about to be sent; a BIC the user typed survives only when nothing
+                // derives.
+                let bic = data.bic || getValues('bic')
+                if (isIban) {
+                    const derivedBic = await syncBicWithIban(data.accountNumber || iban || '')
+                    bic = derivedBic ?? getValues('bic')
+                    if (!bic) {
+                        // The field was hidden until now, and the form skips the rules
+                        // of a field that is not mounted, so set its error by hand.
+                        setValue('bic', '', { shouldTouch: true })
+                        setError('bic', { type: 'required', message: t('bicRequired') })
+                        return
+                    }
+                }
 
                 // uk account numbers may be 6-7 digits, pad to 8 for bridge api
                 const cleanedAccountNumber = isUk
@@ -315,6 +401,31 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             }
         }
 
+        // Tap-to-paste: read the clipboard, pull the payment token out of it for
+        // fields that know their shape (IBAN, routing, sort code…), and drop raw
+        // text into the rest. Same extractor the onPaste (Ctrl+V) path uses, so
+        // both give the same result.
+        const handlePasteInto = async <TName extends FieldPath<IBankAccountDetails>>(
+            name: TName,
+            afterChange?: (value: string) => Promise<void> | void
+        ) => {
+            const result = await readClipboard()
+            if (!result.ok) {
+                toast.info(result.reason === 'unavailable' ? t('pasteUnavailable') : t('pasteEmpty'))
+                return
+            }
+            const kind = smartPasteKindFor(name)
+            const value = (kind ? (extractPaymentValue(result.text, kind) ?? result.text) : result.text).trim()
+            // The form validates on blur and a tap on the button never blurs the
+            // input, so validate here and run what the field's blur runs.
+            setValue(name, value as PathValue<IBankAccountDetails, TName>, {
+                shouldValidate: true,
+                shouldTouch: true,
+                shouldDirty: true,
+            })
+            await afterChange?.(value)
+        }
+
         // `label`, not `placeholder`: these strings were always field names
         // ("Account Owner Name", "BIC", "Sort Code"), so as placeholders they
         // vanished the moment the user typed and left six identical grey boxes
@@ -325,12 +436,15 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             rules: RegisterOptions<IBankAccountDetails, TName>,
             type: string = 'text',
             rightAdornment?: React.ReactNode,
-            onBlur?: (field: ControllerRenderProps<IBankAccountDetails, TName>) => Promise<void> | void,
+            onBlur?: (value: string) => Promise<void> | void,
             showCharCount?: boolean,
             maxLength?: number,
             helper?: string
         ) => {
             const smartPasteKind = smartPasteKindFor(name)
+            // A tap-to-paste icon on every field except the char-count ones (the
+            // address lines), whose trailing slot is already taken by the counter.
+            const showPaste = !showCharCount
             return (
                 <Field
                     label={label}
@@ -344,35 +458,54 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             control={control}
                             rules={rules}
                             render={({ field }) => (
-                                <BaseInput
-                                    {...field}
-                                    id={`bank-${name}`}
-                                    type={type}
-                                    onPaste={
-                                        smartPasteKind
-                                            ? createSmartPasteHandler(smartPasteKind, field.onChange)
-                                            : undefined
-                                    }
-                                    className="text-body-s"
-                                    onBlur={async (_e) => {
-                                        // remove any whitespace from the input field
-                                        // note: @dev not a great fix, this should also be fixed in the backend
-                                        if (typeof field.value === 'string') {
-                                            field.onChange(field.value.trim())
+                                <>
+                                    <BaseInput
+                                        {...field}
+                                        id={`bank-${name}`}
+                                        type={type}
+                                        onPaste={
+                                            smartPasteKind
+                                                ? createSmartPasteHandler(smartPasteKind, field.onChange)
+                                                : undefined
                                         }
-                                        field.onBlur()
-                                        if (onBlur) {
-                                            await onBlur(field)
+                                        className={twMerge('text-body-s', showPaste && 'pr-12')}
+                                        onBlur={async (_e) => {
+                                            // remove any whitespace from the input field
+                                            // note: @dev not a great fix, this should also be fixed in the backend
+                                            if (typeof field.value === 'string') {
+                                                field.onChange(field.value.trim())
+                                            }
+                                            field.onBlur()
+                                            if (onBlur) {
+                                                await onBlur(typeof field.value === 'string' ? field.value.trim() : '')
+                                            }
+                                        }}
+                                        rightContent={
+                                            showCharCount && maxLength ? (
+                                                <span className="text-body-xs">
+                                                    {field.value?.length ?? 0}/{maxLength}
+                                                </span>
+                                            ) : undefined
                                         }
-                                    }}
-                                    rightContent={
-                                        showCharCount && maxLength ? (
-                                            <span className="text-body-xs">
-                                                {field.value?.length ?? 0}/{maxLength}
-                                            </span>
-                                        ) : undefined
-                                    }
-                                />
+                                    />
+                                    {showPaste && (
+                                        <div className="absolute top-1/2 right-1 -translate-y-1/2">
+                                            <Button
+                                                type="button"
+                                                variant="transparent"
+                                                size="small"
+                                                shape="square"
+                                                icon="paste"
+                                                iconSize={20}
+                                                aria-label={t('pasteAria')}
+                                                title={t('pasteAria')}
+                                                onClick={() => void handlePasteInto(name, onBlur)}
+                                                // the base `w-full` utility beats `.btn-square`
+                                                className="w-10 text-foreground-secondary"
+                                            />
+                                        </div>
+                                    )}
+                                </>
                             )}
                         />
                     </div>
@@ -522,19 +655,8 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                   },
                                   'text',
                                   undefined,
-                                  async (field) => {
-                                      if (!field.value || field.value.trim().length === 0) return
-                                      const isValidIban = await validateIban(field.value)
-                                      if (isValidIban) {
-                                          try {
-                                              const autoBic = await getBicFromIban(field.value)
-                                              if (autoBic && !getValues('bic')) {
-                                                  setValue('bic', autoBic, { shouldValidate: true })
-                                              }
-                                          } catch {
-                                              console.log('Could not fetch BIC automatically.')
-                                          }
-                                      }
+                                  async (value) => {
+                                      await syncBicWithIban(value)
                                   }
                               )
                             : corridor &&
@@ -550,14 +672,23 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                               )}
 
                         {isIban &&
+                            !bicAutoFilled &&
                             renderInput(
                                 'bic',
                                 t('bic'),
                                 {
+                                    // The field shows only when no BIC derives from the
+                                    // IBAN, and the provider rejects an IBAN account
+                                    // without one.
                                     required: t('bicRequired'),
                                     validate: async (value: string) => {
                                         if (!value || value.trim().length === 0) return t('bicRequired')
-
+                                        // A BIC registered in another member state than the
+                                        // IBAN is routine — Revolut issues Spanish IBANs
+                                        // under a Lithuanian BIC — so it is a note under
+                                        // the field, never a refusal. The provider is the
+                                        // only authority on a BIC, and `validateBic` below
+                                        // asks it.
                                         // Only validate if the value matches the debounced value (to prevent API calls on every keystroke)
                                         if (value.trim() !== debouncedBicValue?.trim()) {
                                             return true // Skip validation until debounced value is ready
@@ -571,11 +702,16 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                 },
                                 'text',
                                 undefined,
-                                (field) => {
-                                    if (field.value && field.value.trim().length > 0 && submissionError) {
+                                (value) => {
+                                    if (value.length > 0 && submissionError) {
                                         setSubmissionError(null)
                                     }
-                                }
+                                },
+                                undefined,
+                                undefined,
+                                bicValue && bicCountryDiffersFromIban(bicValue, getValues('accountNumber') ?? '')
+                                    ? t('bicCountryMismatch')
+                                    : undefined
                             )}
                         {corridor?.fields.map((field: BankCorridorField) =>
                             field.kind === 'select' ? (
@@ -662,21 +798,27 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                 })}
                             </div>
                         )}
-                        <Button
-                            type="submit"
-                            variant="purple"
-                            shadowSize="4"
-                            className="w-full"
-                            loading={isSubmitting || isCheckingBICValid || isValidating}
-                            disabled={isSubmitting || !isValid || isCheckingBICValid || isValidating}
-                        >
-                            {flow === 'withdraw' ? tCommon('continue') : tWithdraw('review')}
-                        </Button>
-                        {submissionError ? (
-                            <Notification priority="error">{submissionError}</Notification>
-                        ) : (
-                            error && <Notification priority="error">{error}</Notification>
-                        )}
+                        {/*
+                         * The button is the LAST child, after the error: the
+                         * shell's reservation under the page clears whatever ends it.
+                         */}
+                        <div ref={ctaRef} className="flex flex-col gap-4" data-testid="bank-form-cta">
+                            {submissionError ? (
+                                <Notification priority="error">{submissionError}</Notification>
+                            ) : (
+                                error && <Notification priority="error">{error}</Notification>
+                            )}
+                            <Button
+                                type="submit"
+                                variant="purple"
+                                shadowSize="4"
+                                className="w-full"
+                                loading={isSubmitting || isCheckingBICValid || isValidating}
+                                disabled={isSubmitting || !isValid || isCheckingBICValid || isValidating}
+                            >
+                                {flow === 'withdraw' ? tCommon('continue') : tWithdraw('review')}
+                            </Button>
+                        </div>
                     </form>
                 </div>
             </div>

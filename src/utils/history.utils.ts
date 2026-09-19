@@ -5,6 +5,7 @@ import { formatUnits } from 'viem'
 import { type Hash } from 'viem'
 import { getTokenDetails } from '@/utils/general.utils'
 import { getCachedCurrencyPrice } from '@/app/actions/currency'
+import { isQuotableCurrency } from '@/constants/quotable-currencies.consts'
 import { type ChargeEntry } from '@/services/services.types'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { payLinkUrl, shareableUrl } from '@/utils/url.utils'
@@ -144,6 +145,9 @@ export interface HistoryEntryExtraData {
      * still in progress.
      */
     refundInFlight?: boolean | null
+    /** What the payer wrote on a bank transfer into a deposit account.
+     *  Third-party text, so the API sends it to the account owner only. */
+    senderReference?: string | null
 
     // Card-spend cluster. Populated for Rain CARD_SPEND / card-refund
     // intents only.
@@ -467,7 +471,16 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             // That's the top-line amount, not an annotation — always correct
             // it, pending or not; unlike OFFRAMP's secondary "≈ CODE" line,
             // there's no safe "blank it" fallback for the primary amount.
-            if (usdAmount === entry.currency?.amount && entry.currency?.code && entry.currency?.code !== 'USD') {
+            // `currency.code` is data, and it is not always a currency: an
+            // intent denominated in the token itself carries "USDC" here, which
+            // no FX provider quotes. Asking anyway threw on every history
+            // render and corrected nothing.
+            if (
+                usdAmount === entry.currency?.amount &&
+                entry.currency?.code &&
+                entry.currency.code !== 'USD' &&
+                isQuotableCurrency(entry.currency.code)
+            ) {
                 try {
                     const price = await getCachedCurrencyPrice(entry.currency.code)
                     usdAmount = (Number(entry.currency.amount) / price.buy).toString()
@@ -488,7 +501,9 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
             }
             // when bridge/manteca returns non-usd currency on pending states, it may mirror the usd amount.
             // convert it using current fx rate if it looks unconverted (missing or ~equal to usd amount).
-            if (entry.currency?.code && entry.currency.code !== 'USD') {
+            // see ONRAMP above: a code no provider quotes is not worth asking
+            // about, and the mirrored-amount correction has nothing to apply
+            if (entry.currency?.code && entry.currency.code !== 'USD' && isQuotableCurrency(entry.currency.code)) {
                 const usdNum = Number(usdAmount)
                 const hasCurrencyAmount = !!entry.currency.amount
                 const currNum = hasCurrencyAmount ? Number(entry.currency.amount) : NaN

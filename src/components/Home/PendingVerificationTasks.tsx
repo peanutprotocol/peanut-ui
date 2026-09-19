@@ -15,34 +15,11 @@ import { formatEffectiveDate } from '@/utils/format.utils'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import Card from '../Global/Card'
 
-function taskCopy(task: NextAction): { title: string; description: string } {
-    // Advisory tasks (future-dated, rails still usable) are about KEEPING
-    // access; blocking tasks are about ENABLING it — don't tell a blocked
-    // user their transfers are "available".
-    const advisory = !!task.effectiveDate
-    if (task.kind === 'accept-tos') {
-        if (task.key === 'accept-tos:sepa') {
-            return {
-                title: 'Accept updated bank transfer provider terms',
-                description: advisory
-                    ? "Accept our bank transfer provider's updated Terms of Service to keep euro and British pound bank transfers available."
-                    : "Accept our bank transfer provider's updated Terms of Service to enable euro and British pound bank transfers.",
-            }
-        }
-        return {
-            title: 'Accept Terms of Service',
-            description: advisory
-                ? "Accept our payment partner's terms to keep bank transfers available."
-                : "Accept our payment partner's terms to enable bank transfers.",
-        }
-    }
-    return {
-        title: 'Additional verification needed',
-        description: advisory
-            ? 'Complete a quick verification with our payment partner to keep bank transfers available.'
-            : 'Complete a quick verification with our payment partner to enable bank transfers.',
-    }
-}
+// Currencies whose corridor a hosted-verification task can NAME. The backend
+// sets `NextAction.currency` on the bridge-hosted catch-all; anything outside
+// this set falls back to the generic "bank transfers" copy.
+type CorridorCurrency = 'USD' | 'EUR' | 'GBP' | 'MXN'
+const CORRIDOR_CURRENCIES = new Set<string>(['USD', 'EUR', 'GBP', 'MXN'])
 
 /**
  * Home card listing the user's pending Bridge verification tasks — the in-app
@@ -141,12 +118,60 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
             // in a browser we don't control, and keeps no partial progress — a
             // user who leaves mid-check to find a document restarts from step
             // one. That is a page's worth of prep, and it owns the handoff.
-            router.push('/profile/identity-verification/additional')
+            router.push('/profile/accounts-and-payments/additional')
         },
         [router]
     )
 
     const closeTos = useCallback(() => setActiveTosTask(null), [])
+
+    // Advisory tasks (future-dated, rails still usable) are about KEEPING
+    // access; blocking tasks are about ENABLING it — don't tell a blocked user
+    // their transfers are "available". A hosted task carries the rail currency,
+    // so name the corridor ("unlock euro bank transfers") instead of the generic
+    // "bank transfers" when we know it.
+    const corridorLabel = (currency: CorridorCurrency): string => {
+        switch (currency) {
+            case 'USD':
+                return t('pendingTasks.corridors.USD')
+            case 'EUR':
+                return t('pendingTasks.corridors.EUR')
+            case 'GBP':
+                return t('pendingTasks.corridors.GBP')
+            case 'MXN':
+                return t('pendingTasks.corridors.MXN')
+        }
+    }
+    const taskCopy = (task: NextAction): { title: string; description: string } => {
+        const advisory = !!task.effectiveDate
+        if (task.kind === 'accept-tos') {
+            if (task.key === 'accept-tos:sepa') {
+                return {
+                    title: t('pendingTasks.tosSepaTitle'),
+                    description: advisory
+                        ? t('pendingTasks.tosSepaDescriptionAdvisory')
+                        : t('pendingTasks.tosSepaDescription'),
+                }
+            }
+            return {
+                title: t('pendingTasks.tosTitle'),
+                description: advisory ? t('pendingTasks.tosDescriptionAdvisory') : t('pendingTasks.tosDescription'),
+            }
+        }
+        if (task.currency && CORRIDOR_CURRENCIES.has(task.currency)) {
+            const corridor = corridorLabel(task.currency as CorridorCurrency)
+            return {
+                title: t('pendingTasks.verifyTitleCorridor', { corridor }),
+                description: advisory
+                    ? t('pendingTasks.verifyDescriptionCorridorAdvisory', { corridor })
+                    : t('pendingTasks.verifyDescriptionCorridor', { corridor }),
+            }
+        }
+        return {
+            title: t('pendingTasks.verifyTitle'),
+            description: advisory ? t('pendingTasks.verifyDescriptionAdvisory') : t('pendingTasks.verifyDescription'),
+        }
+    }
 
     if (visibleTasks.length === 0 && !activeTosTask) return null
 

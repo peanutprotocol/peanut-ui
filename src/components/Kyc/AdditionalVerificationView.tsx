@@ -38,7 +38,7 @@ import { useSafeBack } from '@/hooks/useSafeBack'
  * panel costs nothing if a later tick puts the task back, so the question
  * stops needing an answer.
  */
-const IDENTITY_ROUTE = '/profile/identity-verification'
+const IDENTITY_ROUTE = '/profile/accounts-and-payments'
 
 export const AdditionalVerificationView = (): React.JSX.Element => {
     const t = useTranslations('kyc.hostedPrep')

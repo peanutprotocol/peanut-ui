@@ -216,6 +216,15 @@ export function ReceiptDetailsCard({
                 />
             )}
 
+            {rowVisibilityConfig.senderReference && (
+                <DataRow
+                    label={t('rows.senderReference')}
+                    value={transaction.extraDataForDrawer!.senderReference}
+                    allowCopy
+                    copyValue={transaction.extraDataForDrawer!.senderReference}
+                />
+            )}
+
             {/* Onramp deposit instructions for bridge_onramp transactions */}
             {rowVisibilityConfig.depositInstructions && <BridgeDepositInstructions transaction={transaction} />}
 

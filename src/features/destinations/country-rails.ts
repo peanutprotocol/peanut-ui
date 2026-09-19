@@ -1,4 +1,5 @@
-import { COUNTRY_SPECIFIC_METHODS, type SpecificPaymentMethod } from '@/components/AddMoney/consts'
+import { COUNTRY_SPECIFIC_METHODS, type CountryData, type SpecificPaymentMethod } from '@/components/AddMoney/consts'
+import { hasBridgeBankCorridor } from '@/components/AddWithdraw/bank-corridors'
 
 export type MoneyFlow = 'add' | 'withdraw'
 
@@ -28,4 +29,18 @@ export function liveRailsForCountry(countryId: string, flow: MoneyFlow): Specifi
 export function soleLiveRailForCountry(countryId: string, flow: MoneyFlow): SpecificPaymentMethod | null {
     const rails = liveRailsForCountry(countryId, flow)
     return rails.length === 1 ? rails[0] : null
+}
+
+/**
+ * Can a send-to-bank (money to someone else's account) go to this country?
+ *
+ * Bridge bank corridors, plus Brazil: a PIX send to a third-party key rides the
+ * Manteca QR-payment endpoint (see the method=pix delegation in
+ * /withdraw/manteca). Argentina stays out: its Manteca rails are own-account
+ * offramps, the same ruling that keeps Mercado Pago off the send list (PR #2813).
+ * Every send-to-bank picker reads this one answer, so a new list cannot forget
+ * the gate.
+ */
+export function isSendToBankCountry(country: Pick<CountryData, 'id' | 'path'>): boolean {
+    return hasBridgeBankCorridor(country.id) || country.path === 'brazil'
 }

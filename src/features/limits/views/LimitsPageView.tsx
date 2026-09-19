@@ -218,7 +218,7 @@ const LockedRegionsList = ({ regions, pendingRegionPaths }: LockedRegionsListPro
                             title={label.name}
                             onClick={() => {
                                 if (!isPending) {
-                                    router.push('/profile/identity-verification')
+                                    router.push('/profile/accounts-and-payments')
                                 }
                             }}
                             disabled={isPending}

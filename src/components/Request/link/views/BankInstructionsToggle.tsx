@@ -60,22 +60,36 @@ export function BankInstructionsToggle({
     // canShare already excludes own-name-only; this narrows the copy-line type.
     if (sender === 'own-name-only') return null
 
+    // The copy names the actual tradeoff at the toggle's current position,
+    // not a generic explanation of what the toggle does: ON reads as a
+    // privacy disclosure (Slava, 2026-09-18). OFF says the details stay
+    // private and nothing more: the pay screen offers a bank method either way,
+    // so "only Peanut and crypto" was untrue.
+    const title = checked ? t('bankInstructions.title') : t('bankInstructions.titleOff')
+    const description = checked ? (
+        <>
+            {t('bankInstructions.description')} {t(SENDER_LINE_KEYS[sender])}
+        </>
+    ) : (
+        t('bankInstructions.descriptionOff')
+    )
+
     return (
         <ListItem
             position="single"
             className="w-full"
-            title={t('bankInstructions.title')}
-            body={
-                <div className="text-body-xs">
-                    {t('bankInstructions.description')} {t(SENDER_LINE_KEYS[sender])}
-                </div>
-            }
+            // ListItem truncates a string title, and the es/pt titles run past
+            // one line at 375px. A node title wraps.
+            title={<span className="break-words whitespace-normal">{title}</span>}
+            body={<div className="text-body-xs">{description}</div>}
             bodyWrap
             trailing={
                 <Toggle
                     checked={checked}
                     onChange={onChange}
                     disabled={disabled}
+                    // One stable name. A label that flips with the state reads as
+                    // "Don't share…, switch, off" — a double negative.
                     aria-label={t('bankInstructions.title')}
                     data-testid="bank-instructions-toggle"
                 />

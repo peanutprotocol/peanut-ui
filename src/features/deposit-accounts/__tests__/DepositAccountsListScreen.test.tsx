@@ -7,7 +7,8 @@ import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { DepositAccountsFlow } from '../components/DepositAccountsFlow'
 import { DepositAccountsListScreen } from '../components/DepositAccountsListScreen'
 import { corridorRecord, DEPOSIT_RAIL_ORDER, emptyCorridorRecord } from '../rails'
-import type { DepositAccount, DepositCorridor } from '../types'
+import { holdsSlot } from '../resolveScreen'
+import type { ClaimableCorridor, DepositAccount, DepositCorridor, UnavailableCorridor } from '../types'
 import type { GateState } from '@/utils/capability-gate'
 import { withReturnTo } from '@/utils/return-to.utils'
 
@@ -71,9 +72,6 @@ beforeEach(() => {
 
 const READY: GateState = { kind: 'ready' }
 
-/** what the BRL row says instead of an arrival time: the CPF it asks for */
-const BR_CAVEAT = messages.depositAccounts.corridors.BANK_TRANSFER_BR.residenceOnly
-
 /** one gate for every corridor, the way a user with every rail enabled looks */
 const allGates = (gate: GateState = READY): Record<DepositCorridor, GateState> => corridorRecord(() => gate)
 
@@ -98,6 +96,14 @@ const list = (
         gates?: Record<DepositCorridor, GateState>
         isError?: boolean
         accounts?: Record<DepositCorridor, DepositAccount | undefined>
+        /** the corridors the backend offers, with the block it put on each */
+        claimable?: Partial<Record<DepositCorridor, ClaimableCorridor>>
+        /** the corridors the backend withholds, with the reason for each */
+        unavailable?: Partial<Record<DepositCorridor, UnavailableCorridor>>
+        /** defaults to what the accounts imply; set it to stand for a rotation */
+        slotsHeld?: number
+        /** the user's own limit, as the backend sends it */
+        accountLimit?: number
         onOpen?: (corridor: DepositCorridor) => void
         /** the hub reads `?method=` to decide whether crypto is still a question */
         searchParams?: string
@@ -109,6 +115,10 @@ const list = (
                 <DepositAccountsListScreen
                     corridors={opts.corridors ?? DEPOSIT_RAIL_ORDER}
                     accounts={opts.accounts ?? NONE}
+                    claimable={{ ...emptyCorridorRecord<ClaimableCorridor>(), ...opts.claimable }}
+                    unavailable={{ ...emptyCorridorRecord<UnavailableCorridor>(), ...opts.unavailable }}
+                    slotsHeld={opts.slotsHeld ?? Object.values(opts.accounts ?? NONE).filter(holdsSlot).length}
+                    accountLimit={opts.accountLimit}
                     gates={opts.gates ?? allGates()}
                     isLoading={isLoading}
                     isError={opts.isError ?? false}
@@ -119,6 +129,25 @@ const list = (
             </NuqsTestingAdapter>
         </NextIntlClientProvider>
     )
+
+/** a corridor the backend withholds from this user, and why */
+const withheld = (corridor: DepositCorridor, reason: UnavailableCorridor['reason']): UnavailableCorridor => ({
+    railId: `bridge.${corridor.toLowerCase()}`,
+    method: corridor,
+    country: 'CO',
+    currency: 'COP',
+    reason,
+})
+
+/** a corridor the backend offers this user, with the block it carries, if any */
+const offered = (corridor: DepositCorridor, blockedBy?: ClaimableCorridor['blockedBy']): ClaimableCorridor => ({
+    railId: `bridge.${corridor.toLowerCase()}`,
+    method: corridor,
+    country: 'CO',
+    currency: 'COP',
+    matching: { sender: 'unknown' },
+    ...(blockedBy ? { blockedBy } : {}),
+})
 
 const rowOf = (container: HTMLElement, corridor: DepositCorridor) =>
     container.querySelector(`[data-testid="deposit-account-${corridor}"]`)
@@ -140,21 +169,21 @@ describe('DepositAccountsListScreen', () => {
         expect(screen.queryByText(/not set up/i)).not.toBeInTheDocument()
     })
 
-    // Status belongs to the badge on every row, and the body to the arrival
-    // time alone. A row that said both ended up reading "Not set up yet"
-    // under a "Ready" pill.
+    // Status belongs to the badge on every row, and the rows carry no subtitle:
+    // the arrival time and the residence caveat moved off the hub so the list
+    // reads as one consistent column of "currency · rail" and a status badge.
     it('says a corridor is not set up once it knows that is true, in the badge', () => {
         const { container } = list(false)
 
         expect(inRow(container, 'SEPA_EU').getByText('Not set up')).toBeInTheDocument()
-        expect(inRow(container, 'SEPA_EU').getByText('Same business day')).toBeInTheDocument()
+        expect(inRow(container, 'SEPA_EU').queryByText('Same business day')).not.toBeInTheDocument()
     })
 
-    it('carries a held corridor the same way — badge for status, body for arrival', () => {
+    it('carries a held corridor with a Ready badge and no subtitle', () => {
         const { container } = list(false, { accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') } })
 
         expect(inRow(container, 'SEPA_EU').getByText('Ready')).toBeInTheDocument()
-        expect(inRow(container, 'SEPA_EU').getByText('Same business day')).toBeInTheDocument()
+        expect(inRow(container, 'SEPA_EU').queryByText('Same business day')).not.toBeInTheDocument()
     })
 
     /**
@@ -191,22 +220,6 @@ describe('DepositAccountsListScreen', () => {
         expect(onOpen).toHaveBeenCalledWith('SEPA_EU')
 
         expect(inRow(container, 'SEPA_EU').getByText(messages.depositAccounts.list.badgeRevoked)).toBeInTheDocument()
-        expect(inRow(container, 'SEPA_EU').getByText(messages.depositAccounts.list.rowRevoked)).toBeInTheDocument()
-        expect(
-            inRow(container, 'SEPA_EU').queryByText(messages.depositAccounts.list.rowBlocked)
-        ).not.toBeInTheDocument()
-    })
-
-    /**
-     * "Unavailable" is for a corridor that is truly closed. A residence-gated
-     * row is one residence away, so it reads the same as any corridor the user
-     * has not opened — the screen behind the row carries the reason.
-     */
-    it('badges the residence-gated account row the same, and not as unavailable', () => {
-        const { container } = list(false)
-
-        expect(inRow(container, 'BANK_TRANSFER_BR').getByText('Not set up')).toBeInTheDocument()
-        expect(inRow(container, 'BANK_TRANSFER_BR').queryByText('Unavailable')).not.toBeInTheDocument()
     })
 
     // A row that only points at a top-up flow has no account behind it, so it
@@ -242,10 +255,10 @@ describe("DepositAccountsListScreen renders the user's corridors and no others",
     })
 
     /**
-     * Their own corridors, plus the residence-gated ones everybody sees. The
-     * ARS row is no longer absent for a European user — it is present with the
-     * rule in its body, because the account is worth knowing about before the
-     * move and the screen behind it states what it costs to open.
+     * Their own corridors, plus the residence-gated one everybody sees. The ARS
+     * row is present for a European user because it is worth knowing about
+     * before the move, and the top-up flow behind it states the residence rule.
+     * Brazil has one row, the Pix top-up, for the users whose rails name it.
      */
     it('shows a European user their Bridge corridors plus the residence-gated rows', () => {
         const { container } = list(false, { corridors: ['SEPA_EU', 'FASTER_PAYMENTS_GB', 'ACH_US', 'SPEI_MX'] })
@@ -253,8 +266,7 @@ describe("DepositAccountsListScreen renders the user's corridors and no others",
         for (const corridor of ['SEPA_EU', 'FASTER_PAYMENTS_GB', 'ACH_US', 'SPEI_MX'] as const) {
             expect(rowOf(container, corridor)).toBeInTheDocument()
         }
-        expect(inRow(container, 'BANK_TRANSFER_AR').getByText(/residents of Argentina/i)).toBeInTheDocument()
-        expect(inRow(container, 'BANK_TRANSFER_BR').getByText(BR_CAVEAT)).toBeInTheDocument()
+        expect(rowOf(container, 'BANK_TRANSFER_AR')).toBeInTheDocument()
         // a corridor with neither a rail nor the residence rule stays absent
         expect(rowOf(container, 'PIX_BR')).not.toBeInTheDocument()
     })
@@ -265,14 +277,191 @@ describe("DepositAccountsListScreen renders the user's corridors and no others",
      * crypto below answer the rest.
      */
     it('keeps only the rows everybody gets when the user has no bank rail', () => {
-        const { container } = list(false, { corridors: [] })
+        // a verified user whose region has no rail reads needs-enrollment
+        const { container } = list(false, { corridors: [], gates: allGates({ kind: 'needs-enrollment' }) })
 
         expect(rowOf(container, 'SEPA_EU')).not.toBeInTheDocument()
-        expect(rowOf(container, 'BANK_TRANSFER_BR')).toBeInTheDocument()
         expect(rowOf(container, 'BANK_TRANSFER_AR')).toBeInTheDocument()
         // COP is not residence-gated, so its row belongs to the users whose
         // rails name it, like MXN
         expect(rowOf(container, 'BANK_TRANSFER_CO')).not.toBeInTheDocument()
+    })
+
+    /**
+     * A user who has not verified holds a rail for nothing. Rather than hide the
+     * standing accounts, the hub shows the ones the backend named for them,
+     * badged with what they need — so the user learns the accounts exist and
+     * what opens them. The row leads to verification: a badge naming an action,
+     * on a row that does not take the tap, is the dead end Hugo rejected.
+     */
+    it('shows an unverified user the corridors the backend named, badged with what they need', () => {
+        const { container } = list(false, {
+            corridors: ['SEPA_EU', 'FASTER_PAYMENTS_GB', 'ACH_US', 'SPEI_MX'],
+            gates: allGates({ kind: 'needs-identity' }),
+        })
+
+        for (const corridor of ['SEPA_EU', 'FASTER_PAYMENTS_GB', 'ACH_US', 'SPEI_MX'] as const) {
+            expect(rowOf(container, corridor)).toBeInTheDocument()
+            expect(rowOf(container, corridor)).not.toHaveAttribute('aria-disabled', 'true')
+        }
+        expect(inRow(container, 'SEPA_EU').getByText(messages.depositAccounts.list.badgeVerify)).toBeInTheDocument()
+        // a top-up-only corridor is not a standing account, so it stays out
+        expect(rowOf(container, 'PIX_BR')).not.toBeInTheDocument()
+    })
+
+    /**
+     * The hub must not invent a corridor out of the catalogue.
+     *
+     * The gate answers `needs-identity` both for "you have this rail, verify
+     * and it opens" and for "this corridor is not part of your world at all",
+     * so a catalogue fallback keyed on that gate promised Colombia to a user no
+     * Colombian rail exists for — and took the row away again the moment they
+     * verified. Neither state was a statement the backend made.
+     */
+    it.each([
+        ['unverified', { kind: 'needs-identity' } as GateState],
+        ['verified', { kind: 'needs-enrollment' } as GateState],
+    ])('gives no row to a corridor the backend never mentioned (%s)', (_state, gate) => {
+        const { container } = list(false, {
+            corridors: ['SEPA_EU'],
+            gates: allGates(gate),
+            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') },
+        })
+
+        expect(rowOf(container, 'BANK_TRANSFER_CO')).not.toBeInTheDocument()
+        // the corridor it did mention is still a row, and still the user's
+        expect(rowOf(container, 'SEPA_EU')).toBeInTheDocument()
+    })
+
+    describe('the account counter', () => {
+        const LIST = messages.depositAccounts.list
+        const counter = (used: number, cap: number) =>
+            LIST.accountCounter.replace('{used}', String(used)).replace('{cap}', String(cap))
+
+        it('shows the count up front, so the limit is information and not a wall', () => {
+            list(false)
+
+            expect(screen.getByTestId('account-counter')).toHaveTextContent(counter(0, 2))
+            expect(screen.getByText(LIST.accountLimitNote.replace('{cap}', '2'))).toBeInTheDocument()
+        })
+
+        it('says the limit is reached when the backend says so', () => {
+            list(false, {
+                accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU'), ACH_US: heldAccount('ACH_US') },
+                claimable: { SPEI_MX: offered('SPEI_MX', 'account-limit') },
+            })
+
+            expect(screen.getByTestId('account-counter')).toHaveTextContent(counter(2, 2))
+            expect(screen.getByText(LIST.accountLimitReached.replace('{cap}', '2'))).toBeInTheDocument()
+        })
+
+        it('states the limit the backend sends, raised or not', () => {
+            // two accounts with room left: the fallback cannot read this limit
+            list(false, { slotsHeld: 2, accountLimit: 5, claimable: { SPEI_MX: offered('SPEI_MX') } })
+
+            expect(screen.getByTestId('account-counter')).toHaveTextContent(counter(2, 5))
+            expect(screen.getByText(LIST.accountLimitNote.replace('{cap}', '5'))).toBeInTheDocument()
+        })
+
+        it('says the limit is reached from the numbers alone', () => {
+            list(false, { slotsHeld: 3, accountLimit: 3 })
+
+            expect(screen.getByText(LIST.accountLimitReached.replace('{cap}', '3'))).toBeInTheDocument()
+        })
+
+        it('uses the limit support raised, not the default', () => {
+            list(false, { slotsHeld: 3, claimable: { SPEI_MX: offered('SPEI_MX', 'account-limit') } })
+
+            expect(screen.getByTestId('account-counter')).toHaveTextContent(counter(3, 3))
+        })
+
+        it('shows no number for a raised limit it cannot read', () => {
+            // two accounts and the backend still offers a third: the limit is
+            // above the default, and the response does not say what it is
+            list(false, { slotsHeld: 2, claimable: { SPEI_MX: offered('SPEI_MX') } })
+
+            expect(screen.queryByTestId('account-counter')).not.toBeInTheDocument()
+            expect(screen.queryByText(LIST.accountLimitReached.replace('{cap}', '2'))).not.toBeInTheDocument()
+        })
+
+        it('does not count a revoked account, which takes no slot', () => {
+            list(false, { accounts: { ...NONE, SEPA_EU: { ...heldAccount('SEPA_EU'), status: 'revoked' } } })
+
+            expect(screen.getByTestId('account-counter')).toHaveTextContent(counter(0, 2))
+        })
+
+        it.each([
+            ['the read is in flight', true, false],
+            ['the read failed', false, true],
+        ])('is hidden while %s', (_, isLoading, isError) => {
+            list(isLoading, { isError })
+
+            expect(screen.queryByTestId('account-counter')).not.toBeInTheDocument()
+            expect(screen.queryByText(LIST.accountLimitNote.replace('{cap}', '2'))).not.toBeInTheDocument()
+        })
+
+        it('explains the limit from a real button, for touch and keyboard', () => {
+            list(false)
+
+            const why = within(screen.getByTestId('account-counter')).getByRole('button')
+            fireEvent.click(why)
+            expect(screen.getByText(LIST.accountLimitWhy)).toBeInTheDocument()
+        })
+    })
+
+    /**
+     * Two corridors are offered before the user has a rail: the tap asks the
+     * provider for a review. A verified user reads `needs-enrollment` there, and
+     * after the tap `pending`, so the capability gate alone would close the row
+     * for good. The backend's offer is what opens it.
+     */
+    describe('a corridor the backend offers a verified user with no rail', () => {
+        const gates = { ...allGates(), BANK_TRANSFER_CO: { kind: 'needs-enrollment' } as GateState }
+
+        it('stays tappable, because the tap is what asks for the review', () => {
+            const onOpen = jest.fn()
+            const { container } = list(false, {
+                gates,
+                claimable: { BANK_TRANSFER_CO: offered('BANK_TRANSFER_CO') },
+                onOpen,
+            })
+
+            expect(rowOf(container, 'BANK_TRANSFER_CO')).not.toHaveAttribute('aria-disabled', 'true')
+            fireEvent.click(rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement)
+            expect(onOpen).toHaveBeenCalledWith('BANK_TRANSFER_CO')
+        })
+
+        it('says something is needed when the review waits on the user, and never "verify"', () => {
+            const onOpen = jest.fn()
+            const { container } = list(false, {
+                gates: { ...gates, BANK_TRANSFER_CO: { kind: 'pending' } },
+                claimable: { BANK_TRANSFER_CO: offered('BANK_TRANSFER_CO', 'endorsement-required') },
+                onOpen,
+            })
+
+            const row = inRow(container, 'BANK_TRANSFER_CO')
+            expect(row.getByText(messages.depositAccounts.list.badgeActionNeeded)).toBeInTheDocument()
+            expect(row.queryByText(messages.depositAccounts.list.badgeVerify)).not.toBeInTheDocument()
+            // the screen behind the row says what to do, so the row opens
+            fireEvent.click(rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement)
+            expect(onOpen).toHaveBeenCalledWith('BANK_TRANSFER_CO')
+        })
+
+        it('keeps the under-review badge while the provider reviews', () => {
+            const { container } = list(false, {
+                gates: { ...gates, BANK_TRANSFER_CO: { kind: 'pending' } },
+                claimable: { BANK_TRANSFER_CO: offered('BANK_TRANSFER_CO', 'endorsement-pending') },
+            })
+
+            expect(inRow(container, 'BANK_TRANSFER_CO').getByText('Pending')).toBeInTheDocument()
+            expect(rowOf(container, 'BANK_TRANSFER_CO')).not.toHaveAttribute('aria-disabled', 'true')
+        })
+
+        it('leaves a corridor the backend does not offer closed', () => {
+            const { container } = list(false, { gates })
+
+            expect(rowOf(container, 'BANK_TRANSFER_CO')).toHaveAttribute('aria-disabled', 'true')
+        })
     })
 })
 
@@ -409,11 +598,11 @@ describe('DepositAccountsListScreen when a corridor is blocked after the fact', 
 
 describe('the residence-gated rows and the tap behind them', () => {
     /**
-     * The BR and CO rows are everybody's. They keep their caveat and stay
-     * tappable whatever the identity gate says — the explainer behind them is
-     * where the residence rule is stated.
+     * The Argentine row is everybody's. It stays present and tappable whatever
+     * the identity gate says: the top-up flow behind it states the residence
+     * rule.
      */
-    it('leaves the residence-gated rows alone when residence is unknown', () => {
+    it('leaves the residence-gated row alone when residence is unknown', () => {
         const gates = allGates({ kind: 'needs-identity' })
         const { container } = list(false, {
             gates,
@@ -421,18 +610,14 @@ describe('the residence-gated rows and the tap behind them', () => {
             accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') },
         })
 
-        expect(inRow(container, 'BANK_TRANSFER_BR').getByText(BR_CAVEAT)).toBeInTheDocument()
-        expect(rowOf(container, 'BANK_TRANSFER_BR')).not.toHaveAttribute('aria-disabled', 'true')
+        expect(rowOf(container, 'BANK_TRANSFER_AR')).toBeInTheDocument()
+        expect(rowOf(container, 'BANK_TRANSFER_AR')).not.toHaveAttribute('aria-disabled', 'true')
     })
 
-    it('carries an Argentine row for everybody, naming the rails and the rule', () => {
+    it('carries an Argentine row for everybody', () => {
         const { container } = list(false, { corridors: ['SEPA_EU'] })
 
-        expect(
-            inRow(container, 'BANK_TRANSFER_AR').getByText(
-                messages.depositAccounts.corridors.BANK_TRANSFER_AR.residenceOnly
-            )
-        ).toBeInTheDocument()
+        expect(rowOf(container, 'BANK_TRANSFER_AR')).toBeInTheDocument()
     })
 
     /**
@@ -453,25 +638,19 @@ describe('the residence-gated rows and the tap behind them', () => {
         expect(onOpen).not.toHaveBeenCalled()
     })
 
-    it('falls back to the Pix top-up for a Brazilian resident with no account and no endorsement', () => {
-        residenceIso2s = ['BR']
-        const gates = allGates({ kind: 'needs-enrollment' })
+    /**
+     * Brazil has ONE row. Reais stay on the per-payment Pix code, so there is
+     * no standing account beside it: two rows led a Brazilian resident to the
+     * same top-up.
+     */
+    it('shows one Brazilian row, the Pix top-up, and sends it to the local flow', () => {
         const onOpen = jest.fn()
-        const { container } = list(false, { corridors: ['BANK_TRANSFER_BR'], gates, onOpen })
+        const { container } = list(false, { corridors: ['PIX_BR'], onOpen })
 
-        fireEvent.click(rowOf(container, 'BANK_TRANSFER_BR') as HTMLElement)
+        expect(container.querySelectorAll('[data-testid^="deposit-account-"][data-testid*="_BR"]')).toHaveLength(1)
+        fireEvent.click(rowOf(container, 'PIX_BR') as HTMLElement)
         expect(mockPush).toHaveBeenCalledWith(withReturnTo('/add-money/brazil/manteca', HUB_RETURN))
         expect(onOpen).not.toHaveBeenCalled()
-    })
-
-    it('opens the claim for a Brazilian resident who is endorsed', () => {
-        residenceIso2s = ['BR']
-        const onOpen = jest.fn()
-        const { container } = list(false, { corridors: ['BANK_TRANSFER_BR'], onOpen })
-
-        fireEvent.click(rowOf(container, 'BANK_TRANSFER_BR') as HTMLElement)
-        expect(onOpen).toHaveBeenCalledWith('BANK_TRANSFER_BR')
-        expect(mockPush).not.toHaveBeenCalled()
     })
 })
 
@@ -649,6 +828,20 @@ describe('the hub carries the accounts, crypto and the countries together', () =
         expect(rowOf(container, 'SEPA_EU')).not.toBeInTheDocument()
         expect(countriesTrigger()).toBeInTheDocument()
     })
+
+    /**
+     * Standing accounts are dark in production, so this is the order most users
+     * see. Crypto sits below the bank options, not above them: the hub must not
+     * lead with crypto.
+     */
+    it('renders the bank options above crypto while accounts are dark', () => {
+        depositAccountsEnabled = false
+        list(false)
+
+        const countries = screen.getByTestId('other-countries')
+        const crypto = screen.getByTestId('add-money-crypto')
+        expect(countries.compareDocumentPosition(crypto) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
 })
 
 /**
@@ -715,38 +908,38 @@ describe('the countries collapsible', () => {
 })
 
 /**
- * Brazil and Argentina are open to residents alone. Everybody sees the row —
- * the account is worth knowing about before you move — and the row says the
- * rule before the tap rather than after a refused claim.
+ * Argentina is open to residents alone. Everybody sees the row — it is worth
+ * knowing about before you move — and the top-up flow behind the tap states
+ * the rule.
  */
 describe('the residence-gated rows', () => {
-    it('shows BRL and ARS to every user, with the rule in the body', () => {
+    it('shows ARS to every user, and no Brazilian row to a user with no Brazilian rail', () => {
         const { container } = list(false, { corridors: ['SEPA_EU'] })
 
-        expect(inRow(container, 'BANK_TRANSFER_BR').getByText(BR_CAVEAT)).toBeInTheDocument()
-        expect(inRow(container, 'BANK_TRANSFER_AR').getByText(/residents of Argentina/i)).toBeInTheDocument()
+        expect(rowOf(container, 'BANK_TRANSFER_AR')).toBeInTheDocument()
+        expect(rowOf(container, 'PIX_BR')).not.toBeInTheDocument()
     })
 
     /**
      * COP is not one of them. Bridge opened a Bre-B account for a resident of
-     * Portugal, so the row reads like MXN: when it arrives, it says when the
-     * money lands.
+     * Portugal, so the row reads like MXN: a claimable account with a status
+     * badge, not a residence-gated pointer.
      */
-    it('reads the COP row like any ungated corridor', () => {
+    it('shows the COP row as a claimable account, not a residence-gated one', () => {
         const { container } = list(false, { corridors: ['BANK_TRANSFER_CO'] })
 
-        expect(
-            inRow(container, 'BANK_TRANSFER_CO').getByText(messages.depositAccounts.corridors.BANK_TRANSFER_CO.arrival)
-        ).toBeInTheDocument()
+        expect(rowOf(container, 'BANK_TRANSFER_CO')).toBeInTheDocument()
+        expect(inRow(container, 'BANK_TRANSFER_CO').getByText('Not set up')).toBeInTheDocument()
     })
 
     it('keeps them tappable, because the screen behind them states the rule', () => {
         const onOpen = jest.fn()
         const { container } = list(false, { corridors: ['SEPA_EU'], onOpen })
 
-        expect(rowOf(container, 'BANK_TRANSFER_BR')).not.toHaveAttribute('aria-disabled', 'true')
-        fireEvent.click(rowOf(container, 'BANK_TRANSFER_BR') as HTMLElement)
-        expect(onOpen).toHaveBeenCalledWith('BANK_TRANSFER_BR')
+        expect(rowOf(container, 'BANK_TRANSFER_AR')).not.toHaveAttribute('aria-disabled', 'true')
+        fireEvent.click(rowOf(container, 'BANK_TRANSFER_AR') as HTMLElement)
+        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/add-money/argentina/manteca', HUB_RETURN))
+        expect(onOpen).not.toHaveBeenCalled()
     })
 })
 
@@ -854,5 +1047,136 @@ describe('the hub copy exists in every catalog', () => {
             const listCopy = (catalog as any).depositAccounts.list as Record<string, string>
             for (const key of HUB_KEYS) expect(listCopy[key]).toBeTruthy()
         }
+    })
+})
+
+/*
+ * Hugo, reading the hub with a greyed COP row five of seven: "why is colombia
+ * grey? also always have grey items at bottom" — and, on the same row, "as a
+ * user, how do I action 'requires verification'?". The screen answered neither:
+ * the row sat mid-list, said a verified user must verify, and was not tappable.
+ */
+describe('a row the user cannot act on', () => {
+    /** every account row, in the order the screen renders them */
+    const renderedCorridors = (container: HTMLElement) =>
+        Array.from(container.querySelectorAll('[data-testid^="deposit-account-"]')).map((row) =>
+            row.getAttribute('data-testid')!.replace('deposit-account-', '')
+        )
+
+    const gatesWith = (corridor: DepositCorridor, gate: GateState) => ({ ...allGates(), [corridor]: gate })
+
+    it('sorts below every row that leads somewhere, catalogue order kept inside each group', () => {
+        // BANK_TRANSFER_CO sits fifth of seven in the catalogue; nothing can be
+        // done with it, so it goes last.
+        const { container } = list(false, {
+            gates: gatesWith('BANK_TRANSFER_CO', { kind: 'blocked-rejection', userMessage: null }),
+        })
+        const order = renderedCorridors(container)
+        expect(order.at(-1)).toBe('BANK_TRANSFER_CO')
+        // the rest keep the catalogue's own order
+        expect(order.slice(0, -1)).toEqual(DEPOSIT_RAIL_ORDER.filter((c) => c !== 'BANK_TRANSFER_CO'))
+    })
+
+    it('never names an action the user cannot take: no closed row carries an action badge', () => {
+        const { container } = list(false, {
+            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') },
+            gates: gatesWith('BANK_TRANSFER_CO', { kind: 'needs-identity' }),
+        })
+        for (const row of Array.from(container.querySelectorAll('[data-testid^="deposit-account-"]'))) {
+            if (row.getAttribute('aria-disabled') !== 'true') continue
+            expect(row.textContent).not.toMatch(/requires verification|action needed/i)
+        }
+    })
+
+    it('tells a user who has not verified to verify, and lets them tap through to it', () => {
+        const onOpen = jest.fn()
+        // no account anywhere and no gate past the identity step: not verified
+        const { container } = list(false, { gates: allGates({ kind: 'needs-identity' }), onOpen })
+        const row = rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement
+        expect(within(row).getByText(/requires verification/i)).toBeInTheDocument()
+        expect(row.getAttribute('aria-disabled')).not.toBe('true')
+        fireEvent.click(row)
+        expect(onOpen).toHaveBeenCalledWith('BANK_TRANSFER_CO')
+    })
+
+    it('does not tell a verified user to verify: the backend says the corridor is not offered', () => {
+        // The app used to infer this from "holds an account, so must be
+        // verified". The backend answers it per corridor now, so the inference
+        // is gone — see the `unavailable` suite below.
+        const { container } = list(false, {
+            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') },
+            unavailable: { BANK_TRANSFER_CO: withheld('BANK_TRANSFER_CO', 'not-offered') },
+        })
+        const row = rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement
+        expect(within(row).queryByText(/requires verification/i)).not.toBeInTheDocument()
+        expect(within(row).getByText(/not available/i)).toBeInTheDocument()
+    })
+
+    it('keeps the provider-review row tappable, where the endorsement page is the answer', () => {
+        const { container } = list(false, {
+            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') },
+            claimable: { BANK_TRANSFER_CO: offered('BANK_TRANSFER_CO', 'endorsement-required') },
+        })
+        const row = rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement
+        expect(row.getAttribute('aria-disabled')).not.toBe('true')
+    })
+})
+
+/*
+ * The backend now says WHY a corridor is withheld, per corridor. Before it did,
+ * the screen guessed from the capability gate — which answers `needs-identity`
+ * for a corridor whose rail it cannot read as well as for a user who has not
+ * verified — and told a verified user with three live accounts to verify, on a
+ * row that did not take a tap.
+ */
+describe('a withheld corridor, by the reason the backend gives', () => {
+    it('identity-required: tappable, and says what is needed', () => {
+        const onOpen = jest.fn()
+        const { container } = list(false, {
+            unavailable: { BANK_TRANSFER_CO: withheld('BANK_TRANSFER_CO', 'identity-required') },
+            onOpen,
+        })
+        const row = rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement
+        expect(within(row).getByText(/requires verification/i)).toBeInTheDocument()
+        expect(row.getAttribute('aria-disabled')).not.toBe('true')
+        fireEvent.click(row)
+        expect(onOpen).toHaveBeenCalledWith('BANK_TRANSFER_CO')
+    })
+
+    it('support-required: tappable, and points at a person rather than at verifying again', () => {
+        const onOpen = jest.fn()
+        const { container } = list(false, {
+            unavailable: { BANK_TRANSFER_CO: withheld('BANK_TRANSFER_CO', 'support-required') },
+            onOpen,
+        })
+        const row = rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement
+        expect(within(row).getByText(/contact support/i)).toBeInTheDocument()
+        expect(within(row).queryByText(/requires verification/i)).not.toBeInTheDocument()
+        expect(row.getAttribute('aria-disabled')).not.toBe('true')
+        fireEvent.click(row)
+        expect(onOpen).toHaveBeenCalledWith('BANK_TRANSFER_CO')
+    })
+
+    it('not-offered: the badge is the whole answer, so the row does not lead anywhere', () => {
+        const { container } = list(false, {
+            unavailable: { BANK_TRANSFER_CO: withheld('BANK_TRANSFER_CO', 'not-offered') },
+        })
+        const row = rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement
+        expect(within(row).getByText(/not available/i)).toBeInTheDocument()
+        expect(row).toHaveAttribute('aria-disabled', 'true')
+        // and it sorts below every row that leads somewhere
+        const order = Array.from(container.querySelectorAll('[data-testid^="deposit-account-"]')).map((r) =>
+            r.getAttribute('data-testid')!.replace('deposit-account-', '')
+        )
+        expect(order.at(-1)).toBe('BANK_TRANSFER_CO')
+    })
+
+    it('told nothing about a corridor, it keeps the answer the gate gives', () => {
+        // the backend would not guess — the provider read failed — so the
+        // corridor is in none of its three lists and nothing here changes
+        const { container } = list(false, { gates: { ...allGates(), BANK_TRANSFER_CO: { kind: 'needs-identity' } } })
+        const row = rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement
+        expect(within(row).getByText(/requires verification/i)).toBeInTheDocument()
+        expect(row.getAttribute('aria-disabled')).not.toBe('true')
     })
 })

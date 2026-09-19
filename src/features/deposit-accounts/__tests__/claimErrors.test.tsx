@@ -5,7 +5,7 @@
  * rendered verbatim under a localized title. The wire code picks the sentence
  * now; the backend's own message stays in the analytics event and Sentry.
  */
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import messages from '@/i18n/app/messages/en.json'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
@@ -31,7 +31,7 @@ jest.mock('../components/DepositAccountsListScreen', () => ({
 
 const BACKEND_SENTENCE = 'Could not open the account'
 
-const claimFailedWith = (claimError: DepositClaimError) =>
+const claimFailedWith = (claimError: DepositClaimError, onContactSupport: jest.Mock = jest.fn()) =>
     render(
         <NextIntlClientProvider locale="en" messages={messages}>
             <NuqsTestingAdapter searchParams="?step=claim&corridor=SEPA_EU">
@@ -46,7 +46,7 @@ const claimFailedWith = (claimError: DepositClaimError) =>
                     onClaim={() => {}}
                     onResolveGate={() => {}}
                     onRetry={() => {}}
-                    onContactSupport={() => {}}
+                    onContactSupport={onContactSupport}
                 />
             </NuqsTestingAdapter>
         </NextIntlClientProvider>
@@ -54,10 +54,16 @@ const claimFailedWith = (claimError: DepositClaimError) =>
 
 describe('claimErrorKey', () => {
     it('reads the wire code, falls back to the status, then to the generic sentence', () => {
-        expect(claimErrorKey('DEPOSIT_IN_FLIGHT', 409)).toBe('inFlight')
+        expect(claimErrorKey('DEPOSIT_ACCOUNT_LIMIT', 409)).toBe('accountLimit')
         expect(claimErrorKey('DEPOSIT_ACCOUNTS_NOT_AVAILABLE', 403)).toBe('notAvailable')
         // the residence refusal every Bridge money route sends: a bare 403
         expect(claimErrorKey(undefined, 403)).toBe('residenceRestricted')
+        // a refusal with no code: retry may or may not clear it
+        expect(claimErrorKey(undefined, 409)).toBe('refused')
+        // the provider said no: it was a 500 before api#1638
+        expect(claimErrorKey('DEPOSIT_ACCOUNT_PROVIDER_REFUSED', 409)).toBe('providerRefused')
+        // ten claims a minute
+        expect(claimErrorKey(undefined, 429)).toBe('tooManyAttempts')
         expect(claimErrorKey('SOMETHING_NEW', 500)).toBe('generic')
         expect(claimErrorKey(undefined, undefined)).toBe('generic')
     })
@@ -68,12 +74,12 @@ describe('the claim error a user reads', () => {
         claimFailedWith({
             corridor: 'SEPA_EU',
             message: BACKEND_SENTENCE,
-            code: 'DEPOSIT_IN_FLIGHT',
+            code: 'DEPOSIT_ACCOUNT_LIMIT',
             status: 409,
             unavailable: false,
         })
 
-        expect(screen.getByText(messages.depositAccounts.errors.inFlight)).toBeInTheDocument()
+        expect(screen.getByText(messages.depositAccounts.errors.accountLimit)).toBeInTheDocument()
         expect(screen.queryByText(BACKEND_SENTENCE)).not.toBeInTheDocument()
     })
 
@@ -88,6 +94,54 @@ describe('the claim error a user reads', () => {
 
         expect(screen.getByText(messages.depositAccounts.errors.generic)).toBeInTheDocument()
         expect(screen.queryByText(BACKEND_SENTENCE)).not.toBeInTheDocument()
+    })
+
+    /**
+     * The API's "contact support" refusals are 409s with no code. They used to
+     * read "Try again in a moment", which no number of taps would clear.
+     */
+    it('offers support on a refusal a retry may never clear', () => {
+        const onContactSupport = jest.fn()
+        claimFailedWith(
+            { corridor: 'SEPA_EU', message: BACKEND_SENTENCE, status: 409, unavailable: false },
+            onContactSupport
+        )
+
+        expect(screen.getByText(messages.depositAccounts.errors.refused)).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: messages.depositAccounts.gate.supportCta }))
+        expect(onContactSupport).toHaveBeenCalledWith('SEPA_EU', 'blocked')
+    })
+
+    it('sends a claim the provider refused to support, not round the retry', () => {
+        const onContactSupport = jest.fn()
+        claimFailedWith(
+            {
+                corridor: 'SEPA_EU',
+                message: BACKEND_SENTENCE,
+                code: 'DEPOSIT_ACCOUNT_PROVIDER_REFUSED',
+                status: 409,
+                unavailable: false,
+            },
+            onContactSupport
+        )
+
+        expect(screen.getByText(messages.depositAccounts.errors.providerRefused)).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: messages.depositAccounts.gate.supportCta }))
+        expect(onContactSupport).toHaveBeenCalledWith('SEPA_EU', 'blocked')
+    })
+
+    it('asks a rate-limited user to wait, with no support button', () => {
+        claimFailedWith({ corridor: 'SEPA_EU', message: BACKEND_SENTENCE, status: 429, unavailable: false })
+
+        expect(screen.getByText(messages.depositAccounts.errors.tooManyAttempts)).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: messages.depositAccounts.gate.supportCta })).not.toBeInTheDocument()
+    })
+
+    it('offers no support button on a failure worth one more try', () => {
+        claimFailedWith({ corridor: 'SEPA_EU', message: BACKEND_SENTENCE, status: 503, unavailable: false })
+
+        expect(screen.getByText(messages.depositAccounts.errors.generic)).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: messages.depositAccounts.gate.supportCta })).not.toBeInTheDocument()
     })
 
     it('names the residence rule on the refusal that carries no code', () => {

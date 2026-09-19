@@ -1288,6 +1288,7 @@
                                     "destination": {
                                         "properties": {
                                             "achReference": {
+                                                "pattern": "^[a-zA-Z0-9 ]{1,10}$",
                                                 "type": "string"
                                             },
                                             "currency": {
@@ -1328,6 +1329,7 @@
                                                 "type": "string"
                                             },
                                             "fasterPaymentsReference": {
+                                                "pattern": "^[a-zA-Z0-9 &./-]{1,18}$",
                                                 "type": "string"
                                             },
                                             "paymentRail": {
@@ -1389,9 +1391,12 @@
                                                 ]
                                             },
                                             "sepaReference": {
+                                                "pattern": "^[a-zA-Z0-9 &./-]{6,140}$",
                                                 "type": "string"
                                             },
                                             "wireMessage": {
+                                                "maxLength": 140,
+                                                "minLength": 1,
                                                 "type": "string"
                                             }
                                         },
@@ -1665,6 +1670,7 @@
                                     "destination": {
                                         "properties": {
                                             "achReference": {
+                                                "pattern": "^[a-zA-Z0-9 ]{1,10}$",
                                                 "type": "string"
                                             },
                                             "currency": {
@@ -1702,6 +1708,10 @@
                                                 ]
                                             },
                                             "externalAccountId": {
+                                                "type": "string"
+                                            },
+                                            "fasterPaymentsReference": {
+                                                "pattern": "^[a-zA-Z0-9 &./-]{1,18}$",
                                                 "type": "string"
                                             },
                                             "paymentRail": {
@@ -1763,9 +1773,12 @@
                                                 ]
                                             },
                                             "sepaReference": {
+                                                "pattern": "^[a-zA-Z0-9 &./-]{6,140}$",
                                                 "type": "string"
                                             },
                                             "wireMessage": {
+                                                "maxLength": 140,
+                                                "minLength": 1,
                                                 "type": "string"
                                             }
                                         },
@@ -15075,6 +15088,24 @@
                                             "reference": {
                                                 "type": "string"
                                             },
+                                            "requestedAmount": {
+                                                "additionalProperties": false,
+                                                "properties": {
+                                                    "amount": {
+                                                        "pattern": "^\\d{1,15}(\\.\\d{1,8})?$",
+                                                        "type": "string"
+                                                    },
+                                                    "currency": {
+                                                        "pattern": "^[A-Za-z]{3}$",
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "amount",
+                                                    "currency"
+                                                ],
+                                                "type": "object"
+                                            },
                                             "tokenAddress": {
                                                 "not": {}
                                             },
@@ -15114,6 +15145,24 @@
                                             "reference": {
                                                 "type": "string"
                                             },
+                                            "requestedAmount": {
+                                                "additionalProperties": false,
+                                                "properties": {
+                                                    "amount": {
+                                                        "pattern": "^\\d{1,15}(\\.\\d{1,8})?$",
+                                                        "type": "string"
+                                                    },
+                                                    "currency": {
+                                                        "pattern": "^[A-Za-z]{3}$",
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "amount",
+                                                    "currency"
+                                                ],
+                                                "type": "object"
+                                            },
                                             "tokenAddress": {
                                                 "pattern": "^(0x[a-fA-F0-9]{40}|[1-9A-HJ-NP-Za-km-z]{32,44})$",
                                                 "type": "string"
@@ -15150,7 +15199,64 @@
                     }
                 },
                 "responses": {
-                    "200": {
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "503": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
                         "description": "Default Response"
                     }
                 }
@@ -15248,6 +15354,16 @@
                                         "createdAt": {
                                             "type": "string"
                                         },
+                                        "currency": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
                                         "paidAt": {
                                             "anyOf": [
                                                 {
@@ -15282,6 +15398,36 @@
                                             "type": "string"
                                         },
                                         "reference": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "requestedAmount": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "requestedFxAsOf": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "requestedFxRate": {
                                             "anyOf": [
                                                 {
                                                     "type": "string"
@@ -15471,10 +15617,20 @@
             "get": {
                 "parameters": [
                     {
+                        "in": "query",
+                        "name": "currency",
+                        "required": false,
+                        "schema": {
+                            "pattern": "^[A-Za-z]{3}$",
+                            "type": "string"
+                        }
+                    },
+                    {
                         "in": "path",
                         "name": "uuid",
                         "required": true,
                         "schema": {
+                            "format": "uuid",
                             "type": "string"
                         }
                     }
@@ -15799,13 +15955,289 @@
                                             ],
                                             "type": "object"
                                         },
+                                        "payerAmount": {
+                                            "properties": {
+                                                "amount": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "string"
+                                                        },
+                                                        {
+                                                            "type": "null"
+                                                        }
+                                                    ]
+                                                },
+                                                "currency": {
+                                                    "type": "string"
+                                                },
+                                                "isEstimate": {
+                                                    "type": "boolean"
+                                                },
+                                                "rate": {
+                                                    "properties": {
+                                                        "asOf": {
+                                                            "anyOf": [
+                                                                {
+                                                                    "type": "string"
+                                                                },
+                                                                {
+                                                                    "type": "null"
+                                                                }
+                                                            ]
+                                                        },
+                                                        "from": {
+                                                            "type": "string"
+                                                        },
+                                                        "rate": {
+                                                            "type": "string"
+                                                        },
+                                                        "source": {
+                                                            "type": "string"
+                                                        },
+                                                        "to": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "from",
+                                                        "to",
+                                                        "rate",
+                                                        "source",
+                                                        "asOf"
+                                                    ],
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "required": [
+                                                "amount",
+                                                "currency",
+                                                "isEstimate"
+                                            ],
+                                            "type": "object"
+                                        },
                                         "paymentReference": {
                                             "type": "string"
                                         }
                                     },
                                     "required": [
                                         "depositAccount",
-                                        "paymentReference"
+                                        "paymentReference",
+                                        "payerAmount"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/requests/{uuid}/pay-amounts": {
+            "get": {
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "uuid",
+                        "required": true,
+                        "schema": {
+                            "format": "uuid",
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "rails": {
+                                            "items": {
+                                                "properties": {
+                                                    "country": {
+                                                        "type": "string"
+                                                    },
+                                                    "kind": {
+                                                        "anyOf": [
+                                                            {
+                                                                "enum": [
+                                                                    "peanut_balance"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "crypto"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "bank"
+                                                                ],
+                                                                "type": "string"
+                                                            }
+                                                        ]
+                                                    },
+                                                    "payerAmount": {
+                                                        "properties": {
+                                                            "amount": {
+                                                                "anyOf": [
+                                                                    {
+                                                                        "type": "string"
+                                                                    },
+                                                                    {
+                                                                        "type": "null"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "currency": {
+                                                                "type": "string"
+                                                            },
+                                                            "isEstimate": {
+                                                                "type": "boolean"
+                                                            },
+                                                            "rate": {
+                                                                "properties": {
+                                                                    "asOf": {
+                                                                        "anyOf": [
+                                                                            {
+                                                                                "type": "string"
+                                                                            },
+                                                                            {
+                                                                                "type": "null"
+                                                                            }
+                                                                        ]
+                                                                    },
+                                                                    "from": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "rate": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "source": {
+                                                                        "type": "string"
+                                                                    },
+                                                                    "to": {
+                                                                        "type": "string"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "from",
+                                                                    "to",
+                                                                    "rate",
+                                                                    "source",
+                                                                    "asOf"
+                                                                ],
+                                                                "type": "object"
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "amount",
+                                                            "currency",
+                                                            "isEstimate"
+                                                        ],
+                                                        "type": "object"
+                                                    },
+                                                    "railId": {
+                                                        "type": "string"
+                                                    },
+                                                    "reference": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "kind",
+                                                    "payerAmount"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        },
+                                        "remainingAmount": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "requestAmount": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "requestCurrency": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "requestCurrency",
+                                        "requestAmount",
+                                        "remainingAmount",
+                                        "rails"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
                                     ],
                                     "type": "object"
                                 }
@@ -17677,6 +18109,9 @@
                                                 "nextActions": {
                                                     "items": {
                                                         "properties": {
+                                                            "currency": {
+                                                                "type": "string"
+                                                            },
                                                             "effectiveDate": {
                                                                 "type": "string"
                                                             },
@@ -17984,6 +18419,9 @@
                                                                     },
                                                                     "nextAction": {
                                                                         "properties": {
+                                                                            "currency": {
+                                                                                "type": "string"
+                                                                            },
                                                                             "effectiveDate": {
                                                                                 "type": "string"
                                                                             },
@@ -18606,6 +19044,12 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
+                                        "accountLimit": {
+                                            "type": "integer"
+                                        },
+                                        "accountsHeld": {
+                                            "type": "integer"
+                                        },
                                         "claimable": {
                                             "items": {
                                                 "properties": {
@@ -19262,11 +19706,63 @@
                                                 "type": "object"
                                             },
                                             "type": "array"
+                                        },
+                                        "unavailable": {
+                                            "items": {
+                                                "properties": {
+                                                    "country": {
+                                                        "type": "string"
+                                                    },
+                                                    "currency": {
+                                                        "type": "string"
+                                                    },
+                                                    "method": {
+                                                        "type": "string"
+                                                    },
+                                                    "railId": {
+                                                        "type": "string"
+                                                    },
+                                                    "reason": {
+                                                        "anyOf": [
+                                                            {
+                                                                "enum": [
+                                                                    "identity-required"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "support-required"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "not-offered"
+                                                                ],
+                                                                "type": "string"
+                                                            }
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "railId",
+                                                    "method",
+                                                    "country",
+                                                    "currency",
+                                                    "reason"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
                                         }
                                     },
                                     "required": [
                                         "depositAccounts",
-                                        "claimable"
+                                        "claimable",
+                                        "unavailable",
+                                        "accountLimit",
+                                        "accountsHeld"
                                     ],
                                     "type": "object"
                                 }
@@ -19721,6 +20217,9 @@
                                                 "issues"
                                             ],
                                             "type": "object"
+                                        },
+                                        "verificationUrl": {
+                                            "type": "string"
                                         }
                                     },
                                     "required": [
@@ -19763,8 +20262,7 @@
                                         }
                                     },
                                     "required": [
-                                        "error",
-                                        "code"
+                                        "error"
                                     ],
                                     "type": "object"
                                 }
@@ -20414,6 +20912,9 @@
                                                 "nextActions": {
                                                     "items": {
                                                         "properties": {
+                                                            "currency": {
+                                                                "type": "string"
+                                                            },
                                                             "effectiveDate": {
                                                                 "type": "string"
                                                             },
@@ -20721,6 +21222,9 @@
                                                                     },
                                                                     "nextAction": {
                                                                         "properties": {
+                                                                            "currency": {
+                                                                                "type": "string"
+                                                                            },
                                                                             "effectiveDate": {
                                                                                 "type": "string"
                                                                             },

@@ -44,7 +44,7 @@ export const GuestVerificationModal = ({
                             const { inviteLink } = generateInviteCodeLink(inviterUsername)
                             router.push(inviteLink)
                         } else if (redirectToVerification) {
-                            router.push('/setup?redirect_uri=/profile/identity-verification')
+                            router.push('/setup?redirect_uri=/profile/accounts-and-payments')
                             return
                         } else {
                             router.push('/setup')

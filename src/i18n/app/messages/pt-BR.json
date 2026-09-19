@@ -226,7 +226,25 @@
         },
         "pendingTasks": {
             "completeBefore": "Complete before {deadline}",
-            "dismiss": "Dispensar {task}"
+            "dismiss": "Dispensar {task}",
+            "verifyTitle": "Verificação adicional necessária",
+            "verifyTitleCorridor": "Verifique para liberar {corridor}",
+            "verifyDescription": "Faça uma verificação rápida com nosso parceiro de pagamentos para ativar transferências bancárias.",
+            "verifyDescriptionAdvisory": "Faça uma verificação rápida com nosso parceiro de pagamentos para manter as transferências bancárias disponíveis.",
+            "verifyDescriptionCorridor": "Conclua a verificação para liberar {corridor}.",
+            "verifyDescriptionCorridorAdvisory": "Conclua a verificação para manter {corridor} disponíveis.",
+            "tosTitle": "Aceitar os Termos de Serviço",
+            "tosDescription": "Aceite os termos do nosso parceiro de pagamentos para ativar transferências bancárias.",
+            "tosDescriptionAdvisory": "Aceite os termos do nosso parceiro de pagamentos para manter as transferências bancárias disponíveis.",
+            "tosSepaTitle": "Aceitar os termos atualizados do provedor de transferências bancárias",
+            "tosSepaDescription": "Aceite os Termos de Serviço atualizados do nosso provedor de transferências bancárias para ativar transferências em euros e libras esterlinas.",
+            "tosSepaDescriptionAdvisory": "Aceite os Termos de Serviço atualizados do nosso provedor de transferências bancárias para manter as transferências em euros e libras esterlinas disponíveis.",
+            "corridors": {
+                "USD": "transferências bancárias em dólares americanos",
+                "EUR": "transferências bancárias em euros",
+                "GBP": "transferências bancárias em libras esterlinas",
+                "MXN": "transferências bancárias em pesos mexicanos"
+            }
         },
         "iosCopy": {
             "rewards": "Cashback"
@@ -238,7 +256,11 @@
             "sendToFriends": "Enviar para amigos",
             "sendToFriendsDescription": "Link, contatos, banco, cripto",
             "withdrawToOwnAccounts": "Sacar para suas contas",
-            "withdrawToOwnAccountsDescription": "Banco, Mercado, cripto"
+            "withdrawToOwnAccountsDescription": "Euros, dólares, cripto e mais",
+            "shareRequestLink": "Compartilhar um link de cobrança",
+            "shareRequestLinkDescription": "Peça um valor com um link para compartilhar",
+            "shareBankDetails": "Compartilhar dados bancários",
+            "shareBankDetailsDescription": "Receba pagamentos pelas suas contas em EUR, USD e outras moedas"
         }
     },
     "profile": {
@@ -328,7 +350,7 @@
             },
             "yourRegion": "Sua região",
             "groups": {
-                "everywhere": "Em todo lugar",
+                "everywhere": "Peanut",
                 "southAmerica": "América do Sul",
                 "northAmerica": "América do Norte",
                 "europe": "Europa"
@@ -336,6 +358,7 @@
             "rows": {
                 "p2p": "Pagamentos de Peanut para Peanut",
                 "card": "Cartão Peanut",
+                "crypto": "Cripto",
                 "saBank": "PIX (Brasil), QR e transferências bancárias (Argentina)",
                 "pixBank": "Pagamentos e transferências PIX (Brasil)",
                 "pixQr": "Pagamentos QR com PIX (Brasil)",
@@ -385,7 +408,7 @@
             },
             "limits": {
                 "monthlyLeft": "Restam {remaining} de {limit} neste mês",
-                "p2pNoLimit": "Os pagamentos de Peanut para Peanut não têm limite",
+                "p2pNoLimit": "Pagamentos de Peanut para Peanut e cripto não têm limite de valor",
                 "depositPerTransfer": "Por depósito bancário",
                 "withdrawalPerTransfer": "Por saque bancário"
             },
@@ -395,10 +418,11 @@
                 "short": "As tentativas de verificação estão temporariamente limitadas. Tente novamente daqui a pouco.",
                 "dismiss": "Vou tentar mais tarde"
             },
-            "accountsTitle": "Suas contas bancárias",
+            "accountsTitle": "Suas contas",
             "accountsSubtitle": "Números de conta que você pode compartilhar para receber dinheiro no Peanut.",
             "details": {
                 "p2p": "Envie e receba dinheiro de outros usuários do Peanut.",
+                "crypto": "Adicione ou saque cripto de qualquer carteira ou corretora, na hora.",
                 "saBank": "Pague por QR e transfira dinheiro por contas bancárias no Brasil e na Argentina.",
                 "pixBank": "Pague códigos QR Pix e transfira dinheiro por contas bancárias brasileiras.",
                 "pixQr": "Pague códigos QR Pix no Brasil.",
@@ -413,6 +437,7 @@
             "valueProp": {
                 "p2p": "Divida contas e pague amigos com um toque.",
                 "card": "Use seu saldo Peanut no mundo real.",
+                "crypto": "Envie e receba on-chain, sem precisar de banco.",
                 "saBank": "Movimente seu dinheiro como local no Brasil e na Argentina.",
                 "pixBank": "Movimente dinheiro pelo Brasil na hora.",
                 "pixQr": "Escaneie, pague e pronto, onde tiver Pix.",
@@ -907,7 +932,7 @@
         },
         "accountReady": {
             "worksNowTitle": "Funciona agora mesmo",
-            "worksNowBody": "Receba dólares, envie para qualquer @usuário e guarde seu saldo: sem verificar identidade.",
+            "worksNowBody": "Receba dólares, envie para qualquer @usuário e guarde seu saldo desde já.",
             "laterTitle": "Quando quiser pagamentos bancários ou um cartão",
             "laterBody": "Vai ser preciso verificar sua identidade: alguns minutos, ou de 1 a 3 dias úteis se alguém revisar com calma.",
             "cta": "Ir para minha conta"
@@ -1034,6 +1059,7 @@
         "createRequest": "Criar cobrança",
         "shareOpenRequest": "Compartilhar cobrança aberta",
         "shareAmountRequest": "Compartilhar cobrança de ${amount}",
+        "shareCurrencyAmountRequest": "Compartilhar cobrança de {amount} {currency}",
         "billSplitFor": "Divisão de conta em {merchant}",
         "linkCreatedToast": "Link criado com sucesso!",
         "linkCreatedAndCopiedToast": "Link criado e copiado para a área de transferência!",
@@ -1045,6 +1071,9 @@
             "enterRecipient": "Insira um endereço de destinatário",
             "missingUsernameOrAmount": "Falta o nome de usuário ou o valor",
             "createRequestFailed": "Não foi possível criar a cobrança.",
+            "rateUnavailable": "Não há uma cotação para {currency} agora. Tente de novo ou cobre em USD.",
+            "invalidRequestedAmount": "Este valor não é válido em {currency}. Confira as casas decimais e tente de novo.",
+            "currencyNotAvailable": "Cobranças em {currency} ainda não estão disponíveis. Cobre em USD.",
             "validatingRecipient": "Validando destinatário..."
         },
         "validation": {
@@ -1055,13 +1084,20 @@
             "goToHome": "Ir para o início",
             "createWallet": "Crie sua Peanut Wallet"
         },
-        "bankDetailsAlternative": "Compartilhe os dados da sua conta bancária",
+        "currency": {
+            "label": "Cobrar em",
+            "select": "Escolha a moeda da cobrança",
+            "triggerLabel": "Moeda da cobrança: {currency}",
+            "exactNote": "Quem paga por banco em {currency} vê este valor exato. Os demais veem uma estimativa."
+        },
         "bankInstructions": {
-            "title": "Permitir pagamento por transferência bancária",
-            "description": "Compartilhe seus dados bancários com quem abrir este link.",
-            "anyonePays": "Qualquer pessoa pode pagar isto por transferência bancária.",
+            "title": "Compartilhe os dados da sua conta bancária",
+            "description": "Qualquer pessoa que abrir este link vê seus dados bancários e seu nome completo.",
+            "anyonePays": "Assim, pode te pagar por transferência bancária.",
             "businessPays": "Só empresas podem pagar isto por transferência bancária. A transferência de um amigo é devolvida.",
-            "unknownPays": "Uma transferência de outra pessoa não está confirmada nesta conta e pode ser devolvida."
+            "unknownPays": "Uma transferência de outra pessoa não está confirmada nesta conta e pode ser devolvida.",
+            "titleOff": "Seus dados bancários ficam privados",
+            "descriptionOff": "Quem paga ainda pode usar Peanut, cripto ou o próprio banco."
         },
         "paidByBank": {
             "rowLabel": "Transferência bancária",
@@ -1162,23 +1198,31 @@
             "requestNotFoundTitle": "Cobrança não encontrada",
             "requestNotFoundDescription": "Esta cobrança não existe ou foi removida. Peça um novo link para quem enviou."
         },
+        "requestCurrencyNote": "Esta solicitação pede {amount} {currency}. Com Peanut, cripto ou transferência bancária em dólar você paga o valor em dólar, que foi fixado quando a solicitação foi criada.",
+        "requestCurrencyNotePartPaid": "Esta solicitação pede {amount} {currency} e faltam {remaining} {currency} a pagar. Com Peanut, cripto ou transferência bancária em dólar você paga o valor em dólar, que foi fixado quando a solicitação foi criada.",
         "bankTransfer": {
             "title": "Pagar por transferência bancária",
             "description": "Envie do seu banco para a conta de quem pediu o pagamento.",
             "payInCurrency": "Pagar em {currency} · {rail}",
-            "otherWays": "Pagar de outra forma",
-            "referenceSection": "Referência",
+            "transferSection": "O que enviar",
             "referenceLabel": "Referência do pagamento",
             "referenceNote": "Adicione esta referência à sua transferência. Sem ela, o pagamento não é associado a esta solicitação.",
-            "unavailable": "A transferência bancária não está disponível para esta solicitação.",
+            "unavailable": "A transferência bancária não está disponível para esta solicitação no momento.",
             "amountLabel": "Valor a enviar",
             "amountValue": "{amount} {currency}",
             "amountValueApprox": "≈ {amount} {currency}",
+            "exactBadge": "Valor exato",
+            "estimateBadge": "Estimativa",
             "amountNote": "Estimado pela cotação de hoje. Seu banco pode converter por outra cotação, então o valor exato pode mudar.",
             "amountNoteSameCurrency": "Envie este valor e a solicitação fica paga.",
+            "amountNoteBankConverts": "Não há uma estimativa em {currency} agora. Envie o valor em {currency} equivalente a este valor em USD. Seu banco define a cotação.",
             "senderBusinessOnly": "Só uma conta empresarial pode pagar isto. Uma transferência de uma conta pessoal é devolvida.",
-            "senderUnknown": "Esta conta não confirmou que aceita pagamentos de outras pessoas, então sua transferência pode ser devolvida."
-        }
+            "senderUnknown": "Esta conta não confirmou que aceita pagamentos de outras pessoas, então sua transferência pode ser devolvida.",
+            "otherWays": "Ver outras formas de pagar"
+        },
+        "requestAsksFor": "Pedido de {amount} {currency}",
+        "requestAsksForDollars": "${amount} em dólar, fixado quando a solicitação foi criada",
+        "requestAlreadyCovered": "Esta solicitação já está coberta. Não falta nada a pagar."
     },
     "claim": {
         "receive": "Receber",
@@ -1897,6 +1941,13 @@
             "sortCode": "Sort Code",
             "routingNumber": "Routing Number",
             "fee": "Taxa",
+            "reference": "Referência (opcional)",
+            "referenceHelperSepa": "O banco do destinatário mostra com o pagamento. De 6 a 140 caracteres: letras a-z, números, espaços e & - . /",
+            "referenceHelperAch": "O banco do destinatário mostra com o pagamento. Até 10 caracteres: letras a-z, números e espaços.",
+            "referenceTooShort": "Mínimo de {min} caracteres, ou deixe em branco.",
+            "referenceTooLong": "Máximo de {max} caracteres.",
+            "referenceInvalidCharsSepa": "Use apenas letras a-z, números, espaços e & - . /",
+            "referenceInvalidCharsAch": "Use apenas letras a-z, números e espaços.",
             "bankAccount": "Conta bancária",
             "transferProcessing": "Transferência em processamento",
             "confirmPending": "Sua transferência está sendo processada. Os fundos foram enviados on-chain com sucesso: a confirmação pode levar alguns minutos. Se você não vir o saque na sua atividade em até 30 minutos, fale com o suporte."
@@ -1954,10 +2005,10 @@
             "stateLabel": "Estado",
             "streetLabel": "Endereço",
             "cityLabel": "Cidade",
-            "postalCodeLabel": "CEP",
+            "postalCodeLabel": "Código postal",
             "stateRequired": "O estado é obrigatório",
-            "postalCode": "Seu CEP",
-            "postalCodeRequired": "O CEP é obrigatório",
+            "postalCode": "Seu código postal",
+            "postalCodeRequired": "O código postal é obrigatório",
             "unsupportedCountry": "País não compatível",
             "accountNumberCo": "O número da conta deve ter de 5 a 20 dígitos",
             "documentType": "Tipo de documento",
@@ -1980,7 +2031,11 @@
             "phoneNumber": "Número de telefone",
             "phoneNumberRequired": "O número de telefone é obrigatório",
             "phoneNumberInvalid": "Informe um número colombiano, por exemplo +573001234567",
-            "phoneNumberHelper": "O número cadastrado no seu banco."
+            "phoneNumberHelper": "O número cadastrado no seu banco.",
+            "pasteAria": "Colar da área de transferência",
+            "pasteEmpty": "Nada para colar",
+            "pasteUnavailable": "Não foi possível ler a área de transferência",
+            "bicCountryMismatch": "Este BIC é de um banco de outro país que o IBAN"
         },
         "errors": {
             "invalidNumber": "Digite um número válido.",
@@ -2013,7 +2068,13 @@
         },
         "resolvesTo": "resolve para",
         "withdrawToBank": "Saque para uma conta bancária",
-        "withdrawToCrypto": "Saque para um endereço cripto"
+        "withdrawToCrypto": "Saque para um endereço cripto",
+        "currencyList": {
+            "searchPlaceholder": "Buscar moeda ou país",
+            "flagAlt": "Bandeira de {currency}",
+            "otherCountriesTitle": "Outros países",
+            "otherCountriesPitch": "Encontre seu país e saque na moeda local"
+        }
     },
     "transaction": {
         "drawerTitle": "Detalhes da transação",
@@ -2021,6 +2082,7 @@
             "issuedBy": "Emitido por:",
             "reference": "Referência",
             "issuedOn": "Emitido em",
+            "footer": "Comprovante da Peanut · peanut.me",
             "pdf": {
                 "title": "Comprovante da transação",
                 "issuedBy": "Emitido pela Squirrel Labs Ltd",
@@ -2130,6 +2192,7 @@
             "txId": "ID da transação",
             "fee": "Taxa",
             "transferId": "ID da transferência",
+            "senderReference": "Referência do remetente",
             "pointsEarned": "Pontos ganhos",
             "networkFee": "Taxa de rede",
             "attachment": "Anexo",
@@ -2165,6 +2228,9 @@
             "moreActions": "Mais ações",
             "splitBill": "Dividir essa conta",
             "shareReceipt": "Compartilhar comprovante",
+            "copyLink": "Copiar link",
+            "linkCopied": "Link copiado",
+            "linkCopyFailed": "Não foi possível copiar o link",
             "downloadPdf": "Baixar comprovante (PDF)",
             "pdfDownloadedInstead": "Este navegador baixou o comprovante porque não permite compartilhar arquivos.",
             "receiptPdfUnavailable": "O comprovante em PDF não está disponível. Tente novamente.",
@@ -3434,11 +3500,12 @@
             "copied": "Copiado"
         },
         "peanutActionCard": {
-            "requestTitle": "Peça dinheiro para os amigos",
-            "requestDescription": "Eles não precisam de uma conta para pagar",
+            "requestTitle": "Peça dinheiro",
+            "requestDescription": "Para amigos, seu empregador ou qualquer pessoa no mundo",
             "sendTitle": "Crie um link de pagamento",
             "sendDescription": "Qualquer pessoa com o link pode receber o dinheiro",
-            "perfectToDm": "Perfeito para mandar na DM!"
+            "perfectToDm": "Perfeito para mandar na DM!",
+            "requestPerfectToShare": "Perfeito para mandar por DM ou WhatsApp!"
         },
         "peanutActionDetailsCard": {
             "sendingTo": "Você está enviando para {recipient}",
@@ -3938,15 +4005,22 @@
             "sectionTitle": "Suas contas",
             "accountsPitch": "Dados bancários no seu nome. Compartilhe uma vez e receba direto no Peanut.",
             "badgeReady": "Pronta",
-            "rowBlocked": "Verifique sua identidade para abrir esta conta",
             "badgeActive": "Ativo",
             "badgeNotSetUp": "Não configurada",
             "badgeUnavailable": "Indisponível",
+            "badgeVerify": "Requer verificação",
+            "badgeNotOffered": "Não disponível",
             "badgeRevoked": "Revogada",
+            "accountLimitNote": "Você pode abrir até {cap} contas bancárias. Precisa de mais? Fale com o suporte.",
+            "accountLimitOverCap": "Você tem {used} contas bancárias, acima do limite atual. Fale com o suporte para abrir outra.",
+            "accountCounter": "{used} de {cap} usadas",
+            "accountCounterOverCap": "{used} contas",
+            "accountLimitReached": "Você já usou suas {cap} contas. Precisa de outra? Fale com o suporte.",
+            "accountLimitWhy": "Por que existe um limite? Manter cada conta bancária aberta custa dinheiro pra gente, e não cobramos nada por isso.",
             "errorTitle": "Não conseguimos carregar suas contas",
             "errorBody": "Suas contas estão bem: só não conseguimos lê-las. Verifique sua conexão e tente de novo.",
             "errorRetry": "Tentar de novo",
-            "rowRevoked": "Fechada: o que for enviado para estes dados volta"
+            "badgeActionNeeded": "Ação necessária"
         },
         "claim": {
             "heading": "Dados bancários em {currency}",
@@ -3957,7 +4031,9 @@
             "benefitBalance": "O dinheiro chega no seu saldo da Peanut em USD.",
             "conditionNoReference": "Sem referência nem código para lembrar.",
             "cta": "Abrir conta em {currency}",
-            "errorTitle": "Não conseguimos abrir a conta"
+            "errorTitle": "Não conseguimos abrir a conta",
+            "faqMinimum": "O depósito mínimo é {min}.",
+            "faqSepaShared": "Uma conta em euros (SEPA) funciona em toda a zona do euro. O IBAN pode ser emitido em outro país da UE."
         },
         "details": {
             "heading": "{currency} · {rail}",
@@ -3986,7 +4062,9 @@
             "textIntroPooled": "Dados bancários para pagar {user} em {currency}:",
             "textOutro": "Enviado pela Peanut · peanut.me",
             "sheetTitleOwn": "Meus dados bancários",
-            "sheetTitlePooled": "Dados bancários para pagar {user}"
+            "sheetTitlePooled": "Dados bancários para pagar {user}",
+            "payerBusinessOnly": "Pague a partir de uma conta empresarial. Uma transferência de conta pessoal é devolvida.",
+            "payerUnconfirmed": "Esta conta pode devolver uma transferência de outra pessoa ou empresa. Fale comigo antes de enviar."
         },
         "rows": {
             "accountHolder": "Titular da conta",
@@ -4017,51 +4095,34 @@
         },
         "corridors": {
             "SEPA_EU": {
-                "arrival": "No mesmo dia útil",
                 "arrivalDetail": "As transferências SEPA costumam chegar no mesmo dia útil, no máximo em dois.",
                 "railName": "SEPA"
             },
             "FASTER_PAYMENTS_GB": {
-                "arrival": "Em minutos",
                 "arrivalDetail": "Os Faster Payments costumam chegar em minutos.",
                 "railName": "Faster Payments"
             },
             "ACH_US": {
-                "arrival": "1 a 3 dias úteis",
                 "arrivalDetail": "O ACH chega em um a três dias úteis. Uma transferência wire chega no mesmo dia.",
                 "railName": "ACH ou wire"
             },
             "SPEI_MX": {
-                "arrival": "Em minutos",
                 "arrivalDetail": "As transferências SPEI costumam chegar em minutos.",
                 "railName": "SPEI"
             },
             "PIX_BR": {
-                "arrival": "Em minutos",
                 "arrivalDetail": "As transferências Pix costumam chegar em minutos.",
                 "railName": "Pix"
             },
             "BANK_TRANSFER_AR": {
-                "arrival": "Em minutos",
                 "arrivalDetail": "As transferências na Argentina costumam chegar em minutos.",
                 "railName": "Banco ou Mercado Pago",
                 "residenceTitle": "Residência necessária",
-                "residenceOnly": "Para residentes legais na Argentina",
                 "residenceRequired": "Só residentes legais na Argentina podem adicionar dinheiro assim. Sua nacionalidade não importa; o país onde você mora, sim.",
                 "qrPay": "Você ainda pode pagar códigos QR do Mercado Pago na Argentina com o seu saldo."
             },
-            "BANK_TRANSFER_BR": {
-                "arrival": "Em minutos",
-                "arrivalDetail": "As transferências Pix costumam chegar em minutos.",
-                "railName": "Pix",
-                "residenceTitle": "CPF obrigatório",
-                "residenceOnly": "Precisa de CPF",
-                "residenceRequired": "Uma conta em BRL precisa de CPF (o CPF do Brasil) e de residência no Brasil verificada. Sua residência é verificada na sua checagem de identidade, então precisa ser onde você realmente mora.",
-                "qrPay": "Você ainda pode pagar códigos Pix no Brasil com o seu saldo."
-            },
             "BANK_TRANSFER_CO": {
                 "railName": "Bre-B",
-                "arrival": "Em minutos",
                 "arrivalDetail": "As transferências Bre-B costumam chegar em minutos."
             }
         },
@@ -4080,11 +4141,17 @@
             "emailCta": "Adicione seu e-mail",
             "notYetTitle": "Ainda não está disponível para você",
             "notYetBody": "Estamos abrindo aos poucos.",
-            "limitTitle": "Você já tem duas contas",
-            "limitBody": "Duas contas bancárias é o padrão. Se precisar de outra, o suporte pode abrir.",
+            "limitTitle": "Você já tem {count, plural, one {# conta} other {# contas}}",
+            "limitBody": "Esse é o seu limite atual. Se precisar de outra, o suporte pode abrir.",
             "reviewTitle": "Estamos criando sua conta",
             "reviewBody": "Costuma levar alguns minutos. A gente avisa quando estiver pronta.",
-            "reviewCta": "Voltar para Adicionar dinheiro"
+            "reviewCta": "Voltar para Adicionar dinheiro",
+            "blockedBody": "Não conseguimos abrir esta conta, e não é algo que dê para resolver pelo app. Fale com o suporte e a gente verifica.",
+            "finishReviewTitle": "Mais uma checagem para esta conta",
+            "finishReviewBody": "Sua identidade já está verificada. As contas em {currency} precisam de uma checagem extra do nosso parceiro de pagamentos. Ela abre na página dele, e esta tela se atualiza quando você voltar.",
+            "finishReviewSupportBody": "Sua identidade já está verificada. As contas em {currency} precisam de uma checagem extra do nosso parceiro de pagamentos, e não dá para iniciá-la pelo app na sua conta. Fale com o suporte e a gente ajuda você a concluir.",
+            "finishReviewCta": "Continuar",
+            "actFailed": "Não conseguimos abrir a checagem. Tente de novo em instantes."
         },
         "rules": {
             "providerHeld": {
@@ -4133,9 +4200,9 @@
                 "why": "Um pagamento único de outra pessoa tem limite de {cap}. Uma empresa pode pagar qualquer valor. Para receber mais de {cap} de uma pessoa em um único pagamento, fale com o suporte."
             },
             "individualCapFamily": {
-                "line": "De outra pessoa: menos de {cap} por pagamento. Familiares com o seu sobrenome: qualquer valor.",
-                "payer": "De outra pessoa: menos de {cap} por pagamento. Familiares com o sobrenome do titular: qualquer valor.",
-                "why": "Um pagamento único de outra pessoa tem limite de {cap}. Uma empresa pode pagar qualquer valor, e familiares com o seu sobrenome também. Para receber mais de {cap} de uma pessoa em um único pagamento, fale com o suporte."
+                "line": "Familiares com o seu sobrenome: qualquer valor.",
+                "payer": "Familiares com o sobrenome do titular: qualquer valor.",
+                "why": "Familiares que compartilham o seu sobrenome podem pagar qualquer valor nesta moeda; os demais têm o limite por pagamento."
             },
             "individualVolume": {
                 "line": "De outra pessoa: até {limit} no total. Pergunte ao suporte sobre o período.",
@@ -4186,9 +4253,11 @@
         "errors": {
             "generic": "Não conseguimos abrir a conta. Tente de novo em instantes.",
             "notAvailable": "As contas próprias ainda não estão disponíveis para a sua conta.",
-            "inFlight": "Um depósito ainda está chegando. Tente de novo quando ele cair.",
             "residenceRestricted": "Os dados bancários não estão disponíveis onde você mora. Atualize sua residência se você mudou.",
-            "accountLimit": "Você já tem duas contas bancárias. O suporte pode abrir outra para você."
+            "accountLimit": "Você chegou ao seu limite de contas bancárias. O suporte pode abrir outra para você.",
+            "refused": "Não conseguimos abrir esta conta agora. Tente de novo em alguns minutos. Se continuar falhando, fale com o suporte.",
+            "providerRefused": "Não conseguimos abrir esta conta, e tentar de novo não vai mudar isso. Fale com o suporte e a gente verifica.",
+            "tooManyAttempts": "Muitas tentativas. Espere um minuto e tente de novo."
         },
         "fees": {
             "noFee": "Sem taxa da Peanut.",

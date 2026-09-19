@@ -32,6 +32,18 @@ export function isHeld(account: DepositAccountView | undefined): boolean {
     return account !== undefined && account.status !== 'unclaimed'
 }
 
+/**
+ * Does this account take one of the user's account slots?
+ *
+ * The backend's cap counts the accounts the provider bills for: provisioning,
+ * active and retiring rows the provider opened. A revoked account is held — its
+ * details still need explaining — and takes no slot, so the count and the cap
+ * screen use this and never `isHeld`.
+ */
+export function holdsSlot(account: Pick<DepositAccountView, 'status'> | undefined): boolean {
+    return account?.status === 'provisioning' || account?.status === 'active' || account?.status === 'retiring'
+}
+
 /** Sharing needs active instructions, a permitted sender policy and an open corridor. */
 export function canShare(account: DepositAccountView | undefined, gate: GateState): boolean {
     if (!account?.instructions || account.status !== 'active') return false

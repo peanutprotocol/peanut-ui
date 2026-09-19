@@ -186,6 +186,11 @@ export function buildReceiptPdfModel(
         push(t('transaction.rows.transferId'), transaction.id)
     }
 
+    // The payer's own reference on a bank deposit is NOT printed. It is free
+    // text a third party typed (up to 300 characters), and "Share receipt" sends
+    // this document onward. The owner still reads it in the receipt drawer.
+    // Temporary decision TD-12.
+
     // The history-entry id is the one identifier every receipt can use to tie
     // a renamed or printed document back to the source activity.
     push(t('transaction.officialReceipt.reference'), transaction.id)

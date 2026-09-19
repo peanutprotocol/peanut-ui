@@ -27,7 +27,7 @@ export default function FiatLimitsLockedCard() {
                         variant="purple"
                         shadowSize="4"
                         size="medium"
-                        onClick={() => router.push('/profile/identity-verification')}
+                        onClick={() => router.push('/profile/accounts-and-payments')}
                         className="mt-2"
                     >
                         {t('cta')}

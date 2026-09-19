@@ -22,6 +22,13 @@ export interface CreateRequestRequest {
     tokenSymbol: string
     /** the requester lets a payer settle this request by bank transfer */
     bankInstructionsShared?: boolean
+    /**
+     * The amount asked, in a fiat currency. Sent for a non-USD request alone:
+     * the API then sets `tokenAmount` (always dollars) at its own rate and
+     * ignores the one in this body. A USD request omits it, so it is the same
+     * body an API without the field accepts.
+     */
+    requestedAmount?: { amount: string; currency: string }
 }
 
 /**
@@ -29,8 +36,32 @@ export interface CreateRequestRequest {
  * payer must type. Derived from the generated contract rather than restated,
  * so a field the API drops fails the build at every reader.
  */
-export type RequestDepositInstructions =
-    paths['/requests/{uuid}/deposit-instructions']['get']['responses'][200]['content']['application/json']
+export type RequestDepositInstructions = Omit<
+    paths['/requests/{uuid}/deposit-instructions']['get']['responses'][200]['content']['application/json'],
+    'payerAmount'
+> & {
+    /**
+     * The amount to send in this account's currency. Optional here although
+     * the contract makes it required: an API that predates the field is still
+     * answering during the deploy window, so every reader must handle it
+     * missing.
+     */
+    payerAmount?: RequestPayerAmount
+}
+
+/**
+ * `GET /requests/:uuid/pay-amounts` — what is left to pay, on every rail the
+ * requester can receive on. Derived from the generated contract, so a field the
+ * API drops fails the build at every reader.
+ */
+export type RequestPayAmounts =
+    paths['/requests/{uuid}/pay-amounts']['get']['responses'][200]['content']['application/json']
+
+/** One way to pay a request, with the amount in that rail's own currency. */
+export type RequestPayRail = RequestPayAmounts['rails'][number]
+
+/** The amount a payer settles on one rail, in that rail's currency. */
+export type RequestPayerAmount = RequestPayRail['payerAmount']
 
 /**
  * How much of a request money arriving by bank answered, as the backend
@@ -73,6 +104,13 @@ export interface TRequestResponse {
     bankFulfilment?: BankFulfilment
     payerName?: string | null
     bankInstructionsShared: boolean
+    /** the fiat currency the requester asked in; absent or null means USD. `tokenAmount` is always dollars. */
+    currency?: string | null
+    /** the amount asked, in `currency`; null unless the requester asked in a fiat currency */
+    requestedAmount?: string | null
+    /** dollars per one unit of `currency` when the request was created */
+    requestedFxRate?: string | null
+    requestedFxAsOf?: string | null
     charges: ChargeEntry[]
     history: TRequestHistory[]
     recipientAccount: {
@@ -229,6 +267,12 @@ export interface TRequestChargeResponse {
     tokenType: string
     tokenSymbol: string
     transactionType: TChargeTransactionType
+    /**
+     * The ledger kind behind the charge, which a receipt is looked up by.
+     * `transactionType` folds several kinds into one, so it cannot stand in for
+     * this. Absent on an API deployed before it (api#1638).
+     */
+    intentKind?: string
     updatedAt: string
     payments: Payment[]
     fulfillmentPayment: Payment | null

@@ -18,12 +18,15 @@ export const REQUEST_DEPOSIT_INSTRUCTIONS_QUERY_KEY = ['request-deposit-instruct
  * option off, or retired the account, between the link going out and the payer
  * opening it. `isUnavailable` is that answer, and the screen offers the other
  * ways to pay rather than a failure.
+ *
+ * `currency` picks which of the requester's accounts to read, when the payer
+ * chose a rail. Without it the backend returns the first payable account.
  */
-export function useRequestDepositInstructions(uuid: string | undefined, enabled: boolean) {
+export function useRequestDepositInstructions(uuid: string | undefined, enabled: boolean, currency?: string) {
     const query = useQuery({
-        queryKey: [...REQUEST_DEPOSIT_INSTRUCTIONS_QUERY_KEY, uuid],
+        queryKey: [...REQUEST_DEPOSIT_INSTRUCTIONS_QUERY_KEY, uuid, currency ?? null],
         enabled: !!uuid && enabled,
-        queryFn: () => requestsApi.depositInstructions(uuid!),
+        queryFn: () => requestsApi.depositInstructions(uuid!, currency),
     })
 
     return {

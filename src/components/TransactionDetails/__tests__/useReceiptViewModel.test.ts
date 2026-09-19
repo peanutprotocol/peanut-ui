@@ -135,3 +135,21 @@ describe('useReceiptViewModel — cancelled sendlink sender', () => {
         expect(config.tokenAndNetwork).toBe(true)
     })
 })
+
+describe('sender reference row (bank deposits)', () => {
+    const bankDeposit = (senderReference?: string): TransactionDetails =>
+        withDrawer({ status: 'completed', direction: 'bank_deposit' }, { kind: 'ONRAMP', senderReference })
+
+    it('shows when the deposit carries the payer reference', () => {
+        expect(renderConfig(bankDeposit('INVOICE 4471')).senderReference).toBe(true)
+    })
+
+    it('stays hidden when the API sends none', () => {
+        expect(renderConfig(bankDeposit()).senderReference).toBe(false)
+    })
+
+    it('never shows on another kind, even if the field is present', () => {
+        const send = withDrawer({ status: 'completed' }, { kind: 'DIRECT_TRANSFER', senderReference: 'x' })
+        expect(renderConfig(send).senderReference).toBe(false)
+    })
+})

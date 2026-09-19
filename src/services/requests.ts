@@ -1,5 +1,11 @@
-import { type CreateRequestRequest, type RequestDepositInstructions, type TRequestResponse } from './services.types'
+import {
+    type CreateRequestRequest,
+    type RequestDepositInstructions,
+    type RequestPayAmounts,
+    type TRequestResponse,
+} from './services.types'
 import { serverFetch } from '@/utils/api-fetch'
+import { apiErrorFromResponse } from './api-error'
 import { jsonStringify } from '@/utils/general.utils'
 
 export const requestsApi = {
@@ -9,20 +15,10 @@ export const requestsApi = {
             body: jsonStringify(data),
         })
 
+        // The error keeps the API's `code`: a request asked in a fiat currency
+        // fails in ways the screen explains differently (no rate, bad amount).
         if (!response.ok) {
-            let errorMessage = `Failed to create request: ${response.statusText}`
-
-            try {
-                const errorData = await response.json()
-                if (errorData.error) {
-                    errorMessage = errorData.error
-                }
-            } catch (parseError) {
-                // If we can't parse the response, use the default error message
-                console.warn('Could not parse error response:', parseError)
-            }
-
-            throw new Error(errorMessage)
+            throw await apiErrorFromResponse(response, `Failed to create request: ${response.statusText}`)
         }
 
         return response.json()
@@ -59,11 +55,30 @@ export const requestsApi = {
      * same 404 for a request that does not exist, so the opt-in cannot be
      * probed — and `null` here means the same thing to the screen either way.
      */
-    depositInstructions: async (uuid: string): Promise<RequestDepositInstructions | null> => {
-        const response = await serverFetch(`/requests/${uuid}/deposit-instructions`, { method: 'GET' })
+    depositInstructions: async (uuid: string, currency?: string): Promise<RequestDepositInstructions | null> => {
+        // `currency` picks which of the requester's accounts to return. An API
+        // that predates it ignores the parameter and returns the first one.
+        const query = currency ? `?currency=${encodeURIComponent(currency)}` : ''
+        const response = await serverFetch(`/requests/${uuid}/deposit-instructions${query}`, { method: 'GET' })
         if (response.status === 404) return null
         if (!response.ok) {
             throw new Error(`Failed to fetch deposit instructions: ${response.statusText}`)
+        }
+        return response.json()
+    },
+
+    /**
+     * What the request still needs on each rail, in that rail's currency.
+     *
+     * `null` for a 404: the request is gone, or the API predates the route. The
+     * pay screen then shows its rails with no per-rail amounts, as it did
+     * before the route existed.
+     */
+    payAmounts: async (uuid: string): Promise<RequestPayAmounts | null> => {
+        const response = await serverFetch(`/requests/${uuid}/pay-amounts`, { method: 'GET' })
+        if (response.status === 404) return null
+        if (!response.ok) {
+            throw new Error(`Failed to fetch pay amounts: ${response.statusText}`)
         }
         return response.json()
     },

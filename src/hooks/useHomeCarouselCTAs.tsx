@@ -317,7 +317,7 @@ export const useHomeCarouselCTAs = () => {
                 icon: 'qr-code',
                 iconSize: 16,
                 onClick: () => {
-                    router.push('/profile/identity-verification')
+                    router.push('/profile/accounts-and-payments')
                 },
             })
         }
