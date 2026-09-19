@@ -69,10 +69,15 @@ describe('server and edge payment explorer Sentry guard', () => {
         return mockSentryInit.mock.calls[0]?.[0]
     }
 
-    // A PR preview reports into the production project, where nobody triages it.
-    it.each(['sentry.server.config', 'sentry.edge.config'])('does not init on a preview in %s', (moduleName) => {
-        expect(loadConfig(moduleName, 'preview')).toBeUndefined()
-    })
+    // Preview keeps reporting; a local build (no VERCEL_ENV) infers 'development'
+    // and does not, even though NODE_ENV says production.
+    it.each(['sentry.server.config', 'sentry.edge.config'])(
+        'inits on a preview but not on a local build in %s',
+        (moduleName) => {
+            expect(loadConfig(moduleName, 'preview')).toBeDefined()
+            expect(loadConfig(moduleName, '')).toBeUndefined()
+        }
+    )
 
     it.each(['sentry.server.config', 'sentry.edge.config'])('wires both route-aware hooks in %s', (moduleName) => {
         const options = loadConfig(moduleName, 'production')

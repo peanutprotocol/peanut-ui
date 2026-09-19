@@ -53,8 +53,21 @@ describe('initSentry', () => {
         expect(Sentry.init).not.toHaveBeenCalled()
     })
 
-    it('never inits on a PR preview — those events are billed and nobody reads them', async () => {
+    // Preview stays on: the OTA liveness proof reads preview events out of Sentry.
+    it('still inits on a PR preview', async () => {
         const { initSentry, Sentry } = load({ NEXT_PUBLIC_VERCEL_ENV: 'preview' })
+        Sentry.getClient.mockReturnValue(undefined)
+
+        initSentry()
+        await flush()
+
+        expect(Sentry.init).toHaveBeenCalledTimes(1)
+    })
+
+    // A `next build` on a laptop has NODE_ENV=production and no VERCEL_ENV, so it
+    // used to report as production. It infers 'development' now and reports nothing.
+    it('never inits on a local build', async () => {
+        const { initSentry, Sentry } = load({})
         Sentry.getClient.mockReturnValue(undefined)
 
         initSentry()

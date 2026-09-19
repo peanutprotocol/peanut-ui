@@ -8,8 +8,8 @@ import * as Sentry from '@sentry/nextjs'
 import { beforeSendRouteAwareHandler, beforeSendRouteAwareTransaction } from './sentry.utils'
 import { inferSentryEnvironment, isSentryReportingEnvironment } from '@/utils/sentry-env'
 
-// Skipped outside production / staging / native: an ad-hoc PR preview reported
-// into the same project as production, where nobody triaged it.
+// Everything but a local build. Stricter than the NODE_ENV check it replaces:
+// a `next build` on a laptop has NODE_ENV=production and reported as one.
 if (isSentryReportingEnvironment()) {
     Sentry.init({
         dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,

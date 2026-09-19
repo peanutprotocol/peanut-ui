@@ -55,10 +55,12 @@ export const capturePasskeyDebugInfo = async (context: string) => {
             }
         }
 
-        // Console only. This is device capability state, not a fault: as a
-        // Sentry message at level info it was a billed event with a synthetic
-        // stack and nothing to act on (1,558 in 90 days). A real failure below
-        // still reports.
+        // log to sentry with all collected info
+        Sentry.captureMessage(`Passkey Debug Info: ${context}`, {
+            level: 'info',
+            extra: debugInfo,
+        })
+
         console.log('[PasskeyDebug]', debugInfo)
         return debugInfo
     } catch (error) {

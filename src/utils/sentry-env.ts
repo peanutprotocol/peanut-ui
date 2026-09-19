@@ -23,13 +23,17 @@ export function inferSentryEnvironment(): string {
 }
 
 /**
- * The environments we pay Sentry for. Every build reports into the same
- * project, so ad-hoc PR previews and local builds were billed alongside
- * production and mixed into its issues — 2,649 error + 1,374 warning events
- * from `preview` in 30 days, plus 336 from `development`, that nobody reads.
+ * Every environment we report from — that is, all of them but a local build.
+ *
+ * This is stricter than the `NODE_ENV !== 'development'` guard it replaces: a
+ * `next build` on a laptop runs with NODE_ENV=production and no VERCEL_ENV, so
+ * it used to report as `production` and be billed there (336 events in 30
+ * days). It infers `development` here instead, and reports nothing.
+ *
+ * `preview` deliberately stays on. The OTA liveness proof in
+ * ops/native-ota-envless-bundle-rca.md reads preview and canary events out of
+ * Sentry, so a dark preview would take a diagnostic with it.
  */
-const REPORTING_ENVIRONMENTS = new Set(['production', 'native', 'staging'])
-
 export function isSentryReportingEnvironment(): boolean {
-    return REPORTING_ENVIRONMENTS.has(inferSentryEnvironment())
+    return inferSentryEnvironment() !== 'development'
 }
