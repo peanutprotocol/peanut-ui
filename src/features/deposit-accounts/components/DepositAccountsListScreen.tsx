@@ -11,6 +11,7 @@ import { countryData } from '@/components/AddMoney/consts'
 import { CountryList } from '@/components/Common/CountryList'
 import { matchesCountryQuery } from '@/components/Common/country-search'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import { Tooltip } from '@/components/Tooltip'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
@@ -27,7 +28,7 @@ import { parseAsStringEnum, useQueryStates } from 'nuqs'
 import { useMemo, useState } from 'react'
 import { corridorsForCountry } from '../countryCorridor'
 import { depositGateView } from '../depositGate'
-import { DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, isClaimable, topUpOnlyHref } from '../rails'
+import { DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, isClaimable, STANDING_ACCOUNT_CAP, topUpOnlyHref } from '../rails'
 import { isResidenceGated, residenceAllows, RESIDENCE_GATED_CORRIDORS } from '../residenceGate'
 import { canShare, isHeld } from '../resolveScreen'
 import type { ClaimableCorridor, DepositAccountView, DepositCorridor, DepositRail } from '../types'
@@ -278,6 +279,20 @@ export function DepositAccountsListScreen({
             data-testid="add-money-crypto"
         />
     ) : null
+    // The standing-account cap, shown as a live count so the user meets it as
+    // information up front, not as a wall at claim time. Count only accounts
+    // that actually hold a slot — a failed or unclaimed corridor is not one, so
+    // the count never tells a user they hold accounts they could not open.
+    const heldAccountCount = useMemo(
+        () =>
+            DEPOSIT_RAIL_ORDER.reduce((count, corridor) => {
+                const status = accounts[corridor]?.status
+                return status === 'active' || status === 'retiring' || status === 'provisioning' ? count + 1 : count
+            }, 0),
+        [accounts]
+    )
+    const atAccountCap = STANDING_ACCOUNT_CAP - heldAccountCount <= 0
+
     // A corridor with no row left after the search has nothing to label.
     const showAccounts = accountsEnabled && views.length > 0
     const showCountries = !term || matchingCountries.length > 0
@@ -328,10 +343,39 @@ export function DepositAccountsListScreen({
 
                 {showAccounts && (
                     <Section title={t('list.sectionTitle')} data-testid="your-accounts">
-                        <p className="text-body-s text-foreground-secondary">{t('list.accountsPitch')}</p>
-                        {/* the standing-account cap, said before a user meets it
-                            at claim time — support opens more on request */}
-                        <p className="text-body-xs text-foreground-secondary">{t('list.accountLimitNote')}</p>
+                        {/* Pitch on the left, the live "how many of your accounts
+                            are used" counter on the right: the cap is met as a
+                            number up front, not as a wall at claim time. The
+                            counter is hidden while the read is in flight or has
+                            failed — a count then would be a guess. */}
+                        <div className="flex items-start justify-between gap-2">
+                            <p className="text-body-s text-foreground-secondary">{t('list.accountsPitch')}</p>
+                            {!isLoading && !isError && (
+                                <Tooltip
+                                    content={t('list.accountLimitWhy', { cap: STANDING_ACCOUNT_CAP })}
+                                    position="left"
+                                    className="shrink-0"
+                                >
+                                    <span className="flex items-center gap-1" data-testid="account-counter">
+                                        <StatusBadge
+                                            status="custom"
+                                            customText={t('list.accountCounter', {
+                                                used: heldAccountCount,
+                                                cap: STANDING_ACCOUNT_CAP,
+                                            })}
+                                        />
+                                        <Icon name="info" size={14} className="text-foreground-secondary" />
+                                    </span>
+                                </Tooltip>
+                            )}
+                        </div>
+                        {/* Support opens more on request; the wording changes once
+                            every slot is used so the counter and the note agree. */}
+                        <p className="text-body-xs text-foreground-secondary">
+                            {atAccountCap
+                                ? t('list.accountLimitReached', { cap: STANDING_ACCOUNT_CAP })
+                                : t('list.accountLimitNote', { cap: STANDING_ACCOUNT_CAP })}
+                        </p>
                         <ListGroup>
                             {views.map(({ corridor, view }) => {
                                 const rail = DEPOSIT_RAILS[corridor]

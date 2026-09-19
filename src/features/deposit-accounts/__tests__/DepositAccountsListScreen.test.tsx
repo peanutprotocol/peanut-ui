@@ -290,10 +290,31 @@ describe("DepositAccountsListScreen renders the user's corridors and no others",
         expect(rowOf(container, 'PIX_BR')).not.toBeInTheDocument()
     })
 
-    it('signals the standing-account limit in the accounts section', () => {
+    it('signals the standing-account limit with a live counter, before the wall', () => {
         list(false)
 
-        expect(screen.getByText(messages.depositAccounts.list.accountLimitNote)).toBeInTheDocument()
+        // the counter is present up front, so the cap is information not a wall
+        expect(screen.getByTestId('account-counter')).toHaveTextContent(
+            messages.depositAccounts.list.accountCounter.replace('{used}', '0').replace('{cap}', '2')
+        )
+        // under the cap: the note says how to hold more
+        expect(
+            screen.getByText(messages.depositAccounts.list.accountLimitNote.replace('{cap}', '2'))
+        ).toBeInTheDocument()
+    })
+
+    it('counts only held accounts and switches the note once the cap is reached', () => {
+        list(false, {
+            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU'), ACH_US: heldAccount('ACH_US') },
+        })
+
+        expect(screen.getByTestId('account-counter')).toHaveTextContent(
+            messages.depositAccounts.list.accountCounter.replace('{used}', '2').replace('{cap}', '2')
+        )
+        // at the cap: the reached note replaces the "open more" note
+        expect(
+            screen.getByText(messages.depositAccounts.list.accountLimitReached.replace('{cap}', '2'))
+        ).toBeInTheDocument()
     })
 })
 

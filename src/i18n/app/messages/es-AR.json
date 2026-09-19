@@ -1723,7 +1723,10 @@
             "searchPlaceholder": "Buscá país, moneda o cuenta",
             "rowBlocked": "Verificá tu identidad para abrir esta cuenta",
             "badgeVerify": "Verificá para desbloquear",
-            "accountLimitNote": "Podés tener hasta dos cuentas bancarias. ¿Necesitás otra? Escribí a soporte.",
+            "accountLimitNote": "Podés abrir hasta {cap} cuentas bancarias. ¿Necesitás más? Escribí a soporte.",
+            "accountCounter": "{used} de {cap} usadas",
+            "accountLimitReached": "Ya usaste tus {cap} cuentas. ¿Necesitás otra? Escribí a soporte.",
+            "accountLimitWhy": "¿Por qué solo {cap}? Mantener cada cuenta virtual nos cuesta dinero, y no te cobramos nada por eso.",
             "errorBody": "Tus cuentas están bien: solo no pudimos leerlas. Revisá tu conexión y probá de nuevo.",
             "accountsPitch": "Datos bancarios a tu nombre. Compartilos una vez y cobrá directo en Peanut.",
             "countriesPitch": "Enviate plata desde un banco de otro país."
