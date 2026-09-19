@@ -441,6 +441,15 @@ const BRIDGE_CO_CAPABILITIES = {
 /** Every verified-user deposit-account fixture answers the gate the same way. */
 const VA_READY_RESPONSE = { 'GET /users/me': { capabilities: VA_READY_CAPABILITIES } }
 
+/** A $250 request, as the payer settles it in dollars and by euro bank transfer. */
+const REQUEST_PAY_USD = { amount: '250.00', currency: 'USD', isEstimate: false }
+const REQUEST_PAY_EUR = {
+    amount: '230.00',
+    currency: 'EUR',
+    isEstimate: true,
+    rate: { from: 'USD', to: 'EUR', rate: '0.92', source: 'fixture', asOf: null },
+}
+
 export const FIXTURES: Record<string, Fixture> = {
     'setup-pending': {
         route: '/setup',
@@ -1102,9 +1111,28 @@ export const FIXTURES: Record<string, Fixture> = {
         fullPage: true,
         responses: {
             'GET /requests/demo-request': { bankInstructionsShared: true, tokenAmount: '250' },
+            // What is left to pay on every rail the requester can receive on.
+            // The screen waits for this read before it draws the bank rows, so
+            // a fixture without it never settles.
+            'GET /requests/demo-request/pay-amounts': {
+                requestCurrency: 'USD',
+                requestAmount: '250.00',
+                remainingAmount: '250.00',
+                rails: [
+                    { kind: 'peanut_balance', payerAmount: REQUEST_PAY_USD },
+                    {
+                        kind: 'bank',
+                        railId: 'bridge.sepa_eu',
+                        country: 'DE',
+                        reference: 'demo-req',
+                        payerAmount: REQUEST_PAY_EUR,
+                    },
+                ],
+            },
             'GET /requests/demo-request/deposit-instructions': {
                 depositAccount: DEPOSIT_ACCOUNT_EUR,
                 paymentReference: 'demo-req',
+                payerAmount: REQUEST_PAY_EUR,
             },
         },
     },
