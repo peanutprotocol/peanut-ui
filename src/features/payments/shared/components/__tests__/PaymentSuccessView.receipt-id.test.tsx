@@ -1,18 +1,20 @@
 /**
- * Regression: the P2P (DIRECT_TRANSFER) success screen must build its receipt
- * transaction with the resolvable intent uuid, NOT the on-chain tx hash.
+ * Regression: every success-screen variant must build its receipt transaction
+ * with the id AND kind that GET /history/:id resolves — the same pair history
+ * uses for that transaction.
  *
- * The receipt page and its PDF twin resolve a DIRECT_TRANSFER through the
- * backend GET /history/:id, which only accepts `transaction_intents.id` (the
- * charge uuid). A tx hash is not a resolvable key, so sharing/downloading the
- * receipt PDF 404s ("receipt PDF unavailable"). The share/download affordances
- * feed `transaction.id` straight into /receipt/[entryId]/pdf, so `id` has to be
- * the uuid. The on-chain hash still travels separately in `txHash`.
+ * The receipt page and its PDF twin look an entry up by `transaction_intents.id`
+ * (the charge uuid) and the intent kind. A tx hash is not a resolvable key, and
+ * the right uuid under the wrong kind also 404s ("receipt PDF unavailable").
+ * The share/download affordances feed `transaction.id` and
+ * `extraDataForDrawer.kind` straight into /receipt/[entryId]/pdf. The on-chain
+ * hash still travels separately in `txHash`.
  */
 
 import { render } from '@testing-library/react'
 import type { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
+import type { PaymentCreationResponse, TChargeTransactionType, TRequestChargeResponse } from '@/services/services.types'
 
 const capturedTransactions: Array<TransactionDetails | null | undefined> = []
 
@@ -89,49 +91,73 @@ jest.mock('@/components/Common/PointsCard', () => ({ __esModule: true, default: 
 const INTENT_UUID = '11111111-2222-3333-4444-555555555555'
 const TX_HASH = '0xdeadbeef' // a tx hash — not a resolvable receipt id
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const chargeDetails: any = {
-    uuid: INTENT_UUID,
-    createdAt: '2026-09-18T00:00:00.000Z',
-    tokenSymbol: 'USDC',
-    tokenAmount: '5',
-    chainId: '42161',
-    tokenAddress: '0xtoken',
-    requestLink: { recipientAddress: '0xrecipient', reference: undefined, attachmentUrl: undefined },
-}
+const chargeOfType = (transactionType: TChargeTransactionType) =>
+    ({
+        uuid: INTENT_UUID,
+        createdAt: '2026-09-18T00:00:00.000Z',
+        tokenSymbol: 'USDC',
+        tokenAmount: '5',
+        chainId: '42161',
+        tokenAddress: '0xtoken',
+        transactionType,
+        requestLink: { recipientAddress: '0xrecipient', reference: undefined, attachmentUrl: undefined },
+    }) as unknown as TRequestChargeResponse
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const paymentDetails: any = {
+const paymentDetails = {
     uuid: INTENT_UUID,
     payerTransactionHash: TX_HASH,
     createdAt: '2026-09-18T00:00:00.000Z',
-}
+} as unknown as PaymentCreationResponse
 
 beforeEach(() => {
     capturedTransactions.length = 0
 })
 
-describe('PaymentSuccessView — P2P receipt id', () => {
-    it('feeds the resolvable intent uuid (not the tx hash) as the receipt id', () => {
+// each case carries the props its flow's wrapper passes to PaymentSuccessView
+const CASES = [
+    {
+        flow: 'direct send',
+        chargeType: 'DIRECT_SEND',
+        expectedKind: 'DIRECT_TRANSFER',
+        props: { recipientType: 'USERNAME', user: { username: 'alice', fullName: 'Alice' } },
+    },
+    {
+        flow: 'request fulfilment',
+        chargeType: 'REQUEST',
+        expectedKind: 'P2P_REQUEST_FULFILL',
+        props: { recipientType: 'ADDRESS' },
+    },
+    {
+        flow: 'pot contribution',
+        chargeType: 'REQUEST',
+        expectedKind: 'P2P_REQUEST_FULFILL',
+        props: { recipientType: 'USERNAME', user: { username: 'bob', fullName: 'Bob' } },
+    },
+    {
+        flow: 'crypto withdraw',
+        chargeType: 'WITHDRAW',
+        expectedKind: 'CRYPTO_WITHDRAW',
+        props: { recipientType: 'ADDRESS', isWithdrawFlow: true },
+    },
+] as const
+
+describe('PaymentSuccessView — receipt id and kind per transaction type', () => {
+    it.each(CASES)('$flow resolves as $expectedKind by the charge uuid', ({ chargeType, expectedKind, props }) => {
         render(
             <PaymentSuccessView
                 type="SEND"
-                recipientType="USERNAME"
-                user={{ username: 'alice', fullName: 'Alice' }}
                 usdAmount="5"
-                chargeDetails={chargeDetails}
+                chargeDetails={chargeOfType(chargeType)}
                 paymentDetails={paymentDetails}
+                {...props}
             />
         )
 
         const receipt = capturedTransactions.find((tx) => tx != null)
         expect(receipt).toBeTruthy()
-        // The id must be the intent uuid so /receipt/[id]/pdf resolves the entry
-        // via GET /history/:id — a tx hash would 404.
         expect(receipt!.id).toBe(INTENT_UUID)
-        expect(receipt!.id).not.toBe(TX_HASH)
+        expect(receipt!.extraDataForDrawer?.kind).toBe(expectedKind)
         // The on-chain hash is still carried, just in its own field.
         expect(receipt!.txHash).toBe(TX_HASH)
-        expect(receipt!.extraDataForDrawer?.kind).toBe('DIRECT_TRANSFER')
     })
 })

@@ -186,6 +186,10 @@ export function buildReceiptPdfModel(
         push(t('transaction.rows.transferId'), transaction.id)
     }
 
+    if (transaction.direction === 'bank_deposit') {
+        push(t('transaction.rows.senderReference'), transaction.extraDataForDrawer?.senderReference)
+    }
+
     // The history-entry id is the one identifier every receipt can use to tie
     // a renamed or printed document back to the source activity.
     push(t('transaction.officialReceipt.reference'), transaction.id)

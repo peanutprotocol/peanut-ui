@@ -10,6 +10,8 @@ import { useTranslations } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import Link from 'next/link'
 import { useHomeDrawer, type HomeDrawer } from '../useHomeDrawer'
+import { homeDrawerOptions } from '../home-drawer-options'
+import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 
 interface BalanceSectionProps {
     balance: bigint | undefined
@@ -23,13 +25,12 @@ interface BalanceSectionProps {
 
 // home IA (figma section 17609:2334): add, send and request each open a bottom
 // drawer. request offers two ways to be paid — share a request link, or share
-// standing bank details — instead of going straight to the link screen.
-const SUBMENU_ACTIONS: Array<{ key: 'add' | 'send' | 'request'; icon: IconName; drawer?: HomeDrawer; href?: string }> =
-    [
-        { key: 'add', icon: 'plus', drawer: 'add' },
-        { key: 'send', icon: 'arrow-up-right', drawer: 'send' },
-        { key: 'request', icon: 'arrow-down-left', drawer: 'request' },
-    ]
+// standing bank details. while only the link is offered it skips the drawer.
+const SUBMENU_ACTIONS: Array<{ key: HomeDrawer; icon: IconName }> = [
+    { key: 'add', icon: 'plus' },
+    { key: 'send', icon: 'arrow-up-right' },
+    { key: 'request', icon: 'arrow-down-left' },
+]
 
 /**
  * balance block (figma home board 17830:75689): centered usd balance with
@@ -41,10 +42,11 @@ export function BalanceSection({ balance, isFetching, isStale, isHidden, onToggl
     const tNav = useTranslations('navigation')
     const { triggerHaptic } = useAppHaptic()
     const [openDrawer, setOpenDrawer] = useHomeDrawer()
+    const depositAccounts = useDepositAccountsEnabled()
 
-    const handleAction = (action: (typeof SUBMENU_ACTIONS)[number]) => {
+    const openActionDrawer = (drawer: HomeDrawer) => {
         triggerHaptic()
-        if (action.drawer) setOpenDrawer(action.drawer)
+        setOpenDrawer(drawer)
     }
 
     return (
@@ -79,6 +81,11 @@ export function BalanceSection({ balance, isFetching, isStale, isHidden, onToggl
             </div>
             <div className="flex items-start justify-between px-10">
                 {SUBMENU_ACTIONS.map((action) => {
+                    // a drawer with one row is a pointless extra tap: link to
+                    // that row's destination instead (request, while standing
+                    // bank details are not offered)
+                    const options = homeDrawerOptions(action.key, depositAccounts)
+                    const directHref = options.length === 1 ? options[0].href : undefined
                     const inner = (
                         <>
                             <span
@@ -89,7 +96,7 @@ export function BalanceSection({ balance, isFetching, isStale, isHidden, onToggl
                                     // board's ghost-hover binding resolves to the same pink
                                     // in figma, but the code token is the dark ghost-text
                                     // tint — see PR body token note
-                                    action.drawer && openDrawer === action.drawer
+                                    !directHref && openDrawer === action.key
                                         ? 'border-border-button bg-action-primary'
                                         : 'active:border-border-button active:bg-action-primary'
                                 )}
@@ -103,16 +110,16 @@ export function BalanceSection({ balance, isFetching, isStale, isHidden, onToggl
                         className: 'flex w-14 cursor-pointer flex-col items-center gap-2',
                         'data-testid': `home-submenu-${action.key}`,
                     }
-                    return action.href ? (
-                        <Link key={action.key} href={action.href} onClick={() => triggerHaptic()} {...shared}>
+                    return directHref ? (
+                        <Link key={action.key} href={directHref} onClick={() => triggerHaptic()} {...shared}>
                             {inner}
                         </Link>
                     ) : (
                         <button
                             key={action.key}
                             type="button"
-                            onClick={() => handleAction(action)}
-                            aria-expanded={openDrawer === action.drawer}
+                            onClick={() => openActionDrawer(action.key)}
+                            aria-expanded={openDrawer === action.key}
                             {...shared}
                         >
                             {inner}
