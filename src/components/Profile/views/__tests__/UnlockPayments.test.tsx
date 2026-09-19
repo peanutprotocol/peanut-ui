@@ -40,7 +40,7 @@ let mockDepositEnabled = false
 let mockDepositAccounts: Record<string, unknown> = {}
 const mockReadDepositAccounts = jest.fn(() => ({
     accounts: mockDepositAccounts,
-    gates: { SEPA_EU: { kind: 'ready' } },
+    gates: { SEPA_EU: { kind: 'ready' }, ACH_US: { kind: 'ready' } },
     isLoading: false,
     isError: false,
     refetch: jest.fn(),
@@ -343,8 +343,9 @@ describe('UnlockPayments', () => {
         expect(mockInitiateKyc).not.toHaveBeenCalled()
     })
 
-    it('held bank accounts reuse account details, retain the profile return path, and drop the duplicate unlock row', () => {
+    it('held bank accounts reuse account details, retain the profile return path, and drop the duplicate active row', () => {
         mockDepositEnabled = true
+        mockRails = [{ id: 'bridge.sepa', provider: 'bridge', channel: 'bank', status: 'enabled' }]
         mockDepositAccounts = {
             SEPA_EU: { status: 'active', instructions: {}, matching: { sender: 'business-only' } },
         }
@@ -355,10 +356,55 @@ describe('UnlockPayments', () => {
         expect(mockPush).toHaveBeenCalledWith(
             '/add-money?method=bank&step=details&corridor=SEPA_EU&returnTo=%2Fprofile%2Faccounts-and-payments'
         )
-        // A held EUR VA covers the same corridor as the "Euro bank transfers"
-        // unlock row (2026-09-18 currency-first merge) — the merged list
-        // shows it once, not twice.
+        // An active EUR account covers the same corridor as the active "Euro
+        // bank transfers" row (2026-09-18 currency-first merge) — the merged
+        // list shows it once, not twice.
         expect(screen.queryByText('Euro bank transfers')).not.toBeInTheDocument()
+    })
+
+    it('keeps the bank row when the account cannot stand in for it', () => {
+        mockDepositEnabled = true
+        // a revoked account covers nothing, and the row is the only way into
+        // the unlock or fix modal for that rail
+        mockDepositAccounts = {
+            SEPA_EU: { status: 'revoked', instructions: {}, matching: { sender: 'business-only' } },
+        }
+        render()
+
+        expect(screen.getByText('EUR · SEPA')).toBeInTheDocument()
+        expect(screen.getByText('Euro bank transfers')).toBeInTheDocument()
+    })
+
+    it('keeps the bank limits when an account row replaces the bank row they came from', () => {
+        mockDepositEnabled = true
+        mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', status: 'enabled' }]
+        mockBridgeLimits = { onRampPerTransaction: '25000', offRampPerTransaction: '50000', asset: 'USD' }
+        mockDepositAccounts = {
+            SEPA_EU: { status: 'active', instructions: {}, matching: { sender: 'anyone' } },
+            ACH_US: { status: 'active', instructions: {}, matching: { sender: 'anyone' } },
+        }
+        render()
+
+        expect(screen.queryByText('Euro bank transfers')).not.toBeInTheDocument()
+        expect(screen.getAllByText('Per bank withdrawal').length).toBeGreaterThan(0)
+    })
+
+    it.each([
+        ['off', false],
+        ['on', true],
+    ])('joins the bank rows into one card with the accounts flag %s', (_, enabled) => {
+        mockDepositEnabled = enabled
+        render()
+
+        // ListGroup positions its direct children: every row after the first
+        // drops its top border. Rows behind a wrapper component each kept all
+        // four and rendered as separate cards.
+        const rows = ['Euro bank transfers', 'US dollar and Mexican peso bank transfers'].map((title) =>
+            screen.getByText(title).closest('.border')
+        )
+        const group = rows[0]?.parentElement
+        expect(rows[1]?.parentElement).toBe(group)
+        expect(group?.querySelectorAll(':scope > .border:not(.border-t-0)')).toHaveLength(1)
     })
 
     it('does not query bank accounts while their rollout flag is off, but still shows the unlock rows', () => {
