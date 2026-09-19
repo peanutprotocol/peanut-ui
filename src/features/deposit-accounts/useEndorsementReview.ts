@@ -1,11 +1,26 @@
 'use client'
 
+import { apiErrorStatus, wireErrorCode } from '@/services/api-error'
 import { claimDepositAccount } from '@/services/deposit-accounts'
 import { IN_APP_BROWSER_CLOSED_EVENT, isNativeBridge, openExternalUrl } from '@/utils/capacitor'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { trackClaimed, trackClaimFailed, trackClaimStarted, trackEndorsementRequested } from './analytics'
+import { claimErrorKey, claimErrorOffersSupport } from './claimErrors'
+import { DEPOSIT_RAILS } from './rails'
 import type { DepositCorridor } from './types'
 import { DEPOSIT_ACCOUNTS_QUERY_KEY } from './useDepositAccounts'
+
+/**
+ * How many returns to the app keep re-reading the accounts.
+ *
+ * The first return is often a quick tab switch, so one refresh is too few. An
+ * unbounded listener is the other extreme: it survived the review it was
+ * waiting for and re-read the accounts on every tab switch for the rest of the
+ * session. A review that has not answered within a handful of returns is not
+ * answering during this visit, and the list refetches on its own anyway.
+ */
+const RETURN_REFRESHES = 5
 
 export interface EndorsementReview {
     /** Call STRAIGHT out of a click: on web the tab is reserved inside the gesture. */
@@ -58,8 +73,14 @@ export function useEndorsementReview(): EndorsementReview {
             if (reservedTab) reservedTab.opener = null
             setFailedCorridor(undefined)
             setStartingCorridor(corridor)
+            // The same POST the claim screen makes, so the same funnel: a start
+            // here used to be invisible, and the review page is where most of
+            // them happen.
+            trackClaimStarted(corridor)
             try {
                 const result = await claimDepositAccount(corridor)
+                if (result.outcome === 'opened') trackClaimed(corridor, DEPOSIT_RAILS[corridor].currency)
+                if (result.outcome === 'endorsement_pending') trackEndorsementRequested(corridor)
                 const url =
                     result.outcome === 'endorsement_required'
                         ? (result as { verificationUrl?: string }).verificationUrl
@@ -87,7 +108,19 @@ export function useEndorsementReview(): EndorsementReview {
             } catch (error) {
                 reservedTab?.close()
                 console.error('[deposit-accounts] could not start the corridor review', error)
-                setFailedCorridor(corridor)
+                trackClaimFailed(corridor, error instanceof Error ? error.message : String(error))
+                // The refusal is classified the way the claim screen classifies
+                // it, because it is the same POST. Every failure used to read
+                // "try again in a moment" beside a retry button — including the
+                // account cap and a provider refusal, whose own copy says that
+                // trying again will not help. Those go to a person instead; a
+                // restricted residence is terminal the same way.
+                const key = claimErrorKey(wireErrorCode(error), apiErrorStatus(error))
+                if (claimErrorOffersSupport(key) || key === 'residenceRestricted') {
+                    setNeedsSupport((current) => new Set(current).add(corridor))
+                } else {
+                    setFailedCorridor(corridor)
+                }
             } finally {
                 setStartingCorridor(undefined)
                 startingRef.current = false
@@ -100,10 +133,15 @@ export function useEndorsementReview(): EndorsementReview {
     // they come back. Not one-shot: the first return is often a quick tab switch.
     useEffect(() => {
         if (!awaitingReturn) return
-        const onReturn = () => {
-            if (document.visibilityState === 'visible') void refresh()
+        let left = RETURN_REFRESHES
+        const spend = () => {
+            void refresh()
+            if (--left === 0) setAwaitingReturn(false)
         }
-        const onBrowserClosed = () => void refresh()
+        const onReturn = () => {
+            if (document.visibilityState === 'visible') spend()
+        }
+        const onBrowserClosed = () => spend()
         document.addEventListener('visibilitychange', onReturn)
         // Android WebViews do not reliably fire `visibilitychange` on resume.
         // The in-app browser reports its own close two ways: `browserFinished`
