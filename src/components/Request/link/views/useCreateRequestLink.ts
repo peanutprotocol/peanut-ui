@@ -184,8 +184,6 @@ export const useCreateRequestLink = () => {
                 return t('errors.rateUnavailable', { currency })
             }
             if (code === 'INVALID_REQUESTED_AMOUNT') return t('errors.invalidRequestedAmount', { currency })
-            // An API that predates `requestedAmount` refuses the unknown field
-            // with a plain 400 and no code.
             if (apiErrorStatus(error) === 400 && !code) return t('errors.currencyNotAvailable', { currency })
             return t('errors.createFailed')
         },
@@ -199,6 +197,15 @@ export const useCreateRequestLink = () => {
                     showError: true,
                     errorMessage: t('errors.enterRecipient'),
                 })
+                return null
+            }
+            // A request asked in a fiat currency always goes out with its dollar
+            // estimate. With no rate yet there is none, and an API deployed
+            // before `requestedAmount` would create an OPEN-amount request from
+            // what is left of the body.
+            const isDenominated = currency !== 'USD' && parseFloat(requestAmount) > 0
+            if (isDenominated && !tokenValue) {
+                setErrorState({ showError: true, errorMessage: t('errors.rateUnavailable', { currency }) })
                 return null
             }
             // Cleanup previous request
@@ -251,13 +258,25 @@ export const useCreateRequestLink = () => {
                     bankInstructionsShared,
                     // Sent for a non-USD amount alone, so a USD request is the
                     // same body an API without the field accepts.
-                    ...(currency !== 'USD' && parseFloat(requestAmount) > 0
-                        ? { requestedAmount: { amount: requestAmount, currency } }
-                        : {}),
+                    ...(isDenominated ? { requestedAmount: { amount: requestAmount, currency } } : {}),
                 }
 
                 // POST new request
                 const requestDetails = await requestsApi.create(requestData)
+
+                // An API deployed before `requestedAmount` does not refuse the
+                // field: the body schema strips it, and the request is created
+                // in dollars for the client's estimate. The answer then carries
+                // no `requestedAmount`. Sharing it as "100 EUR" would be false,
+                // so it is closed and the create reads as failed. The close is
+                // best effort: a request nobody was handed is harmless.
+                if (isDenominated && !requestDetails.requestedAmount) {
+                    await requestsApi.close(requestDetails.uuid).catch((error) => Sentry.captureException(error))
+                    const errorMessage = t('errors.currencyNotAvailable', { currency })
+                    setErrorState({ showError: true, errorMessage })
+                    toast.error(errorMessage)
+                    return null
+                }
                 setRequestId(requestDetails.uuid)
 
                 const link = getRequestLink({

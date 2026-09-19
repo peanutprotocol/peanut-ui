@@ -81,10 +81,12 @@ jest.mock('@tanstack/react-query', () => ({ useQueryClient: () => ({ invalidateQ
 
 const apiCreate = jest.fn()
 const apiUpdate = jest.fn()
+const apiClose = jest.fn()
 jest.mock('@/services/requests', () => ({
     requestsApi: {
         create: (...a: unknown[]) => apiCreate(...a),
         update: (...a: unknown[]) => apiUpdate(...a),
+        close: (...a: unknown[]) => apiClose(...a),
     },
 }))
 
@@ -138,6 +140,7 @@ describe('useCreateRequestLink', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         apiCreate.mockResolvedValue({ uuid: 'req-1' })
+        apiClose.mockResolvedValue({ uuid: 'req-1' })
         resolveCopy.mockResolvedValue(true)
         mockExchangeRate = 0
         mockDepositAccountsEnabled = true
@@ -390,8 +393,12 @@ describe('useCreateRequestLink', () => {
             expect(apiCreate.mock.calls[0][0]).not.toHaveProperty('requestedAmount')
         })
 
-        // The API prices the request itself, so a missing client rate blocks nothing.
-        it('creates a non-dollar request with no client rate, leaving tokenAmount to the API', async () => {
+        /**
+         * With no rate there is no dollar estimate to send. An API deployed
+         * before `requestedAmount` strips that field, and a body with no
+         * `tokenAmount` then creates an OPEN-amount request.
+         */
+        it('does not create a non-dollar request before the rate has loaded', async () => {
             const { result } = renderHook(() => useCreateRequestLink(), {
                 wrapper: currencyWrapper('?currency=EUR'),
             })
@@ -402,13 +409,54 @@ describe('useCreateRequestLink', () => {
                 await result.current.generateLink()
             })
 
-            const body = apiCreate.mock.calls[0][0]
-            expect(body.tokenAmount).toBeUndefined()
-            expect(body.requestedAmount).toEqual({ amount: '100', currency: 'EUR' })
+            expect(apiCreate).not.toHaveBeenCalled()
+            expect(result.current.requestId).toBeNull()
+            expect(result.current.errorState.showError).toBe(true)
+        })
+
+        /**
+         * The older API does not refuse the field, it strips it, and answers
+         * with a dollar request for the client's estimate.
+         */
+        it('closes and rejects a request the API created in dollars instead', async () => {
+            mockExchangeRate = 0.8
+            apiCreate.mockResolvedValue({ uuid: 'req-usd', tokenAmount: '125.00' })
+            const { result } = renderHook(() => useCreateRequestLink(), {
+                wrapper: currencyWrapper('?currency=EUR'),
+            })
+            act(() => {
+                result.current.handleRequestAmountChange('100')
+            })
+            await act(async () => {
+                await result.current.generateLink()
+            })
+
+            expect(apiClose).toHaveBeenCalledWith('req-usd')
+            expect(result.current.requestId).toBeNull()
+            expect(result.current.generatedLink).toBeNull()
+            expect(result.current.errorState.showError).toBe(true)
+        })
+
+        it('still fails the create when the close fails too', async () => {
+            mockExchangeRate = 0.8
+            apiClose.mockRejectedValue(new Error('nope'))
+            const { result } = renderHook(() => useCreateRequestLink(), {
+                wrapper: currencyWrapper('?currency=EUR'),
+            })
+            act(() => {
+                result.current.handleRequestAmountChange('100')
+            })
+            await act(async () => {
+                await result.current.generateLink()
+            })
+
+            expect(result.current.requestId).toBeNull()
+            expect(result.current.errorState.showError).toBe(true)
         })
 
         describe('a create the API refuses', () => {
             const createInEur = async (error: unknown) => {
+                mockExchangeRate = 0.8
                 apiCreate.mockRejectedValue(error)
                 const { result } = renderHook(() => useCreateRequestLink(), {
                     wrapper: currencyWrapper('?currency=EUR'),
@@ -443,6 +491,7 @@ describe('useCreateRequestLink', () => {
 
         it('changes the currency until the request exists, then locks it', async () => {
             mockExchangeRate = 0.8
+            apiCreate.mockResolvedValue({ uuid: 'req-1', currency: 'EUR', requestedAmount: '100' })
             const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
 
             act(() => {
