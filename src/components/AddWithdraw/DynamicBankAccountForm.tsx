@@ -12,6 +12,7 @@ import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import { useParams, useSearchParams } from 'next/navigation'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { validateIban, validateBankAccount, validateBic } from '@/utils/bridge-accounts.utils'
+import { scrollClearOfBottomNav } from '@/utils/bottom-nav-clearance.utils'
 import { bicMatchesIbanCountry } from './bicIbanCountry.utils'
 import { bankCorridorFor, type BankCorridorField } from '@/components/AddWithdraw/bank-corridors'
 import { getBicFromIban } from '@/app/actions/ibanToBic'
@@ -121,6 +122,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         const [bicAutoFilled, setBicAutoFilled] = useState(false)
         // The BIC the form derived, so a change of IBAN can tell a derived BIC
         // (now stale) from one the user typed.
+        const ctaRef = useRef<HTMLDivElement>(null)
         const derivedBicRef = useRef<string | null>(null)
         // the IBAN that BIC was derived from, so a failed lookup can tell "same IBAN" from "new one"
         const derivedForIbanRef = useRef<string | null>(null)
@@ -187,6 +189,16 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                 setValue('bic', debouncedBicValue, { shouldValidate: true })
             }
         }, [debouncedBicValue, isIban, setValue])
+
+        // The form is taller than a small phone, and at 375x667 its button rests
+        // half behind the bottom nav: on screen, and a tap on it switches tabs.
+        // The moment the form can be submitted, the button is brought clear of
+        // the nav. The page moves only as far as that takes, so a user still
+        // typing in the last field keeps it in view.
+        const canSubmit = isValid && !isValidating
+        useEffect(() => {
+            if (canSubmit) scrollClearOfBottomNav(ctaRef.current)
+        }, [canSubmit])
 
         /**
          * Keeps the BIC in step with the IBAN and returns the derived BIC, if any.
@@ -780,21 +792,27 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                 })}
                             </div>
                         )}
-                        <Button
-                            type="submit"
-                            variant="purple"
-                            shadowSize="4"
-                            className="w-full"
-                            loading={isSubmitting || isCheckingBICValid || isValidating}
-                            disabled={isSubmitting || !isValid || isCheckingBICValid || isValidating}
-                        >
-                            {flow === 'withdraw' ? tCommon('continue') : tWithdraw('review')}
-                        </Button>
-                        {submissionError ? (
-                            <Notification priority="error">{submissionError}</Notification>
-                        ) : (
-                            error && <Notification priority="error">{error}</Notification>
-                        )}
+                        {/*
+                         * The button is the LAST child, after the error: the
+                         * shell's reservation under the page clears whatever ends it.
+                         */}
+                        <div ref={ctaRef} className="flex flex-col gap-4" data-testid="bank-form-cta">
+                            {submissionError ? (
+                                <Notification priority="error">{submissionError}</Notification>
+                            ) : (
+                                error && <Notification priority="error">{error}</Notification>
+                            )}
+                            <Button
+                                type="submit"
+                                variant="purple"
+                                shadowSize="4"
+                                className="w-full"
+                                loading={isSubmitting || isCheckingBICValid || isValidating}
+                                disabled={isSubmitting || !isValid || isCheckingBICValid || isValidating}
+                            >
+                                {flow === 'withdraw' ? tCommon('continue') : tWithdraw('review')}
+                            </Button>
+                        </div>
                     </form>
                 </div>
             </div>

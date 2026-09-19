@@ -70,6 +70,11 @@ jest.mock('@/utils/bridge-accounts.utils', () => ({
     validateBic: (bic: string) => mockValidateBic(bic),
 }))
 
+const mockScrollClear = jest.fn()
+jest.mock('@/utils/bottom-nav-clearance.utils', () => ({
+    scrollClearOfBottomNav: (element: unknown) => mockScrollClear(element),
+}))
+
 const mockReadClipboard = jest.fn()
 jest.mock('@/utils/clipboard-extract.utils', () => ({
     ...jest.requireActual('@/utils/clipboard-extract.utils'),
@@ -387,6 +392,27 @@ describe('DynamicBankAccountForm — the BIC follows the IBAN', () => {
         await submitWithEnter(container)
         await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
         expect(payloadOf(onSuccess)).toMatchObject({ accountNumber: IT_IBAN, bic: 'BPMOIT22XXX', countryCode: 'ITA' })
+    })
+
+    /**
+     * The form is taller than a small phone and its button rests half behind
+     * the bottom nav. jsdom has no layout, so the browser spec
+     * (e2e/flows/bank-form-cta.spec.ts) holds the hit-test; this holds the
+     * trigger: the button is brought into view when the form becomes
+     * submittable, and not before.
+     */
+    it('brings the submit button clear of the nav once the form can be submitted', async () => {
+        const onSuccess = jest.fn(async () => ({}))
+        renderIbanForm(onSuccess)
+        expect(mockScrollClear).not.toHaveBeenCalled()
+
+        await typeIban(DE_IBAN, { blur: true })
+        await waitFor(() => expect(screen.getByRole('button', { name: /continue|review/i })).toBeEnabled())
+
+        // the error sits above the button, so the button ends the form
+        const cta = screen.getByTestId('bank-form-cta')
+        expect(mockScrollClear).toHaveBeenCalledWith(cta)
+        expect(cta.lastElementChild?.tagName).toBe('BUTTON')
     })
 
     it('refuses a typed BIC from another country than the IBAN, with no request', async () => {

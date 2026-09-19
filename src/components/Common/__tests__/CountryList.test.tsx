@@ -212,6 +212,9 @@ describe('CountryList — a set of countries the caller owns', () => {
         expect(screen.getByText('Germany')).toBeInTheDocument()
         expect(screen.getByText('Poland')).toBeInTheDocument()
         expect(screen.queryByText('Spain')).not.toBeInTheDocument()
+        // The caller's own row names the payout currency. "Poland PLN" under
+        // EUR promised a payout in zloty that the euro rail does not make.
+        expect(screen.queryByText('PLN')).not.toBeInTheDocument()
 
         fireEvent.click(row('Poland'))
         expect(onCountryClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'poland' }))

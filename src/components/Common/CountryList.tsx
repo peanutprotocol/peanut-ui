@@ -255,7 +255,11 @@ export const CountryList = ({
                                     title={displayName}
                                     trailing={trailing}
                                     chevron={!trailing}
-                                    body={country.currency}
+                                    // A caller-supplied set is "the countries this currency
+                                    // pays out in", and the caller's own row names that
+                                    // currency. The country's local code under it ("Poland
+                                    // PLN" inside EUR) promised a payout the rail does not make.
+                                    body={countries ? undefined : country.currency}
                                     onClick={() => {
                                         // check for easter egg countries first
                                         if (EASTER_EGG_COUNTRIES[country.id]) {
