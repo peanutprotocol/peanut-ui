@@ -32,6 +32,7 @@ import { EInviteType } from '@/services/services.types'
 import { saveRedirectUrl, saveToLocalStorage, toInviteCode, inviteFlowUrl } from '@/utils/general.utils'
 import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPeanutCta'
 import { PayByBankTransferDrawer } from './PayByBankTransferDrawer'
+import { isUsdPeggedRequest } from '@/features/deposit-accounts/payerAmount'
 import { useTranslations } from 'next-intl'
 import { stashInvite } from '@/utils/invite-stash'
 
@@ -44,6 +45,10 @@ interface RequestPotActionListProps {
     requestId?: string
     /** the requester lets this request be settled by bank transfer */
     bankPayable?: boolean
+    /** what the request still needs, in dollars; undefined on an open-amount request */
+    remainingUsd?: number
+    /** the token the request is denominated in; a bank payer is shown an amount only when it is a dollar token */
+    requestTokenSymbol?: string | null
     onPayWithPeanut: () => void
     isPaymentLoading?: boolean
     isExternalWalletLoading?: boolean
@@ -57,6 +62,8 @@ export function RequestPotActionList({
     recipientUsername,
     requestId,
     bankPayable = false,
+    remainingUsd,
+    requestTokenSymbol,
     onPayWithPeanut,
     isPaymentLoading = false,
     isExternalWalletLoading = false,
@@ -65,7 +72,7 @@ export function RequestPotActionList({
     const router = useRouter()
     const t = useTranslations('payment')
     const tCommon = useTranslations('common')
-    const { user } = useAuth()
+    const { user, isFetchingUser } = useAuth()
     const { hasSufficientSpendableBalance: hasSufficientBalance, isFetchingSpendableBalance } = useWallet()
     // MIGRATION-REVIEW: mercadopago/pix are QR `pay` methods over Manteca. Old gate was
     // `isUserMantecaKycApproved`; mapped to canDo('pay', { provider: 'manteca' }) (operation-specific).
@@ -155,6 +162,24 @@ export function RequestPotActionList({
         }
     }
 
+    // A signed-out payer who taps the generic "Bank" method is sent to signup,
+    // because that method funds a Peanut balance first. When the requester
+    // shares bank details, a signed-out payer — a business paying an invoice,
+    // say — can pay with no account, so that row leads and the generic one goes.
+    // A signed-in payer keeps both: the transfer asks them to leave the app and
+    // type a reference, so it stays the last option.
+    const requesterBankFirst = bankPayable && !!requestId && !isLoggedIn && !isFetchingUser
+    const visibleMethods = requesterBankFirst ? sortedMethods.filter((method) => method.id !== 'bank') : sortedMethods
+    const isDollarRequest = isUsdPeggedRequest(requestTokenSymbol)
+    const requesterBankRow = requestId ? (
+        <PayByBankTransferDrawer
+            requestId={requestId}
+            bankPayable={bankPayable}
+            usdAmount={isDollarRequest ? usdAmount : undefined}
+            remainingUsd={isDollarRequest ? remainingUsd : undefined}
+        />
+    ) : null
+
     if (isGeoLoading) {
         return (
             <div className="flex w-full items-center justify-center py-8">
@@ -178,7 +203,8 @@ export function RequestPotActionList({
 
             {/* payment methods */}
             <div className="space-y-2">
-                {sortedMethods.map((method) => {
+                {requesterBankFirst && requesterBankRow}
+                {visibleMethods.map((method) => {
                     let methodRequiresVerification = method.id === 'bank' && requiresVerification
                     if (!isMantecaPayEnabled && ['mercadopago', 'pix'].includes(method.id)) {
                         methodRequiresVerification = true
@@ -207,16 +233,7 @@ export function RequestPotActionList({
                     )
                 })}
 
-                {/*
-                    Straight into the requester's own bank account. It sits
-                    with the other methods rather than above them: it asks the
-                    payer to leave the app and type a reference, so it is the
-                    fallback for a payer whose bank is the only thing they
-                    have, not the first thing offered.
-                */}
-                {requestId && (
-                    <PayByBankTransferDrawer requestId={requestId} bankPayable={bankPayable} usdAmount={usdAmount} />
-                )}
+                {!requesterBankFirst && requesterBankRow}
             </div>
 
             {/* minimum amount error modal */}

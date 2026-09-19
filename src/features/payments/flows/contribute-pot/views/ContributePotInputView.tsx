@@ -130,6 +130,8 @@ export function ContributePotInputView() {
                     recipientUsername={recipient?.username}
                     requestId={request?.uuid}
                     bankPayable={!!request?.bankInstructionsShared}
+                    remainingUsd={totalAmount > 0 ? Math.max(totalAmount - totalCollected, 0) : undefined}
+                    requestTokenSymbol={request?.tokenSymbol}
                     onPayWithPeanut={handlePayWithPeanut}
                     isPaymentLoading={isLoading && !isExternalWalletLoading}
                     isExternalWalletLoading={isExternalWalletLoading}
