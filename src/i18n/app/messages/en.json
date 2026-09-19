@@ -4140,9 +4140,10 @@
             "reviewCta": "Back to Add money",
             "blockedBody": "We could not open this account, and nothing in the app can fix it. Contact support and we will look into it.",
             "finishReviewTitle": "One more check for this account",
-            "finishReviewBody": "Your identity is verified. {currency} accounts need one extra check by our payment partner before they can open.",
-            "finishReviewSupportBody": "Your identity is verified. {currency} accounts need one extra check by our payment partner, and we cannot start it from the app yet. Contact support and we will help you finish it.",
-            "finishReviewCta": "Continue"
+            "finishReviewBody": "Your identity is verified. {currency} accounts need one extra check by our payment partner. It opens on their page, and this screen updates when you come back.",
+            "finishReviewSupportBody": "Your identity is verified. {currency} accounts need one extra check by our payment partner, and it cannot be started from the app for your account. Contact support and we will help you finish it.",
+            "finishReviewCta": "Continue",
+            "actFailed": "We could not open the check. Try again in a moment."
         },
         "rules": {
             "providerHeld": {

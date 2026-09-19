@@ -2,14 +2,11 @@
 
 import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
-import { useCapabilities } from '@/hooks/useCapabilities'
-import { useRouter } from 'next/navigation'
 import { DepositAccountsFlow, type DepositSupportReason } from './DepositAccountsFlow'
 import { useDepositAccounts } from '../useDepositAccounts'
 import { useDepositAccountsEnabled } from '../useDepositAccountsEnabled'
 import { useDepositGateRemediation } from '../useDepositGateRemediation'
-
-const HOSTED_CHECK_ROUTE = '/profile/accounts-and-payments/additional'
+import { useEndorsementReview } from '../useEndorsementReview'
 
 /** What support reads first. English on purpose: it is for the agent, not the user. */
 const SUPPORT_SUBJECT: Record<DepositSupportReason, string> = {
@@ -54,13 +51,7 @@ export function DepositAccountsFlowContainer({ onExit }: DepositAccountsFlowCont
     const { user } = useAuth()
     const { resolveGate, modals } = useDepositGateRemediation()
     const { openSupportWithMessage } = useModalsContext()
-    const router = useRouter()
-    // A provider review that waits on the user is cleared in the provider's
-    // hosted check, and the backend only hands out that link to a user whose
-    // capabilities carry the action. A future-dated one is advisory and blocks
-    // nothing, so it is not the action this review needs.
-    const { nextActions } = useCapabilities()
-    const canFinishReview = nextActions.some((action) => action.kind === 'bridge-hosted' && !action.effectiveDate)
+    const review = useEndorsementReview()
 
     return (
         <>
@@ -91,10 +82,7 @@ export function DepositAccountsFlowContainer({ onExit }: DepositAccountsFlowCont
                 onContactSupport={(corridor, reason) =>
                     openSupportWithMessage(`${SUPPORT_SUBJECT[reason]}: ${corridor}`)
                 }
-                // The prep screen in front of the hosted check: it says what to
-                // have ready and starts the check from its own button.
-                // Back from it returns here through history.
-                onFinishReview={canFinishReview ? () => router.push(HOSTED_CHECK_ROUTE) : undefined}
+                review={review}
             />
             {modals}
         </>

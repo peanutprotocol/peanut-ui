@@ -1770,7 +1770,9 @@
             "limitTitle": "Ya tenés {count, plural, one {# cuenta} other {# cuentas}}",
             "limitBody": "Ese es tu límite actual. Si necesitás otra, soporte puede abrirla.",
             "blockedBody": "No pudimos abrir esta cuenta y no es algo que puedas resolver desde la app. Contactá a soporte y lo revisamos.",
-            "finishReviewSupportBody": "Tu identidad ya está verificada. Las cuentas en {currency} necesitan una revisión extra de nuestro socio de pagos, y todavía no podemos iniciarla desde la app. Contactá a soporte y te ayudamos a completarla."
+            "finishReviewSupportBody": "Tu identidad ya está verificada. Las cuentas en {currency} necesitan una revisión extra de nuestro socio de pagos, y no se puede iniciar desde la app para tu cuenta. Contactá a soporte y te ayudamos a completarla.",
+            "actFailed": "No pudimos abrir la revisión. Probá de nuevo en un momento.",
+            "finishReviewBody": "Tu identidad ya está verificada. Las cuentas en {currency} necesitan una revisión extra de nuestro socio de pagos. Se abre en su página, y esta pantalla se actualiza cuando volvés."
         },
         "rules": {
             "ownAccount": {

@@ -16,6 +16,7 @@ import { resolveScreen } from '../resolveScreen'
 import { DEPOSIT_RAILS, corridorRecord, emptyCorridorRecord } from '../rails'
 import { DepositAccountsFlow } from '../components/DepositAccountsFlow'
 import type { ClaimableCorridor, DepositAccountView, DepositCorridor } from '../types'
+import type { EndorsementReview } from '../useEndorsementReview'
 import type { GateState } from '@/utils/capability-gate'
 
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
@@ -75,8 +76,13 @@ function flowProps(blockedBy?: ClaimableCorridor['blockedBy'], heldElsewhere = f
         onResolveGate: jest.fn(),
         onRetry: jest.fn(),
         onContactSupport: jest.fn(),
-        onFinishReview: jest.fn() as jest.Mock | undefined,
+        review: reviewStub() as EndorsementReview | undefined,
     }
+}
+
+/** the hosted-page opener, as the flow sees it */
+function reviewStub(over: Partial<EndorsementReview> = {}): EndorsementReview {
+    return { start: jest.fn(async () => {}), needsSupport: new Set(), ...over }
 }
 
 const flow = (props: ReturnType<typeof flowProps>) => (
@@ -204,7 +210,7 @@ describe('the screen a blocked corridor lands on', () => {
     describe('a review that waits on a verified user', () => {
         const PENDING: GateState = { kind: 'pending' }
 
-        it('starts the hosted check, and never identity verification', () => {
+        it('opens the provider page for this corridor, and never identity verification', () => {
             const props = flowProps('endorsement-required', false, PENDING)
             render(flow(props))
             expect(screen.getByText(GATE.finishReviewTitle)).toBeInTheDocument()
@@ -212,12 +218,15 @@ describe('the screen a blocked corridor lands on', () => {
             expect(screen.queryByText(GATE.verifyTitle)).not.toBeInTheDocument()
             expect(screen.queryByText(GATE.waitTitle)).not.toBeInTheDocument()
             fireEvent.click(screen.getByTestId('corridor-gate-finish-review'))
-            expect(props.onFinishReview).toHaveBeenCalledTimes(1)
+            expect(props.review?.start).toHaveBeenCalledWith(CORRIDOR)
             expect(props.onResolveGate).not.toHaveBeenCalled()
         })
 
-        it('says what is needed and offers support when the app cannot start the check', () => {
-            const props = { ...flowProps('endorsement-required', false, PENDING), onFinishReview: undefined }
+        it.each([
+            ['the caller cannot open a page', () => undefined],
+            ['the claim answered with no page', () => reviewStub({ needsSupport: new Set([CORRIDOR]) })],
+        ])('says what is needed and offers support when %s', (_, review) => {
+            const props = { ...flowProps('endorsement-required', false, PENDING), review: review() }
             render(flow(props))
             expect(screen.getByText(GATE.finishReviewTitle)).toBeInTheDocument()
             expect(screen.getByText(GATE.finishReviewSupportBody.replace('{currency}', 'EUR'))).toBeInTheDocument()
@@ -226,13 +235,42 @@ describe('the screen a blocked corridor lands on', () => {
             expect(props.onResolveGate).not.toHaveBeenCalled()
         })
 
+        it.each([['rejected'], ['REVOKED']])('goes straight to support for a corridor the provider %s', (issue) => {
+            const props = flowProps('endorsement-required', false, PENDING)
+            props.claimable[CORRIDOR] = {
+                ...terms('endorsement-required'),
+                requirements: { pending: [], missing: [], issues: [issue] },
+            }
+            render(flow(props))
+            expect(screen.getByTestId('corridor-gate-finish-review-support')).toBeInTheDocument()
+        })
+
+        it('says so when the page could not be opened, and keeps the button as the retry', () => {
+            const props = {
+                ...flowProps('endorsement-required', false, PENDING),
+                review: reviewStub({ failedCorridor: CORRIDOR }),
+            }
+            render(flow(props))
+            expect(screen.getByText(GATE.actFailed)).toBeInTheDocument()
+            expect(screen.getByTestId('corridor-gate-finish-review')).toBeEnabled()
+        })
+
+        it('disables the button while the page is being fetched', () => {
+            const props = {
+                ...flowProps('endorsement-required', false, PENDING),
+                review: reviewStub({ startingCorridor: CORRIDOR }),
+            }
+            render(flow(props))
+            expect(screen.getByTestId('corridor-gate-finish-review')).toBeDisabled()
+        })
+
         it('leaves an unverified user on identity verification', () => {
             const props = flowProps('endorsement-required', false, { kind: 'needs-identity' })
             render(flow(props))
             expect(screen.getByText(GATE.verifyTitle)).toBeInTheDocument()
             fireEvent.click(screen.getByTestId('corridor-gate-verify'))
             expect(props.onResolveGate).toHaveBeenCalledTimes(1)
-            expect(props.onFinishReview).not.toHaveBeenCalled()
+            expect(props.review?.start).not.toHaveBeenCalled()
         })
 
         it('keeps the under-review wait for a review the provider is still running', () => {

@@ -4140,9 +4140,10 @@
             "reviewCta": "Voltar para Adicionar dinheiro",
             "blockedBody": "Não conseguimos abrir esta conta, e não é algo que dê para resolver pelo app. Fale com o suporte e a gente verifica.",
             "finishReviewTitle": "Mais uma checagem para esta conta",
-            "finishReviewBody": "Sua identidade já está verificada. As contas em {currency} precisam de uma checagem extra do nosso parceiro de pagamentos antes de abrir.",
-            "finishReviewSupportBody": "Sua identidade já está verificada. As contas em {currency} precisam de uma checagem extra do nosso parceiro de pagamentos, e ainda não dá para iniciá-la pelo app. Fale com o suporte e a gente ajuda você a concluir.",
-            "finishReviewCta": "Continuar"
+            "finishReviewBody": "Sua identidade já está verificada. As contas em {currency} precisam de uma checagem extra do nosso parceiro de pagamentos. Ela abre na página dele, e esta tela se atualiza quando você voltar.",
+            "finishReviewSupportBody": "Sua identidade já está verificada. As contas em {currency} precisam de uma checagem extra do nosso parceiro de pagamentos, e não dá para iniciá-la pelo app na sua conta. Fale com o suporte e a gente ajuda você a concluir.",
+            "finishReviewCta": "Continuar",
+            "actFailed": "Não conseguimos abrir a checagem. Tente de novo em instantes."
         },
         "rules": {
             "providerHeld": {

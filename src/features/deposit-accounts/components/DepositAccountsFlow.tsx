@@ -12,6 +12,7 @@ import { isResidenceGated } from '../residenceGate'
 import { canShare, isHeld, resolveScreen } from '../resolveScreen'
 import type { ClaimableCorridor, DepositAccountView, DepositCorridor } from '../types'
 import type { DepositClaimError } from '../useDepositAccounts'
+import type { EndorsementReview } from '../useEndorsementReview'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import NavHeader from '@/components/Global/NavHeader'
@@ -59,11 +60,11 @@ export interface DepositAccountsFlowProps {
      */
     onContactSupport: (corridor: DepositCorridor, reason: DepositSupportReason) => void
     /**
-     * Starts the provider's hosted check, which is what clears a review that
-     * waits on the user. Absent when the backend offers this user no such
-     * action: the screen then says what is needed and offers support.
+     * The provider's hosted page for a corridor review that waits on the user.
+     * Absent on a caller that cannot open one: the screen then says what is
+     * needed and offers support.
      */
-    onFinishReview?: () => void
+    review?: EndorsementReview
 }
 
 export type DepositSupportReason = 'revoked' | 'account-limit' | 'blocked' | 'review'
@@ -94,7 +95,7 @@ export function DepositAccountsFlow({
     onResolveGate,
     onRetry,
     onContactSupport,
-    onFinishReview,
+    review,
 }: DepositAccountsFlowProps) {
     const [{ step: screen, corridor, screen: legacyStep }, setParams] = useQueryStates(DEPOSIT_ACCOUNT_PARAMS)
     const [openingCorridor, setOpeningCorridor] = useState<DepositCorridor>()
@@ -179,10 +180,17 @@ export function DepositAccountsFlow({
     // account" support screen shows. "Names" means takes a slot: a revoked
     // account is held and the cap does not count it.
     const rawGateNotice = depositGateView(gate, terms).notice
+    // The provider hands out its page only for a review it still takes from the
+    // user. One it rejected or revoked has none, and the claim says so by
+    // answering without a link; the preview names those two in its issues.
+    const reviewClosed = (terms?.requirements?.issues ?? []).some((issue) =>
+        ['rejected', 'revoked'].includes(issue.toLowerCase())
+    )
+    const canFinishReview = !!review && !reviewClosed && !review.needsSupport.has(corridor)
     const gateNotice =
         rawGateNotice?.action === 'account-limit' && slotsHeld === 0
             ? { ...rawGateNotice, action: 'support' as const }
-            : rawGateNotice?.action === 'finish-review' && !onFinishReview
+            : rawGateNotice?.action === 'finish-review' && !canFinishReview
               ? { ...rawGateNotice, action: 'finish-review-support' as const }
               : rawGateNotice
     if (screen !== 'list' && !isLoading && !isError && isClaimable(rail) && !isHeld(account) && gateNotice) {
@@ -191,12 +199,14 @@ export function DepositAccountsFlow({
                 rail={rail}
                 notice={gateNotice}
                 slotsHeld={slotsHeld}
+                isActing={review?.startingCorridor === corridor}
+                actFailed={review?.failedCorridor === corridor}
                 onBack={() => setParams({ step: 'list' })}
                 onAct={() => {
                     // A block from the backend's own terms has nothing for the
                     // capability gate to resolve, whatever that gate reads.
                     if (!isDepositBlock(gateNotice.kind)) return onResolveGate(gate)
-                    if (gateNotice.action === 'finish-review') return onFinishReview?.()
+                    if (gateNotice.action === 'finish-review') return void review?.start(corridor)
                     if (gateNotice.action === 'finish-review-support') return onContactSupport(corridor, 'review')
                     return onContactSupport(
                         corridor,

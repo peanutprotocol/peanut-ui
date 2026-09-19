@@ -4140,9 +4140,10 @@
             "reviewCta": "Volver a Agregar dinero",
             "blockedBody": "No pudimos abrir esta cuenta y no es algo que puedas resolver desde la app. Contacta a soporte y lo revisamos.",
             "finishReviewTitle": "Una revisión más para esta cuenta",
-            "finishReviewBody": "Tu identidad ya está verificada. Las cuentas en {currency} necesitan una revisión extra de nuestro socio de pagos antes de abrirse.",
-            "finishReviewSupportBody": "Tu identidad ya está verificada. Las cuentas en {currency} necesitan una revisión extra de nuestro socio de pagos, y todavía no podemos iniciarla desde la app. Contacta a soporte y te ayudamos a completarla.",
-            "finishReviewCta": "Continuar"
+            "finishReviewBody": "Tu identidad ya está verificada. Las cuentas en {currency} necesitan una revisión extra de nuestro socio de pagos. Se abre en su página, y esta pantalla se actualiza cuando vuelves.",
+            "finishReviewSupportBody": "Tu identidad ya está verificada. Las cuentas en {currency} necesitan una revisión extra de nuestro socio de pagos, y no se puede iniciar desde la app para tu cuenta. Contacta a soporte y te ayudamos a completarla.",
+            "finishReviewCta": "Continuar",
+            "actFailed": "No pudimos abrir la revisión. Inténtalo de nuevo en un momento."
         },
         "rules": {
             "providerHeld": {

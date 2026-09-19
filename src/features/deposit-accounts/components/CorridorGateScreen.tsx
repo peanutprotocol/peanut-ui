@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
+import { Notification } from '@/components/0_Bruddle/Notification'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
@@ -83,6 +84,8 @@ export function CorridorGateScreen({
     rail,
     notice,
     slotsHeld = 0,
+    isActing = false,
+    actFailed = false,
     onBack,
     onAct,
 }: {
@@ -90,6 +93,10 @@ export function CorridorGateScreen({
     notice: NonNullable<DepositGateView['notice']>
     /** how many accounts the cap screen says the user has — their own count, never a default */
     slotsHeld?: number
+    /** the button's action is in flight */
+    isActing?: boolean
+    /** the button's action failed for a reason a retry may clear */
+    actFailed?: boolean
     onBack: () => void
     onAct: () => void
 }) {
@@ -105,6 +112,13 @@ export function CorridorGateScreen({
                         <StatusBadge status="pending" />
                     </div>
                 )}
+                {/* a flow-level failure, so a Notification: it carries role="alert"
+                    and the button below is the retry */}
+                {actFailed && (
+                    <Notification priority="error" className="mb-4" data-testid="corridor-gate-act-failed">
+                        {t('gate.actFailed')}
+                    </Notification>
+                )}
                 <EmptyState
                     icon={ICONS[notice.action as keyof typeof ICONS] ?? 'globe-lock'}
                     title={t(TITLES[notice.action], { count: slotsHeld })}
@@ -113,6 +127,8 @@ export function CorridorGateScreen({
                         <Button
                             variant="purple"
                             className="mt-4 w-full"
+                            loading={isActing}
+                            disabled={isActing}
                             onClick={waiting ? onBack : onAct}
                             data-testid={`corridor-gate-${notice.action}`}
                         >
