@@ -4248,7 +4248,9 @@
             "notAvailable": "Standing accounts are not open to your account yet.",
             "residenceRestricted": "Bank details are not available where you live. Update your residence if you have moved.",
             "accountLimit": "You have reached your bank account limit. Support can open another one for you.",
-            "refused": "We could not open this account right now. Try again in a few minutes. If it still fails, contact support."
+            "refused": "We could not open this account right now. Try again in a few minutes. If it still fails, contact support.",
+            "providerRefused": "We could not open this account, and trying again will not change that. Contact support and we will look into it.",
+            "tooManyAttempts": "Too many attempts. Wait a minute, then try again."
         },
         "fees": {
             "noFee": "No Peanut fee.",

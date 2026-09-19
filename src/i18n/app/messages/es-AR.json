@@ -1815,7 +1815,9 @@
         "errors": {
             "generic": "No pudimos abrir la cuenta. Probá de nuevo en un momento.",
             "residenceRestricted": "Los datos bancarios no están disponibles donde vivís. Actualizá tu residencia si te mudaste.",
-            "refused": "No pudimos abrir esta cuenta por ahora. Probá de nuevo en unos minutos. Si sigue fallando, contactá a soporte."
+            "refused": "No pudimos abrir esta cuenta por ahora. Probá de nuevo en unos minutos. Si sigue fallando, contactá a soporte.",
+            "providerRefused": "No pudimos abrir esta cuenta, y volver a intentarlo no lo va a cambiar. Contactá a soporte y lo revisamos.",
+            "tooManyAttempts": "Demasiados intentos. Esperá un minuto y volvé a intentarlo."
         }
     }
 }

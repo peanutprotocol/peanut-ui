@@ -4248,7 +4248,9 @@
             "notAvailable": "Las cuentas propias todavía no están disponibles para tu cuenta.",
             "residenceRestricted": "Los datos bancarios no están disponibles donde vives. Actualiza tu residencia si te mudaste.",
             "accountLimit": "Llegaste a tu límite de cuentas bancarias. Soporte puede abrirte otra.",
-            "refused": "No pudimos abrir esta cuenta por ahora. Inténtalo de nuevo en unos minutos. Si sigue fallando, contacta a soporte."
+            "refused": "No pudimos abrir esta cuenta por ahora. Inténtalo de nuevo en unos minutos. Si sigue fallando, contacta a soporte.",
+            "providerRefused": "No pudimos abrir esta cuenta, y volver a intentarlo no lo va a cambiar. Contacta a soporte y lo revisamos.",
+            "tooManyAttempts": "Demasiados intentos. Espera un minuto y vuelve a intentarlo."
         },
         "fees": {
             "noFee": "Sin comisión de Peanut.",

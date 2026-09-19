@@ -60,6 +60,10 @@ describe('claimErrorKey', () => {
         expect(claimErrorKey(undefined, 403)).toBe('residenceRestricted')
         // a refusal with no code: retry may or may not clear it
         expect(claimErrorKey(undefined, 409)).toBe('refused')
+        // the provider said no: it was a 500 before api#1638
+        expect(claimErrorKey('DEPOSIT_ACCOUNT_PROVIDER_REFUSED', 409)).toBe('providerRefused')
+        // ten claims a minute
+        expect(claimErrorKey(undefined, 429)).toBe('tooManyAttempts')
         expect(claimErrorKey('SOMETHING_NEW', 500)).toBe('generic')
         expect(claimErrorKey(undefined, undefined)).toBe('generic')
     })
@@ -106,6 +110,31 @@ describe('the claim error a user reads', () => {
         expect(screen.getByText(messages.depositAccounts.errors.refused)).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: messages.depositAccounts.gate.supportCta }))
         expect(onContactSupport).toHaveBeenCalledWith('SEPA_EU', 'blocked')
+    })
+
+    it('sends a claim the provider refused to support, not round the retry', () => {
+        const onContactSupport = jest.fn()
+        claimFailedWith(
+            {
+                corridor: 'SEPA_EU',
+                message: BACKEND_SENTENCE,
+                code: 'DEPOSIT_ACCOUNT_PROVIDER_REFUSED',
+                status: 409,
+                unavailable: false,
+            },
+            onContactSupport
+        )
+
+        expect(screen.getByText(messages.depositAccounts.errors.providerRefused)).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: messages.depositAccounts.gate.supportCta }))
+        expect(onContactSupport).toHaveBeenCalledWith('SEPA_EU', 'blocked')
+    })
+
+    it('asks a rate-limited user to wait, with no support button', () => {
+        claimFailedWith({ corridor: 'SEPA_EU', message: BACKEND_SENTENCE, status: 429, unavailable: false })
+
+        expect(screen.getByText(messages.depositAccounts.errors.tooManyAttempts)).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: messages.depositAccounts.gate.supportCta })).not.toBeInTheDocument()
     })
 
     it('offers no support button on a failure worth one more try', () => {
