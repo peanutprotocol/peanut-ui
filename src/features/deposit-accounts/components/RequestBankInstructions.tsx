@@ -8,7 +8,7 @@ import { useExchangeRate } from '@/hooks/useExchangeRate'
 import type { RequestDepositInstructions } from '@/services/services.types'
 import { useFormatter, useTranslations } from 'next-intl'
 import { instructionRows } from '../instructionRows'
-import { minorUnitDigits, readServerPayerAmount, resolveBankPayAmount } from '../payerAmount'
+import { bankPayAmountFigure, readServerPayerAmount, resolveBankPayAmount } from '../payerAmount'
 import { corridorFromRailId } from '../rails'
 import type { SenderPolicy } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
@@ -75,33 +75,28 @@ export function RequestBankInstructions({
         clientRate: exchangeRate,
     })
 
-    const formatAmount = (value: number, currency: string) => {
-        const digits = minorUnitDigits(currency)
-        return {
-            shown: format.number(value, { minimumFractionDigits: digits, maximumFractionDigits: digits }),
-            plain: value.toFixed(digits),
-        }
-    }
-
-    // Only an exact figure is copyable. A payer who pastes an estimate sends a
-    // number nobody promised would settle the request.
+    // Only an exact figure in the account's currency is copyable. A payer who
+    // pastes an estimate sends a number nobody promised would settle the request.
     let amountRow: { text: string; copyValue?: string; note?: string } | undefined
-    if (amount?.kind === 'local') {
-        const { shown, plain } = formatAmount(amount.value, amount.currency)
-        amountRow = amount.estimate
-            ? {
-                  text: t('bankTransfer.amountValueApprox', { amount: shown, currency: amount.currency }),
-                  note: t('bankTransfer.amountNote'),
-              }
-            : {
-                  text: t('bankTransfer.amountValue', { amount: shown, currency: amount.currency }),
-                  copyValue: plain,
-                  note: amount.settlesRequest ? t('bankTransfer.amountNoteSameCurrency') : undefined,
-              }
-    } else if (amount?.kind === 'usd-only') {
-        amountRow = {
-            text: t('bankTransfer.amountValue', { amount: formatAmount(amount.usd, 'USD').shown, currency: 'USD' }),
-            note: t('bankTransfer.amountNoteBankConverts', { currency: amount.accountCurrency }),
+    if (amount) {
+        const { value, currency, digits, approx } = bankPayAmountFigure(amount)
+        const text = t(approx ? 'bankTransfer.amountValueApprox' : 'bankTransfer.amountValue', {
+            amount: format.number(value, { minimumFractionDigits: digits, maximumFractionDigits: digits }),
+            currency,
+        })
+        if (amount.kind === 'usd-only') {
+            amountRow = {
+                text,
+                note: t('bankTransfer.amountNoteBankConverts', { currency: amount.accountCurrency }),
+            }
+        } else if (approx) {
+            amountRow = { text, note: t('bankTransfer.amountNote') }
+        } else {
+            amountRow = {
+                text,
+                copyValue: value.toFixed(digits),
+                note: amount.settlesRequest ? t('bankTransfer.amountNoteSameCurrency') : undefined,
+            }
         }
     }
 

@@ -122,13 +122,15 @@ export function resolveBankPayAmount(params: {
     const payerUsd = Number.isFinite(typed) && typed > 0 ? typed : undefined
     const remainingUsd = params.remainingUsd !== undefined && params.remainingUsd > 0 ? params.remainingUsd : undefined
 
-    const usd = payerUsd ?? remainingUsd
     const paysTheRest = payerUsd === undefined || (remainingUsd !== undefined && sameUsd(payerUsd, remainingUsd))
     const settlesRequest = remainingUsd !== undefined && paysTheRest
 
     // Dollars into a dollar account: what the payer typed is what they send.
-    if (accountCurrency === 'USD' && usd !== undefined) {
-        return { kind: 'local', value: ceilToMinorUnit(usd, 'USD'), currency: 'USD', estimate: false, settlesRequest }
+    // With nothing typed, the API's own remainder beats the screen's.
+    if (accountCurrency === 'USD') {
+        const value = payerUsd ?? server?.value ?? remainingUsd
+        if (value === undefined) return undefined
+        return { kind: 'local', value: ceilToMinorUnit(value, 'USD'), currency: 'USD', estimate: false, settlesRequest }
     }
 
     if (server && server.value !== null && paysTheRest) {
@@ -141,6 +143,7 @@ export function resolveBankPayAmount(params: {
         }
     }
 
+    const usd = payerUsd ?? remainingUsd
     if (usd === undefined) return undefined
 
     // The payer's own amount, converted. Use the rate the API used; failing
@@ -171,5 +174,21 @@ export function resolveBankPayAmount(params: {
         currency: accountCurrency,
         estimate: true,
         settlesRequest,
+    }
+}
+
+/** The figure a screen prints for a bank pay amount. `approx` takes the "≈" prefix and is never copyable. */
+export function bankPayAmountFigure(amount: BankPayAmount): {
+    value: number
+    currency: string
+    digits: number
+    approx: boolean
+} {
+    if (amount.kind === 'usd-only') return { value: amount.usd, currency: 'USD', digits: 2, approx: false }
+    return {
+        value: amount.value,
+        currency: amount.currency,
+        digits: minorUnitDigits(amount.currency),
+        approx: amount.estimate,
     }
 }

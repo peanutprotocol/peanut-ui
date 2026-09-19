@@ -39,9 +39,19 @@ jest.mock('@/hooks/useGeoFilteredPaymentOptions', () => ({
 
 const mockDrawer = jest.fn()
 jest.mock('../PayByBankTransferDrawer', () => ({
-    PayByBankTransferDrawer: (props: { bankPayable: boolean }) => {
+    PayByBankTransferDrawer: (props: { bankPayable: boolean; rail?: { payerAmount: { currency: string } } }) => {
         mockDrawer(props)
-        return props.bankPayable ? <div>Pay by bank transfer</div> : null
+        if (!props.bankPayable) return null
+        return <div>{props.rail ? `Pay in ${props.rail.payerAmount.currency}` : 'Pay by bank transfer'}</div>
+    },
+}))
+
+let mockPayAmounts: unknown
+const mockUsePayAmounts = jest.fn()
+jest.mock('@/components/Request/Pay/useRequestPayAmounts', () => ({
+    useRequestPayAmounts: (uuid: string | undefined) => {
+        mockUsePayAmounts(uuid)
+        return { payAmounts: uuid ? mockPayAmounts : undefined, isLoading: false }
     },
 }))
 
@@ -69,11 +79,22 @@ function renderList(props: Partial<React.ComponentProps<typeof RequestPotActionL
 
 /** the visible row labels below the Peanut CTA, in document order */
 const rowOrder = () =>
-    screen.getAllByText(/^(Bank|Exchange or Wallet|Pay by bank transfer)$/).map((node) => node.textContent)
+    screen
+        .getAllByText(/^(Bank|Exchange or Wallet|Pay by bank transfer|Pay in [A-Z]{3})$/)
+        .map((node) => node.textContent)
+
+const usdRail = { kind: 'peanut_balance', payerAmount: { amount: '108.00', currency: 'USD', isEstimate: false } }
+const bankRail = (currency: string, railId: string, isEstimate: boolean) => ({
+    kind: 'bank',
+    railId,
+    reference: 'a1b2c3d4',
+    payerAmount: { amount: '100.00', currency, isEstimate },
+})
 
 beforeEach(() => {
     jest.clearAllMocks()
     mockAuth = signedIn
+    mockPayAmounts = undefined
 })
 
 describe('RequestPotActionList', () => {
@@ -118,5 +139,87 @@ describe('RequestPotActionList', () => {
         expect(mockDrawer).toHaveBeenCalledWith(
             expect.objectContaining({ usdAmount: undefined, remainingUsd: undefined })
         )
+    })
+
+    describe('per-rail amounts', () => {
+        it('shows one bank row per currency the requester can receive, each with its rail', () => {
+            mockPayAmounts = {
+                requestCurrency: 'EUR',
+                requestAmount: '100.00',
+                rails: [usdRail, bankRail('EUR', 'bridge.sepa_eu', false), bankRail('USD', 'bridge.ach_us', true)],
+            }
+            renderList({ requestCurrency: 'EUR' })
+
+            expect(rowOrder()).toEqual(['Bank', 'Exchange or Wallet', 'Pay in EUR', 'Pay in USD'])
+            expect(mockDrawer).toHaveBeenCalledWith(
+                expect.objectContaining({ rail: expect.objectContaining({ railId: 'bridge.sepa_eu' }) })
+            )
+        })
+
+        // The bank amounts were computed from the API's own remainder, so that
+        // is the number the payer amount is compared with.
+        it('hands the drawer the API remainder in dollars, over the screen total', () => {
+            mockPayAmounts = {
+                requestCurrency: 'EUR',
+                requestAmount: '100.00',
+                remainingAmount: '100.00',
+                rails: [usdRail, bankRail('EUR', 'bridge.sepa_eu', false)],
+            }
+            renderList({ requestCurrency: 'EUR', remainingUsd: 100 })
+
+            expect(mockDrawer).toHaveBeenCalledWith(expect.objectContaining({ remainingUsd: 108 }))
+        })
+
+        it('states what is left on a part-paid non-dollar request', () => {
+            mockPayAmounts = {
+                requestCurrency: 'EUR',
+                requestAmount: '100.00',
+                remainingAmount: '40.00',
+                rails: [usdRail],
+            }
+            renderList({ bankPayable: false, requestCurrency: 'EUR' })
+
+            expect(screen.getByText(/asks for 100\.00 EUR, and 40\.00 EUR is left to pay\./)).toBeInTheDocument()
+        })
+
+        // A euro request is paid in dollars on the Peanut and crypto rails.
+        it('tells the payer what a non-dollar request asks for', () => {
+            mockPayAmounts = { requestCurrency: 'EUR', requestAmount: '100.00', rails: [usdRail] }
+            renderList({ bankPayable: false, requestCurrency: 'EUR' })
+
+            expect(screen.getByText(/This request asks for 100\.00 EUR\./)).toBeInTheDocument()
+        })
+
+        it('says nothing about the currency of a dollar request', () => {
+            mockPayAmounts = { requestCurrency: 'USD', requestAmount: '100.00', rails: [usdRail] }
+            renderList()
+
+            expect(screen.queryByText(/This request asks for/)).not.toBeInTheDocument()
+        })
+
+        // An API that predates the route: one generic row, and the backend picks the account.
+        it('keeps the one generic bank row when the API returns no rails', () => {
+            renderList()
+
+            expect(rowOrder()).toEqual(['Bank', 'Exchange or Wallet', 'Pay by bank transfer'])
+            expect(mockDrawer.mock.calls[0][0].rail).toBeUndefined()
+        })
+
+        it('does not read pay amounts for a dollar request that shares no bank details', () => {
+            renderList({ bankPayable: false })
+
+            expect(mockUsePayAmounts).toHaveBeenCalledWith(undefined)
+        })
+
+        it('never lists bank rails on a request that shares no bank details', () => {
+            mockPayAmounts = {
+                requestCurrency: 'EUR',
+                requestAmount: '100.00',
+                rails: [usdRail, bankRail('EUR', 'bridge.sepa_eu', false)],
+            }
+            renderList({ bankPayable: false, requestCurrency: 'EUR' })
+
+            expect(rowOrder()).toEqual(['Bank', 'Exchange or Wallet'])
+        })
     })
 })

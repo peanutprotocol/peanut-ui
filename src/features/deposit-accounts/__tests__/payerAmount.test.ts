@@ -169,6 +169,16 @@ describe('resolveBankPayAmount', () => {
     })
 
     describe('a part-paid request', () => {
+        // The API's remainder is the figure that closes the request.
+        it('prefers the API remainder in a dollar account when the payer typed nothing', () => {
+            const server = { value: 58.5, currency: 'USD', isEstimate: false }
+            expect(resolveBankPayAmount({ ...base, accountCurrency: 'USD', remainingUsd: 60, server })).toMatchObject({
+                value: 58.5,
+                currency: 'USD',
+                estimate: false,
+            })
+        })
+
         it('states the remaining amount in a dollar account when the payer typed nothing', () => {
             expect(
                 resolveBankPayAmount({ ...base, accountCurrency: 'USD', remainingUsd: 60, server: undefined })
