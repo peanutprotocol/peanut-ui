@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/0_Bruddle/Button'
 import { useAuth } from '@/context/authContext'
-import NavHeader from '../Global/NavHeader'
+import NavHeader, { NAV_CIRCLE_BUTTON_CLASSES } from '../Global/NavHeader'
 import ProfileHeader from './components/ProfileHeader'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import ProfileMenuItem from './components/ProfileMenuItem'
@@ -100,7 +100,7 @@ export const Profile = () => {
                         href="/profile/edit"
                         icon="edit"
                         aria-label={t('menu.personalDetails')}
-                        className="relative size-10 w-10 p-0 shadow-none after:absolute after:-inset-0.5"
+                        className={NAV_CIRCLE_BUTTON_CLASSES}
                     />
                 }
             />

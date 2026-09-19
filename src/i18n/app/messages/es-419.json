@@ -1204,7 +1204,6 @@
             "title": "Pagar por transferencia bancaria",
             "description": "Envía desde tu banco a la cuenta de quien te pide el pago.",
             "payInCurrency": "Pagar en {currency} · {rail}",
-            "otherWays": "Pagar de otra forma",
             "transferSection": "Qué enviar",
             "referenceLabel": "Referencia del pago",
             "referenceNote": "Agrega esta referencia a tu transferencia. Sin ella, el pago no se asocia a esta solicitud.",
@@ -4001,7 +4000,6 @@
             "sectionTitle": "Tus cuentas",
             "accountsPitch": "Datos bancarios a tu nombre. Compártelos una vez y recibe pagos directo en Peanut.",
             "badgeReady": "Lista",
-            "rowBlocked": "Verifica tu identidad para abrir esta cuenta",
             "badgeActive": "Activo",
             "badgeNotSetUp": "Sin configurar",
             "badgeUnavailable": "No disponible",
@@ -4014,7 +4012,6 @@
             "errorTitle": "No pudimos cargar tus cuentas",
             "errorBody": "Tus cuentas están bien: solo no pudimos leerlas. Revisa tu conexión e inténtalo de nuevo.",
             "errorRetry": "Intentar de nuevo",
-            "rowRevoked": "Cerrada: lo que se envíe a estos datos se devuelve",
             "badgeActionNeeded": "Acción requerida"
         },
         "claim": {

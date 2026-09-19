@@ -117,6 +117,14 @@
                 "title": "Conseguí tu <b>Peanut Card</b>",
                 "description": "Gastá tu saldo <b>donde acepten Visa</b>."
             }
+        },
+        "pendingTasks": {
+            "verifyTitleCorridor": "Verificá para habilitar {corridor}",
+            "verifyDescription": "Hacé una verificación rápida con nuestro socio de pagos para habilitar las transferencias bancarias.",
+            "verifyDescriptionAdvisory": "Hacé una verificación rápida con nuestro socio de pagos para mantener disponibles las transferencias bancarias."
+        },
+        "drawers": {
+            "shareBankDetailsDescription": "Recibí pagos a través de tus cuentas en EUR, USD y otras monedas"
         }
     },
     "profile": {
@@ -674,7 +682,6 @@
         "bankTransfer": {
             "description": "Enviá desde tu banco a la cuenta de quien te pide el pago.",
             "payInCurrency": "Pagar en {currency} · {rail}",
-            "otherWays": "Pagar de otra forma",
             "referenceNote": "Agregá esta referencia a tu transferencia. Sin ella, el pago no se asocia a esta solicitud.",
             "amountNote": "Estimado al tipo de cambio de hoy. Tu banco puede convertir a otro tipo de cambio, así que el monto exacto puede cambiar.",
             "amountNoteSameCurrency": "Enviá este monto y la solicitud queda pagada.",
@@ -1730,7 +1737,6 @@
         },
         "list": {
             "searchPlaceholder": "Buscá país, moneda o cuenta",
-            "rowBlocked": "Verificá tu identidad para abrir esta cuenta",
             "accountLimitNote": "Podés abrir hasta {cap} cuentas bancarias. ¿Necesitás más? Escribí a soporte.",
             "accountCounter": "{used} de {cap} usadas",
             "accountLimitReached": "Ya usaste tus {cap} cuentas. ¿Necesitás otra? Escribí a soporte.",
@@ -1800,7 +1806,8 @@
         "corridors": {
             "BANK_TRANSFER_AR": {
                 "residenceRequired": "Solo los residentes legales de Argentina pueden agregar plata así. Tu nacionalidad no importa; el país donde vivís, sí.",
-                "qrPay": "De todas formas podés pagar códigos QR de Mercado Pago en Argentina con tu saldo."
+                "qrPay": "De todas formas podés pagar códigos QR de Mercado Pago en Argentina con tu saldo.",
+                "residenceTitle": "Necesitás residencia"
             }
         },
         "errors": {

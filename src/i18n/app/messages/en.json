@@ -1204,7 +1204,6 @@
             "title": "Pay by bank transfer",
             "description": "Send from your bank to the requester's account.",
             "payInCurrency": "Pay in {currency} · {rail}",
-            "otherWays": "Pay another way",
             "transferSection": "What to send",
             "referenceLabel": "Payment reference",
             "referenceNote": "Add this reference to your transfer. Without it the payment is not matched to this request.",
@@ -4001,7 +4000,6 @@
             "sectionTitle": "Your accounts",
             "accountsPitch": "Bank details in your name. Share them once and get paid straight into Peanut.",
             "badgeReady": "Ready",
-            "rowBlocked": "Verify your identity to open this account",
             "badgeActive": "Active",
             "badgeNotSetUp": "Not set up",
             "badgeUnavailable": "Unavailable",
@@ -4014,7 +4012,6 @@
             "errorTitle": "We could not load your accounts",
             "errorBody": "Your accounts are fine — we just could not read them. Check your connection and try again.",
             "errorRetry": "Try again",
-            "rowRevoked": "Closed — anything sent to these details is returned",
             "badgeActionNeeded": "Action needed"
         },
         "claim": {
