@@ -31,13 +31,14 @@ test('MCP Worker preparation emits the access helper beside the generated entry 
     }
 })
 
-test('MCP Worker refuses a public workers.dev alternate origin', () => {
-    assert.throws(
-        () =>
-            mcpWorkerConfiguration({
-                SCREEN_LIBRARY_MCP_URL: 'https://screen-library-mcp.example.workers.dev',
-                SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access',
-            }),
-        /custom HTTPS origin/
-    )
+test('MCP Worker supports an Access-protected workers.dev deployment', () => {
+    const config = mcpWorkerConfiguration({
+        SCREEN_LIBRARY_MCP_URL: 'https://peanut-screen-library-mcp.example.workers.dev',
+        SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access',
+    })
+    assert.equal(config.workers_dev, true)
+    assert.equal(config.preview_urls, false)
+    assert.equal(config.routes, undefined)
+    assert.equal(config.vars.SCREEN_LIBRARY_MCP_URL, 'https://peanut-screen-library-mcp.example.workers.dev')
+    assert.deepEqual(config.services, [{ binding: 'COLLECTIONS', service: 'peanut-screen-library-collections' }])
 })
