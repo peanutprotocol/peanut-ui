@@ -670,7 +670,8 @@
             "otherWays": "Pagar de otra forma",
             "referenceNote": "Agregá esta referencia a tu transferencia. Sin ella, el pago no se asocia a esta solicitud.",
             "amountNote": "Estimado al tipo de cambio de hoy. Tu banco puede convertir a otro tipo de cambio, así que el monto exacto puede cambiar.",
-            "amountNoteSameCurrency": "Enviá este monto y la solicitud queda pagada."
+            "amountNoteSameCurrency": "Enviá este monto y la solicitud queda pagada.",
+            "amountNoteBankConverts": "Ahora no hay un estimado en {currency}. Enviá el monto en {currency} que equivale a este monto en USD. Tu banco fija el tipo de cambio."
         }
     },
     "claim": {

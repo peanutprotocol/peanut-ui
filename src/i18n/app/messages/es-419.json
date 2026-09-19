@@ -1193,7 +1193,7 @@
             "description": "Envía desde tu banco a la cuenta de quien te pide el pago.",
             "payInCurrency": "Pagar en {currency} · {rail}",
             "otherWays": "Pagar de otra forma",
-            "referenceSection": "Referencia",
+            "transferSection": "Qué enviar",
             "referenceLabel": "Referencia del pago",
             "referenceNote": "Agrega esta referencia a tu transferencia. Sin ella, el pago no se asocia a esta solicitud.",
             "unavailable": "La transferencia bancaria no está disponible para esta solicitud.",
@@ -1202,6 +1202,7 @@
             "amountValueApprox": "≈ {amount} {currency}",
             "amountNote": "Estimado al tipo de cambio de hoy. Tu banco puede convertir a otro tipo de cambio, así que el monto exacto puede cambiar.",
             "amountNoteSameCurrency": "Envía este monto y la solicitud queda pagada.",
+            "amountNoteBankConverts": "Ahora no hay un estimado en {currency}. Envía el monto en {currency} que equivale a este monto en USD. Tu banco fija el tipo de cambio.",
             "senderBusinessOnly": "Solo una cuenta de empresa puede pagar esto. Una transferencia desde una cuenta personal se devuelve.",
             "senderUnknown": "Esta cuenta no confirmó que acepta pagos de otras personas, así que tu transferencia puede devolverse."
         }

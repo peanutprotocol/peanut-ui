@@ -21,11 +21,14 @@ export function PayByBankTransferDrawer({
     requestId,
     bankPayable,
     usdAmount,
+    remainingUsd,
 }: {
     requestId: string
     bankPayable: boolean
-    /** what the request asks for, so the payer reads it in the account's currency */
+    /** what this payer entered, in dollars, so they read it in the account's currency */
     usdAmount?: string
+    /** what the request still needs, in dollars */
+    remainingUsd?: number
 }) {
     const t = useTranslations('payment')
     const [isOpen, setIsOpen] = useState(false)
@@ -58,7 +61,13 @@ export function PayByBankTransferDrawer({
                                 {t('bankTransfer.unavailable')}
                             </p>
                         )}
-                        {instructions && <RequestBankInstructions instructions={instructions} usdAmount={usdAmount} />}
+                        {instructions && (
+                            <RequestBankInstructions
+                                instructions={instructions}
+                                usdAmount={usdAmount}
+                                remainingUsd={remainingUsd}
+                            />
+                        )}
                     </div>
                 </DrawerContent>
             </Drawer>

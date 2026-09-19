@@ -1193,7 +1193,7 @@
             "description": "Send from your bank to the requester's account.",
             "payInCurrency": "Pay in {currency} · {rail}",
             "otherWays": "Pay another way",
-            "referenceSection": "Reference",
+            "transferSection": "What to send",
             "referenceLabel": "Payment reference",
             "referenceNote": "Add this reference to your transfer. Without it the payment is not matched to this request.",
             "unavailable": "Bank transfer is not available for this request.",
@@ -1202,6 +1202,7 @@
             "amountValueApprox": "≈ {amount} {currency}",
             "amountNote": "Estimated at today’s rate. Your bank may convert at a different rate, so the exact amount can change.",
             "amountNoteSameCurrency": "Send this amount and the request is marked paid.",
+            "amountNoteBankConverts": "There is no {currency} estimate right now. Send the {currency} amount that equals this USD amount. Your bank sets the rate.",
             "senderBusinessOnly": "Only a business account can pay this. A transfer from a personal account is returned.",
             "senderUnknown": "This account has not confirmed it accepts payments from other people, so your transfer may be returned."
         }

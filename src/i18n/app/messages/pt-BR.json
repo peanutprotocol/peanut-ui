@@ -1193,7 +1193,7 @@
             "description": "Envie do seu banco para a conta de quem pediu o pagamento.",
             "payInCurrency": "Pagar em {currency} · {rail}",
             "otherWays": "Pagar de outra forma",
-            "referenceSection": "Referência",
+            "transferSection": "O que enviar",
             "referenceLabel": "Referência do pagamento",
             "referenceNote": "Adicione esta referência à sua transferência. Sem ela, o pagamento não é associado a esta solicitação.",
             "unavailable": "A transferência bancária não está disponível para esta solicitação.",
@@ -1202,6 +1202,7 @@
             "amountValueApprox": "≈ {amount} {currency}",
             "amountNote": "Estimado pela cotação de hoje. Seu banco pode converter por outra cotação, então o valor exato pode mudar.",
             "amountNoteSameCurrency": "Envie este valor e a solicitação fica paga.",
+            "amountNoteBankConverts": "Não há uma estimativa em {currency} agora. Envie o valor em {currency} equivalente a este valor em USD. Seu banco define a cotação.",
             "senderBusinessOnly": "Só uma conta empresarial pode pagar isto. Uma transferência de uma conta pessoal é devolvida.",
             "senderUnknown": "Esta conta não confirmou que aceita pagamentos de outras pessoas, então sua transferência pode ser devolvida."
         }

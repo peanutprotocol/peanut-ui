@@ -30,7 +30,27 @@ export interface CreateRequestRequest {
  * so a field the API drops fails the build at every reader.
  */
 export type RequestDepositInstructions =
-    paths['/requests/{uuid}/deposit-instructions']['get']['responses'][200]['content']['application/json']
+    paths['/requests/{uuid}/deposit-instructions']['get']['responses'][200]['content']['application/json'] & {
+        /** the amount to send in this account's currency; absent on an API that predates it */
+        payerAmount?: RequestPayerAmount
+    }
+
+/**
+ * The amount a payer settles on one rail, in that rail's currency.
+ *
+ * Hand-written until the OpenAPI snapshot is regenerated with the
+ * multi-currency request routes; then derive it from `paths` like its
+ * neighbours.
+ */
+export interface RequestPayerAmount {
+    /** decimal string in `currency`; null when the request amount is open or no rate was available */
+    amount: string | null
+    currency: string
+    /** false only when the rail currency equals the request currency */
+    isEstimate: boolean
+    /** present only for a produced cross-currency estimate */
+    rate?: { from: string; to: string; rate: string; source: string; asOf: string | null }
+}
 
 /**
  * How much of a request money arriving by bank answered, as the backend

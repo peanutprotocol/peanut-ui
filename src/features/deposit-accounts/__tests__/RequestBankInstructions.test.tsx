@@ -83,7 +83,14 @@ describe('RequestBankInstructions', () => {
         })
 
         it('passes a dollar account through as an exact, copyable amount', () => {
-            renderInstructions('USD', 'ach_us', '250')
+            render(
+                <RequestBankInstructions
+                    instructions={instructions('USD', 'ach_us')}
+                    usdAmount="250"
+                    remainingUsd={250}
+                />,
+                { wrapper }
+            )
 
             expect(screen.getByText('250.00 USD')).toBeInTheDocument()
             expect(screen.getByText('Send this amount and the request is marked paid.')).toBeInTheDocument()
@@ -105,44 +112,99 @@ describe('RequestBankInstructions', () => {
             expect(screen.queryByText('Amount to send')).not.toBeInTheDocument()
         })
 
-        // The requests-multicurrency API can attach a per-rail amount. When it
-        // does, the screen shows that figure and never fetches a client rate.
-        const withServerAmount = (payerAmount: unknown): RequestDepositInstructions =>
-            ({ ...instructions('EUR', 'sepa_eu'), payerAmount }) as RequestDepositInstructions
+        it('keeps the amount and the reference in one card', () => {
+            renderInstructions('USD', 'ach_us', '250')
 
-        it('prefers a server-provided estimate over a client conversion', () => {
+            const amountRow = screen.getByText('Amount to send').closest('.ds-data-row')
+            const referenceRow = screen.getByText('Payment reference').closest('.ds-data-row')
+            expect(amountRow?.parentElement).toBe(referenceRow?.parentElement)
+        })
+    })
+
+    // The API states what settles the rest of the request. A payer can type
+    // their own contribution, and then the API figure is not what they pay.
+    describe('the amount the API states', () => {
+        const eurEstimate = {
+            amount: '92.00',
+            currency: 'EUR',
+            isEstimate: true,
+            rate: { from: 'USD', to: 'EUR', rate: '0.92', source: 'bridge', asOf: null },
+        }
+        const renderWithServerAmount = (
+            payerAmount: unknown,
+            props: { usdAmount?: string; remainingUsd?: number } = {}
+        ) =>
             render(
                 <RequestBankInstructions
-                    instructions={withServerAmount({ amount: '229.50', currency: 'EUR', isEstimate: true })}
-                    usdAmount="250"
+                    instructions={{ ...instructions('EUR', 'sepa_eu'), payerAmount } as RequestDepositInstructions}
+                    {...props}
                 />,
                 { wrapper }
             )
 
-            expect(screen.getByText('≈ 229.50 EUR')).toBeInTheDocument()
+        it('shows the API estimate when the payer typed nothing, and reads no client rate', () => {
+            renderWithServerAmount(eurEstimate, { remainingUsd: 100 })
+
+            expect(screen.getByText('≈ 92.00 EUR')).toBeInTheDocument()
             expect(screen.getByText(/Estimated at today’s rate/)).toBeInTheDocument()
             expect(useExchangeRate).toHaveBeenCalledWith(expect.objectContaining({ enabled: false }))
         })
 
-        it('shows a server-locked non-USD amount as exact and copyable', () => {
-            render(
-                <RequestBankInstructions
-                    instructions={withServerAmount({ amount: '229.50', currency: 'EUR', isEstimate: false })}
-                    usdAmount="250"
-                />,
-                { wrapper }
+        // The overpayment bug: $20 into a $100 request showed the full 92 EUR.
+        it('shows the payer their own contribution, not the whole request', () => {
+            renderWithServerAmount(eurEstimate, { usdAmount: '20', remainingUsd: 100 })
+
+            expect(screen.getByText('≈ 18.40 EUR')).toBeInTheDocument()
+            expect(screen.queryByText(/92\.00/)).not.toBeInTheDocument()
+        })
+
+        it('shows an exact same-currency amount as copyable when the payer pays the rest', () => {
+            renderWithServerAmount(
+                { amount: '100.00', currency: 'EUR', isEstimate: false },
+                { usdAmount: '108', remainingUsd: 108 }
             )
 
-            expect(screen.getByText('229.50 EUR')).toBeInTheDocument()
+            expect(screen.getByText('100.00 EUR')).toBeInTheDocument()
             expect(screen.getByText('Send this amount and the request is marked paid.')).toBeInTheDocument()
         })
 
-        it('falls back to the client conversion for a malformed server amount', () => {
-            useExchangeRate.mockReturnValue({ exchangeRate: 0.92 })
-            render(
-                <RequestBankInstructions instructions={withServerAmount({ amount: 'not-a-number' })} usdAmount="250" />,
-                { wrapper }
+        // A part of an exact amount is a conversion again, so it is an estimate
+        // and it never promises "paid".
+        it('marks a part of an exact amount as an estimate', () => {
+            renderWithServerAmount(
+                { amount: '100.00', currency: 'EUR', isEstimate: false },
+                { usdAmount: '27', remainingUsd: 108 }
             )
+
+            expect(screen.getByText('≈ 25.00 EUR')).toBeInTheDocument()
+            expect(screen.queryByText('Send this amount and the request is marked paid.')).not.toBeInTheDocument()
+        })
+
+        it('never rounds the API figure down', () => {
+            renderWithServerAmount({ amount: '91.991', currency: 'EUR', isEstimate: true }, { remainingUsd: 100 })
+
+            expect(screen.getByText('≈ 92.00 EUR')).toBeInTheDocument()
+        })
+
+        it('states dollars and says the bank converts when the API has no figure', () => {
+            renderWithServerAmount({ amount: null, currency: 'EUR', isEstimate: true }, { usdAmount: '20' })
+
+            expect(screen.getByText('20.00 USD')).toBeInTheDocument()
+            expect(screen.getByText(/There is no EUR estimate right now/)).toBeInTheDocument()
+            expect(useExchangeRate).toHaveBeenCalledWith(expect.objectContaining({ enabled: false }))
+        })
+
+        it('does not present a figure in another currency than the account', () => {
+            useExchangeRate.mockReturnValue({ exchangeRate: 0.92 })
+            renderWithServerAmount({ amount: '80.00', currency: 'GBP', isEstimate: false }, { usdAmount: '250' })
+
+            expect(screen.getByText('≈ 230.00 EUR')).toBeInTheDocument()
+            expect(screen.queryByText(/GBP/)).not.toBeInTheDocument()
+        })
+
+        it('falls back to the client conversion for a malformed API amount', () => {
+            useExchangeRate.mockReturnValue({ exchangeRate: 0.92 })
+            renderWithServerAmount({ amount: 'not-a-number' }, { usdAmount: '250' })
 
             expect(screen.getByText('≈ 230.00 EUR')).toBeInTheDocument()
         })
