@@ -10,7 +10,13 @@ import { DEPOSIT_RAILS, isClaimable } from '../rails'
 import { depositGateView, isDepositBlock } from '../depositGate'
 import { isResidenceGated } from '../residenceGate'
 import { canShare, isHeld, resolveScreen } from '../resolveScreen'
-import type { ClaimableCorridor, DepositAccountView, DepositCorridor, DepositSupportReason } from '../types'
+import type {
+    ClaimableCorridor,
+    UnavailableCorridor,
+    DepositAccountView,
+    DepositCorridor,
+    DepositSupportReason,
+} from '../types'
 import type { DepositClaimError } from '../useDepositAccounts'
 import type { EndorsementReview } from '../useEndorsementReview'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -35,6 +41,8 @@ export interface DepositAccountsFlowProps {
      * none, and the claim step then states no terms rather than inventing them.
      */
     claimable?: Record<DepositCorridor, ClaimableCorridor | undefined>
+    /** why a corridor is withheld, where the backend says so */
+    unavailable?: Record<DepositCorridor, UnavailableCorridor | undefined>
     /** account slots taken, counted as the backend's cap counts them — see `holdsSlot` */
     slotsHeld?: number
     /** this user's account limit, where the backend sends it */
@@ -83,6 +91,7 @@ export function DepositAccountsFlow({
     corridors,
     accounts,
     claimable,
+    unavailable,
     slotsHeld = 0,
     accountLimit,
     gates,
@@ -317,6 +326,7 @@ export function DepositAccountsFlow({
             corridors={corridors}
             accounts={accounts}
             claimable={claimable}
+            unavailable={unavailable}
             slotsHeld={slotsHeld}
             accountLimit={accountLimit}
             gates={gates}

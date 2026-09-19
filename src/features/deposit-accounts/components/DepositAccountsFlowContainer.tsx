@@ -40,6 +40,7 @@ export function DepositAccountsFlowContainer({ onExit }: DepositAccountsFlowCont
         corridors,
         accounts,
         claimable,
+        unavailable,
         slotsHeld,
         accountLimit,
         gates,
@@ -61,6 +62,7 @@ export function DepositAccountsFlowContainer({ onExit }: DepositAccountsFlowCont
                 corridors={corridors}
                 accounts={accounts}
                 claimable={claimable}
+                unavailable={unavailable}
                 slotsHeld={slotsHeld}
                 accountLimit={accountLimit}
                 gates={gates}

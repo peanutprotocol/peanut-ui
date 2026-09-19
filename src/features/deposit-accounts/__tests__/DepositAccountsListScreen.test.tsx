@@ -8,7 +8,7 @@ import { DepositAccountsFlow } from '../components/DepositAccountsFlow'
 import { DepositAccountsListScreen } from '../components/DepositAccountsListScreen'
 import { corridorRecord, DEPOSIT_RAIL_ORDER, emptyCorridorRecord } from '../rails'
 import { holdsSlot } from '../resolveScreen'
-import type { ClaimableCorridor, DepositAccount, DepositCorridor } from '../types'
+import type { ClaimableCorridor, DepositAccount, DepositCorridor, UnavailableCorridor } from '../types'
 import type { GateState } from '@/utils/capability-gate'
 import { withReturnTo } from '@/utils/return-to.utils'
 
@@ -98,6 +98,8 @@ const list = (
         accounts?: Record<DepositCorridor, DepositAccount | undefined>
         /** the corridors the backend offers, with the block it put on each */
         claimable?: Partial<Record<DepositCorridor, ClaimableCorridor>>
+        /** the corridors the backend withholds, with the reason for each */
+        unavailable?: Partial<Record<DepositCorridor, UnavailableCorridor>>
         /** defaults to what the accounts imply; set it to stand for a rotation */
         slotsHeld?: number
         /** the user's own limit, as the backend sends it */
@@ -114,6 +116,7 @@ const list = (
                     corridors={opts.corridors ?? DEPOSIT_RAIL_ORDER}
                     accounts={opts.accounts ?? NONE}
                     claimable={{ ...emptyCorridorRecord<ClaimableCorridor>(), ...opts.claimable }}
+                    unavailable={{ ...emptyCorridorRecord<UnavailableCorridor>(), ...opts.unavailable }}
                     slotsHeld={opts.slotsHeld ?? Object.values(opts.accounts ?? NONE).filter(holdsSlot).length}
                     accountLimit={opts.accountLimit}
                     gates={opts.gates ?? allGates()}
@@ -126,6 +129,15 @@ const list = (
             </NuqsTestingAdapter>
         </NextIntlClientProvider>
     )
+
+/** a corridor the backend withholds from this user, and why */
+const withheld = (corridor: DepositCorridor, reason: UnavailableCorridor['reason']): UnavailableCorridor => ({
+    railId: `bridge.${corridor.toLowerCase()}`,
+    method: corridor,
+    country: 'CO',
+    currency: 'COP',
+    reason,
+})
 
 /** a corridor the backend offers this user, with the block it carries, if any */
 const offered = (corridor: DepositCorridor, blockedBy?: ClaimableCorridor['blockedBy']): ClaimableCorridor => ({
@@ -1062,12 +1074,13 @@ describe('a row the user cannot act on', () => {
         expect(onOpen).toHaveBeenCalledWith('BANK_TRANSFER_CO')
     })
 
-    it('does not tell a verified user to verify: the corridor is simply not offered to them', () => {
-        // three live accounts, so identity is long cleared; the gate still says
-        // `needs-identity` for a corridor whose rail it cannot read
+    it('does not tell a verified user to verify: the backend says the corridor is not offered', () => {
+        // The app used to infer this from "holds an account, so must be
+        // verified". The backend answers it per corridor now, so the inference
+        // is gone — see the `unavailable` suite below.
         const { container } = list(false, {
             accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') },
-            gates: gatesWith('BANK_TRANSFER_CO', { kind: 'needs-identity' }),
+            unavailable: { BANK_TRANSFER_CO: withheld('BANK_TRANSFER_CO', 'not-offered') },
         })
         const row = rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement
         expect(within(row).queryByText(/requires verification/i)).not.toBeInTheDocument()
@@ -1080,6 +1093,65 @@ describe('a row the user cannot act on', () => {
             claimable: { BANK_TRANSFER_CO: offered('BANK_TRANSFER_CO', 'endorsement-required') },
         })
         const row = rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement
+        expect(row.getAttribute('aria-disabled')).not.toBe('true')
+    })
+})
+
+/*
+ * The backend now says WHY a corridor is withheld, per corridor. Before it did,
+ * the screen guessed from the capability gate — which answers `needs-identity`
+ * for a corridor whose rail it cannot read as well as for a user who has not
+ * verified — and told a verified user with three live accounts to verify, on a
+ * row that did not take a tap.
+ */
+describe('a withheld corridor, by the reason the backend gives', () => {
+    it('identity-required: tappable, and says what is needed', () => {
+        const onOpen = jest.fn()
+        const { container } = list(false, {
+            unavailable: { BANK_TRANSFER_CO: withheld('BANK_TRANSFER_CO', 'identity-required') },
+            onOpen,
+        })
+        const row = rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement
+        expect(within(row).getByText(/requires verification/i)).toBeInTheDocument()
+        expect(row.getAttribute('aria-disabled')).not.toBe('true')
+        fireEvent.click(row)
+        expect(onOpen).toHaveBeenCalledWith('BANK_TRANSFER_CO')
+    })
+
+    it('support-required: tappable, and points at a person rather than at verifying again', () => {
+        const onOpen = jest.fn()
+        const { container } = list(false, {
+            unavailable: { BANK_TRANSFER_CO: withheld('BANK_TRANSFER_CO', 'support-required') },
+            onOpen,
+        })
+        const row = rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement
+        expect(within(row).getByText(/contact support/i)).toBeInTheDocument()
+        expect(within(row).queryByText(/requires verification/i)).not.toBeInTheDocument()
+        expect(row.getAttribute('aria-disabled')).not.toBe('true')
+        fireEvent.click(row)
+        expect(onOpen).toHaveBeenCalledWith('BANK_TRANSFER_CO')
+    })
+
+    it('not-offered: the badge is the whole answer, so the row does not lead anywhere', () => {
+        const { container } = list(false, {
+            unavailable: { BANK_TRANSFER_CO: withheld('BANK_TRANSFER_CO', 'not-offered') },
+        })
+        const row = rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement
+        expect(within(row).getByText(/not available/i)).toBeInTheDocument()
+        expect(row).toHaveAttribute('aria-disabled', 'true')
+        // and it sorts below every row that leads somewhere
+        const order = Array.from(container.querySelectorAll('[data-testid^="deposit-account-"]')).map((r) =>
+            r.getAttribute('data-testid')!.replace('deposit-account-', '')
+        )
+        expect(order.at(-1)).toBe('BANK_TRANSFER_CO')
+    })
+
+    it('told nothing about a corridor, it keeps the answer the gate gives', () => {
+        // the backend would not guess — the provider read failed — so the
+        // corridor is in none of its three lists and nothing here changes
+        const { container } = list(false, { gates: { ...allGates(), BANK_TRANSFER_CO: { kind: 'needs-identity' } } })
+        const row = rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement
+        expect(within(row).getByText(/requires verification/i)).toBeInTheDocument()
         expect(row.getAttribute('aria-disabled')).not.toBe('true')
     })
 })

@@ -24,7 +24,13 @@ import {
     railIdFor,
 } from './rails'
 import { holdsSlot } from './resolveScreen'
-import type { ClaimableCorridor, DepositAccount, DepositAccountView, DepositCorridor } from './types'
+import type {
+    ClaimableCorridor,
+    UnavailableCorridor,
+    DepositAccount,
+    DepositAccountView,
+    DepositCorridor,
+} from './types'
 
 export const DEPOSIT_ACCOUNTS_QUERY_KEY = ['deposit-accounts'] as const
 
@@ -72,6 +78,12 @@ export interface UseDepositAccountsResult {
      * one the claim step can say nothing about.
      */
     claimable: Record<DepositCorridor, ClaimableCorridor | undefined>
+    /**
+     * Why a corridor is withheld, where the backend says so. A corridor with no
+     * entry here and none in `claimable` or `accounts` is one it would not
+     * guess about, and the rows keep their gate-derived answer.
+     */
+    unavailable: Record<DepositCorridor, UnavailableCorridor | undefined>
     /**
      * How many account slots the user has taken, counted the way the backend's
      * cap counts them. Every returned account counts, not one per corridor: a
@@ -235,6 +247,25 @@ export function useDepositAccounts({ enabled = true }: { enabled?: boolean } = {
     }, [query.data])
 
     /**
+     * Why a corridor is NOT on offer, straight from the backend. It replaces
+     * the app's own guess at the same question: the capability gate answers
+     * `needs-identity` for a corridor whose rail it cannot read as well as for
+     * a user who has not verified, and the two need opposite screens.
+     *
+     * A corridor in none of the three lists is one the backend would not guess
+     * about — the provider read failed — so it is absent here too and the rows
+     * keep the gate's own answer.
+     */
+    const unavailable = useMemo((): Record<DepositCorridor, UnavailableCorridor | undefined> => {
+        const byCorridor = emptyCorridorRecord<UnavailableCorridor>()
+        for (const withheld of query.data?.unavailable ?? []) {
+            const corridor = corridorFromRailId(withheld.railId)
+            if (corridor) byCorridor[corridor] = withheld
+        }
+        return byCorridor
+    }, [query.data])
+
+    /**
      * The rows this user gets: their own rails, plus any corridor they already
      * hold an account on, plus any the backend says they could open. A rail
      * that leaves the catalogue takes the capability with it and leaves the
@@ -299,6 +330,7 @@ export function useDepositAccounts({ enabled = true }: { enabled?: boolean } = {
         corridors,
         accounts,
         claimable,
+        unavailable,
         slotsHeld,
         accountLimit: query.data?.accountLimit,
         gates,

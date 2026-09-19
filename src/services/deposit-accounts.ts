@@ -12,7 +12,7 @@
 
 import { apiErrorFromResponse } from '@/services/api-error'
 import { apiFetch } from '@/utils/api-fetch'
-import type { ClaimableCorridor, DepositAccount } from '@/features/deposit-accounts/types'
+import type { ClaimableCorridor, DepositAccount, UnavailableCorridor } from '@/features/deposit-accounts/types'
 import type { paths } from '@/types/api.generated'
 
 type DepositAccountsResponse = paths['/users/deposit-accounts']['get']['responses'][200]['content']['application/json']
@@ -27,6 +27,12 @@ type ClaimResponse = paths['/users/deposit-accounts']['post']['responses'][200][
 export interface DepositAccountsSnapshot {
     accounts: DepositAccount[]
     claimable: ClaimableCorridor[]
+    /**
+     * Why the backend withholds a corridor. Empty on an API that predates it,
+     * and empty is not "everything is on offer": a corridor it would not guess
+     * about is in no list at all.
+     */
+    unavailable: UnavailableCorridor[]
     /** this user's own account limit, which support can raise; absent on an API that predates it */
     accountLimit?: number
     /** the accounts the cap counts, as the backend counts them; absent on an API that predates it */
@@ -52,6 +58,7 @@ export async function fetchDepositAccounts(): Promise<DepositAccountsSnapshot> {
     return {
         accounts: body.depositAccounts,
         claimable: body.claimable ?? [],
+        unavailable: body.unavailable ?? [],
         accountLimit: countOrUndefined(body.accountLimit),
         accountsHeld: countOrUndefined(body.accountsHeld),
     }

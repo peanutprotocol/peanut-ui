@@ -74,6 +74,19 @@ export type DepositMatching = DepositAccount['matching']
 export type ClaimableCorridor = DepositAccountsResponse['claimable'][number]
 
 /**
+ * A corridor the backend is NOT offering this user, and why. It answers for
+ * every corridor in the catalogue, so a corridor sits in exactly one of
+ * `depositAccounts`, `claimable` and `unavailable` — or, when the provider read
+ * failed, in none of them, and the app keeps whatever it rendered before.
+ *
+ * Optional because an API that predates the field sends nothing.
+ */
+export type UnavailableCorridor = NonNullable<DepositAccountsResponse['unavailable']>[number]
+
+/** why a corridor is withheld: `identity-required`, `support-required`, `not-offered` */
+export type UnavailableReason = UnavailableCorridor['reason']
+
+/**
  * What the rule resolver needs to state a corridor's terms: the sender policy
  * always, and the holder name only where an account exists to have one. One
  * parameter type for both callers, so the claim step and the details screen

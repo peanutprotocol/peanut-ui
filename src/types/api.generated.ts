@@ -11248,6 +11248,13 @@ export interface paths {
                                 };
                                 status: "provisioning" | "active" | "retiring" | "revoked";
                             }[];
+                            unavailable: {
+                                country: string;
+                                currency: string;
+                                method: string;
+                                railId: string;
+                                reason: "identity-required" | "support-required" | "not-offered";
+                            }[];
                         };
                     };
                 };

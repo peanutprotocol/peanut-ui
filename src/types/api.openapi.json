@@ -19706,11 +19706,61 @@
                                                 "type": "object"
                                             },
                                             "type": "array"
+                                        },
+                                        "unavailable": {
+                                            "items": {
+                                                "properties": {
+                                                    "country": {
+                                                        "type": "string"
+                                                    },
+                                                    "currency": {
+                                                        "type": "string"
+                                                    },
+                                                    "method": {
+                                                        "type": "string"
+                                                    },
+                                                    "railId": {
+                                                        "type": "string"
+                                                    },
+                                                    "reason": {
+                                                        "anyOf": [
+                                                            {
+                                                                "enum": [
+                                                                    "identity-required"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "support-required"
+                                                                ],
+                                                                "type": "string"
+                                                            },
+                                                            {
+                                                                "enum": [
+                                                                    "not-offered"
+                                                                ],
+                                                                "type": "string"
+                                                            }
+                                                        ]
+                                                    }
+                                                },
+                                                "required": [
+                                                    "railId",
+                                                    "method",
+                                                    "country",
+                                                    "currency",
+                                                    "reason"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
                                         }
                                     },
                                     "required": [
                                         "depositAccounts",
                                         "claimable",
+                                        "unavailable",
                                         "accountLimit",
                                         "accountsHeld"
                                     ],
