@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { Tabs } from '@/components/0_Bruddle/Tabs'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
@@ -18,11 +19,14 @@ const historyRows = [
 ] as const
 
 export default function TabsPage() {
+    const [period, setPeriod] = useState('monthly')
+    const [network, setNetwork] = useState('evm')
+
     return (
         <DocPage>
             <DocHeader
                 title="Tabs"
-                description="The one content-tab component for product and marketing — variant B (contained) from the tabs proposals, ruled 2026-09-16. Active tab is a bordered card-top joined to the panel. Code-first, figma board pending. Consumer: Marketing/mdx/Tabs."
+                description="The ONE tab component for product and marketing — one look, no variants. 'Weight' from the six-look proposals, ruled 2026-09-18 (TASK-22707, which also absorbed SegmentedControl). Type only: no rule, no border, no fill. The active label is the strong foreground token at semibold, the rest are secondary. Code-first, figma board pending."
                 status="production"
             />
 
@@ -112,13 +116,75 @@ export default function TabsPage() {
 
             <SectionDivider />
 
+            <DocSection
+                title="Value toggles — no panel"
+                description="Period, network and view-mode switches. Same look as content tabs; the only difference is that the switched content lives elsewhere on the screen, so no tab carries `content` and the component renders the trigger row alone. `fullWidth` stretches the tabs."
+            >
+                <DocSection.Content>
+                    <div className="flex flex-col gap-4">
+                        <Tabs
+                            aria-label="Period"
+                            value={period}
+                            onValueChange={setPeriod}
+                            tabs={[
+                                { value: 'monthly', label: 'Monthly' },
+                                { value: 'yearly', label: 'Yearly' },
+                            ]}
+                        />
+                        <Tabs
+                            fullWidth
+                            aria-label="Network"
+                            value={network}
+                            onValueChange={setNetwork}
+                            tabs={[
+                                { value: 'evm', label: 'EVM' },
+                                { value: 'sol', label: 'Solana' },
+                                { value: 'tron', label: 'Tron' },
+                            ]}
+                        />
+                    </div>
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock
+                        label="Value toggle"
+                        code={`import { Tabs } from '@/components/0_Bruddle/Tabs'
+
+<Tabs
+    fullWidth
+    aria-label="Network"
+    value={network}
+    onValueChange={setNetwork}
+    tabs={[
+        { value: 'evm', label: 'EVM' },
+        { value: 'sol', label: 'Solana' },
+    ]}
+/>`}
+                    />
+                </DocSection.Code>
+            </DocSection>
+
+            <SectionDivider />
+
             <PropsTable
                 rows={[
                     {
                         name: 'tabs',
-                        type: '{ value, label, content }[]',
+                        type: '{ value, label, content? }[]',
                         default: '—',
-                        description: 'Trigger labels and their panels, in order. First tab is active',
+                        description:
+                            'Trigger labels and their panels, in order. First tab is active. Omit content on every tab and no panel renders',
+                    },
+                    {
+                        name: 'fullWidth',
+                        type: 'boolean',
+                        default: 'false',
+                        description: 'Stretch the tabs to fill the row',
+                    },
+                    {
+                        name: 'value / onValueChange',
+                        type: 'string / (value: string) => void',
+                        default: '—',
+                        description: 'Controlled mode. Pass both, or neither for the uncontrolled default',
                     },
                     {
                         name: 'aria-label',
