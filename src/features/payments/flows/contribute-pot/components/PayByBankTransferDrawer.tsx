@@ -133,7 +133,13 @@ export function PayByBankTransferDrawer({
                         )}
                         {instructions && (
                             <RequestBankInstructions
-                                instructions={instructions}
+                                // The row's figure came from the pay-amounts read,
+                                // which is cached; the instructions are fetched
+                                // fresh and carry their own. Two reads of a moving
+                                // rate gave the row and the details it opens two
+                                // different estimates. The row's figure is the one
+                                // the payer tapped on, so the details state it too.
+                                instructions={rail ? { ...instructions, payerAmount: rail.payerAmount } : instructions}
                                 usdAmount={usdAmount}
                                 remainingUsd={remainingUsd}
                                 serverCountsAllPayments={serverCountsAllPayments}

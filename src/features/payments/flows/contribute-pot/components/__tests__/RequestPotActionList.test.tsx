@@ -47,11 +47,12 @@ jest.mock('../PayByBankTransferDrawer', () => ({
 }))
 
 let mockPayAmounts: unknown
+let mockPayAmountsLoading = false
 const mockUsePayAmounts = jest.fn()
 jest.mock('@/components/Request/Pay/useRequestPayAmounts', () => ({
     useRequestPayAmounts: (uuid: string | undefined) => {
         mockUsePayAmounts(uuid)
-        return { payAmounts: uuid ? mockPayAmounts : undefined, isLoading: false }
+        return { payAmounts: uuid ? mockPayAmounts : undefined, isLoading: mockPayAmountsLoading }
     },
 }))
 
@@ -95,6 +96,7 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockAuth = signedIn
     mockPayAmounts = undefined
+    mockPayAmountsLoading = false
 })
 
 describe('RequestPotActionList', () => {
@@ -230,6 +232,25 @@ describe('RequestPotActionList', () => {
             renderList()
 
             expect(screen.queryByText(/This request asks for/)).not.toBeInTheDocument()
+        })
+
+        /**
+         * The generic row used to render first and be swapped for the per-rail
+         * rows, whose keys differ: a drawer the payer had opened lost its state.
+         */
+        it('holds a placeholder, and no bank row, until the rails are known', () => {
+            mockPayAmountsLoading = true
+            renderList()
+
+            expect(screen.getByTestId('bank-rows-loading')).toBeInTheDocument()
+            expect(mockDrawer).not.toHaveBeenCalled()
+        })
+
+        it('holds no placeholder on a request that shares no bank details', () => {
+            mockPayAmountsLoading = true
+            renderList({ bankPayable: false, requestCurrency: 'EUR' })
+
+            expect(screen.queryByTestId('bank-rows-loading')).not.toBeInTheDocument()
         })
 
         // An API that predates the route: one generic row, and the backend picks the account.

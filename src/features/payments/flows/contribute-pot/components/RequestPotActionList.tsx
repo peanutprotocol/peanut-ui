@@ -182,7 +182,9 @@ export function RequestPotActionList({
     // (one row per currency they can receive), or asked in another currency
     // than dollars. Any other request reads nothing.
     const asksInOtherCurrency = !!requestCurrency && requestCurrency.toUpperCase() !== 'USD'
-    const { payAmounts } = useRequestPayAmounts(bankPayable || asksInOtherCurrency ? requestId : undefined)
+    const { payAmounts, isLoading: isPayAmountsLoading } = useRequestPayAmounts(
+        bankPayable || asksInOtherCurrency ? requestId : undefined
+    )
     const bankRails = bankPayable ? (payAmounts?.rails.filter((rail) => rail.kind === 'bank') ?? []) : []
 
     // The API's own "left to pay" in dollars, when it sent one: the Peanut rail
@@ -210,7 +212,18 @@ export function RequestPotActionList({
     }
     // No rails — an API that predates pay-amounts, or a failed read — keeps the
     // one generic row, and the backend picks the account.
-    const requesterBankRows = !requestId ? null : bankRails.length > 0 ? (
+    // While the rails are loading the rows are not known: one generic row, or
+    // one per currency. Rendering the generic row first and swapping it for the
+    // per-rail rows changes their keys, and a drawer the payer had already
+    // opened lost its state. A placeholder holds the place until the read
+    // settles, in success or in failure.
+    const requesterBankRows = !requestId ? null : bankPayable && isPayAmountsLoading ? (
+        <div
+            className="h-16 w-full animate-pulse rounded-sm bg-foreground-primary/10"
+            data-testid="bank-rows-loading"
+            aria-hidden
+        />
+    ) : bankRails.length > 0 ? (
         bankRails.map((rail) => (
             <PayByBankTransferDrawer
                 key={rail.railId ?? rail.payerAmount.currency}

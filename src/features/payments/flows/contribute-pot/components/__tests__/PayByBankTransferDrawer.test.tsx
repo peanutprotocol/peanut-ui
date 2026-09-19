@@ -10,12 +10,18 @@ const mockUseInstructions = jest.fn()
 jest.mock('@/features/deposit-accounts/useRequestDepositInstructions', () => ({
     useRequestDepositInstructions: (...args: unknown[]) => {
         mockUseInstructions(...args)
-        return { instructions: undefined, isLoading: false, isUnavailable: false }
+        return { instructions: mockInstructions, isLoading: false, isUnavailable: false }
     },
 }))
+const mockBankInstructions = jest.fn()
 jest.mock('@/features/deposit-accounts/components/RequestBankInstructions', () => ({
-    RequestBankInstructions: () => null,
+    RequestBankInstructions: (props: unknown) => {
+        mockBankInstructions(props)
+        return null
+    },
 }))
+
+let mockInstructions: unknown
 
 import { PayByBankTransferDrawer } from '../PayByBankTransferDrawer'
 
@@ -38,7 +44,10 @@ const eurEstimate: RequestPayRail = {
 const renderRow = (props: Partial<React.ComponentProps<typeof PayByBankTransferDrawer>> = {}) =>
     render(<PayByBankTransferDrawer requestId="req-1" bankPayable {...props} />, { wrapper: IntlWrapper })
 
-beforeEach(() => jest.clearAllMocks())
+beforeEach(() => {
+    jest.clearAllMocks()
+    mockInstructions = undefined
+})
 
 describe('PayByBankTransferDrawer', () => {
     it('renders nothing for a request that shares no bank details', () => {
@@ -91,6 +100,36 @@ describe('PayByBankTransferDrawer', () => {
 
         fireEvent.click(screen.getByText('Pay in EUR · SEPA'))
         expect(mockUseInstructions).toHaveBeenLastCalledWith('req-1', true, 'EUR')
+    })
+
+    /**
+     * The row reads a cached figure and the details are fetched fresh, so a
+     * moving rate gave the two different estimates for one payment.
+     */
+    it('states in the details the figure the payer tapped on', () => {
+        mockInstructions = {
+            paymentReference: 'PNT-1',
+            payerAmount: { amount: '92.31', currency: 'EUR', isEstimate: true },
+        }
+        renderRow({ rail: eurEstimate })
+        fireEvent.click(screen.getByText('Pay in EUR · SEPA'))
+
+        const { instructions } = mockBankInstructions.mock.calls.at(-1)![0] as {
+            instructions: { payerAmount: { amount: string }; paymentReference: string }
+        }
+        expect(instructions.payerAmount.amount).toBe('92.00')
+        expect(instructions.paymentReference).toBe('PNT-1')
+    })
+
+    it('keeps the fetched figure when there is no rail to take one from', () => {
+        mockInstructions = { paymentReference: 'PNT-1', payerAmount: { amount: '92.31', currency: 'EUR' } }
+        renderRow()
+        fireEvent.click(screen.getByText('Pay by bank transfer'))
+
+        const { instructions } = mockBankInstructions.mock.calls.at(-1)![0] as {
+            instructions: { payerAmount: { amount: string } }
+        }
+        expect(instructions.payerAmount.amount).toBe('92.31')
     })
 
     // An API that predates pay-amounts: the backend picks the account.
