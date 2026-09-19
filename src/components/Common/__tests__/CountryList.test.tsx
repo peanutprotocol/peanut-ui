@@ -177,3 +177,43 @@ describe('CountryList — continuing a card the caller opened', () => {
         expect(screen.getAllByRole('button')[0]).toHaveClass('rounded-sm')
     })
 })
+
+describe('CountryList — a set of countries the caller owns', () => {
+    it('shows those countries only, whatever their own currency', () => {
+        const poland = {
+            id: 'PL',
+            type: 'country' as const,
+            title: 'Poland',
+            currency: 'PLN',
+            path: 'poland',
+            iso2: 'PL',
+        }
+        const germany = {
+            id: 'DEU',
+            type: 'country' as const,
+            title: 'Germany',
+            currency: 'EUR',
+            path: 'germany',
+            iso2: 'DE',
+        }
+        const onCountryClick = jest.fn()
+        render(
+            <CountryList
+                viewMode="add-withdraw"
+                flow="withdraw"
+                countries={[germany, poland]}
+                searchTerm=""
+                continuesGroup
+                onCountryClick={onCountryClick}
+                showLoadingState={false}
+            />
+        )
+
+        expect(screen.getByText('Germany')).toBeInTheDocument()
+        expect(screen.getByText('Poland')).toBeInTheDocument()
+        expect(screen.queryByText('Spain')).not.toBeInTheDocument()
+
+        fireEvent.click(row('Poland'))
+        expect(onCountryClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'poland' }))
+    })
+})

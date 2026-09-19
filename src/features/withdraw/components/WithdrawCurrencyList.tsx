@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Image from 'next/image'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { twMerge } from '@/utils/tw'
 import { type CountryData } from '@/components/AddMoney/consts'
 import { CountryList } from '@/components/Common/CountryList'
@@ -12,7 +12,12 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
-import { currencyMatchesQuery, liveWithdrawCurrencies, type WithdrawCurrency } from './withdraw-currencies'
+import {
+    countriesForQuery,
+    currencyMatchesQuery,
+    liveWithdrawCurrencies,
+    type WithdrawCurrency,
+} from './withdraw-currencies'
 
 interface WithdrawCurrencyListProps {
     /** Heading above the search field ("How would you like to cash out?"). */
@@ -23,6 +28,8 @@ interface WithdrawCurrencyListProps {
     onCryptoClick: () => void
     /** Send has stricter country support than own-account withdrawal. */
     enforceSupportedCountries?: boolean
+    /** Search the list opens with — `/withdraw?currencyCode=EUR` lands on the EUR row. */
+    initialQuery?: string
 }
 
 /**
@@ -43,20 +50,25 @@ export function WithdrawCurrencyList({
     onCountryClick,
     onCryptoClick,
     enforceSupportedCountries,
+    initialQuery = '',
 }: WithdrawCurrencyListProps) {
     const t = useTranslations('withdraw')
     const tGlobal = useTranslations('global')
-    const [query, setQuery] = useState('')
+    const locale = useLocale()
+    const [query, setQuery] = useState(initialQuery)
     // Which shared-currency row is expanded to its country list. Transient UI —
     // it survives no refresh and belongs in no shared link, so it stays out of
     // the URL (same rule as the add-money hub's accordion).
     const [expandedCurrency, setExpandedCurrency] = useState<string | null>(null)
     const [otherCountriesOpen, setOtherCountriesOpen] = useState(false)
 
-    const currencies = useMemo(() => liveWithdrawCurrencies(), [])
+    const currencies = useMemo(
+        () => liveWithdrawCurrencies({ sendToBankOnly: !!enforceSupportedCountries }),
+        [enforceSupportedCountries]
+    )
     const filteredCurrencies = useMemo(
-        () => currencies.filter((currency) => currencyMatchesQuery(currency, query)),
-        [currencies, query]
+        () => currencies.filter((currency) => currencyMatchesQuery(currency, query, locale)),
+        [currencies, query, locale]
     )
 
     const handleCurrencyClick = (currency: WithdrawCurrency) => {
@@ -144,7 +156,9 @@ export function WithdrawCurrencyList({
                                     <CountryList
                                         viewMode="add-withdraw"
                                         flow="withdraw"
-                                        currencyFilter={currency.code}
+                                        countries={countriesForQuery(currency, query, locale)}
+                                        // the field above owns the search
+                                        searchTerm=""
                                         onCountryClick={onCountryClick}
                                         enforceSupportedCountries={enforceSupportedCountries}
                                         continuesGroup

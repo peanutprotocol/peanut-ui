@@ -257,6 +257,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
             <WithdrawCurrencyList
                 heading={mainHeading}
                 enforceSupportedCountries={isBankFromSend}
+                initialQuery={currencyCode ?? ''}
                 onCountryClick={handleCountrySelected}
                 onCryptoClick={handleCryptoTileClick}
             />
