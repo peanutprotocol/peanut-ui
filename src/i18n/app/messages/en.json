@@ -4038,7 +4038,9 @@
             "textIntroPooled": "Bank details to pay {user} in {currency}:",
             "textOutro": "Sent from Peanut · peanut.me",
             "sheetTitleOwn": "My bank details",
-            "sheetTitlePooled": "Bank details to pay {user}"
+            "sheetTitlePooled": "Bank details to pay {user}",
+            "payerBusinessOnly": "Please pay from a business account. A transfer from a personal account is returned.",
+            "payerUnconfirmed": "This account may return a transfer from another person or business. Check with me before you send."
         },
         "rows": {
             "accountHolder": "Account holder",

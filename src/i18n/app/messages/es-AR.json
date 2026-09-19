@@ -1743,7 +1743,9 @@
             "qrPayCta": "Pagá un código QR"
         },
         "share": {
-            "textIntroOwn": "Estos son mis datos bancarios para cobrar en {currency}:"
+            "textIntroOwn": "Estos son mis datos bancarios para cobrar en {currency}:",
+            "payerBusinessOnly": "Pagá desde una cuenta de empresa. Una transferencia desde una cuenta personal se devuelve.",
+            "payerUnconfirmed": "Esta cuenta puede devolver una transferencia de otra persona o empresa. Consultame antes de enviar."
         },
         "gate": {
             "verifyTitle": "Primero verificá tu identidad",

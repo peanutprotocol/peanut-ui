@@ -7,6 +7,12 @@ export interface ShareTextCopy {
     /** "Bank details to pay {user} in {currency}:" */
     introPooled: string
     outro: string
+    /**
+     * Who may pay, in one line, for the policies where a payer can get it
+     * wrong. `anyone` has no line: nothing to warn about. `own-name-only` has
+     * none either: those details are never shared.
+     */
+    payerLine: { 'business-only': string; unknown: string }
 }
 
 /**
@@ -18,10 +24,11 @@ export interface ShareTextCopy {
  * calling it "my account" is a claim we cannot make to a third party. So the
  * framing reads `nameOnAccount` — never a per-string judgement.
  *
- * The who-can-pay rules are deliberately NOT in the copied text: they render on
- * screen for the holder, but a payer pasting these fields into a transfer form
- * does not need the holder's terms in the message, so the text stays the
- * account details a bank form asks for.
+ * The holder's full terms are NOT in the copied text: they render on screen
+ * for the holder, and QA found the message cluttered with them. One line stays
+ * where the payer can get it wrong: a friend who pays business-only details
+ * from a personal account gets the transfer returned, and only this message
+ * can tell them before they send.
  */
 export function buildShareText(
     account: DepositAccountView,
@@ -38,6 +45,9 @@ export function buildShareText(
             .filter((row) => row.copyable !== false)
             .map((row) => `${row.label}: ${row.value}`),
     ]
+
+    const sender = account.matching.sender
+    if (sender === 'business-only' || sender === 'unknown') lines.push('', copy.payerLine[sender])
 
     lines.push('', copy.outro)
     return lines.join('\n')

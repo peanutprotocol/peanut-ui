@@ -23,15 +23,16 @@ const copy = {
     introOwn: 'Here are my bank details to get paid in GBP:',
     introPooled: 'Bank details to pay Ana in GBP:',
     outro: 'Sent from Peanut · peanut.me',
+    payerLine: { 'business-only': 'Pay from a business account.', unknown: 'A transfer may be returned.' },
 }
 
 const text = (sender: SenderPolicy, rules?: DepositRules, over: Partial<DepositAccount> = {}) =>
     buildShareText(account(sender, rules, over), copy, ROW_LABELS, RAIL_LABELS)
 
 /**
- * The copied text is the account fields and the footer, and nothing else. The
- * who-can-pay rules render on the holder's screen; they are deliberately kept
- * out of the message a payer pastes into a transfer form.
+ * The copied text is the account fields, the footer, and at most one line on
+ * who may pay. The holder's full terms render on their own screen and stay out
+ * of the message a payer pastes into a transfer form.
  */
 describe('the shared text is the account fields and the footer', () => {
     it('carries the intro, the account numbers and the footer', () => {
@@ -41,7 +42,27 @@ describe('the shared text is the account fields and the footer', () => {
         expect(out).toContain('Sent from Peanut · peanut.me')
     })
 
-    it('keeps the who-can-pay rules out of the copied text', () => {
+    it('adds nothing where anyone may pay', () => {
+        expect(text('anyone')).not.toContain('Pay from a business account.')
+        expect(text('anyone')).not.toContain('A transfer may be returned.')
+    })
+
+    /**
+     * A friend who pays business-only details from a personal account gets the
+     * transfer returned, and this message is the only place they can learn it.
+     */
+    it.each([
+        ['business-only', 'Pay from a business account.'],
+        ['unknown', 'A transfer may be returned.'],
+    ] as const)('says who may pay, once, where the policy is %s', (sender, line) => {
+        const out = text(sender)
+        expect(out.split(line)).toHaveLength(2)
+        // after the account numbers and before the footer
+        expect(out.indexOf('04-00-53')).toBeLessThan(out.indexOf(line))
+        expect(out.indexOf(line)).toBeLessThan(out.indexOf('Sent from Peanut'))
+    })
+
+    it('keeps the holder terms out of the copied text', () => {
         const out = text('business-only', {
             ownAccount: { allowed: true },
             thirdPartyBusiness: 'unlimited',

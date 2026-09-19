@@ -4038,7 +4038,9 @@
             "textIntroPooled": "Datos bancarios para pagarle a {user} en {currency}:",
             "textOutro": "Enviado desde Peanut · peanut.me",
             "sheetTitleOwn": "Mis datos bancarios",
-            "sheetTitlePooled": "Datos bancarios para pagarle a {user}"
+            "sheetTitlePooled": "Datos bancarios para pagarle a {user}",
+            "payerBusinessOnly": "Paga desde una cuenta de empresa. Una transferencia desde una cuenta personal se devuelve.",
+            "payerUnconfirmed": "Esta cuenta puede devolver una transferencia de otra persona o empresa. Consúltame antes de enviar."
         },
         "rows": {
             "accountHolder": "Titular de la cuenta",
