@@ -1,11 +1,11 @@
 'use client'
 
 import type { GateState } from '@/utils/capability-gate'
-import { useQueryStates } from 'nuqs'
+import { parseAsString, useQueryState, useQueryStates } from 'nuqs'
 import { useEffect, useState } from 'react'
 import { trackDetailsViewed, trackGateBlocked } from '../analytics'
 import { claimErrorKey, claimErrorOffersSupport } from '../claimErrors'
-import { DEPOSIT_ACCOUNT_PARAMS } from '../params'
+import { DEPOSIT_ACCOUNT_PARAMS, DEPOSIT_CORRIDORS } from '../params'
 import { DEPOSIT_RAILS, isClaimable } from '../rails'
 import { depositGateView, isDepositBlock } from '../depositGate'
 import { isResidenceGated } from '../residenceGate'
@@ -99,6 +99,12 @@ export function DepositAccountsFlow({
     review,
 }: DepositAccountsFlowProps) {
     const [{ step: screen, corridor, screen: legacyStep }, setParams] = useQueryStates(DEPOSIT_ACCOUNT_PARAMS)
+    // The typed parser answers its default for a corridor it does not know, so a
+    // link naming one that has left the catalogue (`BANK_TRANSFER_BR`) opened
+    // the euro account. Read raw, a named corridor that is not one lands on the
+    // list instead.
+    const [namedCorridor] = useQueryState('corridor', parseAsString)
+    const namesUnknownCorridor = namedCorridor !== null && !(DEPOSIT_CORRIDORS as string[]).includes(namedCorridor)
     const [openingCorridor, setOpeningCorridor] = useState<DepositCorridor>()
     // Links minted while the cursor was called `?screen=` still open the flow
     // where they meant to. Rewritten once, in place, so back does not land on
@@ -123,7 +129,8 @@ export function DepositAccountsFlow({
     // every user, and the screen behind it is what explains the rule.
     const offered = isLoading || corridors.includes(corridor) || isResidenceGated(corridor)
     const terms = claimable?.[corridor]
-    const resolved = isError || !offered ? 'list' : resolveScreen(screen, rail, account, gate, terms)
+    const resolved =
+        isError || !offered || namesUnknownCorridor ? 'list' : resolveScreen(screen, rail, account, gate, terms)
 
     // A user who asked for a screen and was handed a lesser one hit the gate.
     // Reported per corridor and per gate kind, because "blocked" as one number
@@ -194,7 +201,15 @@ export function DepositAccountsFlow({
             : rawGateNotice?.action === 'finish-review' && !canFinishReview
               ? { ...rawGateNotice, action: 'finish-review-support' as const }
               : rawGateNotice
-    if (screen !== 'list' && !isLoading && !isError && isClaimable(rail) && !isHeld(account) && gateNotice) {
+    if (
+        screen !== 'list' &&
+        !namesUnknownCorridor &&
+        !isLoading &&
+        !isError &&
+        isClaimable(rail) &&
+        !isHeld(account) &&
+        gateNotice
+    ) {
         return (
             <CorridorGateScreen
                 rail={rail}

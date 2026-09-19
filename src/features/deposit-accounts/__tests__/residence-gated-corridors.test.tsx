@@ -84,6 +84,18 @@ describe('opening a corridor', () => {
         expect(screen.getByRole('button', { name: /open cop account/i })).toBeInTheDocument()
     })
 
+    /**
+     * The typed parser answers its default for an id it does not know, so a
+     * link naming a corridor that has left the catalogue opened the euro
+     * account's screens.
+     */
+    it.each([['claim'], ['details']])('sends a %s link naming a removed corridor to the list', (step) => {
+        flow('BANK_TRANSFER_BR' as DepositCorridor, ['SEPA_EU'], { step })
+
+        expect(screen.getByTestId('hub')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /open eur account/i })).not.toBeInTheDocument()
+    })
+
     it('sends a COP link back to the list where the user has no such rail', () => {
         flow('BANK_TRANSFER_CO')
 

@@ -236,7 +236,16 @@ function describeAccount(account: Account, locale: string) {
 
     return {
         destination: accountDestination(account, { countryName }),
-        countryCodeForFlag: twoLetterCountryCode.toLowerCase() ?? '',
+        // The alpha-3 table covers the SEPA and Manteca countries alone, so a
+        // Mexican account kept its "MEX" and asked for /flags/mex.svg, which does
+        // not exist. The catalogue entry knows the two-letter code; a code that
+        // is still not two letters shows no flag, not a broken image.
+        countryCodeForFlag: (twoLetterCountryCode.length === 2
+            ? twoLetterCountryCode
+            : (countryInfo?.iso2 ??
+              ALL_METHODS_DATA.find((country) => country.iso3 === threeLetterCountryCode)?.iso2 ??
+              '')
+        ).toLowerCase(),
         countryName,
         path: countryInfo ? `/withdraw/${countryInfo.path}/bank` : '/withdraw',
     }
