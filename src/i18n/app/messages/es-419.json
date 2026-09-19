@@ -1086,8 +1086,8 @@
             "anyonePays": "Luego puede pagarte por transferencia bancaria.",
             "businessPays": "Solo las empresas pueden pagar esto por transferencia bancaria. La transferencia de un amigo se devuelve.",
             "unknownPays": "Una transferencia de alguien que no seas tú no está confirmada en esta cuenta y puede devolverse.",
-            "titleOff": "No compartas los datos de tu cuenta bancaria",
-            "descriptionOff": "No vas a compartir los datos de tu cuenta; solo tendrás formas de pago con Peanut y cripto."
+            "titleOff": "Tus datos bancarios quedan privados",
+            "descriptionOff": "Quien paga igual puede usar Peanut, cripto o su propio banco."
         },
         "paidByBank": {
             "rowLabel": "Transferencia bancaria",

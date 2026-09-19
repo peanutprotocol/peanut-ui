@@ -1086,8 +1086,8 @@
             "anyonePays": "They can then pay you by bank transfer.",
             "businessPays": "Only businesses can pay this by bank transfer. A friend's transfer is returned.",
             "unknownPays": "A transfer from anyone but you is not confirmed on this account, and it may be returned.",
-            "titleOff": "Don't share bank account details",
-            "descriptionOff": "You won't share your account details; only Peanut and crypto ways to pay."
+            "titleOff": "Your bank details stay private",
+            "descriptionOff": "Payers can still pay with Peanut, crypto or their own bank."
         },
         "paidByBank": {
             "rowLabel": "Bank transfer",
