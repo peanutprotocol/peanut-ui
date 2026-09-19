@@ -1031,7 +1031,9 @@ describe('a row the user cannot act on', () => {
     it('sorts below every row that leads somewhere, catalogue order kept inside each group', () => {
         // BANK_TRANSFER_CO sits fifth of seven in the catalogue; nothing can be
         // done with it, so it goes last.
-        const { container } = list(false, { gates: gatesWith('BANK_TRANSFER_CO', { kind: 'blocked-rejection', userMessage: null }) })
+        const { container } = list(false, {
+            gates: gatesWith('BANK_TRANSFER_CO', { kind: 'blocked-rejection', userMessage: null }),
+        })
         const order = renderedCorridors(container)
         expect(order.at(-1)).toBe('BANK_TRANSFER_CO')
         // the rest keep the catalogue's own order
