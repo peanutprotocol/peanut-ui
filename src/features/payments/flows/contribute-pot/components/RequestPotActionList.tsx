@@ -27,6 +27,7 @@ import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptio
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { BankRequestType, useDetermineBankRequestType } from '@/hooks/useDetermineBankRequestType'
 import { ACTION_METHODS, type PaymentMethod } from '@/constants/actionlist.consts'
+import { usePaymentMethodLabels } from '@/features/payments/shared/hooks/usePaymentMethodLabels'
 import { MIN_BANK_TRANSFER_AMOUNT, validateMinimumAmount } from '@/constants/payment.consts'
 import { EInviteType } from '@/services/services.types'
 import { saveRedirectUrl, saveToLocalStorage, toInviteCode, inviteFlowUrl } from '@/utils/general.utils'
@@ -77,6 +78,7 @@ export function RequestPotActionList({
     const router = useRouter()
     const t = useTranslations('payment')
     const tCommon = useTranslations('common')
+    const methodLabels = usePaymentMethodLabels()
     const format = useFormatter()
     const { user, isFetchingUser } = useAuth()
     const { hasSufficientSpendableBalance: hasSufficientBalance, isFetchingSpendableBalance } = useWallet()
@@ -308,10 +310,10 @@ export function RequestPotActionList({
                         <ListItem
                             key={method.id}
                             position="single"
-                            body={<div className="text-body-xs">{method.description}</div>}
+                            body={<div className="text-body-xs">{methodLabels(method).description}</div>}
                             title={
                                 <div className="flex items-center gap-2">
-                                    {method.title}
+                                    {methodLabels(method).title}
                                     {(method.soon || methodRequiresVerification) && (
                                         <StatusBadge
                                             status={methodRequiresVerification ? 'custom' : 'soon'}

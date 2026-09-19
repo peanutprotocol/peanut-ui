@@ -4,6 +4,7 @@ import { bankCorridorFor } from '@/components/AddWithdraw/bank-corridors'
 import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
 import { isSendToBankCountry, liveRailsForCountry } from '@/features/destinations/country-rails'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
+import { localizedCurrencyName } from '@/utils/currency-name.utils'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
 
 /**
@@ -101,6 +102,8 @@ export function currencyMatchesQuery(currency: WithdrawCurrency, term: string, l
     if (!t) return true
     if (currency.code.toLowerCase().includes(t)) return true
     if (currency.name.toLowerCase().includes(t)) return true
+    // the row shows the name in the reader's language, so a search in it has to find the row
+    if (localizedCurrencyName(locale, currency.code, currency.name).toLowerCase().includes(t)) return true
     return currency.countries.some((country) => countryNameMatchesQuery(country, t, locale))
 }
 

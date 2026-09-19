@@ -4,7 +4,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import CurrencySelect from '@/components/LandingPage/CurrencySelect'
 import countryCurrencyMappings, { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import Image from 'next/image'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 
 /**
  * The currency a request is asked in.
@@ -25,6 +25,7 @@ export function RequestCurrencyPicker({
     disabled?: boolean
 }) {
     const t = useTranslations('request')
+    const locale = useLocale()
     const flagCode = countryCurrencyMappings.find((mapping) => mapping.currencyCode === currency)?.flagCode
 
     return (
@@ -36,6 +37,7 @@ export function RequestCurrencyPicker({
                     setSelectedCurrency={onChange}
                     priorityCurrencies={accountCurrencies}
                     label={t('currency.select')}
+                    locale={locale}
                     trigger={
                         <button
                             type="button"

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import Image from 'next/image'
 import { useLocale, useTranslations } from 'next-intl'
+import { localizedCurrencyName } from '@/utils/currency-name.utils'
 import { twMerge } from '@/utils/tw'
 import { type CountryData } from '@/components/AddMoney/consts'
 import { CountryList } from '@/components/Common/CountryList'
@@ -117,7 +118,7 @@ export function WithdrawCurrencyList({
                             <div key={currency.code}>
                                 <ListItem
                                     title={currency.code}
-                                    body={currency.name}
+                                    body={localizedCurrencyName(locale, currency.code, currency.name)}
                                     chevron={!isMulti}
                                     trailing={
                                         isMulti ? (

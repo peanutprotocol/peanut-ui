@@ -3,6 +3,7 @@ import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import countryCurrencyMappings, { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { SUPPORTED_EXCHANGE_CURRENCIES } from '@/constants/exchange-currencies.consts'
 import { heightAboveBottomNav, scrollClearOfBottomNav } from '@/utils/bottom-nav-clearance.utils'
+import { localizedCurrencyName } from '@/utils/currency-name.utils'
 import { twMerge } from '@/utils/tw'
 import Image from 'next/image'
 import React, { cloneElement, isValidElement, useEffect, useId, useMemo, useRef, useState } from 'react'
@@ -22,6 +23,12 @@ interface CurrencySelectProps {
      * comes down as a prop — same reason ExchangeRateWidget takes `labels`.
      */
     label?: string
+    /**
+     * The reader's locale, for the currency names. A prop for the same reason as
+     * `label`: the component cannot assume which i18n provider it sits under.
+     * Without it the names stay the catalog's English.
+     */
+    locale?: string
 }
 
 // Transform the currency mappings into the format expected by the component
@@ -56,6 +63,7 @@ const CurrencySelect = ({
     excludeCurrencies = [],
     priorityCurrencies = NO_PRIORITY,
     label = 'Select currency',
+    locale,
 }: CurrencySelectProps) => {
     const id = useId()
     const listId = `${id}-listbox`
@@ -221,7 +229,11 @@ const CurrencySelect = ({
                             index={index}
                             countryCode={currency.countryCode}
                             currency={currency.currency}
-                            currencyName={currency.currencyName}
+                            currencyName={
+                                locale
+                                    ? localizedCurrencyName(locale, currency.currency, currency.currencyName)
+                                    : currency.currencyName
+                            }
                             comingSoon={currency.comingSoon}
                             selected={currency.currency === selectedCurrency}
                             active={index === activeIndex}
