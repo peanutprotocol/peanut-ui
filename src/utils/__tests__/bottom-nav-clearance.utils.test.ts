@@ -5,12 +5,18 @@ const elementAt = (bottom: number) =>
 
 describe('scrollClearOfBottomNav', () => {
     const scrollBy = jest.fn()
+    let now = 1_000_000
     beforeEach(() => {
         jest.clearAllMocks()
         Object.defineProperty(window, 'innerHeight', { configurable: true, value: 667 })
         window.scrollBy = scrollBy as unknown as typeof window.scrollBy
         document.documentElement.style.removeProperty('--safe-bottom')
+        // each test starts long after any scroll a previous one asked for
+        now += 10_000
+        jest.spyOn(Date, 'now').mockImplementation(() => now)
     })
+
+    afterEach(() => jest.restoreAllMocks())
 
     // 375x667: the nav owns 597-667 and the layout reserves 96px, so 571 is the lowest clear bottom
     it('moves the page by exactly the part hidden behind the nav', () => {
@@ -28,6 +34,31 @@ describe('scrollClearOfBottomNav', () => {
         document.documentElement.style.setProperty('--safe-bottom', '34px')
         scrollClearOfBottomNav(elementAt(571))
         expect(scrollBy).toHaveBeenCalledWith({ top: 34, behavior: 'smooth' })
+    })
+
+    /*
+     * A smooth scroll moves the page over several frames. A second call before
+     * it lands measures the element where it still is, and used to scroll by
+     * the whole distance again — past the target, on the CTA the first call was
+     * bringing into view.
+     */
+    it('does not scroll twice for a scroll that is still travelling', () => {
+        scrollClearOfBottomNav(elementAt(620))
+        scrollClearOfBottomNav(elementAt(620))
+        expect(scrollBy).toHaveBeenCalledTimes(1)
+    })
+
+    it('scrolls the rest of the way when the element moved further down meanwhile', () => {
+        scrollClearOfBottomNav(elementAt(620))
+        scrollClearOfBottomNav(elementAt(650))
+        expect(scrollBy).toHaveBeenNthCalledWith(2, { top: 30, behavior: 'smooth' })
+    })
+
+    it('forgets a scroll that had its time, because the page is wherever it is', () => {
+        scrollClearOfBottomNav(elementAt(620))
+        now += 800
+        scrollClearOfBottomNav(elementAt(620))
+        expect(scrollBy).toHaveBeenNthCalledWith(2, { top: 49, behavior: 'smooth' })
     })
 
     it('does nothing without an element', () => {

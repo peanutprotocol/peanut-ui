@@ -15,12 +15,34 @@ const BOTTOM_NAV_RESERVATION_PX = 96
  *
  * Does nothing when the element already rests clear.
  */
+/**
+ * Where a smooth scroll this module asked for is heading, and when it was
+ * asked. A smooth scroll moves `window.scrollY` over several frames, so a
+ * second call before it lands measures the element where it still is and
+ * scrolls by the same distance again — past the target. What is already on its
+ * way is counted instead.
+ */
+let pendingTargetY: number | undefined
+let pendingAt = 0
+/** longer than a smooth scroll takes; past it the page is wherever it is */
+const SCROLL_SETTLES_IN_MS = 700
+
 export function scrollClearOfBottomNav(element: HTMLElement | null): void {
     if (!element || typeof window === 'undefined') return
     const safeBottom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom')) || 0
     const lowestClearY = window.innerHeight - BOTTOM_NAV_RESERVATION_PX - safeBottom
     const overlap = element.getBoundingClientRect().bottom - lowestClearY
-    if (overlap > 0) window.scrollBy({ top: overlap, behavior: 'smooth' })
+
+    const stillTravelling =
+        pendingTargetY !== undefined && Date.now() - pendingAt < SCROLL_SETTLES_IN_MS
+            ? Math.max(pendingTargetY - window.scrollY, 0)
+            : 0
+    const remaining = overlap - stillTravelling
+    if (remaining <= 0) return
+
+    pendingTargetY = window.scrollY + stillTravelling + remaining
+    pendingAt = Date.now()
+    window.scrollBy({ top: remaining, behavior: 'smooth' })
 }
 
 /** A list shorter than this is no list; below it the page scrolls instead. */
