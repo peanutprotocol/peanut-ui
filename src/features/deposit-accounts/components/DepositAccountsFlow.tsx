@@ -4,6 +4,7 @@ import type { GateState } from '@/utils/capability-gate'
 import { useQueryStates } from 'nuqs'
 import { useEffect, useState } from 'react'
 import { trackDetailsViewed, trackGateBlocked } from '../analytics'
+import { claimErrorKey, claimErrorOffersSupport } from '../claimErrors'
 import { DEPOSIT_ACCOUNT_PARAMS } from '../params'
 import { DEPOSIT_RAILS, isClaimable } from '../rails'
 import { depositGateView, isDepositBlock } from '../depositGate'
@@ -223,18 +224,22 @@ export function DepositAccountsFlow({
     }
 
     if (resolved === 'claim') {
+        // a failure on another corridor is not this screen's news
+        const failure = claimError?.corridor === corridor ? claimError : undefined
         return (
             <ClaimAccountScreen
                 rail={rail}
                 terms={terms}
                 userName={userName}
                 isClaiming={claimingCorridor === corridor}
-                // a failure on another corridor is not this screen's news
                 // the localized sentence for the wire code, never the backend's own
-                error={
-                    claimError?.corridor === corridor ? claimErrorBody(claimError.code, claimError.status) : undefined
+                error={failure && claimErrorBody(failure.code, failure.status)}
+                onContactSupport={
+                    failure && claimErrorOffersSupport(claimErrorKey(failure.code, failure.status))
+                        ? () => onContactSupport(corridor, 'blocked')
+                        : undefined
                 }
-                isUnavailable={claimError?.corridor === corridor && claimError.unavailable}
+                isUnavailable={failure?.unavailable}
                 // no screen change here: once the account exists, resolveScreen
                 // moves the user on by itself, and if it never does the error
                 // renders on this screen rather than nowhere

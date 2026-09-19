@@ -4226,9 +4226,9 @@
         "errors": {
             "generic": "No pudimos abrir la cuenta. Inténtalo de nuevo en un momento.",
             "notAvailable": "Las cuentas propias todavía no están disponibles para tu cuenta.",
-            "inFlight": "Todavía está llegando un depósito. Inténtalo de nuevo cuando llegue.",
             "residenceRestricted": "Los datos bancarios no están disponibles donde vives. Actualiza tu residencia si te mudaste.",
-            "accountLimit": "Ya tienes dos cuentas bancarias. Soporte puede abrirte otra."
+            "accountLimit": "Llegaste a tu límite de cuentas bancarias. Soporte puede abrirte otra.",
+            "refused": "No pudimos abrir esta cuenta por ahora. Inténtalo de nuevo en unos minutos. Si sigue fallando, contacta a soporte."
         },
         "fees": {
             "noFee": "Sin comisión de Peanut.",

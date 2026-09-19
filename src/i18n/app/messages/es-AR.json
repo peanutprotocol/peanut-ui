@@ -1795,9 +1795,8 @@
         },
         "errors": {
             "generic": "No pudimos abrir la cuenta. Probá de nuevo en un momento.",
-            "inFlight": "Todavía está llegando un depósito. Probá de nuevo cuando llegue.",
             "residenceRestricted": "Los datos bancarios no están disponibles donde vivís. Actualizá tu residencia si te mudaste.",
-            "accountLimit": "Ya tenés dos cuentas bancarias. Soporte puede abrirte otra."
+            "refused": "No pudimos abrir esta cuenta por ahora. Probá de nuevo en unos minutos. Si sigue fallando, contactá a soporte."
         }
     }
 }

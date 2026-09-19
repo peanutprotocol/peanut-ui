@@ -4226,9 +4226,9 @@
         "errors": {
             "generic": "We could not open the account. Try again in a moment.",
             "notAvailable": "Standing accounts are not open to your account yet.",
-            "inFlight": "A deposit is still landing. Try again once it arrives.",
             "residenceRestricted": "Bank details are not available where you live. Update your residence if you have moved.",
-            "accountLimit": "You already have two bank accounts. Support can open another one for you."
+            "accountLimit": "You have reached your bank account limit. Support can open another one for you.",
+            "refused": "We could not open this account right now. Try again in a few minutes. If it still fails, contact support."
         },
         "fees": {
             "noFee": "No Peanut fee.",

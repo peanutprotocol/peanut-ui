@@ -40,6 +40,7 @@ export function ClaimAccountScreen({
     userName,
     isClaiming,
     error,
+    onContactSupport,
     isUnavailable = false,
     onClaim,
     onBack,
@@ -51,6 +52,8 @@ export function ClaimAccountScreen({
     userName: string
     isClaiming: boolean
     error?: string
+    /** set where a retry alone may never clear the error, so the error also offers a person */
+    onContactSupport?: () => void
     /** the backend refused to open an account for this user at all */
     isUnavailable?: boolean
     onClaim: () => void
@@ -137,7 +140,13 @@ export function ClaimAccountScreen({
                         {t('gate.notYetBody')}
                     </Notification>
                 ) : error ? (
-                    <Notification priority="error" title={t('claim.errorTitle')}>
+                    <Notification
+                        priority="error"
+                        title={t('claim.errorTitle')}
+                        ctas={
+                            onContactSupport ? [{ label: t('gate.supportCta'), onClick: onContactSupport }] : undefined
+                        }
+                    >
                         {error}
                     </Notification>
                 ) : (
