@@ -164,6 +164,50 @@ describe('useHostedVerification (native)', () => {
         }
     })
 
+    it('a signal after the window closed is one refetch, not a second window, until the user starts again', async () => {
+        jest.useFakeTimers()
+        try {
+            const hook = renderHook(() => useHostedVerification('bridge-hosted', { taskPending: true }))
+            await act(async () => {
+                await hook.result.current.start()
+            })
+            await waitFor(() => expect(mockAddListener).toHaveBeenCalledWith('browserFinished', expect.any(Function)))
+            await act(async () => listeners.browserFinished())
+            await act(async () => {
+                jest.advanceTimersByTime(61_000)
+            })
+            expect(hook.result.current.isSettling).toBe(false)
+            const fetches = mockFetchUser.mock.calls.length
+            await act(async () => listeners.browserFinished())
+            expect(hook.result.current.isSettling).toBe(false)
+            expect(mockRefreshKyc).toHaveBeenCalledTimes(3)
+            expect(mockFetchUser.mock.calls.length).toBe(fetches + 1)
+        } finally {
+            jest.useRealTimers()
+        }
+    })
+
+    it('a failed launch does not arm the return leg', async () => {
+        const { startHostedVerification } = jest.requireMock('@/app/actions/sumsub') as {
+            startHostedVerification: jest.Mock
+        }
+        startHostedVerification.mockResolvedValueOnce({ error: 'Action not allowed for this user' })
+        const hook = renderHook(() => useHostedVerification('bridge-hosted', { taskPending: true }))
+        await act(async () => {
+            await hook.result.current.start()
+        })
+        expect(hook.result.current.error).toMatch(/couldn't start/i)
+        mockFetchUser.mockClear()
+        const restore = new Event('pageshow') as PageTransitionEvent
+        Object.defineProperty(restore, 'persisted', { value: true })
+        act(() => {
+            window.dispatchEvent(restore)
+        })
+        expect(hook.result.current.isSettling).toBe(false)
+        expect(mockRefreshKyc).not.toHaveBeenCalled()
+        expect(mockFetchUser.mock.calls.length).toBeGreaterThanOrEqual(1)
+    })
+
     it('reports a task still pending when the window ends, and a new start clears that', async () => {
         jest.useFakeTimers()
         try {
