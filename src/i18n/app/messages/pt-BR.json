@@ -1969,7 +1969,6 @@
             "accountNumberUk": "O número da conta precisa ter de 6 a 8 dígitos",
             "accountNumberInvalid": "Número da conta inválido",
             "bic": "BIC",
-            "bicOptional": "BIC (opcional)",
             "bicRequired": "O BIC é obrigatório",
             "bicInvalid": "Código BIC inválido",
             "routingNumber": "Routing Number",

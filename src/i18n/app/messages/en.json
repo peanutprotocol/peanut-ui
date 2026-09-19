@@ -1969,7 +1969,6 @@
             "accountNumberUk": "Account number must be 6-8 digits",
             "accountNumberInvalid": "Invalid account number",
             "bic": "BIC",
-            "bicOptional": "BIC (optional)",
             "bicRequired": "BIC is required",
             "bicInvalid": "Invalid BIC code",
             "routingNumber": "Routing Number",

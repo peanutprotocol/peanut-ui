@@ -346,7 +346,8 @@ describe('DynamicBankAccountForm — the BIC follows the IBAN', () => {
         expect(bicInput()).toBeInTheDocument()
         // the label no longer says the field is optional
         expect(screen.getByText('withdraw.bankForm.bic')).toBeInTheDocument()
-        expect(screen.queryByText('withdraw.bankForm.bicOptional')).not.toBeInTheDocument()
+        // the translator mock renders keys, so this catches any "…Optional" label
+        expect(screen.queryByText(/optional/i)).not.toBeInTheDocument()
 
         await submitWithEnter(container)
         expect(onSuccess).not.toHaveBeenCalled()
