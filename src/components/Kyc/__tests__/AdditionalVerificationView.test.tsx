@@ -24,7 +24,7 @@ const hostedAction: NextAction = {
 
 const mockFetchUser = jest.fn(() => Promise.resolve(null))
 const mockStartHosted = jest.fn<Promise<{ url?: string; error?: string }>, []>()
-const mockRefreshKyc = jest.fn(() => Promise.resolve({ refreshed: false }))
+const mockRefreshKyc = jest.fn(() => Promise.resolve({ expedited: false }))
 let mockReservedTab: { location: { href: string }; close: jest.Mock; closed: boolean; opener: unknown }
 const mockAssignHref = jest.fn()
 let mockWindowOpen: jest.SpyInstance
@@ -284,10 +284,18 @@ describe('AdditionalVerificationView', () => {
             expect(screen.getByRole('button', { name: /i have these, start/i })).toBeDisabled()
             expect(mockRefreshKyc).toHaveBeenCalledTimes(1)
 
-            // a later round while the task is still pending
+            // later rounds while the task is still pending: refetch every 5s,
+            // the provider read paced to 0s / 20s / 40s
             await act(async () => {
                 jest.advanceTimersByTime(5_000)
             })
+            expect(mockRefreshKyc).toHaveBeenCalledTimes(1)
+            // each round re-arms through state, so step the clock one round at a time
+            for (let i = 0; i < 3; i++) {
+                await act(async () => {
+                    jest.advanceTimersByTime(5_000)
+                })
+            }
             expect(mockRefreshKyc).toHaveBeenCalledTimes(2)
 
             // the task clears → the window closes, the done state shows

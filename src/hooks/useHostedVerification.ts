@@ -14,8 +14,8 @@ import { IN_APP_BROWSER_CLOSED_EVENT, isNativeBridge, openExternalUrl } from '@/
  * `start` must be called STRAIGHT out of a click handler — it reserves the tab
  * synchronously, inside the user-activation window (see below).
  *
- * Coming back opens a SETTLE window: the app asks the API to re-read the
- * provider at once and keeps refetching for a minute, until the task clears or
+ * Coming back opens a SETTLE window: the app asks the API to poll the
+ * provider soon and keeps refetching for a minute, until the task clears or
  * the window ends. Nothing else reports the result — the provider's page never
  * hands the user back (Bridge issues no redirect for most customers), the
  * ~4s user auto-refresh only runs while a rail is `pending`, and a webhook can
@@ -43,9 +43,15 @@ interface HostedVerificationOptions {
     taskPending?: boolean
 }
 
-/** How long the app keeps asking after a return, and how often. */
+/**
+ * How long the app keeps asking after a return, how often it refetches, and
+ * how often it also asks the API to expedite the provider poll. One expedite
+ * is enough for the poller; three per window (at 0s, 20s, 40s) keep the row
+ * on the fresh cadence if the vendor is slow. The refetch in between is cheap.
+ */
 const SETTLE_WINDOW_MS = 60_000
 const SETTLE_INTERVAL_MS = 5_000
+const PROVIDER_READ_EVERY_N_ROUNDS = 4
 
 export function useHostedVerification(
     actionKey: 'bridge-hosted' | 'rain-hosted' = 'bridge-hosted',
@@ -151,18 +157,22 @@ export function useHostedVerification(
         }
     }, [fetchUser, actionKey])
 
-    // One settle round: ask the API to re-read the provider, then refetch the
-    // user so capabilities re-derive from that read. Both are best effort.
-    const settleRoundRun = useCallback(async () => {
-        try {
-            await refreshKycState()
-            await fetchUser()
-        } catch {
-            // a failed round is a skipped round — the next one retries
-        } finally {
-            setSettleRound((round) => round + 1)
-        }
-    }, [fetchUser])
+    // One settle round: on the paced rounds ask the API to expedite the
+    // provider poll first, then refetch the user so capabilities re-derive
+    // from whatever the poller has written. Both are best effort.
+    const settleRoundRun = useCallback(
+        async (round: number) => {
+            try {
+                if (round % PROVIDER_READ_EVERY_N_ROUNDS === 0) await refreshKycState()
+                await fetchUser()
+            } catch {
+                // a failed round is a skipped round — the next one retries
+            } finally {
+                setSettleRound(round + 1)
+            }
+        },
+        [fetchUser]
+    )
 
     // A return signal: refetch at once (the DB may already know), then open the
     // settle window so the provider read below catches what the DB does not.
@@ -170,7 +180,7 @@ export function useHostedVerification(
         void fetchUser().catch(() => undefined)
         setStillPendingAfterReturn(false)
         setSettleDeadline(Date.now() + SETTLE_WINDOW_MS)
-        void settleRoundRun()
+        void settleRoundRun(0)
     }, [fetchUser, settleRoundRun])
 
     // Schedule the next round until the task clears or the window ends. Each
@@ -186,7 +196,7 @@ export function useHostedVerification(
             setStillPendingAfterReturn(true)
             return
         }
-        const timer = setTimeout(() => void settleRoundRun(), SETTLE_INTERVAL_MS)
+        const timer = setTimeout(() => void settleRoundRun(settleRound), SETTLE_INTERVAL_MS)
         return () => clearTimeout(timer)
     }, [settleDeadline, settleRound, taskPending, settleRoundRun])
 
