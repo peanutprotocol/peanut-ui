@@ -2057,7 +2057,7 @@
             "issuedBy": "Issued by:",
             "reference": "Reference",
             "issuedOn": "Issued on",
-            "footer": "Sent from Peanut · peanut.me",
+            "footer": "Receipt from Peanut · peanut.me",
             "pdf": {
                 "title": "Transaction Receipt",
                 "issuedBy": "Issued by Squirrel Labs Ltd",
