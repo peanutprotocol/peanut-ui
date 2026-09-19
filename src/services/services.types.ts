@@ -22,6 +22,13 @@ export interface CreateRequestRequest {
     tokenSymbol: string
     /** the requester lets a payer settle this request by bank transfer */
     bankInstructionsShared?: boolean
+    /**
+     * The amount asked, in a fiat currency. Sent for a non-USD request alone:
+     * the API then sets `tokenAmount` (always dollars) at its own rate and
+     * ignores the one in this body. A USD request omits it, so it is the same
+     * body an API without the field accepts.
+     */
+    requestedAmount?: { amount: string; currency: string }
 }
 
 /**
@@ -43,13 +50,36 @@ export type RequestDepositInstructions =
  * neighbours.
  */
 export interface RequestPayerAmount {
-    /** decimal string in `currency`; null when the request amount is open or no rate was available */
+    /** what is LEFT to pay, as a decimal string in `currency`; null when open, not priceable, or no rate */
     amount: string | null
     currency: string
-    /** false only when the rail currency equals the request currency */
+    /** false for a figure the request fixes: the dollar amount, or the amount asked in this currency */
     isEstimate: boolean
     /** present only for a produced cross-currency estimate */
     rate?: { from: string; to: string; rate: string; source: string; asOf: string | null }
+}
+
+/** One way to pay a request, with the amount in that rail's own currency. */
+export interface RequestPayRail {
+    kind: 'peanut_balance' | 'crypto' | 'bank'
+    payerAmount: RequestPayerAmount
+    /** bank rails only: the `provider.method` id */
+    railId?: string
+    /** bank rails only: ISO country of the receiving method */
+    country?: string
+    /** bank rails only: what the payer types so the deposit finds the request */
+    reference?: string
+}
+
+/** `GET /requests/:uuid/pay-amounts` — what is left to pay, on every rail the requester can receive on. */
+export interface RequestPayAmounts {
+    /** the currency the requester asked in; USD when they named none */
+    requestCurrency: string
+    /** the full amount asked, in `requestCurrency`; null on an open-amount request */
+    requestAmount: string | null
+    /** what is left to pay, in `requestCurrency`; null when open or not priceable */
+    remainingAmount?: string | null
+    rails: RequestPayRail[]
 }
 
 /**
@@ -93,6 +123,13 @@ export interface TRequestResponse {
     bankFulfilment?: BankFulfilment
     payerName?: string | null
     bankInstructionsShared: boolean
+    /** the fiat currency the requester asked in; absent or null means USD. `tokenAmount` is always dollars. */
+    currency?: string | null
+    /** the amount asked, in `currency`; null unless the requester asked in a fiat currency */
+    requestedAmount?: string | null
+    /** dollars per one unit of `currency` when the request was created */
+    requestedFxRate?: string | null
+    requestedFxAsOf?: string | null
     charges: ChargeEntry[]
     history: TRequestHistory[]
     recipientAccount: {
