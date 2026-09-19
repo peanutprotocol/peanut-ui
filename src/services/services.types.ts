@@ -286,6 +286,12 @@ export interface TRequestChargeResponse {
     tokenType: string
     tokenSymbol: string
     transactionType: TChargeTransactionType
+    /**
+     * The ledger kind behind the charge, which a receipt is looked up by.
+     * `transactionType` folds several kinds into one, so it cannot stand in for
+     * this. Absent on an API deployed before it (api#1638).
+     */
+    intentKind?: string
     updatedAt: string
     payments: Payment[]
     fulfillmentPayment: Payment | null

@@ -73,7 +73,7 @@ export function SemanticRequestReceiptView() {
                 isLinkTransaction: false,
                 originalType: 'TRANSACTION_INTENT',
                 originalUserRole: EHistoryUserRole.RECIPIENT,
-                kind: receiptKindForCharge(charge.transactionType),
+                kind: receiptKindForCharge(charge),
                 link: receiptLink,
             },
             userName: payerName,

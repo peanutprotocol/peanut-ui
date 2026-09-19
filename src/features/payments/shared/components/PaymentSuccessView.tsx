@@ -186,7 +186,7 @@ const PaymentSuccessView = ({
                 isLinkTransaction: false,
                 originalType: 'TRANSACTION_INTENT',
                 originalUserRole: EHistoryUserRole.SENDER,
-                kind: receiptKindForCharge(chargeDetails.transactionType),
+                kind: receiptKindForCharge(chargeDetails),
                 link: receiptLink,
             },
             // external-wallet withdrawals have no username/identifier — fall back to
