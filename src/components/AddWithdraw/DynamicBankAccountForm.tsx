@@ -13,7 +13,7 @@ import { useParams, useSearchParams } from 'next/navigation'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { validateIban, validateBankAccount, validateBic } from '@/utils/bridge-accounts.utils'
 import { scrollClearOfBottomNav } from '@/utils/bottom-nav-clearance.utils'
-import { bicMatchesIbanCountry } from './bicIbanCountry.utils'
+import { bicCountryDiffersFromIban } from './bicIbanCountry.utils'
 import { bankCorridorFor, type BankCorridorField } from '@/components/AddWithdraw/bank-corridors'
 import { getBicFromIban } from '@/app/actions/ibanToBic'
 import PeanutActionDetailsCard, { type PeanutActionDetailsCardProps } from '../Global/PeanutActionDetailsCard'
@@ -683,11 +683,12 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                     required: t('bicRequired'),
                                     validate: async (value: string) => {
                                         if (!value || value.trim().length === 0) return t('bicRequired')
-                                        // no request needed to see a BIC from another country
-                                        if (!bicMatchesIbanCountry(value, getValues('accountNumber') ?? '')) {
-                                            return t('bicCountryMismatch')
-                                        }
-
+                                        // A BIC registered in another member state than the
+                                        // IBAN is routine — Revolut issues Spanish IBANs
+                                        // under a Lithuanian BIC — so it is a note under
+                                        // the field, never a refusal. The provider is the
+                                        // only authority on a BIC, and `validateBic` below
+                                        // asks it.
                                         // Only validate if the value matches the debounced value (to prevent API calls on every keystroke)
                                         if (value.trim() !== debouncedBicValue?.trim()) {
                                             return true // Skip validation until debounced value is ready
@@ -705,7 +706,12 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                     if (value.length > 0 && submissionError) {
                                         setSubmissionError(null)
                                     }
-                                }
+                                },
+                                undefined,
+                                undefined,
+                                bicValue && bicCountryDiffersFromIban(bicValue, getValues('accountNumber') ?? '')
+                                    ? t('bicCountryMismatch')
+                                    : undefined
                             )}
                         {corridor?.fields.map((field: BankCorridorField) =>
                             field.kind === 'select' ? (

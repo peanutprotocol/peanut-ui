@@ -415,23 +415,32 @@ describe('DynamicBankAccountForm — the BIC follows the IBAN', () => {
         expect(cta.lastElementChild?.tagName).toBe('BUTTON')
     })
 
-    it('refuses a typed BIC from another country than the IBAN, with no request', async () => {
+    /*
+     * A BIC registered in another member state than the IBAN used to be
+     * refused locally, which refused accounts that work: passporting makes the
+     * pair routine — Revolut issues local Spanish IBANs under a Lithuanian
+     * BIC, Wise under a Belgian one — and those users could not submit at all.
+     * The provider decides, through `validateBic`; the form only remarks.
+     */
+    it.each([
+        ['a Revolut-style pair', 'REVOLT21'],
+        ['a Wise-style pair', 'TRWIBEB1'],
+    ])('submits %s, and notes the country rather than blocking it', async (_, bic) => {
         const onSuccess = jest.fn(async () => ({}))
         const { container } = renderIbanForm(onSuccess, 'ITA')
 
         await typeIban(IT_IBAN, { blur: true })
-        mockValidateBic.mockClear()
         await act(async () => {
-            fireEvent.change(bicInput()!, { target: { value: 'COBADEFFXXX' } })
+            fireEvent.change(bicInput()!, { target: { value: bic } })
         })
         await act(async () => {
             fireEvent.blur(bicInput()!)
         })
 
-        await submitWithEnter(container)
-        expect(onSuccess).not.toHaveBeenCalled()
         expect(await screen.findByText('withdraw.bankForm.bicCountryMismatch')).toBeInTheDocument()
-        expect(mockValidateBic).not.toHaveBeenCalled()
+        await submitWithEnter(container)
+        await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+        expect(payloadOf(onSuccess)).toMatchObject({ accountNumber: IT_IBAN, bic })
     })
 
     /**
