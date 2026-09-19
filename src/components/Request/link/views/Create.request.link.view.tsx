@@ -6,6 +6,8 @@ import PeanutActionCard from '@/components/Global/PeanutActionCard'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import AmountInput from '@/components/Global/AmountInput'
 import { useTranslations } from 'next-intl'
+import { useRef } from 'react'
+import type { AmountInputSides } from '../requestCurrency'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useRequestBack } from '@/components/Request/useRequestBack'
@@ -35,12 +37,16 @@ export const CreateRequestLinkView = () => {
         qrCodeLink,
         bankInstructionsShared,
         setBankInstructionsShared,
-        handleRequestAmountChange,
+        handleAmountInputChange,
         handleCurrencyChange,
         handleAttachmentOptionsChange,
         handleTokenAmountSubmit,
         generateLink,
     } = useCreateRequestLink()
+    // The amount field reports its sides through three setters in one pass,
+    // `setSecondaryAmount` last. They are collected here and handed on once,
+    // from that last one, so the hook always reads a matching set.
+    const sides = useRef<AmountInputSides>({ primary: '', secondary: '', displayed: '' })
 
     return (
         <PageStack>
@@ -64,7 +70,16 @@ export const CreateRequestLinkView = () => {
                     key={currency}
                     className="w-full"
                     initialAmount={requestAmount}
-                    setPrimaryAmount={handleRequestAmountChange}
+                    setDisplayedAmount={(value) => {
+                        sides.current.displayed = value
+                    }}
+                    setPrimaryAmount={(value) => {
+                        sides.current.primary = value || ''
+                    }}
+                    setSecondaryAmount={(value) => {
+                        sides.current.secondary = value
+                        handleAmountInputChange({ ...sides.current })
+                    }}
                     onSubmit={handleTokenAmountSubmit}
                     disabled={!!requestId}
                     // `disabled` does not cover the swap button, and a swap

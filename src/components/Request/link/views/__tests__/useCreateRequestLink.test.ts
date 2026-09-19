@@ -21,8 +21,11 @@ const splitBillWrapper = ({ children }: { children: ReactNode }) =>
     )
 // A request asked in another currency arrives the same way: `?currency=EUR`.
 const currencyWrapper = (searchParams: string) => {
+    // built once: an adapter made per render is a new component type, and a
+    // rerender would remount the hook under test
+    const Adapter = withNuqsTestingAdapter({ searchParams })
     const CurrencyWrapper = ({ children }: { children: ReactNode }) =>
-        createElement(withNuqsTestingAdapter({ searchParams }), null, createElement(IntlWrapper, null, children))
+        createElement(Adapter, null, createElement(IntlWrapper, null, children))
     return CurrencyWrapper
 }
 import { ApiError } from '@/services/api-error'
@@ -379,6 +382,50 @@ describe('useCreateRequestLink', () => {
             expect(apiCreate).toHaveBeenCalledWith(
                 expect.objectContaining({ tokenAmount: '125.00', requestedAmount: { amount: '100', currency: 'EUR' } })
             )
+        })
+
+        it('sends an amount the requester left as ".5" in the shape the API accepts', async () => {
+            mockExchangeRate = 0.8
+            apiCreate.mockResolvedValue({ uuid: 'req-1', currency: 'EUR', requestedAmount: '0.5' })
+            const { result } = renderHook(() => useCreateRequestLink(), {
+                wrapper: currencyWrapper('?currency=EUR'),
+            })
+            act(() => {
+                result.current.handleRequestAmountChange('.5')
+            })
+            await act(async () => {
+                await result.current.generateLink()
+            })
+
+            expect(apiCreate.mock.calls[0][0].requestedAmount).toEqual({ amount: '0.5', currency: 'EUR' })
+        })
+
+        /**
+         * The amount field builds its dollar side from the rate. A refetch that
+         * fails mid-typing used to take that side away, and the field threw on
+         * the next keystroke while it was showing dollars.
+         */
+        it('keeps the last good rate when a refetch fails', () => {
+            mockExchangeRate = 0.8
+            const { result, rerender } = renderHook(() => useCreateRequestLink(), {
+                wrapper: currencyWrapper('?currency=EUR'),
+            })
+            expect(result.current.exchangeRate).toBe(0.8)
+
+            mockExchangeRate = 0
+            rerender()
+            expect(result.current.exchangeRate).toBe(0.8)
+        })
+
+        it('rounds up when the requester typed dollars on a non-dollar request', () => {
+            mockExchangeRate = 0.84975
+            const { result } = renderHook(() => useCreateRequestLink(), {
+                wrapper: currencyWrapper('?currency=EUR'),
+            })
+            act(() => {
+                result.current.handleAmountInputChange({ primary: '42.48', secondary: '50', displayed: '50' })
+            })
+            expect(result.current.requestAmount).toBe('42.49')
         })
 
         it('sends no currency on an open-amount request', async () => {

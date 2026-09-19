@@ -163,7 +163,10 @@ jest.mock('@/components/Global/AmountInput', () => ({
                 data-testid="amount-field"
                 value={props.initialAmount ?? ''}
                 onChange={(e) => {
+                    // the real field reports all three in one pass, the dollar side last
+                    props.setDisplayedAmount?.(e.target.value)
                     props.setPrimaryAmount?.(e.target.value)
+                    props.setSecondaryAmount?.('')
                 }}
                 disabled={props.disabled}
             />

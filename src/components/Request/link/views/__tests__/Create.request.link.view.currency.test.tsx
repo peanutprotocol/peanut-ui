@@ -102,6 +102,21 @@ describe('CreateRequestLinkView — request currency', () => {
         expect(amountInputProps()).toEqual(expect.objectContaining({ disabled: true, hideCurrencyToggle: true }))
     })
 
+    it('hands the hook all three sides of the field at once, from the last report', () => {
+        const handleAmountInputChange = jest.fn()
+        renderView({ currency: 'EUR', exchangeRate: 0.8, handleAmountInputChange })
+
+        const props = amountInputProps()
+        // the order the real field reports in
+        props.setDisplayedAmount('50')
+        props.setPrimaryAmount('40')
+        expect(handleAmountInputChange).not.toHaveBeenCalled()
+        props.setSecondaryAmount('50')
+
+        expect(handleAmountInputChange).toHaveBeenCalledTimes(1)
+        expect(handleAmountInputChange).toHaveBeenCalledWith({ primary: '40', secondary: '50', displayed: '50' })
+    })
+
     it('keeps the currency swap while the request is still being written', () => {
         renderView({ currency: 'EUR', requestAmount: '100', exchangeRate: 0.8 })
 

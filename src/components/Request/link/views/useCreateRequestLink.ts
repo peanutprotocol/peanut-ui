@@ -28,7 +28,7 @@ import { useTranslations } from 'next-intl'
 import { parseAsString, useQueryStates } from 'nuqs'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { payLinkUrl, shareableUrl } from '@/utils/url.utils'
-import { usdEquivalent } from '../requestCurrency'
+import { requestAmountFromInput, toApiAmount, usdEquivalent, type AmountInputSides } from '../requestCurrency'
 
 /**
  * State and behaviour for the create-request-link screen: amount/attachment
@@ -65,11 +65,19 @@ export const useCreateRequestLink = () => {
     // What the requester typed, in `currency`.
     const [requestAmount, setRequestAmount] = useState<string>(sanitizedAmount)
     // `exchangeRate` is units of `currency` per dollar.
-    const { exchangeRate } = useExchangeRate({
+    const { exchangeRate: liveRate } = useExchangeRate({
         sourceCurrency: 'USD',
         destinationCurrency: currency,
         enabled: currency !== 'USD',
     })
+    // The last good rate for this currency outlives a failed refetch. The
+    // amount field builds its two sides from the rate once; if the dollar side
+    // vanished while the requester was typing in it, the field read a side that
+    // no longer existed and threw on the next keystroke. The API prices the
+    // request itself, so a rate a few minutes old only ages the estimate.
+    const lastRate = useRef<{ currency: string; rate: number }>({ currency, rate: 0 })
+    if (liveRate > 0) lastRate.current = { currency, rate: liveRate }
+    const exchangeRate = liveRate > 0 ? liveRate : lastRate.current.currency === currency ? lastRate.current.rate : 0
     // The dollar side of the request. Peanut settles in dollars, so the pay
     // link, the wallet and the share label all read this one. For a non-USD
     // request it is an estimate until the API answers with its own figure.
@@ -258,7 +266,7 @@ export const useCreateRequestLink = () => {
                     bankInstructionsShared,
                     // Sent for a non-USD amount alone, so a USD request is the
                     // same body an API without the field accepts.
-                    ...(isDenominated ? { requestedAmount: { amount: requestAmount, currency } } : {}),
+                    ...(isDenominated ? { requestedAmount: { amount: toApiAmount(requestAmount), currency } } : {}),
                 }
 
                 // POST new request
@@ -407,6 +415,13 @@ export const useCreateRequestLink = () => {
         [requestId]
     )
 
+    // Both sides of the amount field, for a requester who swapped it to type
+    // dollars — see `requestAmountFromInput`.
+    const handleAmountInputChange = useCallback(
+        (sides: AmountInputSides) => handleRequestAmountChange(requestAmountFromInput(sides, currency, exchangeRate)),
+        [handleRequestAmountChange, currency, exchangeRate]
+    )
+
     const handleCurrencyChange = useCallback(
         (value: string) => {
             const next = toSupportedExchangeCurrency(value)
@@ -499,6 +514,7 @@ export const useCreateRequestLink = () => {
         bankInstructionsShared,
         setBankInstructionsShared: handleBankInstructionsSharedChange,
         handleRequestAmountChange,
+        handleAmountInputChange,
         handleCurrencyChange,
         handleAttachmentOptionsChange,
         handleTokenAmountSubmit,
