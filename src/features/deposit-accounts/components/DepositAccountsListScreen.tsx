@@ -29,13 +29,12 @@ import { useMemo, useState } from 'react'
 import { corridorsForCountry } from '../countryCorridor'
 import { depositGateView, isDepositBlock } from '../depositGate'
 import { DEFAULT_ACCOUNT_LIMIT, DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, isClaimable, topUpOnlyHref } from '../rails'
-import { isResidenceGated, residenceAllows, RESIDENCE_GATED_CORRIDORS } from '../residenceGate'
+import { isResidenceGated, RESIDENCE_GATED_CORRIDORS } from '../residenceGate'
 import { canShare, isHeld } from '../resolveScreen'
 import type { ClaimableCorridor, DepositAccountView, DepositCorridor, DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { useDepositAccountsEnabled } from '../useDepositAccountsEnabled'
 import { useDepositCountryRouting } from '../useDepositCountryRouting'
-import { useResidenceIso2s } from '../useResidenceIso2s'
 import { CorridorFlag } from './CorridorFlag'
 
 /** the crypto entry point, reached from this screen and from the home Add drawer */
@@ -111,7 +110,6 @@ export function DepositAccountsListScreen({
     // and nothing else — an empty "Your accounts" section under a feature
     // nobody can use yet would only ask a question it cannot answer.
     const accountsEnabled = useDepositAccountsEnabled()
-    const residenceIso2s = useResidenceIso2s()
     // The home drawer already asked bank or crypto, and `?method=bank` is that
     // answer. Offering crypto again here is the question the user just settled.
     const [{ method }] = useQueryStates({ method: parseAsStringEnum(['bank']) })
@@ -237,14 +235,6 @@ export function DepositAccountsListScreen({
         }
     }
 
-    /** the top-up a claimable corridor falls back to, where the user can use it */
-    const standingTopUp = (rail: DepositRail, claimableHere: boolean): string | undefined => {
-        const noStandingAccount = !isHeld(accounts[rail.corridor]) && !claimableHere
-        return rail.topUpHref && noStandingAccount && residenceAllows(rail.corridor, residenceIso2s)
-            ? rail.topUpHref
-            : undefined
-    }
-
     /**
      * Where a row leads.
      *
@@ -253,15 +243,10 @@ export function DepositAccountsListScreen({
      * verification rule. The country list sends Argentina to the same href, so
      * the two entry points cannot disagree.
      *
-     * A corridor that IS a standing account follows its rail's top-up only
-     * where the user holds none, cannot open one here, and lives in the
-     * country — a Brazilian resident waiting on an endorsement. Everything
-     * else opens the corridor screens, which is also where a non-resident
-     * reads the residence rule.
+     * Everything else opens the corridor screens.
      */
-    const openRow = (corridor: DepositCorridor, claimableHere: boolean) => {
-        const rail = DEPOSIT_RAILS[corridor]
-        const topUp = topUpOnlyHref(rail) ?? standingTopUp(rail, claimableHere)
+    const openRow = (corridor: DepositCorridor) => {
+        const topUp = topUpOnlyHref(DEPOSIT_RAILS[corridor])
         if (topUp) {
             // The Manteca top-up is a page of its own, so it must know where the
             // user came from — the hub — or leaving verification strands them on
@@ -425,7 +410,7 @@ export function DepositAccountsListScreen({
                                         trailing={rowBadge(rail, account, gates[corridor])}
                                         chevron={!disabled}
                                         disabled={disabled}
-                                        onClick={() => openRow(corridor, view.claimable)}
+                                        onClick={() => openRow(corridor)}
                                         data-testid={`deposit-account-${corridor}`}
                                     />
                                 )

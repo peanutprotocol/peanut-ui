@@ -322,26 +322,6 @@ const DEPOSIT_ACCOUNT_MXN = {
 } satisfies DepositAccount
 
 /**
- * Reais: a standing Pix account, so the details are a Pix key rather than a
- * code minted for one payment. A business may pay in, another person may not.
- */
-const DEPOSIT_ACCOUNT_BRL = {
-    id: 'fixture-deposit-brl',
-    railId: 'bridge.bank_transfer_br',
-    country: 'BRA',
-    currency: 'BRL',
-    status: 'active',
-    isPrimary: true,
-    matching: { nameOnAccount: 'user', sender: DEPOSIT_RAIL_POLICY.BANK_TRANSFER_BR.sender },
-    rules: DEPOSIT_RAIL_POLICY.BANK_TRANSFER_BR.rules,
-    instructions: {
-        accountHolderName: HOLDER,
-        brCode: '00020126580014br.gov.bcb.pix0136f3a9c0e2-7b41-4d55-9c18-2f0ab6d47e9152040000530398654040.005802BR5913PEANUT6009SAO PAULO62070503***6304A1B2',
-        paymentRails: ['pix'],
-    },
-} satisfies DepositAccount
-
-/**
  * Pesos colombianos: Bre-B names the account by a key the payer types, which
  * is a row of its own beside the bank and the holder.
  */
@@ -434,23 +414,6 @@ const MANTECA_AR_CAPABILITIES = {
             channel: 'bank',
             country: 'AR',
             currency: 'ARS',
-            status: 'enabled',
-        },
-    ],
-    nextActions: [],
-    restrictions: [],
-}
-
-/** A Brazilian user, on the standing Pix corridor rather than the one-off top-up. */
-const BRIDGE_BR_CAPABILITIES = {
-    rails: [
-        {
-            id: 'bridge.bank_transfer_br',
-            provider: 'bridge',
-            method: 'BANK_TRANSFER_BR',
-            channel: 'bank',
-            country: 'BR',
-            currency: 'BRL',
             status: 'enabled',
         },
     ],
@@ -1098,14 +1061,6 @@ export const FIXTURES: Record<string, Fixture> = {
         // The caveats sit under the details card, below the fold.
         fullPage: true,
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
-    },
-    'get-paid-brl': {
-        route: '/add-money?method=bank&step=details&corridor=BANK_TRANSFER_BR',
-        about: 'Brazil: standing Pix details a payer can use again, not a code minted for one payment.',
-        responses: {
-            'GET /users/me': { capabilities: BRIDGE_BR_CAPABILITIES },
-            'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_BRL] },
-        },
     },
     'get-paid-cop': {
         route: '/add-money?method=bank&step=details&corridor=BANK_TRANSFER_CO',

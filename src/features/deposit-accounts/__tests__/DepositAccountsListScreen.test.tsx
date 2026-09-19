@@ -207,18 +207,6 @@ describe('DepositAccountsListScreen', () => {
         expect(inRow(container, 'SEPA_EU').getByText(messages.depositAccounts.list.badgeRevoked)).toBeInTheDocument()
     })
 
-    /**
-     * "Unavailable" is for a corridor that is truly closed. A residence-gated
-     * row is one residence away, so it reads the same as any corridor the user
-     * has not opened — the screen behind the row carries the reason.
-     */
-    it('badges the residence-gated account row the same, and not as unavailable', () => {
-        const { container } = list(false)
-
-        expect(inRow(container, 'BANK_TRANSFER_BR').getByText('Not set up')).toBeInTheDocument()
-        expect(inRow(container, 'BANK_TRANSFER_BR').queryByText('Unavailable')).not.toBeInTheDocument()
-    })
-
     // A row that only points at a top-up flow has no account behind it, so it
     // has no status to carry: a badge there would be a claim about something
     // that does not exist.
@@ -252,11 +240,10 @@ describe("DepositAccountsListScreen renders the user's corridors and no others",
     })
 
     /**
-     * Their own corridors, plus the residence-gated ones everybody sees. The
-     * ARS and BRL rows are no longer absent for a European user — they are
-     * present because the account is worth knowing about before the move, and
-     * the screen behind the row states the residence rule (the row itself is
-     * just "currency · rail" and a badge now).
+     * Their own corridors, plus the residence-gated one everybody sees. The ARS
+     * row is present for a European user because it is worth knowing about
+     * before the move, and the top-up flow behind it states the residence rule.
+     * Brazil has one row, the Pix top-up, for the users whose rails name it.
      */
     it('shows a European user their Bridge corridors plus the residence-gated rows', () => {
         const { container } = list(false, { corridors: ['SEPA_EU', 'FASTER_PAYMENTS_GB', 'ACH_US', 'SPEI_MX'] })
@@ -265,7 +252,6 @@ describe("DepositAccountsListScreen renders the user's corridors and no others",
             expect(rowOf(container, corridor)).toBeInTheDocument()
         }
         expect(rowOf(container, 'BANK_TRANSFER_AR')).toBeInTheDocument()
-        expect(rowOf(container, 'BANK_TRANSFER_BR')).toBeInTheDocument()
         // a corridor with neither a rail nor the residence rule stays absent
         expect(rowOf(container, 'PIX_BR')).not.toBeInTheDocument()
     })
@@ -280,7 +266,6 @@ describe("DepositAccountsListScreen renders the user's corridors and no others",
         const { container } = list(false, { corridors: [], gates: allGates({ kind: 'needs-enrollment' }) })
 
         expect(rowOf(container, 'SEPA_EU')).not.toBeInTheDocument()
-        expect(rowOf(container, 'BANK_TRANSFER_BR')).toBeInTheDocument()
         expect(rowOf(container, 'BANK_TRANSFER_AR')).toBeInTheDocument()
         // COP is not residence-gated, so its row belongs to the users whose
         // rails name it, like MXN
@@ -558,11 +543,11 @@ describe('DepositAccountsListScreen when a corridor is blocked after the fact', 
 
 describe('the residence-gated rows and the tap behind them', () => {
     /**
-     * The BR and CO rows are everybody's. They stay present and tappable
-     * whatever the identity gate says — the explainer behind them is where the
-     * residence rule is stated now that the row carries no caveat subtitle.
+     * The Argentine row is everybody's. It stays present and tappable whatever
+     * the identity gate says: the top-up flow behind it states the residence
+     * rule.
      */
-    it('leaves the residence-gated rows alone when residence is unknown', () => {
+    it('leaves the residence-gated row alone when residence is unknown', () => {
         const gates = allGates({ kind: 'needs-identity' })
         const { container } = list(false, {
             gates,
@@ -570,8 +555,8 @@ describe('the residence-gated rows and the tap behind them', () => {
             accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU') },
         })
 
-        expect(rowOf(container, 'BANK_TRANSFER_BR')).toBeInTheDocument()
-        expect(rowOf(container, 'BANK_TRANSFER_BR')).not.toHaveAttribute('aria-disabled', 'true')
+        expect(rowOf(container, 'BANK_TRANSFER_AR')).toBeInTheDocument()
+        expect(rowOf(container, 'BANK_TRANSFER_AR')).not.toHaveAttribute('aria-disabled', 'true')
     })
 
     it('carries an Argentine row for everybody', () => {
@@ -598,25 +583,19 @@ describe('the residence-gated rows and the tap behind them', () => {
         expect(onOpen).not.toHaveBeenCalled()
     })
 
-    it('falls back to the Pix top-up for a Brazilian resident with no account and no endorsement', () => {
-        residenceIso2s = ['BR']
-        const gates = allGates({ kind: 'needs-enrollment' })
+    /**
+     * Brazil has ONE row. Reais stay on the per-payment Pix code, so there is
+     * no standing account beside it: two rows led a Brazilian resident to the
+     * same top-up.
+     */
+    it('shows one Brazilian row, the Pix top-up, and sends it to the local flow', () => {
         const onOpen = jest.fn()
-        const { container } = list(false, { corridors: ['BANK_TRANSFER_BR'], gates, onOpen })
+        const { container } = list(false, { corridors: ['PIX_BR'], onOpen })
 
-        fireEvent.click(rowOf(container, 'BANK_TRANSFER_BR') as HTMLElement)
+        expect(container.querySelectorAll('[data-testid^="deposit-account-"][data-testid*="_BR"]')).toHaveLength(1)
+        fireEvent.click(rowOf(container, 'PIX_BR') as HTMLElement)
         expect(mockPush).toHaveBeenCalledWith(withReturnTo('/add-money/brazil/manteca', HUB_RETURN))
         expect(onOpen).not.toHaveBeenCalled()
-    })
-
-    it('opens the claim for a Brazilian resident who is endorsed', () => {
-        residenceIso2s = ['BR']
-        const onOpen = jest.fn()
-        const { container } = list(false, { corridors: ['BANK_TRANSFER_BR'], onOpen })
-
-        fireEvent.click(rowOf(container, 'BANK_TRANSFER_BR') as HTMLElement)
-        expect(onOpen).toHaveBeenCalledWith('BANK_TRANSFER_BR')
-        expect(mockPush).not.toHaveBeenCalled()
     })
 })
 
@@ -874,16 +853,16 @@ describe('the countries collapsible', () => {
 })
 
 /**
- * Brazil and Argentina are open to residents alone. Everybody sees the row —
- * the account is worth knowing about before you move — and the screen behind
- * the tap states the rule (the row itself carries no caveat subtitle now).
+ * Argentina is open to residents alone. Everybody sees the row — it is worth
+ * knowing about before you move — and the top-up flow behind the tap states
+ * the rule.
  */
 describe('the residence-gated rows', () => {
-    it('shows BRL and ARS to every user', () => {
+    it('shows ARS to every user, and no Brazilian row to a user with no Brazilian rail', () => {
         const { container } = list(false, { corridors: ['SEPA_EU'] })
 
-        expect(rowOf(container, 'BANK_TRANSFER_BR')).toBeInTheDocument()
         expect(rowOf(container, 'BANK_TRANSFER_AR')).toBeInTheDocument()
+        expect(rowOf(container, 'PIX_BR')).not.toBeInTheDocument()
     })
 
     /**
@@ -902,9 +881,10 @@ describe('the residence-gated rows', () => {
         const onOpen = jest.fn()
         const { container } = list(false, { corridors: ['SEPA_EU'], onOpen })
 
-        expect(rowOf(container, 'BANK_TRANSFER_BR')).not.toHaveAttribute('aria-disabled', 'true')
-        fireEvent.click(rowOf(container, 'BANK_TRANSFER_BR') as HTMLElement)
-        expect(onOpen).toHaveBeenCalledWith('BANK_TRANSFER_BR')
+        expect(rowOf(container, 'BANK_TRANSFER_AR')).not.toHaveAttribute('aria-disabled', 'true')
+        fireEvent.click(rowOf(container, 'BANK_TRANSFER_AR') as HTMLElement)
+        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/add-money/argentina/manteca', HUB_RETURN))
+        expect(onOpen).not.toHaveBeenCalled()
     })
 })
 

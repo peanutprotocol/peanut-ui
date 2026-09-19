@@ -4063,51 +4063,34 @@
         },
         "corridors": {
             "SEPA_EU": {
-                "arrival": "No mesmo dia útil",
                 "arrivalDetail": "As transferências SEPA costumam chegar no mesmo dia útil, no máximo em dois.",
                 "railName": "SEPA"
             },
             "FASTER_PAYMENTS_GB": {
-                "arrival": "Em minutos",
                 "arrivalDetail": "Os Faster Payments costumam chegar em minutos.",
                 "railName": "Faster Payments"
             },
             "ACH_US": {
-                "arrival": "1 a 3 dias úteis",
                 "arrivalDetail": "O ACH chega em um a três dias úteis. Uma transferência wire chega no mesmo dia.",
                 "railName": "ACH ou wire"
             },
             "SPEI_MX": {
-                "arrival": "Em minutos",
                 "arrivalDetail": "As transferências SPEI costumam chegar em minutos.",
                 "railName": "SPEI"
             },
             "PIX_BR": {
-                "arrival": "Em minutos",
                 "arrivalDetail": "As transferências Pix costumam chegar em minutos.",
                 "railName": "Pix"
             },
             "BANK_TRANSFER_AR": {
-                "arrival": "Em minutos",
                 "arrivalDetail": "As transferências na Argentina costumam chegar em minutos.",
                 "railName": "Banco ou Mercado Pago",
                 "residenceTitle": "Residência necessária",
-                "residenceOnly": "Para residentes legais na Argentina",
                 "residenceRequired": "Só residentes legais na Argentina podem adicionar dinheiro assim. Sua nacionalidade não importa; o país onde você mora, sim.",
                 "qrPay": "Você ainda pode pagar códigos QR do Mercado Pago na Argentina com o seu saldo."
             },
-            "BANK_TRANSFER_BR": {
-                "arrival": "Em minutos",
-                "arrivalDetail": "As transferências Pix costumam chegar em minutos.",
-                "railName": "Pix",
-                "residenceTitle": "CPF obrigatório",
-                "residenceOnly": "Precisa de CPF",
-                "residenceRequired": "Uma conta em BRL precisa de CPF (o CPF do Brasil) e de residência no Brasil verificada. Sua residência é verificada na sua checagem de identidade, então precisa ser onde você realmente mora.",
-                "qrPay": "Você ainda pode pagar códigos Pix no Brasil com o seu saldo."
-            },
             "BANK_TRANSFER_CO": {
                 "railName": "Bre-B",
-                "arrival": "Em minutos",
                 "arrivalDetail": "As transferências Bre-B costumam chegar em minutos."
             }
         },

@@ -7,7 +7,7 @@ import { trackDetailsViewed, trackGateBlocked } from '../analytics'
 import { DEPOSIT_ACCOUNT_PARAMS } from '../params'
 import { DEPOSIT_RAILS, isClaimable } from '../rails'
 import { depositGateView, isDepositBlock } from '../depositGate'
-import { isResidenceGated, residenceAllows } from '../residenceGate'
+import { isResidenceGated } from '../residenceGate'
 import { canShare, isHeld, resolveScreen } from '../resolveScreen'
 import type { ClaimableCorridor, DepositAccountView, DepositCorridor } from '../types'
 import type { DepositClaimError } from '../useDepositAccounts'
@@ -15,7 +15,6 @@ import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import NavHeader from '@/components/Global/NavHeader'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
-import { useResidenceIso2s } from '../useResidenceIso2s'
 import { ClaimAccountScreen } from './ClaimAccountScreen'
 import { CorridorGateScreen } from './CorridorGateScreen'
 import { CorridorUnavailableScreen } from './CorridorUnavailableScreen'
@@ -105,7 +104,6 @@ export function DepositAccountsFlow({
         if (legacyStep) setParams({ step: legacyStep, screen: null })
     }, [legacyStep, setParams])
     const { t, railName, claimErrorBody } = useDepositAccountCopy()
-    const residenceIso2s = useResidenceIso2s()
     const rail = DEPOSIT_RAILS[corridor]
     const account = accounts[corridor]
     const gate = gates[corridor]
@@ -162,13 +160,6 @@ export function DepositAccountsFlow({
                 </div>
             </PageStack>
         )
-    }
-
-    // The corridor exists and the user does not live there. Said before any
-    // claim, because the claim would fail at the provider with a sentence
-    // written for us rather than for them.
-    if (screen !== 'list' && isClaimable(rail) && !residenceAllows(corridor, residenceIso2s)) {
-        return <CorridorUnavailableScreen rail={rail} requiresResidence onBack={() => setParams({ step: 'list' })} />
     }
 
     /**

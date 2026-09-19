@@ -1787,10 +1787,6 @@
             }
         },
         "corridors": {
-            "BANK_TRANSFER_BR": {
-                "residenceRequired": "Una cuenta en BRL necesita un CPF (la identificación tributaria de Brasil) y una residencia en Brasil verificada. Tu residencia se verifica en tu control de identidad, así que tiene que ser donde realmente vivís.",
-                "qrPay": "De todas formas podés pagar códigos Pix en Brasil con tu saldo."
-            },
             "BANK_TRANSFER_AR": {
                 "residenceRequired": "Solo los residentes legales de Argentina pueden agregar plata así. Tu nacionalidad no importa; el país donde vivís, sí.",
                 "qrPay": "De todas formas podés pagar códigos QR de Mercado Pago en Argentina con tu saldo."

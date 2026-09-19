@@ -1,12 +1,10 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
-import { rewriteMethodPath } from '@/utils/native-routes'
 import type { DepositGateView } from '../depositGate'
 import type { DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
@@ -97,9 +95,6 @@ export function CorridorGateScreen({
 }) {
     const { t, railName } = useDepositAccountCopy()
     const waiting = WAITS.has(notice.action)
-    // A gate on the standing account does not close the country. Where the rail
-    // has a top-up, waiting on the gate is not the user's only option.
-    const topUpHref = rail.topUpHref ? rewriteMethodPath(rail.topUpHref) : undefined
 
     return (
         <PageStack>
@@ -115,21 +110,14 @@ export function CorridorGateScreen({
                     title={t(TITLES[notice.action], { count: slotsHeld })}
                     description={notice.message ?? t(BODIES[notice.action], { currency: rail.currency })}
                     cta={
-                        <div className="mt-4 flex w-full flex-col items-center gap-4">
-                            <Button
-                                variant="purple"
-                                className="w-full"
-                                onClick={waiting ? onBack : onAct}
-                                data-testid={`corridor-gate-${notice.action}`}
-                            >
-                                {t(LABELS[notice.action])}
-                            </Button>
-                            {topUpHref && (
-                                <LinkButton href={topUpHref} data-testid="corridor-top-up">
-                                    {t('details.topUpCta', { currency: rail.currency })}
-                                </LinkButton>
-                            )}
-                        </div>
+                        <Button
+                            variant="purple"
+                            className="mt-4 w-full"
+                            onClick={waiting ? onBack : onAct}
+                            data-testid={`corridor-gate-${notice.action}`}
+                        >
+                            {t(LABELS[notice.action])}
+                        </Button>
                     }
                 />
                 {/* which corridor the user tapped, so the screen is not about "an account" */}

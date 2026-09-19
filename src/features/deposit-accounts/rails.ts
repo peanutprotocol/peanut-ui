@@ -43,18 +43,6 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         flagIso2: 'mx',
         detailRowCount: 3,
     },
-    BANK_TRANSFER_BR: {
-        corridor: 'BANK_TRANSFER_BR',
-        currency: 'BRL',
-        provider: 'bridge',
-        flagIso2: 'br',
-        detailRowCount: 3,
-        residenceIso2: 'BR',
-        qrPay: true,
-        // A Brazilian resident with no standing account and no endorsement is
-        // not stuck: the Pix top-up is the same money in, minted per payment.
-        topUpHref: '/add-money/brazil/manteca',
-    },
     BANK_TRANSFER_CO: {
         corridor: 'BANK_TRANSFER_CO',
         currency: 'COP',
@@ -88,7 +76,6 @@ export const DEPOSIT_RAIL_ORDER: DepositCorridor[] = [
     'FASTER_PAYMENTS_GB',
     'ACH_US',
     'SPEI_MX',
-    'BANK_TRANSFER_BR',
     'BANK_TRANSFER_CO',
     'PIX_BR',
     'BANK_TRANSFER_AR',

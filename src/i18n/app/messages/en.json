@@ -4063,51 +4063,34 @@
         },
         "corridors": {
             "SEPA_EU": {
-                "arrival": "Same business day",
                 "arrivalDetail": "SEPA transfers usually arrive the same business day, at most in two.",
                 "railName": "SEPA"
             },
             "FASTER_PAYMENTS_GB": {
-                "arrival": "Within minutes",
                 "arrivalDetail": "Faster Payments usually arrive within minutes.",
                 "railName": "Faster Payments"
             },
             "ACH_US": {
-                "arrival": "1–3 business days",
                 "arrivalDetail": "ACH arrives in one to three business days. A wire arrives the same day.",
                 "railName": "ACH or wire"
             },
             "SPEI_MX": {
-                "arrival": "Within minutes",
                 "arrivalDetail": "SPEI transfers usually arrive within minutes.",
                 "railName": "SPEI"
             },
             "PIX_BR": {
-                "arrival": "Within minutes",
                 "arrivalDetail": "Pix transfers usually arrive within minutes.",
                 "railName": "Pix"
             },
             "BANK_TRANSFER_AR": {
-                "arrival": "Within minutes",
                 "arrivalDetail": "Argentine transfers usually arrive within minutes.",
                 "railName": "Bank or Mercado Pago",
                 "residenceTitle": "Residence required",
-                "residenceOnly": "For legal residents of Argentina",
                 "residenceRequired": "Only legal residents of Argentina can add money this way. Your nationality does not matter — where you live does.",
                 "qrPay": "You can still pay a Mercado Pago QR code in Argentina from your balance."
             },
-            "BANK_TRANSFER_BR": {
-                "arrival": "Within minutes",
-                "arrivalDetail": "Pix transfers usually arrive within minutes.",
-                "railName": "Pix",
-                "residenceTitle": "CPF required",
-                "residenceOnly": "Needs a Brazilian tax ID (CPF)",
-                "residenceRequired": "A BRL account needs a Brazilian tax ID (CPF) and a verified Brazilian residence. Your residence is verified at your ID check, so it must be where you genuinely live.",
-                "qrPay": "You can still pay Pix codes in Brazil from your balance."
-            },
             "BANK_TRANSFER_CO": {
                 "railName": "Bre-B",
-                "arrival": "Within minutes",
                 "arrivalDetail": "Bre-B transfers usually arrive within minutes."
             }
         },
