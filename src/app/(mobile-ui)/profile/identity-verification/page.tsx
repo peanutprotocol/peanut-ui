@@ -1,23 +1,21 @@
-import { redirect } from 'next/navigation'
+'use client'
+
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import Loading from '@/components/Global/Loading'
 
 /**
- * The Accounts & payments screen moved here from /profile/identity-verification
- * (2026-09-19, ui#3271 QA follow-ups) — the visible title had read "Accounts
- * and payments" since the currency-first merge, but the URL segment stayed
- * stale. This stub keeps every old link (deep links, bookmarks, in-app hrefs
- * not yet swept) working by forwarding to the new path with its query intact.
+ * Routing alias for /profile/accounts-and-payments. The backend's KYC push and
+ * email deep links, including ones already delivered, still carry this path
+ * with `?step=…&provider=…`. The redirect runs on the client because the
+ * native static export cannot render a server redirect that reads searchParams.
+ * Remove once the backend templates point at the new path and sent links have aged out.
  */
-export default async function IdentityVerificationRedirect({
-    searchParams,
-}: {
-    searchParams: Promise<Record<string, string | string[] | undefined>>
-}) {
-    const params = await searchParams
-    const query = new URLSearchParams()
-    for (const [key, value] of Object.entries(params)) {
-        if (Array.isArray(value)) value.forEach((v) => query.append(key, v))
-        else if (value !== undefined) query.set(key, value)
-    }
-    const qs = query.toString()
-    redirect(`/profile/accounts-and-payments${qs ? `?${qs}` : ''}`)
+export default function IdentityVerificationAlias() {
+    const router = useRouter()
+    useEffect(() => {
+        // The whole query is forwarded untouched, so there is no param for nuqs to type.
+        router.replace(`/profile/accounts-and-payments${window.location.search}`)
+    }, [router])
+    return <Loading />
 }
