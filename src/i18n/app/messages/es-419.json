@@ -3046,7 +3046,7 @@
             "description": "Nuestro socio de pagos necesita algunas cosas más antes de que funcionen tus transferencias bancarias.",
             "descriptionAdvisory": "Nuestro socio de pagos necesita algunas cosas más para que tus transferencias bancarias sigan funcionando.",
             "checking": "Consultando con nuestro socio de pagos…",
-            "stillPending": "Si terminaste la verificación, no hace falta hacer nada más. El estado puede tardar unos minutos en actualizarse, y volver a empezar crea una verificación nueva.",
+            "stillPending": "Si terminaste la verificación, no hace falta hacer nada más. El estado puede tardar unos minutos en actualizarse, o de 1 a 3 días hábiles si lo revisa una persona. Volver a empezar crea una verificación nueva.",
             "done": {
                 "title": "Aquí ya no queda nada por hacer",
                 "description": "Este paso de verificación ya no es necesario. Tu estado actual está en tu perfil.",

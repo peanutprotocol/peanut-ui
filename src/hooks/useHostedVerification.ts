@@ -76,7 +76,6 @@ export function useHostedVerification(
     const expediteRef = useRef(true)
     const timersRef = useRef<ReturnType<typeof setTimeout>[]>([])
     const taskPendingRef = useRef(taskPending)
-    taskPendingRef.current = taskPending
 
     const clearTimers = useCallback(() => {
         for (const timer of timersRef.current) clearTimeout(timer)
@@ -109,6 +108,9 @@ export function useHostedVerification(
             void fetchUser().catch(() => undefined)
             return
         }
+        // One window per launch: the launch is consumed here, so a signal after
+        // the window closes is one refetch until the user starts again.
+        startedRef.current = false
         windowOpenRef.current = true
         expediteRef.current = true
         setStillPendingAfterReturn(false)
@@ -123,8 +125,11 @@ export function useHostedVerification(
         ]
     }, [actionKey, fetchUser, nudge, closeWindow])
 
-    // The task clearing — capabilities re-derived by any refetch — ends the window.
+    // The task clearing — capabilities re-derived by any refetch — ends the
+    // window. The ref is written here, after commit, so the wall-clock timer
+    // never reads a value from a render React discarded.
     useEffect(() => {
+        taskPendingRef.current = taskPending
         if (windowOpenRef.current && !taskPending) closeWindow(false)
     }, [taskPending, closeWindow])
 
@@ -135,7 +140,6 @@ export function useHostedVerification(
         startingRef.current = true
         try {
             setError(null)
-            startedRef.current = true
             if (windowOpenRef.current) closeWindow(false)
             setStillPendingAfterReturn(false)
             // NOT an iframe: `bridge.withpersona.com` serves
@@ -201,7 +205,10 @@ export function useHostedVerification(
                     // No usable tab: pop-ups were blocked, or the user closed
                     // the blank tab while we fetched. Same-tab
                     // navigation is never gesture-gated, so it always lands.
+                    // A BFCache restore is this path's return leg, so the
+                    // launch is armed before navigating away.
                     reservedTab?.close()
+                    startedRef.current = true
                     window.location.href = url
                     return
                 }
@@ -211,6 +218,9 @@ export function useHostedVerification(
                 setError("We couldn't open the verification. Please try again in a moment.")
                 return
             }
+            // Armed only by a handoff that happened: a failed launch must not
+            // turn the next tab switch or restore into a settle window.
+            startedRef.current = true
             setAwaitingReturn(true)
         } finally {
             startingRef.current = false
