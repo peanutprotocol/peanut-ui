@@ -15,7 +15,7 @@ import { depositGateView } from '../depositGate'
 import { resolveScreen } from '../resolveScreen'
 import { DEPOSIT_RAILS, corridorRecord, emptyCorridorRecord } from '../rails'
 import { DepositAccountsFlow } from '../components/DepositAccountsFlow'
-import type { ClaimableCorridor, DepositAccountView, DepositCorridor } from '../types'
+import type { ClaimableCorridor, DepositAccountView, DepositCorridor, UnavailableCorridor } from '../types'
 import type { EndorsementReview } from '../useEndorsementReview'
 import type { GateState } from '@/utils/capability-gate'
 
@@ -296,5 +296,61 @@ describe('the screen a blocked corridor lands on', () => {
         // tap: the user is watching this screen while the provider answers.
         rerender(flow(flowProps()))
         expect(screen.getByTestId('claim')).toBeInTheDocument()
+    })
+})
+
+/*
+ * The hub badges a corridor the backend withheld with the backend's own
+ * reason, and the row is tappable. The screen behind it read the capability
+ * gate alone, which answers `needs-enrollment` for a user whose identity check
+ * ended terminally — so a row badged "Contact support" led to "Verify your
+ * identity" and a verification run that cannot lift the block.
+ */
+describe('the screen behind a corridor the backend withheld', () => {
+    const withheldProps = (reason: UnavailableCorridor['reason'], gate: GateState = { kind: 'needs-enrollment' }) => ({
+        ...flowProps(undefined, false, gate),
+        claimable: emptyCorridorRecord<ClaimableCorridor>(),
+        unavailable: { ...emptyCorridorRecord<UnavailableCorridor>(), [CORRIDOR]: withheldCorridor(reason) },
+    })
+
+    const withheldCorridor = (reason: UnavailableCorridor['reason']): UnavailableCorridor => ({
+        railId: 'bridge.sepa_eu',
+        method: CORRIDOR,
+        country: 'EU',
+        currency: 'EUR',
+        reason,
+    })
+
+    it('support-required: offers a person, and never a verification run', () => {
+        const props = withheldProps('support-required')
+        render(flow(props))
+        expect(screen.getByText(GATE.blockedTitle)).toBeInTheDocument()
+        expect(screen.queryByText(GATE.verifyTitle)).not.toBeInTheDocument()
+        fireEvent.click(screen.getByTestId('corridor-gate-support'))
+        expect(props.onContactSupport).toHaveBeenCalledWith(CORRIDOR, 'blocked')
+        expect(props.onResolveGate).not.toHaveBeenCalled()
+    })
+
+    it('identity-required: leads into verification, which is what the badge promised', () => {
+        const props = withheldProps('identity-required')
+        render(flow(props))
+        expect(screen.getByText(GATE.verifyTitle)).toBeInTheDocument()
+        fireEvent.click(screen.getByTestId('corridor-gate-verify'))
+        expect(props.onResolveGate).toHaveBeenCalledTimes(1)
+        expect(props.onContactSupport).not.toHaveBeenCalled()
+    })
+
+    it('support-required wins over the gate even where the gate had nothing to say', () => {
+        // `pending` reads "nothing for you to do" — which is not the answer for
+        // a user whose only way through is a person.
+        const props = withheldProps('support-required', { kind: 'pending' })
+        render(flow(props))
+        expect(screen.getByTestId('corridor-gate-support')).toBeInTheDocument()
+    })
+
+    it('leaves a precise gate answer alone: the terms sheet is not a support ticket', () => {
+        const props = withheldProps('support-required', { kind: 'accept-tos', tosUrl: 'https://x' } as GateState)
+        render(flow(props))
+        expect(screen.getByTestId('corridor-gate-accept-tos')).toBeInTheDocument()
     })
 })

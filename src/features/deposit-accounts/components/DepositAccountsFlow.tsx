@@ -204,12 +204,36 @@ export function DepositAccountsFlow({
         ['rejected', 'revoked'].includes(issue.toLowerCase())
     )
     const canFinishReview = !!review && !reviewClosed && !review.needsSupport.has(corridor)
-    const gateNotice =
-        rawGateNotice?.action === 'account-limit' && slotsHeld === 0
-            ? { ...rawGateNotice, action: 'support' as const }
-            : rawGateNotice?.action === 'finish-review' && !canFinishReview
-              ? { ...rawGateNotice, action: 'finish-review-support' as const }
-              : rawGateNotice
+    /**
+     * Why the BACKEND withholds this corridor, where it said so.
+     *
+     * It answers for this user. The capability gate answers for the rail, and
+     * `needs-enrollment` is its answer both for "no rail here yet" and for a
+     * user whose identity check ended terminally. The hub badges that second
+     * case "Contact support" and the row leads here, so without this the
+     * destination offered a verification run that cannot help them, under a
+     * badge that said otherwise — a row naming an action the user cannot take
+     * (design.md, "rows the user cannot act on").
+     *
+     * Only the identity-shaped answers are replaced. A terms block or a missing
+     * email is a precise, actionable reason, and the backend's coarser one must
+     * not overwrite it.
+     */
+    const withheld = unavailable?.[corridor]?.reason
+    const withheldAction =
+        (withheld === 'support-required' || withheld === 'identity-required') &&
+        (!rawGateNotice || rawGateNotice.action === 'verify' || rawGateNotice.action === 'none')
+            ? withheld === 'support-required'
+                ? ('support' as const)
+                : ('verify' as const)
+            : undefined
+    const gateNotice = withheldAction
+        ? { kind: gate.kind, message: rawGateNotice?.message ?? null, action: withheldAction }
+        : rawGateNotice?.action === 'account-limit' && slotsHeld === 0
+          ? { ...rawGateNotice, action: 'support' as const }
+          : rawGateNotice?.action === 'finish-review' && !canFinishReview
+            ? { ...rawGateNotice, action: 'finish-review-support' as const }
+            : rawGateNotice
     if (
         screen !== 'list' &&
         !namesUnknownCorridor &&
@@ -228,6 +252,10 @@ export function DepositAccountsFlow({
                 actFailed={review?.failedCorridor === corridor}
                 onBack={() => setParams({ step: 'list' })}
                 onAct={() => {
+                    // A corridor the backend withheld for support is not
+                    // something the capability gate can resolve: its own answer
+                    // here is a verification run that cannot lift the block.
+                    if (withheldAction === 'support') return onContactSupport(corridor, 'blocked')
                     // A block from the backend's own terms has nothing for the
                     // capability gate to resolve, whatever that gate reads.
                     if (!isDepositBlock(gateNotice.kind)) return onResolveGate(gate)
