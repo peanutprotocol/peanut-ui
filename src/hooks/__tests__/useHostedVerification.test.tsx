@@ -13,7 +13,7 @@ const CLOSED_EVENT = 'peanut:in-app-browser-closed'
 const mockFetchUser = jest.fn(() => Promise.resolve())
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ fetchUser: mockFetchUser }) }))
 
-const mockRefreshKyc = jest.fn(() => Promise.resolve({ refreshed: false }))
+const mockRefreshKyc = jest.fn(() => Promise.resolve({ expedited: false }))
 jest.mock('@/app/actions/sumsub', () => ({
     startHostedVerification: jest.fn(() => Promise.resolve({ url: 'https://bridge.withpersona.com/verify' })),
     refreshKycState: () => mockRefreshKyc(),
@@ -94,9 +94,19 @@ describe('useHostedVerification (native)', () => {
             expect(hook.result.current.isSettling).toBe(true)
             expect(mockRefreshKyc).toHaveBeenCalledTimes(1)
 
+            // refetches every 5s; the provider read is paced to 0s / 20s / 40s
+            const fetches = mockFetchUser.mock.calls.length
             await act(async () => {
                 jest.advanceTimersByTime(5_000)
             })
+            expect(mockFetchUser.mock.calls.length).toBeGreaterThan(fetches)
+            expect(mockRefreshKyc).toHaveBeenCalledTimes(1)
+            // each round re-arms through state, so step the clock one round at a time
+            for (let i = 0; i < 3; i++) {
+                await act(async () => {
+                    jest.advanceTimersByTime(5_000)
+                })
+            }
             expect(mockRefreshKyc).toHaveBeenCalledTimes(2)
 
             taskPending = false
