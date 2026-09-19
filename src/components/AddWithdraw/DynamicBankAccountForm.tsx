@@ -683,12 +683,6 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                     required: t('bicRequired'),
                                     validate: async (value: string) => {
                                         if (!value || value.trim().length === 0) return t('bicRequired')
-                                        // A BIC registered in another member state than the
-                                        // IBAN is routine — Revolut issues Spanish IBANs
-                                        // under a Lithuanian BIC — so it is a note under
-                                        // the field, never a refusal. The provider is the
-                                        // only authority on a BIC, and `validateBic` below
-                                        // asks it.
                                         // Only validate if the value matches the debounced value (to prevent API calls on every keystroke)
                                         if (value.trim() !== debouncedBicValue?.trim()) {
                                             return true // Skip validation until debounced value is ready
@@ -709,7 +703,12 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                 },
                                 undefined,
                                 undefined,
-                                bicValue && bicCountryDiffersFromIban(bicValue, getValues('accountNumber') ?? '')
+                                // A BIC registered in another member state than the IBAN is
+                                // routine — Revolut issues Spanish IBANs under a Lithuanian
+                                // BIC — so it is a note under the field, never a refusal.
+                                // The provider is the only authority on a BIC, and
+                                // `validateBic` above asks it.
+                                !!bicValue && bicCountryDiffersFromIban(bicValue, getValues('accountNumber') ?? '')
                                     ? t('bicCountryMismatch')
                                     : undefined
                             )}
