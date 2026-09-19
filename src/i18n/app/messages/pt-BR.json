@@ -1221,7 +1221,8 @@
             "otherWays": "Ver outras formas de pagar"
         },
         "requestAsksFor": "Pedido de {amount} {currency}",
-        "requestAsksForDollars": "${amount} em dólar, fixado quando a solicitação foi criada"
+        "requestAsksForDollars": "${amount} em dólar, fixado quando a solicitação foi criada",
+        "requestAlreadyCovered": "Esta solicitação já está coberta. Não falta nada a pagar."
     },
     "claim": {
         "receive": "Receber",

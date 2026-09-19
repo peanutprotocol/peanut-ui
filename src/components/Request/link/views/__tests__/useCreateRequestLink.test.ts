@@ -323,11 +323,18 @@ describe('useCreateRequestLink', () => {
 
         expect(apiUpdate).toHaveBeenCalledWith('req-1', expect.objectContaining({ reference: 'lunch' }))
         // The API refuses a changed amount or token on a request asked in a fiat
-        // currency (409 REQUEST_AMOUNT_LOCKED). An update never carries either.
+        // currency (409 REQUEST_AMOUNT_LOCKED). An update never carries any of them.
         const updateBody = apiUpdate.mock.calls[0][1]
-        expect(updateBody).not.toHaveProperty('tokenAmount')
-        expect(updateBody).not.toHaveProperty('tokenSymbol')
-        expect(updateBody).not.toHaveProperty('requestedAmount')
+        for (const locked of [
+            'tokenAmount',
+            'tokenSymbol',
+            'tokenAddress',
+            'tokenDecimals',
+            'tokenType',
+            'requestedAmount',
+        ]) {
+            expect(updateBody).not.toHaveProperty(locked)
+        }
     })
 
     describe('the request currency', () => {

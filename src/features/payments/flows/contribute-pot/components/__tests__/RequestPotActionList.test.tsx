@@ -290,6 +290,27 @@ describe('RequestPotActionList', () => {
             expect(screen.queryByTestId('bank-rows-loading')).not.toBeInTheDocument()
         })
 
+        /**
+         * A request that is still open with nothing left to pay: the API lists no
+         * bank rail and its bank details answer 404. The generic row used to show
+         * and open onto "not available".
+         */
+        it('shows no bank row and says the request is covered when nothing is left', () => {
+            mockPayAmounts = { requestCurrency: 'USD', requestAmount: '100.00', remainingAmount: '0', rails: [usdRail] }
+            renderList()
+
+            expect(rowOrder()).toEqual(['Bank', 'Exchange or Wallet'])
+            expect(mockDrawer).not.toHaveBeenCalled()
+            expect(screen.getByTestId('request-already-covered')).toBeInTheDocument()
+        })
+
+        it('does not call an open-amount request covered', () => {
+            mockPayAmounts = { requestCurrency: 'USD', requestAmount: null, remainingAmount: null, rails: [usdRail] }
+            renderList()
+
+            expect(screen.queryByTestId('request-already-covered')).not.toBeInTheDocument()
+        })
+
         // An API that predates the route: one generic row, and the backend picks the account.
         it('keeps the one generic bank row when the API returns no rails', () => {
             renderList()

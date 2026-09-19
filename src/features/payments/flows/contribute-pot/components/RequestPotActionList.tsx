@@ -215,6 +215,12 @@ export function RequestPotActionList({
     const apiRemainingUsd = Number(payAmounts?.rails.find((rail) => rail.kind === 'peanut_balance')?.payerAmount.amount)
     const serverCountsAllPayments =
         remainingUsd === undefined || (apiRemainingUsd > 0 && apiRemainingUsd <= remainingUsd + 0.005)
+    // `remainingAmount` is "0" once everything asked for has arrived. Null means
+    // an open amount or no figure, which is not "covered".
+    const alreadyCovered =
+        payAmounts?.remainingAmount !== null &&
+        payAmounts?.remainingAmount !== undefined &&
+        Number(payAmounts.remainingAmount) === 0
     const bankRowProps = {
         bankPayable,
         usdAmount: isDollarRequest ? usdAmount : undefined,
@@ -225,8 +231,11 @@ export function RequestPotActionList({
               : remainingUsd,
         serverCountsAllPayments,
     }
-    // No rails — an API that predates pay-amounts, or a failed read — keeps the
-    // one generic row, and the backend picks the account.
+    // The generic row, where the backend picks the account, is for one case: the
+    // pay-amounts read gave NOTHING, because the API predates the route or the
+    // read failed. An answer that lists no bank rail is an answer: a request
+    // whose remainder is zero has none, and its bank details answer 404. The
+    // generic row there opened onto "not available".
     // While the rails are loading the rows are not known: one generic row, or
     // one per currency. Rendering the generic row first and swapping it for the
     // per-rail rows changes their keys, and a drawer the payer had already
@@ -250,7 +259,7 @@ export function RequestPotActionList({
                 {...bankRowProps}
             />
         ))
-    ) : (
+    ) : payAmounts ? null : (
         <PayByBankTransferDrawer requestId={requestId} {...bankRowProps} />
     )
 
@@ -285,6 +294,13 @@ export function RequestPotActionList({
     return (
         <div className="space-y-2">
             {otherCurrencyNote && <Notification priority="helper">{otherCurrencyNote}</Notification>}
+            {/* Open, and with nothing left to pay: say so, where the bank rows
+                would have been a dead end. */}
+            {alreadyCovered && (
+                <Notification priority="helper" data-testid="request-already-covered">
+                    {t('requestAlreadyCovered')}
+                </Notification>
+            )}
 
             {/* pay with peanut button */}
             <SendWithPeanutCta
