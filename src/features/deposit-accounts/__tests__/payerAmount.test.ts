@@ -90,6 +90,17 @@ describe('readServerPayerAmount', () => {
         expect(readServerPayerAmount({ amount: '10', currency: 'EUR' })?.isEstimate).toBe(true)
     })
 
+    // "Nothing left to pay" is an answer the contract gives in as many words.
+    // Dropping it fell back to the client conversion, which states the FULL
+    // amount on a request that needs none.
+    it('reads a zero amount as the figure it is', () => {
+        expect(readServerPayerAmount({ amount: '0', currency: 'EUR', isEstimate: false })).toEqual({
+            value: 0,
+            currency: 'EUR',
+            isEstimate: false,
+        })
+    })
+
     it('gives nothing for an API that predates the field or a shape it does not know', () => {
         expect(readServerPayerAmount(undefined)).toBeUndefined()
         expect(readServerPayerAmount({ amount: 'not-a-number', currency: 'EUR' })).toBeUndefined()

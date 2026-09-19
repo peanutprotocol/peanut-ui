@@ -66,7 +66,10 @@ export function readServerPayerAmount(raw: unknown): ServerPayerAmount | undefin
     let value: number | null = null
     if (amount !== null && amount !== undefined) {
         value = Number(amount)
-        if (!Number.isFinite(value) || value <= 0) return undefined
+        // Zero is an answer the contract gives in as many words — "nothing left
+        // to pay" — and dropping it fell back to the client conversion, which
+        // states the FULL amount. Only a negative figure is unreadable.
+        if (!Number.isFinite(value) || value < 0) return undefined
     }
 
     // Exact only when the API says so in as many words.

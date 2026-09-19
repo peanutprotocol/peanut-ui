@@ -202,6 +202,26 @@ describe('RequestPotActionList', () => {
             )
         })
 
+        /*
+         * No Peanut rail in the answer is NO figure from the API, not a figure
+         * that disagrees. Read as a disagreement it downgraded an exact
+         * same-currency amount to an estimate, and could reduce the note to
+         * dollars-only.
+         */
+        it('keeps the API figures when the answer carries no dollar rail at all', () => {
+            mockPayAmounts = {
+                requestCurrency: 'EUR',
+                requestAmount: '100.00',
+                remainingAmount: '40.00',
+                rails: [bankRail('EUR', 'bridge.sepa_eu', false)],
+            }
+            renderList({ requestCurrency: 'EUR', remainingUsd: 57 })
+
+            expect(mockDrawer).toHaveBeenCalledWith(
+                expect.objectContaining({ remainingUsd: 57, serverCountsAllPayments: true })
+            )
+        })
+
         it('states what is left on a part-paid non-dollar request', () => {
             mockPayAmounts = {
                 requestCurrency: 'EUR',
@@ -295,13 +315,27 @@ describe('RequestPotActionList', () => {
          * bank rail and its bank details answer 404. The generic row used to show
          * and open onto "not available".
          */
-        it('shows no bank row and says the request is covered when nothing is left', () => {
+        it('offers no way to pay a request that is covered: the notice is the whole screen', () => {
             mockPayAmounts = { requestCurrency: 'USD', requestAmount: '100.00', remainingAmount: '0', rails: [usdRail] }
             renderList()
 
-            expect(rowOrder()).toEqual(['Bank', 'Exchange or Wallet'])
-            expect(mockDrawer).not.toHaveBeenCalled()
+            // The request still reads OPEN — only a matched bank deposit closes
+            // one — so the CTA and every method used to stay live above the
+            // notice, prefilled with the full amount.
             expect(screen.getByTestId('request-already-covered')).toBeInTheDocument()
+            expect(screen.queryByText('Pay with Peanut')).not.toBeInTheDocument()
+            expect(screen.queryAllByText(/^(Bank|Exchange or Wallet)$/)).toHaveLength(0)
+            expect(mockDrawer).not.toHaveBeenCalled()
+        })
+
+        it("says so from the screen's own count, where no pay-amounts read happens at all", () => {
+            // A request paid in full from wallets, with no bank details shared:
+            // nothing fetches `/pay-amounts`, and the screen still must not
+            // invite a second payment.
+            renderList({ bankPayable: false, remainingUsd: 0 })
+
+            expect(screen.getByTestId('request-already-covered')).toBeInTheDocument()
+            expect(screen.queryByText('Pay with Peanut')).not.toBeInTheDocument()
         })
 
         it('does not call an open-amount request covered', () => {

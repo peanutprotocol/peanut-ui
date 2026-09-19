@@ -38,6 +38,7 @@ import { useRequestPayAmounts } from '@/components/Request/Pay/useRequestPayAmou
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { useFormatter, useTranslations } from 'next-intl'
 import { stashInvite } from '@/utils/invite-stash'
+import { usdRemainingOf } from '../collected'
 
 interface RequestPotActionListProps {
     isAmountEntered: boolean
@@ -212,21 +213,36 @@ export function RequestPotActionList({
     // bank figures would ask this payer for money somebody already paid — as a
     // copyable "exact" amount. A smaller one knows of a payment the screen has
     // not loaded yet, and wins.
-    const apiRemainingUsd = Number(payAmounts?.rails.find((rail) => rail.kind === 'peanut_balance')?.payerAmount.amount)
+    //
+    // An answer with no Peanut rail — and an unparseable one — is NOT the API
+    // disagreeing: it is no figure at all. Reading `NaN` as a disagreement
+    // downgraded an exact same-currency figure to an estimate, and could turn
+    // the note into dollars-only instructions.
+    const apiRemainingUsd = usdRemainingOf(payAmounts)
     const serverCountsAllPayments =
-        remainingUsd === undefined || (apiRemainingUsd > 0 && apiRemainingUsd <= remainingUsd + 0.005)
+        remainingUsd === undefined ||
+        apiRemainingUsd === undefined ||
+        (apiRemainingUsd > 0 && apiRemainingUsd <= remainingUsd + 0.005)
     // `remainingAmount` is "0" once everything asked for has arrived. Null means
     // an open amount or no figure, which is not "covered".
+    //
+    // The screen's own count answers for every request, where the API's does
+    // not: the pay-amounts read only happens for a bank-payable request or one
+    // asked in another currency. A request paid in full from wallets still
+    // reads `status: OPEN` — only a matched bank deposit closes one — so
+    // without this the payer met a live Pay button prefilled with the whole
+    // amount, on a request that needs nothing.
     const alreadyCovered =
-        payAmounts?.remainingAmount !== null &&
-        payAmounts?.remainingAmount !== undefined &&
-        Number(payAmounts.remainingAmount) === 0
+        (payAmounts?.remainingAmount !== null &&
+            payAmounts?.remainingAmount !== undefined &&
+            Number(payAmounts.remainingAmount) === 0) ||
+        (remainingUsd !== undefined && remainingUsd <= 0)
     const bankRowProps = {
         bankPayable,
         usdAmount: isDollarRequest ? usdAmount : undefined,
         remainingUsd: !isDollarRequest
             ? undefined
-            : serverCountsAllPayments && apiRemainingUsd > 0
+            : serverCountsAllPayments && apiRemainingUsd !== undefined && apiRemainingUsd > 0
               ? apiRemainingUsd
               : remainingUsd,
         serverCountsAllPayments,
@@ -291,16 +307,21 @@ export function RequestPotActionList({
         )
     }
 
+    // Open, and with nothing left to pay. The notice is the whole body: a
+    // helper line above a live Pay button and every payment method is an
+    // invitation to send money into a request that needs none, and the payer
+    // cannot get it back.
+    if (alreadyCovered) {
+        return (
+            <Notification priority="attention" data-testid="request-already-covered">
+                {t('requestAlreadyCovered')}
+            </Notification>
+        )
+    }
+
     return (
         <div className="space-y-2">
             {otherCurrencyNote && <Notification priority="helper">{otherCurrencyNote}</Notification>}
-            {/* Open, and with nothing left to pay: say so, where the bank rows
-                would have been a dead end. */}
-            {alreadyCovered && (
-                <Notification priority="helper" data-testid="request-already-covered">
-                    {t('requestAlreadyCovered')}
-                </Notification>
-            )}
 
             {/* pay with peanut button */}
             <SendWithPeanutCta

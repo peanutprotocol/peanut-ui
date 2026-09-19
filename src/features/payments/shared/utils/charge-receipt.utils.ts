@@ -1,4 +1,4 @@
-import { type IntentKind } from '@/components/TransactionDetails/strategies/registry'
+import { isIntentKind, type IntentKind } from '@/components/TransactionDetails/strategies/registry'
 
 /**
  * The history kind under which a charge's receipt resolves.
@@ -25,7 +25,10 @@ export function receiptKindForCharge(charge: {
     transactionType?: string | null
     intentKind?: string | null
 }): IntentKind {
-    if (charge.intentKind) return charge.intentKind as IntentKind
+    // `intentKind` is an open string on the wire. A kind this client has no
+    // strategy for — one the backend added after this build — is not a kind:
+    // casting it through sent the receipt route a value it cannot resolve.
+    if (isIntentKind(charge.intentKind)) return charge.intentKind
     // The API's own default for a kind it has no type for is DIRECT_SEND.
     return RECEIPT_KIND_BY_CHARGE_TYPE[charge.transactionType ?? ''] ?? 'DIRECT_TRANSFER'
 }

@@ -20,7 +20,8 @@ import {
     type TRequestChargeResponse,
     type PaymentCreationResponse,
 } from '@/services/services.types'
-import { collectedTotal } from './collected'
+import { collectedTotal, usdRemainingOf } from './collected'
+import { useRequestPayAmounts } from '@/components/Request/Pay/useRequestPayAmounts'
 
 // view states for contribute pot flow
 export type ContributePotFlowView = 'INITIAL' | 'STATUS' | 'EXTERNAL_WALLET'
@@ -158,8 +159,16 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
         return request?.tokenAmount ? parseFloat(request.tokenAmount) : 0
     }, [request?.tokenAmount])
 
-    /** charges and bank deposits together — see `collectedTotal` */
-    const totalCollected = useMemo(() => collectedTotal(request), [request])
+    /**
+     * charges and bank deposits together — see `collectedTotal`.
+     *
+     * The payer's read of a request carries no `receivedAmount`, so what a bank
+     * transfer paid is counted from what the request still needs. Without it
+     * the payer read "$0 contributed" on a request somebody had already paid by
+     * bank — the requester saw the right figure, and only the requester.
+     */
+    const { payAmounts } = useRequestPayAmounts(request?.uuid)
+    const totalCollected = useMemo(() => collectedTotal(request, usdRemainingOf(payAmounts)), [request, payAmounts])
 
     // derive contributors from charges
     const contributors = useMemo<PotContributor[]>(() => {
