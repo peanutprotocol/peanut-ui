@@ -1,7 +1,7 @@
 import { redactQrTelemetry } from './qr-telemetry-privacy'
 import { beforeSendHandler } from '../../sentry.utils'
 import { posthogErrorMirror, withoutNoise } from '@/utils/sentry-posthog-mirror'
-import { inferSentryEnvironment } from '@/utils/sentry-env'
+import { inferSentryEnvironment, isSentryReportingEnvironment } from '@/utils/sentry-env'
 import { loadSentry } from '@/utils/sentry-lazy'
 import { isPaymentNetworkExplorerPath } from '@/utils/private-routes'
 
@@ -12,6 +12,7 @@ export { withoutNoise }
 // (offline transport, no BrowserTracing); a second init here would replace it.
 const ENABLED =
     process.env.NODE_ENV !== 'development' &&
+    isSentryReportingEnvironment() &&
     process.env.NEXT_PUBLIC_PERF_BARE !== 'true' &&
     process.env.NEXT_PUBLIC_CAPACITOR_BUILD !== 'true'
 
@@ -82,8 +83,16 @@ export function initSentry(): void {
                 isPaymentNetworkExplorerPath(window.location.pathname) ? null : redactQrTelemetry(event),
 
             integrations: [
+                /*
+                 * `error` only. A `console.warn` is billed exactly like an
+                 * exception, and warn-level console output is where the app is
+                 * loudest about things it already handles — the Radix
+                 * DialogTitle notice (2,158 in 90 days), a missing icon name
+                 * (1,420), the tokenPrice fallback (3,320). None of them is a
+                 * defect anybody acts on.
+                 */
                 Sentry.captureConsoleIntegration({
-                    levels: ['error', 'warn'],
+                    levels: ['error'],
                 }),
                 posthogErrorMirror(),
             ],
