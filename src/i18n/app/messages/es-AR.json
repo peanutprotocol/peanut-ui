@@ -624,7 +624,13 @@
         "leaveEmptyHint": "Dejalo vacío para que quien paga elija el monto.",
         "recipientPlaceholder": "Usuario, dirección o ENS",
         "errors": {
-            "enterRecipient": "Ingresá una dirección de destinatario"
+            "enterRecipient": "Ingresá una dirección de destinatario",
+            "rateUnavailable": "Ahora no hay un tipo de cambio para {currency}. Intentá de nuevo o solicitá en USD.",
+            "invalidRequestedAmount": "Este monto no es válido en {currency}. Revisá los decimales e intentá de nuevo.",
+            "currencyNotAvailable": "Las solicitudes en {currency} aún no están disponibles. Solicitá en USD."
+        },
+        "currency": {
+            "select": "Elegí la moneda de la solicitud"
         },
         "validation": {
             "invalidRecipientMessage": "El usuario al que intentás solicitar no es un usuario válido de Peanut o no existe. Asegurate de tener el nombre de usuario de Peanut correcto.",
@@ -664,6 +670,8 @@
             "invalidPaymentUrlDescription": "El enlace está incompleto o mal escrito. Pedile a quien lo envió que lo comparta de nuevo.",
             "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pedile un nuevo enlace a quien la envió."
         },
+        "requestCurrencyNote": "Esta solicitud pide {amount} {currency}. Con Peanut o cripto pagás en USD a un tipo de cambio estimado.",
+        "requestCurrencyNotePartPaid": "Esta solicitud pide {amount} {currency} y faltan {remaining} {currency} por pagar. Con Peanut o cripto pagás en USD a un tipo de cambio estimado.",
         "bankTransfer": {
             "description": "Enviá desde tu banco a la cuenta de quien te pide el pago.",
             "payInCurrency": "Pagar en {currency} · {rail}",

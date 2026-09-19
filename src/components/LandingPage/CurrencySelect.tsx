@@ -13,6 +13,8 @@ interface CurrencySelectProps {
     setSelectedCurrency: (currency: string) => void
     trigger: React.ReactNode
     excludeCurrencies?: string[]
+    /** currencies listed first, in this order; the rest keep the default order */
+    priorityCurrencies?: string[]
     /**
      * Accessible name of the listbox. The component renders under two different
      * i18n providers (marketing landing and the app), so the translated string
@@ -35,6 +37,9 @@ const currencies = SUPPORTED_EXCHANGE_CURRENCIES.map((code) => {
 
 type CurrencyOption = (typeof currencies)[number]
 
+// a stable default, so the sorted list is not rebuilt on every render
+const NO_PRIORITY: string[] = []
+
 /**
  * Hand-rolled listbox popover (same idiom as Common/CountryCombobox — no
  * HeadlessUI): the consumer-supplied trigger toggles an absolutely positioned,
@@ -48,6 +53,7 @@ const CurrencySelect = ({
     setSelectedCurrency,
     trigger,
     excludeCurrencies = [],
+    priorityCurrencies = NO_PRIORITY,
     label = 'Select currency',
 }: CurrencySelectProps) => {
     const id = useId()
@@ -57,10 +63,15 @@ const CurrencySelect = ({
     const [open, setOpen] = useState(false)
     const [activeIndex, setActiveIndex] = useState(0)
 
-    const availableCurrencies = useMemo(
-        () => currencies.filter((currency) => !excludeCurrencies.includes(currency.currency)),
-        [excludeCurrencies]
-    )
+    const availableCurrencies = useMemo(() => {
+        const available = currencies.filter((currency) => !excludeCurrencies.includes(currency.currency))
+        const rank = (code: string) => {
+            const index = priorityCurrencies.indexOf(code)
+            return index === -1 ? priorityCurrencies.length : index
+        }
+        // Array.prototype.sort is stable, so equal ranks keep the default order.
+        return [...available].sort((a, b) => rank(a.currency) - rank(b.currency))
+    }, [excludeCurrencies, priorityCurrencies])
 
     // keyboard focus lands on the list itself; aria-activedescendant names the row
     useEffect(() => {

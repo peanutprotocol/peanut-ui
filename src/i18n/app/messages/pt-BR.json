@@ -1059,6 +1059,7 @@
         "createRequest": "Criar cobrança",
         "shareOpenRequest": "Compartilhar cobrança aberta",
         "shareAmountRequest": "Compartilhar cobrança de ${amount}",
+        "shareCurrencyAmountRequest": "Compartilhar cobrança de {amount} {currency}",
         "billSplitFor": "Divisão de conta em {merchant}",
         "linkCreatedToast": "Link criado com sucesso!",
         "linkCreatedAndCopiedToast": "Link criado e copiado para a área de transferência!",
@@ -1070,6 +1071,9 @@
             "enterRecipient": "Insira um endereço de destinatário",
             "missingUsernameOrAmount": "Falta o nome de usuário ou o valor",
             "createRequestFailed": "Não foi possível criar a cobrança.",
+            "rateUnavailable": "Não há uma cotação para {currency} agora. Tente de novo ou cobre em USD.",
+            "invalidRequestedAmount": "Este valor não é válido em {currency}. Confira as casas decimais e tente de novo.",
+            "currencyNotAvailable": "Cobranças em {currency} ainda não estão disponíveis. Cobre em USD.",
             "validatingRecipient": "Validando destinatário..."
         },
         "validation": {
@@ -1079,6 +1083,12 @@
             "missingRecipientMessage": "Nenhum nome de usuário informado na URL. Verifique o link e tente de novo.",
             "goToHome": "Ir para o início",
             "createWallet": "Crie sua Peanut Wallet"
+        },
+        "currency": {
+            "label": "Cobrar em",
+            "select": "Escolha a moeda da cobrança",
+            "triggerLabel": "Moeda da cobrança: {currency}",
+            "exactNote": "Quem paga por banco em {currency} vê este valor exato. Os demais veem uma estimativa."
         },
         "bankInstructions": {
             "title": "Compartilhe os dados da sua conta bancária",
@@ -1188,6 +1198,8 @@
             "requestNotFoundTitle": "Cobrança não encontrada",
             "requestNotFoundDescription": "Esta cobrança não existe ou foi removida. Peça um novo link para quem enviou."
         },
+        "requestCurrencyNote": "Esta solicitação pede {amount} {currency}. Com Peanut ou cripto você paga em USD por uma cotação estimada.",
+        "requestCurrencyNotePartPaid": "Esta solicitação pede {amount} {currency} e faltam {remaining} {currency} a pagar. Com Peanut ou cripto você paga em USD por uma cotação estimada.",
         "bankTransfer": {
             "title": "Pagar por transferência bancária",
             "description": "Envie do seu banco para a conta de quem pediu o pagamento.",
@@ -1200,6 +1212,8 @@
             "amountLabel": "Valor a enviar",
             "amountValue": "{amount} {currency}",
             "amountValueApprox": "≈ {amount} {currency}",
+            "exactBadge": "Valor exato",
+            "estimateBadge": "Estimativa",
             "amountNote": "Estimado pela cotação de hoje. Seu banco pode converter por outra cotação, então o valor exato pode mudar.",
             "amountNoteSameCurrency": "Envie este valor e a solicitação fica paga.",
             "amountNoteBankConverts": "Não há uma estimativa em {currency} agora. Envie o valor em {currency} equivalente a este valor em USD. Seu banco define a cotação.",

@@ -19,7 +19,24 @@ const splitBillWrapper = ({ children }: { children: ReactNode }) =>
         null,
         createElement(IntlWrapper, null, children)
     )
+// A request asked in another currency arrives the same way: `?currency=EUR`.
+const currencyWrapper = (searchParams: string) => {
+    const CurrencyWrapper = ({ children }: { children: ReactNode }) =>
+        createElement(withNuqsTestingAdapter({ searchParams }), null, createElement(IntlWrapper, null, children))
+    return CurrencyWrapper
+}
+import { ApiError } from '@/services/api-error'
 import { useCreateRequestLink } from '../useCreateRequestLink'
+
+// units of the request currency per dollar
+let mockExchangeRate = 0
+const useExchangeRate = jest.fn()
+jest.mock('@/hooks/useExchangeRate', () => ({
+    useExchangeRate: (args: unknown) => {
+        useExchangeRate(args)
+        return { exchangeRate: mockExchangeRate }
+    },
+}))
 
 const toastSuccess = jest.fn()
 const toastError = jest.fn()
@@ -101,7 +118,7 @@ jest.mock('@/utils/url.utils', () => ({
 let mockDepositAccountsEnabled = true
 let mockDepositAccounts: Record<
     string,
-    { status: string; matching: { sender: string }; instructions?: unknown } | undefined
+    { status: string; currency?: string; matching: { sender: string }; instructions?: unknown } | undefined
 > = {}
 let mockDepositGates: Record<string, { kind: string }> = {}
 jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
@@ -110,8 +127,9 @@ jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
 jest.mock('@/features/deposit-accounts/useDepositAccounts', () => ({
     useDepositAccounts: () => ({ accounts: mockDepositAccounts, gates: mockDepositGates }),
 }))
-const activeAccount = (sender: string) => ({
+const activeAccount = (sender: string, currency = 'EUR') => ({
     status: 'active',
+    currency,
     matching: { sender },
     instructions: { railId: 'bridge.sepa_eu' },
 })
@@ -121,6 +139,7 @@ describe('useCreateRequestLink', () => {
         jest.clearAllMocks()
         apiCreate.mockResolvedValue({ uuid: 'req-1' })
         resolveCopy.mockResolvedValue(true)
+        mockExchangeRate = 0
         mockDepositAccountsEnabled = true
         mockDepositAccounts = {}
         mockDepositGates = new Proxy({}, { get: () => ({ kind: 'ready' }) }) as Record<string, { kind: string }>
@@ -184,7 +203,7 @@ describe('useCreateRequestLink', () => {
         expect(result.current.qrCodeLink).toBe('https://peanut.me/send/kush')
 
         act(() => {
-            result.current.handleTokenValueChange('5')
+            result.current.handleRequestAmountChange('5')
         })
         expect(result.current.qrCodeLink).toBe('https://peanut.me/kush/5USDC')
     })
@@ -192,7 +211,7 @@ describe('useCreateRequestLink', () => {
     it('generateLink creates the request, stores the link, and toasts the copy result', async () => {
         const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
         act(() => {
-            result.current.handleTokenValueChange('5')
+            result.current.handleRequestAmountChange('5')
         })
 
         let link: string | undefined
@@ -214,7 +233,7 @@ describe('useCreateRequestLink', () => {
         apiCreate.mockRejectedValue(new Error('boom'))
         const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
         act(() => {
-            result.current.handleTokenValueChange('5')
+            result.current.handleRequestAmountChange('5')
         })
 
         let link: string | undefined
@@ -232,7 +251,7 @@ describe('useCreateRequestLink', () => {
     it('changing the amount resets the generated request', async () => {
         const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
         act(() => {
-            result.current.handleTokenValueChange('5')
+            result.current.handleRequestAmountChange('5')
         })
         await act(async () => {
             await result.current.generateLink()
@@ -240,7 +259,7 @@ describe('useCreateRequestLink', () => {
         expect(result.current.requestId).toBe('req-1')
 
         act(() => {
-            result.current.handleTokenValueChange('7')
+            result.current.handleRequestAmountChange('7')
         })
         expect(result.current.requestId).toBeNull()
         expect(result.current.generatedLink).toBeNull()
@@ -265,7 +284,7 @@ describe('useCreateRequestLink', () => {
         apiUpdate.mockResolvedValue({})
         const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
         act(() => {
-            result.current.handleTokenValueChange('5')
+            result.current.handleRequestAmountChange('5')
         })
         await act(async () => {
             await result.current.generateLink()
@@ -276,5 +295,160 @@ describe('useCreateRequestLink', () => {
         })
 
         expect(apiUpdate).toHaveBeenCalledWith('req-1', expect.objectContaining({ reference: 'lunch' }))
+    })
+
+    describe('the request currency', () => {
+        it('asks in dollars by default and sends no currency, so an older API takes the same body', async () => {
+            const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
+            expect(result.current.currency).toBe('USD')
+            expect(useExchangeRate).toHaveBeenCalledWith(expect.objectContaining({ enabled: false }))
+
+            act(() => {
+                result.current.handleRequestAmountChange('5')
+            })
+            await act(async () => {
+                await result.current.generateLink()
+            })
+
+            const body = apiCreate.mock.calls[0][0]
+            expect(body.tokenAmount).toBe('5')
+            expect(body).not.toHaveProperty('requestedAmount')
+        })
+
+        // The split-bill deep link names no currency and must stay a dollar request.
+        it('keeps a split-bill deep link in dollars', () => {
+            const { result } = renderHook(() => useCreateRequestLink(), { wrapper: splitBillWrapper })
+            expect(result.current.currency).toBe('USD')
+            expect(result.current.requestAmount).toBe('25')
+            expect(result.current.tokenValue).toBe('25')
+        })
+
+        it('reads the currency and the amount from the url', () => {
+            mockExchangeRate = 0.8
+            const { result } = renderHook(() => useCreateRequestLink(), {
+                wrapper: currencyWrapper('?amount=100&currency=eur'),
+            })
+
+            expect(result.current.currency).toBe('EUR')
+            expect(result.current.requestAmount).toBe('100')
+            // 100 EUR at 0.8 EUR per dollar
+            expect(result.current.tokenValue).toBe('125.00')
+        })
+
+        it('falls back to dollars for a currency the FX service does not quote', () => {
+            const { result } = renderHook(() => useCreateRequestLink(), { wrapper: currencyWrapper('?currency=PLN') })
+            expect(result.current.currency).toBe('USD')
+        })
+
+        it('sends the asked amount and currency, with the dollar estimate as tokenAmount', async () => {
+            mockExchangeRate = 0.8
+            const { result } = renderHook(() => useCreateRequestLink(), {
+                wrapper: currencyWrapper('?currency=EUR'),
+            })
+            act(() => {
+                result.current.handleRequestAmountChange('100')
+            })
+            await act(async () => {
+                await result.current.generateLink()
+            })
+
+            expect(apiCreate).toHaveBeenCalledWith(
+                expect.objectContaining({ tokenAmount: '125.00', requestedAmount: { amount: '100', currency: 'EUR' } })
+            )
+        })
+
+        it('sends no currency on an open-amount request', async () => {
+            mockExchangeRate = 0.8
+            const { result } = renderHook(() => useCreateRequestLink(), {
+                wrapper: currencyWrapper('?currency=EUR'),
+            })
+            await act(async () => {
+                await result.current.generateLink()
+            })
+
+            expect(apiCreate.mock.calls[0][0]).not.toHaveProperty('requestedAmount')
+        })
+
+        // The API prices the request itself, so a missing client rate blocks nothing.
+        it('creates a non-dollar request with no client rate, leaving tokenAmount to the API', async () => {
+            const { result } = renderHook(() => useCreateRequestLink(), {
+                wrapper: currencyWrapper('?currency=EUR'),
+            })
+            act(() => {
+                result.current.handleRequestAmountChange('100')
+            })
+            await act(async () => {
+                await result.current.generateLink()
+            })
+
+            const body = apiCreate.mock.calls[0][0]
+            expect(body.tokenAmount).toBeUndefined()
+            expect(body.requestedAmount).toEqual({ amount: '100', currency: 'EUR' })
+        })
+
+        describe('a create the API refuses', () => {
+            const createInEur = async (error: unknown) => {
+                apiCreate.mockRejectedValue(error)
+                const { result } = renderHook(() => useCreateRequestLink(), {
+                    wrapper: currencyWrapper('?currency=EUR'),
+                })
+                act(() => {
+                    result.current.handleRequestAmountChange('100')
+                })
+                await act(async () => {
+                    await result.current.generateLink()
+                })
+                return result.current.errorState.errorMessage
+            }
+            const apiError = (status: number, code?: string) => new ApiError('refused', { status, code })
+
+            it.each(['FX_UNAVAILABLE', 'UNSUPPORTED_REQUEST_CURRENCY'])('says there is no rate on %s', async (code) => {
+                expect(await createInEur(apiError(code === 'FX_UNAVAILABLE' ? 503 : 400, code))).toMatch(/no EUR rate/)
+            })
+
+            it('says the amount is not valid on INVALID_REQUESTED_AMOUNT', async () => {
+                expect(await createInEur(apiError(400, 'INVALID_REQUESTED_AMOUNT'))).toMatch(/not valid in EUR/)
+            })
+
+            // An API that predates the field refuses the unknown property: a 400 with no code.
+            it('says the currency is not available yet on an API without the field', async () => {
+                expect(await createInEur(apiError(400))).toMatch(/Requests in EUR are not available yet/)
+            })
+
+            it('keeps the generic message for anything else', async () => {
+                expect(await createInEur(new Error('boom'))).toBe('Failed to create link')
+            })
+        })
+
+        it('changes the currency until the request exists, then locks it', async () => {
+            mockExchangeRate = 0.8
+            const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
+
+            act(() => {
+                result.current.handleCurrencyChange('EUR')
+            })
+            expect(result.current.currency).toBe('EUR')
+
+            act(() => {
+                result.current.handleRequestAmountChange('100')
+            })
+            await act(async () => {
+                await result.current.generateLink()
+            })
+            act(() => {
+                result.current.handleCurrencyChange('GBP')
+            })
+            expect(result.current.currency).toBe('EUR')
+        })
+
+        it('lists the currencies of the requester’s active accounts first, once each', () => {
+            mockDepositAccounts = {
+                SEPA_EU: activeAccount('anyone', 'eur'),
+                ACH_US: activeAccount('anyone', 'USD'),
+                SPEI_MX: { ...activeAccount('anyone', 'MXN'), status: 'revoked' },
+            }
+            const { result } = renderHook(() => useCreateRequestLink(), { wrapper })
+            expect(result.current.accountCurrencies).toEqual(['EUR', 'USD'])
+        })
     })
 })
