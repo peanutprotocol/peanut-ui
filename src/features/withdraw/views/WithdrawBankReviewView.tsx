@@ -11,7 +11,10 @@ import ExchangeRate from '@/components/ExchangeRate'
 import countryCurrencyMappings, { isNonEuroSepaCountry } from '@/constants/countryCurrencyMapping'
 import { AccountType, type Account } from '@/interfaces/interfaces'
 import { formatIban } from '@/utils/general.utils'
-import { type FC } from 'react'
+import { type FC, useState } from 'react'
+import { Field } from '@/components/0_Bruddle/Field'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
+import { type BankReferenceProblem, type BankReferenceSpec } from '@/features/withdraw/bank-reference'
 import { useAuth } from '@/context/authContext'
 import { useTranslations } from 'next-intl'
 
@@ -28,6 +31,11 @@ interface WithdrawBankReviewViewProps {
     error: { showError: boolean; errorMessage: string }
     balanceErrorMessage: string | null
     confirmPendingCopy: string
+    /** The limits of the rail's reference field; null when the rail takes none. */
+    referenceSpec: BankReferenceSpec | null
+    reference: string
+    referenceProblem: BankReferenceProblem | null
+    onReferenceChange: (reference: string) => void
     onSubmit: () => void
     onDone: () => void
 }
@@ -44,9 +52,15 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     error,
     balanceErrorMessage,
     confirmPendingCopy,
+    referenceSpec,
+    reference,
+    referenceProblem,
+    onReferenceChange,
     onSubmit,
     onDone,
 }) => {
+    // a half-typed reference is not an error yet — name the problem on blur
+    const [referenceTouched, setReferenceTouched] = useState(false)
     const t = useTranslations('withdraw')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
@@ -57,6 +71,13 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
             country.toLowerCase() === currency.country.toLowerCase() ||
             currency.path?.toLowerCase() === country.toLowerCase()
     )?.currencyCode
+
+    const referenceErrorText = (problem: BankReferenceProblem) => {
+        if (!referenceSpec) return undefined
+        if (problem === 'tooShort') return t('bank.referenceTooShort', { min: referenceSpec.minLength })
+        if (problem === 'tooLong') return t('bank.referenceTooLong', { max: referenceSpec.maxLength })
+        return t(`bank.${referenceSpec.invalidCharsKey}`)
+    }
 
     // non-eur sepa countries that are currently experiencing issues
     const isNonEuroSepa = isNonEuroSepaCountry(nonEuroCurrency)
@@ -143,6 +164,26 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value={`$ 0.00`} />
             </Card>
 
+            {referenceSpec && (
+                <Field
+                    label={t('bank.reference')}
+                    htmlFor="withdraw-bank-reference"
+                    helper={t(`bank.${referenceSpec.helperKey}`)}
+                    error={referenceTouched && referenceProblem ? referenceErrorText(referenceProblem) : undefined}
+                >
+                    <BaseInput
+                        id="withdraw-bank-reference"
+                        value={reference}
+                        maxLength={referenceSpec.maxLength}
+                        // the transfer is created with the reference; it cannot change after
+                        disabled={isLoading || !!submittedTxHash}
+                        onChange={(e) => onReferenceChange(e.target.value)}
+                        onBlur={() => setReferenceTouched(true)}
+                        className="text-body-s"
+                    />
+                </Field>
+            )}
+
             {submittedTxHash ? (
                 // On-chain leg already fired. Even if confirmOfframp failed
                 // we must NOT offer Retry — it would re-run sendMoney() and
@@ -170,7 +211,9 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                     iconSize={12}
                     shadowSize="4"
                     onClick={onSubmit}
-                    disabled={isLoading || !bankAccount || !!balanceErrorMessage || !isSubmitReady}
+                    disabled={
+                        isLoading || !bankAccount || !!balanceErrorMessage || !isSubmitReady || !!referenceProblem
+                    }
                     className="w-full"
                 >
                     {tNav(fromSendFlow ? 'send' : 'withdraw')}

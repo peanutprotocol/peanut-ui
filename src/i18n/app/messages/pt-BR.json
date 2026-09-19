@@ -1923,6 +1923,13 @@
             "sortCode": "Sort Code",
             "routingNumber": "Routing Number",
             "fee": "Taxa",
+            "reference": "Referência (opcional)",
+            "referenceHelperSepa": "O banco do destinatário mostra com o pagamento. De 6 a 140 caracteres: letras a-z, números, espaços e & - . /",
+            "referenceHelperAch": "O banco do destinatário mostra com o pagamento. Até 10 caracteres: letras a-z, números e espaços.",
+            "referenceTooShort": "Mínimo de {min} caracteres, ou deixe em branco.",
+            "referenceTooLong": "Máximo de {max} caracteres.",
+            "referenceInvalidCharsSepa": "Use apenas letras a-z, números, espaços e & - . /",
+            "referenceInvalidCharsAch": "Use apenas letras a-z, números e espaços.",
             "bankAccount": "Conta bancária",
             "transferProcessing": "Transferência em processamento",
             "confirmPending": "Sua transferência está sendo processada. Os fundos foram enviados on-chain com sucesso: a confirmação pode levar alguns minutos. Se você não vir o saque na sua atividade em até 30 minutos, fale com o suporte."

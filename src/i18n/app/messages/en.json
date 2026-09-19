@@ -1923,6 +1923,13 @@
             "sortCode": "Sort Code",
             "routingNumber": "Routing Number",
             "fee": "Fee",
+            "reference": "Reference (optional)",
+            "referenceHelperSepa": "The recipient's bank shows it with the payment. 6 to 140 characters: letters a-z, numbers, spaces and & - . /",
+            "referenceHelperAch": "The recipient's bank shows it with the payment. Up to 10 characters: letters a-z, numbers and spaces.",
+            "referenceTooShort": "Use at least {min} characters, or leave it empty.",
+            "referenceTooLong": "Use at most {max} characters.",
+            "referenceInvalidCharsSepa": "Use only letters a-z, numbers, spaces and & - . /",
+            "referenceInvalidCharsAch": "Use only letters a-z, numbers and spaces.",
             "bankAccount": "Bank Account",
             "transferProcessing": "Transfer processing",
             "confirmPending": "Your transfer is processing. Funds were sent on-chain successfully — this can take a few minutes to confirm. If you don't see the withdrawal in your activity within 30 minutes, please contact support."
