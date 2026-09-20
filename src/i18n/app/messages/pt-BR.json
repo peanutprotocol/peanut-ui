@@ -2035,6 +2035,7 @@
             "pasteAria": "Colar da área de transferência",
             "pasteEmpty": "Nada para colar",
             "pasteUnavailable": "Não foi possível ler a área de transferência",
+            "bicAutoFilled": "Preenchemos isto a partir do seu IBAN. Confira com o seu banco e altere se estiver errado.",
             "bicCountryMismatch": "Este BIC é de um banco de outro país que o IBAN"
         },
         "errors": {

@@ -2035,6 +2035,7 @@
             "pasteAria": "Paste from clipboard",
             "pasteEmpty": "Nothing to paste",
             "pasteUnavailable": "Can't read the clipboard",
+            "bicAutoFilled": "We filled this in from your IBAN. Check it against your bank and change it if it is wrong.",
             "bicCountryMismatch": "This BIC belongs to a bank in another country than the IBAN"
         },
         "errors": {
