@@ -114,6 +114,7 @@ jest.mock('@/features/withdraw/components/WithdrawCurrencyList', () => ({
             data-initial-query={initialQuery}
         >
             {[
+                { id: 'SEPA', path: 'euro-area', currency: 'EUR', title: 'Euro bank account' },
                 { id: 'DE', path: 'germany', currency: 'EUR', title: 'Germany' },
                 { id: 'AR', path: 'argentina', currency: 'ARS', title: 'Argentina' },
                 { id: 'BR', path: 'brazil', currency: 'BRL', title: 'Brazil' },
@@ -467,5 +468,36 @@ describe('WithdrawMethodView — the chooser drops a rail the user already picke
     it('no rail chosen: the crypto row still leads the list', () => {
         renderView({ showAll: 'true' })
         expect(screen.getByTestId('currency-crypto-row')).toBeInTheDocument()
+    })
+})
+
+/**
+ * Round-2 QA (Q2): the euro area is one destination, not forty countries.
+ * The country step is gone for EUR — the IBAN says which country it is.
+ */
+describe('WithdrawMethodView — the euro area routes with no country', () => {
+    it('sends the euro destination straight to the euro bank form', () => {
+        renderView({ showAll: 'true' })
+        fireEvent.click(screen.getByTestId('country-euro-area'))
+
+        expect(mockSetSelectedMethod).toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'bridge', countryPath: 'euro-area', currency: 'EUR' })
+        )
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/euro-area?step=form')
+    })
+
+    it('keeps the Send origin on the way to the euro form', () => {
+        mockIsBankFromSend = true
+        renderView({ showAll: 'true', method: 'bank' })
+        fireEvent.click(screen.getByTestId('country-euro-area'))
+
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/euro-area?step=form&method=bank')
+    })
+
+    it('a named country still routes to that country, so the list stays an escape hatch', () => {
+        renderView({ showAll: 'true' })
+        fireEvent.click(screen.getByTestId('country-germany'))
+
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/germany?step=form')
     })
 })

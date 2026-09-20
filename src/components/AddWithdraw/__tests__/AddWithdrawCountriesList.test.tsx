@@ -751,3 +751,41 @@ it('a Manteca rail clicked from a multi-rail list forwards the send origin as se
         mockSearchParams = new URLSearchParams()
     }
 })
+
+/**
+ * The euro area as a destination (QA round 2, Q2).
+ *
+ * `/withdraw/euro-area` is not a country: it is the euro bank form, reached
+ * with no country picked because the IBAN says which country it is. It has no
+ * rail list of its own, so the two things that could break are the screen it
+ * renders and the button that leaves it.
+ */
+describe('AddWithdrawCountriesList — the euro area', () => {
+    beforeEach(() => {
+        mockPush.mockClear()
+        mockParams.country = 'euro-area'
+        setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
+    })
+
+    afterEach(() => {
+        mockParams.country = 'testland'
+        mockNuqsParams = {}
+    })
+
+    it('renders the bank form, never an empty rail list', () => {
+        // no ?step=form: a deep link to the destination is still the form
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+
+        expect(mockBankFormProps).toHaveBeenCalled()
+        expect(mockBankFormProps.mock.calls.at(-1)?.[0]).toEqual(expect.objectContaining({ country: 'SEPA' }))
+    })
+
+    it('back returns to the chooser: there is no rail list to go back to', () => {
+        mockNuqsParams = { step: 'form' }
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+
+        fireEvent.click(screen.getByTestId('nav-header'))
+
+        expect(mockPush).toHaveBeenCalledWith('/withdraw?showAll=true&rail=bank')
+    })
+})

@@ -1981,7 +1981,7 @@
             "iban": "IBAN",
             "ibanRequired": "O IBAN é obrigatório",
             "ibanInvalid": "IBAN inválido",
-            "ibanUnsupported": "Este IBAN não é compatível com saques",
+            "ibanUnsupported": "Não podemos enviar euros para este IBAN. Digite um IBAN de um país do SEPA.",
             "accountNumber": "Número da conta",
             "accountNumberRequired": "O número da conta é obrigatório",
             "accountNumberUk": "O número da conta precisa ter de 6 a 8 dígitos",

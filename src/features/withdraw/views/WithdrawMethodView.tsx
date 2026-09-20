@@ -9,6 +9,7 @@ import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { useAuth } from '@/context/authContext'
 import { AccountType, type Account } from '@/interfaces/interfaces'
 import { isMantecaCountry } from '@/constants/manteca.consts'
+import { SEPA_PATH } from '@/components/AddWithdraw/bank-corridors'
 import { getFromLocalStorage } from '@/utils/general.utils'
 import { rewriteMethodPath, withdrawCountryUrl } from '@/utils/native-routes'
 import { mantecaWithdrawUrl, withdrawCountryFormUrl } from '@/features/withdraw/routes'
@@ -124,6 +125,24 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
             method_type: isManteca ? 'manteca' : 'bridge',
             country: country.path,
         })
+
+        // The euro area is one destination with one rail, and it is not a member
+        // of the country catalogue, so the rail lookup below cannot answer for
+        // it. Send it to the euro bank form, which reads the country off the
+        // IBAN (QA round 2, Q2).
+        if (country.path === SEPA_PATH) {
+            setSelectedMethod({
+                type: 'bridge',
+                countryPath: SEPA_PATH,
+                currency: 'EUR',
+                // same internal rail title the saved-account and one-rail paths set
+                title: 'To Bank',
+            })
+            startTransition(() => {
+                router.push(withdrawCountryFormUrl(SEPA_PATH, isBankFromSend ? methodParam : null))
+            })
+            return
+        }
 
         // A country with one live rail has nothing to choose — the per-country
         // list would be a one-row screen, so skip it and go straight to the

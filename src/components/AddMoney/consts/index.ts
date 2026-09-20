@@ -2575,6 +2575,10 @@ export const COUNTRY_SPECIFIC_METHODS: Record<string, CountrySpecificMethods> = 
 // incl. the 2025/26 SEPA joiners AL/MD/ME/MK/RS) plus US
 // note: this is a map of 3-letter country codes to 2-letter country codes, for flags to work, bridge expects 3 letter codes
 export const BRIDGE_ALPHA3_TO_ALPHA2: { [key: string]: string } = {
+    // Åland (ALA) keeps its corridor although it uses Finnish banking: its IBANs
+    // start FI and the form reads the country off the IBAN, so the payout is
+    // identical to Finland's. Dropping it would turn a destination we CAN pay
+    // into a waitlist row (QA round 2, Q2).
     ALA: 'AX',
     ALB: 'AL',
     AND: 'AD',

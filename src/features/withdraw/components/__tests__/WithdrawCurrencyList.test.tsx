@@ -100,17 +100,14 @@ describe('WithdrawCurrencyList — currency-first with country as fallback', () 
         expect(onCountryClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'united-kingdom' }))
     })
 
-    it('a shared currency expands its countries instead of routing', () => {
+    it('EUR routes straight to the euro destination — the IBAN decides the country', () => {
+        // QA round 2, Q2. Expanding EUR used to list Portugal, Germany, Spain,
+        // Åland, Albania, Andorra, Austria, Belgium and the rest — a question a
+        // Revolut or Wise customer cannot answer about their own bank.
         renderList()
         fireEvent.click(screen.getByTestId('withdraw-currency-EUR'))
-        expect(onCountryClick).not.toHaveBeenCalled()
-        // the disambiguation list is scoped to that currency's countries, and
-        // the field above it owns the search (no second field inside the list)
-        const scoped = screen.getByTestId('country-list-scoped')
-        expect(scoped).toHaveAttribute('data-search-term', '')
-        // and picking a country there routes
-        fireEvent.click(screen.getByTestId('scoped-germany'))
-        expect(onCountryClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'germany' }))
+        expect(onCountryClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'euro-area' }))
+        expect(screen.queryByTestId('country-list-scoped')).not.toBeInTheDocument()
     })
 
     it('the crypto row is offered beside the currencies', () => {
@@ -137,26 +134,17 @@ describe('WithdrawCurrencyList — a currency row is the payout currency', () =>
         }
     })
 
-    it('searching "Poland" finds EUR, and EUR expands to Poland', () => {
+    it('searching "Poland" still finds EUR, and EUR still routes to the euro destination', () => {
+        // a Polish IBAN is paid in euros over SEPA (TD-6), and the euro form
+        // reads the country off the IBAN — so the search narrows the rows, not
+        // the destination. Poland stays reachable by name under Other countries.
         renderList()
         search('Poland')
         expect(currencyRows()).toEqual(['EUR'])
 
         fireEvent.click(screen.getByTestId('withdraw-currency-EUR'))
-        expect(screen.getByTestId('scoped-poland')).toBeInTheDocument()
-        // the search named one country, so the expansion shows that one
-        expect(screen.queryByTestId('scoped-germany')).not.toBeInTheDocument()
-
-        fireEvent.click(screen.getByTestId('scoped-poland'))
-        expect(onCountryClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'poland' }))
-    })
-
-    it('searching the currency itself keeps every euro-payout country in the expansion', () => {
-        renderList()
-        search('eur')
-        fireEvent.click(screen.getByTestId('withdraw-currency-EUR'))
-        expect(screen.getByTestId('scoped-germany')).toBeInTheDocument()
-        expect(screen.getByTestId('scoped-poland')).toBeInTheDocument()
+        expect(onCountryClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'euro-area' }))
+        expect(screen.queryByTestId('country-list-scoped')).not.toBeInTheDocument()
     })
 
     it('finds a country by its localized name ("Alemanha" in pt-BR)', () => {
