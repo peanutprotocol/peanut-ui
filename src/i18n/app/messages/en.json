@@ -3045,10 +3045,17 @@
             "title": "What to expect",
             "description": "Our payment partner needs a few more things before your bank transfers work.",
             "descriptionAdvisory": "Our payment partner needs a few more things to keep your bank transfers working.",
+            "checking": "Checking with our payment partner…",
+            "stillPending": "If you finished the check, there is nothing more to do. The status can take a few minutes to update, or 1 to 3 business days if a reviewer looks at it. Starting again creates a new check.",
             "done": {
                 "title": "Nothing left to do here",
                 "description": "This verification step is no longer needed. Your current status is on your profile.",
                 "cta": "See my status"
+            },
+            "nativeInstead": {
+                "title": "Upload the document in the app instead",
+                "description": "Our payment partner asked for a document. The hosted check cannot collect it; the upload in your profile can.",
+                "cta": "Go to my profile"
             }
         },
         "correction": {
