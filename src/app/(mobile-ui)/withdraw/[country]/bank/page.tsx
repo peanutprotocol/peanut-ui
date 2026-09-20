@@ -68,7 +68,6 @@ export default function WithdrawBankPage() {
                 <WithdrawBankReviewView
                     bankAccount={bankAccount}
                     amount={amountToWithdraw}
-                    country={country}
                     fromSendFlow={fromSendFlow}
                     isLoading={flow.isLoading}
                     isSubmitReady={flow.isSubmitReady}
