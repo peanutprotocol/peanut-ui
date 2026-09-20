@@ -14,7 +14,11 @@ import { formatIban } from '@/utils/general.utils'
 import { type FC, useState } from 'react'
 import { Field } from '@/components/0_Bruddle/Field'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
-import { type BankReferenceProblem, type BankReferenceSpec } from '@/features/withdraw/bank-reference'
+import {
+    type BankReferenceProblem,
+    type BankReferenceSpec,
+    type PayoutSenderNoteKey,
+} from '@/features/withdraw/bank-reference'
 import { useAuth } from '@/context/authContext'
 import { useTranslations } from 'next-intl'
 
@@ -33,6 +37,8 @@ interface WithdrawBankReviewViewProps {
     confirmPendingCopy: string
     /** The limits of the rail's reference field; null when the rail takes none. */
     referenceSpec: BankReferenceSpec | null
+    /** `withdraw.bank` key naming who the recipient's bank shows as sender; null when unknown. */
+    payoutSenderNoteKey: PayoutSenderNoteKey | null
     reference: string
     referenceProblem: BankReferenceProblem | null
     onReferenceChange: (reference: string) => void
@@ -53,6 +59,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     balanceErrorMessage,
     confirmPendingCopy,
     referenceSpec,
+    payoutSenderNoteKey,
     reference,
     referenceProblem,
     onReferenceChange,
@@ -163,6 +170,8 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 />
                 <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value={`$ 0.00`} />
             </Card>
+
+            {payoutSenderNoteKey && <p className="text-grey-1 text-body-s">{t(`bank.${payoutSenderNoteKey}`)}</p>}
 
             {referenceSpec && (
                 <Field

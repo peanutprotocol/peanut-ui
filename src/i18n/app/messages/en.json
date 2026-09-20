@@ -1952,6 +1952,10 @@
             "referenceInvalidCharsSepa": "Use only letters a-z, numbers, spaces and & - . /",
             "referenceInvalidCharsAch": "Use only letters a-z, numbers and spaces.",
             "referenceInvalidCharsSpei": "Use only letters a-z, numbers and spaces.",
+            "payoutSenderSepa": "The payment arrives from our payment partner, not from your own name. Your name is in the payment reference.",
+            "payoutSenderAch": "The payment arrives from our payment partner, not from your own name. Your bank statement shows Peanut.",
+            "payoutSenderSpei": "The payment arrives from our payment partner's local bank, not from your own name.",
+            "payoutSenderWire": "The payment arrives from Peanut, not from your own name.",
             "bankAccount": "Bank Account",
             "transferProcessing": "Transfer processing",
             "confirmPending": "Your transfer is processing. Funds were sent on-chain successfully — this can take a few minutes to confirm. If you don't see the withdrawal in your activity within 30 minutes, please contact support."

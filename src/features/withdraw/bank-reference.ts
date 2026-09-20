@@ -107,3 +107,33 @@ export function bankReferenceDestinationFields(
     if (!spec || !text || bankReferenceProblem(text, spec)) return {}
     return { [spec.field]: text }
 }
+
+/**
+ * Whose name the receiving bank shows as the sender of a withdrawal.
+ *
+ * It is not the user, on any rail we offer. The provider sets this per rail as
+ * account configuration — we cannot set it per payment — so the honest thing is
+ * to say what each rail actually does. Read from the provider's payout
+ * configuration for our own account (2026-09-21):
+ * - `sepa`: the provider's own entity. The user's name reaches the recipient
+ *   only inside the reference line.
+ * - `ach`: the provider's own entity, under a Peanut descriptor.
+ * - `spei`: the provider's upstream local bank.
+ * - `wire`: Peanut itself.
+ *
+ * `faster_payments` and `co_bank_transfer` are absent from that configuration,
+ * so we do not know and say nothing rather than guess.
+ */
+export type PayoutSenderNoteKey = 'payoutSenderSepa' | 'payoutSenderAch' | 'payoutSenderSpei' | 'payoutSenderWire'
+
+const SENDER_NOTES: Record<string, PayoutSenderNoteKey> = {
+    sepa: 'payoutSenderSepa',
+    ach: 'payoutSenderAch',
+    spei: 'payoutSenderSpei',
+    wire: 'payoutSenderWire',
+}
+
+/** The `withdraw.bank` message key for this rail, or null when we cannot say. */
+export function payoutSenderNoteForRail(paymentRail: string | undefined): PayoutSenderNoteKey | null {
+    return (paymentRail && SENDER_NOTES[paymentRail]) || null
+}

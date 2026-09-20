@@ -2,7 +2,7 @@ import React from 'react'
 import { screen, fireEvent } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { WithdrawBankReviewView } from '../WithdrawBankReviewView'
-import { bankReferenceProblem, bankReferenceSpecForRail } from '../../bank-reference'
+import { bankReferenceProblem, bankReferenceSpecForRail, payoutSenderNoteForRail } from '../../bank-reference'
 import { AccountType, type Account } from '@/interfaces/interfaces'
 
 jest.mock('@/components/Global/PeanutActionDetailsCard', () => ({ __esModule: true, default: () => null }))
@@ -34,6 +34,7 @@ const Harness = ({ rail, submittedTxHash = null }: { rail: string; submittedTxHa
             balanceErrorMessage={null}
             confirmPendingCopy="processing"
             referenceSpec={spec}
+            payoutSenderNoteKey={payoutSenderNoteForRail(rail)}
             reference={reference}
             referenceProblem={spec ? bankReferenceProblem(reference, spec) : null}
             onReferenceChange={setReference}
@@ -126,5 +127,17 @@ describe('WithdrawBankReviewView — the optional reference', () => {
     it('once the on-chain leg fired the reference is locked', () => {
         renderWithIntl(<Harness rail="sepa" submittedTxHash="0xtx" />)
         expect(referenceInput()).toBeDisabled()
+    })
+
+    it('names who the recipient bank shows as the sender, per rail', () => {
+        renderWithIntl(<Harness rail="sepa" />)
+        expect(screen.getByText(/arrives from our payment partner/)).toBeInTheDocument()
+        expect(screen.getByText(/Your name is in the payment reference/)).toBeInTheDocument()
+    })
+
+    it('says nothing about the sender on a rail we cannot confirm', () => {
+        // Faster Payments is absent from the provider's payout configuration.
+        renderWithIntl(<Harness rail="faster_payments" />)
+        expect(screen.queryByText(/arrives from/)).not.toBeInTheDocument()
     })
 })
