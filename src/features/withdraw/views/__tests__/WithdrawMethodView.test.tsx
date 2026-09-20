@@ -10,7 +10,7 @@
  *  (c) crypto opens destination selection before amount entry.
  */
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { type Account } from '@/interfaces/interfaces'
 
@@ -59,10 +59,14 @@ jest.mock('@/components/Common/SavedAccountsView', () => ({
         savedAccounts: Account[]
         onAccountClick: (account: Account, path?: string) => void
         onCryptoClick: () => void
+        onSelectNewMethodClick: () => void
         savedAddresses: { id: string; address: string; chainId: string; nickname: string }[]
         onSavedAddressClick: (saved: { id: string; address: string; chainId: string; nickname: string }) => void
     }) => (
         <div>
+            <button data-testid="hub-bank-row" onClick={props.onSelectNewMethodClick}>
+                Withdraw to a bank account
+            </button>
             {props.savedAccounts.map((account) => (
                 <button
                     key={account.identifier}
@@ -100,7 +104,7 @@ jest.mock('@/features/withdraw/components/WithdrawCurrencyList', () => ({
         initialQuery,
     }: {
         onCountryClick: (c: unknown) => void
-        onCryptoClick: () => void
+        onCryptoClick?: () => void
         enforceSupportedCountries?: boolean
         initialQuery?: string
     }) => (
@@ -123,9 +127,11 @@ jest.mock('@/features/withdraw/components/WithdrawCurrencyList', () => ({
                     {country.title}
                 </button>
             ))}
-            <button data-testid="currency-crypto-row" onClick={onCryptoClick}>
-                Crypto
-            </button>
+            {onCryptoClick && (
+                <button data-testid="currency-crypto-row" onClick={onCryptoClick}>
+                    Crypto
+                </button>
+            )}
         </div>
     ),
 }))
@@ -417,5 +423,49 @@ describe('WithdrawMethodView — what it tells the currency list', () => {
     it('/withdraw?currencyCode=EUR opens the list filtered to that currency', () => {
         renderView({ currencyCode: 'EUR' })
         expect(screen.getByTestId('currency-list')).toHaveAttribute('data-initial-query', 'EUR')
+    })
+})
+
+/**
+ * Round-2 QA (Q1): "why is crypto an option when I've choose withdraw to bank?"
+ * A chooser must not offer a method the user already picked one screen earlier.
+ */
+describe('WithdrawMethodView — the chooser drops a rail the user already picked', () => {
+    it('the hub bank row names the rail in the URL', async () => {
+        const onUrlUpdate = jest.fn()
+        render(
+            <NuqsTestingAdapter onUrlUpdate={onUrlUpdate}>
+                <WithdrawMethodView
+                    pageTitle="Withdraw"
+                    mainHeading="Where to?"
+                    onExit={mockOnExit}
+                    onMethodChosen={mockOnMethodChosen}
+                />
+            </NuqsTestingAdapter>
+        )
+        fireEvent.click(screen.getByTestId('hub-bank-row'))
+
+        await waitFor(() => expect(onUrlUpdate).toHaveBeenCalled())
+        const params = onUrlUpdate.mock.calls.at(-1)?.[0].searchParams as URLSearchParams
+        expect(params.get('showAll')).toBe('true')
+        expect(params.get('rail')).toBe('bank')
+    })
+
+    it('bank chosen upstream: no crypto row', () => {
+        renderView({ showAll: 'true', rail: 'bank' })
+        expect(screen.queryByTestId('currency-crypto-row')).not.toBeInTheDocument()
+        // the bank side of the screen is untouched
+        expect(screen.getByTestId('country-germany')).toBeInTheDocument()
+    })
+
+    it('Send → Bank is the same choice, made one screen earlier', () => {
+        mockIsBankFromSend = true
+        renderView({ showAll: 'true', method: 'bank' })
+        expect(screen.queryByTestId('currency-crypto-row')).not.toBeInTheDocument()
+    })
+
+    it('no rail chosen: the crypto row still leads the list', () => {
+        renderView({ showAll: 'true' })
+        expect(screen.getByTestId('currency-crypto-row')).toBeInTheDocument()
     })
 })

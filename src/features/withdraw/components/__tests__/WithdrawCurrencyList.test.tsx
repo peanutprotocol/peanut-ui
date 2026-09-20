@@ -52,7 +52,9 @@ import { WithdrawCurrencyList } from '../WithdrawCurrencyList'
 const onCountryClick = jest.fn()
 const onCryptoClick = jest.fn()
 
-const renderList = (props: { enforceSupportedCountries?: boolean; initialQuery?: string } = {}) =>
+const renderList = (
+    props: { enforceSupportedCountries?: boolean; initialQuery?: string; onCryptoClick?: () => void } = {}
+) =>
     render(
         <WithdrawCurrencyList
             heading="Cash out"
@@ -115,6 +117,14 @@ describe('WithdrawCurrencyList — currency-first with country as fallback', () 
         renderList()
         fireEvent.click(screen.getByTestId('withdraw-crypto'))
         expect(onCryptoClick).toHaveBeenCalledTimes(1)
+    })
+
+    it('drops the crypto row when the caller offers no crypto handler', () => {
+        // the caller already knows the user picked the bank rail
+        renderList({ onCryptoClick: undefined })
+        expect(screen.queryByTestId('withdraw-crypto')).not.toBeInTheDocument()
+        // the currencies are still there — only the crypto row goes
+        expect(screen.getByTestId('withdraw-currency-EUR')).toBeInTheDocument()
     })
 })
 

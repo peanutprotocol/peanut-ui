@@ -25,8 +25,11 @@ interface WithdrawCurrencyListProps {
     heading: string
     /** A country was resolved — route it (reuses the method view's handler). */
     onCountryClick: (country: CountryData) => void
-    /** The crypto (on-chain) row was tapped. */
-    onCryptoClick: () => void
+    /**
+     * The crypto (on-chain) row was tapped. Omit it to drop the row: a user who
+     * already picked the bank rail upstream must not be offered crypto again.
+     */
+    onCryptoClick?: () => void
     /** Send has stricter country support than own-account withdrawal. */
     enforceSupportedCountries?: boolean
     /** Search the list opens with — `/withdraw?currencyCode=EUR` lands on the EUR row. */
@@ -96,7 +99,7 @@ export function WithdrawCurrencyList({
             </div>
 
             {/* crypto sits beside the currencies, never inside them */}
-            {!query && (
+            {!query && onCryptoClick && (
                 <ListItem
                     key="crypto"
                     title={tGlobal('countryList.cryptoWithdrawTitle')}

@@ -507,7 +507,7 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                             router.push(
                                 isBankFromSend
                                     ? `/withdraw?showAll=true&method=${methodParam}`
-                                    : '/withdraw?showAll=true'
+                                    : '/withdraw?showAll=true&rail=bank'
                             )
                             return
                         }
@@ -626,8 +626,13 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         withdrawFlow?.setSelectedMethod(null)
                         withdrawFlow?.setSelectedBankAccount(null)
                         void setUrlAmount(null)
+                        // the country list is only ever reached on the bank rail —
+                        // name it so the chooser does not re-offer crypto on the
+                        // way back
                         router.push(
-                            isBankFromSend ? `/withdraw?showAll=true&method=${methodParam}` : '/withdraw?showAll=true'
+                            isBankFromSend
+                                ? `/withdraw?showAll=true&method=${methodParam}`
+                                : '/withdraw?showAll=true&rail=bank'
                         )
                     }
                 }}

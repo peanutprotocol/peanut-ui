@@ -70,7 +70,16 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
     // if currencyCode is present, show all methods
     const showAll = showAllParam || !!currencyCode
 
+    // The rail the user already picked, if any. Its own parameter on purpose:
+    // `method` is the Send-flow origin marker (useSendFlowOrigin), and reusing it
+    // here would rewrite this screen's copy into the Send wording.
+    const [railParam, setRail] = useQueryState('rail', parseAsString)
+
     const isBankFromSend = useSendFlowOrigin().isBankFromSend
+    // Bank was chosen before this screen — on the hub's "Withdraw to a bank
+    // account" row, or as Send → Bank. Offering Crypto again reads as the app
+    // not having registered that tap, and taking it abandons the bank flow.
+    const bankRailChosen = isBankFromSend || railParam === 'bank'
     const savedAccounts = useMemo<Account[]>(() => {
         const bankAccounts =
             user?.accounts.filter(
@@ -205,7 +214,10 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                         }
                         onMethodChosen()
                     }}
-                    onSelectNewMethodClick={() => setShowAll(true)}
+                    onSelectNewMethodClick={() => {
+                        void setShowAll(true)
+                        void setRail('bank')
+                    }}
                     savedAddresses={savedAddresses}
                     onSavedAddressClick={handleSavedAddressClick}
                     onSavedAddressEdit={(saved) =>
@@ -248,6 +260,8 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                     // toggle back to saved accounts when the user navigated to "select new method"
                     if (showAllParam && (savedAccounts.length > 0 || savedAddresses.length > 0)) {
                         void setShowAll(null)
+                        // back on the hub the user has picked nothing again
+                        void setRail(null)
                     } else {
                         onExit()
                     }
@@ -259,7 +273,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, mai
                 enforceSupportedCountries={isBankFromSend}
                 initialQuery={currencyCode ?? ''}
                 onCountryClick={handleCountrySelected}
-                onCryptoClick={handleCryptoTileClick}
+                onCryptoClick={bankRailChosen ? undefined : handleCryptoTileClick}
             />
         </div>
     )

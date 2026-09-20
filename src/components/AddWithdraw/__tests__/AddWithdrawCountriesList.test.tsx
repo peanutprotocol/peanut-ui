@@ -565,7 +565,11 @@ describe('bank country back navigation', () => {
         mockSearchParams = new URLSearchParams(query)
         render(<AddWithdrawCountriesList flow="withdraw" />)
         fireEvent.click(screen.getByTestId('nav-header'))
-        expect(mockPush).toHaveBeenCalledWith(query ? '/withdraw?showAll=true&method=bank' : '/withdraw?showAll=true')
+        // the plain withdraw path names the rail it came back from, so the
+        // chooser does not offer crypto again (QA round 2, Q1)
+        expect(mockPush).toHaveBeenCalledWith(
+            query ? '/withdraw?showAll=true&method=bank' : '/withdraw?showAll=true&rail=bank'
+        )
         expect(mockSetSelectedMethod).toHaveBeenCalledWith(null)
     })
 })
@@ -629,7 +633,7 @@ describe('AddWithdrawCountriesList — the bank form entered cold', () => {
         render(<AddWithdrawCountriesList flow="withdraw" />)
         fireEvent.click(screen.getByTestId('nav-header'))
 
-        expect(mockPush).toHaveBeenCalledWith('/withdraw?showAll=true')
+        expect(mockPush).toHaveBeenCalledWith('/withdraw?showAll=true&rail=bank')
     })
 
     it.each(['', 'bank'])(
@@ -645,7 +649,7 @@ describe('AddWithdrawCountriesList — the bank form entered cold', () => {
             })
 
             expect(mockPush).toHaveBeenCalledWith(
-                origin ? '/withdraw?showAll=true&method=bank' : '/withdraw?showAll=true'
+                origin ? '/withdraw?showAll=true&method=bank' : '/withdraw?showAll=true&rail=bank'
             )
             expect(mockUrlUpdate).not.toHaveBeenCalled()
             expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(null)
