@@ -1,7 +1,6 @@
 import type { CountryData } from '@/components/AddMoney/consts'
 import { corridorsForCountry } from '@/features/deposit-accounts/countryCorridor'
 import { DEPOSIT_RAILS, isClaimable } from '@/features/deposit-accounts/rails'
-import { isResidenceGated } from '@/features/deposit-accounts/residenceGate'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import { liveRailsForCountry } from '@/features/destinations/country-rails'
 
@@ -10,8 +9,8 @@ import { liveRailsForCountry } from '@/features/destinations/country-rails'
  *
  * `standing` is an account the user holds and a payer can pay into again and
  * again. `top-up` is a set of coordinates minted for one payment from the
- * user's own account. Brazil has both, and they are not interchangeable — a
- * user who wants to be paid by somebody else cannot use the top-up code.
+ * user's own account. They are not interchangeable — a user who wants to be
+ * paid by somebody else cannot use a top-up code.
  */
 export type AddMoneyRoute =
     | { corridor: DepositCorridor; kind: 'standing' }
@@ -21,11 +20,7 @@ export type AddMoneyRoute =
 /**
  * The bank routes this user has into this country, in catalogue order.
  *
- * A standing corridor counts where the user is offered its rail, and where the
- * corridor is residence-gated: those are shown to everybody, and the flow
- * behind them resolves held, claim, gate and residence in one place. Sending a
- * Brazilian resident somewhere else until the capability block names their rail
- * is how the country list and the account row came to disagree. A top-up
+ * A standing corridor counts where the user is offered its rail. A top-up
  * corridor counts for everybody, because it needs no account.
  */
 export function addMoneyRoutesForCountry(
@@ -35,11 +30,9 @@ export function addMoneyRoutesForCountry(
 ): AddMoneyRoute[] {
     const corridors = corridorsForCountry(country)
     const claimableCorridors = corridors.filter((corridor) => isClaimable(DEPOSIT_RAILS[corridor]))
-    // One country, one destination. Brazil has a standing Pix account and a
-    // per-payment Pix code, and once standing accounts are live the account is
-    // the answer — the code is reached from the corridor flow, not from a
-    // second country route to the same tap. While they are dark the top-up is
-    // the only way in, so it stays.
+    // One country, one destination: where a country has a standing account,
+    // that is the answer once standing accounts are live. While they are dark
+    // the top-up is the only way in, so it stays.
     const resolvable = depositAccountsEnabled && claimableCorridors.length > 0 ? claimableCorridors : corridors
 
     return resolvable.flatMap<AddMoneyRoute>((corridor) => {
@@ -47,7 +40,7 @@ export function addMoneyRoutesForCountry(
         if (!isClaimable(rail)) {
             return rail.topUpHref ? [{ corridor, kind: 'top-up', href: rail.topUpHref }] : []
         }
-        const offered = depositAccountsEnabled && (offeredCorridors.includes(corridor) || isResidenceGated(corridor))
+        const offered = depositAccountsEnabled && offeredCorridors.includes(corridor)
         return offered ? [{ corridor, kind: 'standing' }] : []
     })
 }

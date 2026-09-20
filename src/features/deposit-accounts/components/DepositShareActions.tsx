@@ -20,22 +20,18 @@ export function DepositShareActions({
     userName: string
 }) {
     const toast = useToast()
-    const { t, rowLabels, railLabels, ruleLines } = useDepositAccountCopy()
+    const { t, rowLabels, railLabels } = useDepositAccountCopy()
 
     if (!account.instructions) return null
 
     const ownName = account.matching.nameOnAccount === 'user'
-    // The same rules the details screen states, in the payer's voice. One
-    // resolver feeds both the callout and the copied text, so what the user
-    // reads and what the payer reads can never disagree.
-    const rules = ruleLines(account.matching, account.rules, userName).map((line) => line.payer)
     const text = buildShareText(
         account,
         {
             introOwn: t('share.textIntroOwn', { currency: rail.currency }),
             introPooled: t('share.textIntroPooled', { user: userName, currency: rail.currency }),
-            rules,
             outro: t('share.textOutro'),
+            payerLine: { 'business-only': t('share.payerBusinessOnly'), unknown: t('share.payerUnconfirmed') },
         },
         rowLabels,
         railLabels

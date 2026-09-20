@@ -2,6 +2,8 @@
 import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import countryCurrencyMappings, { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { SUPPORTED_EXCHANGE_CURRENCIES } from '@/constants/exchange-currencies.consts'
+import { heightAboveBottomNav, scrollClearOfBottomNav } from '@/utils/bottom-nav-clearance.utils'
+import { localizedCurrencyName } from '@/utils/currency-name.utils'
 import { twMerge } from '@/utils/tw'
 import Image from 'next/image'
 import React, { cloneElement, isValidElement, useEffect, useId, useMemo, useRef, useState } from 'react'
@@ -13,12 +15,20 @@ interface CurrencySelectProps {
     setSelectedCurrency: (currency: string) => void
     trigger: React.ReactNode
     excludeCurrencies?: string[]
+    /** currencies listed first, in this order; the rest keep the default order */
+    priorityCurrencies?: string[]
     /**
      * Accessible name of the listbox. The component renders under two different
      * i18n providers (marketing landing and the app), so the translated string
      * comes down as a prop — same reason ExchangeRateWidget takes `labels`.
      */
     label?: string
+    /**
+     * The reader's locale, for the currency names. A prop for the same reason as
+     * `label`: the component cannot assume which i18n provider it sits under.
+     * Without it the names stay the catalog's English.
+     */
+    locale?: string
 }
 
 // Transform the currency mappings into the format expected by the component
@@ -35,6 +45,9 @@ const currencies = SUPPORTED_EXCHANGE_CURRENCIES.map((code) => {
 
 type CurrencyOption = (typeof currencies)[number]
 
+// a stable default, so the sorted list is not rebuilt on every render
+const NO_PRIORITY: string[] = []
+
 /**
  * Hand-rolled listbox popover (same idiom as Common/CountryCombobox — no
  * HeadlessUI): the consumer-supplied trigger toggles an absolutely positioned,
@@ -48,7 +61,9 @@ const CurrencySelect = ({
     setSelectedCurrency,
     trigger,
     excludeCurrencies = [],
+    priorityCurrencies = NO_PRIORITY,
     label = 'Select currency',
+    locale,
 }: CurrencySelectProps) => {
     const id = useId()
     const listId = `${id}-listbox`
@@ -57,10 +72,15 @@ const CurrencySelect = ({
     const [open, setOpen] = useState(false)
     const [activeIndex, setActiveIndex] = useState(0)
 
-    const availableCurrencies = useMemo(
-        () => currencies.filter((currency) => !excludeCurrencies.includes(currency.currency)),
-        [excludeCurrencies]
-    )
+    const availableCurrencies = useMemo(() => {
+        const available = currencies.filter((currency) => !excludeCurrencies.includes(currency.currency))
+        const rank = (code: string) => {
+            const index = priorityCurrencies.indexOf(code)
+            return index === -1 ? priorityCurrencies.length : index
+        }
+        // Array.prototype.sort is stable, so equal ranks keep the default order.
+        return [...available].sort((a, b) => rank(a.currency) - rank(b.currency))
+    }, [excludeCurrencies, priorityCurrencies])
 
     // keyboard focus lands on the list itself; aria-activedescendant names the row
     useEffect(() => {
@@ -73,6 +93,19 @@ const CurrencySelect = ({
             block: 'nearest',
         })
     }, [open, activeIndex])
+
+    // The panel opens downward and is not modal. Near the bottom of a small
+    // screen its last rows landed behind the bottom nav and could only be
+    // reached by scrolling the page under the open list. It is capped to the
+    // room above the nav and scrolls inside itself; with too little room for a
+    // list, the page is moved instead.
+    const [panelMaxHeight, setPanelMaxHeight] = useState<number>()
+    useEffect(() => {
+        if (!open || !listRef.current) return
+        const room = heightAboveBottomNav(listRef.current.getBoundingClientRect().top)
+        setPanelMaxHeight(room)
+        if (room === undefined) scrollClearOfBottomNav(listRef.current)
+    }, [open])
 
     const openList = () => {
         setActiveIndex(
@@ -182,6 +215,8 @@ const CurrencySelect = ({
                     onTouchMove={(event) => event.stopPropagation()}
                     // keep the list focused (and open) while a row is being tapped
                     onMouseDown={(event) => event.preventDefault()}
+                    // a smaller cap than the class's own max height wins; never a larger one
+                    style={panelMaxHeight ? { maxHeight: Math.min(panelMaxHeight, 288) } : undefined}
                     className={twMerge(
                         CARD_SURFACE,
                         'absolute top-full right-0 z-50 mt-4 max-h-72 w-72 overflow-y-auto p-4 shadow-lg outline-action-focus focus-visible:outline-[3px] focus-visible:outline-action-focus sm:w-80 md:w-96'
@@ -194,7 +229,11 @@ const CurrencySelect = ({
                             index={index}
                             countryCode={currency.countryCode}
                             currency={currency.currency}
-                            currencyName={currency.currencyName}
+                            currencyName={
+                                locale
+                                    ? localizedCurrencyName(locale, currency.currency, currency.currencyName)
+                                    : currency.currencyName
+                            }
                             comingSoon={currency.comingSoon}
                             selected={currency.currency === selectedCurrency}
                             active={index === activeIndex}

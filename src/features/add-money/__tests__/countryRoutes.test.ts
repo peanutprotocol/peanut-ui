@@ -21,18 +21,12 @@ const routes = (c: CountryData, offered: DepositCorridor[] = [], enabled = true)
 
 describe('addMoneyRoutesForCountry', () => {
     /**
-     * One country, one destination. Brazil used to answer with both Pix
-     * products and the country pick had to guess; now it opens the BRL
-     * corridor and the flow behind it decides — claim, gate, or the Pix
-     * top-up.
+     * Brazil has one way in by bank: the Pix top-up. Reais stay on the
+     * per-payment code, so there is no standing corridor beside it to choose
+     * between, with the accounts flag on or off.
      */
-    it('sends Brazil to its BRL corridor, offered rail or not', () => {
-        expect(routes(BR, ['BANK_TRANSFER_BR'])).toEqual([{ corridor: 'BANK_TRANSFER_BR', kind: 'standing' }])
-        expect(routes(BR)).toEqual([{ corridor: 'BANK_TRANSFER_BR', kind: 'standing' }])
-    })
-
-    it('does not offer a standing corridor while the deposit-accounts flag is off', () => {
-        expect(routes(BR, ['BANK_TRANSFER_BR'], false)).toEqual([
+    it.each([[true], [false]])('sends Brazil to the Pix top-up (accounts flag %s)', (enabled) => {
+        expect(routes(BR, [], enabled)).toEqual([
             { corridor: 'PIX_BR', kind: 'top-up', href: '/add-money/brazil/manteca' },
         ])
     })

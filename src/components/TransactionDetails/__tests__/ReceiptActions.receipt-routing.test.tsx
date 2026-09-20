@@ -1,5 +1,5 @@
 import React from 'react'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import type { TransactionDetails } from '../transactionTransformer'
 import type { ReceiptViewModel } from '../useReceiptViewModel'
@@ -36,10 +36,10 @@ jest.mock('@/components/Global/ShareButton', () => ({
     __esModule: true,
     default: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
 }))
-const mockShareUrl = jest.fn()
-jest.mock('@/components/Global/ShareButton/useShareAction', () => ({
-    useShareAction: () => mockShareUrl,
-}))
+const mockCopy = jest.fn()
+jest.mock('@/utils/clipboard.utils', () => ({ copyTextToClipboard: (text: string) => mockCopy(text) }))
+const mockToast = { success: jest.fn(), error: jest.fn(), info: jest.fn() }
+jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => mockToast }))
 const mockPdfShare = jest.fn()
 const mockPdfDownload = jest.fn()
 let mockPdfBusy: 'share' | 'download' | null = null
@@ -131,23 +131,25 @@ describe('ReceiptActions hierarchy (TASK-22452)', () => {
     test('nonsplittable private kind: pdf share is the primary; download + support live in the drawer', () => {
         renderActions(transaction('DIRECT_TRANSFER', 'https://peanut.me/recipient'), vm())
 
-        expect(screen.getByTestId('private-pdf-share')).toBeInTheDocument()
-        expect(screen.queryByTestId('public-share')).not.toBeInTheDocument()
+        expect(screen.getByTestId('pdf-share')).toBeInTheDocument()
         expect(screen.queryByTestId('public-download')).not.toBeInTheDocument()
         // no duplicate share row when share owns the primary slot
         expect(screen.queryByTestId('more-action-share')).not.toBeInTheDocument()
+        // the stamped pay link is not a public receipt — never offered as a copy
+        expect(screen.queryByTestId('more-action-copy-link')).not.toBeInTheDocument()
         expect(screen.getByTestId('more-action-download')).toBeInTheDocument()
         expect(screen.getByTestId('more-action-support')).toBeInTheDocument()
         // support moved into the drawer — no separate footer link
         expect(screen.queryByTestId('support-link')).not.toBeInTheDocument()
     })
 
-    test('nonsplittable capability kind: url share primary, download demoted to the drawer', () => {
+    test('nonsplittable capability kind: the same pdf share primary, copy link + download in the drawer', () => {
         renderActions(transaction('OFFRAMP'), vm())
 
-        expect(screen.getByTestId('public-share')).toBeInTheDocument()
-        expect(screen.queryByTestId('private-pdf-share')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByTestId('pdf-share'))
+        expect(mockPdfShare).toHaveBeenCalledTimes(1)
         expect(screen.queryByTestId('public-download')).not.toBeInTheDocument()
+        expect(screen.getByTestId('more-action-copy-link')).toBeInTheDocument()
         expect(screen.getByTestId('more-action-download')).toBeInTheDocument()
     })
 
@@ -155,7 +157,7 @@ describe('ReceiptActions hierarchy (TASK-22452)', () => {
         renderActions(transaction('QR_PAY'), vm())
 
         expect(screen.getByText('actions.splitBill')).toBeInTheDocument()
-        expect(screen.queryByTestId('public-share')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('pdf-share')).not.toBeInTheDocument()
         expect(screen.getByTestId('more-action-share')).toBeInTheDocument()
         expect(screen.getByTestId('more-action-download')).toBeInTheDocument()
         expect(screen.getByTestId('more-action-support')).toBeInTheDocument()
@@ -168,14 +170,32 @@ describe('ReceiptActions hierarchy (TASK-22452)', () => {
         fireEvent.click(screen.getByTestId('more-actions-trigger'))
         expect(screen.getByTestId('more-actions-drawer')).toHaveAttribute('data-open', 'true')
 
+        // a qr payment shares the pdf file, exactly like a p2p send
         fireEvent.click(screen.getByTestId('more-action-share'))
-        expect(mockShareUrl).toHaveBeenCalledTimes(1)
+        expect(mockPdfShare).toHaveBeenCalledTimes(1)
         // qr pay is a public-capability kind: its drawer download keeps the
         // pre-existing url path (anchor/web, system browser/native) — never
         // the authenticated file hook
         fireEvent.click(screen.getByTestId('more-action-download'))
         expect(mockOpenReceiptPdfUrl).toHaveBeenCalledWith('/receipt/entry-1/pdf?kind=QR_PAY&locale=en')
         expect(mockPdfDownload).not.toHaveBeenCalled()
+    })
+
+    test('copy link copies the public receipt url and confirms it', async () => {
+        mockCopy.mockResolvedValue(true)
+        renderActions(transaction('QR_PAY'), vm())
+
+        fireEvent.click(screen.getByTestId('more-action-copy-link'))
+        await waitFor(() => expect(mockToast.success).toHaveBeenCalledWith('actions.linkCopied'))
+        expect(mockCopy).toHaveBeenCalledWith(expect.stringContaining('/receipt/entry-1?kind=QR_PAY'))
+    })
+
+    test('a failed copy says so', async () => {
+        mockCopy.mockResolvedValue(false)
+        renderActions(transaction('OFFRAMP'), vm())
+
+        fireEvent.click(screen.getByTestId('more-action-copy-link'))
+        await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith('actions.linkCopyFailed'))
     })
 
     test('a private kind downloads through the authenticated file hook', () => {

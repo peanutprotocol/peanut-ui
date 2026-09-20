@@ -40,7 +40,7 @@ let mockDepositEnabled = false
 let mockDepositAccounts: Record<string, unknown> = {}
 const mockReadDepositAccounts = jest.fn(() => ({
     accounts: mockDepositAccounts,
-    gates: { SEPA_EU: { kind: 'ready' } },
+    gates: { SEPA_EU: { kind: 'ready' }, ACH_US: { kind: 'ready' } },
     isLoading: false,
     isError: false,
     refetch: jest.fn(),
@@ -209,12 +209,16 @@ describe('UnlockPayments', () => {
         expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
     })
 
-    it('leads with the Everywhere group and its always-on row', () => {
+    it('leads with the merged "Your accounts" list, and the Peanut group keeps its always-on row', () => {
         render()
-        const headers = screen.getAllByText(/Everywhere|Brazil|Argentina|United States|Mexico|Europe/)
-        expect(headers[0]).toHaveTextContent('Everywhere')
+        // The currency-first merge (2026-09-18): the accounts list comes before
+        // the separate Peanut group in the DOM, not the old Everywhere-first order.
+        const accountsHeading = screen.getByText('Your accounts')
+        const peanutHeading = screen.getByText('Peanut')
+        expect(accountsHeading.compareDocumentPosition(peanutHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
         expect(screen.getByText('Peanut-to-Peanut payments')).toBeInTheDocument()
-        expect(screen.getByText('Always on')).toBeInTheDocument()
+        // P2P and crypto both carry the always-on chip.
+        expect(screen.getAllByText('Always on').length).toBeGreaterThanOrEqual(2)
     })
 
     it('a region-restricted user gets the region screen instead of an unlock offer', () => {
@@ -239,21 +243,25 @@ describe('UnlockPayments', () => {
         expect(mockPush).toHaveBeenCalledWith('/card')
     })
 
-    it('shows the verified residence anchor and floats that region up', () => {
+    it("shows the verified residence anchor and floats that region's rows to the top of the merged list", () => {
         mockUser = { residence: { declared: 'BR', verified: 'BR' } }
         render()
         expect(screen.getByText('Residence: Brazil')).toBeInTheDocument()
         expect(screen.getByText('Verified')).toBeInTheDocument()
-        expect(screen.getByText('Your region')).toBeInTheDocument()
-        const headers = screen.getAllByText(/^(Everywhere|South America|North America|Europe)$/)
-        expect(headers[1]).toHaveTextContent('South America')
+        // Region headers are gone (2026-09-18 currency-first merge), so the
+        // "floats up" contract now shows in row order: the residence's own
+        // region (South America) sorts before the others in the merged list.
+        const brazilRow = screen.getByText('PIX (Brazil), QR & bank transfers (Argentina)')
+        const europeRow = screen.getByText('Euro bank transfers')
+        expect(brazilRow.compareDocumentPosition(europeRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 
     it('a fully restricted residence reads Not available on bank rows but keeps the always-on row', () => {
         mockRestrictions = { banking: true, card: true }
         render()
         expect(screen.getAllByText('Not available').length).toBeGreaterThanOrEqual(4)
-        expect(screen.getByText('Always on')).toBeInTheDocument()
+        // Both P2P and crypto are always-on and untouched by a bank/card restriction.
+        expect(screen.getAllByText('Always on').length).toBeGreaterThanOrEqual(2)
         fireEvent.click(screen.getByText('Euro bank transfers'))
         expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
     })
@@ -329,34 +337,87 @@ describe('UnlockPayments', () => {
 
         const drawer = screen.getByRole('dialog')
         expect(within(drawer).getByText('Send and receive money with other Peanut users.')).toBeInTheDocument()
-        expect(within(drawer).getByText('No limits on Peanut-to-Peanut payments')).toBeInTheDocument()
+        expect(within(drawer).getByText('No amount limits on Peanut-to-Peanut payments or crypto')).toBeInTheDocument()
         expect(mockInitiateKyc).not.toHaveBeenCalled()
     })
 
-    it('held bank accounts reuse account details and retain the profile return path', () => {
+    it('held bank accounts reuse account details, retain the profile return path, and drop the duplicate active row', () => {
         mockDepositEnabled = true
+        mockRails = [{ id: 'bridge.sepa', provider: 'bridge', channel: 'bank', status: 'enabled' }]
         mockDepositAccounts = {
             SEPA_EU: { status: 'active', instructions: {}, matching: { sender: 'business-only' } },
         }
         render()
 
-        expect(screen.getByText('Your bank accounts')).toBeInTheDocument()
+        expect(screen.getByText('Your accounts')).toBeInTheDocument()
         fireEvent.click(screen.getByText('EUR · SEPA'))
         expect(mockPush).toHaveBeenCalledWith(
-            '/add-money?method=bank&step=details&corridor=SEPA_EU&returnTo=%2Fprofile%2Fidentity-verification'
+            '/add-money?method=bank&step=details&corridor=SEPA_EU&returnTo=%2Fprofile%2Faccounts-and-payments'
         )
+        // An active EUR account covers the same corridor as the active "Euro
+        // bank transfers" row (2026-09-18 currency-first merge) — the merged
+        // list shows it once, not twice.
+        expect(screen.queryByText('Euro bank transfers')).not.toBeInTheDocument()
     })
 
-    it('does not query bank accounts while their rollout flag is off', () => {
+    it('keeps the bank row when the account cannot stand in for it', () => {
+        mockDepositEnabled = true
+        // a revoked account covers nothing, and the row is the only way into
+        // the unlock or fix modal for that rail
+        mockDepositAccounts = {
+            SEPA_EU: { status: 'revoked', instructions: {}, matching: { sender: 'business-only' } },
+        }
+        render()
+
+        expect(screen.getByText('EUR · SEPA')).toBeInTheDocument()
+        expect(screen.getByText('Euro bank transfers')).toBeInTheDocument()
+    })
+
+    it('keeps the bank limits when an account row replaces the bank row they came from', () => {
+        mockDepositEnabled = true
+        mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', status: 'enabled' }]
+        mockBridgeLimits = { onRampPerTransaction: '25000', offRampPerTransaction: '50000', asset: 'USD' }
+        mockDepositAccounts = {
+            SEPA_EU: { status: 'active', instructions: {}, matching: { sender: 'anyone' } },
+            ACH_US: { status: 'active', instructions: {}, matching: { sender: 'anyone' } },
+        }
+        render()
+
+        expect(screen.queryByText('Euro bank transfers')).not.toBeInTheDocument()
+        expect(screen.getAllByText('Per bank withdrawal').length).toBeGreaterThan(0)
+    })
+
+    it.each([
+        ['off', false],
+        ['on', true],
+    ])('joins the bank rows into one card with the accounts flag %s', (_, enabled) => {
+        mockDepositEnabled = enabled
+        render()
+
+        // ListGroup positions its direct children: every row after the first
+        // drops its top border. Rows behind a wrapper component each kept all
+        // four and rendered as separate cards.
+        const rows = ['Euro bank transfers', 'US dollar and Mexican peso bank transfers'].map((title) =>
+            screen.getByText(title).closest('.border')
+        )
+        const group = rows[0]?.parentElement
+        expect(rows[1]?.parentElement).toBe(group)
+        expect(group?.querySelectorAll(':scope > .border:not(.border-t-0)')).toHaveLength(1)
+    })
+
+    it('does not query bank accounts while their rollout flag is off, but still shows the unlock rows', () => {
         mockReadDepositAccounts.mockClear()
         render()
         expect(mockReadDepositAccounts).not.toHaveBeenCalled()
-        expect(screen.queryByText('Your bank accounts')).not.toBeInTheDocument()
+        // The merged "Your accounts" list still renders the KYC-unlock bank/QR
+        // rows with the flag off — only the VA fetch (and its rows) are gated.
+        expect(screen.getByText('Your accounts')).toBeInTheDocument()
+        expect(screen.getByText('Euro bank transfers')).toBeInTheDocument()
     })
 
     it('states the P2P no-limit fact even before anything is unlocked', () => {
         render()
-        expect(screen.getByText('No limits on Peanut-to-Peanut payments')).toBeInTheDocument()
+        expect(screen.getByText('No amount limits on Peanut-to-Peanut payments or crypto')).toBeInTheDocument()
     })
 
     // A residence-parked rail. The TOP-LEVEL status is `blocked` (the backend maps

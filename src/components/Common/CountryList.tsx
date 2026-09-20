@@ -16,7 +16,7 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import EasterEggDrawer, { EASTER_EGG_COUNTRIES } from '@/components/Global/EasterEggDrawer'
 import { CountryWaitlist } from './CountryWaitlist'
-import { liveRailsForCountry } from '@/features/destinations/country-rails'
+import { isSendToBankCountry, liveRailsForCountry } from '@/features/destinations/country-rails'
 import Loading from '../Global/Loading'
 import { useSearchParams } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
@@ -55,6 +55,14 @@ interface CountryListViewProps {
      * keeps the square top edge that joins the two into one card.
      */
     continuesGroup?: boolean
+    /**
+     * Show these countries only. The withdraw currency-first selector uses this
+     * to disambiguate a shared payout currency — tapping EUR shows the countries
+     * that pay out in euros, country as the secondary step. The caller owns the
+     * set because "pays out in EUR" is not the country's own currency: Poland
+     * (PLN) cashes out in euros over SEPA.
+     */
+    countries?: CountryData[]
 }
 
 /**
@@ -83,6 +91,7 @@ export const CountryList = ({
     isCountrySupported,
     searchTerm: controlledSearchTerm,
     continuesGroup = false,
+    countries,
 }: CountryListViewProps) => {
     const t = useTranslations('global')
     const locale = useLocale()
@@ -104,7 +113,10 @@ export const CountryList = ({
     const [easterEggCountry, setEasterEggCountry] = useState<string | null>(null)
     const [waitlistCountry, setWaitlistCountry] = useState<CountryData | null>(null)
 
-    const supportedCountries = countryData.filter((country) => country.type === 'country')
+    const supportedCountries = useMemo(
+        () => countries ?? countryData.filter((country) => country.type === 'country'),
+        [countries]
+    )
 
     // catalog titles are English; the displayed name comes from Intl.DisplayNames
     const countryName = useCallback((country: CountryData) => localizedCountryTitle(locale, country), [locale])
@@ -135,7 +147,7 @@ export const CountryList = ({
 
             return countryName(a).localeCompare(countryName(b), locale)
         })
-    }, [homeCountryCode, countryName, locale])
+    }, [homeCountryCode, countryName, locale, supportedCountries])
 
     // filter countries based on deferred search term to prevent blocking ui.
     // The English title stays searchable so "Brazil" still finds "Brasil".
@@ -212,13 +224,10 @@ export const CountryList = ({
                             if (isCountrySupported) {
                                 isSupported = isCountrySupported(country)
                             } else if (viewMode === 'add-withdraw') {
-                                // send->bank flow: bridge countries, plus Brazil — a PIX send to a
-                                // third-party key rides the Manteca QR-payment endpoint (see the
-                                // method=pix delegation in /withdraw/manteca). Argentina stays
-                                // gated: its Manteca rails here are own-account offramps, same
-                                // ruling that keeps Mercado Pago off the send list (PR #2813).
+                                // send->bank has a stricter gate (Argentina stays out) —
+                                // see isSendToBankCountry
                                 if (enforceSupportedCountries) {
-                                    isSupported = hasBankCorridor || country.path === 'brazil'
+                                    isSupported = isSendToBankCountry(country)
                                 } else {
                                     isSupported = liveRailsForCountry(country.id, flow ?? 'withdraw').length > 0
                                 }
@@ -246,7 +255,11 @@ export const CountryList = ({
                                     title={displayName}
                                     trailing={trailing}
                                     chevron={!trailing}
-                                    body={country.currency}
+                                    // A caller-supplied set is "the countries this currency
+                                    // pays out in", and the caller's own row names that
+                                    // currency. The country's local code under it ("Poland
+                                    // PLN" inside EUR) promised a payout the rail does not make.
+                                    body={countries ? undefined : country.currency}
                                     onClick={() => {
                                         // check for easter egg countries first
                                         if (EASTER_EGG_COUNTRIES[country.id]) {

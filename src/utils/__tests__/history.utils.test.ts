@@ -171,6 +171,24 @@ describe('completeHistoryEntry currency-price fallback (pending vs final)', () =
         expect(result.currency?.amount).toBe('')
     })
 
+    /**
+     * `currency.code` is data, and it is not always a currency. An intent
+     * denominated in the token itself carries "USDC", which no FX provider
+     * quotes — the lookup threw "Invalid currency code" on every history
+     * render, once per row, and corrected nothing.
+     */
+    it.each(['ONRAMP', 'OFFRAMP'])('never asks for a price for a code no provider quotes (%s)', async (kind) => {
+        const entry: HistoryEntry = {
+            ...baseEntry,
+            status: 'COMPLETED' as HistoryEntry['status'],
+            amount: '2.00',
+            currency: { amount: '2.00', code: 'USDC' },
+            extraData: { ...baseEntry.extraData, kind },
+        }
+        await completeHistoryEntry(entry)
+        expect(mockGetCachedCurrencyPrice).not.toHaveBeenCalled()
+    })
+
     it('converts a mirrored OFFRAMP currency.amount once COMPLETED', async () => {
         const entry: HistoryEntry = {
             ...baseEntry,

@@ -949,6 +949,7 @@ export interface paths {
                             achReference?: string;
                             currency: "usd" | "eur" | "mxn" | "gbp" | "cop";
                             externalAccountId: string;
+                            fasterPaymentsReference?: string;
                             paymentRail: "ach" | "ach_push" | "ach_same_day" | "wire" | "sepa" | "swift" | "spei" | "faster_payments" | "co_bank_transfer";
                             sepaReference?: string;
                             wireMessage?: string;
@@ -9044,6 +9045,10 @@ export interface paths {
                         chainId?: string;
                         recipientAddress: string;
                         reference?: string;
+                        requestedAmount?: {
+                            amount: string;
+                            currency: string;
+                        };
                         tokenAddress?: unknown;
                         tokenAmount?: string;
                         tokenDecimals?: unknown;
@@ -9055,6 +9060,10 @@ export interface paths {
                         chainId: string;
                         recipientAddress: string;
                         reference?: string;
+                        requestedAmount?: {
+                            amount: string;
+                            currency: string;
+                        };
                         tokenAddress: string;
                         tokenAmount?: string;
                         tokenDecimals: string;
@@ -9066,11 +9075,39 @@ export interface paths {
             };
             responses: {
                 /** @description Default Response */
-                200: {
+                400: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
                 };
             };
         };
@@ -9110,11 +9147,15 @@ export interface paths {
                             bankInstructionsShared: boolean;
                             chainId: string | null;
                             createdAt: string;
+                            currency?: string | null;
                             paidAt: string | null;
                             payerName?: string | null;
                             receivedAmount?: string | null;
                             recipientAddress: string;
                             reference: string | null;
+                            requestedAmount?: string | null;
+                            requestedFxAsOf?: string | null;
+                            requestedFxRate?: string | null;
                             status: string;
                             tokenAddress: string | null;
                             tokenAmount: string | null;
@@ -9214,7 +9255,9 @@ export interface paths {
         };
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    currency?: string;
+                };
                 header?: never;
                 path: {
                     uuid: string;
@@ -9292,7 +9335,111 @@ export interface paths {
                                     };
                                 };
                             };
+                            payerAmount: {
+                                amount: string | null;
+                                currency: string;
+                                isEstimate: boolean;
+                                rate?: {
+                                    asOf: string | null;
+                                    from: string;
+                                    rate: string;
+                                    source: string;
+                                    to: string;
+                                };
+                            };
                             paymentReference: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/requests/{uuid}/pay-amounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    uuid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            rails: {
+                                country?: string;
+                                kind: "peanut_balance" | "crypto" | "bank";
+                                payerAmount: {
+                                    amount: string | null;
+                                    currency: string;
+                                    isEstimate: boolean;
+                                    rate?: {
+                                        asOf: string | null;
+                                        from: string;
+                                        rate: string;
+                                        source: string;
+                                        to: string;
+                                    };
+                                };
+                                railId?: string;
+                                reference?: string;
+                            }[];
+                            remainingAmount: string | null;
+                            requestAmount: string | null;
+                            requestCurrency: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
                         };
                     };
                 };
@@ -10638,6 +10785,7 @@ export interface paths {
                         "application/json": {
                             capabilities: {
                                 nextActions: {
+                                    currency?: string;
                                     effectiveDate?: string;
                                     key: string;
                                     kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
@@ -10675,6 +10823,7 @@ export interface paths {
                                             userMessage: string;
                                         };
                                         nextAction?: {
+                                            currency?: string;
                                             effectiveDate?: string;
                                             key: string;
                                             kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
@@ -10979,6 +11128,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            accountLimit: number;
+                            accountsHeld: number;
                             claimable: {
                                 blockedBy?: "account-limit" | "endorsement-pending" | "endorsement-required";
                                 country: string;
@@ -11097,6 +11248,13 @@ export interface paths {
                                 };
                                 status: "provisioning" | "active" | "retiring" | "revoked";
                             }[];
+                            unavailable: {
+                                country: string;
+                                currency: string;
+                                method: string;
+                                railId: string;
+                                reason: "identity-required" | "support-required" | "not-offered";
+                            }[];
                         };
                     };
                 };
@@ -11207,6 +11365,7 @@ export interface paths {
                                 missing: string[];
                                 pending: string[];
                             };
+                            verificationUrl?: string;
                         };
                     };
                 };
@@ -11228,7 +11387,7 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            code: string;
+                            code?: string;
                             error: string;
                         };
                     };
@@ -11693,6 +11852,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/kyc/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                    "api-key"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            expedited: boolean;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/kyc/start-action": {
         parameters: {
             query?: never;
@@ -11841,6 +12040,7 @@ export interface paths {
                         "application/json": {
                             capabilities: {
                                 nextActions: {
+                                    currency?: string;
                                     effectiveDate?: string;
                                     key: string;
                                     kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";
@@ -11878,6 +12078,7 @@ export interface paths {
                                             userMessage: string;
                                         };
                                         nextAction?: {
+                                            currency?: string;
                                             effectiveDate?: string;
                                             key: string;
                                             kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted";

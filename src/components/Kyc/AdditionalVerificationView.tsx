@@ -45,7 +45,7 @@ import { hasNativeBridgeStep, selectBridgeTasks } from '@/utils/bridge-tasks.uti
  * same button in silence — that silence is what sent users through the check
  * again and again (TASK-22818).
  */
-const IDENTITY_ROUTE = '/profile/identity-verification'
+const IDENTITY_ROUTE = '/profile/accounts-and-payments'
 
 export const AdditionalVerificationView = (): React.JSX.Element => {
     const t = useTranslations('kyc.hostedPrep')

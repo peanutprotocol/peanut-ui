@@ -584,6 +584,19 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         handler: ({ params, options }) => demoRequest(params.uuid, options),
     },
     { method: 'DELETE', pattern: '/requests/:uuid', handler: ({ params }) => demoRequest(params.uuid) },
+    // What is left to pay on each rail. A demo request is in dollars and shares
+    // no bank details, so the Peanut rail alone answers, with no figure: the
+    // demo request is open-amount. A fixture overrides this where it needs rails.
+    {
+        method: 'GET',
+        pattern: '/requests/:uuid/pay-amounts',
+        handler: () => ({
+            requestCurrency: 'USD',
+            requestAmount: null,
+            remainingAmount: null,
+            rails: [{ kind: 'peanut_balance', payerAmount: { amount: null, currency: 'USD', isEstimate: false } }],
+        }),
+    },
 
     // send links
     { method: 'GET', pattern: '/send-links', handler: () => demoSendLink('demo-pubkey') },

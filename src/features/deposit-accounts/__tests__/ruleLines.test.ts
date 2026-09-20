@@ -26,11 +26,13 @@ const keysOf = (matchingIn: DepositMatching, rules: DepositRules | undefined) =>
  * which told the holder their OWN top-up would bounce. It never would.
  */
 describe('depositRuleLines', () => {
-    it('USD: own account yes, a business unlimited, another person under the cap, family exempt', () => {
+    it('USD: own account yes, a business unlimited, the cap and the family exemption as separate lines', () => {
         const { sender, rules } = DEPOSIT_RAIL_POLICY.ACH_US
         const lines = depositRuleLines(matching({ sender }), rules, money)
-        expect(lines.map((l) => l.key)).toEqual(['ownAccount', 'businessAny', 'individualCapFamily'])
-        expect(lines.find((l) => l.key === 'individualCapFamily')?.values).toEqual({ cap: 'USD 4000' })
+        // the family exemption is its own bullet, after the per-payment cap
+        expect(lines.map((l) => l.key)).toEqual(['ownAccount', 'businessAny', 'individualCap', 'individualCapFamily'])
+        expect(lines.find((l) => l.key === 'individualCap')?.values).toEqual({ cap: 'USD 4000' })
+        expect(lines.find((l) => l.key === 'individualCapFamily')?.values).toBeUndefined()
     })
 
     it('USD, NY/TX: only the holder may pay in, and the state is the reason', () => {
@@ -49,8 +51,14 @@ describe('depositRuleLines', () => {
     it('EUR: own account yes, a business unlimited, another person capped like the US rail, with a floor', () => {
         const { sender, rules } = DEPOSIT_RAIL_POLICY.SEPA_EU
         const lines = depositRuleLines(matching({ sender }), rules, money)
-        expect(lines.map((l) => l.key)).toEqual(['ownAccount', 'businessAny', 'individualCapFamily', 'minimum'])
-        expect(lines.find((l) => l.key === 'individualCapFamily')?.values).toEqual({ cap: 'EUR 4000' })
+        expect(lines.map((l) => l.key)).toEqual([
+            'ownAccount',
+            'businessAny',
+            'individualCap',
+            'individualCapFamily',
+            'minimum',
+        ])
+        expect(lines.find((l) => l.key === 'individualCap')?.values).toEqual({ cap: 'EUR 4000' })
     })
 
     it('GBP: the same shape, with the sterling floor', () => {

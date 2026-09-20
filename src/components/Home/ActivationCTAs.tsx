@@ -203,7 +203,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                 title: t('steps.verify.title'),
                 description: t('steps.verify.description'),
                 ctaLabel: t('steps.verify.cta'),
-                href: '/profile/identity-verification',
+                href: '/profile/accounts-and-payments',
             },
             deposit: {
                 icon: 'arrow-down',
@@ -238,7 +238,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     )
 
     // Inline self-heal so the home "Upload document" CTA opens the Sumsub document
-    // re-upload directly, instead of routing to /profile/identity-verification (which
+    // re-upload directly, instead of routing to /profile/accounts-and-payments (which
     // only showed the regions list, forcing the user to hunt for the Upload-document
     // CTA again). Mirrors the add-money bank flow + the Unlock payments view.
     const kycFlow = useMultiPhaseKycFlow({})
@@ -338,7 +338,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     title: t('completeSetup.title'),
                     description: localizedRejectionMessage || t('completeSetup.description'),
                     ctaLabel: t('completeSetup.cta'),
-                    href: '/profile/identity-verification',
+                    href: '/profile/accounts-and-payments',
                 }
             }
             // Blocked, but self-fixable by verifying again with a document that

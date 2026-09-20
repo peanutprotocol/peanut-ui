@@ -20,6 +20,7 @@ import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/servic
 import { dispatchStrategy, isIntentKind, type IntentKind } from './strategies/registry'
 import { TRANSACTION_NAME_KEYS, reaperFailKey, type TransactionNameKey } from './transaction-name-keys'
 import { parseWireAmount } from './transaction-details.utils'
+import { pipelineAlert } from '@/utils/pipelineAlerts'
 
 /** Rain dispute lifecycle status values. Source: Rain dispute.* webhooks. */
 export type DisputeStatus = 'pending' | 'inReview' | 'accepted' | 'rejected' | 'canceled' | 'resolvedByMerchant'
@@ -161,6 +162,21 @@ const REAPER_FAIL_COPY: Record<string, string> = {
     refund_timeout: "Refund didn't complete",
 }
 
+// One Sentry signal per unknown word per session: the transformer runs on
+// every render of every row.
+const reportedBridgeStatuses = new Set<string>()
+function reportUnknownBridgeStatus(entry: HistoryEntry, status: string | undefined): void {
+    const word = status ?? '(none)'
+    if (reportedBridgeStatuses.has(word)) return
+    reportedBridgeStatuses.add(word)
+    pipelineAlert(
+        'projection_drift',
+        `transactionTransformer: unknown Bridge wire status "${word}"`,
+        { entryUuid: entry.uuid, kind: entry.extraData?.kind, status: word },
+        'warning'
+    )
+}
+
 /**
  * Map raw `entry.status` to the drawer's StatusPillType. Two regimes:
  * Bridge/bank rails (AWAITING_FUNDS / FUNDS_RECEIVED / PAYMENT_*) and
@@ -181,15 +197,27 @@ function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDir
             case 'PAYMENT_SUBMITTED':
                 return 'processing'
             case 'PAYMENT_PROCESSED':
+            // The API sends COMPLETED when the intent never stored a Bridge
+            // state, which is every deposit-account deposit. Without this case
+            // those rows read "Processing" forever after the money is credited.
+            case 'COMPLETED':
                 return 'completed'
             case 'UNDELIVERABLE':
             case 'RETURNED':
             case 'REFUNDED':
             case 'ERROR':
+            case 'FAILED':
+            case 'EXPIRED':
                 return 'failed'
             case 'CANCELED':
+            case 'CANCELLED':
                 return 'cancelled'
             default:
+                // A word this switch does not know must not read as in-flight
+                // when the API already stamped the row as finished.
+                reportUnknownBridgeStatus(entry, status)
+                if (entry.completedAt) return 'completed'
+                if (entry.cancelledAt) return 'cancelled'
                 return 'processing'
         }
     }
@@ -399,6 +427,8 @@ export interface TransactionDetails {
         rewardData?: RewardData
         fulfillmentType?: 'bridge' | 'wallet'
         bridgeTransferId?: string
+        /** The payer's own reference on a bank deposit, as their bank sent it. */
+        senderReference?: string
         avatarUrl?: string
         perkReward?: HistoryEntryPerkReward
         perk?: {
@@ -425,8 +455,9 @@ export interface TransactionDetails {
             merchantCountry: string | null
             merchantMcc: string | null
             /** Rain-enriched brand logo URL when their enrichment identified the
-             *  merchant. Drawer keeps the generic card icon for v1; this is
-             *  plumbed so a future swap doesn't need a backend change. */
+             *  merchant. Rendered as the row and receipt avatar (MerchantLogoIcon),
+             *  falling back to the generic card icon when null/empty or on a load
+             *  error. */
             merchantLogo: string | null
             merchantId: string | null
             localAmount: string | null
@@ -690,6 +721,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             rewardData,
             fulfillmentType: entry.extraData?.fulfillmentType,
             bridgeTransferId: entry.extraData?.bridgeTransferId,
+            senderReference: entry.extraData?.senderReference?.trim() || undefined,
             // Card-payment specifics — populated only for Rain CARD_SPEND /
             // card-refund entries. Drawer reads these to render the merchant
             // hero, status timeline, decline reason, and "Adjusted from $X"

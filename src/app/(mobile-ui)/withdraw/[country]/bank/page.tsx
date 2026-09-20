@@ -76,6 +76,10 @@ export default function WithdrawBankPage() {
                     error={flow.error}
                     balanceErrorMessage={flow.balanceErrorMessage}
                     confirmPendingCopy={flow.confirmPendingCopy}
+                    referenceSpec={flow.referenceSpec}
+                    reference={flow.reference}
+                    referenceProblem={flow.referenceProblem}
+                    onReferenceChange={flow.setReference}
                     onSubmit={flow.handleCreateAndInitiateOfframp}
                     onDone={() => router.push('/home')}
                 />

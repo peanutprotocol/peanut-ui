@@ -8,8 +8,7 @@ describe('corridorForCountry', () => {
         expect(corridorForCountry(country('US', 'USD'))).toBe('ACH_US')
         expect(corridorForCountry(country('GB', 'GBP'))).toBe('FASTER_PAYMENTS_GB')
         expect(corridorForCountry(country('MX', 'MXN'))).toBe('SPEI_MX')
-        // Brazil has two, and the catalogue order names the standing one first
-        expect(corridorForCountry(country('BR', 'BRL'))).toBe('BANK_TRANSFER_BR')
+        expect(corridorForCountry(country('BR', 'BRL'))).toBe('PIX_BR')
         expect(corridorForCountry(country('CO', 'COP'))).toBe('BANK_TRANSFER_CO')
         expect(corridorForCountry(country('AR', 'ARS'))).toBe('BANK_TRANSFER_AR')
     })
@@ -30,8 +29,8 @@ describe('corridorForCountry', () => {
         expect(corridorForCountry(country('', 'EUR'))).toBeUndefined()
     })
 
-    it('returns both Brazilian corridors, standing account before one-off top-up', () => {
-        expect(corridorsForCountry(country('BR', 'BRL'))).toEqual(['BANK_TRANSFER_BR', 'PIX_BR'])
+    it('returns one Brazilian corridor: the Pix top-up', () => {
+        expect(corridorsForCountry(country('BR', 'BRL'))).toEqual(['PIX_BR'])
     })
 
     it('returns one corridor where a country has one, and none where it has none', () => {

@@ -10,6 +10,8 @@ jest.mock('nuqs', () => ({
         const [params, setParams] = React.useState({ step: 'claim', corridor: 'SEPA_EU', screen: null })
         return [params, (next: object) => setParams((current: object) => ({ ...current, ...next }))]
     },
+    // the raw `?corridor=` read, which only matters for an id the catalogue does not know
+    useQueryState: () => [null, jest.fn()],
 }))
 jest.mock('../analytics', () => ({ trackDetailsViewed: jest.fn(), trackGateBlocked: jest.fn() }))
 // residence only decides the BR/CO corridors, which this file never renders

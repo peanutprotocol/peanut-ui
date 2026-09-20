@@ -23,7 +23,14 @@ import {
     isClaimable,
     railIdFor,
 } from './rails'
-import type { ClaimableCorridor, DepositAccount, DepositAccountView, DepositCorridor } from './types'
+import { holdsSlot } from './resolveScreen'
+import type {
+    ClaimableCorridor,
+    UnavailableCorridor,
+    DepositAccount,
+    DepositAccountView,
+    DepositCorridor,
+} from './types'
 
 export const DEPOSIT_ACCOUNTS_QUERY_KEY = ['deposit-accounts'] as const
 
@@ -71,6 +78,21 @@ export interface UseDepositAccountsResult {
      * one the claim step can say nothing about.
      */
     claimable: Record<DepositCorridor, ClaimableCorridor | undefined>
+    /**
+     * Why a corridor is withheld, where the backend says so. A corridor with no
+     * entry here and none in `claimable` or `accounts` is one it would not
+     * guess about, and the rows keep their gate-derived answer.
+     */
+    unavailable: Record<DepositCorridor, UnavailableCorridor | undefined>
+    /**
+     * How many account slots the user has taken, counted the way the backend's
+     * cap counts them. Every returned account counts, not one per corridor: a
+     * rotation holds the new account and the retiring one at once. The
+     * backend's own count where it sends one.
+     */
+    slotsHeld: number
+    /** this user's account limit, which support can raise; undefined on an API that does not send it */
+    accountLimit?: number
     /** the capability gate for EACH corridor, asked one rail id at a time */
     gates: Record<DepositCorridor, GateState>
     /** true until both the corridors and the held accounts are known */
@@ -210,11 +232,35 @@ export function useDepositAccounts({ enabled = true }: { enabled?: boolean } = {
         return byCorridor
     }, [query.data, provisioningPolls])
 
+    const slotsHeld = useMemo(
+        () => query.data?.accountsHeld ?? (query.data?.accounts ?? []).filter(holdsSlot).length,
+        [query.data]
+    )
+
     const claimable = useMemo((): Record<DepositCorridor, ClaimableCorridor | undefined> => {
         const byCorridor = emptyCorridorRecord<ClaimableCorridor>()
         for (const corridorTerms of query.data?.claimable ?? []) {
             const corridor = corridorFromRailId(corridorTerms.railId)
             if (corridor) byCorridor[corridor] = corridorTerms
+        }
+        return byCorridor
+    }, [query.data])
+
+    /**
+     * Why a corridor is NOT on offer, straight from the backend. It replaces
+     * the app's own guess at the same question: the capability gate answers
+     * `needs-identity` for a corridor whose rail it cannot read as well as for
+     * a user who has not verified, and the two need opposite screens.
+     *
+     * A corridor in none of the three lists is one the backend would not guess
+     * about — the provider read failed — so it is absent here too and the rows
+     * keep the gate's own answer.
+     */
+    const unavailable = useMemo((): Record<DepositCorridor, UnavailableCorridor | undefined> => {
+        const byCorridor = emptyCorridorRecord<UnavailableCorridor>()
+        for (const withheld of query.data?.unavailable ?? []) {
+            const corridor = corridorFromRailId(withheld.railId)
+            if (corridor) byCorridor[corridor] = withheld
         }
         return byCorridor
     }, [query.data])
@@ -231,6 +277,11 @@ export function useDepositAccounts({ enabled = true }: { enabled?: boolean } = {
      * row is what asks for the review — so waiting for the rail before showing
      * the row is a corridor nobody can ever reach. That is what dropped the
      * Colombian row and sent the country pick to the waitlist.
+     *
+     * A withheld corridor is the fourth group, and it is here for the same
+     * reason: the backend named it, so it gets a row that says it is not
+     * available. It may have no rail — being withheld is often why — and the
+     * hub no longer keeps a catalogue fallback that would have carried it.
      */
     const corridors = useMemo(
         () =>
@@ -238,16 +289,19 @@ export function useDepositAccounts({ enabled = true }: { enabled?: boolean } = {
                 ? []
                 : corridorsFromRails(
                       rails,
-                      DEPOSIT_RAIL_ORDER.filter((corridor) => accounts[corridor] || claimable[corridor])
+                      DEPOSIT_RAIL_ORDER.filter(
+                          (corridor) => accounts[corridor] || claimable[corridor] || unavailable[corridor]
+                      )
                   ).filter(
                       (corridor) =>
                           !query.data ||
                           accounts[corridor] ||
                           !isClaimable(DEPOSIT_RAILS[corridor]) ||
                           gateFor('deposit', { railId: railIdFor(corridor) }).kind !== 'ready' ||
-                          claimable[corridor]
+                          claimable[corridor] ||
+                          unavailable[corridor]
                   ),
-        [enabled, rails, accounts, query.data, gateFor, claimable]
+        [enabled, rails, accounts, query.data, gateFor, claimable, unavailable]
     )
 
     const gates = useMemo((): Record<DepositCorridor, GateState> => {
@@ -284,6 +338,9 @@ export function useDepositAccounts({ enabled = true }: { enabled?: boolean } = {
         corridors,
         accounts,
         claimable,
+        unavailable,
+        slotsHeld,
+        accountLimit: query.data?.accountLimit,
         gates,
         // a flow that is not asking for accounts is never waiting for them
         isLoading: enabled && (!userId || query.isLoading || capabilitiesLoading),

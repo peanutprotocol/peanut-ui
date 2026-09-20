@@ -93,7 +93,7 @@ describe('AdditionalVerificationView', () => {
             configurable: true,
             value: {
                 get href() {
-                    return 'http://localhost/profile/identity-verification/additional'
+                    return 'http://localhost/profile/accounts-and-payments/additional'
                 },
                 set href(value: string) {
                     mockAssignHref(value)
@@ -294,7 +294,7 @@ describe('AdditionalVerificationView', () => {
         expect(screen.getByTestId('hosted-task-native-instead')).toHaveTextContent(/upload the document in the app/i)
         expect(screen.queryByTestId('hosted-task-done')).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: /go to my profile/i }))
-        expect(mockRouterReplace).toHaveBeenCalledWith('/profile/identity-verification')
+        expect(mockRouterReplace).toHaveBeenCalledWith('/profile/accounts-and-payments')
     })
 
     it('coming back holds the CTA while the provider is asked, and the task clearing ends it', async () => {
