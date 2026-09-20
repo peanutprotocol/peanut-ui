@@ -6,7 +6,12 @@ import { bankReferenceProblem, bankReferenceSpecForRail } from '../../bank-refer
 import { AccountType, type Account } from '@/interfaces/interfaces'
 
 jest.mock('@/components/Global/PeanutActionDetailsCard', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/components/ExchangeRate', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/components/ExchangeRate', () => ({
+    __esModule: true,
+    default: ({ nonEuroCurrency }: { nonEuroCurrency?: string }) => (
+        <div data-testid="exchange-rate" data-currency={nonEuroCurrency ?? ''} />
+    ),
+}))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { fullName: 'Anna Rossi' } } }) }))
 
 const ibanAccount = {
@@ -18,14 +23,21 @@ const ibanAccount = {
 } as unknown as Account
 
 /** The view is dumb: the harness holds the reference the way the flow hook does. */
-const Harness = ({ rail, submittedTxHash = null }: { rail: string; submittedTxHash?: string | null }) => {
+const Harness = ({
+    rail,
+    submittedTxHash = null,
+    account = ibanAccount,
+}: {
+    rail: string
+    submittedTxHash?: string | null
+    account?: Account
+}) => {
     const [reference, setReference] = React.useState('')
     const spec = bankReferenceSpecForRail(rail)
     return (
         <WithdrawBankReviewView
-            bankAccount={ibanAccount}
+            bankAccount={account}
             amount="50"
-            country="germany"
             fromSendFlow={false}
             isLoading={false}
             isSubmitReady
@@ -126,5 +138,41 @@ describe('WithdrawBankReviewView — the optional reference', () => {
     it('once the on-chain leg fired the reference is locked', () => {
         renderWithIntl(<Harness rail="sepa" submittedTxHash="0xtx" />)
         expect(referenceInput()).toBeDisabled()
+    })
+})
+
+/**
+ * One country drives the review screen (QA round 3, W1).
+ *
+ * The flag came off the IBAN while the conversion notice and the exchange rate
+ * came off the country picked two screens earlier, so a Portugal resident with
+ * a Lithuanian IBAN who picked Poland saw a Lithuanian flag beside a zloty
+ * quote. Since the euro area became one destination (Q2) there is often no
+ * picked country at all, which would have silently dropped the notice.
+ */
+describe('WithdrawBankReviewView — the account is the only country on the screen', () => {
+    const accountFrom = (countryCode: string) =>
+        ({ ...ibanAccount, details: { ...ibanAccount.details, countryCode } }) as unknown as Account
+
+    it('a euro IBAN gets no conversion notice and no local-currency rate', () => {
+        renderWithIntl(<Harness rail="sepa" account={accountFrom('DEU')} />)
+
+        expect(screen.queryByText('We send EUR to your bank')).not.toBeInTheDocument()
+        expect(screen.getByTestId('exchange-rate')).toHaveAttribute('data-currency', '')
+    })
+
+    it('a Polish IBAN gets the zloty rate and the conversion notice, with no country picked', () => {
+        renderWithIntl(<Harness rail="sepa" account={accountFrom('POL')} />)
+
+        expect(screen.getByTestId('exchange-rate')).toHaveAttribute('data-currency', 'PLN')
+        expect(screen.getByText('We send EUR to your bank')).toBeInTheDocument()
+    })
+
+    it("a Lithuanian IBAN is euro, so it never borrows another country's currency", () => {
+        // the W1 case: the flag said Lithuania while the rate said zloty
+        renderWithIntl(<Harness rail="sepa" account={accountFrom('LTU')} />)
+
+        expect(screen.getByTestId('exchange-rate')).toHaveAttribute('data-currency', '')
+        expect(screen.queryByText('We send EUR to your bank')).not.toBeInTheDocument()
     })
 })

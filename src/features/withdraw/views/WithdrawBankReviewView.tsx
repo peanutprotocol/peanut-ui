@@ -21,7 +21,6 @@ import { useTranslations } from 'next-intl'
 interface WithdrawBankReviewViewProps {
     bankAccount: Account
     amount: string
-    country: string
     fromSendFlow: boolean
     isLoading: boolean
     /** false while the spendable balance or the rail-minimum FX rate loads — submit stays disabled (Chip rounds 3+5). */
@@ -44,7 +43,6 @@ interface WithdrawBankReviewViewProps {
 export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     bankAccount,
     amount,
-    country,
     fromSendFlow,
     isLoading,
     isSubmitReady,
@@ -66,10 +64,19 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     const tCommon = useTranslations('common')
     const { user } = useAuth()
 
+    // ONE country drives this screen: the account's own, read off the IBAN.
+    // The country picked upstream is not the same thing — a Portugal resident
+    // with a Lithuanian IBAN who picked Poland got a Lithuanian flag beside a
+    // zloty conversion quote — and since the euro area became one destination
+    // there is often no picked country at all (QA round 3, W1).
+    const accountCountryCode = (
+        ALL_COUNTRIES_ALPHA3_TO_ALPHA2[bankAccount?.details?.countryCode ?? ''] ??
+        bankAccount?.details?.countryCode ??
+        ''
+    ).toLowerCase()
+
     const nonEuroCurrency = countryCurrencyMappings.find(
-        (currency) =>
-            country.toLowerCase() === currency.country.toLowerCase() ||
-            currency.path?.toLowerCase() === country.toLowerCase()
+        (currency) => currency.flagCode.toLowerCase() === accountCountryCode
     )?.currencyCode
 
     const referenceErrorText = (problem: BankReferenceProblem) => {
@@ -81,13 +88,6 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
 
     // non-eur sepa countries that are currently experiencing issues
     const isNonEuroSepa = isNonEuroSepaCountry(nonEuroCurrency)
-
-    const countryCodeForFlag = () => {
-        if (!bankAccount?.details?.countryCode) return ''
-        const code =
-            ALL_COUNTRIES_ALPHA3_TO_ALPHA2[bankAccount.details.countryCode ?? ''] ?? bankAccount.details.countryCode
-        return code.toLowerCase()
-    }
 
     const getBicAndRoutingNumber = () => {
         if (bankAccount.type === AccountType.IBAN) {
@@ -105,7 +105,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     return (
         <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center pb-4">
             <PeanutActionDetailsCard
-                countryCodeForFlag={countryCodeForFlag()}
+                countryCodeForFlag={accountCountryCode}
                 avatarSize="small"
                 transactionType={'WITHDRAW_BANK_ACCOUNT'}
                 recipientType={'BANK_ACCOUNT'}
