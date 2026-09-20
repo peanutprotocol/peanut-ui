@@ -56,7 +56,7 @@ describe('WithdrawBankReviewView — the optional reference', () => {
     })
 
     it('a rail with no reference shows no field', () => {
-        renderWithIntl(<Harness rail="faster_payments" />)
+        renderWithIntl(<Harness rail="wire" />)
         expect(referenceInput()).not.toBeInTheDocument()
     })
 
@@ -81,6 +81,46 @@ describe('WithdrawBankReviewView — the optional reference', () => {
         renderWithIntl(<Harness rail="ach" />)
         expect(referenceInput()).toHaveAttribute('maxlength', '10')
         expect(screen.getByText(/Up to 10 characters/)).toBeInTheDocument()
+    })
+
+    it('Faster Payments: shows its own limits', () => {
+        renderWithIntl(<Harness rail="faster_payments" />)
+        expect(referenceInput()).toHaveAttribute('maxlength', '18')
+        expect(screen.getByText(/Up to 18 characters/)).toBeInTheDocument()
+    })
+
+    it('SPEI: shows its own limits and refuses punctuation', () => {
+        renderWithIntl(<Harness rail="spei" />)
+        expect(referenceInput()).toHaveAttribute('maxlength', '40')
+        expect(screen.getByText(/Up to 40 characters/)).toBeInTheDocument()
+
+        fireEvent.change(referenceInput()!, { target: { value: 'RENTA-09' } })
+        expect(submitButton()).toBeDisabled()
+        fireEvent.blur(referenceInput()!)
+        expect(screen.getByText('Use only letters a-z, numbers and spaces.')).toBeInTheDocument()
+
+        fireEvent.change(referenceInput()!, { target: { value: 'RENTA 09 2026' } })
+        expect(submitButton()).toBeEnabled()
+    })
+
+    it('Colombia: shows its own limits', () => {
+        renderWithIntl(<Harness rail="co_bank_transfer" />)
+        expect(referenceInput()).toHaveAttribute('maxlength', '18')
+        expect(screen.getByText(/Up to 18 characters/)).toBeInTheDocument()
+    })
+
+    it('an over-length reference blocks submit on every rail that takes one', () => {
+        // maxLength stops typing past the ceiling, so drive the value directly.
+        for (const [rail, over] of [
+            ['faster_payments', 'x'.repeat(19)],
+            ['spei', 'x'.repeat(41)],
+            ['co_bank_transfer', 'x'.repeat(19)],
+        ] as const) {
+            const { unmount } = renderWithIntl(<Harness rail={rail} />)
+            fireEvent.change(referenceInput()!, { target: { value: over } })
+            expect(submitButton()).toBeDisabled()
+            unmount()
+        }
     })
 
     it('once the on-chain leg fired the reference is locked', () => {

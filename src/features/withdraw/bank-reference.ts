@@ -7,22 +7,30 @@
  * (apidocs.bridge.xyz, create a transfer → destination).
  *
  * A rail with no entry takes no reference, and the field does not show:
- * - `faster_payments`: the API route accepts `fasterPaymentsReference` but does
- *   not pass it to the provider yet.
- * - `spei`, `co_bank_transfer`: the API route has no field for them.
  * - `wire`: no withdrawal uses it; US accounts pay out over `ach`.
+ *
+ * SEPA and ACH limits are confirmed against the provider's sandbox. The other
+ * three are documentation only: the provider states a length for SPEI (40) and
+ * Colombia (18) and none for Faster Payments, and documents no character set
+ * for any of the three. Those character sets are ours, chosen to match what the
+ * banks on each rail print. Verify each on staging before trusting it.
  */
 export interface BankReferenceSpec {
     /** The `destination` key of the create-offramp request that carries the text. */
-    field: 'sepaReference' | 'achReference'
+    field: 'sepaReference' | 'achReference' | 'fasterPaymentsReference' | 'speiReference' | 'coBankTransferReference'
     minLength: number
     maxLength: number
     /** Matches a whole reference made of allowed characters only. */
     allowed: RegExp
     /** `withdraw.bank` message key that states the limits under the field. */
-    helperKey: 'referenceHelperSepa' | 'referenceHelperAch'
+    helperKey:
+        | 'referenceHelperSepa'
+        | 'referenceHelperAch'
+        | 'referenceHelperFasterPayments'
+        | 'referenceHelperSpei'
+        | 'referenceHelperCoBankTransfer'
     /** `withdraw.bank` message key that names the allowed characters. */
-    invalidCharsKey: 'referenceInvalidCharsSepa' | 'referenceInvalidCharsAch'
+    invalidCharsKey: 'referenceInvalidCharsSepa' | 'referenceInvalidCharsAch' | 'referenceInvalidCharsSpei'
 }
 
 const SPECS: Record<string, BankReferenceSpec> = {
@@ -41,6 +49,30 @@ const SPECS: Record<string, BankReferenceSpec> = {
         allowed: /^[a-zA-Z0-9 ]*$/,
         helperKey: 'referenceHelperAch',
         invalidCharsKey: 'referenceInvalidCharsAch',
+    },
+    faster_payments: {
+        field: 'fasterPaymentsReference',
+        minLength: 1,
+        maxLength: 18,
+        allowed: /^[a-zA-Z0-9 &\-./]*$/,
+        helperKey: 'referenceHelperFasterPayments',
+        invalidCharsKey: 'referenceInvalidCharsSepa',
+    },
+    spei: {
+        field: 'speiReference',
+        minLength: 1,
+        maxLength: 40,
+        allowed: /^[a-zA-Z0-9 ]*$/,
+        helperKey: 'referenceHelperSpei',
+        invalidCharsKey: 'referenceInvalidCharsSpei',
+    },
+    co_bank_transfer: {
+        field: 'coBankTransferReference',
+        minLength: 1,
+        maxLength: 18,
+        allowed: /^[a-zA-Z0-9 &\-./]*$/,
+        helperKey: 'referenceHelperCoBankTransfer',
+        invalidCharsKey: 'referenceInvalidCharsSepa',
     },
 }
 
