@@ -181,6 +181,80 @@ describe('the screen a blocked corridor lands on', () => {
         expect(props.onResolveGate).not.toHaveBeenCalled()
     })
 
+    /**
+     * The headline defect. At the cap the user holds every account we open for
+     * them, so the standing account has nothing left to give — but the same
+     * rail still takes a transfer they send themselves, and the deposit route
+     * would have accepted it that same second. The screen used to offer only
+     * "Contact support", which is a conversation, not a deposit.
+     */
+    describe('at the cap, the transfer that still works leads', () => {
+        const capped = () => ({ ...flowProps('account-limit', true), onTopUp: jest.fn() })
+
+        it('makes the transfer the first button and demotes support', () => {
+            const props = capped()
+            render(flow(props))
+
+            const buttons = screen.getAllByRole('button')
+            const topUp = screen.getByTestId('corridor-gate-top-up')
+            const support = screen.getByTestId('corridor-gate-account-limit')
+            expect(topUp).toHaveTextContent('Send from your own bank')
+            // the leading button is first in the DOM, so screen order and tab
+            // order say the same thing
+            expect(buttons.indexOf(topUp)).toBeLessThan(buttons.indexOf(support))
+        })
+
+        it('takes the user to that transfer, not to support', () => {
+            const props = capped()
+            render(flow(props))
+
+            fireEvent.click(screen.getByTestId('corridor-gate-top-up'))
+            expect(props.onTopUp).toHaveBeenCalledWith(CORRIDOR)
+            expect(props.onContactSupport).not.toHaveBeenCalled()
+        })
+
+        it('says the cap is not the end of it', () => {
+            render(flow(capped()))
+            expect(screen.getByText(GATE.limitBodyTopUp)).toBeInTheDocument()
+            // the old body stopped at "ask support", which was the whole problem
+            expect(screen.queryByText(GATE.limitBody)).not.toBeInTheDocument()
+        })
+
+        it('keeps support reachable, one tap away', () => {
+            const props = capped()
+            render(flow(props))
+            fireEvent.click(screen.getByTestId('corridor-gate-account-limit'))
+            expect(props.onContactSupport).toHaveBeenCalledWith(CORRIDOR, 'account-limit')
+        })
+
+        /*
+         * Every other reason DOES have something that clears it, so that button
+         * keeps the lead and the transfer sits under it.
+         */
+        it('does not take the lead where the block can actually be cleared', () => {
+            // gate READY: the user's verification already permits the corridor,
+            // so the transfer is available — it just is not the lead.
+            const props = { ...flowProps('endorsement-required', false, READY), onTopUp: jest.fn() }
+            render(flow(props))
+
+            const buttons = screen.getAllByRole('button')
+            const finish = screen.getByTestId('corridor-gate-finish-review')
+            expect(buttons.indexOf(finish)).toBeLessThan(buttons.indexOf(screen.getByTestId('corridor-gate-top-up')))
+        })
+
+        /*
+         * The transfer is not open to everybody. `POST /bridge/onramp/create`
+         * refuses a user with no enabled rail for the corridor, so a gate that
+         * is not ready must not be offered it — that would be the same dead end
+         * this screen exists to remove, pointing the other way.
+         */
+        it('is not offered to a user whose verification does not permit the corridor', () => {
+            const props = { ...flowProps('account-limit', true, { kind: 'needs-identity' }), onTopUp: jest.fn() }
+            render(flow(props))
+            expect(screen.queryByTestId('corridor-gate-top-up')).not.toBeInTheDocument()
+        })
+    })
+
     it('does not claim two accounts the user does not hold after a failed claim', () => {
         // A failed claim can leave the backend reporting the cap for a user who
         // holds zero accounts (on staging the shared provider customer already

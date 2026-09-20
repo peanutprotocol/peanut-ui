@@ -419,7 +419,7 @@
                 "dismiss": "Vou tentar mais tarde"
             },
             "accountsTitle": "Seus números de conta",
-            "accountsSubtitle": "Dados bancários no seu nome. Compartilhe e receba direto no Peanut.",
+            "accountsSubtitle": "Dados bancários no seu nome. Dê para outra pessoa e o dinheiro chega no Peanut.",
             "details": {
                 "p2p": "Envie e receba dinheiro de outros usuários do Peanut.",
                 "crypto": "Adicione ou saque cripto de qualquer carteira ou corretora, na hora.",
@@ -453,7 +453,7 @@
                 "limitsTitle": "Limites"
             },
             "waysTitle": "Formas de enviar dinheiro para você",
-            "waysSubtitle": "Envie dinheiro do seu próprio banco. Não precisa de número de conta."
+            "waysSubtitle": "Mova seu próprio dinheiro entre o Peanut e seu banco. Você não recebe um número de conta próprio."
         },
         "backup": {
             "title": "Backup",

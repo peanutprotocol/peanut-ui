@@ -325,6 +325,76 @@ describe('UnlockPayments', () => {
         expect(screen.getByText(/left this month/)).toBeInTheDocument()
     })
 
+    /**
+     * The two things this screen holds are not the same thing, and they used to
+     * share a word. "Active" meant BOTH "your verification lets you use this
+     * bank rail" and "you hold an account that is active but not shareable" —
+     * one on each screen. A user could not tell rail access from an account in
+     * their own name, which is the whole difference: somebody else can pay into
+     * an account number, and nobody can pay into rail access.
+     *
+     * The four states a user can be in, in order.
+     */
+    describe('rail access and an account in your name read as different things', () => {
+        it('no rail: the ways-in section offers the unlock, and promises no account number', () => {
+            render()
+
+            expect(screen.getByText('Ways to send yourself money')).toBeInTheDocument()
+            expect(
+                screen.getByText(
+                    'Move your own money between Peanut and your bank. You get no account number of your own.'
+                )
+            ).toBeInTheDocument()
+            expect(screen.queryByText('Your account numbers')).not.toBeInTheDocument()
+            expect(screen.getAllByText('Unlock').length).toBeGreaterThan(0)
+            // the word that meant two things is gone from the vocabulary
+            expect(screen.queryByText('Active')).not.toBeInTheDocument()
+        })
+
+        it('rail only: the row reads Available, and still no account numbers section', () => {
+            mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', status: 'enabled' }]
+            render()
+
+            expect(screen.getAllByText('Available').length).toBeGreaterThan(0)
+            expect(screen.queryByText('Active')).not.toBeInTheDocument()
+            expect(screen.queryByText('Your account numbers')).not.toBeInTheDocument()
+        })
+
+        /*
+         * A corridor the user could open is not one they hold. Accounts &
+         * payments lists only held accounts, so the heading stays away until
+         * there are details to put under it — claiming happens on Add money.
+         */
+        it('rail and an account they could open: still rail access only', () => {
+            mockDepositEnabled = true
+            mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', status: 'enabled' }]
+            mockDepositAccounts = {}
+            render()
+
+            expect(screen.queryByText('Your account numbers')).not.toBeInTheDocument()
+            expect(screen.getByText('Ways to send yourself money')).toBeInTheDocument()
+        })
+
+        it('an account held: it gets its own section, its own words, and Ready', () => {
+            mockDepositEnabled = true
+            mockRails = [{ id: 'bridge.sepa', provider: 'bridge', channel: 'bank', status: 'enabled' }]
+            mockDepositAccounts = {
+                SEPA_EU: { status: 'active', instructions: {}, matching: { sender: 'anyone' } },
+            }
+            render()
+
+            expect(screen.getByText('Your account numbers')).toBeInTheDocument()
+            expect(
+                screen.getByText(
+                    'Bank details in your name. Give them to someone else and the money arrives in Peanut.'
+                )
+            ).toBeInTheDocument()
+            // a payer can be handed these details; rail access never says Ready
+            expect(screen.getByText('Ready')).toBeInTheDocument()
+            expect(screen.queryByText('Active')).not.toBeInTheDocument()
+        })
+    })
+
     it('an active Bridge rail names deposit and withdrawal limits separately', () => {
         mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', status: 'enabled' }]
         mockBridgeLimits = { onRampPerTransaction: '25000', offRampPerTransaction: '50000', asset: 'USD' }
