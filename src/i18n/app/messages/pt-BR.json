@@ -3111,10 +3111,17 @@
             "title": "O que esperar",
             "description": "Nosso parceiro de pagamentos precisa de mais algumas coisas antes que suas transferências bancárias funcionem.",
             "descriptionAdvisory": "Nosso parceiro de pagamentos precisa de mais algumas coisas para que suas transferências bancárias continuem funcionando.",
+            "checking": "Consultando nosso parceiro de pagamentos…",
+            "stillPending": "Se você concluiu a verificação, não precisa fazer mais nada. O status pode levar alguns minutos para atualizar, ou de 1 a 3 dias úteis se passar por um revisor. Começar de novo cria uma nova verificação.",
             "done": {
                 "title": "Não há mais nada a fazer aqui",
                 "description": "Esta etapa de verificação não é mais necessária. Seu status atual está no seu perfil.",
                 "cta": "Ver meu status"
+            },
+            "nativeInstead": {
+                "title": "Envie o documento pelo app",
+                "description": "Nosso parceiro de pagamentos pediu um documento. A verificação externa não consegue recebê-lo; o envio pelo seu perfil, sim.",
+                "cta": "Ir para meu perfil"
             }
         },
         "correction": {

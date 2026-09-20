@@ -27,7 +27,9 @@ const CORRIDOR_CURRENCIES = new Set<string>(['USD', 'EUR', 'GBP', 'MXN'])
  * top-level capability `nextActions` (NOT rail gates), so it also catches the
  * orphan actions no rail references (both blocking hosted tasks and advisory
  * future-dated ones) and sidesteps ActivationCTAs' can-already-transact
- * stand-down. Renders nothing when no task is pending. Multiple tasks render
+ * stand-down. A blocking hosted task itself stands down while a Bridge rail
+ * carries a native step (selectBridgeTasks) — the native step is the one that
+ * can clear the requirement. Renders nothing when no task is pending. Multiple tasks render
  * as full-width horizontal carousel slides (same embla setup as
  * HomeCarouselCTA); a single task looks identical to a static card.
  *
@@ -48,7 +50,7 @@ const CORRIDOR_CURRENCIES = new Set<string>(['USD', 'EUR', 'GBP', 'MXN'])
  */
 export default function PendingVerificationTasks({ dismissible = false }: { dismissible?: boolean }) {
     const t = useTranslations('home')
-    const { nextActions } = useCapabilities()
+    const { nextActions, rails } = useCapabilities()
     const { user } = useAuth()
     const [activeTosTask, setActiveTosTask] = useState<NextAction | null>(null)
     const router = useRouter()
@@ -61,7 +63,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
     const [storedDismissals, setStoredDismissals] = useState<{ forUserId: string; keys: string[] } | null>(null)
 
     const userId = user?.user?.userId
-    const tasks = selectBridgeTasks(nextActions)
+    const tasks = selectBridgeTasks(nextActions, rails ?? [])
     useEffect(() => {
         if (!dismissible || !userId) return
         // Pre-fingerprint native builds (≤1.0.50) persisted this preference as a

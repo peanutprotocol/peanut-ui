@@ -14,16 +14,17 @@
 import React from 'react'
 import { screen, fireEvent } from '@testing-library/react'
 import { renderWithIntl as render } from '@/test-utils/intl'
-import type { NextAction } from '@/types/capabilities'
+import type { NextAction, RailCapability } from '@/types/capabilities'
 import PendingVerificationTasks from '../PendingVerificationTasks'
 
 let mockNextActions: NextAction[] = []
+let mockRails: RailCapability[] = []
 const mockFetchUser = jest.fn(() => Promise.resolve(null))
 let mockStoredDismissal: string[] | undefined
 const mockUpdatePreferences = jest.fn()
 
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ nextActions: mockNextActions }),
+    useCapabilities: () => ({ nextActions: mockNextActions, rails: mockRails }),
 }))
 let mockUserId = 'user-1'
 jest.mock('@/context/authContext', () => ({
@@ -64,6 +65,7 @@ const hostedAction: NextAction = {
 describe('PendingVerificationTasks', () => {
     beforeEach(() => {
         mockNextActions = []
+        mockRails = []
         mockFetchUser.mockReset()
         mockFetchUser.mockResolvedValue(null)
         mockRouterPush.mockReset()
@@ -74,6 +76,26 @@ describe('PendingVerificationTasks', () => {
 
     it('renders nothing when no bridge task is pending', () => {
         mockNextActions = [{ key: 'sumsub:proof_of_address', kind: 'sumsub', purpose: 'unlock-bridge' }]
+        const { container } = render(<PendingVerificationTasks />)
+        expect(container).toBeEmptyDOMElement()
+    })
+
+    it('the hosted task stands down while a Bridge rail carries a native sumsub step (TASK-22818)', () => {
+        // The resolver no longer emits both; an API that still does must not
+        // put the hosted card back on Home beside the upload that can clear it.
+        mockNextActions = [hostedAction, { key: 'sumsub:proof_of_address', kind: 'sumsub', purpose: 'unlock-bridge' }]
+        mockRails = [
+            {
+                id: 'bridge.sepa_eu',
+                provider: 'bridge',
+                method: 'SEPA_EU',
+                channel: 'bank',
+                country: 'EU',
+                currency: 'EUR',
+                status: 'requires-info',
+                blockingActions: ['sumsub:proof_of_address'],
+            },
+        ]
         const { container } = render(<PendingVerificationTasks />)
         expect(container).toBeEmptyDOMElement()
     })
