@@ -47,6 +47,7 @@ export function ContributePotInputView() {
         isLoading,
         totalAmount,
         totalCollected,
+        remainingAmount,
         contributors,
         sliderDefaults,
         setAmount,
@@ -140,9 +141,8 @@ export function ContributePotInputView() {
                         balanceFillAmount={isLoggedIn ? balanceFillAmount : undefined}
                         hideBalance={!isLoggedIn}
                         hideCurrencyToggle={true}
-                        showSlider={totalAmount > 0}
-                        maxAmount={totalAmount}
-                        amountCollected={totalCollected}
+                        showSlider={remainingAmount > 0}
+                        maxAmount={remainingAmount}
                         defaultSliderValue={sliderDefaults.percentage}
                         defaultSliderSuggestedAmount={sliderDefaults.suggestedAmount}
                     />
@@ -160,7 +160,7 @@ export function ContributePotInputView() {
                     recipientUsername={recipient?.username}
                     requestId={request?.uuid}
                     bankPayable={!!request?.bankInstructionsShared}
-                    remainingUsd={totalAmount > 0 ? Math.max(totalAmount - totalCollected, 0) : undefined}
+                    remainingUsd={totalAmount > 0 ? remainingAmount : undefined}
                     requestTokenSymbol={request?.tokenSymbol}
                     requestCurrency={request?.currency}
                     onPayWithPeanut={handlePayWithPeanut}
