@@ -169,6 +169,50 @@ describe('DepositAccountsListScreen', () => {
         expect(screen.queryByText(/not set up/i)).not.toBeInTheDocument()
     })
 
+    /**
+     * "Not set up" is a claim the user can set one up. At the account cap they
+     * cannot — they hold every account we open for them — yet the same rail
+     * still takes a transfer they send themselves, and the deposit route would
+     * have accepted it. The row said "Not set up" and led to "Contact support",
+     * which is the one string on this screen that was simply false.
+     */
+    describe('a corridor the user cannot open but can still deposit on', () => {
+        const capped = { claimable: { SEPA_EU: offered('SEPA_EU', 'account-limit') } }
+
+        it('reads Available, never Not set up', () => {
+            const { container } = list(false, capped)
+
+            expect(inRow(container, 'SEPA_EU').getByText('Available')).toBeInTheDocument()
+            expect(inRow(container, 'SEPA_EU').queryByText('Not set up')).not.toBeInTheDocument()
+        })
+
+        it('keeps the row tappable, because there is something behind it', () => {
+            const { container } = list(false, capped)
+
+            expect(rowOf(container, 'SEPA_EU')).not.toHaveAttribute('aria-disabled', 'true')
+        })
+
+        /*
+         * Colombia has no live country for its corridor, so there is no
+         * transfer to offer. The row must not promise one — that would be the
+         * same lie with a friendlier word.
+         */
+        it('says nothing is available where no transfer exists either', () => {
+            const { container } = list(false, {
+                claimable: { BANK_TRANSFER_CO: offered('BANK_TRANSFER_CO', 'account-limit') },
+            })
+
+            expect(inRow(container, 'BANK_TRANSFER_CO').queryByText('Available')).not.toBeInTheDocument()
+        })
+
+        // A corridor the user CAN open is set up by them, so the old word holds.
+        it('still says Not set up where the user can set one up', () => {
+            const { container } = list(false, { claimable: { SEPA_EU: offered('SEPA_EU') } })
+
+            expect(inRow(container, 'SEPA_EU').getByText('Not set up')).toBeInTheDocument()
+        })
+    })
+
     // Status belongs to the badge on every row, and the rows carry no subtitle:
     // the arrival time and the residence caveat moved off the hub so the list
     // reads as one consistent column of "currency · rail" and a status badge.

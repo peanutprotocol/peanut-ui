@@ -370,7 +370,7 @@
                 "sepa": "Transferencias bancarias en euros"
             },
             "chips": {
-                "active": "Activo",
+                "active": "Disponible",
                 "alwaysOn": "Siempre activo",
                 "unlock": "Desbloquear",
                 "processing": "Procesando",
@@ -418,8 +418,8 @@
                 "short": "Los intentos de verificación están limitados temporalmente. Vuelve a intentarlo en un rato.",
                 "dismiss": "Lo intentaré más tarde"
             },
-            "accountsTitle": "Tus cuentas",
-            "accountsSubtitle": "Números de cuenta que puedes compartir para recibir dinero en Peanut.",
+            "accountsTitle": "Tus números de cuenta",
+            "accountsSubtitle": "Datos bancarios a tu nombre. Dáselos a otra persona y el dinero llega a Peanut.",
             "details": {
                 "p2p": "Envía y recibe dinero de otros usuarios de Peanut.",
                 "crypto": "Agrega o retira cripto desde cualquier billetera o exchange, sin verificación.",
@@ -451,7 +451,9 @@
             "detailsDrawer": {
                 "aboutTitle": "Qué puedes hacer",
                 "limitsTitle": "Límites"
-            }
+            },
+            "waysTitle": "Formas de enviarte dinero",
+            "waysSubtitle": "Mueve tu propio dinero entre Peanut y tu banco. No recibes un número de cuenta propio."
         },
         "backup": {
             "title": "Respaldo",
@@ -4014,9 +4016,9 @@
             "searchPlaceholder": "Busca país, moneda o cuenta",
             "noMatchTitle": "Sin resultados para «{query}»",
             "clearSearch": "Borrar búsqueda",
-            "countriesTitle": "Otros países",
-            "countriesPitch": "Envíate dinero desde un banco de otro país.",
-            "sectionTitle": "Tus cuentas",
+            "countriesTitle": "Formas de enviarte dinero",
+            "countriesPitch": "No necesitas una cuenta. Elige el país de tu banco.",
+            "sectionTitle": "Tus números de cuenta",
             "accountsPitch": "Datos bancarios a tu nombre. Compártelos una vez y recibe pagos directo en Peanut.",
             "badgeReady": "Lista",
             "badgeActive": "Activo",
@@ -4034,7 +4036,8 @@
             "errorTitle": "No pudimos cargar tus cuentas",
             "errorBody": "Tus cuentas están bien: solo no pudimos leerlas. Revisa tu conexión e inténtalo de nuevo.",
             "errorRetry": "Intentar de nuevo",
-            "badgeActionNeeded": "Acción requerida"
+            "badgeActionNeeded": "Acción requerida",
+            "badgeAvailable": "Disponible"
         },
         "claim": {
             "heading": "Datos bancarios en {currency}",
@@ -4165,7 +4168,9 @@
             "finishReviewBody": "Tu identidad ya está verificada. Las cuentas en {currency} necesitan una revisión extra de nuestro socio de pagos. Se abre en su página, y esta pantalla se actualiza cuando vuelves.",
             "finishReviewSupportBody": "Tu identidad ya está verificada. Las cuentas en {currency} necesitan una revisión extra de nuestro socio de pagos, y no se puede iniciar desde la app para tu cuenta. Contacta a soporte y te ayudamos a completarla.",
             "finishReviewCta": "Continuar",
-            "actFailed": "No pudimos abrir la revisión. Inténtalo de nuevo en un momento."
+            "actFailed": "No pudimos abrir la revisión. Inténtalo de nuevo en un momento.",
+            "topUpCta": "Envía desde tu propio banco",
+            "limitBodyTopUp": "Ese es tu límite actual. Aún puedes agregar dinero enviándolo desde tu propio banco. Soporte puede abrirte otra cuenta si la necesitas."
         },
         "rules": {
             "providerHeld": {

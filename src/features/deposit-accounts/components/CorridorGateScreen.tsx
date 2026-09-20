@@ -88,6 +88,7 @@ export function CorridorGateScreen({
     actFailed = false,
     onBack,
     onAct,
+    onTopUp,
 }: {
     rail: DepositRail
     notice: NonNullable<DepositGateView['notice']>
@@ -99,9 +100,48 @@ export function CorridorGateScreen({
     actFailed?: boolean
     onBack: () => void
     onAct: () => void
+    /**
+     * The other way in: a transfer the user sends themselves on this same
+     * rail. It needs no account, so it works while the account does not.
+     * Absent where the corridor has no country live for it.
+     */
+    onTopUp?: () => void
 }) {
     const { t, railName } = useDepositAccountCopy()
     const waiting = WAITS.has(notice.action)
+    /*
+     * At the account cap there is nothing to unblock: the user holds every
+     * account we open for them, and support opening one more is a conversation,
+     * not a deposit. The transfer they can send themselves is the thing that
+     * moves money today, so it leads and support follows. Every other reason
+     * keeps its own button first — those DO clear the block.
+     */
+    const topUpLeads = !!onTopUp && notice.action === 'account-limit'
+
+    const actButton = (
+        <Button
+            key="act"
+            variant={topUpLeads ? 'stroke' : 'purple'}
+            className="w-full"
+            loading={isActing}
+            disabled={isActing}
+            onClick={waiting ? onBack : onAct}
+            data-testid={`corridor-gate-${notice.action}`}
+        >
+            {t(LABELS[notice.action])}
+        </Button>
+    )
+    const topUpButton = onTopUp ? (
+        <Button
+            key="top-up"
+            variant={topUpLeads ? 'purple' : 'stroke'}
+            className="w-full"
+            onClick={onTopUp}
+            data-testid="corridor-gate-top-up"
+        >
+            {t('gate.topUpCta')}
+        </Button>
+    ) : null
 
     return (
         <PageStack>
@@ -122,18 +162,16 @@ export function CorridorGateScreen({
                 <EmptyState
                     icon={ICONS[notice.action as keyof typeof ICONS] ?? 'globe-lock'}
                     title={t(TITLES[notice.action], { count: slotsHeld })}
-                    description={notice.message ?? t(BODIES[notice.action], { currency: rail.currency })}
+                    description={
+                        notice.message ??
+                        (topUpLeads ? t('gate.limitBodyTopUp') : t(BODIES[notice.action], { currency: rail.currency }))
+                    }
                     cta={
-                        <Button
-                            variant="purple"
-                            className="mt-4 w-full"
-                            loading={isActing}
-                            disabled={isActing}
-                            onClick={waiting ? onBack : onAct}
-                            data-testid={`corridor-gate-${notice.action}`}
-                        >
-                            {t(LABELS[notice.action])}
-                        </Button>
+                        // the leading button first in the DOM, so the order on
+                        // screen and the tab order both say which one to press
+                        <div className="mt-4 flex w-full flex-col gap-2">
+                            {topUpLeads ? [topUpButton, actButton] : [actButton, topUpButton]}
+                        </div>
                     }
                 />
                 {/* which corridor the user tapped, so the screen is not about "an account" */}
