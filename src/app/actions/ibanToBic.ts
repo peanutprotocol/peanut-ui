@@ -8,10 +8,10 @@ import { getIbanBankCode, getIbanCountry, hasValidIbanChecksum, normalizeIban } 
  *
  * Two sources, in order. `iban-to-bic` carries the official bank registers for
  * Austria, Belgium, Germany, Spain, France, Luxembourg and the Netherlands and
- * is authoritative there. `SUPPLEMENTARY_BIC_BY_BANK_CODE` covers the other
- * countries our users bank in, which that package has no table for at all —
- * measured at 89 of 195 production accounts before it existed, Lithuania and
- * the United Kingdom among them.
+ * answers first, so nothing it already knew changes.
+ * `SUPPLEMENTARY_BIC_BY_BANK_CODE` covers the countries it has no register for,
+ * plus the few Spanish and French banks its registers predate. That gap was 89
+ * of 195 production accounts, Lithuania and the United Kingdom among them.
  *
  * Returns null rather than throwing, and rather than guessing. The caller shows
  * the BIC field so the user can enter it, and a BIC that is merely plausible
