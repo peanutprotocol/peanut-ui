@@ -126,6 +126,32 @@ describe('useAddMoneyCryptoFlow', () => {
         expect(result.current.depositTransactionDetails?.tokenSymbol).toBe('USDT')
     })
 
+    // GET /history/:id resolves a crypto deposit by the `tx:` prefixed hash and
+    // by nothing else, so a bare hash 404s and the receipt cannot be shared.
+    it('keys the receipt on the prefixed transaction hash', () => {
+        const { result } = renderFlow()
+
+        act(() =>
+            result.current.handleSuccess(50, {
+                status: 'completed',
+                amount: 50,
+                txHash: '0xAB'.padEnd(66, 'c'),
+            } as never)
+        )
+
+        expect(result.current.depositTransactionDetails?.id).toBe(`tx:${'0xab'.padEnd(66, 'c')}`)
+        // the on-chain hash itself is unchanged: it is what the receipt prints
+        expect(result.current.depositTransactionDetails?.txHash).toBe('0xAB'.padEnd(66, 'c'))
+    })
+
+    it('falls back to a plain key when the deposit carries no hash', () => {
+        const { result } = renderFlow()
+
+        act(() => result.current.handleSuccess(50))
+
+        expect(result.current.depositTransactionDetails?.id).toBe('deposit')
+    })
+
     it('handleSuccessComplete clears the success state', () => {
         const { result } = renderFlow()
         act(() => result.current.handleSuccess(10))

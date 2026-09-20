@@ -92,7 +92,11 @@ export function useAddMoneyCryptoFlow() {
                 : undefined
         const now = new Date()
         return {
-            id: depositResult.txHash ?? 'deposit',
+            // GET /history/:id resolves a crypto deposit by `tx:<lowercase hash>`
+            // and by nothing else, so a bare hash 404s and Share receipt fails
+            // every time. Same key the send and request receipts use — a tx
+            // hash is not a receipt key.
+            id: depositResult.txHash ? `tx:${depositResult.txHash.toLowerCase()}` : 'deposit',
             txHash: depositResult.txHash,
             explorerUrl,
             direction: 'add',
