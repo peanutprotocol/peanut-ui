@@ -171,7 +171,9 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value={`$ 0.00`} />
             </Card>
 
-            {payoutSenderNoteKey && <p className="text-grey-1 text-body-s">{t(`bank.${payoutSenderNoteKey}`)}</p>}
+            {payoutSenderNoteKey && (
+                <p className="text-body-xs text-foreground-secondary">{t(`bank.${payoutSenderNoteKey}`)}</p>
+            )}
 
             {referenceSpec && (
                 <Field
