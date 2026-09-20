@@ -2,14 +2,14 @@
 
 import { useCallback, useEffect, useRef } from 'react'
 import { rainApi, RainCooldownError } from '@/services/rain'
-import { sleepUnlessCancelled } from '@/utils/cancellable-wait'
 import { WebAuthnErrorName } from '@/utils/webauthn.utils'
 import {
+    awaitRainCooldownWithinLock,
     getSpendArtifactMeta,
     isRainControllerChanged,
     isStructuredBroadcastFailure,
     SpendRecoveryAbortedError,
-    SpendRecoveryQuoteReviewError,
+    toQuoteReview,
 } from './signSpendRetry'
 import { SessionKeyGrantRequiredError } from './spendPreflight'
 import type { SignedSpendArtifact } from './useSignSpendBundle'
@@ -21,8 +21,6 @@ import type { SignedSpendArtifact } from './useSignSpendBundle'
  * created and the payment lock is free again.
  */
 const BROADCAST_FIRST_REVERT = 'broadcast-first-revert-v1'
-/** Headroom for the replacement's signing + submission inside the same lock. */
-const RESIGN_MARGIN_MS = 20_000
 
 function sameAddress(a: string | undefined, b: string | undefined): boolean {
     return !!a && !!b && a.toLowerCase() === b.toLowerCase()
@@ -115,23 +113,20 @@ export const useSignedSpendRecovery = (): RecoverSignedSpend => {
             return await attempt()
         } catch (error) {
             if (!(error instanceof RainCooldownError)) throw error
-            // Rain is cooling down the fresh signature. Wait it out only if the
-            // replacement can still be signed AND submitted inside the ORIGINAL
-            // quote; otherwise the user reviews refreshed terms.
-            const waitMs = (error.retryAfterSec ?? 0) * 1000 + RESIGN_MARGIN_MS
-            const fitsLock = !!error.retryAfterSec && !!opts?.lockExpiresAt && Date.now() + waitMs <= opts.lockExpiresAt
-            // Hand the cooldown to the call site rather than burning it here:
-            // it has to wait BEFORE minting a short-lived replacement quote.
-            if (!fitsLock) throw new SpendRecoveryQuoteReviewError(error, error.retryAfterSec ?? undefined)
-            if (!(await sleepUnlessCancelled(waitMs - RESIGN_MARGIN_MS, () => unmountedRef.current))) {
-                throw new SpendRecoveryAbortedError(error)
-            }
+            // Rain is cooling down the fresh signature. The shared policy decides
+            // whether waiting still fits this payment's quote — if it does not,
+            // the call site has to re-quote BEFORE anything is signed again.
+            const verdict = await awaitRainCooldownWithinLock({
+                retryAfterSec: error.retryAfterSec,
+                lockExpiresAt: opts?.lockExpiresAt,
+                cancelled: () => unmountedRef.current,
+            })
+            if (verdict === 'exceeds-lock') throw toQuoteReview(error)
+            if (verdict === 'cancelled') throw new SpendRecoveryAbortedError(error)
             try {
                 return await attempt()
             } catch (again) {
-                if (again instanceof RainCooldownError) {
-                    throw new SpendRecoveryQuoteReviewError(again, again.retryAfterSec ?? undefined)
-                }
+                if (again instanceof RainCooldownError) throw toQuoteReview(again)
                 throw again
             }
         }

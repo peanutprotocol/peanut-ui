@@ -1279,7 +1279,7 @@
     },
     "qrPay": {
         "youArePaying": "You're paying",
-        "cardUpdatedReviewQuote": "Your card was updated. Review the current quote to continue.",
+        "reviewUpdatedQuote": "Review the updated quote to continue.",
         "paymentMethodAlt": "Payment method",
         "peanutManAlt": "Peanut Man",
         "waitingForMerchant": "Waiting for the merchant to set the amount",
@@ -1874,7 +1874,7 @@
         "bankNotAvailableNote": "Bank transfers aren't available in your country. You can still add and withdraw crypto."
     },
     "withdraw": {
-        "cardUpdatedReviewQuote": "Your card was updated. Review the current quote to continue.",
+        "reviewUpdatedQuote": "Review the updated quote to continue.",
         "amountToWithdraw": "Amount to withdraw",
         "amountToSend": "Amount to send",
         "howWouldYouLikeToWithdraw": "How would you like to withdraw?",

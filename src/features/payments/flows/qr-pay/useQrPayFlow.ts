@@ -512,7 +512,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             setQrPayment(null)
             setLoadingState('Idle')
             setIsQuoteRecovering(true)
-            setQuoteUpdatedNotice(t('cardUpdatedReviewQuote'))
+            setQuoteUpdatedNotice(t('reviewUpdatedQuote'))
             try {
                 if (recovery.retryAfterSec) {
                     const proceed = await sleepUnlessCancelled(

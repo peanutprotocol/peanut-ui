@@ -1279,7 +1279,7 @@
     },
     "qrPay": {
         "youArePaying": "Estás pagando",
-        "cardUpdatedReviewQuote": "Tu tarjeta se actualizó. Revisa la cotización actual para continuar.",
+        "reviewUpdatedQuote": "Revisa la cotización actualizada para continuar.",
         "paymentMethodAlt": "Método de pago",
         "peanutManAlt": "Peanut Man",
         "waitingForMerchant": "Esperando a que el comercio ingrese el monto",
@@ -1874,7 +1874,7 @@
         "bankNotAvailableNote": "Las transferencias bancarias no están disponibles en tu país. Todavía puedes ingresar y retirar cripto."
     },
     "withdraw": {
-        "cardUpdatedReviewQuote": "Tu tarjeta se actualizó. Revisa la cotización actual para continuar.",
+        "reviewUpdatedQuote": "Revisa la cotización actualizada para continuar.",
         "amountToWithdraw": "Monto a retirar",
         "amountToSend": "Monto a enviar",
         "howWouldYouLikeToWithdraw": "¿Cómo quieres retirar?",

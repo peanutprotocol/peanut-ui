@@ -1695,7 +1695,9 @@ describe('GROUP 5: Error States', () => {
         // Nothing submitted; neutral notice; review usable again.
         expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
         await waitFor(() => expect(screen.getByTestId('quote-updated-notice')).toBeInTheDocument())
-        expect(screen.getByTestId('quote-updated-notice')).toHaveTextContent(en.qrPay.cardUpdatedReviewQuote)
+        // Neutral copy — the same notice serves a rotation and a plain expiry.
+        expect(screen.getByTestId('quote-updated-notice')).toHaveTextContent(en.qrPay.reviewUpdatedQuote)
+        expect(screen.queryByText(/card was updated/i)).not.toBeInTheDocument()
         expect(screen.queryByText(en.qrPay.errors.paymentStatusUnknown)).not.toBeInTheDocument()
         expect(screen.queryByText(en.qrPay.errors.paymentCancelled)).not.toBeInTheDocument()
         expect(screen.queryByTestId('success-sound')).not.toBeInTheDocument()
@@ -1789,7 +1791,9 @@ describe('GROUP 5: Error States', () => {
         await waitFor(() => expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2))
         expect(mockSignSpend).not.toHaveBeenCalled()
         expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
-        expect(screen.getByTestId('quote-updated-notice')).toBeInTheDocument()
+        // A plain expiry has nothing to do with a card: the notice stays neutral.
+        expect(screen.getByTestId('quote-updated-notice')).toHaveTextContent(en.qrPay.reviewUpdatedQuote)
+        expect(screen.queryByText(/card was updated/i)).not.toBeInTheDocument()
     })
 
     test('a signature that finishes AFTER the quote dies submits nothing and re-quotes', async () => {

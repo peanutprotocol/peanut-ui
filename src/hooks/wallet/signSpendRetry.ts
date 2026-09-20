@@ -1,4 +1,6 @@
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
+import type { RainCooldownError } from '@/services/rain'
+import { sleepUnlessCancelled } from '@/utils/cancellable-wait'
 
 // Artifact ownership stays client-side and never enters the signed wire payload.
 const ephemeralAccounts = new WeakMap<object, string>()
@@ -138,6 +140,30 @@ export class SpendRecoveryQuoteReviewError extends Error {
 
 export function isSpendRecoveryOutcome(error: unknown): boolean {
     return error instanceof SpendRecoveryAbortedError || error instanceof SpendRecoveryQuoteReviewError
+}
+
+/** Time reserved for signing and submission after the cooldown. */
+const RESIGN_MARGIN_MS = 20_000
+
+/** Callers retain their own error context. */
+export type RainCooldownVerdict = 'ready' | 'exceeds-lock' | 'cancelled'
+
+/** Wait only when the cooldown and signing margin fit the current quote. */
+export async function awaitRainCooldownWithinLock(args: {
+    retryAfterSec: number | null | undefined
+    /** Provider quote expiry in epoch milliseconds. */
+    lockExpiresAt?: number
+    cancelled: () => boolean
+}): Promise<RainCooldownVerdict> {
+    const retryAfterSec = args.retryAfterSec ?? 0
+    const waitMs = retryAfterSec * 1000 + RESIGN_MARGIN_MS
+    const fitsLock = retryAfterSec > 0 && !!args.lockExpiresAt && Date.now() + waitMs <= args.lockExpiresAt
+    if (!fitsLock) return 'exceeds-lock'
+    return (await sleepUnlessCancelled(waitMs - RESIGN_MARGIN_MS, args.cancelled)) ? 'ready' : 'cancelled'
+}
+
+export function toQuoteReview(error: RainCooldownError): SpendRecoveryQuoteReviewError {
+    return new SpendRecoveryQuoteReviewError(error, error.retryAfterSec ?? undefined)
 }
 
 function notifyFailure(onFailure: ((failure: unknown) => void) | undefined, failure: unknown): void {

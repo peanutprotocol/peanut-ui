@@ -29,16 +29,16 @@ import {
     type SpendStrategy,
 } from './spendPreflight'
 import {
+    awaitRainCooldownWithinLock,
     isRainControllerChanged,
     isSpendRecoveryOutcome,
     registerEphemeralArtifact,
     registerSpendArtifactMeta,
     requiresPasskeyRetry,
     SpendRecoveryAbortedError,
-    SpendRecoveryQuoteReviewError,
+    toQuoteReview,
 } from './signSpendRetry'
 import { isUserCancellation } from './useSignedSpendRecovery'
-import { sleepUnlessCancelled } from '@/utils/cancellable-wait'
 import { usdcUnitsToRainCents } from '@/utils/balance.utils'
 
 /**
@@ -132,9 +132,6 @@ export interface SignSpendBundleInput {
  *   UserOp with `directTransfer=true` (1 passkey tap — admin EIP-712 only);
  *   that handler orders before funding and has no safe resume.
  */
-
-/** Headroom the replacement still needs to sign + reach the backend. */
-const RESIGN_MARGIN_MS = 20_000
 
 export const useSignSpendBundle = () => {
     const { getClientForChain, rebuildClientForChain, getPatchedSudoValidator } = useKernelClient()
@@ -543,13 +540,13 @@ export const useSignSpendBundle = () => {
                         // is control flow, not a failed payment.
                         if (isUserCancellation(again)) throw new SpendRecoveryAbortedError(e)
                         if (!(again instanceof RainCooldownError)) throw again
-                        const retryAfterSec = again.retryAfterSec ?? undefined
-                        const waitMs = (retryAfterSec ?? 0) * 1000 + RESIGN_MARGIN_MS
-                        const fitsLock = !!retryAfterSec && !!lockExpiresAt && Date.now() + waitMs <= lockExpiresAt
-                        if (!fitsLock) throw new SpendRecoveryQuoteReviewError(again, retryAfterSec)
-                        if (!(await sleepUnlessCancelled(waitMs - RESIGN_MARGIN_MS, () => unmountedRef.current))) {
-                            throw new SpendRecoveryAbortedError(again)
-                        }
+                        const verdict = await awaitRainCooldownWithinLock({
+                            retryAfterSec: again.retryAfterSec,
+                            lockExpiresAt,
+                            cancelled: () => unmountedRef.current,
+                        })
+                        if (verdict === 'exceeds-lock') throw toQuoteReview(again)
+                        if (verdict === 'cancelled') throw new SpendRecoveryAbortedError(again)
                         try {
                             abortIfGone()
                             const replacement = await runSignAttempt()
@@ -557,9 +554,7 @@ export const useSignSpendBundle = () => {
                             return replacement
                         } catch (final) {
                             if (isUserCancellation(final)) throw new SpendRecoveryAbortedError(e)
-                            if (final instanceof RainCooldownError) {
-                                throw new SpendRecoveryQuoteReviewError(final, final.retryAfterSec ?? undefined)
-                            }
+                            if (final instanceof RainCooldownError) throw toQuoteReview(final)
                             throw final
                         }
                     }

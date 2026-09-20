@@ -516,7 +516,7 @@ function MantecaBankWithdrawFlow() {
         if (quoteRecoveryInFlightRef.current) return
         quoteRecoveryInFlightRef.current = true
         quoteRecoveryCancelledRef.current = false
-        setQuoteUpdatedNotice(t('cardUpdatedReviewQuote'))
+        setQuoteUpdatedNotice(t('reviewUpdatedQuote'))
         setLoadingState('Idle')
         void stepper.goTo('review')
         // The OLD quote stays on screen (disabled by isLockingPrice) until the
