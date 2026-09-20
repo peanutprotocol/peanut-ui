@@ -26,12 +26,11 @@ import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { parseAsStringEnum, useQueryStates } from 'nuqs'
 import { useMemo, useState } from 'react'
-import { corridorTopUpHref } from '@/features/add-money/countryRoutes'
+import { corridorHasTopUp } from '@/features/add-money/countryRoutes'
 import { corridorsForCountry } from '../countryCorridor'
 import { depositGateView, isDepositBlock, type DepositGateView } from '../depositGate'
 import { DEFAULT_ACCOUNT_LIMIT, DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, isClaimable, topUpOnlyHref } from '../rails'
 import { isResidenceGated, RESIDENCE_GATED_CORRIDORS } from '../residenceGate'
-import { useResidenceIso2s } from '../useResidenceIso2s'
 import { canShare, isHeld } from '../resolveScreen'
 import type { ClaimableCorridor, UnavailableCorridor, DepositAccountView, DepositCorridor, DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
@@ -115,7 +114,6 @@ export function DepositAccountsListScreen({
     const [query, setQuery] = useState('')
     const term = query.trim().toLowerCase()
     const { openCountry, isCountrySupported } = useDepositCountryRouting({ accounts, claimable, isLoading })
-    const residenceIso2s = useResidenceIso2s()
     // While standing accounts are dark, this screen is the bank country list
     // and nothing else — an empty "Your accounts" section under a feature
     // nobody can use yet would only ask a question it cannot answer.
@@ -202,13 +200,18 @@ export function DepositAccountsListScreen({
     const reasonFor = (corridor: DepositCorridor) => unavailable?.[corridor]?.reason
 
     /**
-     * The other way into this corridor: the transfer the user sends themselves
-     * from their own bank. It needs no account and no free account slot, so it
-     * is what a row can still offer when the standing account cannot be opened.
-     * `undefined` means the corridor has no live country behind it — Colombia
-     * today — and no row may offer one.
+     * Can this user take the other way into this corridor — the transfer they
+     * send themselves from their own bank?
+     *
+     * Two things have to be true. The corridor needs a country live for it:
+     * Colombia has none, so no row may offer one. And the user's verification
+     * has to permit the corridor, which is what a `ready` gate means. The
+     * transfer needs no ACCOUNT and no free account slot, but it is not open to
+     * everybody — `POST /bridge/onramp/create` refuses a user with no enabled
+     * rail for it. Offering it to them would be the same dead end in mirror
+     * image.
      */
-    const topUpFor = (corridor: DepositCorridor) => corridorTopUpHref(corridor, residenceIso2s)
+    const canTopUp = (corridor: DepositCorridor) => corridorHasTopUp(corridor) && gates[corridor]?.kind === 'ready'
 
     /**
      * Whether the row leads somewhere. No row on this screen may name an action
@@ -235,10 +238,10 @@ export function DepositAccountsListScreen({
             view.claimable ||
             (view.notice !== undefined && isDepositBlock(view.notice.kind)) ||
             isHeld(accounts[corridor]) ||
-            // The corridor takes a transfer the user sends themselves, whatever
-            // the standing account says. That way in needs no account, so a row
-            // that leads to it is never a dead end.
-            !!topUpFor(corridor) ||
+            // The user can send themselves a transfer on this corridor,
+            // whatever the standing account says. That way in needs no account,
+            // so a row that leads to it is never a dead end.
+            canTopUp(corridor) ||
             // told nothing about this corridor, and the gate says identity:
             // that row leads to the verification flow
             gates[corridor]?.kind === 'needs-identity'
@@ -345,7 +348,7 @@ export function DepositAccountsListScreen({
                 // that instead. It is the case a user at the cap met: a row
                 // that said "Not set up" on a corridor accepting money that
                 // same second, with no way in behind it.
-                if (!view.claimable && topUpFor(rail.corridor))
+                if (!view.claimable && canTopUp(rail.corridor))
                     return <StatusBadge status="custom" customText={t('list.badgeAvailable')} />
                 return <StatusBadge status="custom" customText={t('list.badgeNotSetUp')} />
         }

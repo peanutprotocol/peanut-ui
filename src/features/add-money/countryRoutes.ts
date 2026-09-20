@@ -117,6 +117,20 @@ export function corridorTopUpHref(
     return (resident ?? live[0])?.href
 }
 
+/**
+ * Does this corridor have a top-up at all?
+ *
+ * Existence does not depend on who is asking, so a screen that only has to
+ * decide whether to OFFER the other way in asks this and needs no residence —
+ * and no user context to read one from. Which country's flow opens is a
+ * navigation detail, and `corridorTopUpHref` answers that where navigation
+ * happens.
+ */
+export function corridorHasTopUp(corridor: DepositCorridor): boolean {
+    const rail = DEPOSIT_RAILS[corridor]
+    return isClaimable(rail) ? liveCountriesFor(corridor).length > 0 : !!rail.topUpHref
+}
+
 /** the countries of a corridor that have a live add-money bank rail, computed once per corridor */
 const liveCountriesCache = new Map<DepositCorridor, { iso2: string; href: string }[]>()
 

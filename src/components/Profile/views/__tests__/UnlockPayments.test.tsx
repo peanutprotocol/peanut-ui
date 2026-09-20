@@ -209,11 +209,15 @@ describe('UnlockPayments', () => {
         expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
     })
 
-    it('leads with the merged "Your accounts" list, and the Peanut group keeps its always-on row', () => {
+    it('leads with the ways-in list, and the Peanut group keeps its always-on row', () => {
         render()
         // The currency-first merge (2026-09-18): the accounts list comes before
         // the separate Peanut group in the DOM, not the old Everywhere-first order.
-        const accountsHeading = screen.getByText('Your accounts')
+        // The user holds no account here, so only the second section renders —
+        // an empty "Your account numbers" heading would promise details that do
+        // not exist.
+        expect(screen.queryByText('Your account numbers')).not.toBeInTheDocument()
+        const accountsHeading = screen.getByText('Ways to send yourself money')
         const peanutHeading = screen.getByText('Peanut')
         expect(accountsHeading.compareDocumentPosition(peanutHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
         expect(screen.getByText('Peanut-to-Peanut payments')).toBeInTheDocument()
@@ -349,7 +353,12 @@ describe('UnlockPayments', () => {
         }
         render()
 
-        expect(screen.getByText('Your accounts')).toBeInTheDocument()
+        // The two pathways are named apart: the account the user holds sits
+        // under its own heading, and the corridors their verification opens sit
+        // under the other. One list called "Your accounts" said both were the
+        // same thing, under a subtitle promising account numbers to share.
+        expect(screen.getByText('Your account numbers')).toBeInTheDocument()
+        expect(screen.getByText('Ways to send yourself money')).toBeInTheDocument()
         fireEvent.click(screen.getByText('EUR · SEPA'))
         expect(mockPush).toHaveBeenCalledWith(
             '/add-money?method=bank&step=details&corridor=SEPA_EU&returnTo=%2Fprofile%2Faccounts-and-payments'
@@ -409,9 +418,11 @@ describe('UnlockPayments', () => {
         mockReadDepositAccounts.mockClear()
         render()
         expect(mockReadDepositAccounts).not.toHaveBeenCalled()
-        // The merged "Your accounts" list still renders the KYC-unlock bank/QR
-        // rows with the flag off — only the VA fetch (and its rows) are gated.
-        expect(screen.getByText('Your accounts')).toBeInTheDocument()
+        // The ways-in list still renders the KYC-unlock bank/QR rows with the
+        // flag off — only the VA fetch (and its rows) are gated. With no
+        // standing accounts at all, the account-numbers heading must not appear.
+        expect(screen.getByText('Ways to send yourself money')).toBeInTheDocument()
+        expect(screen.queryByText('Your account numbers')).not.toBeInTheDocument()
         expect(screen.getByText('Euro bank transfers')).toBeInTheDocument()
     })
 

@@ -1,7 +1,6 @@
 'use client'
 
 import type { GateState } from '@/utils/capability-gate'
-import { useRouter } from 'next/navigation'
 import { parseAsString, useQueryState, useQueryStates } from 'nuqs'
 import { useEffect, useState } from 'react'
 import { trackDetailsViewed, trackGateBlocked } from '../analytics'
@@ -10,10 +9,7 @@ import { DEPOSIT_ACCOUNT_PARAMS, DEPOSIT_CORRIDORS } from '../params'
 import { DEPOSIT_RAILS, isClaimable } from '../rails'
 import { depositGateView, isDepositBlock } from '../depositGate'
 import { isResidenceGated } from '../residenceGate'
-import { useResidenceIso2s } from '../useResidenceIso2s'
-import { corridorTopUpHref } from '@/features/add-money/countryRoutes'
-import { rewriteMethodPath } from '@/utils/native-routes'
-import { withReturnTo } from '@/utils/return-to.utils'
+import { corridorHasTopUp } from '@/features/add-money/countryRoutes'
 import { canShare, isHeld, resolveScreen } from '../resolveScreen'
 import type {
     ClaimableCorridor,
@@ -75,6 +71,12 @@ export interface DepositAccountsFlowProps {
      */
     onContactSupport: (corridor: DepositCorridor, reason: DepositSupportReason) => void
     /**
+     * The other way into a corridor: the bank transfer the user sends
+     * themselves. Navigation lives with the caller, as every other way out of
+     * this flow does. Absent on a caller that cannot open one.
+     */
+    onTopUp?: (corridor: DepositCorridor) => void
+    /**
      * The provider's hosted page for a corridor review that waits on the user.
      * Absent on a caller that cannot open one: the screen then says what is
      * needed and offers support.
@@ -110,10 +112,9 @@ export function DepositAccountsFlow({
     onResolveGate,
     onRetry,
     onContactSupport,
+    onTopUp,
     review,
 }: DepositAccountsFlowProps) {
-    const router = useRouter()
-    const residenceIso2s = useResidenceIso2s()
     const [{ step: screen, corridor, screen: legacyStep }, setParams] = useQueryStates(DEPOSIT_ACCOUNT_PARAMS)
     // The typed parser answers its default for a corridor it does not know, so a
     // link naming one that has left the catalogue (`BANK_TRANSFER_BR`) opened
@@ -205,13 +206,18 @@ export function DepositAccountsFlow({
     // account is held and the cap does not count it.
     const rawGateNotice = depositGateView(gate, terms).notice
     /*
-     * The other way into this corridor, where the rail has a country live for
-     * it: a transfer the user sends themselves, which needs no account and no
-     * free account slot. It is what the gate screen offers beside the block,
-     * because a user at the account cap can deposit on this rail today and the
-     * screen used to send them to support instead.
+     * The other way into this corridor: a transfer the user sends themselves,
+     * which needs no account and no free account slot. It is what the gate
+     * screen offers beside the block, because a user at the account cap can
+     * deposit on this rail today and the screen used to send them to support
+     * instead.
+     *
+     * It needs a country live for the corridor AND a `ready` gate. The gate is
+     * not about the account — it is whether this user's verification permits
+     * the corridor at all, and the deposit route refuses a user with no enabled
+     * rail for it.
      */
-    const topUpHref = corridorTopUpHref(corridor, residenceIso2s)
+    const hasTopUp = corridorHasTopUp(corridor) && gate.kind === 'ready'
     // The provider hands out its page only for a review it still takes from the
     // user. One it rejected or revoked has none, and the claim says so by
     // answering without a link; the preview names those two in its issues.
@@ -265,11 +271,7 @@ export function DepositAccountsFlow({
                 slotsHeld={slotsHeld}
                 isActing={review?.startingCorridor === corridor}
                 actFailed={review?.failedCorridor === corridor}
-                onTopUp={
-                    topUpHref
-                        ? () => router.push(withReturnTo(rewriteMethodPath(topUpHref), '/add-money?method=bank'))
-                        : undefined
-                }
+                onTopUp={hasTopUp && onTopUp ? () => onTopUp(corridor) : undefined}
                 onBack={() => setParams({ step: 'list' })}
                 onAct={() => {
                     // A corridor the backend withheld for support is not
