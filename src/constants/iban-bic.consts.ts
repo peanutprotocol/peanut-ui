@@ -189,3 +189,10 @@ export const SUPPLEMENTARY_BIC_BY_BANK_CODE: Readonly<Record<string, Readonly<Re
         '001': 'IOPRVAVX', // Istituto per le Opere di Religione
     },
 }
+
+/**
+ * A BIC as ISO 9362 defines it: four letters for the institution, two for the
+ * country, two alphanumeric for the location, and an optional three-character
+ * branch code.
+ */
+export const ISO_9362_BIC = /^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$/
