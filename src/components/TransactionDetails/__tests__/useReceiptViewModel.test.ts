@@ -47,8 +47,8 @@ const withDrawer = (overrides: Record<string, unknown>, drawerOverrides: Record<
         extraDataForDrawer: { ...(baseTx.extraDataForDrawer as Record<string, unknown>), ...drawerOverrides },
     }) as unknown as TransactionDetails
 
-const renderConfig = (tx: TransactionDetails) =>
-    renderHook(() => useReceiptViewModel(tx, { isPublic: false })).result.current.rowVisibilityConfig
+const renderConfig = (tx: TransactionDetails, isPublic = false) =>
+    renderHook(() => useReceiptViewModel(tx, { isPublic })).result.current.rowVisibilityConfig
 
 const senderSendLink = (status: string): TransactionDetails =>
     withDrawer({ status }, { originalUserRole: EHistoryUserRole.SENDER, kind: 'SEND_LINK' })
@@ -151,5 +151,11 @@ describe('sender reference row (bank deposits)', () => {
     it('never shows on another kind, even if the field is present', () => {
         const send = withDrawer({ status: 'completed' }, { kind: 'DIRECT_TRANSFER', senderReference: 'x' })
         expect(renderConfig(send).senderReference).toBe(false)
+    })
+
+    it('never shows on a public receipt — the payer reference is for the owner', () => {
+        // The backend withholds it from a public receipt, but the public page
+        // renders this same component tree, so the gate is repeated here.
+        expect(renderConfig(bankDeposit('INVOICE 4471'), true).senderReference).toBe(false)
     })
 })

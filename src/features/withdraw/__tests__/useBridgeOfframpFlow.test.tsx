@@ -457,15 +457,28 @@ describe('useBridgeOfframpFlow — the optional reference (TD-9)', () => {
     })
 
     it.each([
-        ['faster_payments', 'gbp'],
-        ['spei', 'mxn'],
-        ['co_bank_transfer', 'cop'],
-    ])('%s takes no reference: no field is offered and none is sent', async (paymentRail, currency) => {
+        ['faster_payments', 'gbp', 'fasterPaymentsReference'],
+        ['spei', 'mxn', 'speiReference'],
+        ['co_bank_transfer', 'cop', 'coBankTransferReference'],
+    ])('%s sends the reference in its own field, and in no other', async (paymentRail, currency, field) => {
         mockOfframpConfig = { currency, paymentRail }
         const view = await submitWithReference('Invoice 42')
 
+        expect(view.result.current.referenceSpec?.field).toBe(field)
+        expect(sentDestination()).toEqual({
+            currency,
+            paymentRail,
+            externalAccountId: 'ext-1',
+            [field]: 'Invoice 42',
+        })
+    })
+
+    it('a rail that takes no reference offers no field and sends none', async () => {
+        mockOfframpConfig = { currency: 'usd', paymentRail: 'wire' }
+        const view = await submitWithReference('Invoice 42')
+
         expect(view.result.current.referenceSpec).toBeNull()
-        expect(sentDestination()).toEqual({ currency, paymentRail, externalAccountId: 'ext-1' })
+        expect(sentDestination()).toEqual({ currency: 'usd', paymentRail: 'wire', externalAccountId: 'ext-1' })
     })
 
     it('a reference that breaks the rail limits blocks the submit: nothing is created, nothing moves', async () => {

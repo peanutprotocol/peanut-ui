@@ -210,8 +210,14 @@ export function useReceiptViewModel(
                 (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim') &&
                 transaction.status !== 'cancelled'
             ),
+            // The payer's own reference is owner-only. The backend already
+            // withholds it from a public receipt, but the public page renders
+            // this same component tree, so the gate is repeated here rather
+            // than resting on one side alone.
             senderReference: !!(
-                transaction.direction === 'bank_deposit' && transaction.extraDataForDrawer?.senderReference
+                !isPublic &&
+                transaction.direction === 'bank_deposit' &&
+                transaction.extraDataForDrawer?.senderReference
             ),
             depositInstructions: !!(
                 (isOnrampEntry(transaction) ||
