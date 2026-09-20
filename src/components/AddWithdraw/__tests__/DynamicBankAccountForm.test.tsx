@@ -571,3 +571,45 @@ describe('DynamicBankAccountForm — tap-to-paste', () => {
         expect(await screen.findByText('withdraw.bankForm.ibanInvalid')).toBeInTheDocument()
     })
 })
+
+/**
+ * The euro area entered with NO country (QA round 2, Q2).
+ *
+ * The withdraw flow stopped asking which euro country the bank is in — a
+ * Revolut or Wise customer does not know. The form is reached with the SEPA
+ * destination instead of a country, and the IBAN answers the question.
+ *
+ * That makes the form the ONLY place an IBAN we cannot pay is refused, which
+ * is the one way this change could make things worse. These pin it.
+ */
+describe('DynamicBankAccountForm — the euro area, entered with no country', () => {
+    it('refuses an IBAN the provider does not support, naming what to do instead', async () => {
+        mockValidateBankAccount.mockResolvedValue(false)
+        const onSuccess = jest.fn(async () => ({}))
+        const { container } = renderIbanForm(onSuccess, 'SEPA')
+
+        await typeIban(DE_IBAN, { blur: true })
+        await submitWithEnter(container)
+
+        expect(await screen.findByText('withdraw.bankForm.ibanUnsupported')).toBeInTheDocument()
+        // nothing reaches the provider: the refusal happens here, not later
+        expect(onSuccess).not.toHaveBeenCalled()
+    })
+
+    it('a supported IBAN submits with the country read off the IBAN, not off a country step', async () => {
+        const onSuccess = jest.fn(async () => ({}))
+        const { container } = renderIbanForm(onSuccess, 'SEPA')
+
+        await typeIban(DE_IBAN, { blur: true })
+        await submitWithEnter(container)
+
+        await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+        expect(payloadOf(onSuccess)).toEqual(
+            expect.objectContaining({
+                accountType: 'iban',
+                accountNumber: DE_IBAN,
+                countryCode: 'DEU',
+            })
+        )
+    })
+})

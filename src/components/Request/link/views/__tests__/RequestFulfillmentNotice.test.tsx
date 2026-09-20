@@ -88,6 +88,38 @@ describe('RequestFulfillmentNotice', () => {
         expect(await screen.findByText('Partly paid')).toBeInTheDocument()
     })
 
+    /**
+     * QA round 2, Q5. $40 by bank transfer, $60 from a Peanut balance, request
+     * closed. `bankFulfilment` says `partial` — true about the bank book, and a
+     * lie as a badge: it asked the requester to chase money nobody owed.
+     */
+    it('a request settled by bank AND balance is paid, and says where the bank part sits', async () => {
+        getRequest.mockResolvedValue(
+            request({
+                bankFulfilment: 'partial',
+                receivedAmount: '40',
+                paidAt: '2026-09-20T22:00:00.000Z',
+            })
+        )
+
+        renderNotice()
+
+        expect(await screen.findByText('Paid')).toBeInTheDocument()
+        expect(screen.queryByText('Partly paid')).not.toBeInTheDocument()
+        expect(screen.getByText('$40 of $250 by bank transfer. The rest was paid another way.')).toBeInTheDocument()
+    })
+
+    // The row reports the bank transfer. A request answered entirely inside
+    // Peanut has no bank transfer to report, so it shows no row at all.
+    it('shows nothing when the whole request was paid from a balance', async () => {
+        getRequest.mockResolvedValue(request({ bankFulfilment: 'none', paidAt: '2026-09-20T22:00:00.000Z' }))
+
+        const { container } = renderNotice()
+
+        await waitFor(() => expect(getRequest).toHaveBeenCalled())
+        expect(container).toBeEmptyDOMElement()
+    })
+
     it('does not poll a request that shares no bank details', () => {
         render(<RequestFulfillmentNotice requestId="req-1" bankPayable={false} />, { wrapper })
 

@@ -27,6 +27,7 @@ import { withdrawAmountStepUrl } from '@/features/withdraw/routes'
 import { liveRailsForCountry } from '@/features/destinations/country-rails'
 import { type Account } from '@/interfaces/interfaces'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
+import { SEPA_DESTINATION, SEPA_PATH } from '@/components/AddWithdraw/bank-corridors'
 import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
@@ -138,9 +139,14 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         if (urlAmount) void setStepParam('form')
     }, [flow, stepParam, viewParam, urlAmount, setStepParam, setViewParam])
 
-    const currentCountry = countryData.find(
-        (country) => country.type === 'country' && country.path === countrySlugFromUrl
-    )
+    // The euro area is a destination, not a country: SEPA routes by IBAN, so the
+    // form is reached with no country picked and reads it off the IBAN instead
+    // (QA round 2, Q2). It is deliberately absent from `countryData` so no
+    // country list can ever offer it as a country.
+    const isSepaDestination = countrySlugFromUrl === SEPA_PATH
+    const currentCountry = isSepaDestination
+        ? SEPA_DESTINATION
+        : countryData.find((country) => country.type === 'country' && country.path === countrySlugFromUrl)
 
     // The country's live withdraw rails answer two questions on this screen:
     // which rail the bank form is collecting details for, and whether the rail
@@ -152,8 +158,14 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     )
     const bankRail = liveRails.find((rail) => rail.id.endsWith('-default-bank-withdraw'))
     const railListSkipped = liveRails.length === 1
+    // The euro area has no rail list of its own — it IS the euro bank form, so a
+    // link straight to it never lands on an empty list screen.
     const view =
-        stepParam === 'form' || (railListSkipped && bankRail && !bankRail.path?.includes('/manteca')) ? 'form' : 'list'
+        isSepaDestination ||
+        stepParam === 'form' ||
+        (railListSkipped && bankRail && !bankRail.path?.includes('/manteca'))
+            ? 'form'
+            : 'list'
 
     useEffect(() => {
         const rail = liveRails.length === 1 ? liveRails[0] : undefined
@@ -501,13 +513,15 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
 
                         // The rail list was skipped on the way in, so going back
                         // to it would land the user on a screen they never chose.
-                        // Return them to the country pick instead.
-                        if (railListSkipped) {
+                        // Return them to the country pick instead. The euro area
+                        // has no rail list at all — clearing `step` would leave
+                        // the user on the same form with a dead back button.
+                        if (railListSkipped || isSepaDestination) {
                             withdrawFlow?.setSelectedBankAccount(null)
                             router.push(
                                 isBankFromSend
                                     ? `/withdraw?showAll=true&method=${methodParam}`
-                                    : '/withdraw?showAll=true'
+                                    : '/withdraw?showAll=true&rail=bank'
                             )
                             return
                         }
@@ -626,8 +640,13 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                         withdrawFlow?.setSelectedMethod(null)
                         withdrawFlow?.setSelectedBankAccount(null)
                         void setUrlAmount(null)
+                        // the country list is only ever reached on the bank rail —
+                        // name it so the chooser does not re-offer crypto on the
+                        // way back
                         router.push(
-                            isBankFromSend ? `/withdraw?showAll=true&method=${methodParam}` : '/withdraw?showAll=true'
+                            isBankFromSend
+                                ? `/withdraw?showAll=true&method=${methodParam}`
+                                : '/withdraw?showAll=true&rail=bank'
                         )
                     }
                 }}

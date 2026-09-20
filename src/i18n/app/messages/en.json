@@ -1102,6 +1102,7 @@
         "paidByBank": {
             "rowLabel": "Bank transfer",
             "receivedPartial": "${received} of ${requested} received",
+            "receivedPartialSettled": "${received} of ${requested} by bank transfer. The rest was paid another way.",
             "badgePaid": "Paid",
             "badgePartial": "Partly paid",
             "paidByName": "Paid by {name}",
@@ -1981,7 +1982,7 @@
             "iban": "IBAN",
             "ibanRequired": "IBAN is required",
             "ibanInvalid": "Invalid IBAN",
-            "ibanUnsupported": "This IBAN isn't supported for withdrawals",
+            "ibanUnsupported": "We cannot send euros to this IBAN. Enter an IBAN from a SEPA country.",
             "accountNumber": "Account Number",
             "accountNumberRequired": "Account number is required",
             "accountNumberUk": "Account number must be 6-8 digits",

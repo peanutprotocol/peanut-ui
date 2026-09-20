@@ -565,7 +565,11 @@ describe('bank country back navigation', () => {
         mockSearchParams = new URLSearchParams(query)
         render(<AddWithdrawCountriesList flow="withdraw" />)
         fireEvent.click(screen.getByTestId('nav-header'))
-        expect(mockPush).toHaveBeenCalledWith(query ? '/withdraw?showAll=true&method=bank' : '/withdraw?showAll=true')
+        // the plain withdraw path names the rail it came back from, so the
+        // chooser does not offer crypto again (QA round 2, Q1)
+        expect(mockPush).toHaveBeenCalledWith(
+            query ? '/withdraw?showAll=true&method=bank' : '/withdraw?showAll=true&rail=bank'
+        )
         expect(mockSetSelectedMethod).toHaveBeenCalledWith(null)
     })
 })
@@ -629,7 +633,7 @@ describe('AddWithdrawCountriesList — the bank form entered cold', () => {
         render(<AddWithdrawCountriesList flow="withdraw" />)
         fireEvent.click(screen.getByTestId('nav-header'))
 
-        expect(mockPush).toHaveBeenCalledWith('/withdraw?showAll=true')
+        expect(mockPush).toHaveBeenCalledWith('/withdraw?showAll=true&rail=bank')
     })
 
     it.each(['', 'bank'])(
@@ -645,7 +649,7 @@ describe('AddWithdrawCountriesList — the bank form entered cold', () => {
             })
 
             expect(mockPush).toHaveBeenCalledWith(
-                origin ? '/withdraw?showAll=true&method=bank' : '/withdraw?showAll=true'
+                origin ? '/withdraw?showAll=true&method=bank' : '/withdraw?showAll=true&rail=bank'
             )
             expect(mockUrlUpdate).not.toHaveBeenCalled()
             expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(null)
@@ -746,4 +750,42 @@ it('a Manteca rail clicked from a multi-rail list forwards the send origin as se
         mockLiveRails = null
         mockSearchParams = new URLSearchParams()
     }
+})
+
+/**
+ * The euro area as a destination (QA round 2, Q2).
+ *
+ * `/withdraw/euro-area` is not a country: it is the euro bank form, reached
+ * with no country picked because the IBAN says which country it is. It has no
+ * rail list of its own, so the two things that could break are the screen it
+ * renders and the button that leaves it.
+ */
+describe('AddWithdrawCountriesList — the euro area', () => {
+    beforeEach(() => {
+        mockPush.mockClear()
+        mockParams.country = 'euro-area'
+        setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
+    })
+
+    afterEach(() => {
+        mockParams.country = 'testland'
+        mockNuqsParams = {}
+    })
+
+    it('renders the bank form, never an empty rail list', () => {
+        // no ?step=form: a deep link to the destination is still the form
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+
+        expect(mockBankFormProps).toHaveBeenCalled()
+        expect(mockBankFormProps.mock.calls.at(-1)?.[0]).toEqual(expect.objectContaining({ country: 'SEPA' }))
+    })
+
+    it('back returns to the chooser: there is no rail list to go back to', () => {
+        mockNuqsParams = { step: 'form' }
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+
+        fireEvent.click(screen.getByTestId('nav-header'))
+
+        expect(mockPush).toHaveBeenCalledWith('/withdraw?showAll=true&rail=bank')
+    })
 })

@@ -1102,6 +1102,7 @@
         "paidByBank": {
             "rowLabel": "Transferencia bancaria",
             "receivedPartial": "${received} de ${requested} recibidos",
+            "receivedPartialSettled": "${received} de ${requested} por transferencia bancaria. El resto se pagó de otra forma.",
             "badgePaid": "Pagado",
             "badgePartial": "Pagado en parte",
             "paidByName": "Pagado por {name}",
@@ -1981,7 +1982,7 @@
             "iban": "IBAN",
             "ibanRequired": "El IBAN es obligatorio",
             "ibanInvalid": "IBAN inválido",
-            "ibanUnsupported": "Este IBAN no es compatible con los retiros",
+            "ibanUnsupported": "No podemos enviar euros a este IBAN. Ingresa un IBAN de un país SEPA.",
             "accountNumber": "Número de cuenta",
             "accountNumberRequired": "El número de cuenta es obligatorio",
             "accountNumberUk": "El número de cuenta debe tener entre 6 y 8 dígitos",

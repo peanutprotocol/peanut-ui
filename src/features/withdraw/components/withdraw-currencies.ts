@@ -87,6 +87,21 @@ export function liveWithdrawCurrencies({ sendToBankOnly = false } = {}): Withdra
 }
 
 /**
+ * A currency the IBAN decides, so its country step is a question with no answer.
+ *
+ * Every country behind it withdraws through the same SEPA corridor, and the
+ * IBAN names the country itself. Tapping such a currency goes straight to the
+ * euro bank form (QA round 2, Q2) instead of expanding a list of forty
+ * countries a neobank customer cannot choose between.
+ */
+export function currencyRoutesByIban(currency: WithdrawCurrency): boolean {
+    if (currency.countries.length === 0) return false
+    return currency.countries.every(
+        (country) => bankCorridorFor(getCountryCodeForWithdraw(country.id))?.accountType === BridgeAccountType.IBAN
+    )
+}
+
+/**
  * Does the search name this country? The English catalog title stays searchable
  * beside the localized name, so "Germany" and "Alemanha" both find it.
  */

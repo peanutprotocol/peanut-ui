@@ -10,7 +10,7 @@
  *  (c) crypto opens destination selection before amount entry.
  */
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { type Account } from '@/interfaces/interfaces'
 
@@ -59,10 +59,14 @@ jest.mock('@/components/Common/SavedAccountsView', () => ({
         savedAccounts: Account[]
         onAccountClick: (account: Account, path?: string) => void
         onCryptoClick: () => void
+        onSelectNewMethodClick: () => void
         savedAddresses: { id: string; address: string; chainId: string; nickname: string }[]
         onSavedAddressClick: (saved: { id: string; address: string; chainId: string; nickname: string }) => void
     }) => (
         <div>
+            <button data-testid="hub-bank-row" onClick={props.onSelectNewMethodClick}>
+                Withdraw to a bank account
+            </button>
             {props.savedAccounts.map((account) => (
                 <button
                     key={account.identifier}
@@ -100,7 +104,7 @@ jest.mock('@/features/withdraw/components/WithdrawCurrencyList', () => ({
         initialQuery,
     }: {
         onCountryClick: (c: unknown) => void
-        onCryptoClick: () => void
+        onCryptoClick?: () => void
         enforceSupportedCountries?: boolean
         initialQuery?: string
     }) => (
@@ -110,6 +114,7 @@ jest.mock('@/features/withdraw/components/WithdrawCurrencyList', () => ({
             data-initial-query={initialQuery}
         >
             {[
+                { id: 'SEPA', path: 'euro-area', currency: 'EUR', title: 'Euro bank account' },
                 { id: 'DE', path: 'germany', currency: 'EUR', title: 'Germany' },
                 { id: 'AR', path: 'argentina', currency: 'ARS', title: 'Argentina' },
                 { id: 'BR', path: 'brazil', currency: 'BRL', title: 'Brazil' },
@@ -123,9 +128,11 @@ jest.mock('@/features/withdraw/components/WithdrawCurrencyList', () => ({
                     {country.title}
                 </button>
             ))}
-            <button data-testid="currency-crypto-row" onClick={onCryptoClick}>
-                Crypto
-            </button>
+            {onCryptoClick && (
+                <button data-testid="currency-crypto-row" onClick={onCryptoClick}>
+                    Crypto
+                </button>
+            )}
         </div>
     ),
 }))
@@ -417,5 +424,80 @@ describe('WithdrawMethodView — what it tells the currency list', () => {
     it('/withdraw?currencyCode=EUR opens the list filtered to that currency', () => {
         renderView({ currencyCode: 'EUR' })
         expect(screen.getByTestId('currency-list')).toHaveAttribute('data-initial-query', 'EUR')
+    })
+})
+
+/**
+ * Round-2 QA (Q1): "why is crypto an option when I've choose withdraw to bank?"
+ * A chooser must not offer a method the user already picked one screen earlier.
+ */
+describe('WithdrawMethodView — the chooser drops a rail the user already picked', () => {
+    it('the hub bank row names the rail in the URL', async () => {
+        const onUrlUpdate = jest.fn()
+        render(
+            <NuqsTestingAdapter onUrlUpdate={onUrlUpdate}>
+                <WithdrawMethodView
+                    pageTitle="Withdraw"
+                    mainHeading="Where to?"
+                    onExit={mockOnExit}
+                    onMethodChosen={mockOnMethodChosen}
+                />
+            </NuqsTestingAdapter>
+        )
+        fireEvent.click(screen.getByTestId('hub-bank-row'))
+
+        await waitFor(() => expect(onUrlUpdate).toHaveBeenCalled())
+        const params = onUrlUpdate.mock.calls.at(-1)?.[0].searchParams as URLSearchParams
+        expect(params.get('showAll')).toBe('true')
+        expect(params.get('rail')).toBe('bank')
+    })
+
+    it('bank chosen upstream: no crypto row', () => {
+        renderView({ showAll: 'true', rail: 'bank' })
+        expect(screen.queryByTestId('currency-crypto-row')).not.toBeInTheDocument()
+        // the bank side of the screen is untouched
+        expect(screen.getByTestId('country-germany')).toBeInTheDocument()
+    })
+
+    it('Send → Bank is the same choice, made one screen earlier', () => {
+        mockIsBankFromSend = true
+        renderView({ showAll: 'true', method: 'bank' })
+        expect(screen.queryByTestId('currency-crypto-row')).not.toBeInTheDocument()
+    })
+
+    it('no rail chosen: the crypto row still leads the list', () => {
+        renderView({ showAll: 'true' })
+        expect(screen.getByTestId('currency-crypto-row')).toBeInTheDocument()
+    })
+})
+
+/**
+ * Round-2 QA (Q2): the euro area is one destination, not forty countries.
+ * The country step is gone for EUR — the IBAN says which country it is.
+ */
+describe('WithdrawMethodView — the euro area routes with no country', () => {
+    it('sends the euro destination straight to the euro bank form', () => {
+        renderView({ showAll: 'true' })
+        fireEvent.click(screen.getByTestId('country-euro-area'))
+
+        expect(mockSetSelectedMethod).toHaveBeenCalledWith(
+            expect.objectContaining({ type: 'bridge', countryPath: 'euro-area', currency: 'EUR' })
+        )
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/euro-area?step=form')
+    })
+
+    it('keeps the Send origin on the way to the euro form', () => {
+        mockIsBankFromSend = true
+        renderView({ showAll: 'true', method: 'bank' })
+        fireEvent.click(screen.getByTestId('country-euro-area'))
+
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/euro-area?step=form&method=bank')
+    })
+
+    it('a named country still routes to that country, so the list stays an escape hatch', () => {
+        renderView({ showAll: 'true' })
+        fireEvent.click(screen.getByTestId('country-germany'))
+
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/germany?step=form')
     })
 })

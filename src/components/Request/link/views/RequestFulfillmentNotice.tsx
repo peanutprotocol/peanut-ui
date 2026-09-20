@@ -7,7 +7,7 @@ import { requestsApi } from '@/services/requests'
 import { formatTokenAmount } from '@/utils/general.utils'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
-import { requestFulfillmentState } from '../requestFulfillment'
+import { requestFulfillmentState, requestIsSettled } from '../requestFulfillment'
 
 export const REQUEST_FULFILLMENT_QUERY_KEY = ['request-fulfillment'] as const
 
@@ -34,7 +34,13 @@ export function RequestFulfillmentNotice({ requestId, bankPayable }: { requestId
     if (!data) return null
 
     const state = requestFulfillmentState(data)
+    // This row reports the bank transfer, so no bank money means no row — a
+    // request paid entirely inside Peanut has nothing to say here.
     if (state === 'unpaid') return null
+    // Whether anything is still OWED is a question about the request, not about
+    // the bank. A request settled by a bank transfer plus a Peanut payment is
+    // paid in full, and "Partly paid" would ask for the money twice.
+    const settled = requestIsSettled(data)
 
     const received = formatTokenAmount(data.receivedAmount ?? '0', 2) ?? data.receivedAmount ?? '0'
     const requested = formatTokenAmount(data.tokenAmount, 2) ?? data.tokenAmount ?? '0'
@@ -45,15 +51,26 @@ export function RequestFulfillmentNotice({ requestId, bankPayable }: { requestId
     // does not already know.
     const paidValue = data.payerName ? t('paidByBank.paidByName', { name: data.payerName }) : t('paidByBank.paidByBank')
 
+    // Three things the row can say, in the order they stop being ambiguous:
+    // the bank paid all of it (name the payer), the bank paid part of a request
+    // that is settled anyway (say where the rest came from), or money is still
+    // owed (state both numbers, because asking for the difference is next).
+    let value: string
+    if (state === 'paid') value = paidValue
+    else if (settled) value = t('paidByBank.receivedPartialSettled', { received, requested })
+    else value = t('paidByBank.receivedPartial', { received, requested })
+
+    const owesNothing = state === 'paid' || settled
+
     return (
         <Card position="single" className="w-full px-4 py-0">
             <DataRow
                 label={t('paidByBank.rowLabel')}
-                value={state === 'paid' ? paidValue : t('paidByBank.receivedPartial', { received, requested })}
+                value={value}
                 trailing={
                     <StatusBadge
-                        status={state === 'paid' ? 'completed' : 'pending'}
-                        customText={state === 'paid' ? t('paidByBank.badgePaid') : t('paidByBank.badgePartial')}
+                        status={owesNothing ? 'completed' : 'pending'}
+                        customText={owesNothing ? t('paidByBank.badgePaid') : t('paidByBank.badgePartial')}
                     />
                 }
             />

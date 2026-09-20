@@ -1,5 +1,5 @@
 import { BridgeAccountType } from '@/app/actions/types/users.types'
-import { BRIDGE_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
+import { BRIDGE_ALPHA3_TO_ALPHA2, type CountryData } from '@/components/AddMoney/consts'
 import { isValidRoutingNumber, isValidSortCode, isValidUKAccountNumber } from '@/utils/bridge-accounts.utils'
 import { getCountryCodeForWithdraw, validateMXCLabeAccount, validateUSBankAccount } from '@/utils/withdraw.utils'
 import { MX_STATES, US_STATES } from '@/constants/stateCodes.consts'
@@ -193,12 +193,36 @@ const SPECS: Record<string, BankCorridorSpec> = {
 const ALIASES: Record<string, string> = { GBR: 'GB', US: 'USA', COL: 'CO', MEX: 'MX' }
 
 /**
+ * The euro area as ONE destination, because SEPA routes by IBAN.
+ *
+ * Every euro country shares the same corridor and the same form, and the IBAN's
+ * first two characters already say which country it is — the form derives the
+ * BIC from it the same way. Asking the user for the country first asked them
+ * for something the next screen reads for itself, in terms a Revolut, Wise or
+ * N26 customer genuinely does not know (QA round 2, Q2).
+ *
+ * It is not a member of `countryData`: it must never appear in a country list.
+ */
+export const SEPA_COUNTRY_CODE = 'SEPA'
+export const SEPA_PATH = 'euro-area'
+export const SEPA_DESTINATION: CountryData = {
+    id: SEPA_COUNTRY_CODE,
+    type: 'country',
+    title: 'Euro bank account',
+    currency: 'EUR',
+    path: SEPA_PATH,
+    region: 'europe',
+}
+
+/**
  * The corridor a country withdraws through, or null when it has none.
  *
  * A SEPA country falls through to IBAN, which is what the euro area shares.
  */
 export function bankCorridorFor(country: string): BankCorridorSpec | null {
     const code = ALIASES[country.toUpperCase()] ?? country.toUpperCase()
+    // the euro area answers as one IBAN corridor, with no country of its own
+    if (code === SEPA_COUNTRY_CODE) return IBAN_SPEC
     const spec = SPECS[code]
     if (spec) return spec
     return BRIDGE_ALPHA3_TO_ALPHA2[code] !== undefined ? IBAN_SPEC : null
