@@ -25,6 +25,21 @@ describe('bicCountryDiffersFromIban', () => {
         expect(bicCountryDiffersFromIban(bic, iban)).toBe(false)
     })
 
+    /*
+     * The Azores and Madeira are Portuguese subdivisions, not countries: their
+     * IBANs and BICs both read PT. Listing AZ and MD as territories PT covers
+     * therefore named Azerbaijan and Moldova, and silenced the note on exactly
+     * the pair it is for.
+     */
+    it('notes a Portuguese IBAN paired with a Moldovan or Azerbaijani BIC', () => {
+        expect(bicCountryDiffersFromIban('AGRNMD2X', 'PT50000201231234567890154')).toBe(true)
+        expect(bicCountryDiffersFromIban('IBAZAZ2X', 'PT50000201231234567890154')).toBe(true)
+    })
+
+    it('says nothing about a Madeiran BIC, which is PT like the IBAN', () => {
+        expect(bicCountryDiffersFromIban('BANIPTPL', 'PT50000201231234567890154')).toBe(false)
+    })
+
     it('does not judge a pair it cannot read', () => {
         expect(bicCountryDiffersFromIban('DEUT', 'DE89370400440532013000')).toBe(false)
         expect(bicCountryDiffersFromIban('DEUTDEFF', '')).toBe(false)

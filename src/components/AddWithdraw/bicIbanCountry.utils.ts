@@ -2,12 +2,16 @@
  * Territories whose banks issue IBANs under another country's code, by that
  * IBAN code. A BIC carries the territory's own code (characters 5-6), so these
  * pairs are ordinary and worth no remark at all.
+ *
+ * Only a territory with a country code of its own belongs here. The Azores and
+ * Madeira have none — both are Portuguese subdivisions whose IBANs and BICs
+ * already read `PT` — so listing them suppressed the note for genuinely foreign
+ * BICs instead, which is the one pair it exists to point at.
  */
 const IBAN_COUNTRY_ALSO_COVERS: Record<string, readonly string[]> = {
     FR: ['GP', 'MQ', 'GF', 'RE', 'YT', 'PM', 'BL', 'MF', 'NC', 'PF', 'WF', 'MC'],
     GB: ['JE', 'GG', 'IM', 'GI'],
     FI: ['AX'],
-    PT: ['AZ', 'MD'],
     IT: ['SM', 'VA'],
 }
 
