@@ -79,9 +79,13 @@ describe('typed Argentine alias pasted or scanned', () => {
     ])('shows the merchant-QR guidance for %s (%s)', async (alias) => {
         await scan(alias)
 
-        expect(screen.getByText('Aliases are not supported')).toBeInTheDocument()
+        expect(screen.getByText("Can't pay an alias")).toBeInTheDocument()
+        // Qualified: person-to-person by alias is out, merchant QR and
+        // own-account withdrawal are both live.
         expect(
-            screen.getByText('Peanut cannot send to a typed alias. Scan the merchant payment QR code instead.')
+            screen.getByText(
+                "You can't pay another person by alias. To pay a business, scan its payment QR code. To move money to your own account, use Withdraw."
+            )
         ).toBeInTheDocument()
     })
 
@@ -105,6 +109,6 @@ describe('typed Argentine alias pasted or scanned', () => {
         await scan('vitalik.eth')
 
         expect(resolveEns).toHaveBeenCalledWith('vitalik.eth')
-        expect(screen.queryByText('Aliases are not supported')).not.toBeInTheDocument()
+        expect(screen.queryByText("Can't pay an alias")).not.toBeInTheDocument()
     })
 })

@@ -49,9 +49,9 @@ describe('Recipient Validation', () => {
         })
 
         it('should reject an Argentine payment alias before ENS', () => {
-            expect(() => getRecipientType('CASA.FUTBOLERA')).toThrow('Argentine payment aliases are not supported')
+            expect(() => getRecipientType('CASA.FUTBOLERA')).toThrow('Paying another person by alias is not supported')
             expect(() => getRecipientType('CASA.FUTBOLERA', true)).toThrow(
-                'Argentine payment aliases are not supported'
+                'Paying another person by alias is not supported'
             )
         })
 

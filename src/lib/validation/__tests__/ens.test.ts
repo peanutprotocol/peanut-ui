@@ -1,4 +1,4 @@
-import { hasEnsNamespace, isSupportedEnsName, normalizeEnsInput } from '@/lib/validation/ens'
+import { hasEnsNamespace, isSupportedEnsName, normalizeEnsName } from '@/lib/validation/ens'
 
 // Synthetic fixtures — no customer data.
 const PIX_MERCHANT_PAYLOAD =
@@ -22,6 +22,19 @@ describe('isSupportedEnsName', () => {
         ['blogspot.com', 'private public suffix at its root'],
         ['user.github.io', 'name under a private public suffix'],
         ['myblog.blogspot.com', 'name under a private public suffix'],
+        // ENSIP-15 names. These reached the resolver before this validator
+        // existed and must keep doing so — an ASCII allowlist broke them.
+        ['🚀.eth', 'emoji label'],
+        ['🚀🚀.eth', 'multi-emoji label'],
+        ['vitalik🚀.eth', 'mixed text and emoji label'],
+        ['münchen.de', 'IDN DNS-backed name'],
+        ['bücher.example.com', 'IDN subname'],
+        ['日本.eth', 'non-Latin script label'],
+        // ENSIP-15 sets CheckHyphens false, so an edge hyphen is a valid label.
+        ['-foo.eth', 'leading hyphen'],
+        ['foo-.eth', 'trailing hyphen'],
+        // Underscore is allowed at the start of a label.
+        ['_foo.eth', 'leading underscore'],
     ])('accepts %s (%s)', (name) => {
         expect(isSupportedEnsName(name)).toBe(true)
     })
@@ -40,12 +53,21 @@ describe('isSupportedEnsName', () => {
         ['vitalik', 'single label'],
         ['.eth', 'empty first label'],
         ['test..eth', 'empty middle label'],
-        ['-foo.eth', 'leading hyphen'],
-        ['foo-.eth', 'trailing hyphen'],
-        ['foo_bar.eth', 'underscore'],
+        ['foo_bar.eth', 'underscore away from the label start'],
+        ['ab--cd.eth', 'invalid label extension (-- at position 3-4)'],
         ['foo bar.eth', 'space'],
         ['com.mercadolibre', 'reversed-domain QR fragment'],
         ['ar.com.globalgetnet', 'QR fragment whose tail is not a suffix'],
+        // Unicode that ENSIP-15 refuses — accepting all non-ASCII would have
+        // let these through.
+        ['foo bar.eth', 'non-breaking space'],
+        ['́foo.eth', 'leading combining mark'],
+        ['münchen bücher.de', 'IDN with an embedded space'],
+        // ASCII punctuation and URL shapes.
+        ['example.com/path', 'path segment'],
+        ['https://example.com', 'scheme and slashes'],
+        ['user@example.com', 'at sign'],
+        ['a*b.eth', 'asterisk'],
     ])('rejects %s (%s)', (name) => {
         expect(isSupportedEnsName(name)).toBe(false)
     })
@@ -97,8 +119,39 @@ describe('hasEnsNamespace', () => {
     })
 })
 
-describe('normalizeEnsInput', () => {
+describe('normalizeEnsName', () => {
     it('trims, lowercases and drops the root dot', () => {
-        expect(normalizeEnsInput('  Vitalik.ETH.  ')).toBe('vitalik.eth')
+        expect(normalizeEnsName('  Vitalik.ETH.  ')).toBe('vitalik.eth')
+    })
+
+    it('applies ENSIP-15 case folding to an IDN name', () => {
+        expect(normalizeEnsName('MÜNCHEN.DE')).toBe('münchen.de')
+        expect(normalizeEnsName('münchen.de')).toBe('münchen.de')
+    })
+
+    it('keeps an emoji label and folds only the ASCII around it', () => {
+        expect(normalizeEnsName('🚀.ETH')).toBe(`${normalizeEnsName('🚀.eth')}`)
+        expect(normalizeEnsName('🚀.ETH')).toMatch(/\.eth$/)
+    })
+
+    it('drops characters ENSIP-15 ignores rather than rejecting the name', () => {
+        // U+200B is in the ignored set, so this is a real name, not garbage.
+        // What matters is that the value we validate is the value we send.
+        expect(normalizeEnsName('foo​bar.eth')).toBe('foobar.eth')
+    })
+
+    it('is idempotent — the value sent can be re-validated unchanged', () => {
+        for (const input of ['Vitalik.ETH.', 'MÜNCHEN.DE', '🚀.ETH', '日本.eth', '_foo.eth']) {
+            const once = normalizeEnsName(input)
+            expect(once).not.toBeNull()
+            expect(normalizeEnsName(once!)).toBe(once)
+        }
+    })
+
+    it('returns null for everything the app will not send', () => {
+        expect(normalizeEnsName('CASA.FUTBOLERA')).toBeNull()
+        expect(normalizeEnsName('foo bar.eth')).toBeNull()
+        expect(normalizeEnsName(TYPED_SENTENCE)).toBeNull()
+        expect(normalizeEnsName('')).toBeNull()
     })
 })

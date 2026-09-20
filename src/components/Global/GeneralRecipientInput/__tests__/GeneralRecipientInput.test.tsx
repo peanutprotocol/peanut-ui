@@ -266,7 +266,8 @@ describe('GeneralRecipientInput Type Detection', () => {
                 expectedType: 'ens',
                 expectedValid: false,
                 description: 'Argentine alias guided to the merchant QR',
-                expectedError: 'Peanut cannot send to an Argentine alias. Scan the merchant payment QR code instead.',
+                expectedError:
+                    "You can't pay another person by alias. Scan the merchant payment QR code, or use Withdraw to send to your own account.",
             },
             {
                 input: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',

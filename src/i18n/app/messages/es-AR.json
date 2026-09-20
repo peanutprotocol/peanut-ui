@@ -1431,7 +1431,7 @@
     },
     "global": {
         "generalRecipientInput": {
-            "argentineAlias": "Peanut no puede enviar a un alias argentino. Escaneá el código QR de pago del comercio.",
+            "argentineAlias": "No podés pagarle a otra persona por alias. Escaneá el código QR de pago del comercio, o usá Retirar para enviar a tu propia cuenta.",
             "unsupportedRecipient": "Ingresá una dirección de billetera o un nombre ENS."
         },
         "countryWaitlist": {
@@ -1487,7 +1487,7 @@
             "externalUrlIntro": "Peanut no admite este QR, pero podés abrirlo con tu navegador.",
             "externalUrlTrust": "¡Asegurate de confiar en este sitio web!",
             "pixRecurringBody": "Peanut no admite pagos PIX recurrentes: pedí un código QR de PIX normal.",
-            "argentinaAliasBody": "Peanut no puede enviar a un alias escrito. Escaneá el código QR de pago del comercio.",
+            "argentinaAliasBody": "No podés pagarle a otra persona por alias. Para pagar en un comercio, escaneá su código QR de pago. Para mover dinero a tu propia cuenta, usá Retirar.",
             "myQrButtonText": "Compartí tu perfil",
             "myQrTitle": "Mi QR"
         },

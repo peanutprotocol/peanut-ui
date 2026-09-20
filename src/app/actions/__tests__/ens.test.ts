@@ -25,6 +25,9 @@ describe('resolveEns', () => {
         ['a name with an overlong label', `${'a'.repeat(64)}.eth`],
         ['a malformed name', 'test..eth'],
         ['a bare label', 'kusharc'],
+        ['a non-breaking space', 'foo bar.eth'],
+        ['an IDN name with an embedded space', 'münchen bücher.de'],
+        ['a URL with a path', 'example.com/path'],
     ])('does not call the API for %s', async (_description, input) => {
         await expect(resolveEns(input)).resolves.toBeUndefined()
         expect(mockServerFetch).not.toHaveBeenCalled()
@@ -59,6 +62,12 @@ describe('resolveEns', () => {
         ['a root dot', 'rootdot.eth.', '/ens/rootdot.eth'],
         ['surrounding whitespace', '  padded.eth  ', '/ens/padded.eth'],
         ['all three at once', '  MIXED.Eth.  ', '/ens/mixed.eth'],
+        // Percent-encoded UTF-8 of the ENSIP-15 form, never the raw input.
+        ['an IDN name', '  MÜNCHEN.DE.  ', `/ens/${encodeURIComponent('münchen.de')}`],
+        ['an emoji name', '🚀.ETH', `/ens/${encodeURIComponent('🚀.eth')}`],
+        // U+200B is ignored by ENSIP-15, so the name is real and the invisible
+        // character never reaches the URL.
+        ['an ignored zero-width space', 'foo​bar.eth', '/ens/foobar.eth'],
     ])('sends the normalized name for %s', async (_description, input, expectedPath) => {
         mockServerFetch.mockResolvedValue(jsonResponse(200, { address: '0xnorm' }))
 

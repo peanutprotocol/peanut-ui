@@ -85,7 +85,9 @@ export const getRecipientType = (recipient: string, isWithdrawal: boolean = fals
     // Decided before ENS classification. The predicate itself defers to the
     // ENS namespace check, so a name is never claimed as an alias.
     if (isArgentinePaymentAlias(recipient)) {
-        throw new RecipientValidationError('Argentine payment aliases are not supported', 'ARGENTINE_ALIAS')
+        // Own-account ARS withdrawals do accept an alias; this branch is only
+        // about paying someone else from the recipient field.
+        throw new RecipientValidationError('Paying another person by alias is not supported', 'ARGENTINE_ALIAS')
     }
 
     if (isSupportedEnsName(recipient)) {

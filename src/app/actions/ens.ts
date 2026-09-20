@@ -1,15 +1,15 @@
 import { unstable_cache } from '@/utils/no-cache'
 import { serverFetch } from '@/utils/api-fetch'
-import { isSupportedEnsName, normalizeEnsInput } from '@/lib/validation/ens'
+import { normalizeEnsName } from '@/lib/validation/ens'
 
 export const resolveEns = unstable_cache(
     async (ensName: string, chainId?: string): Promise<string | undefined> => {
         // Central gate before the name becomes a URL path segment, so a call
-        // site that skips validation cannot put free text on the wire.
+        // site that skips validation cannot put free text on the wire. The
+        // guard returns the form to send, so the two cannot drift apart.
         // Undefined is what callers already handle for an unresolved name.
-        if (!isSupportedEnsName(ensName)) return undefined
-        // Send the form the guard accepted, not the raw input.
-        const name = normalizeEnsInput(ensName)
+        const name = normalizeEnsName(ensName)
+        if (!name) return undefined
 
         // ENSIP-11: names can hold a distinct address per chain — resolve for
         // the destination chain, not just mainnet. Backend falls back to the
