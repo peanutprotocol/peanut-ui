@@ -51,6 +51,16 @@ describe('getBicFromIban', () => {
         expect(second).toBe(first)
     })
 
+    it('reads the bank out of a longer national code', async () => {
+        // Poland's settlement number is eight digits and only the first three
+        // name the bank, so one entry has to serve every branch of it. 114 is
+        // mBank.
+        const first = await getBicFromIban(buildIban('PL', '114020040000000000000000'))
+        const second = await getBicFromIban(buildIban('PL', '114019780000000000000000'))
+        expect(first).toBe('BREXPLPW')
+        expect(second).toBe(first)
+    })
+
     it('ignores spacing and case', async () => {
         const spaced = await getBicFromIban('de89 3704 0044 0532 0130 00')
         expect(spaced).toBe('COBADEFFXXX')

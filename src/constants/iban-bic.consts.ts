@@ -54,7 +54,6 @@ export const SUPPLEMENTARY_BIC_BY_BANK_CODE: Readonly<Record<string, Readonly<Re
         '1586': 'TRBKESM2', // Trade Republic Bank, Spanish branch
     },
     FR: {
-        '16275': 'CEPAFRPP', // Caisse d'Epargne et de Prevoyance Hauts de France
         '28233': 'REVOFRP2', // Revolut Bank, French branch
     },
     // Great Britain. The four letters are the institution; the six digits that
@@ -104,11 +103,12 @@ export const SUPPLEMENTARY_BIC_BY_BANK_CODE: Readonly<Record<string, Readonly<Re
         '249': 'ALBPPLPW', // Alior Bank
         '291': 'BMPBPLPP', // UniCredit, Polish branch, formerly Aion Bank
     },
-    // Switzerland, from the SIX bank master file.
+    // Switzerland, from the SIX bank master file. 04835 (Credit Suisse) is
+    // deliberately absent: SIX marks it retired and publishes no BIC for it,
+    // only a pointer to UBS's own code.
     CH: {
         '00243': 'UBSWCHZH', // UBS Switzerland
         '00700': 'ZKBKCHZZ', // Zuercher Kantonalbank
-        '04835': 'UBSWCHZH', // Credit Suisse (Schweiz), since folded into UBS
         '08307': 'HYPLCH22', // Hypothekarbank Lenzburg
         '08401': 'MIGRCHZZ', // Migros Bank
         '08843': 'DUBACHGG', // Dukascopy Bank
@@ -117,6 +117,7 @@ export const SUPPLEMENTARY_BIC_BY_BANK_CODE: Readonly<Record<string, Readonly<Re
     // Estonia, from the Estonian Banking Association's bank-code list.
     EE: {
         '10': 'EEUHEE2X', // SEB Pank
+        '17': 'RIKOEE22', // Luminor Bank, second code range
         '22': 'HABAEE2X', // Swedbank
         '77': 'LHVBEE22', // LHV Pank
         '96': 'RIKOEE22', // Luminor Bank
@@ -145,10 +146,14 @@ export const SUPPLEMENTARY_BIC_BY_BANK_CODE: Readonly<Record<string, Readonly<Re
         '19': 'SZKBSI2X', // Dezelna banka Slovenije
         '61': 'HDELSI22', // Delavska hranilnica
     },
+    // Sweden. Danske and Swedbank each hold two clearing ranges, so both of
+    // each bank's leading digits need an entry.
     SE: {
         '120': 'DABASESX', // Danske Bank Sverige
+        '240': 'DABASESX', // Danske Bank Sverige, 2400-2499
         '500': 'ESSESESS', // SEB
         '600': 'HANDSESS', // Handelsbanken
+        '700': 'SWEDSESS', // Swedbank, 7000-7999
         '800': 'SWEDSESS', // Swedbank
     },
     DK: {
@@ -159,9 +164,11 @@ export const SUPPLEMENTARY_BIC_BY_BANK_CODE: Readonly<Record<string, Readonly<Re
     },
     // Norway. Note that 3000 is Sparebanken Soer here and Danske Bank in
     // Denmark — the two registers are unrelated.
+    // Norway. 3000 (Sparebanken Norge) is deliberately absent: its BIC changes
+    // from SPSONO22 to SPAVNOBB on 2026-10-10, and a table that is right for
+    // three more weeks is worse than a field the user fills in.
     NO: {
         '1503': 'DNBANOKK', // DNB Bank
-        '3000': 'SPSONO22', // Sparebanken Soer
         '6011': 'NDEANOKK', // Nordea Bank, Norwegian branch
     },
     TR: {
