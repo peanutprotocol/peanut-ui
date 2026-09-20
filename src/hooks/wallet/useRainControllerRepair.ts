@@ -4,8 +4,7 @@ import { useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { rainApi } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
-import { WebAuthnErrorName } from '@/utils/webauthn.utils'
-import { SessionKeyGrantRequiredError, type SpendStrategy } from './spendPreflight'
+import { isUserCancellation, type SpendStrategy } from './spendPreflight'
 
 /**
  * Cache-only repair of the backend's stored Rain controller address after a
@@ -16,20 +15,13 @@ function touchesRain(strategy: SpendStrategy): boolean {
     return strategy === 'collateral-only' || strategy === 'mixed'
 }
 
-const CEREMONY_FAILURE_NAMES = new Set<string>(Object.values(WebAuthnErrorName))
-
 /**
- * The one exception to "repair on any failure": a passkey ceremony that died
- * locally signed nothing, so it never exercised the controller. Ambiguous and
- * unknown outcomes stay eligible — repairing a cache is safe either way.
+ * The one exception to "repair on any failure": the user said no, so nothing
+ * was signed and the controller was never exercised. Ambiguous and unknown
+ * outcomes stay eligible — repairing a cache is safe either way.
  */
-function isKnownUserCancellation(error: unknown): boolean {
-    if (error instanceof SessionKeyGrantRequiredError) return error.cause.kind === 'user-cancelled'
-    return error instanceof Error && CEREMONY_FAILURE_NAMES.has(error.name)
-}
-
 function shouldRepairRainController(strategy: SpendStrategy, error: unknown): boolean {
-    return touchesRain(strategy) && !isKnownUserCancellation(error)
+    return touchesRain(strategy) && !isUserCancellation(error)
 }
 
 type RepairRainController = (args: { strategy: SpendStrategy; error: unknown }) => Promise<void>

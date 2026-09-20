@@ -176,6 +176,26 @@ describe('useSpendBundle — draft back-out boundaries', () => {
         expect(mockCancelPreparation).not.toHaveBeenCalled()
     })
 
+    it('a cancelled session-key grant takes the same cancellation path', async () => {
+        mockOverview = {
+            status: { coordinatorAddress: PREP.coordinatorAddress },
+            cards: [{ id: 'card-1', status: 'ACTIVE', hasWithdrawApproval: false }],
+        }
+        mockFreshOverview = mockOverview
+        mockGrant.mockResolvedValue({ ok: false, error: { kind: 'user-cancelled' } })
+
+        const { result } = renderHook(() => useSpendBundle(), { wrapper })
+        await act(async () => {
+            await expect(result.current.spend(spendInput())).rejects.toBeInstanceOf(SessionKeyGrantRequiredError)
+        })
+
+        expect(mockCancelPreparation).toHaveBeenCalledWith('prep-1')
+        expect(mockSignTypedData).not.toHaveBeenCalled()
+        expect(mockSubmitWithdrawal).not.toHaveBeenCalled()
+        // A cancellation is never evidence about the controller.
+        expect(mockRefreshController).not.toHaveBeenCalled()
+    })
+
     describe('mixed path — the broadcast boundary sits INSIDE the userop helper', () => {
         beforeEach(() => {
             mockAccounts.splice(0, mockAccounts.length, { type: 'peanut-wallet', identifier: ACCOUNT })

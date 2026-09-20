@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef } from 'react'
 import { rainApi, RainCooldownError } from '@/services/rain'
-import { WebAuthnErrorName } from '@/utils/webauthn.utils'
 import {
     awaitRainCooldownWithinLock,
     getSpendArtifactMeta,
@@ -11,7 +10,7 @@ import {
     SpendRecoveryAbortedError,
     toQuoteReview,
 } from './signSpendRetry'
-import { SessionKeyGrantRequiredError } from './spendPreflight'
+import { isUserCancellation, sameAddress } from './spendPreflight'
 import type { SignedSpendArtifact } from './useSignSpendBundle'
 
 /**
@@ -21,17 +20,6 @@ import type { SignedSpendArtifact } from './useSignSpendBundle'
  * created and the payment lock is free again.
  */
 const BROADCAST_FIRST_REVERT = 'broadcast-first-revert-v1'
-
-function sameAddress(a: string | undefined, b: string | undefined): boolean {
-    return !!a && !!b && a.toLowerCase() === b.toLowerCase()
-}
-
-/** Every way the user can say no to the recovery's prompts: a dismissed
- *  WebAuthn ceremony, or a cancelled session-key grant inside the re-sign. */
-export function isUserCancellation(error: unknown): boolean {
-    if (error instanceof SessionKeyGrantRequiredError) return error.cause.kind === 'user-cancelled'
-    return error instanceof Error && Object.values(WebAuthnErrorName).includes(error.name as WebAuthnErrorName)
-}
 
 /**
  * Decides whether a failed backend submission may be replaced by a freshly

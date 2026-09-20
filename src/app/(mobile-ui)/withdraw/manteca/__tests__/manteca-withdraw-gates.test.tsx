@@ -129,9 +129,26 @@ jest.mock('@/hooks/wallet/useSignSpendBundle', () => ({
 jest.mock('@/hooks/wallet/useStaleSessionGuard', () => ({
     useStaleSessionGuard: () => jest.fn(),
 }))
-jest.mock('@/hooks/wallet/spendPreflight', () => ({
-    SessionKeyGrantRequiredError: class SessionKeyGrantRequiredError extends Error {},
-}))
+// Stubbed to keep the heavy real module (balance query, viem client) out of
+// this page test; it has to expose what the page tree actually calls.
+jest.mock('@/hooks/wallet/spendPreflight', () => {
+    class SessionKeyGrantRequiredError extends Error {
+        constructor(readonly cause?: { kind?: string }) {
+            super('Session-key grant required')
+            this.name = 'SessionKeyGrantRequiredError'
+        }
+    }
+    const WEBAUTHN_NAMES = ['NotAllowedError', 'NotReadableError', 'InvalidStateError', 'NotSupportedError']
+    return {
+        SessionKeyGrantRequiredError,
+        isUserCancellation: (error: unknown) =>
+            error instanceof SessionKeyGrantRequiredError
+                ? error.cause?.kind === 'user-cancelled'
+                : error instanceof Error && WEBAUTHN_NAMES.includes(error.name),
+        sameAddress: (a: string | undefined, b: string | undefined) =>
+            !!a && !!b && a.toLowerCase() === b.toLowerCase(),
+    }
+})
 jest.mock('@/hooks/useRainCardOverview', () => ({
     useRainCardOverview: () => ({ overview: null }),
 }))

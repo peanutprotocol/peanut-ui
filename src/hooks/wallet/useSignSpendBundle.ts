@@ -24,6 +24,7 @@ import { useSignUserOp, type SignedUserOpData } from './useSignUserOp'
 import {
     ensurePreparedControllerApproval,
     InsufficientSpendableError,
+    isUserCancellation,
     resolveSpendStrategy,
     runCollateralSpendPreflight,
     type SpendStrategy,
@@ -38,7 +39,6 @@ import {
     SpendRecoveryAbortedError,
     toQuoteReview,
 } from './signSpendRetry'
-import { isUserCancellation } from './useSignedSpendRecovery'
 import { usdcUnitsToRainCents } from '@/utils/balance.utils'
 
 /**

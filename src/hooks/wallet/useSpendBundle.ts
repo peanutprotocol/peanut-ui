@@ -28,10 +28,10 @@ import { useModalsContextOptional } from '@/context/ModalsContext'
 import { isDemoMode } from '@/utils/demo'
 import { debitDemoBalance } from '@/utils/demo-balance'
 import { resolveSettledTxHash } from '@/utils/settled-tx-hash.utils'
-import { WebAuthnErrorName } from '@/utils/webauthn.utils'
 import {
     ensurePreparedControllerApproval,
     isStaleGrantApproval,
+    isUserCancellation,
     resolveSpendStrategy,
     runCollateralSpendPreflight,
     SessionKeyGrantRequiredError,
@@ -630,9 +630,7 @@ export const useSpendBundle = () => {
                     // A fresh preparation changes replay safety, so an earlier
                     // ambiguous broadcast disqualifies the whole leg forever — a
                     // later confirmed revert never rehabilitates it.
-                    const ceremonyRejected = Object.values(WebAuthnErrorName).includes(
-                        (e as Error)?.name as WebAuthnErrorName
-                    )
+                    const ceremonyRejected = isUserCancellation(e)
                     if (isUserOpRevertedError(e)) broadcastsProvenReverted += 1
                     const allSettled = broadcastsProvenReverted === broadcastsAttempted
                     // `unmountedRef`: the user left, so nothing new is prepared
@@ -672,15 +670,13 @@ export const useSpendBundle = () => {
                 // Back the abandoned draft out ONLY when the failure provably
                 // precedes any broadcast: either the broadcast boundary was
                 // never reached (grant/setup/first-ceremony failure), or the
-                // throw is a WebAuthn ceremony rejection — an unsigned op
-                // cannot have been submitted, so a dismissed tap #2 inside the
-                // broadcast call is still pre-broadcast. Anything else is
-                // execution-ambiguous (money may have moved with the response
-                // lost) and relies on the backend's probe-verified TTL sweep
-                // (TASK-21815 review). Fire-and-forget either way.
-                const ceremonyRejection = Object.values(WebAuthnErrorName).includes(
-                    (e as Error)?.name as WebAuthnErrorName
-                )
+                // user dismissed a prompt — an unsigned op cannot have been
+                // submitted, so a dismissed tap #2 inside the broadcast call is
+                // still pre-broadcast. Anything else is execution-ambiguous
+                // (money may have moved with the response lost) and relies on
+                // the backend's probe-verified TTL sweep (TASK-21815 review).
+                // `ambiguousBroadcast` still vetoes the cancel regardless.
+                const ceremonyRejection = isUserCancellation(e)
                 if (livePreparationId && !ambiguousBroadcast && (!broadcastAttempted || ceremonyRejection)) {
                     void rainApi.cancelPreparation(livePreparationId)
                 }

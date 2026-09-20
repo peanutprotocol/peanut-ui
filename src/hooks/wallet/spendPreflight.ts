@@ -5,6 +5,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import type { RainCardOverview } from '@/services/rain'
+import { WebAuthnErrorName } from '@/utils/webauthn.utils'
 import type { GrantSessionKeyError } from './useGrantSessionKey'
 import { smartUsdcBalanceQueryOptions } from './useBalance'
 import {
@@ -54,6 +55,19 @@ export class SessionKeyGrantRequiredError extends Error {
  */
 export function isStaleGrantApproval(error: unknown): boolean {
     return error instanceof SessionKeyGrantRequiredError && error.cause.kind === 'stale-approval'
+}
+
+const CEREMONY_FAILURE_NAMES = new Set<string>(Object.values(WebAuthnErrorName))
+
+/** The user dismissed a passkey or session-key grant prompt. */
+export function isUserCancellation(error: unknown): boolean {
+    if (error instanceof SessionKeyGrantRequiredError) return error.cause.kind === 'user-cancelled'
+    return error instanceof Error && CEREMONY_FAILURE_NAMES.has(error.name)
+}
+
+/** Case-insensitive address equality; a missing side is never a match. */
+export function sameAddress(a: string | undefined, b: string | undefined): boolean {
+    return !!a && !!b && a.toLowerCase() === b.toLowerCase()
 }
 
 /**
@@ -245,10 +259,6 @@ export async function runCollateralSpendPreflight<TClient extends { account?: un
     }
 
     return activeClient
-}
-
-function sameAddress(a: string | undefined, b: string | undefined): boolean {
-    return !!a && !!b && a.toLowerCase() === b.toLowerCase()
 }
 
 /** An overview covers the prepared target only when its OWN controller is that
