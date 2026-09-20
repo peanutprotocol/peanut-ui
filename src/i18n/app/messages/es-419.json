@@ -3250,8 +3250,11 @@
             "unrecognized": "Lo sentimos, no se pudo reconocer este código QR.",
             "pixRecurringIntro": "Este código QR es para un pago recurrente (PIX Automático).",
             "pixRecurringBody": "Peanut no admite pagos PIX recurrentes: pide un código QR de PIX normal.",
+            "argentinaAliasIntro": "Esto parece un alias de pago argentino.",
+            "argentinaAliasBody": "Peanut no puede enviar a un alias escrito. Escanea el código QR de pago del comercio.",
             "titleUnrecognized": "Código QR no reconocido",
             "titlePixRecurring": "PIX Automático no compatible",
+            "titleArgentinaAlias": "Los alias no son compatibles",
             "titleNotSupported": "{qrName} aún no es compatible.",
             "titleWillBeNotified": "¡Estás en la lista!",
             "titleDirectSend": "Confirmación de pago",
@@ -3464,7 +3467,10 @@
         "generalRecipientInput": {
             "walletAddress": "Dirección de billetera",
             "invalidChainAddress": "Dirección de {chain} inválida",
-            "invalidIban": "IBAN inválido, país no admitido"
+            "invalidIban": "IBAN inválido, país no admitido",
+            "argentineAlias": "Peanut no puede enviar a un alias argentino. Escanea el código QR de pago del comercio.",
+            "invalidEns": "Este no es un nombre ENS válido.",
+            "unsupportedRecipient": "Ingresa una dirección de billetera o un nombre ENS."
         },
         "shareButton": {
             "share": "Compartir",

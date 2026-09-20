@@ -222,6 +222,9 @@ importers:
       posthog-node:
         specifier: 5.50.0
         version: 5.50.0
+      psl:
+        specifier: 1.15.0
+        version: 1.15.0
       qr-scanner:
         specifier: ^1.4.2
         version: 1.4.2

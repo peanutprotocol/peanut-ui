@@ -1430,6 +1430,10 @@
         "txReverted": "La transacción fue revertida, intentalo de nuevo"
     },
     "global": {
+        "generalRecipientInput": {
+            "argentineAlias": "Peanut no puede enviar a un alias argentino. Escaneá el código QR de pago del comercio.",
+            "unsupportedRecipient": "Ingresá una dirección de billetera o un nombre ENS."
+        },
         "countryWaitlist": {
             "title": "Transferencias bancarias en {country}",
             "body": "Las transferencias bancarias todavía no están disponibles acá. Sumate a la lista y te avisamos cuando lo estén.",
@@ -1483,6 +1487,7 @@
             "externalUrlIntro": "Peanut no admite este QR, pero podés abrirlo con tu navegador.",
             "externalUrlTrust": "¡Asegurate de confiar en este sitio web!",
             "pixRecurringBody": "Peanut no admite pagos PIX recurrentes: pedí un código QR de PIX normal.",
+            "argentinaAliasBody": "Peanut no puede enviar a un alias escrito. Escaneá el código QR de pago del comercio.",
             "myQrButtonText": "Compartí tu perfil",
             "myQrTitle": "Mi QR"
         },

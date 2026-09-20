@@ -3250,8 +3250,11 @@
             "unrecognized": "Sorry, this QR code couldn't be recognized.",
             "pixRecurringIntro": "This QR code is for a recurring payment (PIX Automático).",
             "pixRecurringBody": "Peanut doesn't support recurring PIX payments — please ask for a regular PIX QR code instead.",
+            "argentinaAliasIntro": "This looks like an Argentine payment alias.",
+            "argentinaAliasBody": "Peanut cannot send to a typed alias. Scan the merchant payment QR code instead.",
             "titleUnrecognized": "Unrecognized QR code",
             "titlePixRecurring": "PIX Automático not supported",
+            "titleArgentinaAlias": "Aliases are not supported",
             "titleNotSupported": "{qrName} not supported yet.",
             "titleWillBeNotified": "You're on the list!",
             "titleDirectSend": "Payment Confirmation",
@@ -3464,7 +3467,10 @@
         "generalRecipientInput": {
             "walletAddress": "Wallet address",
             "invalidChainAddress": "Invalid {chain} address",
-            "invalidIban": "Invalid IBAN, country not supported"
+            "invalidIban": "Invalid IBAN, country not supported",
+            "argentineAlias": "Peanut cannot send to an Argentine alias. Scan the merchant payment QR code instead.",
+            "invalidEns": "This is not a valid ENS name.",
+            "unsupportedRecipient": "Enter a wallet address or an ENS name."
         },
         "shareButton": {
             "share": "Share",
