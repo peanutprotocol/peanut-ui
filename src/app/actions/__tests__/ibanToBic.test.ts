@@ -231,7 +231,6 @@ describeCorpus('coverage over the production IBAN population', () => {
             .sort((a, b) => b[1].total - a[1].total)
             .map(([cc, s]) => `  ${cc} ${s.resolved}/${s.total} (${Math.round((s.resolved / s.total) * 100)}%)`)
 
-        // eslint-disable-next-line no-console
         console.log(
             [
                 `corpus coverage ${resolved}/${total} (${((resolved / total) * 100).toFixed(1)}%), ` +
