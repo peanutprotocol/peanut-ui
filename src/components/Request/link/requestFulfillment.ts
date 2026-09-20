@@ -36,3 +36,20 @@ export function requestFulfillmentState(request: {
 
     return received >= asked ? 'paid' : 'partial'
 }
+
+/**
+ * Is the request itself settled — nothing owed, whoever paid it?
+ *
+ * A request can be answered by a bank transfer, from a Peanut balance, in
+ * crypto, or by any mix of them. `bankFulfilment` reports the bank book alone
+ * (peanut-api-ts#1647), so on a request paid $40 by bank and $60 from a balance
+ * it says `partial` — true about the bank, and a lie if it drives the badge.
+ * `paidAt` is what settles the request, whichever way the money came.
+ *
+ * Read only beside the backend's verdict. On an older response `paidAt` meant
+ * "a bank deposit landed", and a deposit short of the asked amount really did
+ * leave the request open — the amount comparison above owns that case.
+ */
+export function requestIsSettled(request: { bankFulfilment?: BankFulfilment | null; paidAt: string | null }): boolean {
+    return !!request.bankFulfilment && !!request.paidAt
+}

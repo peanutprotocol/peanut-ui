@@ -1102,6 +1102,7 @@
         "paidByBank": {
             "rowLabel": "Transferência bancária",
             "receivedPartial": "${received} de ${requested} recebidos",
+            "receivedPartialSettled": "${received} de ${requested} por transferência bancária. O resto foi pago de outra forma.",
             "badgePaid": "Pago",
             "badgePartial": "Pago em parte",
             "paidByName": "Pago por {name}",
