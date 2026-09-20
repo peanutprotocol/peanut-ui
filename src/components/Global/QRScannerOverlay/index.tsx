@@ -34,6 +34,7 @@ enum EModalType {
     EXTERNAL_URL = 'EXTERNAL_URL',
     UNRECOGNIZED = 'UNRECOGNIZED',
     PIX_RECURRING = 'PIX_RECURRING',
+    ARGENTINA_ALIAS = 'ARGENTINA_ALIAS',
 }
 
 interface QrResultModalProps {
@@ -183,6 +184,17 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
                 <>
                     <p>{t('qrScannerOverlay.pixRecurringIntro')}</p>
                     <p>{t('qrScannerOverlay.pixRecurringBody')}</p>
+                </>
+            ),
+            ctas: [{ text: t('qrScannerOverlay.okay'), shadowSize: '4', onClick: onClose }],
+        },
+        [EModalType.ARGENTINA_ALIAS]: {
+            tone: 'info',
+            title: t('qrScannerOverlay.titleArgentinaAlias'),
+            description: (
+                <>
+                    <p>{t('qrScannerOverlay.argentinaAliasIntro')}</p>
+                    <p>{t('qrScannerOverlay.argentinaAliasBody')}</p>
                 </>
             ),
             ctas: [{ text: t('qrScannerOverlay.okay'), shadowSize: '4', onClick: onClose }],
@@ -349,6 +361,13 @@ export default function QRScannerOverlay() {
                     }
                 }
                 break
+            // Before ENS and before the generic URL branch: a typed Argentine
+            // alias is not a name to look up, it is a "scan the merchant QR"
+            // answer. No resolver call is made for one.
+            case EQrType.ARGENTINA_ALIAS: {
+                showModal(EModalType.ARGENTINA_ALIAS)
+                return { success: true }
+            }
             case EQrType.ENS_NAME: {
                 const resolvedAddress = await resolveEns(normalized)
                 if (resolvedAddress) {

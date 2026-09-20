@@ -80,6 +80,12 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[]; erro
     // mistyped/withdrawn link — both expected, surfaced by the polling/claim UI.
     // The claim-success poller hits this every second until the claim lands.
     { pattern: /\/send-links\/0x[0-9a-fA-F]{40}/, statuses: [404] },
+    // /ens/{name} 404 = the name holds no address record. `resolveEns` handles
+    // it by returning undefined and the UI says so inline, so it is a typed-input
+    // outcome, not a server bug. The name is a PATH segment, so every miss also
+    // opened its own issue carrying the raw value the user typed. The reverse
+    // route is excluded: it answers 200 with `{ name: null }` and never 404s.
+    { pattern: /\/ens\/(?!reverse\/)[^/]+$/, statuses: [404] },
 ]
 
 /**
@@ -481,6 +487,12 @@ export const sanitizeUrl = (url: string) => {
              * username looked up.
              */
             .replace(/\/users\/username\/[^/?]+/gi, '/users/username/{value}')
+            /*
+             * Same for the ENS resolver: the name is a path segment, so a 5xx
+             * or a timeout on the route grouped by whatever the user typed.
+             * `reverse` is a fixed sub-route, not a name.
+             */
+            .replace(/\/ens\/(?!reverse\/)[^/?]+/gi, '/ens/{value}')
             // Replace numeric IDs in query params. Anchored to the end of the
             // value: unanchored, this ate the leading 0 of an 0x-prefixed
             // address and left `{id}xaf88d065`, so every wallet still got its
