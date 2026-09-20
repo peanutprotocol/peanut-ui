@@ -26,10 +26,12 @@ import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { parseAsStringEnum, useQueryStates } from 'nuqs'
 import { useMemo, useState } from 'react'
+import { corridorTopUpHref } from '@/features/add-money/countryRoutes'
 import { corridorsForCountry } from '../countryCorridor'
 import { depositGateView, isDepositBlock, type DepositGateView } from '../depositGate'
 import { DEFAULT_ACCOUNT_LIMIT, DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, isClaimable, topUpOnlyHref } from '../rails'
 import { isResidenceGated, RESIDENCE_GATED_CORRIDORS } from '../residenceGate'
+import { useResidenceIso2s } from '../useResidenceIso2s'
 import { canShare, isHeld } from '../resolveScreen'
 import type { ClaimableCorridor, UnavailableCorridor, DepositAccountView, DepositCorridor, DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
@@ -112,7 +114,8 @@ export function DepositAccountsListScreen({
     // the URL.
     const [query, setQuery] = useState('')
     const term = query.trim().toLowerCase()
-    const { openCountry, isCountrySupported } = useDepositCountryRouting()
+    const { openCountry, isCountrySupported } = useDepositCountryRouting({ accounts, claimable, isLoading })
+    const residenceIso2s = useResidenceIso2s()
     // While standing accounts are dark, this screen is the bank country list
     // and nothing else — an empty "Your accounts" section under a feature
     // nobody can use yet would only ask a question it cannot answer.
@@ -199,6 +202,15 @@ export function DepositAccountsListScreen({
     const reasonFor = (corridor: DepositCorridor) => unavailable?.[corridor]?.reason
 
     /**
+     * The other way into this corridor: the transfer the user sends themselves
+     * from their own bank. It needs no account and no free account slot, so it
+     * is what a row can still offer when the standing account cannot be opened.
+     * `undefined` means the corridor has no live country behind it — Colombia
+     * today — and no row may offer one.
+     */
+    const topUpFor = (corridor: DepositCorridor) => corridorTopUpHref(corridor, residenceIso2s)
+
+    /**
      * Whether the row leads somewhere. No row on this screen may name an action
      * the user cannot take, so the only rows that stay closed are the ones whose
      * own words are the whole answer.
@@ -223,6 +235,10 @@ export function DepositAccountsListScreen({
             view.claimable ||
             (view.notice !== undefined && isDepositBlock(view.notice.kind)) ||
             isHeld(accounts[corridor]) ||
+            // The corridor takes a transfer the user sends themselves, whatever
+            // the standing account says. That way in needs no account, so a row
+            // that leads to it is never a dead end.
+            !!topUpFor(corridor) ||
             // told nothing about this corridor, and the gate says identity:
             // that row leads to the verification flow
             gates[corridor]?.kind === 'needs-identity'
@@ -255,8 +271,18 @@ export function DepositAccountsListScreen({
      * "Unavailable" is reserved for a corridor that is truly closed. A
      * residence-gated row is not closed — it is one residence away — so it
      * reads "Not set up" and the screen behind it carries the reason.
+     *
+     * "Not set up" may only appear where the user can set one up. Where they
+     * cannot — the account cap is reached, or the rail is not theirs yet — but
+     * the corridor still takes a transfer they send themselves, the row reads
+     * "Available", because that is what is true of the corridor today.
      */
-    const rowBadge = (rail: DepositRail, account: DepositAccountView | undefined, gate: GateState) => {
+    const rowBadge = (
+        rail: DepositRail,
+        account: DepositAccountView | undefined,
+        gate: GateState,
+        view: DepositGateView
+    ) => {
         if (topUpOnlyHref(rail)) return null
         if (isLoading) return <div className="h-5 w-16 animate-pulse rounded bg-foreground-primary/10" />
         if (isResidenceGated(rail.corridor) && !account)
@@ -312,6 +338,15 @@ export function DepositAccountsListScreen({
             case 'revoked':
                 return <StatusBadge status="closed" customText={t('list.badgeRevoked')} />
             default:
+                // "Not set up" claims the user can set one up. Where they
+                // cannot — the account cap is reached, the provider is still
+                // reviewing, the rail is not theirs yet — but the corridor
+                // still takes a transfer they send themselves, the row reports
+                // that instead. It is the case a user at the cap met: a row
+                // that said "Not set up" on a corridor accepting money that
+                // same second, with no way in behind it.
+                if (!view.claimable && topUpFor(rail.corridor))
+                    return <StatusBadge status="custom" customText={t('list.badgeAvailable')} />
                 return <StatusBadge status="custom" customText={t('list.badgeNotSetUp')} />
         }
     }
@@ -470,7 +505,7 @@ export function DepositAccountsListScreen({
                             </p>
                         )}
                         <ListGroup>
-                            {views.map(({ corridor, openable }) => {
+                            {views.map(({ corridor, view, openable }) => {
                                 const rail = DEPOSIT_RAILS[corridor]
                                 const account = accounts[corridor]
                                 const disabled = isError || isLoading || !openable
@@ -484,7 +519,7 @@ export function DepositAccountsListScreen({
                                                "GBP · Faster Payments" does not fit
                                                at 375 */
                                         title={<span>{`${rail.currency} · ${railName(corridor)}`}</span>}
-                                        trailing={rowBadge(rail, account, gates[corridor])}
+                                        trailing={rowBadge(rail, account, gates[corridor], view)}
                                         chevron={!disabled}
                                         disabled={disabled}
                                         onClick={() => openRow(corridor)}

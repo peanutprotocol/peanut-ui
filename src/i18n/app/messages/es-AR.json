@@ -195,7 +195,7 @@
                 "sepa": "Transferencias bancarias en euros"
             },
             "chips": {
-                "active": "Activo",
+                "active": "Disponible",
                 "alwaysOn": "Siempre activo",
                 "unlock": "Desbloquear",
                 "processing": "Procesando",
@@ -242,8 +242,8 @@
                 "short": "Los intentos de verificación están limitados temporalmente. Volvé a intentarlo en un rato.",
                 "dismiss": "Lo intentaré más tarde"
             },
-            "accountsTitle": "Tus cuentas",
-            "accountsSubtitle": "Números de cuenta que podés compartir para recibir dinero en Peanut.",
+            "accountsTitle": "Tus números de cuenta",
+            "accountsSubtitle": "Datos bancarios a tu nombre. Compartilos y recibí dinero directo en Peanut.",
             "details": {
                 "p2p": "Mandá y recibí plata de otros usuarios de Peanut.",
                 "crypto": "Agregá o retirá cripto desde cualquier billetera o exchange, sin verificación.",
@@ -275,7 +275,9 @@
             "detailsDrawer": {
                 "aboutTitle": "Qué podés hacer",
                 "limitsTitle": "Límites"
-            }
+            },
+            "waysTitle": "Formas de enviarte dinero",
+            "waysSubtitle": "Enviá dinero desde tu propio banco. No necesitás un número de cuenta."
         },
         "backup": {
             "nonCustodial": {
@@ -1747,9 +1749,12 @@
             "accountLimitReached": "Ya usaste tus {cap} cuentas. ¿Necesitás otra? Escribí a soporte.",
             "errorBody": "Tus cuentas están bien: solo no pudimos leerlas. Revisá tu conexión y probá de nuevo.",
             "accountsPitch": "Datos bancarios a tu nombre. Compartilos una vez y cobrá directo en Peanut.",
-            "countriesPitch": "Enviate plata desde un banco de otro país.",
+            "countriesPitch": "No necesitás una cuenta. Elegí el país de tu banco.",
             "accountCounterOverCap": "{used} cuentas",
-            "accountLimitOverCap": "Tenés {used} cuentas bancarias, más que el límite actual. Escribí a soporte para abrir otra."
+            "accountLimitOverCap": "Tenés {used} cuentas bancarias, más que el límite actual. Escribí a soporte para abrir otra.",
+            "badgeAvailable": "Disponible",
+            "sectionTitle": "Tus números de cuenta",
+            "countriesTitle": "Formas de enviarte dinero"
         },
         "claim": {
             "benefitStable": "Compartí estos datos una sola vez — quedan igual para cada pago después.",
@@ -1779,7 +1784,9 @@
             "blockedBody": "No pudimos abrir esta cuenta y no es algo que puedas resolver desde la app. Contactá a soporte y lo revisamos.",
             "finishReviewSupportBody": "Tu identidad ya está verificada. Las cuentas en {currency} necesitan una revisión extra de nuestro socio de pagos, y no se puede iniciar desde la app para tu cuenta. Contactá a soporte y te ayudamos a completarla.",
             "actFailed": "No pudimos abrir la revisión. Probá de nuevo en un momento.",
-            "finishReviewBody": "Tu identidad ya está verificada. Las cuentas en {currency} necesitan una revisión extra de nuestro socio de pagos. Se abre en su página, y esta pantalla se actualiza cuando volvés."
+            "finishReviewBody": "Tu identidad ya está verificada. Las cuentas en {currency} necesitan una revisión extra de nuestro socio de pagos. Se abre en su página, y esta pantalla se actualiza cuando volvés.",
+            "topUpCta": "Enviá desde tu propio banco",
+            "limitBodyTopUp": "Ese es tu límite actual. Igual podés agregar dinero enviándolo desde tu propio banco. Soporte puede abrirte otra cuenta si la necesitás."
         },
         "rules": {
             "ownAccount": {

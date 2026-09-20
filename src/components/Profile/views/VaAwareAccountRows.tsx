@@ -1,6 +1,7 @@
 'use client'
 
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
+import { Section } from '@/components/0_Bruddle/Section'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import StatusBadge from '@/components/Global/Badges/StatusBadge'
@@ -18,8 +19,13 @@ import { bankListItems } from './bankListItems'
 import { limitSummariesForRows, MethodLimits } from './MethodLimits'
 
 /**
- * The merged list with the user's bank accounts in it. Mounted only while the
- * accounts rollout flag is on, so the accounts fetch never fires otherwise.
+ * The two sections, with the user's own accounts in the first one. Mounted
+ * only while the accounts rollout flag is on, so the accounts fetch never
+ * fires otherwise.
+ *
+ * The account numbers section appears only where the user holds one: an empty
+ * section under a heading that names account numbers is a promise of something
+ * that is not there.
  *
  * Three account facts are kept apart here. HELD (any account that exists,
  * revoked included) decides which account rows show. ACTIVE decides which
@@ -52,6 +58,31 @@ export default function VaAwareAccountRows({
             .map((corridor) => DEPOSIT_RAILS[corridor].currency)
     )
 
+    /** one standing account: what it pays in, whether a payer can be handed it, and its details */
+    const heldRow = (corridor: (typeof held)[number]) => (
+        <ListItem
+            key={corridor}
+            // a ReactNode title wraps, as the hub's rows do;
+            // "GBP · Faster Payments" does not fit at 375
+            title={<span>{`${DEPOSIT_RAILS[corridor].currency} · ${railName(corridor)}`}</span>}
+            leading={<CorridorFlag iso2={DEPOSIT_RAILS[corridor].flagIso2} />}
+            trailing={
+                canShare(accounts[corridor], gates[corridor]) ? (
+                    <StatusBadge status="completed" customText={t('list.badgeReady')} />
+                ) : undefined
+            }
+            chevron
+            onClick={() =>
+                router.push(
+                    withReturnTo(
+                        `/add-money?method=bank&step=details&corridor=${corridor}`,
+                        '/profile/accounts-and-payments'
+                    )
+                )
+            }
+        />
+    )
+
     return (
         <>
             {isError && (
@@ -59,37 +90,22 @@ export default function VaAwareAccountRows({
                     {t('list.errorBody')}
                 </Notification>
             )}
-            <ListGroup>
-                {!isLoading &&
-                    held.map((corridor) => (
-                        <ListItem
-                            key={corridor}
-                            // a ReactNode title wraps, as the hub's rows do;
-                            // "GBP · Faster Payments" does not fit at 375
-                            title={<span>{`${DEPOSIT_RAILS[corridor].currency} · ${railName(corridor)}`}</span>}
-                            leading={<CorridorFlag iso2={DEPOSIT_RAILS[corridor].flagIso2} />}
-                            trailing={
-                                canShare(accounts[corridor], gates[corridor]) ? (
-                                    <StatusBadge status="completed" customText={t('list.badgeReady')} />
-                                ) : undefined
-                            }
-                            chevron
-                            onClick={() =>
-                                router.push(
-                                    withReturnTo(
-                                        `/add-money?method=bank&step=details&corridor=${corridor}`,
-                                        '/profile/accounts-and-payments'
-                                    )
-                                )
-                            }
-                        />
-                    ))}
-                {bankListItems(dedupeHeldBankRows(bankRows, activeCurrencies), onRowClick, isKycDegraded, tRows)}
-            </ListGroup>
-            <MethodLimits
-                noLimit={false}
-                summaries={limitSummariesForRows(bankRows, mantecaLimits, bridgeLimits, locale)}
-            />
+            {!isLoading && held.length > 0 && (
+                <Section title={tRows('accountsTitle')}>
+                    <p className="text-body-s text-foreground-secondary">{tRows('accountsSubtitle')}</p>
+                    <ListGroup>{held.map(heldRow)}</ListGroup>
+                </Section>
+            )}
+            <Section title={tRows('waysTitle')}>
+                <p className="text-body-s text-foreground-secondary">{tRows('waysSubtitle')}</p>
+                <ListGroup>
+                    {bankListItems(dedupeHeldBankRows(bankRows, activeCurrencies), onRowClick, isKycDegraded, tRows)}
+                </ListGroup>
+                <MethodLimits
+                    noLimit={false}
+                    summaries={limitSummariesForRows(bankRows, mantecaLimits, bridgeLimits, locale)}
+                />
+            </Section>
         </>
     )
 }

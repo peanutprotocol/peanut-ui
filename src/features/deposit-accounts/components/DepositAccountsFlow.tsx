@@ -1,6 +1,7 @@
 'use client'
 
 import type { GateState } from '@/utils/capability-gate'
+import { useRouter } from 'next/navigation'
 import { parseAsString, useQueryState, useQueryStates } from 'nuqs'
 import { useEffect, useState } from 'react'
 import { trackDetailsViewed, trackGateBlocked } from '../analytics'
@@ -9,6 +10,10 @@ import { DEPOSIT_ACCOUNT_PARAMS, DEPOSIT_CORRIDORS } from '../params'
 import { DEPOSIT_RAILS, isClaimable } from '../rails'
 import { depositGateView, isDepositBlock } from '../depositGate'
 import { isResidenceGated } from '../residenceGate'
+import { useResidenceIso2s } from '../useResidenceIso2s'
+import { corridorTopUpHref } from '@/features/add-money/countryRoutes'
+import { rewriteMethodPath } from '@/utils/native-routes'
+import { withReturnTo } from '@/utils/return-to.utils'
 import { canShare, isHeld, resolveScreen } from '../resolveScreen'
 import type {
     ClaimableCorridor,
@@ -107,6 +112,8 @@ export function DepositAccountsFlow({
     onContactSupport,
     review,
 }: DepositAccountsFlowProps) {
+    const router = useRouter()
+    const residenceIso2s = useResidenceIso2s()
     const [{ step: screen, corridor, screen: legacyStep }, setParams] = useQueryStates(DEPOSIT_ACCOUNT_PARAMS)
     // The typed parser answers its default for a corridor it does not know, so a
     // link naming one that has left the catalogue (`BANK_TRANSFER_BR`) opened
@@ -197,6 +204,14 @@ export function DepositAccountsFlow({
     // account" support screen shows. "Names" means takes a slot: a revoked
     // account is held and the cap does not count it.
     const rawGateNotice = depositGateView(gate, terms).notice
+    /*
+     * The other way into this corridor, where the rail has a country live for
+     * it: a transfer the user sends themselves, which needs no account and no
+     * free account slot. It is what the gate screen offers beside the block,
+     * because a user at the account cap can deposit on this rail today and the
+     * screen used to send them to support instead.
+     */
+    const topUpHref = corridorTopUpHref(corridor, residenceIso2s)
     // The provider hands out its page only for a review it still takes from the
     // user. One it rejected or revoked has none, and the claim says so by
     // answering without a link; the preview names those two in its issues.
@@ -250,6 +265,11 @@ export function DepositAccountsFlow({
                 slotsHeld={slotsHeld}
                 isActing={review?.startingCorridor === corridor}
                 actFailed={review?.failedCorridor === corridor}
+                onTopUp={
+                    topUpHref
+                        ? () => router.push(withReturnTo(rewriteMethodPath(topUpHref), '/add-money?method=bank'))
+                        : undefined
+                }
                 onBack={() => setParams({ step: 'list' })}
                 onAct={() => {
                     // A corridor the backend withheld for support is not

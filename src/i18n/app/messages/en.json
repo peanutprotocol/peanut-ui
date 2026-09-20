@@ -370,7 +370,7 @@
                 "sepa": "Euro bank transfers"
             },
             "chips": {
-                "active": "Active",
+                "active": "Available",
                 "alwaysOn": "Always on",
                 "unlock": "Unlock",
                 "processing": "Processing",
@@ -418,8 +418,8 @@
                 "short": "Verification attempts are temporarily limited. Please try again in a little while.",
                 "dismiss": "I'll try later"
             },
-            "accountsTitle": "Your accounts",
-            "accountsSubtitle": "Account numbers you can share to receive money into Peanut.",
+            "accountsTitle": "Your account numbers",
+            "accountsSubtitle": "Bank details in your name. Share them and get paid straight into Peanut.",
             "details": {
                 "p2p": "Send and receive money with other Peanut users.",
                 "crypto": "Add or withdraw crypto from any wallet or exchange — no verification required.",
@@ -451,7 +451,9 @@
             "detailsDrawer": {
                 "aboutTitle": "What you can do",
                 "limitsTitle": "Limits"
-            }
+            },
+            "waysTitle": "Ways to send yourself money",
+            "waysSubtitle": "Send money from your own bank. No account number needed."
         },
         "backup": {
             "title": "Backup",
@@ -4013,9 +4015,9 @@
             "searchPlaceholder": "Search country, currency or account",
             "noMatchTitle": "No match for “{query}”",
             "clearSearch": "Clear search",
-            "countriesTitle": "Other countries",
-            "countriesPitch": "Send yourself money from a bank in another country.",
-            "sectionTitle": "Your accounts",
+            "countriesTitle": "Ways to send yourself money",
+            "countriesPitch": "No account needed. Pick the country your bank is in.",
+            "sectionTitle": "Your account numbers",
             "accountsPitch": "Bank details in your name. Share them once and get paid straight into Peanut.",
             "badgeReady": "Ready",
             "badgeActive": "Active",
@@ -4033,7 +4035,8 @@
             "errorTitle": "We could not load your accounts",
             "errorBody": "Your accounts are fine — we just could not read them. Check your connection and try again.",
             "errorRetry": "Try again",
-            "badgeActionNeeded": "Action needed"
+            "badgeActionNeeded": "Action needed",
+            "badgeAvailable": "Available"
         },
         "claim": {
             "heading": "Bank details in {currency}",
@@ -4164,7 +4167,9 @@
             "finishReviewBody": "Your identity is verified. {currency} accounts need one extra check by our payment partner. It opens on their page, and this screen updates when you come back.",
             "finishReviewSupportBody": "Your identity is verified. {currency} accounts need one extra check by our payment partner, and it cannot be started from the app for your account. Contact support and we will help you finish it.",
             "finishReviewCta": "Continue",
-            "actFailed": "We could not open the check. Try again in a moment."
+            "actFailed": "We could not open the check. Try again in a moment.",
+            "topUpCta": "Send from your own bank",
+            "limitBodyTopUp": "That is your current limit. You can still add money by sending it from your own bank. Support can open another account if you need one."
         },
         "rules": {
             "providerHeld": {
