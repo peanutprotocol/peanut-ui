@@ -254,6 +254,38 @@ describe('fetchWithSentry — expected-response suppression', () => {
         infoSpy.mockRestore()
     })
 
+    // A name with no address record 404s, `resolveEns` handles it and the UI
+    // says so inline. The name is a path segment, so reporting it opened one
+    // issue per typed value, each carrying the raw input.
+    it('does NOT report /ens/{name} 404 (unresolved name is expected)', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(404, {}))
+
+        await fetchWithSentry('https://api.peanut.me/ens/vitalik.eth', { method: 'GET' })
+
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    })
+
+    it('does NOT report /ens/{name} 404 when a chainId is forwarded', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(404, {}))
+
+        await fetchWithSentry('https://api.peanut.me/ens/vitalik.eth?chainId=42161', { method: 'GET' })
+
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    })
+
+    it('still reports an /ens 500 and fingerprints it without the name', async () => {
+        global.fetch = jest.fn().mockResolvedValue(mockResponse(500, { error: 'upstream down' }))
+        const setFingerprint = jest.fn()
+        ;(Sentry.withScope as jest.Mock).mockImplementationOnce((cb: (scope: unknown) => void) =>
+            cb({ setFingerprint, setTag: jest.fn() })
+        )
+
+        await fetchWithSentry('https://api.peanut.me/ens/vitalik.eth', { method: 'GET' })
+
+        expect(Sentry.captureMessage).toHaveBeenCalled()
+        expect(setFingerprint).toHaveBeenCalledWith(['GET', 'https://api.peanut.me/ens/{value}', '500'])
+    })
+
     it('still reports 400s from endpoints without a skip rule', async () => {
         global.fetch = jest.fn().mockResolvedValue(mockResponse(400, { error: 'bad request' }))
 
