@@ -4,6 +4,7 @@ import {
     type VerificationActionSession,
 } from './types/sumsub.types'
 import { serverFetch } from '@/utils/api-fetch'
+import type { paths } from '@/types/api.generated'
 
 /**
  * Stable discriminant for the English fallback errors below. Server actions
@@ -326,7 +327,9 @@ export const startHostedVerification = async (
  * answer or a network error all read as "not expedited", and the caller falls
  * back to plain refetching.
  */
-export const refreshKycState = async (): Promise<{ expedited: boolean }> => {
+type KycRefreshResponse = paths['/users/kyc/refresh']['post']['responses'][200]['content']['application/json']
+
+export const refreshKycState = async (): Promise<KycRefreshResponse> => {
     try {
         const response = await serverFetch('/users/kyc/refresh', { method: 'POST' })
         if (!response.ok) return { expedited: false }
