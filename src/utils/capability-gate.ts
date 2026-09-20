@@ -207,6 +207,24 @@ export function railVerdict(rail: RailCapability, byKey: Map<string, NextAction>
     return { status: 'fixable', blocking: blocking(true, 'document-resubmit') }
 }
 
+/**
+ * Whether a blocked rail is terminal: nothing the user does can unblock it,
+ * and support is the only door.
+ *
+ * `blocked` with a restart-identity action is not terminal — the user can
+ * verify again with another document. Everything else that reaches `blocked`
+ * carries `selfHealKind: 'contact-support'` and `selfHealable: false`.
+ *
+ * Screens that offer a retry must ask this first. The unlock-payments surface
+ * offered "Try again" to a user whose retry could never succeed, while Add
+ * money told the same user "Not available" and Withdraw sent them to support.
+ */
+export function isTerminalRailRejection(rail: RailCapability, byKey: Map<string, NextAction>): boolean {
+    if (rail.status !== 'blocked') return false
+    const verdict = railVerdict(rail, byKey)
+    return verdict.status === 'blocked' && verdict.blocking?.selfHealKind !== 'restart-identity'
+}
+
 /** verdict-carrying candidate — computed once per derive, shared across branches */
 interface RailWithVerdict {
     rail: RailCapability

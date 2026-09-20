@@ -41,6 +41,7 @@ import { useKycDegraded } from '@/hooks/useKycDegraded'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import posthog from 'posthog-js'
 import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
+import { isTerminalRailRejection } from '@/utils/capability-gate'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { type RailCapability } from '@/types/capabilities'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
@@ -220,6 +221,15 @@ const UnlockPayments = () => {
         ? nextActionsForRail(clickedRegionRail.id).some((action) => action.kind === 'sumsub')
         : false
     const baseModalVariant = selectedRegion ? getModalVariant(clickedRegionRail, clickedRailHasSumsubAction) : null
+    // Only support can unblock a terminally rejected rail. This surface holds
+    // none of the Sumsub reject fields the modal reads, so it always offered
+    // "Try again" — a retry that cannot succeed, on the one screen of three
+    // that did not say so. The rail's own verdict is the answer.
+    const clickedRailIsTerminal = useMemo(() => {
+        if (!clickedRegionRail) return false
+        const byKey = new Map(nextActionsForRail(clickedRegionRail.id).map((action) => [action.key, action]))
+        return isTerminalRailRejection(clickedRegionRail, byKey)
+    }, [clickedRegionRail, nextActionsForRail])
 
     const providerRejectionForRegion = clickedRegionProvider === 'bridge' ? bridgeRejection : mantecaRejection
     const providerRejectionReasonKey = reasonCodeKey(providerRejectionForRegion.reasonCode)
@@ -494,6 +504,7 @@ const UnlockPayments = () => {
                 rejectLabels={null}
                 rejectType={null}
                 failureCount={undefined}
+                isTerminal={clickedRailIsTerminal}
             />
 
             <ActionModal
