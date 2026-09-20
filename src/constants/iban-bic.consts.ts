@@ -11,14 +11,15 @@
  * first, so an entry under ES or FR only ever fills a gap.
  *
  * Keyed by IBAN country code, then by the bank identifier
- * `getIbanBankCode` reads out of the IBAN. For GB, IE, MT, GI, RO and BG that
+ * `getIbanBankCode` reads out of the IBAN. For GB, IE, MT, RO and BG that
  * identifier is the bank's own four-letter SWIFT institution code, so one entry
  * covers every sort code the bank holds. Elsewhere it is the national bank
  * code, whose length is fixed per country in `BANK_CODE_POSITION`.
  *
- * Every BIC here is published by the bank it belongs to. Add an entry only with
- * a published source: a BIC that is merely plausible routes a withdrawal to the
- * wrong bank, and no BIC at all is the better failure — the form asks the user.
+ * Every BIC here comes from the bank itself or from its national register. Add
+ * an entry only with such a source: a BIC that is merely plausible routes a
+ * withdrawal to the wrong bank, and no BIC at all is the better failure — the
+ * form then asks the user.
  */
 export const SUPPLEMENTARY_BIC_BY_BANK_CODE: Readonly<Record<string, Readonly<Record<string, string>>>> = {
     // Lithuania, from the Bank of Lithuania's published bank-code register.
