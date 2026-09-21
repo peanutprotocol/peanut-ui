@@ -102,7 +102,7 @@ describe('Callout', () => {
         expect(screen.getByText('Heads up')).toBeInTheDocument()
     })
 
-    test('renders at most two CTAs and wires their clicks', () => {
+    test.each(['inline', 'floating'] as const)('%s callout renders only link-button actions', (variant) => {
         const first = jest.fn()
         // the tuple type caps ctas at two at compile time; the cast proves the
         // runtime slice also guards plain-js callers
@@ -112,14 +112,18 @@ describe('Callout', () => {
             { label: 'Three', onClick: () => {} },
         ] as unknown as [{ label: string; onClick: () => void }]
         render(
-            <Callout priority="success" ctas={threeCtas}>
+            <Callout priority="success" variant={variant} ctas={threeCtas}>
                 Done
             </Callout>
         )
-        expect(screen.getByRole('button', { name: /One/ })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: /Two/ })).toBeInTheDocument()
+        const firstAction = screen.getByRole('button', { name: 'One' })
+        const secondAction = screen.getByRole('button', { name: 'Two' })
+        expect(firstAction).toHaveClass('underline')
+        expect(secondAction).toHaveClass('underline')
+        expect(firstAction).not.toHaveClass('min-w-28')
+        expect(secondAction).not.toHaveClass('min-w-28')
         expect(screen.queryByRole('button', { name: /Three/ })).not.toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: /One/ }))
+        fireEvent.click(firstAction)
         expect(first).toHaveBeenCalledTimes(1)
     })
 

@@ -121,7 +121,7 @@ export default function CalloutPage() {
                 <DocSection.Content>
                     <div className="flex flex-col gap-3">
                         <Callout priority="attention" ctas={[{ label: 'CTA1', onClick: noop }]}>
-                            Single call-to-action button
+                            Single underlined text action
                         </Callout>
                         <Callout
                             priority="attention"
@@ -132,7 +132,7 @@ export default function CalloutPage() {
                                 { label: 'CTA2', onClick: noop },
                             ]}
                         >
-                            Two buttons: a primary and a secondary action.
+                            Two underlined text actions.
                         </Callout>
                     </div>
                 </DocSection.Content>
@@ -148,7 +148,7 @@ export default function CalloutPage() {
         { label: 'Later', onClick: dismiss },
     ]}
 >
-    Two buttons: a primary and a secondary action.
+    Two underlined text actions.
 </Callout>`}
                     />
                 </DocSection.Code>
@@ -182,7 +182,7 @@ export default function CalloutPage() {
                         name: 'ctas',
                         type: '1-2 × { label, onClick }',
                         default: '(none)',
-                        description: 'First renders primary, second stroke',
+                        description: 'Underlined text actions, never full-size buttons',
                     },
                 ]}
             />

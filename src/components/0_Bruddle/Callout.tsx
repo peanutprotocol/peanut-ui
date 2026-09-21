@@ -4,8 +4,8 @@ import React from 'react'
 import { useTranslations } from 'next-intl'
 import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Global/Icons/Icon'
-import { Button } from './Button'
 import { IconBubble, type IconBubbleColor } from './IconBubble'
+import { LinkButton } from './LinkButton'
 
 export type CalloutPriority = 'info' | 'success' | 'attention' | 'helper' | 'error'
 export type CalloutVariant = 'inline' | 'floating'
@@ -36,7 +36,7 @@ interface CalloutProps {
      *  bar along the bottom edge. `floating` only — an inline banner has no
      *  lifetime to count down. */
     progressMs?: number
-    /** One or two actions: first renders primary, second stroke (secondary). */
+    /** One or two underlined text actions. Callouts never use full-size buttons. */
     ctas?: [CalloutCta] | [CalloutCta, CalloutCta]
     className?: string
     'data-testid'?: string
@@ -82,8 +82,6 @@ const PRIORITY_STYLES: Record<
         bar: 'bg-background-icon-bubble-red',
     },
 }
-
-const CTA_VARIANTS = ['primary', 'stroke'] as const
 
 /**
  * Inline callout banner from the figma notification board (17802:61535):
@@ -228,19 +226,11 @@ export const Callout = ({
                     {title && <div className={twMerge('text-body-s break-words', indent)}>{body}</div>}
                 </div>
                 {!!ctas?.length && (
-                    <div className={twMerge('flex flex-wrap gap-2', indent)}>
+                    <div className={twMerge('flex flex-wrap gap-7', indent)}>
                         {ctas.slice(0, 2).map((cta, i) => (
-                            <Button
-                                key={i}
-                                size="small"
-                                variant={CTA_VARIANTS[i]}
-                                icon="chevron-right"
-                                iconPosition="right"
-                                onClick={cta.onClick}
-                                className="w-auto min-w-28"
-                            >
+                            <LinkButton key={i} onClick={cta.onClick}>
                                 {cta.label}
-                            </Button>
+                            </LinkButton>
                         ))}
                     </div>
                 )}
