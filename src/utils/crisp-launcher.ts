@@ -53,6 +53,38 @@ export function loadCrispChatbox(): void {
     document.head.appendChild(script)
 }
 
+/**
+ * Load the chatbox once the page has finished loading, and hand back a cancel.
+ *
+ * `l.js` is a third-party bundle pulled onto every marketing/SEO page. The
+ * inline script this replaced ran at next/script's `lazyOnload` — after the
+ * load event — so loading it the moment hydration ends made it compete with
+ * the app's own JavaScript and cost LCP and total blocking time on mobile.
+ *
+ * A client-side entry into marketing finds the document already `complete`,
+ * with nothing left to wait for, so it loads straight away.
+ *
+ * Cancelling matters as much as deferring: a reader who opens a marketing page
+ * and taps through to the app before it finishes loading never fetches the
+ * bundle at all.
+ *
+ * Deferring the BUNDLE does not defer the COMMANDS. `chat:show`, and a
+ * `#chat` tap that arrives first, queue on the `$crisp` array and the script
+ * replays them when it lands.
+ */
+export function scheduleCrispChatboxLoad(): () => void {
+    if (typeof window === 'undefined') return () => {}
+
+    if (document.readyState === 'complete') {
+        loadCrispChatbox()
+        return () => {}
+    }
+
+    const onLoad = () => loadCrispChatbox()
+    window.addEventListener('load', onLoad, { once: true })
+    return () => window.removeEventListener('load', onLoad)
+}
+
 /** Show the launcher bubble. */
 export function showCrispLauncher(): void {
     pushCrisp(['do', 'chat:show'])
