@@ -34,15 +34,12 @@ export interface UnlockRow {
     /**
      * Which limits apply once the row is active: Manteca per-currency
      * allowances (BRL/ARS) and/or the shared Bridge per-transaction cap.
-     * A merged row (one unlock covering two countries) carries several.
      */
     limitRefs?: readonly ('BRL' | 'ARS' | 'bridge')[]
     /**
      * Currency-first accounts list (2026-09-18): the flag that replaces the
-     * generic qr-code/bank icon as this row's leading glyph. One per row: a
-     * ListItem leading is one element, and two flags on the merged rows read
-     * as clutter. A row whose one unlock covers two countries (naBank, the
-     * unsplit saBank) shows the user's own country, else the first listed.
+     * generic qr-code/bank icon as this row's leading glyph. One per row, and
+     * since 2026-09-21 one country per row, so it is simply that country's.
      * Absent on `p2p`/`card`, which keep their icons in the "Peanut" group.
      */
     flag?: string
