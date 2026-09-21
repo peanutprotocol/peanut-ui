@@ -221,6 +221,12 @@ export function useReceiptViewModel(
                 transaction.direction === 'bank_deposit' &&
                 transaction.extraDataForDrawer?.senderReference
             ),
+            // What the recipient's bank shows as the payment reference. The
+            // backend normalises the rail-specific field into this one and
+            // sets it only on a payout; it is owner-only, and the public
+            // projection withholds it, but the public page renders this same
+            // component tree so the gate is repeated here.
+            payoutReference: !!(!isPublic && transaction.extraDataForDrawer?.payoutReference),
             depositInstructions: !!(
                 (isOnrampEntry(transaction) ||
                     (isPendingBankRequest &&

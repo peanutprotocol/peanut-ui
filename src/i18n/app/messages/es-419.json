@@ -2198,6 +2198,7 @@
             "fee": "Comisión",
             "transferId": "ID de transferencia",
             "senderReference": "Referencia del remitente",
+            "payoutReference": "Referencia",
             "pointsEarned": "Puntos ganados",
             "networkFee": "Comisión de red",
             "attachment": "Adjunto",

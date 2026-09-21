@@ -897,6 +897,25 @@ describe('mapTransactionDataForDrawer', () => {
         })
     })
 
+    describe('payout reference', () => {
+        const withdraw = (payoutReference?: string | null) =>
+            mapTransactionDataForDrawer(
+                baseEntry({
+                    userRole: EHistoryUserRole.SENDER,
+                    extraData: { kind: 'OFFRAMP', provider: 'BRIDGE', payoutReference },
+                })
+            ).transactionDetails
+
+        it('reaches the drawer trimmed', () => {
+            expect(withdraw('  INVOICE 4471 ').extraDataForDrawer?.payoutReference).toBe('INVOICE 4471')
+        })
+
+        it('is absent when the API sends none or blank', () => {
+            expect(withdraw().extraDataForDrawer?.payoutReference).toBeUndefined()
+            expect(withdraw('   ').extraDataForDrawer?.payoutReference).toBeUndefined()
+        })
+    })
+
     describe('Bridge wire status (QA ledger AL6: deposit stuck on "Processing")', () => {
         const bridgeDeposit = (status: string, overrides: Partial<HistoryEntry> = {}) =>
             mapTransactionDataForDrawer(

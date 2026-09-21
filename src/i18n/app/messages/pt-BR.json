@@ -2198,6 +2198,7 @@
             "fee": "Taxa",
             "transferId": "ID da transferência",
             "senderReference": "Referência do remetente",
+            "payoutReference": "Referência",
             "pointsEarned": "Pontos ganhos",
             "networkFee": "Taxa de rede",
             "attachment": "Anexo",
