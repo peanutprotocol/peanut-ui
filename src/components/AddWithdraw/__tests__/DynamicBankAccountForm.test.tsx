@@ -88,6 +88,21 @@ jest.mock('@/components/0_Bruddle/Toast', () => ({
     useToast: () => ({ info: jest.fn(), error: jest.fn(), success: jest.fn(), warning: jest.fn() }),
 }))
 
+// What the app knows about the person's own payout details. Nothing by
+// default, so every test above this line sees the form as it was before
+// prefill existed — which is also the behaviour a user with no known details
+// gets in production.
+type MockOwnIdentity = {
+    ownerName: string | null
+    address: { street: string; city: string; state: string; postalCode: string } | null
+    isLoading: boolean
+}
+const NOTHING_KNOWN: MockOwnIdentity = { ownerName: null, address: null, isLoading: false }
+let mockOwnIdentity: MockOwnIdentity = NOTHING_KNOWN
+jest.mock('@/hooks/useOwnAccountIdentity', () => ({
+    useOwnAccountIdentity: () => mockOwnIdentity,
+}))
+
 jest.mock('@/components/Global/PeanutActionDetailsCard', () => ({
     __esModule: true,
     default: () => null,
@@ -142,6 +157,7 @@ beforeEach(() => {
     mockValidateBic.mockResolvedValue(true)
     mockBicLookupFails = false
     mockBicOverride = null
+    mockOwnIdentity = NOTHING_KNOWN
 })
 
 // ---------- tests ----------
@@ -713,5 +729,223 @@ describe('DynamicBankAccountForm — the euro area, entered with no country', ()
                 countryCode: 'DEU',
             })
         )
+    })
+})
+
+// ---------- paying out to your own account ----------
+
+/**
+ * Nearly every payout goes to the person's own account, so the form fills in
+ * the name and address the app already holds and says it did. The values are
+ * in the fields, editable, and a hand edit outranks them.
+ */
+
+const KNOWN_IDENTITY: MockOwnIdentity = {
+    ownerName: 'Anna Rossi',
+    address: { street: '1 Via Roma', city: 'Rome', state: 'NY', postalCode: '00100' },
+    isLoading: false,
+}
+
+const renderBareForm = (onSuccess: jest.Mock, country: string) => {
+    const ref = React.createRef<{ handleSubmit: () => void }>()
+    const view = render(
+        <DynamicBankAccountForm ref={ref} country={country} flow="withdraw" error={null} onSuccess={onSuccess} />
+    )
+    return { ref, ...view }
+}
+
+const input = (name: string) => document.getElementById(`bank-${name}`) as HTMLInputElement | null
+const ownAccountBox = () => screen.queryByRole('checkbox')
+
+describe('DynamicBankAccountForm — my own account', () => {
+    it('euro payout: the box is ticked, and the name and address are in the fields for the user to read', async () => {
+        mockOwnIdentity = KNOWN_IDENTITY
+        const onSuccess = jest.fn(async () => ({}))
+        renderBareForm(onSuccess, 'SEPA')
+
+        expect(ownAccountBox()).toBeChecked()
+        expect(screen.getByText('withdraw.bankForm.ownAccountFilled')).toBeInTheDocument()
+        await waitFor(() => expect(input('accountOwnerName')!.value).toBe('Anna Rossi'))
+        expect(input('street')!.value).toBe('1 Via Roma')
+        expect(input('city')!.value).toBe('Rome')
+        expect(input('postalCode')!.value).toBe('00100')
+    })
+
+    it('euro payout: what was filled in reaches the provider payload', async () => {
+        mockOwnIdentity = KNOWN_IDENTITY
+        const onSuccess = jest.fn(async () => ({}))
+        const { container } = renderBareForm(onSuccess, 'SEPA')
+
+        await typeIban(DE_IBAN, { blur: true })
+        await submitWithEnter(container)
+
+        await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+        expect(payloadOf(onSuccess)).toMatchObject({
+            accountOwnerName: { firstName: 'Anna', lastName: 'Rossi' },
+            address: { street: '1 Via Roma', city: 'Rome', postalCode: '00100' },
+        })
+    })
+
+    it('unticking the box empties the fields the form filled in', async () => {
+        mockOwnIdentity = KNOWN_IDENTITY
+        const onSuccess = jest.fn(async () => ({}))
+        renderBareForm(onSuccess, 'SEPA')
+        await waitFor(() => expect(input('city')!.value).toBe('Rome'))
+
+        await act(async () => {
+            fireEvent.click(ownAccountBox()!)
+        })
+
+        expect(ownAccountBox()).not.toBeChecked()
+        expect(screen.queryByText('withdraw.bankForm.ownAccountFilled')).not.toBeInTheDocument()
+        expect(input('accountOwnerName')!.value).toBe('')
+        expect(input('street')!.value).toBe('')
+        expect(input('city')!.value).toBe('')
+        expect(input('postalCode')!.value).toBe('')
+    })
+
+    /**
+     * The BIC shipped with exactly this bug: a later pass put our answer back
+     * over the user's correction. What the person typed is the answer.
+     */
+    it('a hand edit survives a later prefill pass', async () => {
+        mockOwnIdentity = KNOWN_IDENTITY
+        const onSuccess = jest.fn(async () => ({}))
+        renderBareForm(onSuccess, 'SEPA')
+        await waitFor(() => expect(input('city')!.value).toBe('Rome'))
+
+        await act(async () => {
+            fireEvent.change(input('city')!, { target: { value: 'Milan' } })
+        })
+        // the box is unticked and ticked again — two more prefill passes
+        await act(async () => {
+            fireEvent.click(ownAccountBox()!)
+        })
+        await act(async () => {
+            fireEvent.click(ownAccountBox()!)
+        })
+
+        expect(input('city')!.value).toBe('Milan')
+        // the fields the user did not touch are filled in again
+        expect(input('street')!.value).toBe('1 Via Roma')
+    })
+
+    it('a user we know nothing about sees the form exactly as before: no box, empty fields', () => {
+        mockOwnIdentity = NOTHING_KNOWN
+        const onSuccess = jest.fn(async () => ({}))
+        renderBareForm(onSuccess, 'SEPA')
+
+        expect(ownAccountBox()).not.toBeInTheDocument()
+        expect(input('accountOwnerName')!.value).toBe('')
+        expect(input('city')!.value).toBe('')
+    })
+
+    it('Colombia asks for no address, so only the name is filled in', async () => {
+        mockOwnIdentity = KNOWN_IDENTITY
+        const onSuccess = jest.fn(async () => ({}))
+        renderBareForm(onSuccess, 'CO')
+
+        await waitFor(() => expect(input('accountOwnerName')!.value).toBe('Anna Rossi'))
+        expect(input('street')).toBeNull()
+        expect(input('city')).toBeNull()
+        expect(input('postalCode')).toBeNull()
+    })
+
+    it('the United States keeps a state code of its own and drops one that is not', async () => {
+        mockOwnIdentity = KNOWN_IDENTITY
+        const onSuccess = jest.fn(async () => ({}))
+        const { container, ref } = renderBareForm(onSuccess, 'USA')
+        await waitFor(() => expect(input('city')!.value).toBe('Rome'))
+
+        await act(async () => {
+            fireEvent.change(input('accountNumber')!, { target: { value: '123456780' } })
+            fireEvent.change(input('routingNumber')!, { target: { value: '021000021' } })
+        })
+        await act(async () => {
+            ref.current!.handleSubmit()
+        })
+
+        await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+        expect(payloadOf(onSuccess)).toMatchObject({
+            address: { street: '1 Via Roma', city: 'Rome', state: 'NY', postalCode: '00100' },
+        })
+        expect(container).toBeTruthy()
+    })
+
+    it('a state code that belongs to another country is left for the user to pick', async () => {
+        // AGU is a Mexican state code. It is not in the US list, so the US form
+        // must not carry it into a select that cannot show it.
+        mockOwnIdentity = { ...KNOWN_IDENTITY, address: { ...KNOWN_IDENTITY.address!, state: 'AGU' } }
+        const onSuccess = jest.fn(async () => ({}))
+        const { ref } = renderBareForm(onSuccess, 'USA')
+        await waitFor(() => expect(input('city')!.value).toBe('Rome'))
+
+        await act(async () => {
+            fireEvent.change(input('accountNumber')!, { target: { value: '123456780' } })
+            fireEvent.change(input('routingNumber')!, { target: { value: '021000021' } })
+        })
+        await act(async () => {
+            ref.current!.handleSubmit()
+        })
+
+        // the form refuses to submit without a state, so nothing reaches the provider
+        expect(onSuccess).not.toHaveBeenCalled()
+    })
+})
+
+// ---------- two groups, one screen ----------
+
+/**
+ * Six fields in one flat list read as a wall. The screen asks two things
+ * instead: what account, and whose. The grouping is in the shared form, so
+ * every corridor and both flows get the same two headings in the same order.
+ */
+describe('DynamicBankAccountForm — the fields are grouped', () => {
+    const headings = () => Array.from(document.querySelectorAll('form h3')).map((element) => element.textContent)
+
+    /** The form controls, in the order the DOM has them — which is tab order. */
+    const fieldOrder = () =>
+        Array.from(document.querySelectorAll('form input[id^="bank-"]')).map((element) => element.id)
+
+    it.each([
+        ['the euro area', 'SEPA', ['bank-accountNumber', 'bank-bic', 'bank-accountOwnerName']],
+        ['the United States', 'USA', ['bank-accountNumber', 'bank-routingNumber', 'bank-accountOwnerName']],
+        ['the United Kingdom', 'GBR', ['bank-accountNumber', 'bank-sortCode', 'bank-accountOwnerName']],
+        ['Mexico', 'MX', ['bank-clabe', 'bank-accountOwnerName']],
+        // Colombia routes by document and bank code, so its account group is longer
+        ['Colombia', 'CO', ['bank-accountNumber', 'bank-documentNumber', 'bank-bankCode', 'bank-phoneNumber']],
+    ])('%s: the account comes first, then the owner', (_, country, expectedStart) => {
+        const onSuccess = jest.fn(async () => ({}))
+        renderBareForm(onSuccess, country)
+
+        expect(headings()).toEqual(['withdraw.bankForm.groupBankAccount', 'withdraw.bankForm.groupAccountOwner'])
+        // the account fields precede the owner's, so tab order matches what is read
+        expect(fieldOrder().slice(0, expectedStart.length)).toEqual(expectedStart)
+    })
+
+    it('the address is the account owner’s, so it follows the name', () => {
+        const onSuccess = jest.fn(async () => ({}))
+        renderBareForm(onSuccess, 'SEPA')
+        const order = fieldOrder()
+        expect(order.indexOf('bank-accountOwnerName')).toBeLessThan(order.indexOf('bank-street'))
+        expect(order.indexOf('bank-street')).toBeLessThan(order.indexOf('bank-city'))
+        expect(order.indexOf('bank-city')).toBeLessThan(order.indexOf('bank-postalCode'))
+    })
+
+    it('the own-account choice opens the owner group, above the name', async () => {
+        mockOwnIdentity = KNOWN_IDENTITY
+        const onSuccess = jest.fn(async () => ({}))
+        renderBareForm(onSuccess, 'SEPA')
+
+        const box = ownAccountBox()!
+        const name = input('accountOwnerName')!
+        expect(box.compareDocumentPosition(name) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it('the claim flow gets the same two groups', () => {
+        const onSuccess = jest.fn(async () => ({}))
+        const ref = React.createRef<{ handleSubmit: () => void }>()
+        render(<DynamicBankAccountForm ref={ref} country="SEPA" flow="claim" error={null} onSuccess={onSuccess} />)
+        expect(headings()).toEqual(['withdraw.bankForm.groupBankAccount', 'withdraw.bankForm.groupAccountOwner'])
     })
 })

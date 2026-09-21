@@ -29,6 +29,9 @@ import {
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { twMerge } from '@/utils/tw'
 import useSavedAccounts from '@/hooks/useSavedAccounts'
+import { useOwnAccountIdentity } from '@/hooks/useOwnAccountIdentity'
+import { Checkbox } from '@/components/0_Bruddle/Checkbox'
+import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { useDebounce } from '@/hooks/useDebounce'
 import { PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 import { useTranslations } from 'next-intl'
@@ -152,7 +155,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             setError,
             getValues,
             watch,
-            formState: { errors, isValid, isValidating, touchedFields },
+            formState: { errors, isValid, isValidating, touchedFields, dirtyFields },
         } = useForm<IBankAccountDetails>({
             defaultValues: {
                 firstName: '', // kept for backwards compatibility but not used in UI
@@ -178,6 +181,71 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             mode: 'onBlur',
             reValidateMode: 'onSubmit',
         })
+
+        /**
+         * Paying out to your own account, which is what nearly every payout is.
+         *
+         * When it holds, the form fills in the name and address the app already
+         * has for this person — the verified name on the profile, and the address
+         * they gave with an earlier payout account of their own. The values show
+         * in the fields, so the person can read and correct them; a derived value
+         * the user cannot see is a bug waiting to happen (the BIC, QA round 3).
+         *
+         * Paying someone else clears them and the form asks as it always did.
+         */
+        const ownIdentity = useOwnAccountIdentity(flow !== 'claim')
+        const [isOwnAccount, setIsOwnAccount] = useState(true)
+        const canPrefill = flow !== 'claim' && (!!ownIdentity.ownerName || !!ownIdentity.address)
+
+        /** Address fields this corridor asks for, and what we know for each. */
+        const prefillableAddress = useMemo((): Partial<Record<FieldPath<IBankAccountDetails>, string>> => {
+            if (!corridor?.needsAddress || !ownIdentity.address) return {}
+            const { street, city, state, postalCode } = ownIdentity.address
+            const fields: Partial<Record<FieldPath<IBankAccountDetails>, string>> = {
+                street: street.slice(0, STREET_ADDRESS_MAX_LENGTH),
+                city,
+                postalCode,
+            }
+            // A state only belongs to a corridor that has one, and only when it
+            // is one of that corridor's own codes — a Mexican state in a US form
+            // would sit in the select as a value it cannot show.
+            if (state && corridor.states?.some((option) => option.code === state)) fields.state = state
+            return fields
+        }, [corridor, ownIdentity.address, STREET_ADDRESS_MAX_LENGTH])
+
+        const prefillValues = useMemo((): Partial<Record<FieldPath<IBankAccountDetails>, string>> => {
+            return {
+                ...(ownIdentity.ownerName ? { accountOwnerName: ownIdentity.ownerName } : {}),
+                ...prefillableAddress,
+            }
+        }, [ownIdentity.ownerName, prefillableAddress])
+
+        // What the form wrote, so unticking the box takes back exactly that and
+        // nothing else.
+        const writtenByPrefill = useRef<FieldPath<IBankAccountDetails>[]>([])
+        // A hand edit is the person's answer and outranks anything we know. The
+        // latest dirty state is read through a ref so the effect below does not
+        // re-run on every keystroke and write over the keystroke that caused it.
+        const dirtyFieldsRef = useRef(dirtyFields)
+        dirtyFieldsRef.current = dirtyFields
+
+        useEffect(() => {
+            if (!canPrefill) return
+            if (isOwnAccount) {
+                for (const [name, value] of Object.entries(prefillValues)) {
+                    const field = name as FieldPath<IBankAccountDetails>
+                    if (dirtyFieldsRef.current[field]) continue
+                    setValue(field, value as PathValue<IBankAccountDetails, typeof field>, { shouldValidate: true })
+                    if (!writtenByPrefill.current.includes(field)) writtenByPrefill.current.push(field)
+                }
+                return
+            }
+            for (const field of writtenByPrefill.current) {
+                if (dirtyFieldsRef.current[field]) continue
+                setValue(field, '' as PathValue<IBankAccountDetails, typeof field>, { shouldValidate: true })
+            }
+            writtenByPrefill.current = []
+        }, [canPrefill, isOwnAccount, prefillValues, setValue])
 
         // Watch BIC field value for debouncing
         const bicValue = watch('bic')
@@ -602,246 +670,275 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                         }}
                         className="flex flex-col gap-4"
                     >
-                        {/* CLAIM FLOW: show name field for guest users or logged-in users without fullName */}
-                        {flow === 'claim' && !user?.user.userId && (
-                            <div className="w-full">
-                                {renderInput('accountOwnerName', t('accountOwnerName'), {
-                                    required: t('accountOwnerNameRequired'),
-                                    validate: (value: string | undefined) => {
-                                        const trimmed = value?.trim() ?? ''
-                                        const parts = trimmed.split(/\s+/)
-                                        if (parts.length < 2) {
-                                            return t('accountOwnerNameFull')
-                                        }
-                                        return true
-                                    },
-                                })}
-                            </div>
-                        )}
-                        {flow === 'claim' && user?.user.userId && !user.user.fullName && (
-                            <div className="w-full">
-                                {renderInput('accountOwnerName', t('accountOwnerName'), {
-                                    required: t('accountOwnerNameRequired'),
-                                    validate: (value: string | undefined) => {
-                                        const trimmed = value?.trim() ?? ''
-                                        const parts = trimmed.split(/\s+/)
-                                        if (parts.length < 2) {
-                                            return t('accountOwnerNameFull')
-                                        }
-                                        return true
-                                    },
-                                })}
-                            </div>
-                        )}
-                        {flow === 'claim' &&
-                            user?.user.userId &&
-                            !user.user.email &&
-                            !hideEmailInput &&
-                            renderInput('email', t('email'), {
-                                required: t('emailRequired'),
-                            })}
+                        {/* The account: what the money is paid into. Grouped so the
+                            screen reads as two short questions instead of six fields. */}
+                        <div className="flex flex-col gap-4">
+                            <MiniHeader>{t('groupBankAccount')}</MiniHeader>
+                            {isIban
+                                ? renderInput(
+                                      'accountNumber',
+                                      t('iban'),
+                                      {
+                                          required: t('ibanRequired'),
+                                          validate: async (val: string) => {
+                                              const isValidIban = await validateIban(val)
+                                              if (!isValidIban) return t('ibanInvalid')
 
-                        {/* WITHDRAW FLOW: always show account owner's name field (empty by default) */}
-                        {flow !== 'claim' && (
-                            <div className="w-full">
-                                {renderInput('accountOwnerName', t('accountOwnerName'), {
-                                    required: t('accountOwnerNameRequired'),
-                                    validate: (value: string | undefined) => {
-                                        const trimmed = value?.trim() ?? ''
-                                        const parts = trimmed.split(/\s+/)
-                                        if (parts.length < 2) {
-                                            return t('accountOwnerNameFull')
-                                        }
-                                        return true
-                                    },
-                                })}
-                            </div>
-                        )}
+                                              // SEPA routes by IBAN — the country picked on the
+                                              // previous screen is cosmetic for a EUR payout. Don't
+                                              // force the IBAN's country to equal the dropdown: that
+                                              // false-rejected a German IBAN with Spain selected, and
+                                              // blocked UK users withdrawing EUR to a GB IBAN. Gate on
+                                              // actual support instead (BE allowedCountries: SEPA/US/CA).
+                                              const isSupported = await validateBankAccount(val)
+                                              if (!isSupported) return t('ibanUnsupported')
 
-                        {isIban
-                            ? renderInput(
-                                  'accountNumber',
-                                  t('iban'),
-                                  {
-                                      required: t('ibanRequired'),
-                                      validate: async (val: string) => {
-                                          const isValidIban = await validateIban(val)
-                                          if (!isValidIban) return t('ibanInvalid')
-
-                                          // SEPA routes by IBAN — the country picked on the
-                                          // previous screen is cosmetic for a EUR payout. Don't
-                                          // force the IBAN's country to equal the dropdown: that
-                                          // false-rejected a German IBAN with Spain selected, and
-                                          // blocked UK users withdrawing EUR to a GB IBAN. Gate on
-                                          // actual support instead (BE allowedCountries: SEPA/US/CA).
-                                          const isSupported = await validateBankAccount(val)
-                                          if (!isSupported) return t('ibanUnsupported')
-
-                                          return true
+                                              return true
+                                          },
                                       },
-                                  },
-                                  'text',
-                                  undefined,
-                                  async (value) => {
-                                      await syncBicWithIban(value)
-                                  }
-                              )
-                            : corridor &&
-                              renderInput(
-                                  corridor.accountField,
-                                  tKey(corridor.accountLabelKey),
-                                  {
-                                      required: tKey(corridor.accountRequiredKey),
-                                      validate: (value: string) =>
-                                          corridor.accountTest(value) || tKey(corridor.accountInvalidKey),
-                                  },
-                                  'text'
-                              )}
+                                      'text',
+                                      undefined,
+                                      async (value) => {
+                                          await syncBicWithIban(value)
+                                      }
+                                  )
+                                : corridor &&
+                                  renderInput(
+                                      corridor.accountField,
+                                      tKey(corridor.accountLabelKey),
+                                      {
+                                          required: tKey(corridor.accountRequiredKey),
+                                          validate: (value: string) =>
+                                              corridor.accountTest(value) || tKey(corridor.accountInvalidKey),
+                                      },
+                                      'text'
+                                  )}
 
-                        {isIban &&
-                            renderInput(
-                                'bic',
-                                t('bic'),
-                                {
-                                    // Always on screen: the provider rejects an IBAN
-                                    // account without a BIC, and a derived one still
-                                    // has to be visible to be correctable.
-                                    required: t('bicRequired'),
-                                    validate: async (value: string) => {
-                                        if (!value || value.trim().length === 0) return t('bicRequired')
-                                        // Shape first, and for a derived BIC too. A
-                                        // lookup that returns something malformed must
-                                        // not reach the provider unchallenged.
-                                        if (!ISO_9362_BIC.test(value.trim().toUpperCase())) return t('bicInvalid')
-                                        // Only validate if the value matches the debounced value (to prevent API calls on every keystroke)
-                                        if (value.trim() !== debouncedBicValue?.trim()) {
-                                            return true // Skip validation until debounced value is ready
-                                        }
+                            {isIban &&
+                                renderInput(
+                                    'bic',
+                                    t('bic'),
+                                    {
+                                        // Always on screen: the provider rejects an IBAN
+                                        // account without a BIC, and a derived one still
+                                        // has to be visible to be correctable.
+                                        required: t('bicRequired'),
+                                        validate: async (value: string) => {
+                                            if (!value || value.trim().length === 0) return t('bicRequired')
+                                            // Shape first, and for a derived BIC too. A
+                                            // lookup that returns something malformed must
+                                            // not reach the provider unchallenged.
+                                            if (!ISO_9362_BIC.test(value.trim().toUpperCase())) return t('bicInvalid')
+                                            // Only validate if the value matches the debounced value (to prevent API calls on every keystroke)
+                                            if (value.trim() !== debouncedBicValue?.trim()) {
+                                                return true // Skip validation until debounced value is ready
+                                            }
 
-                                        setisCheckingBICValid(true)
-                                        const isValid = await validateBic(value.trim())
-                                        setisCheckingBICValid(false)
-                                        return isValid || t('bicInvalid')
+                                            setisCheckingBICValid(true)
+                                            const isValid = await validateBic(value.trim())
+                                            setisCheckingBICValid(false)
+                                            return isValid || t('bicInvalid')
+                                        },
                                     },
-                                },
-                                'text',
-                                undefined,
-                                (value) => {
-                                    // Once the user changes it the value is theirs: the
-                                    // note goes, and re-derivation stops overwriting it.
-                                    if (value.trim() && value.trim() !== derivedBicRef.current) {
-                                        correctedForIbanRef.current = (getValues('accountNumber') ?? '').replace(
-                                            /\s/g,
-                                            ''
-                                        )
-                                    }
-                                    setBicAutoFilled(false)
-                                    if (value.length > 0 && submissionError) {
-                                        setSubmissionError(null)
-                                    }
-                                },
-                                undefined,
-                                undefined,
-                                // Two notes, never a refusal. The first says where a
-                                // value the user did not type came from. The second
-                                // flags a BIC registered in another member state than
-                                // the IBAN, which is routine — Revolut issues Spanish
-                                // IBANs under a Lithuanian BIC — and which the provider
-                                // is the only authority on, asked by `validateBic`.
-                                [
-                                    bicAutoFilled ? t('bicAutoFilled') : undefined,
-                                    !!bicValue && bicCountryDiffersFromIban(bicValue, getValues('accountNumber') ?? '')
-                                        ? t('bicCountryMismatch')
-                                        : undefined,
-                                ]
-                                    .filter(Boolean)
-                                    .join(' ') || undefined
+                                    'text',
+                                    undefined,
+                                    (value) => {
+                                        // Once the user changes it the value is theirs: the
+                                        // note goes, and re-derivation stops overwriting it.
+                                        if (value.trim() && value.trim() !== derivedBicRef.current) {
+                                            correctedForIbanRef.current = (getValues('accountNumber') ?? '').replace(
+                                                /\s/g,
+                                                ''
+                                            )
+                                        }
+                                        setBicAutoFilled(false)
+                                        if (value.length > 0 && submissionError) {
+                                            setSubmissionError(null)
+                                        }
+                                    },
+                                    undefined,
+                                    undefined,
+                                    // Two notes, never a refusal. The first says where a
+                                    // value the user did not type came from. The second
+                                    // flags a BIC registered in another member state than
+                                    // the IBAN, which is routine — Revolut issues Spanish
+                                    // IBANs under a Lithuanian BIC — and which the provider
+                                    // is the only authority on, asked by `validateBic`.
+                                    [
+                                        bicAutoFilled ? t('bicAutoFilled') : undefined,
+                                        !!bicValue &&
+                                        bicCountryDiffersFromIban(bicValue, getValues('accountNumber') ?? '')
+                                            ? t('bicCountryMismatch')
+                                            : undefined,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(' ') || undefined
+                                )}
+                            {corridor?.fields.map((field: BankCorridorField) =>
+                                field.kind === 'select' ? (
+                                    <div key={field.name}>
+                                        {renderSelect(
+                                            field.name,
+                                            tKey(field.labelKey),
+                                            tKey(field.labelKey),
+                                            (field.options ?? []).map((option) => ({
+                                                label: tKey(option.labelKey),
+                                                value: option.value,
+                                            })),
+                                            { required: tKey(field.requiredKey) }
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div key={field.name}>
+                                        {renderInput(
+                                            field.name,
+                                            tKey(field.labelKey),
+                                            {
+                                                required: tKey(field.requiredKey),
+                                                validate: (value?: string) =>
+                                                    !field.test ||
+                                                    field.test(value ?? '') ||
+                                                    tKey(field.invalidKey ?? field.requiredKey),
+                                            },
+                                            'text',
+                                            undefined,
+                                            undefined,
+                                            undefined,
+                                            undefined,
+                                            field.helperKey ? tKey(field.helperKey) : undefined
+                                        )}
+                                    </div>
+                                )
                             )}
-                        {corridor?.fields.map((field: BankCorridorField) =>
-                            field.kind === 'select' ? (
-                                <div key={field.name}>
-                                    {renderSelect(
-                                        field.name,
-                                        tKey(field.labelKey),
-                                        tKey(field.labelKey),
-                                        (field.options ?? []).map((option) => ({
-                                            label: tKey(option.labelKey),
-                                            value: option.value,
-                                        })),
-                                        { required: tKey(field.requiredKey) }
+                        </div>
+
+                        {/* The person the account belongs to, and where they live —
+                            which is also everything the form can fill in for them. */}
+                        <div className="flex flex-col gap-4 pt-2">
+                            <MiniHeader>{t('groupAccountOwner')}</MiniHeader>
+                            {/* CLAIM FLOW: show name field for guest users or logged-in users without fullName */}
+                            {flow === 'claim' && !user?.user.userId && (
+                                <div className="w-full">
+                                    {renderInput('accountOwnerName', t('accountOwnerName'), {
+                                        required: t('accountOwnerNameRequired'),
+                                        validate: (value: string | undefined) => {
+                                            const trimmed = value?.trim() ?? ''
+                                            const parts = trimmed.split(/\s+/)
+                                            if (parts.length < 2) {
+                                                return t('accountOwnerNameFull')
+                                            }
+                                            return true
+                                        },
+                                    })}
+                                </div>
+                            )}
+                            {flow === 'claim' && user?.user.userId && !user.user.fullName && (
+                                <div className="w-full">
+                                    {renderInput('accountOwnerName', t('accountOwnerName'), {
+                                        required: t('accountOwnerNameRequired'),
+                                        validate: (value: string | undefined) => {
+                                            const trimmed = value?.trim() ?? ''
+                                            const parts = trimmed.split(/\s+/)
+                                            if (parts.length < 2) {
+                                                return t('accountOwnerNameFull')
+                                            }
+                                            return true
+                                        },
+                                    })}
+                                </div>
+                            )}
+                            {flow === 'claim' &&
+                                user?.user.userId &&
+                                !user.user.email &&
+                                !hideEmailInput &&
+                                renderInput('email', t('email'), {
+                                    required: t('emailRequired'),
+                                })}
+
+                            {/* Most payouts go to the person's own account, so the box
+                                starts ticked and the fields below start filled in. */}
+                            {canPrefill && (
+                                <div className="flex w-full flex-col gap-1">
+                                    <Checkbox
+                                        className="w-full"
+                                        label={t('ownAccount')}
+                                        value={isOwnAccount}
+                                        onChange={(e) => setIsOwnAccount(e.target.checked)}
+                                    />
+                                    {isOwnAccount && (
+                                        <p className="text-body-xs text-foreground-secondary">
+                                            {t('ownAccountFilled')}
+                                        </p>
                                     )}
                                 </div>
-                            ) : (
-                                <div key={field.name}>
+                            )}
+
+                            {/* WITHDRAW FLOW: always show account owner's name field (empty by default) */}
+                            {flow !== 'claim' && (
+                                <div className="w-full">
+                                    {renderInput('accountOwnerName', t('accountOwnerName'), {
+                                        required: t('accountOwnerNameRequired'),
+                                        validate: (value: string | undefined) => {
+                                            const trimmed = value?.trim() ?? ''
+                                            const parts = trimmed.split(/\s+/)
+                                            if (parts.length < 2) {
+                                                return t('accountOwnerNameFull')
+                                            }
+                                            return true
+                                        },
+                                    })}
+                                </div>
+                            )}
+                            {corridor?.needsAddress && (
+                                /* The address belongs to the account owner, so it sits
+                                   under the same heading and takes no step of its own. */
+                                <div className="flex flex-col gap-4">
                                     {renderInput(
-                                        field.name,
-                                        tKey(field.labelKey),
+                                        'street',
+                                        t('streetLabel'),
                                         {
-                                            required: tKey(field.requiredKey),
-                                            validate: (value?: string) =>
-                                                !field.test ||
-                                                field.test(value ?? '') ||
-                                                tKey(field.invalidKey ?? field.requiredKey),
+                                            required: t('streetRequired'),
+                                            maxLength: {
+                                                value: STREET_ADDRESS_MAX_LENGTH,
+                                                message: t('streetMax'),
+                                            },
+                                            minLength: { value: 4, message: t('streetMin') },
                                         },
                                         'text',
                                         undefined,
                                         undefined,
-                                        undefined,
-                                        undefined,
-                                        field.helperKey ? tKey(field.helperKey) : undefined
+                                        true,
+                                        STREET_ADDRESS_MAX_LENGTH
                                     )}
+
+                                    {renderInput('city', t('cityLabel'), { required: t('cityRequired') })}
+
+                                    {/* Only US/MX carry a state; SEPA/UK addresses have none, so
+                                        a required empty dropdown would wall the form. */}
+                                    {corridor.states && corridor.states.length > 0 && (
+                                        <div>
+                                            {renderSelect(
+                                                'state',
+                                                t('stateLabel'),
+                                                t('state'),
+                                                corridor.states.map((state) => ({
+                                                    label: state.name,
+                                                    value: state.code,
+                                                })),
+                                                {
+                                                    required: t('stateRequired'),
+                                                }
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {renderInput('postalCode', t('postalCodeLabel'), {
+                                        required: t('postalCodeRequired'),
+                                    })}
                                 </div>
-                            )
-                        )}
+                            )}
+                        </div>
 
-                        {corridor?.needsAddress && (
-                            /* address group: pt-2 on top of the 16px gap makes
-                               the 24px section step without a new heading */
-                            <div className="flex flex-col gap-4 pt-2">
-                                {renderInput(
-                                    'street',
-                                    t('streetLabel'),
-                                    {
-                                        required: t('streetRequired'),
-                                        maxLength: {
-                                            value: STREET_ADDRESS_MAX_LENGTH,
-                                            message: t('streetMax'),
-                                        },
-                                        minLength: { value: 4, message: t('streetMin') },
-                                    },
-                                    'text',
-                                    undefined,
-                                    undefined,
-                                    true,
-                                    STREET_ADDRESS_MAX_LENGTH
-                                )}
-
-                                {renderInput('city', t('cityLabel'), { required: t('cityRequired') })}
-
-                                {/* Only US/MX carry a state; SEPA/UK addresses have none, so
-                                    a required empty dropdown would wall the form. */}
-                                {corridor.states && corridor.states.length > 0 && (
-                                    <div>
-                                        {renderSelect(
-                                            'state',
-                                            t('stateLabel'),
-                                            t('state'),
-                                            corridor.states.map((state) => ({
-                                                label: state.name,
-                                                value: state.code,
-                                            })),
-                                            {
-                                                required: t('stateRequired'),
-                                            }
-                                        )}
-                                    </div>
-                                )}
-
-                                {renderInput('postalCode', t('postalCodeLabel'), {
-                                    required: t('postalCodeRequired'),
-                                })}
-                            </div>
-                        )}
                         {/*
                          * The button is the LAST child, after the error: the
                          * shell's reservation under the page clears whatever ends it.
