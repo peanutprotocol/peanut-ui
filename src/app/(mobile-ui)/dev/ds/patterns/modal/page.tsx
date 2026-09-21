@@ -34,7 +34,7 @@ export default function ModalPage() {
                     </p>
 
                     <div>
-                        <Button variant="stroke" onClick={() => setShowActionModal(true)}>
+                        <Button variant="secondary" onClick={() => setShowActionModal(true)}>
                             Open ActionModal
                         </Button>
                         <ActionModal
@@ -54,7 +54,7 @@ export default function ModalPage() {
                             ctas={[
                                 {
                                     text: 'Cancel',
-                                    variant: 'stroke',
+                                    variant: 'secondary',
                                     onClick: () => {
                                         setShowActionModal(false)
                                         setActionCheckbox(false)
@@ -81,7 +81,7 @@ export default function ModalPage() {
                         </p>
                         <div className="flex flex-wrap gap-2">
                             {TONES.map((tone) => (
-                                <Button key={tone} variant="stroke" size="small" onClick={() => setToneModal(tone)}>
+                                <Button key={tone} variant="secondary" size="small" onClick={() => setToneModal(tone)}>
                                     tone=&quot;{tone}&quot;
                                 </Button>
                             ))}
@@ -92,7 +92,7 @@ export default function ModalPage() {
                             tone={toneModal ?? 'info'}
                             title={`tone="${toneModal ?? 'info'}"`}
                             description="Icon and bubble color come from the tone, not from a class name."
-                            ctas={[{ text: 'Close', variant: 'stroke', onClick: () => setToneModal(null) }]}
+                            ctas={[{ text: 'Close', variant: 'secondary', onClick: () => setToneModal(null) }]}
                         />
                     </div>
 
@@ -182,7 +182,7 @@ export default function ModalPage() {
     onChange: setChecked,
   }}
   ctas={[
-    { text: 'Cancel', variant: 'stroke', onClick: handleCancel },
+    { text: 'Cancel', variant: 'secondary', onClick: handleCancel },
     { text: 'Confirm', variant: 'primary', onClick: handleConfirm },
   ]}
 />`}

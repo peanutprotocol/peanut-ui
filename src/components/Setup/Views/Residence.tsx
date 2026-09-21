@@ -374,7 +374,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                         </Button>
                     )}
                     {view === 'restricted' && (
-                        <Button variant="stroke" onClick={() => setView('notify')}>
+                        <Button variant="secondary" onClick={() => setView('notify')}>
                             {t('residenceStep.restricted.notifyMe')}
                         </Button>
                     )}
@@ -501,7 +501,7 @@ const ResidenceStep = ({ initialView }: ResidenceStepProps = {}) => {
                         <Button
                             key={iso2}
                             shadowSize="4"
-                            variant={iso2 === residenceCountry ? 'primary' : 'stroke'}
+                            variant={iso2 === residenceCountry ? 'primary' : 'secondary'}
                             onClick={() => onSelectPrimary(iso2)}
                             disabled={isLoading}
                             loading={isLoading}

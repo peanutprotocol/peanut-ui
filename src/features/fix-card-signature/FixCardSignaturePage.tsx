@@ -50,7 +50,7 @@ export function FixCardSignaturePage() {
                 )}
 
                 {!isDiagnosing && !diagnosis && error && (
-                    <Button variant="stroke" className="w-full" onClick={() => void diagnose()}>
+                    <Button variant="secondary" className="w-full" onClick={() => void diagnose()}>
                         {t('fixSignature.checkAgain')}
                     </Button>
                 )}

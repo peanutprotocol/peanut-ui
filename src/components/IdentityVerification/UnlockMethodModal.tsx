@@ -71,7 +71,7 @@ const UnlockMethodModal = ({
                         >
                             {isLoading ? tCommon('loading') : tPrep('startCta')}
                         </Button>
-                        <Button variant="stroke" className="w-full justify-center" onClick={onClose}>
+                        <Button variant="secondary" className="w-full justify-center" onClick={onClose}>
                             {t('notNow')}
                         </Button>
                         <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />

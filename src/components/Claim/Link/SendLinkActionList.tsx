@@ -235,7 +235,7 @@ export default function SendLinkActionList({
             {showDevconnectMethod && (
                 <>
                     <Button
-                        variant="stroke"
+                        variant="secondary"
                         shadowSize="4"
                         icon="arrow-down"
                         onClick={() => {

@@ -140,7 +140,7 @@ export default function CardPage() {
                                 <Button variant="primary" className="w-full">
                                     Path 1
                                 </Button>
-                                <Button variant="stroke" className="w-full">
+                                <Button variant="secondary" className="w-full">
                                     Path 2
                                 </Button>
                             </div>

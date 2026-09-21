@@ -77,7 +77,7 @@ function ValidationErrorView({
                         onClick={handleSupportClick}
                         size="medium"
                         shadowSize="4"
-                        variant="stroke"
+                        variant="secondary"
                         className="w-full"
                     >
                         {supportButtonText ?? t('validation.talkToSupport')}

@@ -282,7 +282,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
                     <div className="mb-4 text-heading-xl">⚠️</div>
                     <p className="mb-4 text-body-l font-medium text-red-600">{error}</p>
                     {props.onClose && (
-                        <Button onClick={props.onClose} variant="stroke">
+                        <Button onClick={props.onClose} variant="secondary">
                             {t('invitesGraph.goBack')}
                         </Button>
                     )}

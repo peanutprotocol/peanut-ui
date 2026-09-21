@@ -159,7 +159,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                             <FieldError>{usernameCheckError}</FieldError>
                             {canRetryUsernameCheck && (
                                 <Button
-                                    variant="transparent"
+                                    variant="ghost"
                                     className="h-auto w-fit p-0 text-body-xs"
                                     onClick={() => setUsernameCheckRetry((retry) => retry + 1)}
                                 >

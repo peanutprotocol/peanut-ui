@@ -507,7 +507,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                         <div className="absolute top-1/2 right-1 -translate-y-1/2">
                                             <Button
                                                 type="button"
-                                                variant="transparent"
+                                                variant="ghost"
                                                 size="small"
                                                 shape="square"
                                                 icon="paste"

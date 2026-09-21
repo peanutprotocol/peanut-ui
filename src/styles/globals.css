@@ -805,11 +805,11 @@
         }
     }
     /* variant classes are deltas on top of .btn (the component always pairs them;
-       the few raw call-sites all write "btn btn-primary"). board mapping:
-       primary = button.type.primary, stroke = button.type.secondary,
-       transparent* = button.type.ghost. primary-soft is the last off-board
-       variant — shape/type restyle inherited from .btn, colors kept until a
-       rebuild migrates it. */
+       the few raw call-sites all write "btn btn-primary"). the variant names
+       are the board rows: primary = button.type.primary, secondary =
+       button.type.secondary, ghost = button.type.ghost. primary-soft and
+       transparent-light|dark are the off-board tail — shape/type restyle
+       inherited from .btn, colors kept until a rebuild migrates them. */
     .btn-transparent-light {
         @apply border-transparent fill-white text-white hover:fill-action-ghost-hover hover:text-action-ghost-hover active:fill-action-ghost-hover active:text-action-ghost-hover;
     }
@@ -822,7 +822,7 @@
     .btn-primary {
         @apply bg-action-primary shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] hover:bg-action-primary-hover active:bg-action-primary-hover disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
     }
-    .btn-stroke {
+    .btn-secondary {
         @apply bg-background-default shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] active:bg-action-primary disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
     }
     .btn-square {

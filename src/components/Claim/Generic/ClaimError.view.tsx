@@ -35,7 +35,7 @@ export const ClaimErrorView = ({ title, message, primaryButtonText, onPrimaryCli
                     }}
                     size="medium"
                     shadowSize="4"
-                    variant="stroke"
+                    variant="secondary"
                     className="w-full"
                 >
                     {t('errors.talkToSupport')}

@@ -41,13 +41,13 @@ export function Hero({ title, subtitle, cta, ctaHref }: HeroProps) {
                     )}
                     {cta && ctaHref && (
                         <div className="mt-8">
-                            {/* white-on-pink CTA: stroke is the closest board
+                            {/* white-on-pink CTA: secondary is the closest board
                                 variant, and the two overrides keep it looking
                                 exactly as it does today — the unconditional
-                                white bg cancels stroke's press-to-pink, and the
-                                hover shadow cancels stroke's hover flatten. */}
+                                white bg cancels secondary's press-to-pink, and the
+                                hover shadow cancels secondary's hover flatten. */}
                             <Button
-                                variant="stroke"
+                                variant="secondary"
                                 href={ctaHref}
                                 className="inline-flex w-auto bg-background-default px-8 font-extrabold hover:bg-background-default/90 hover:shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)]"
                             >

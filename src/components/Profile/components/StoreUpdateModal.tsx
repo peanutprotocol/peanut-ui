@@ -34,7 +34,7 @@ const StoreUpdateModal = ({ visible, onClose }: { visible: boolean; onClose: () 
                         onClose()
                     },
                 },
-                { text: tUpdate('notNow'), variant: 'stroke', onClick: onClose },
+                { text: tUpdate('notNow'), variant: 'secondary', onClick: onClose },
             ]}
         />
     )

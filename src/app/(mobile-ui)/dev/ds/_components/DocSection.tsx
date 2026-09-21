@@ -44,7 +44,7 @@ function DocSectionRoot({ title, description, children }: DocSectionProps) {
                 <div className="flex items-center gap-2 lg:hidden">
                     {hasCode && (
                         <Button
-                            variant="stroke"
+                            variant="secondary"
                             size="small"
                             className="w-auto"
                             onClick={() => setCodeVisible(!codeVisible)}

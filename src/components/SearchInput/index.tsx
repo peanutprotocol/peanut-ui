@@ -50,7 +50,7 @@ export const SearchInput = ({
             />
             {value && (
                 <Button
-                    variant="transparent"
+                    variant="ghost"
                     onClick={onClear}
                     className="absolute top-1/2 right-2 w-fit -translate-y-1/2 p-0 after:absolute after:-inset-3"
                     aria-label={clearLabel ?? t('tokenSelector.clearSearch')}

@@ -67,7 +67,7 @@ function LockScreen({
                 <Button variant="primary" shadowSize="4" loading={unlocking} onClick={onUnlock}>
                     {t('unlock')}
                 </Button>
-                <Button variant="stroke" shadowSize="4" onClick={onLogout}>
+                <Button variant="secondary" shadowSize="4" onClick={onLogout}>
                     {t('logOut')}
                 </Button>
             </div>

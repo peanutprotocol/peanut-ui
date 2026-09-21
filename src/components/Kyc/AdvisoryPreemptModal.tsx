@@ -61,7 +61,7 @@ export default function AdvisoryPreemptModal({
                 {
                     text: t('advisory.doLater'),
                     onClick: onDoLater,
-                    variant: 'stroke',
+                    variant: 'secondary',
                     disabled: isLoading,
                 },
             ]}

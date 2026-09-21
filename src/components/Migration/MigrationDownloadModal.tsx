@@ -126,10 +126,10 @@ export default function MigrationDownloadModal({
 
     // desktop stacks it under the App Store + Google Play pair — a third CTA
     // steps down to ghost (kush ruling 2026-09-10); on phone it is the second
-    // CTA and stays the stroke secondary
+    // CTA and stays the secondary
     const remindLaterCta = {
         text: t(isUrgent ? 'downloadPrompt.remindLater' : 'downloadPrompt.maybeLater'),
-        variant: (isDesktop ? 'transparent' : 'stroke') as 'transparent' | 'stroke',
+        variant: (isDesktop ? 'ghost' : 'secondary') as 'ghost' | 'secondary',
         onClick: snooze,
     }
 

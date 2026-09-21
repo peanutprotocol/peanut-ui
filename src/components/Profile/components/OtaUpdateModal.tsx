@@ -41,7 +41,7 @@ const OtaUpdateModal = ({ visible, onClose }: { visible: boolean; onClose: () =>
             hideModalCloseButton={applying}
             ctas={
                 manualRestart
-                    ? [{ text: tCommon('gotIt'), variant: 'stroke', onClick: onClose }]
+                    ? [{ text: tCommon('gotIt'), variant: 'secondary', onClick: onClose }]
                     : [
                           {
                               text: failed ? tCommon('tryAgain') : t('restartNow'),
@@ -52,7 +52,7 @@ const OtaUpdateModal = ({ visible, onClose }: { visible: boolean; onClose: () =>
                           },
                           {
                               text: t('notNow'),
-                              variant: 'stroke',
+                              variant: 'secondary',
                               disabled: applying,
                               onClick: onClose,
                           },
