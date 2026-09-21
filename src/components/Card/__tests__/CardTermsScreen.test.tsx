@@ -75,3 +75,26 @@ describe('CardTermsScreen legal links', () => {
         expect(hrefs()).toContain('https://www.third-national.com/privacypolicy')
     })
 })
+
+// On the re-issue path Continue opens a passkey prompt for Rain's wallet
+// permission, so the screen must say what that grants before the prompt.
+describe('CardTermsScreen funding notice', () => {
+    const renderNotice = (showFundingNotice?: boolean) =>
+        rtlRender(<CardTermsScreen isUsResident showFundingNotice={showFundingNotice} onAccept={jest.fn()} />, {
+            wrapper: ({ children }: { children: ReactNode }) => (
+                <NextIntlClientProvider locale="en" messages={CATALOGS.en as never} timeZone="UTC">
+                    {children}
+                </NextIntlClientProvider>
+            ),
+        })
+
+    it('explains the Rain permission when the accept step will ask for it', () => {
+        renderNotice(true)
+        expect(screen.getByText(/Approve Rain, our card issuer, to take USDC from your wallet/)).toBeInTheDocument()
+    })
+
+    it('stays out of a first-time application, which asks for no wallet permission', () => {
+        renderNotice()
+        expect(screen.queryByText(/Approve Rain, our card issuer/)).not.toBeInTheDocument()
+    })
+})

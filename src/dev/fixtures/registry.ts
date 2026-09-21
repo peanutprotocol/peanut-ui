@@ -450,6 +450,34 @@ const REQUEST_PAY_EUR = {
     rate: { from: 'USD', to: 'EUR', rate: '0.92', source: 'fixture', asOf: null },
 }
 
+const CARD_HOLDER_OVERVIEW = {
+    status: { hasApplication: true, railStatus: 'ENABLED' },
+    balance: null,
+    cards: [
+        {
+            id: 'fixture-card',
+            rainCardId: 'fixture-rain',
+            status: 'ACTIVE',
+            last4: '0420',
+            expiryMonth: 6,
+            expiryYear: 2069,
+            network: 'visa',
+            issuedAt: '2026-01-01T00:00:00Z',
+            hasWithdrawApproval: false,
+        },
+    ],
+}
+
+// `GET /rain/cards/funding`. Fake operator and wallet — a fixture never signs.
+const CARD_FUNDING = {
+    chainId: '42161',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    operatorAddress: '0x0000000000000000000000000000000000000001',
+    walletAddress: '0x1111111111111111111111111111111111111111',
+}
+// maxUint256: the one-time unlimited approval the app sets.
+const CARD_FUNDING_APPROVED = '115792089237316195423570985008687907853269984665640564039457584007913129639935'
+
 export const FIXTURES: Record<string, Fixture> = {
     'setup-pending': {
         route: '/setup',
@@ -647,24 +675,53 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Existing holder keeps card management even when new issuance is prohibited for their residence.',
         responses: {
             'GET /card': { isEligible: false, geoProhibited: true },
-            'GET /rain/cards': {
-                status: { hasApplication: true, railStatus: 'ENABLED' },
-                balance: null,
-                cards: [
-                    {
-                        id: 'fixture-card',
-                        rainCardId: 'fixture-rain',
-                        status: 'ACTIVE',
-                        last4: '0420',
-                        expiryMonth: 6,
-                        expiryYear: 2069,
-                        network: 'visa',
-                        issuedAt: '2026-01-01T00:00:00Z',
-                        hasWithdrawApproval: false,
-                    },
-                ],
-            },
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding': { ...CARD_FUNDING, allowance: CARD_FUNDING_APPROVED },
         },
+    },
+    // The Rain notice sits on the terms step, one tap in ("Get your card") —
+    // e2e/flows/card-public.spec.ts takes that tap and shoots it.
+    'card-reissue': {
+        route: '/card',
+        about: 'Approved holder with no card: re-issuing asks for Rain’s wallet permission, explained on the terms step.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': {
+                status: {
+                    hasApplication: true,
+                    railStatus: 'ENABLED',
+                    contractAddress: '0x2222222222222222222222222222222222222222',
+                    coordinatorAddress: '0x3333333333333333333333333333333333333333',
+                },
+                balance: null,
+                cards: [],
+            },
+            'POST /rain/cards': { status: 'terms-required', isUsResident: false },
+        },
+    },
+    'card-funding-needed': {
+        route: '/card',
+        about: 'Existing holder whose wallet has not approved Rain: the "Enable card payments" consent.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding': { ...CARD_FUNDING, allowance: '0' },
+        },
+        waitFor: '[data-testid="enable-card-payments"]',
+    },
+    'card-funding-enabled': {
+        route: '/card',
+        about: 'Existing holder with card payments enabled: no funding callout on the card screen.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding': { ...CARD_FUNDING, allowance: CARD_FUNDING_APPROVED },
+        },
+    },
+    'card-funding-error': {
+        route: '/card',
+        about: 'Existing holder whose funding status cannot be read: error callout with a retry, card still manageable.',
+        responses: { 'GET /rain/cards': CARD_HOLDER_OVERVIEW },
+        fails: ['GET /rain/cards/funding'],
+        waitFor: '[data-testid="card-funding-error"]',
     },
     'card-prohibited': {
         route: '/card',

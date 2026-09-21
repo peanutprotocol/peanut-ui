@@ -1,10 +1,10 @@
 /**
  * Regression tests for the displayed spendable balance (PEANUT-UI-QD5).
  *
- * `/rain/cards` supplies BOTH Rain terms of `smart + spendingPower + inTransit`.
- * When it hasn't answered, those terms fold to 0n — indistinguishable from "this
- * user has no collateral" — so a card user whose funds the auto-balancer swept
- * into collateral was shown a confident, wrong $0.
+ * `/rain/cards` supplies the Rain term of `smart + spendingPower`. When it
+ * hasn't answered, that term folds to 0n — indistinguishable from "this user
+ * has no collateral" — so a card user whose funds sit in collateral was shown
+ * a confident, wrong $0.
  *
  * The contract these lock down:
  *  1. Rain unavailable + no cache      → undefined (UI shows a loader, never $0)
@@ -27,7 +27,7 @@ const USER_ID = 'user-under-test'
 let mockSmartBalance: bigint | undefined
 let mockRainOverview:
     | {
-          balance: { spendingPower: number; inTransitToCollateralCents?: number } | null
+          balance: { spendingPower: number } | null
           balanceUnavailable?: boolean
       }
     | undefined
@@ -112,13 +112,13 @@ describe('useWallet spendable balance', () => {
     it('replaces the cached value with the live sum once Rain answers, and re-caches it', async () => {
         writeLastKnownSpendable(USER_ID, usd(120.5))
         mockSmartBalance = usd(10)
-        mockRainOverview = { balance: { spendingPower: 9000, inTransitToCollateralCents: 500 } } // $90 + $5
+        mockRainOverview = { balance: { spendingPower: 9000 } } // $90
 
         const { result } = renderHook(() => useWallet())
 
-        await waitFor(() => expect(result.current.spendableBalance).toBe(usd(105)))
+        await waitFor(() => expect(result.current.spendableBalance).toBe(usd(100)))
         expect(result.current.isSpendableBalanceStale).toBe(false)
-        await waitFor(() => expect(readLastKnownSpendable(USER_ID)).toBe(usd(105)))
+        await waitFor(() => expect(readLastKnownSpendable(USER_ID)).toBe(usd(100)))
     })
 
     it('never caches a total computed without Rain', async () => {

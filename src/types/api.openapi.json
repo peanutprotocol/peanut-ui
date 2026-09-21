@@ -1291,6 +1291,10 @@
                                                 "pattern": "^[a-zA-Z0-9 ]{1,10}$",
                                                 "type": "string"
                                             },
+                                            "coBankTransferReference": {
+                                                "pattern": "^[a-zA-Z0-9 &./-]{1,18}$",
+                                                "type": "string"
+                                            },
                                             "currency": {
                                                 "anyOf": [
                                                     {
@@ -1392,6 +1396,10 @@
                                             },
                                             "sepaReference": {
                                                 "pattern": "^[a-zA-Z0-9 &./-]{6,140}$",
+                                                "type": "string"
+                                            },
+                                            "speiReference": {
+                                                "pattern": "^[a-zA-Z0-9 ]{1,40}$",
                                                 "type": "string"
                                             },
                                             "wireMessage": {
@@ -1673,6 +1681,10 @@
                                                 "pattern": "^[a-zA-Z0-9 ]{1,10}$",
                                                 "type": "string"
                                             },
+                                            "coBankTransferReference": {
+                                                "pattern": "^[a-zA-Z0-9 &./-]{1,18}$",
+                                                "type": "string"
+                                            },
                                             "currency": {
                                                 "anyOf": [
                                                     {
@@ -1774,6 +1786,10 @@
                                             },
                                             "sepaReference": {
                                                 "pattern": "^[a-zA-Z0-9 &./-]{6,140}$",
+                                                "type": "string"
+                                            },
+                                            "speiReference": {
+                                                "pattern": "^[a-zA-Z0-9 ]{1,40}$",
                                                 "type": "string"
                                             },
                                             "wireMessage": {
@@ -11464,9 +11480,6 @@
                                                         "creditLimit": {
                                                             "type": "number"
                                                         },
-                                                        "inTransitToCollateralCents": {
-                                                            "type": "number"
-                                                        },
                                                         "pendingCharges": {
                                                             "type": "number"
                                                         },
@@ -11482,8 +11495,7 @@
                                                         "pendingCharges",
                                                         "postedCharges",
                                                         "balanceDue",
-                                                        "spendingPower",
-                                                        "inTransitToCollateralCents"
+                                                        "spendingPower"
                                                     ],
                                                     "type": "object"
                                                 }
@@ -11849,95 +11861,6 @@
                 }
             }
         },
-        "/rain/cards/auto-balance/approve": {
-            "post": {
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "cardLimit": {
-                                        "minimum": 0,
-                                        "type": "number"
-                                    },
-                                    "serializedApproval": {
-                                        "minLength": 1,
-                                        "type": "string"
-                                    }
-                                },
-                                "required": [
-                                    "serializedApproval"
-                                ],
-                                "type": "object"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "ok": {
-                                            "type": "boolean"
-                                        }
-                                    },
-                                    "required": [
-                                        "ok"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "400": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "code": {
-                                            "type": "string"
-                                        },
-                                        "error": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    },
-                    "404": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "code": {
-                                            "type": "string"
-                                        },
-                                        "error": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "error"
-                                    ],
-                                    "type": "object"
-                                }
-                            }
-                        },
-                        "description": "Default Response"
-                    }
-                }
-            }
-        },
         "/rain/cards/balance": {
             "get": {
                 "responses": {
@@ -11997,6 +11920,88 @@
                         "description": "Default Response"
                     },
                     "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/rain/cards/funding": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "allowance": {
+                                            "type": "string"
+                                        },
+                                        "chainId": {
+                                            "type": "string"
+                                        },
+                                        "operatorAddress": {
+                                            "type": "string"
+                                        },
+                                        "tokenAddress": {
+                                            "type": "string"
+                                        },
+                                        "walletAddress": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "chainId",
+                                        "tokenAddress",
+                                        "operatorAddress",
+                                        "walletAddress",
+                                        "allowance"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "404": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "409": {
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -12264,9 +12269,6 @@
                                         "amountWei": {
                                             "type": "string"
                                         },
-                                        "autoBalanceEnabled": {
-                                            "type": "boolean"
-                                        },
                                         "collateralProxy": {
                                             "type": "string"
                                         },
@@ -12286,7 +12288,6 @@
                                         "amountWei",
                                         "amountCents",
                                         "dustWei",
-                                        "autoBalanceEnabled",
                                         "hasRecoverableCard"
                                     ],
                                     "type": "object"
@@ -13278,9 +13279,6 @@
                         "application/json": {
                             "schema": {
                                 "properties": {
-                                    "autoBalanceEnabled": {
-                                        "type": "boolean"
-                                    },
                                     "cardLimit": {
                                         "maximum": 2147483647,
                                         "minimum": 1,
@@ -21682,6 +21680,106 @@
                 ],
                 "responses": {
                     "200": {
+                        "description": "Default Response"
+                    }
+                }
+            }
+        },
+        "/users/me/verified-address": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "additionalProperties": false,
+                                    "properties": {
+                                        "city": {
+                                            "type": "string"
+                                        },
+                                        "countryCode": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        },
+                                        "postalCode": {
+                                            "type": "string"
+                                        },
+                                        "streetLine1": {
+                                            "type": "string"
+                                        },
+                                        "subdivisionCode": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "string"
+                                                },
+                                                {
+                                                    "type": "null"
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "streetLine1",
+                                        "city",
+                                        "postalCode",
+                                        "subdivisionCode",
+                                        "countryCode"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "204": {
+                        "description": "Nothing to prefill."
+                    },
+                    "401": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
+                        "description": "Default Response"
+                    },
+                    "429": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "code": {
+                                            "type": "string"
+                                        },
+                                        "error": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "error"
+                                    ],
+                                    "type": "object"
+                                }
+                            }
+                        },
                         "description": "Default Response"
                     }
                 }

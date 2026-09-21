@@ -55,10 +55,6 @@
             "addMoneyRoutesKyc": "Transferencia bancaria o cripto · el banco pide una verificación de identidad por única vez",
             "addMoneyStandingAccounts": "Conseguí datos bancarios a tu nombre. Cobrá en euros, dólares y más."
         },
-        "autoBalance": {
-            "title": "Terminá de configurar tu tarjeta",
-            "descriptionError": "No pudimos terminar de configurar tu tarjeta. Intentá de nuevo u omitilo por ahora: te lo volveremos a pedir en tu primer pago con tarjeta."
-        },
         "history": {
             "networkErrorDescription": "Revisá tu conexión e intentá de nuevo.",
             "errorDescription": "Por favor contactá a Soporte.",
@@ -884,8 +880,17 @@
             "comingSoonBody": "Unite a nuestra lista de espera y sé de los primeros en tenerla."
         },
         "yourCard": {
+            "balanceDueBody": "Un pago reciente con la tarjeta terminó siendo mayor que el monto retenido al momento de pagar. Esto pasa con propinas o totales actualizados. La diferencia sigue pendiente. Contactá a soporte para saldarla.",
             "payAsCreditTitle": "Pagá como crédito",
             "payAsCreditBody": "Cuando la terminal pregunte débito o crédito, elegí crédito — tu tarjeta Peanut corre en la red de crédito."
+        },
+        "funding": {
+            "description": "Tu tarjeta paga con tu saldo de Peanut. Autorizá a Rain, nuestro emisor de tarjetas, a tomar USDC de tu billetera en cada pago con tarjeta. Rain toma solo el monto de cada pago. El permiso no tiene tope de monto, y el límite de gasto de tu tarjeta sigue vigente. Podés quitar el permiso cuando canceles tu tarjeta. Un toque con tu passkey.",
+            "failed": "No pudimos activar los pagos con tarjeta. Intentalo de nuevo.",
+            "pending": "Enviamos tu autorización, pero todavía no pudimos confirmarla. Revisá de nuevo en un momento. No autorices dos veces.",
+            "walletMismatch": "Esta tarjeta está vinculada a otra billetera. Contactá a soporte.",
+            "revokeTitle": "Quitá el permiso de Rain",
+            "revokeFailed": "No pudimos quitar el permiso. Intentalo de nuevo."
         },
         "page": {
             "loadFailed": "No se pudo cargar la información de la tarjeta. Intentalo de nuevo.",

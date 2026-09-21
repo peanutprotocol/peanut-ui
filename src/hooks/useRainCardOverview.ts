@@ -16,8 +16,8 @@ export const RAIN_CARD_OVERVIEW_QUERY_KEY = 'rain-card-overview'
  * Polls every 30s and refetches on window focus. Subscribes to two
  * WebSocket events for real-time invalidation:
  *   - `user_rail_status_changed` — rail transitions (PENDING → ENABLED).
- *   - `rain_card_balance_changed` — card txns, auto-balancer deposits,
- *     collateral contract deployment.
+ *   - `rain_card_balance_changed` — card txns, collateral contract
+ *     deployment.
  */
 export const useRainCardOverview = () => {
     const { user } = useAuth()
@@ -47,15 +47,12 @@ export const useRainCardOverview = () => {
 
     const handleRailStatusUpdate = useCallback((_data: RailStatusUpdate) => invalidate(), [invalidate])
     const handleRainCardBalanceChanged = useCallback(
-        (data: RainCardBalanceChangedData) => {
+        (_data: RainCardBalanceChangedData) => {
             invalidate()
-            // auto_balance_deposit moves USDC out of the smart account into Rain
-            // collateral — if we only refresh the rain side, the spendable sum
-            // temporarily inflates until useBalance's next 30s poll. Invalidate
-            // the wallet balance query too so both buckets stay in sync.
-            if (data.reason === 'auto_balance_deposit') {
-                queryClient.invalidateQueries({ queryKey: ['balance'] })
-            }
+            // Rain pulls every card payment out of the smart account, so a card
+            // event moves the wallet balance too. Refresh both so the spendable
+            // sum doesn't wait for useBalance's next 30s poll.
+            queryClient.invalidateQueries({ queryKey: ['balance'] })
         },
         [invalidate, queryClient]
     )

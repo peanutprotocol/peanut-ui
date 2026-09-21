@@ -13,9 +13,10 @@ import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRa
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { InsufficientSpendableError, SessionKeyGrantRequiredError } from '@/hooks/wallet/spendPreflight'
 import { useWallet } from '@/hooks/wallet/useWallet'
+import { useRainFunding } from '@/hooks/wallet/useRainFunding'
 import { rainCentsToUsdcUnits } from '@/utils/balance.utils'
 
-type Phase = 'confirm' | 'canceling' | 'feedback' | 'submitting-feedback' | 'thanks'
+type Phase = 'confirm' | 'canceling' | 'revoke' | 'revoking' | 'feedback' | 'submitting-feedback' | 'thanks'
 
 interface Props {
     cardId: string
@@ -34,6 +35,22 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
     const { overview } = useRainCardOverview()
     const { address: smartWalletAddress } = useWallet()
     const { signSpend } = useSignSpendBundle()
+    const { funding, revoke } = useRainFunding({ enabled: isOpen })
+
+    // Rain's operator allowance is per wallet, not per card, so removing it
+    // would stop every other card too. Offer it only on a FRESH card list that
+    // shows no other non-cancelled card — a failed or stale read means "do not
+    // offer". Read outside react-query: refreshing the cached overview here
+    // would unmount this modal (see handleClose).
+    const shouldOfferRevoke = async (): Promise<boolean> => {
+        if (funding?.allowance === '0') return false
+        try {
+            const fresh = await rainApi.getOverview()
+            return !fresh.cards.some((c) => c.id !== cardId && c.status !== 'CANCELED')
+        } catch {
+            return false
+        }
+    }
 
     useEffect(() => {
         if (!isOpen) {
@@ -93,7 +110,9 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
             await rainApi.cancelCard(cardId, { verifiedWithdrawal })
             posthog.capture(ANALYTICS_EVENTS.CARD_CANCEL_CONFIRMED)
             setCanceled(true)
-            setPhase('feedback')
+            // The card is already cancelled. Removing Rain's permission is a
+            // separate, optional onchain step — it can never undo the cancel.
+            setPhase((await shouldOfferRevoke()) ? 'revoke' : 'feedback')
         } catch (e) {
             let message = e instanceof Error ? e.message : t('cancel.failed')
             if (e instanceof InsufficientSpendableError) {
@@ -105,6 +124,23 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
             posthog.capture(ANALYTICS_EVENTS.CARD_CANCEL_FAILED, { error_message: message })
             setPhase('confirm')
         }
+    }
+
+    const runRevoke = async () => {
+        setPhase('revoking')
+        setError(null)
+        // A replacement card may have been issued while this step was open.
+        if (!(await shouldOfferRevoke())) {
+            setPhase('feedback')
+            return
+        }
+        const result = await revoke()
+        if (result.ok) {
+            setPhase('feedback')
+            return
+        }
+        setError(t('funding.revokeFailed'))
+        setPhase('revoke')
     }
 
     const submitFeedback = async () => {
@@ -139,20 +175,42 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
     }
 
     const isConfirm = phase === 'confirm' || phase === 'canceling'
+    const isRevoke = phase === 'revoke' || phase === 'revoking'
     const isFeedback = phase === 'feedback' || phase === 'submitting-feedback'
+    const isBusy = phase === 'canceling' || phase === 'revoking' || phase === 'submitting-feedback'
 
     return (
         <ActionModal
             visible={isOpen}
             onClose={handleClose}
-            preventClose={phase === 'canceling' || phase === 'submitting-feedback'}
-            hideModalCloseButton={phase === 'canceling' || phase === 'submitting-feedback'}
+            preventClose={isBusy}
+            hideModalCloseButton={isBusy}
             tone={isConfirm ? 'error' : 'attention'}
-            icon={isConfirm ? 'alert' : isFeedback ? 'alert-filled' : undefined}
-            title={t(isConfirm ? 'cancel.title' : isFeedback ? 'cancel.canceledTitle' : 'cancel.thanksTitle')}
-            description={t(isConfirm ? 'cancel.body' : isFeedback ? 'cancel.canceledBody' : 'cancel.thanksBody')}
+            icon={isConfirm ? 'alert' : isRevoke || isFeedback ? 'alert-filled' : undefined}
+            title={t(
+                isConfirm
+                    ? 'cancel.title'
+                    : isRevoke
+                      ? 'funding.revokeTitle'
+                      : isFeedback
+                        ? 'cancel.canceledTitle'
+                        : 'cancel.thanksTitle'
+            )}
+            description={t(
+                isConfirm
+                    ? 'cancel.body'
+                    : isRevoke
+                      ? 'funding.revokeBody'
+                      : isFeedback
+                        ? 'cancel.canceledBody'
+                        : 'cancel.thanksBody'
+            )}
             content={
-                isConfirm ? (
+                isRevoke ? (
+                    error ? (
+                        <Callout priority="error">{error}</Callout>
+                    ) : undefined
+                ) : isConfirm ? (
                     // visual-qa verdict: cancel keeps the slide friction — a
                     // terminal money action commits only at full travel.
                     <>
@@ -179,33 +237,49 @@ const CancelCardModal: FC<Props> = ({ cardId, isOpen, onClose }) => {
                 ) : undefined
             }
             ctas={
-                isFeedback
+                isRevoke
                     ? [
                           {
-                              text: t('cancel.submit'),
+                              text: t(phase === 'revoking' ? 'funding.revokeWorking' : 'funding.revokeCta'),
                               variant: 'primary',
-                              onClick: submitFeedback,
-                              loading: phase === 'submitting-feedback',
-                              disabled: phase === 'submitting-feedback',
+                              onClick: runRevoke,
+                              loading: phase === 'revoking',
+                              disabled: phase === 'revoking',
+                          },
+                          {
+                              text: t('funding.revokeSkip'),
+                              variant: 'stroke',
+                              onClick: () => setPhase('feedback'),
+                              disabled: phase === 'revoking',
                           },
                       ]
-                    : phase === 'thanks'
+                    : isFeedback
                       ? [
                             {
-                                text: tCommon('close'),
+                                text: t('cancel.submit'),
                                 variant: 'primary',
-                                onClick: handleClose,
+                                onClick: submitFeedback,
+                                loading: phase === 'submitting-feedback',
+                                disabled: phase === 'submitting-feedback',
                             },
                         ]
-                      : [
-                            {
-                                text: t('cancel.keepCard'),
-                                variant: 'stroke',
-                                className: 'w-full',
-                                onClick: handleClose,
-                                disabled: phase === 'canceling',
-                            },
-                        ]
+                      : phase === 'thanks'
+                        ? [
+                              {
+                                  text: tCommon('close'),
+                                  variant: 'primary',
+                                  onClick: handleClose,
+                              },
+                          ]
+                        : [
+                              {
+                                  text: t('cancel.keepCard'),
+                                  variant: 'stroke',
+                                  className: 'w-full',
+                                  onClick: handleClose,
+                                  disabled: phase === 'canceling',
+                              },
+                          ]
             }
         />
     )

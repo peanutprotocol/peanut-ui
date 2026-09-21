@@ -127,6 +127,11 @@ jest.mock('@/context/kernelClient.context', () => ({
 import { createKernelAccount } from '@zerodev/sdk'
 import { useGrantSessionKey } from '../useGrantSessionKey'
 
+/** The approval the backend received — the only one that ever gets replayed. */
+const storedApproval = (): string | undefined =>
+    (mockSubmitWithdrawSessionApproval.mock.calls[0]?.[0] as { serializedApproval?: string } | undefined)
+        ?.serializedApproval
+
 describe('useGrantSessionKey — serialized approval binds to the v0.0.3 validator', () => {
     beforeEach(() => {
         jest.clearAllMocks()
@@ -143,6 +148,7 @@ describe('useGrantSessionKey — serialized approval binds to the v0.0.3 validat
         )
         mockGetSessionKeyAddress.mockResolvedValue({ address: SESSION_KEY })
         mockGetPatchedSudoValidator.mockResolvedValue(mockPatchedValidator)
+        mockRefetch.mockResolvedValue({ isSuccess: true })
         mockOverview = {
             status: { contractAddress: COLLATERAL_PROXY, coordinatorAddress: COORDINATOR },
             cards: [{ id: 'card-1', status: 'ACTIVE' }],
@@ -168,12 +174,11 @@ describe('useGrantSessionKey — serialized approval binds to the v0.0.3 validat
         mockClientSudoValidatorAddress = V003_VALIDATOR
         const { result } = renderHook(() => useGrantSessionKey())
 
-        let serialized: string | undefined
         await act(async () => {
-            const r = await result.current.serializeGrant()
-            if (r.ok) serialized = r.serialized
+            await result.current.grant()
         })
 
+        const serialized = storedApproval()
         expect(serialized).toBe(`permission:sudo=${V003_VALIDATOR}`)
         expect(serialized).not.toContain(V002_VALIDATOR)
         // Resolved via getPatchedSudoValidator, not the client's plugin manager.
@@ -186,12 +191,11 @@ describe('useGrantSessionKey — serialized approval binds to the v0.0.3 validat
         mockClientSudoValidatorAddress = V002_VALIDATOR
         const { result } = renderHook(() => useGrantSessionKey())
 
-        let serialized: string | undefined
         await act(async () => {
-            const r = await result.current.serializeGrant()
-            if (r.ok) serialized = r.serialized
+            await result.current.grant()
         })
 
+        const serialized = storedApproval()
         expect(serialized).toBe(`permission:sudo=${V003_VALIDATOR}`)
         expect(serialized).not.toContain(V002_VALIDATOR)
         expect(mockGetPatchedSudoValidator).toHaveBeenCalledTimes(1)

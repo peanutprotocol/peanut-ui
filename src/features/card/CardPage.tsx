@@ -35,6 +35,7 @@ export const CardPage: FC = () => {
         isIssuing,
         geoBlocked,
         pendingResidenceBlocked,
+        requiresFundingApproval,
         handleApply,
         handleConfirmCountry,
         handleAcceptTerms,
@@ -122,6 +123,7 @@ export const CardPage: FC = () => {
             return (
                 <CardTermsScreen
                     isUsResident={pendingTerms.isUsResident}
+                    showFundingNotice={requiresFundingApproval}
                     onAccept={handleAcceptTerms}
                     onPrev={() => setPendingTerms(null)}
                     submitError={applyError}

@@ -50,7 +50,47 @@ test('an existing holder can manage their card even with a prohibited residence'
     await page.goto('/card?__fixture=card-holder')
     await expect(page.getByText('Card management', { exact: true })).toBeVisible()
     await expect(page.getByText("Cards aren't available in your region yet")).toHaveCount(0)
+    // card payments already enabled: no funding callout
+    await expect(page.getByTestId('enable-card-payments')).toHaveCount(0)
     await shot(page, 'holder')
+})
+
+test('an existing holder without the Rain approval is asked to enable card payments', async ({ page }) => {
+    await page.goto('/card?__fixture=card-funding-needed')
+    await expect(page.getByTestId('enable-card-payments')).toBeVisible()
+    await expect(page.getByText('Card management', { exact: true })).toBeVisible()
+    await shot(page, 'funding-needed')
+})
+
+test('an unreadable funding status shows a retry and keeps card management', async ({ page }) => {
+    await page.goto('/card?__fixture=card-funding-error')
+    await expect(page.getByTestId('card-funding-error')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Retry', exact: true })).toBeVisible()
+    await expect(page.getByText('Card management', { exact: true })).toBeVisible()
+    await shot(page, 'funding-error')
+})
+
+test('re-issuing a card explains the Rain wallet permission on the terms step', async ({ page }) => {
+    await page.goto('/card?__fixture=card-reissue')
+    await page.getByRole('button', { name: 'Get your card', exact: true }).click()
+    await expect(page.getByText('Card Terms', { exact: true })).toBeVisible()
+    await expect(page.getByText(/Approve Rain, our card issuer, to take USDC from your wallet/)).toBeVisible()
+    await shot(page, 'reissue-terms')
+})
+
+test('cancelling the last card offers to remove the Rain permission afterwards', async ({ page }) => {
+    await page.goto('/card?__fixture=card-funding-enabled')
+    await page.getByText('Cancel card', { exact: true }).click()
+    // the slide handle takes arrow keys, so the confirm is deterministic
+    const handle = page.getByRole('button', { name: 'Slide to Cancel', exact: true })
+    await handle.focus()
+    const revokeTitle = page.getByText("Remove Rain's permission", { exact: true })
+    for (let press = 0; press < 30 && !(await revokeTitle.isVisible()); press++) {
+        await handle.press('ArrowRight').catch(() => {})
+    }
+    await expect(revokeTitle).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Not now', exact: true })).toBeVisible()
+    await shot(page, 'cancel-revoke')
 })
 
 // Guests have no fixture session; stub the API at the network layer so the

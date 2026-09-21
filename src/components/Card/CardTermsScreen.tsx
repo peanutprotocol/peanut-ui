@@ -6,12 +6,15 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Checkbox } from '@/components/0_Bruddle/Checkbox'
 import { toMarketingLocale } from '@/i18n/localeBridge'
 import type { Locale as MarketingLocale } from '@/i18n/types'
 
 interface Props {
     isUsResident: boolean
+    /** Continue will ask for Rain's wallet permission (re-issue path). */
+    showFundingNotice?: boolean
     onAccept: () => void | Promise<void>
     onPrev?: () => void
     submitError?: string | null
@@ -44,7 +47,7 @@ const ExternalLink: FC<{ href: string; children: ReactNode }> = ({ href, childre
     </a>
 )
 
-const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitError }) => {
+const CardTermsScreen: FC<Props> = ({ isUsResident, showFundingNotice, onAccept, onPrev, submitError }) => {
     const t = useTranslations('card.terms')
     const tCard = useTranslations('card')
     const tCommon = useTranslations('common')
@@ -131,6 +134,14 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
                     </li>
                 ))}
             </ul>
+
+            {/* Continue opens a passkey prompt for Rain's wallet permission —
+                say what it grants before the prompt appears. */}
+            {showFundingNotice && (
+                <Callout priority="info" title={tCard('funding.title')}>
+                    {tCard('funding.description')}
+                </Callout>
+            )}
 
             {submitError && <p className="text-body-s text-foreground-error">{submitError}</p>}
 

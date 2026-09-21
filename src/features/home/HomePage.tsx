@@ -3,7 +3,7 @@
 import PageContainer from '@/components/0_Bruddle/PageContainer'
 import Loading from '@/components/Global/Loading'
 import ActivationCTAs from '@/components/Home/ActivationCTAs'
-import EnableAutoBalanceBanner from '@/components/Home/EnableAutoBalanceBanner'
+import EnableCardPaymentsBanner from '@/components/Card/EnableCardPaymentsBanner'
 import HomeCarouselCTA from '@/components/Home/HomeCarouselCTA'
 import HomeHistory from '@/components/Home/HomeHistory'
 import PendingVerificationTasks from '@/components/Home/PendingVerificationTasks'
@@ -54,7 +54,7 @@ export function HomePage() {
                     onToggleVisibility={toggleBalanceVisibility}
                 />
                 <div className="flex flex-col gap-2">
-                    <EnableAutoBalanceBanner />
+                    <EnableCardPaymentsBanner />
                     <PendingVerificationTasks dismissible />
                     {isActivated ? (
                         <HomeCarouselCTA />
