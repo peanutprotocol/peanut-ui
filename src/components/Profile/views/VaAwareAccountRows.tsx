@@ -10,13 +10,11 @@ import { DEPOSIT_RAIL_ORDER, DEPOSIT_RAILS } from '@/features/deposit-accounts/r
 import { canShare, isHeld } from '@/features/deposit-accounts/resolveScreen'
 import { useDepositAccountCopy } from '@/features/deposit-accounts/useDepositAccountCopy'
 import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccounts'
-import type { BridgeLimits, MantecaLimit } from '@/interfaces/interfaces'
 import { withReturnTo } from '@/utils/return-to.utils'
 import { dedupeHeldBankRows, type UnlockRow } from '@/utils/unlock-payments.utils'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { bankListItems } from './bankListItems'
-import { limitSummariesForRows, MethodLimits } from './MethodLimits'
 
 /**
  * The two sections, with the user's own accounts in the first one. Mounted
@@ -27,25 +25,19 @@ import { limitSummariesForRows, MethodLimits } from './MethodLimits'
  * section under a heading that names account numbers is a promise of something
  * that is not there.
  *
- * Three account facts are kept apart here. HELD (any account that exists,
+ * Two account facts are kept apart here. HELD (any account that exists,
  * revoked included) decides which account rows show. ACTIVE decides which
- * bank rows an account row replaces. The limits are read from every bank row,
- * replaced or not: hiding a duplicate row must not hide its limit.
+ * bank rows an account row replaces. Per-corridor limits are not shown here
+ * at all — each row states its own in its details drawer (2026-09-21).
  */
 export default function VaAwareAccountRows({
     bankRows,
     onRowClick,
     isKycDegraded,
-    mantecaLimits,
-    bridgeLimits,
-    locale,
 }: {
     bankRows: UnlockRow[]
     onRowClick: (row: UnlockRow) => void
     isKycDegraded: boolean
-    mantecaLimits: MantecaLimit[] | null
-    bridgeLimits: BridgeLimits | null
-    locale: string
 }) {
     const { accounts, gates, isLoading, isError, refetch } = useDepositAccounts()
     const { t, railName } = useDepositAccountCopy()
@@ -101,10 +93,6 @@ export default function VaAwareAccountRows({
                 <ListGroup>
                     {bankListItems(dedupeHeldBankRows(bankRows, activeCurrencies), onRowClick, isKycDegraded, tRows)}
                 </ListGroup>
-                <MethodLimits
-                    noLimit={false}
-                    summaries={limitSummariesForRows(bankRows, mantecaLimits, bridgeLimits, locale)}
-                />
             </Section>
         </>
     )
