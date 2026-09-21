@@ -192,7 +192,7 @@ export const ToastProvider = ({ children }: { children: React.ReactNode }) => {
                         toasts.some((t) => t.raised) ? RAISED_BOTTOM : NORMAL_BOTTOM
                     )}
                 >
-                    {rendererWanted && <ToastStack toasts={toasts} onShow={handleToastShown} />}
+                    {rendererWanted && <ToastStack toasts={toasts} dismiss={dismiss} onShow={handleToastShown} />}
                 </div>
                 {children}
             </ToastContext.Provider>

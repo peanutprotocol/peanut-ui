@@ -11,7 +11,7 @@ import type { ToastMessage } from './Toast'
  * toast is shown — the marketing site never shows one, so it never pays.
  */
 
-const Toast: React.FC<ToastMessage & { onShow?: (id: ToastMessage['id']) => void }> = ({
+const Toast: React.FC<ToastMessage & { onDismiss: () => void; onShow?: (id: ToastMessage['id']) => void }> = ({
     id,
     type = 'info',
     message,
@@ -19,6 +19,7 @@ const Toast: React.FC<ToastMessage & { onShow?: (id: ToastMessage['id']) => void
     className,
     hideIcon,
     duration,
+    onDismiss,
     onShow,
 }) => {
     const reduceMotion = useReducedMotion()
@@ -51,6 +52,7 @@ const Toast: React.FC<ToastMessage & { onShow?: (id: ToastMessage['id']) => void
             <Callout
                 variant="floating"
                 priority={type}
+                onDismiss={onDismiss}
                 className={className}
                 // a 'persistent' toast has no timer to draw — only a numeric
                 // duration gets the countdown bar
@@ -68,9 +70,11 @@ const Toast: React.FC<ToastMessage & { onShow?: (id: ToastMessage['id']) => void
 
 export default function ToastStack({
     toasts,
+    dismiss,
     onShow,
 }: {
     toasts: ToastMessage[]
+    dismiss: (id: ToastMessage['id']) => void
     /** Fired per toast once it is on screen, so the provider can start that
      *  toast's lifetime from the moment it can actually be read. */
     onShow?: (id: ToastMessage['id']) => void
@@ -78,7 +82,7 @@ export default function ToastStack({
     return (
         <AnimatePresence mode="sync">
             {toasts.map((toast) => (
-                <Toast key={toast.id} {...toast} onShow={onShow} />
+                <Toast key={toast.id} {...toast} onDismiss={() => dismiss(toast.id)} onShow={onShow} />
             ))}
         </AnimatePresence>
     )
