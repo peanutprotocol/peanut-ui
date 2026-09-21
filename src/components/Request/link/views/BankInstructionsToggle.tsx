@@ -63,8 +63,11 @@ export function BankInstructionsToggle({
     // The copy names the actual tradeoff at the toggle's current position,
     // not a generic explanation of what the toggle does: ON reads as a
     // privacy disclosure (Slava, 2026-09-18). OFF says the details stay
-    // private and nothing more: the pay screen offers a bank method either way,
-    // so "only Peanut and crypto" was untrue.
+    // private and that a payer can still pay with Peanut or crypto. The pay
+    // screen does list a generic bank method either way, which funds the
+    // payer's own Peanut balance; the copy deliberately leaves that out (Hugo,
+    // 2026-09-21) — every payment ends up in Peanut, so naming the payer's own
+    // bank only confused the requester.
     const title = checked ? t('bankInstructions.title') : t('bankInstructions.titleOff')
     const description = checked ? (
         <>
