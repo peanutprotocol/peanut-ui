@@ -3,7 +3,7 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useAuth } from '@/context/authContext'
 import { apiFetch } from '@/utils/api-fetch'
-import { useOwnAccountIdentity } from './useOwnAccountIdentity'
+import { useOwnAccountIdentity } from '../useOwnAccountIdentity'
 
 jest.mock('@/context/authContext', () => ({ useAuth: jest.fn() }))
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: jest.fn() }))
