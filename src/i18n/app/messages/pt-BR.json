@@ -2085,7 +2085,7 @@
         "drawerTitle": "Detalhes da transação",
         "officialReceipt": {
             "issuedBy": "Emitido por:",
-            "reference": "Referência",
+            "reference": "Referência do recibo",
             "issuedOn": "Emitido em",
             "footer": "Comprovante da Peanut · peanut.me",
             "pdf": {

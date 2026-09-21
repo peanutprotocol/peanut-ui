@@ -2085,7 +2085,7 @@
         "drawerTitle": "Transaction details",
         "officialReceipt": {
             "issuedBy": "Issued by:",
-            "reference": "Reference",
+            "reference": "Receipt reference",
             "issuedOn": "Issued on",
             "footer": "Receipt from Peanut · peanut.me",
             "pdf": {
