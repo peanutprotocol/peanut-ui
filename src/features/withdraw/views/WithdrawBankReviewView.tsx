@@ -101,9 +101,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     const isNonEuroSepa = isNonEuroSepaCountry(nonEuroCurrency)
 
     const getBicAndRoutingNumber = () => {
-        if (bankAccount.type === AccountType.IBAN) {
-            return bankAccount.bic?.toUpperCase() ?? 'N/A'
-        } else if (bankAccount.type === AccountType.US) {
+        if (bankAccount.type === AccountType.US) {
             return bankAccount.routingNumber?.toUpperCase() ?? 'N/A'
         } else if (bankAccount.type === AccountType.CLABE) {
             return bankAccount.identifier?.toUpperCase() ?? 'N/A'
@@ -148,7 +146,13 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                                     : '' /* fallback to empty string to avoid runtime error */
                             }
                         />
-                        <PaymentInfoRow label={t('bank.bic')} value={getBicAndRoutingNumber()} />
+                        {/* The form no longer asks for a BIC, so a new euro
+                            account has none. Show the row only for the saved
+                            accounts that still carry one — an empty "N/A" row
+                            tells the user nothing. */}
+                        {bankAccount.bic && (
+                            <PaymentInfoRow label={t('bank.bic')} value={bankAccount.bic.toUpperCase()} />
+                        )}
                     </>
                 ) : bankAccount?.type === AccountType.CLABE ? (
                     <PaymentInfoRow label={t('bank.clabe')} value={bankAccount?.identifier.toUpperCase()} />
