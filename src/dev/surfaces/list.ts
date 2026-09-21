@@ -18,6 +18,9 @@ export type SurfaceMeta = {
      *  surfaces that mount closed and open on an in-surface action. The spec
      *  asserts a dialog is open before capturing. */
     shotClick?: string
+    /** Stable test id for a translated trigger. Prefer this when its accessible
+     *  name changes with the locale under capture. */
+    shotClickTestId?: string
 }
 
 export const SURFACE_META: Record<string, SurfaceMeta> = {
@@ -210,7 +213,7 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '88-f-request-bank-currency': {
         name: 'Request link — bank currency chooser',
         path: 'features/payments/flows/contribute-pot/components/BankTransferChooserDrawer.tsx',
-        shotClick: 'Pay by bank transfer',
+        shotClickTestId: 'bank-transfer-chooser',
     },
     '70-d-activationctas-outbound': {
         name: 'ActivationCTAs (outbound)',

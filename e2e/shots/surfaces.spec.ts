@@ -94,8 +94,11 @@ for (const [id, surface] of Object.entries(SURFACE_META)) {
         // A staged surface mounts closed and opens on an in-surface action —
         // click it and prove the dialog opened, or the shot silently reviews
         // the wrong UI.
-        if (surface.shotClick) {
-            await page.getByRole('button', { name: surface.shotClick }).click()
+        if (surface.shotClick || surface.shotClickTestId) {
+            const trigger = surface.shotClickTestId
+                ? page.getByTestId(surface.shotClickTestId)
+                : page.getByRole('button', { name: surface.shotClick })
+            await trigger.click()
             await expect(page.getByRole('dialog')).toBeVisible()
         }
 
