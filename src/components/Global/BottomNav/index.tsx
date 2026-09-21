@@ -166,7 +166,6 @@ export const BottomNav = () => {
 
     const selectedTab = isSupportModalOpen ? 'support' : activeTab
     const activeBox = selectedTab ? boxes[selectedTab] : undefined
-    const pressOrigin = (pressedTab ? boxes[pressedTab] : undefined) ?? activeBox
 
     const clampX = (x: number) => {
         const first = boxes[TAB_ORDER[0]]
@@ -244,14 +243,10 @@ export const BottomNav = () => {
                 // Hard offset shadow (contrast study "Hard offset shadow"),
                 // carried by the bar AND the QR circle so the pair reads as one
                 // plane. shadow-4 is the DS token for it (Kush's ruling).
-                className={`relative flex flex-1 items-center justify-between rounded-full border border-border-default bg-background-page shadow-4 motion-safe:transition-transform ${
-                    pressedTab
-                        ? 'motion-safe:scale-x-[0.985] motion-safe:scale-y-[0.96] motion-safe:duration-instant motion-safe:ease-out'
-                        : 'motion-safe:scale-100 motion-safe:duration-nav-pop motion-safe:ease-nav-pop'
-                }`}
-                style={{
-                    transformOrigin: pressOrigin ? `${pressOrigin.left + pressOrigin.width / 2}px center` : undefined,
-                }}
+                // press feedback lives on the tapped icon only (iconPopClass) —
+                // the bar itself stays still (kush ruling 2026-09-21, reverting
+                // the whole-bar squash from 78e1848fb)
+                className="relative flex flex-1 items-center justify-between rounded-full border border-border-default bg-background-page shadow-4"
             >
                 <Link
                     href="/home"

@@ -248,14 +248,12 @@ describe('BottomNav support selection and container response', () => {
         expect(screen.queryByTestId('bottom-nav-pill')).not.toBeInTheDocument()
     })
 
-    it('responds to pressing the selected Home pill and restores the container on cancellation', () => {
+    it('the bar itself never squashes on press — feedback is the icon pop only', () => {
         render(<BottomNav />)
         const pill = screen.getByTestId('bottom-nav-pill')
         const bar = pill.parentElement!
         fireEvent.pointerDown(pill, { pointerId: 1, clientX: 10 })
-        expect(bar.className).toContain('motion-safe:scale-y-[0.96]')
-        fireEvent.pointerCancel(pill, { pointerId: 1, clientX: 10 })
-        expect(bar.className).not.toContain('motion-safe:scale-y-[0.96]')
-        expect(bar.className).toContain('motion-safe:duration-nav-pop')
+        expect(bar.className).not.toMatch(/scale-/)
+        expect(bar.getAttribute('style') ?? '').not.toContain('transform-origin')
     })
 })
