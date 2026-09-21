@@ -76,7 +76,7 @@ export function BankInstructionsToggle({
 
     return (
         <ListItem
-            position="single"
+            position="solo"
             className="w-full"
             // ListItem truncates a string title, and the es/pt titles run past
             // one line at 375px. A node title wraps.

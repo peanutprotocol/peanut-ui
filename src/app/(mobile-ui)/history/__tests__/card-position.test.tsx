@@ -86,6 +86,6 @@ describe('HistoryPage card corners per date group', () => {
     it('closes each group with last and reopens the next with first at the boundary', () => {
         render(<HistoryPage />)
         const positions = mockTransactionCard.mock.calls.map(([props]) => props.position)
-        expect(positions).toEqual(['first', 'last', 'first', 'last'])
+        expect(positions).toEqual(['top', 'bottom', 'top', 'bottom'])
     })
 })

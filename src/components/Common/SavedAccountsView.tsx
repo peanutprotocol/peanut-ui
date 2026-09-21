@@ -79,7 +79,7 @@ export default function SavedAccountsView({
                                 />
                             )}
                             <ListItem
-                                position="single"
+                                position="solo"
                                 leading={<IconBubble icon="bank" size="s" color="gray" />}
                                 // a ReactNode title wraps; a bare string is cut to one
                                 // line, and the pt-BR label does not fit at 375
@@ -99,7 +99,7 @@ export default function SavedAccountsView({
                                 />
                             )}
                             <ListItem
-                                position="single"
+                                position="solo"
                                 leading={<IconBubble icon="credit-card" size="s" color="blue" />}
                                 title={tWithdraw('withdrawToCrypto')}
                                 body={tSend('methods.exchangeOrWalletDescription')}
@@ -163,7 +163,7 @@ export function SavedAccountsMapping({
                     key={account.id}
                     title={destinationLabel(destination)}
                     body={destination.identifier}
-                    position="single"
+                    position="solo"
                     onClick={() => onItemClick(account, path)}
                     className="p-4 py-2"
                     chevron={!onItemEdit}

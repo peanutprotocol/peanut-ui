@@ -237,7 +237,7 @@ export const ProfileEditView = () => {
                 )}
                 {!!user?.user.fullName?.trim() && (
                     <ListItem
-                        position="single"
+                        position="solo"
                         leading={<Icon name="eye" size={24} />}
                         title={tMenu('showMyFullName')}
                         trailing={<ShowNameToggle checked={showFullName} onChange={setShowFullName} />}

@@ -83,7 +83,7 @@ export function ReceiptDetailsCard({
     const feeDisplay = transaction.fee !== undefined ? formatAmount(transaction.fee as number) : 'N/A'
 
     return (
-        <Card position={shouldShowQrShare ? 'first' : 'single'} className={receiptDataRowCardClassName}>
+        <Card position={shouldShowQrShare ? 'top' : 'solo'} className={receiptDataRowCardClassName}>
             {/* Request-pot progress (board): first row of the card. */}
             <RequestPotProgressRow transaction={transaction} />
 

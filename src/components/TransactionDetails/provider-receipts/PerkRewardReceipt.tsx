@@ -69,7 +69,7 @@ export function PerkRewardReceipt({
                 stripped because PerkUsage uses it for idempotency (purchase-
                 listener.ts) and shouldn't surface to users. Backend follow-up:
                 add requestPaymentUuid column so reason can be clean. */}
-            <Card position="single" className={receiptDataRowCardClassName}>
+            <Card position="solo" className={receiptDataRowCardClassName}>
                 <DataRow label={t('perk.received')} value={formatDate(new Date(transaction.date))} />
                 <DataRow
                     label={t('rows.reason')}

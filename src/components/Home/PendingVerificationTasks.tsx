@@ -187,7 +187,7 @@ export default function PendingVerificationTasks({ dismissible = false }: { dism
                             const isHosted = task.kind === 'bridge-hosted'
                             const deadline = formatEffectiveDate(task.effectiveDate)
                             return (
-                                <Card key={task.key} position="single" className="embla__slide relative p-0">
+                                <Card key={task.key} position="solo" className="embla__slide relative p-0">
                                     <div className="flex flex-col items-center gap-2 px-4 py-4 text-center">
                                         {dismissible && !!task.effectiveDate && (
                                             <button

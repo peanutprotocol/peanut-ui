@@ -44,7 +44,7 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
             aria-pressed={isSelected}
         >
             <Card
-                position="single"
+                position="solo"
                 className={twMerge(
                     'w-full !overflow-visible border-border-default p-4',
                     isSelected && !isComingSoon ? 'bg-action-primary' : 'bg-background-default',

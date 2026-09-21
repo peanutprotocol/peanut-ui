@@ -47,7 +47,7 @@ const CardLimitsScreen: FC<Props> = ({ cardId, onPrev }) => {
             <Section title={t('subtitle')}>
                 {isLoading ? (
                     <ListItem
-                        position="single"
+                        position="solo"
                         title={<span className="h-5 w-32 animate-pulse rounded bg-foreground-primary/10" />}
                         trailing={<span className="h-5 w-16 animate-pulse rounded bg-foreground-primary/10" />}
                         chevron
@@ -58,7 +58,7 @@ const CardLimitsScreen: FC<Props> = ({ cardId, onPrev }) => {
                     </Callout>
                 ) : (
                     <ListItem
-                        position="single"
+                        position="solo"
                         title={label}
                         trailing={
                             <span className="text-body-m-semibold">

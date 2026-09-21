@@ -94,7 +94,7 @@ export function PayByBankTransferDrawer({
     return (
         <>
             <ListItem
-                position="single"
+                position="solo"
                 title={
                     <div className="flex flex-wrap items-center gap-2">
                         {title}

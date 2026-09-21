@@ -110,7 +110,7 @@ const LimitsPageView = () => {
                                 className="size-8 rounded-full object-cover"
                             />
                         }
-                        position="single"
+                        position="solo"
                         title={restOfWorldName}
                         onClick={() => {}}
                         disabled={true}
@@ -123,7 +123,7 @@ const LimitsPageView = () => {
             {activeCard && (
                 <Section title={t('cardLimits.title')}>
                     <ListItem
-                        position="single"
+                        position="solo"
                         leading={<Icon name="credit-card" size={24} />}
                         title={t('cardLimits.manage')}
                         body={<div>{t('cardLimits.description')}</div>}

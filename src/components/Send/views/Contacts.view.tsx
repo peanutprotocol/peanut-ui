@@ -174,7 +174,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                     <div className="space-y-2">
                         <h2 className="text-body-m-semibold">{t('contacts.exactUsername')}</h2>
                         <ListItem
-                            position="single"
+                            position="solo"
                             title={t('contacts.usernameFound', { username: exactUsername })}
                             body={t('contacts.continueToSend')}
                             leading={<IconBubble icon="user" size="s" color="green" />}
@@ -201,11 +201,11 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                                             <ListItem
                                                 position={
                                                     contacts.length === 1
-                                                        ? 'single'
+                                                        ? 'solo'
                                                         : index === 0
-                                                          ? 'first'
+                                                          ? 'top'
                                                           : index === contacts.length - 1
-                                                            ? 'last'
+                                                            ? 'bottom'
                                                             : 'middle'
                                                 }
                                                 key={contact.userId}

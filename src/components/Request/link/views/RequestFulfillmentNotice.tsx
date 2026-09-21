@@ -63,7 +63,7 @@ export function RequestFulfillmentNotice({ requestId, bankPayable }: { requestId
     const owesNothing = state === 'paid' || settled
 
     return (
-        <Card position="single" className="w-full px-4 py-0">
+        <Card position="solo" className="w-full px-4 py-0">
             <DataRow
                 label={t('paidByBank.rowLabel')}
                 value={value}

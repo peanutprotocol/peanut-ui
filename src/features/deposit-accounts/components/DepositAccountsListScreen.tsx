@@ -571,7 +571,7 @@ export function DepositAccountsListScreen({
                                     )}
                                 />
                             }
-                            position={countriesExpanded ? 'first' : 'single'}
+                            position={countriesExpanded ? 'top' : 'solo'}
                             aria-expanded={countriesExpanded}
                             onClick={() => setCountriesOpen(!countriesExpanded)}
                             data-testid="other-countries-toggle"

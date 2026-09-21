@@ -117,7 +117,7 @@ export function RequestBankInstructions({
             {/* Amount and reference share one card: they are the two values the
                 payer types into their bank, and two cards read as two tasks. */}
             <Section title={t('bankTransfer.transferSection')}>
-                <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">
+                <Card position="solo" className="divide-y divide-dashed divide-border-default px-4 py-0">
                     {amountRow && (
                         <DataRow
                             label={t('bankTransfer.amountLabel')}

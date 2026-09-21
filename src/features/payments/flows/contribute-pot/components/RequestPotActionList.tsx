@@ -346,7 +346,7 @@ export function RequestPotActionList({
                     return (
                         <ListItem
                             key={method.id}
-                            position="single"
+                            position="solo"
                             body={<div className="text-body-xs">{methodLabels(method).description}</div>}
                             title={
                                 <div className="flex items-center gap-2">

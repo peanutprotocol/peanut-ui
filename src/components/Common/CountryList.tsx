@@ -193,7 +193,7 @@ export const CountryList = ({
                                     </div>
                                 }
                                 onClick={() => onCryptoClick(flow!)}
-                                position={'single'}
+                                position={'solo'}
                                 chevron
                                 leading={<IconBubble icon="coins" color="blue" size="s" />}
                             />
@@ -205,7 +205,7 @@ export const CountryList = ({
                                 ALL_COUNTRIES_ALPHA3_TO_ALPHA2[country.id.toUpperCase()] ?? country.id.toLowerCase()
                             const position = continuesGroup
                                 ? index === filteredCountries.length - 1
-                                    ? 'last'
+                                    ? 'bottom'
                                     : 'middle'
                                 : getCardPosition(index, filteredCountries.length)
                             const displayName = countryName(country)

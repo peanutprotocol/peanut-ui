@@ -92,7 +92,7 @@ export const BetaUpdatesCard = () => {
     }
 
     return (
-        <Card position="single" className="space-y-3 p-4">
+        <Card position="solo" className="space-y-3 p-4">
             <div className="flex items-center justify-between gap-4">
                 <div>
                     <h2 className="text-label-l text-black">{t('heading')}</h2>

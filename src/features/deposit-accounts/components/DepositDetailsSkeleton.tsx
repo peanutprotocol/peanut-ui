@@ -25,7 +25,7 @@ export function DepositDetailsSkeleton({ rows }: { rows: number }) {
     return (
         <>
             <Section title={t('details.sectionTitle')} data-testid="deposit-details-skeleton">
-                <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">
+                <Card position="solo" className="divide-y divide-dashed divide-border-default px-4 py-0">
                     {Array.from({ length: rows }).map((_, index) => (
                         <div key={index} className="flex items-center justify-between gap-3 py-3">
                             <div className={`h-4 w-24 ${pulse}`} />

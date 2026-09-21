@@ -378,7 +378,7 @@ const MethodCard = ({
     const showSoon = method.soon || soon
     return (
         <ListItem
-            position="single"
+            position="solo"
             body={<div className="text-body-xs">{method.description}</div>}
             title={
                 <div className="flex items-center gap-2">

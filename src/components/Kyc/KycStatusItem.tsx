@@ -25,7 +25,7 @@ export const isKycStatusItem = (entry: object): entry is KycHistoryEntry => {
 // drawer with more details on click. Status is sourced from the provider-agnostic
 // identityVerification read-model — no provider names, no props for status.
 export const KycStatusItem = ({
-    position = 'first',
+    position = 'top',
     className,
 }: {
     position?: CardPosition

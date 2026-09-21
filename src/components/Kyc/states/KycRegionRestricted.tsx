@@ -31,7 +31,7 @@ export const KycRegionRestricted = ({ reviewedAt, onNavigate }: { reviewedAt?: s
         <div className="space-y-4">
             <KYCStatusDrawerItem status="failed" />
 
-            <Card position="single" className="py-0">
+            <Card position="solo" className="py-0">
                 <PaymentInfoRow label={t('rejectedOn')} value={rejectedOn} hideBottomBorder />
             </Card>
 

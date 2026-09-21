@@ -231,7 +231,7 @@ const PublicProfile: React.FC<PublicProfileProps> = ({ username, isLoggedIn = fa
 
                 {/* Show create account box to guest users */}
                 {!isLoggedIn && (
-                    <Card position="single" className="flex flex-col gap-4 p-4 text-center">
+                    <Card position="solo" className="flex flex-col gap-4 p-4 text-center">
                         <div className="flex flex-col gap-2">
                             <div className="flex items-center justify-center gap-2">
                                 <Image src={HandThumbsUpV2.src} alt={t('joinPeanutAlt')} width={20} height={20} />

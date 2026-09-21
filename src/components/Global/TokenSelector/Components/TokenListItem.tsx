@@ -31,7 +31,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
     balance,
     onClick,
     isSelected,
-    position = 'single',
+    position = 'solo',
     className,
     isPopularToken = false,
     isEnabled = true,

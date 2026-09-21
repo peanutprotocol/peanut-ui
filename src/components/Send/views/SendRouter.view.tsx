@@ -192,7 +192,7 @@ export const SendRouterView = () => {
             <div className="space-y-4 w-full">
                 {/* link card per the SendLink board (17832:79996): icon bubble,
                     centered title + sub, full-width primary cta */}
-                <Card position="single" className="flex flex-col items-center gap-6 p-6">
+                <Card position="solo" className="flex flex-col items-center gap-6 p-6">
                     <div className="flex flex-col items-center gap-2">
                         <IconBubble icon="link" size="m" color="blue" />
                         <div className="space-y-1 text-center">
@@ -223,7 +223,7 @@ export const SendRouterView = () => {
                         <ListItem
                             key={option.id}
                             leading={option.identifierIcon}
-                            position="single"
+                            position="solo"
                             title={option.title}
                             body={option.description}
                             onClick={() => handleMethodClick(option.id)}

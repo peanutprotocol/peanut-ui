@@ -68,7 +68,7 @@ export const KycFailed = ({
         <div className="space-y-4">
             <KYCStatusDrawerItem status="failed" />
 
-            <Card position="single" className="py-0">
+            <Card position="solo" className="py-0">
                 <PaymentInfoRow label={t('rejectedOn')} value={rejectedOn} hideBottomBorder={!hasReason} />
                 {hasReason && <PaymentInfoRow label={t('reason')} value={t('actionMessageFailed')} hideBottomBorder />}
             </Card>
