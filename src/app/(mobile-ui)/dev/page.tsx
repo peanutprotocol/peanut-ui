@@ -28,6 +28,12 @@ const groups: { title: string; tools: DevTool[] }[] = [
                 path: '/dev/ds',
                 icon: 'docs',
             },
+            {
+                name: 'Nav header centering',
+                description: 'Should the empty trailing track collapse? Real NavHeader, 3 widths, gaps measured live',
+                path: '/dev/nav-header-centering',
+                icon: 'switch',
+            },
         ],
     },
     {
