@@ -112,10 +112,14 @@ describe('Tabs', () => {
         expect(list.className).toContain('gap-0')
 
         const [tab] = screen.getAllByRole('tab')
-        // the weld: the chip is a ::before pinned 1px outside the trigger, so it
-        // lands on the track's border instead of floating inside it
+        // the weld: the chip is a ::before pinned 1px outside the trigger at top
+        // and bottom, so it lands on the track's border instead of floating
+        // inside it. The left/right edges sit ON the trigger — a ::before that
+        // hangs over the right edge is real scrollable overflow, and it gave the
+        // row 1px of horizontal scroll whenever the last tab was active.
         expect(tab.className).toContain('before:absolute')
-        expect(tab.className).toContain('before:-inset-px')
+        expect(tab.className).toContain('before:-inset-y-px')
+        expect(tab.className).toContain('before:inset-x-0')
         expect(tab.className).toContain('before:rounded-full')
         // selection is carried by a border, never by fill alone
         expect(tab.className).toContain('data-[state=active]:before:border-border-default')
@@ -128,6 +132,16 @@ describe('Tabs', () => {
         // static: no shadow plane, no spring — those stay in BottomNav
         expect(list.className).not.toContain('shadow-')
         expect(tab.className).not.toContain('transition-transform')
+    })
+
+    // the row scrolls on ONE axis. `overflow-x: auto` forces a `visible` y to
+    // `auto` by itself, so the y must be written out or the chip's 1px vertical
+    // overhang makes the row scroll with nothing to scroll.
+    test('the track scrolls horizontally only, never vertically', () => {
+        render(<Tabs tabs={TABS} aria-label="demo" />)
+        const list = screen.getByRole('tablist')
+        expect(list.className).toContain('overflow-x-auto')
+        expect(list.className).toContain('overflow-y-hidden')
     })
 
     // size changes height, padding, the text-token PAIR and the gap — nothing
@@ -164,7 +178,8 @@ describe('Tabs', () => {
 
         // everything that must NOT vary with size
         const shared = [
-            'before:-inset-px',
+            'before:-inset-y-px',
+            'before:inset-x-0',
             'before:rounded-full',
             'data-[state=active]:before:border-border-default',
             'data-[state=active]:before:bg-background-page',

@@ -19,12 +19,16 @@ import { PILL_TINT_SELECTED_CHIP, PILL_TRACK_INVERTED } from './PillSurface'
  *
  * FLUSH, not inset (kush: "there should be no padding between the active pill
  * and the main container"). The track has NO padding, and the chip is NOT the
- * trigger's own border box — it is a `::before` pinned at `-inset-px`, exactly
- * the model `BottomNav` uses for its thumb (`absolute -top-px -bottom-px`).
- * That draws the chip 1px outside the trigger on all four sides, so its border
- * lands ON TOP of the track's border and the two read as one complete outline
- * instead of a chip floating in a box. 1px, not 2px, because the track's
- * border is 1px.
+ * trigger's own border box — it is a `::before` pinned at `inset-x-0
+ * -inset-y-px`, the model `BottomNav` uses for its thumb (`absolute -top-px
+ * -bottom-px`). That draws the chip 1px outside the trigger at top and bottom,
+ * so its border lands ON TOP of the track's border and the two read as one
+ * complete outline instead of a chip floating in a box. 1px, not 2px, because
+ * the track's border is 1px. The overhang is VERTICAL ONLY: an out-of-flow box
+ * sticking out to the right adds real scrollable overflow, and the last tab
+ * being active was enough to give the row 1px of horizontal scroll with
+ * nothing to scroll. Left and right now sit exactly on the trigger edges — the
+ * same trimmed weld the scroll clip already costs us at top and bottom.
  *
  * Why a pseudo-element and not a negative margin: a negative margin would make
  * every trigger overlap its neighbour by 2px and would spend a point of the
@@ -131,6 +135,11 @@ const triggerRing = `${focusRing} focus-visible:outline-offset-[-3px]`
 // own line beside the track's instead of one welded line — minor, ruled with
 // the scroll change.
 //
+// `overflow-y-hidden` is written out because `overflow-x: auto` forces a
+// `visible` y to `auto` on its own, and the chip's 1px vertical overhang then
+// made that y axis scrollable — the row scrolled on both axes with nothing to
+// scroll. (`clip` cannot pair with `auto`; it would compute back to `hidden`.)
+//
 // `isolate` is the lid on this row's z-indices. Every `z-10` inside it is
 // INTERNAL — the label lifting above the chip `::before`, the focus ring
 // lifting above the neighbouring trigger — and none is meant to compete with
@@ -143,7 +152,7 @@ const triggerRing = `${focusRing} focus-visible:outline-offset-[-3px]`
 // it stays under any positioned page chrome. The fix belongs here, not on the
 // one caller: raising that caller to `z-20` would leave the primitive able to
 // climb over the next piece of chrome it meets.
-const listBox = 'isolate flex items-stretch gap-0 overflow-x-auto p-0'
+const listBox = 'isolate flex items-stretch gap-0 overflow-x-auto overflow-y-hidden p-0'
 
 // the trigger is a plain flow box; the chip rides 1px outside it as `::before`.
 // The transparent resting border keeps the chip's geometry identical in both
@@ -183,7 +192,8 @@ const SIZES = {
 
 type TabsSize = keyof typeof SIZES
 
-const chip = 'before:absolute before:-inset-px before:rounded-full before:border before:border-transparent'
+const chip =
+    'before:absolute before:inset-x-0 before:-inset-y-px before:rounded-full before:border before:border-transparent'
 
 export const Tabs = ({
     tabs,
