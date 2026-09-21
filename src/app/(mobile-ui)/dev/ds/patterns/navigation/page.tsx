@@ -57,12 +57,6 @@ export default function NavigationPage() {
                                 description: 'Back button icon (rotated -90deg)',
                             },
                             {
-                                name: 'disableBackBtn',
-                                type: 'boolean',
-                                default: 'false',
-                                description: 'Disables the back button',
-                            },
-                            {
                                 name: 'hideLabel',
                                 type: 'boolean',
                                 default: 'false',
@@ -105,7 +99,6 @@ export default function NavigationPage() {
                         <NavHeader
                             hideLabel
                             onPrev={() => setFlowStep((s) => Math.max(1, s - 1))}
-                            disableBackBtn={flowStep <= 1}
                             rightElement={<span className="text-body-xs text-foreground-secondary">{flowStep}/3</span>}
                         />
                         <div className="flex items-center justify-center rounded-sm bg-background-badge-accent/20 py-8">
@@ -136,12 +129,6 @@ export default function NavigationPage() {
                                 description: 'Back button handler. If omitted, no back button shown.',
                             },
                             {
-                                name: 'disableBackBtn',
-                                type: 'boolean',
-                                default: 'false',
-                                description: 'Grays out the back button',
-                            },
-                            {
                                 name: 'rightElement',
                                 type: 'ReactNode',
                                 default: '(none)',
@@ -156,7 +143,6 @@ export default function NavigationPage() {
                         code={`<NavHeader
   hideLabel
   onPrev={() => setStep((s) => Math.max(1, s - 1))}
-  disableBackBtn={step <= 1}
   rightElement={<span className="text-body-xs text-foreground-secondary">2/3</span>}
 />`}
                     />
