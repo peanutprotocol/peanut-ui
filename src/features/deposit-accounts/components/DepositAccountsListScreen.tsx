@@ -28,7 +28,7 @@ import { parseAsStringEnum, useQueryStates } from 'nuqs'
 import { useMemo, useState } from 'react'
 import { corridorHasTopUp } from '@/features/add-money/countryRoutes'
 import { corridorsForCountry } from '../countryCorridor'
-import { depositGateView, isDepositBlock, type DepositGateView } from '../depositGate'
+import { depositGateView, isDepositBlock, offersVerification, type DepositGateView } from '../depositGate'
 import { DEFAULT_ACCOUNT_LIMIT, DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, isClaimable, topUpOnlyHref } from '../rails'
 import { isResidenceGated, RESIDENCE_GATED_CORRIDORS } from '../residenceGate'
 import { canShare, isHeld } from '../resolveScreen'
@@ -242,9 +242,9 @@ export function DepositAccountsListScreen({
             // whatever the standing account says. That way in needs no account,
             // so a row that leads to it is never a dead end.
             canTopUp(corridor) ||
-            // told nothing about this corridor, and the gate says identity:
-            // that row leads to the verification flow
-            gates[corridor]?.kind === 'needs-identity'
+            // told nothing about this corridor, and the gate names a
+            // verification step: that row leads to the flow that clears it
+            offersVerification(gates[corridor])
         )
     }
 
@@ -286,8 +286,21 @@ export function DepositAccountsListScreen({
         gate: GateState,
         view: DepositGateView
     ) => {
-        if (topUpOnlyHref(rail)) return null
         if (isLoading) return <div className="h-5 w-16 animate-pulse rounded bg-foreground-primary/10" />
+        /*
+         * A corridor nobody can hold has no ACCOUNT to report — which is why
+         * this row used to say nothing at all. But it does have a corridor, and
+         * Accounts & payments says "Available" about that same rail. Two
+         * screens disagreeing about one thing is the defect the hub exists to
+         * end, so the row says the same word, about the same fact: you can
+         * deposit on this today. It never says "Ready" — there is nothing to
+         * hand a payer — and it stays silent where the user cannot use it,
+         * because the flow behind the row states its own rule.
+         */
+        if (topUpOnlyHref(rail))
+            return canTopUp(rail.corridor) ? (
+                <StatusBadge status="custom" customText={t('list.badgeAvailable')} />
+            ) : null
         if (isResidenceGated(rail.corridor) && !account)
             return <StatusBadge status="custom" customText={t('list.badgeNotSetUp')} />
         // A claimable corridor the user has no rail for, shown because identity
@@ -298,7 +311,7 @@ export function DepositAccountsListScreen({
         // for a corridor whose rail it cannot read as well, and telling a
         // verified user to verify is both false and a dead end — the row simply
         // is not offered to them.
-        if (!account && (reasonFor(rail.corridor) !== undefined || gate.kind === 'needs-identity')) {
+        if (!account && (reasonFor(rail.corridor) !== undefined || offersVerification(gate))) {
             const reason = reasonFor(rail.corridor)
             if (reason === 'not-offered') return <StatusBadge status="custom" customText={t('list.badgeNotOffered')} />
             // the app's one "contact support" string, so the badge cannot
@@ -306,7 +319,7 @@ export function DepositAccountsListScreen({
             if (reason === 'support-required')
                 return <StatusBadge status="custom" customText={tCommon('contactSupport')} />
             // `identity-required`, and the same for a corridor the backend said
-            // nothing about whose gate reads `needs-identity`
+            // nothing about whose gate names a verification step
             return <StatusBadge status="custom" customText={t('list.badgeVerify')} />
         }
         if (!isClaimable(rail) || account?.status === 'unavailable')

@@ -45,6 +45,33 @@ export function isDepositBlock(kind: GateState['kind'] | DepositBlock): kind is 
 }
 
 /**
+ * Gate kinds where verification is a step THIS user can actually take.
+ *
+ * `needs-identity` is the obvious one and used to be the only one the rows
+ * asked about. It is not the answer a real unverified user gets: their rails
+ * come back `requires-info` with a `sumsub:identity` action on them, and the
+ * resolver answers `fixable-rejection` — a concrete action, with the
+ * provider's own sentence attached. The rows read neither, so four corridors
+ * said "Not set up" on a disabled row while the screen behind them was ready
+ * to say "Verify your identity first" and open the flow that clears it.
+ *
+ * `needs-enrollment` is deliberately absent. There the user IS verified and
+ * simply has no rail for this corridor, so sending them to verification again
+ * cannot open it — that row is correctly closed. `blocked-rejection` is absent
+ * for the opposite reason: it is terminal, and only a person can lift it.
+ */
+const OFFERS_VERIFICATION: ReadonlySet<GateState['kind']> = new Set<GateState['kind']>([
+    'needs-identity',
+    'fixable-rejection',
+    'restart-identity',
+])
+
+/** Does this gate name a verification step the user can take right now? */
+export function offersVerification(gate: GateState | undefined): boolean {
+    return !!gate && OFFERS_VERIFICATION.has(gate.kind)
+}
+
+/**
  * Gate kinds that only say "this user holds no working rail here yet".
  *
  * Two corridors are offered before the user has a rail: the tap asks the
