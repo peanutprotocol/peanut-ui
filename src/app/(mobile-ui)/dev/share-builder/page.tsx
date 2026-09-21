@@ -143,7 +143,7 @@ export default function ShareBuilderPage() {
                             <Field label="Copy" htmlFor="share-hero-copy">
                                 <BaseInput
                                     id="share-hero-copy"
-                                    variant="sm"
+                                    size="sm"
                                     value={heroText}
                                     maxLength={28}
                                     onChange={(e) => setHeroText(e.target.value)}
@@ -192,7 +192,7 @@ export default function ShareBuilderPage() {
                             <Field label={`Username (${username.length} / 12)`} htmlFor="share-username">
                                 <BaseInput
                                     id="share-username"
-                                    variant="sm"
+                                    size="sm"
                                     value={username}
                                     maxLength={20}
                                     onChange={(e) =>

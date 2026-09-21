@@ -169,7 +169,7 @@ function Harness() {
 
                 <div className="min-w-48 flex-1 sm:max-w-64">
                     <BaseInput
-                        variant="sm"
+                        size="sm"
                         value={pathInput}
                         onChange={(event) => setPathInput(event.target.value)}
                         onKeyDown={(event) => event.key === 'Enter' && go()}

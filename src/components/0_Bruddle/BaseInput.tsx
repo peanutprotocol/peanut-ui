@@ -1,10 +1,13 @@
 import { forwardRef } from 'react'
 import { twMerge } from '@/utils/tw'
 
-type BaseInputVariant = 'sm' | 'md'
+type BaseInputSize = 'sm' | 'md'
 
-interface BaseInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-    variant?: BaseInputVariant
+// the native `size` attribute (a character count on text inputs) is dropped:
+// nothing passes it, and the board names this axis size.
+interface BaseInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
+    /** board height row: sm = 40px, md (default) = 48px */
+    size?: BaseInputSize
     /** 40px leading slot per the input board */
     leftContent?: React.ReactNode
     rightContent?: React.ReactNode
@@ -15,13 +18,13 @@ interface BaseInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 const BaseInput = forwardRef<HTMLInputElement, BaseInputProps>(
-    ({ className, variant = 'md', leftContent, rightContent, state = 'default', ...props }, ref) => {
-        const variants: Record<BaseInputVariant, string> = {
+    ({ className, size = 'md', leftContent, rightContent, state = 'default', ...props }, ref) => {
+        const sizes: Record<BaseInputSize, string> = {
             sm: 'h-10 px-3',
             md: 'h-12 px-4',
         }
 
-        const c = twMerge('input', variants[variant], className)
+        const c = twMerge('input', sizes[size], className)
 
         return (
             <div className="relative w-full">

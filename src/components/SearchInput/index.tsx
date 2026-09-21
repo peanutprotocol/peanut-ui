@@ -40,7 +40,8 @@ export const SearchInput = ({
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
-                className="h-10 w-full px-10 text-body-s font-normal"
+                size="sm"
+                className="w-full px-10 text-body-s font-normal"
                 {...props}
             />
             <Icon
