@@ -105,6 +105,8 @@ const BODY_SENSITIVE_URLS: RegExp[] = [
     /\/verify-password/,
     // Auth — login, signup, password set/reset
     /\/(?:login|signup|register|set-password|reset-password|change-password)/,
+    // The user's own verified postal address — the whole body is the address
+    /\/users\/me\/verified-address(?:[/?]|$)/,
     // KYC — Bridge, Sumsub, Manteca
     /\/kyc\/(?:start|submit|update)/,
     /\/bridge\/customers/,

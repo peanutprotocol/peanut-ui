@@ -15,7 +15,11 @@ import { validateIban, validateBankAccount, validateBic } from '@/utils/bridge-a
 import { scrollClearOfBottomNav } from '@/utils/bottom-nav-clearance.utils'
 import { bicCountryDiffersFromIban } from './bicIbanCountry.utils'
 import { ISO_9362_BIC } from '@/constants/iban-bic.consts'
-import { bankCorridorFor, type BankCorridorField } from '@/components/AddWithdraw/bank-corridors'
+import {
+    bankCorridorFor,
+    corridorAcceptsAddressCountry,
+    type BankCorridorField,
+} from '@/components/AddWithdraw/bank-corridors'
 import { getBicFromIban } from '@/app/actions/ibanToBic'
 import PeanutActionDetailsCard, { type PeanutActionDetailsCardProps } from '../Global/PeanutActionDetailsCard'
 import { type Account } from '@/interfaces/interfaces'
@@ -193,13 +197,19 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
          *
          * Paying someone else clears them and the form asks as it always did.
          */
-        const ownIdentity = useOwnAccountIdentity(flow !== 'claim')
         const [isOwnAccount, setIsOwnAccount] = useState(true)
+        // The choice gates the read as well as the fill: an address is looked up
+        // for the person's own account, never for a payout to someone else.
+        const ownIdentity = useOwnAccountIdentity(flow !== 'claim', isOwnAccount)
         const canPrefill = flow !== 'claim' && (!!ownIdentity.ownerName || !!ownIdentity.address)
 
         /** Address fields this corridor asks for, and what we know for each. */
         const prefillableAddress = useMemo((): Partial<Record<FieldPath<IBankAccountDetails>, string>> => {
             if (!corridor?.needsAddress || !ownIdentity.address) return {}
+            // An address in another country is not this account's address. The
+            // provider would take it and pay out against a beneficiary who does
+            // not live there.
+            if (!corridorAcceptsAddressCountry(corridor, ownIdentity.address.countryCode)) return {}
             const { street, city, state, postalCode } = ownIdentity.address
             const fields: Partial<Record<FieldPath<IBankAccountDetails>, string>> = {
                 street: street.slice(0, STREET_ADDRESS_MAX_LENGTH),
@@ -220,6 +230,20 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
             }
         }, [ownIdentity.ownerName, prefillableAddress])
 
+        /**
+         * Did the form write the last value, rather than the user?
+         *
+         * The verified address is read over the network and can land long after
+         * the user has typed the account number. Writing it validates the fields
+         * it fills, which can make the form submittable — and the scroll below
+         * would then move the page under a thumb that is mid-tap. Only a change
+         * the user made may move the viewport.
+         */
+        const lastWriteWasPrefill = useRef(false)
+        const markUserEdit = () => {
+            lastWriteWasPrefill.current = false
+        }
+
         // What the form wrote, so unticking the box takes back exactly that and
         // nothing else.
         const writtenByPrefill = useRef<FieldPath<IBankAccountDetails>[]>([])
@@ -231,6 +255,7 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
 
         useEffect(() => {
             if (!canPrefill) return
+            lastWriteWasPrefill.current = true
             if (isOwnAccount) {
                 for (const [name, value] of Object.entries(prefillValues)) {
                     const field = name as FieldPath<IBankAccountDetails>
@@ -268,9 +293,11 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
         // The moment the form can be submitted, the button is brought clear of
         // the nav. The page moves only as far as that takes, so a user still
         // typing in the last field keeps it in view.
+        // A prefill can make the form submittable on its own; that is not the
+        // user finishing the last field, so it never moves the page.
         const canSubmit = isValid && !isValidating
         useEffect(() => {
-            if (canSubmit) scrollClearOfBottomNav(ctaRef.current)
+            if (canSubmit && !lastWriteWasPrefill.current) scrollClearOfBottomNav(ctaRef.current)
         }, [canSubmit])
 
         /**
@@ -558,9 +585,16 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                         {...field}
                                         id={`bank-${name}`}
                                         type={type}
+                                        onChange={(event) => {
+                                            markUserEdit()
+                                            field.onChange(event)
+                                        }}
                                         onPaste={
                                             smartPasteKind
-                                                ? createSmartPasteHandler(smartPasteKind, field.onChange)
+                                                ? createSmartPasteHandler(smartPasteKind, (value: string) => {
+                                                      markUserEdit()
+                                                      field.onChange(value)
+                                                  })
                                                 : undefined
                                         }
                                         className={twMerge('text-body-s', showPaste && 'pr-12')}
@@ -594,7 +628,10 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                                                 iconSize={20}
                                                 aria-label={t('pasteAria')}
                                                 title={t('pasteAria')}
-                                                onClick={() => void handlePasteInto(name, onBlur)}
+                                                onClick={() => {
+                                                    markUserEdit()
+                                                    void handlePasteInto(name, onBlur)
+                                                }}
                                                 // the base `w-full` utility beats `.btn-square`
                                                 className="w-10 text-foreground-secondary"
                                             />
@@ -630,7 +667,10 @@ export const DynamicBankAccountForm = forwardRef<{ handleSubmit: () => void }, D
                             aria-label={label}
                             placeholder={placeholder}
                             value={field.value}
-                            onValueChange={field.onChange}
+                            onValueChange={(value: string) => {
+                                markUserEdit()
+                                field.onChange(value)
+                            }}
                             onBlur={field.onBlur}
                             className="h-12 w-full rounded-sm text-body-s"
                         />

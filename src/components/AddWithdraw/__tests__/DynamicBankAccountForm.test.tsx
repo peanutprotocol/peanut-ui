@@ -94,13 +94,37 @@ jest.mock('@/components/0_Bruddle/Toast', () => ({
 // gets in production.
 type MockOwnIdentity = {
     ownerName: string | null
-    address: { street: string; city: string; state: string; postalCode: string } | null
+    address: {
+        street: string
+        city: string
+        state: string
+        postalCode: string
+        countryCode: string | null
+    } | null
     isLoading: boolean
 }
 const NOTHING_KNOWN: MockOwnIdentity = { ownerName: null, address: null, isLoading: false }
 let mockOwnIdentity: MockOwnIdentity = NOTHING_KNOWN
 jest.mock('@/hooks/useOwnAccountIdentity', () => ({
     useOwnAccountIdentity: () => mockOwnIdentity,
+}))
+
+// The two capture surfaces anything under this form could reach. Held by value
+// so a test can assert the address never reached either.
+const mockPosthogCapture = jest.fn()
+const mockSentryCapture = jest.fn()
+const mockSentryBreadcrumb = jest.fn()
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: { capture: (...args: unknown[]) => mockPosthogCapture(...args), identify: jest.fn() },
+}))
+jest.mock('@sentry/nextjs', () => ({
+    captureException: (...args: unknown[]) => mockSentryCapture(...args),
+    captureMessage: (...args: unknown[]) => mockSentryCapture(...args),
+    addBreadcrumb: (...args: unknown[]) => mockSentryBreadcrumb(...args),
+    setUser: jest.fn(),
+    withScope: (fn: (scope: unknown) => void) =>
+        fn({ setTag: jest.fn(), setContext: jest.fn(), setLevel: jest.fn(), setExtra: jest.fn() }),
 }))
 
 jest.mock('@/components/Global/PeanutActionDetailsCard', () => ({
@@ -742,7 +766,7 @@ describe('DynamicBankAccountForm — the euro area, entered with no country', ()
 
 const KNOWN_IDENTITY: MockOwnIdentity = {
     ownerName: 'Anna Rossi',
-    address: { street: '1 Via Roma', city: 'Rome', state: 'NY', postalCode: '00100' },
+    address: { street: '1 Via Roma', city: 'Rome', state: 'NY', postalCode: '00100', countryCode: null },
     isLoading: false,
 }
 
@@ -947,5 +971,154 @@ describe('DynamicBankAccountForm — the fields are grouped', () => {
         const ref = React.createRef<{ handleSubmit: () => void }>()
         render(<DynamicBankAccountForm ref={ref} country="SEPA" flow="claim" error={null} onSuccess={onSuccess} />)
         expect(headings()).toEqual(['withdraw.bankForm.groupBankAccount', 'withdraw.bankForm.groupAccountOwner'])
+    })
+})
+
+// ---------- an address that arrives, and one that does not belong ----------
+
+describe('DynamicBankAccountForm — where the address is allowed to land', () => {
+    it.each([
+        ['a French address in a US form', 'USA', 'FR'],
+        ['a US address in a euro form', 'SEPA', 'US'],
+        ['a Spanish address in a Mexican form', 'MX', 'ES'],
+    ])('%s is not filled in', async (_, corridor, countryCode) => {
+        mockOwnIdentity = { ...KNOWN_IDENTITY, address: { ...KNOWN_IDENTITY.address!, countryCode } }
+        const onSuccess = jest.fn(async () => ({}))
+        renderBareForm(onSuccess, corridor)
+
+        // the name still is: it is the person's name whatever country they live in
+        await waitFor(() => expect(input('accountOwnerName')!.value).toBe('Anna Rossi'))
+        expect(input('street')!.value).toBe('')
+        expect(input('city')!.value).toBe('')
+        expect(input('postalCode')!.value).toBe('')
+    })
+
+    it.each([
+        ['a Spanish address in a euro form', 'SEPA', 'ES'],
+        ['a US address in a US form', 'USA', 'US'],
+        ['an address of unknown country', 'SEPA', null],
+    ])('%s is filled in', async (_, corridor, countryCode) => {
+        mockOwnIdentity = { ...KNOWN_IDENTITY, address: { ...KNOWN_IDENTITY.address!, countryCode } }
+        const onSuccess = jest.fn(async () => ({}))
+        renderBareForm(onSuccess, corridor)
+
+        await waitFor(() => expect(input('city')!.value).toBe('Rome'))
+        expect(input('street')!.value).toBe('1 Via Roma')
+    })
+
+    /**
+     * The verified address is read over the network, so it can land while the
+     * user is already typing. What they typed is the answer; only the fields
+     * they have not touched take the address.
+     */
+    it('an address that arrives after the user starts typing never writes over them', async () => {
+        mockOwnIdentity = { ...KNOWN_IDENTITY, address: null }
+        const onSuccess = jest.fn(async () => ({}))
+        const { rerender } = renderBareForm(onSuccess, 'SEPA')
+        await waitFor(() => expect(input('accountOwnerName')!.value).toBe('Anna Rossi'))
+
+        await act(async () => {
+            fireEvent.change(input('city')!, { target: { value: 'Milan' } })
+        })
+
+        // the read lands
+        mockOwnIdentity = KNOWN_IDENTITY
+        await act(async () => {
+            rerender(<DynamicBankAccountForm country="SEPA" flow="withdraw" error={null} onSuccess={onSuccess} />)
+        })
+
+        expect(input('city')!.value).toBe('Milan')
+        expect(input('street')!.value).toBe('1 Via Roma')
+        expect(input('postalCode')!.value).toBe('00100')
+    })
+})
+
+// ---------- the address is not told to anyone ----------
+
+/**
+ * The address is the user's, read in the user's session, and it goes nowhere
+ * else: not to the URL, not to analytics, not to an error report. The two
+ * capture functions the form's tree can reach are held here by value, so a
+ * later `capture({ ...formValues })` anywhere under it fails this test.
+ */
+describe('DynamicBankAccountForm — the address goes nowhere else', () => {
+    const containsAddress = (calls: unknown[][]) =>
+        calls.some((args) => JSON.stringify(args ?? '').match(/Via Roma|Rome|00100|Anna Rossi/))
+
+    it('is not captured, not reported, and not in the URL', async () => {
+        mockOwnIdentity = KNOWN_IDENTITY
+        const onSuccess = jest.fn(async () => ({}))
+        const { container } = renderBareForm(onSuccess, 'SEPA')
+        await waitFor(() => expect(input('city')!.value).toBe('Rome'))
+
+        await typeIban(DE_IBAN, { blur: true })
+        await submitWithEnter(container)
+        await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+
+        expect(containsAddress(mockPosthogCapture.mock.calls)).toBe(false)
+        expect(containsAddress(mockSentryCapture.mock.calls)).toBe(false)
+        expect(containsAddress(mockSentryBreadcrumb.mock.calls)).toBe(false)
+        expect(window.location.search).not.toMatch(/Via Roma|Rome|00100|Anna Rossi/)
+    })
+})
+
+// ---------- a late prefill never moves the page ----------
+
+/**
+ * The button is brought clear of the bottom nav the moment the form becomes
+ * submittable. A prefill can make it submittable on its own, and the verified
+ * address arrives over the network — so it can land while the user is reaching
+ * for the button. Moving the page then moves it under their thumb.
+ */
+describe('DynamicBankAccountForm — a prefill that lands late', () => {
+    it('does not scroll the page and does not take the focus', async () => {
+        mockOwnIdentity = { ...KNOWN_IDENTITY, address: null }
+        const onSuccess = jest.fn(async () => ({}))
+        const { rerender } = renderBareForm(onSuccess, 'SEPA')
+        await waitFor(() => expect(input('accountOwnerName')!.value).toBe('Anna Rossi'))
+
+        // the user has typed the account number; only the address is still missing
+        await typeIban(DE_IBAN, { blur: true })
+        mockScrollClear.mockClear()
+        const focusedBefore = document.activeElement
+
+        // the address lands
+        mockOwnIdentity = KNOWN_IDENTITY
+        await act(async () => {
+            rerender(<DynamicBankAccountForm country="SEPA" flow="withdraw" error={null} onSuccess={onSuccess} />)
+        })
+
+        // it completes the form, so the button turns enabled — and still the
+        // page does not move, because the user did not do it
+        await waitFor(() => expect(input('city')!.value).toBe('Rome'))
+        await waitFor(() => expect(screen.getByRole('button', { name: /continue|review/i })).toBeEnabled())
+        expect(mockScrollClear).not.toHaveBeenCalled()
+        expect(document.activeElement).toBe(focusedBefore)
+    })
+
+    /**
+     * The form that is submittable only because it was filled in for the user
+     * is the same case: nothing the user did asked the page to move.
+     */
+    it('a form that is submittable from the start does not scroll either', async () => {
+        mockOwnIdentity = KNOWN_IDENTITY
+        const onSuccess = jest.fn(async () => ({}))
+        renderBareForm(onSuccess, 'SEPA')
+        await waitFor(() => expect(input('city')!.value).toBe('Rome'))
+        expect(mockScrollClear).not.toHaveBeenCalled()
+    })
+
+    /** What the scroll is for still happens: the user finishes, the page moves. */
+    it('still brings the button clear once the USER completes the form', async () => {
+        mockOwnIdentity = KNOWN_IDENTITY
+        const onSuccess = jest.fn(async () => ({}))
+        renderBareForm(onSuccess, 'SEPA')
+        await waitFor(() => expect(input('city')!.value).toBe('Rome'))
+        mockScrollClear.mockClear()
+
+        await typeIban(DE_IBAN, { blur: true })
+        await waitFor(() => expect(screen.getByRole('button', { name: /continue|review/i })).toBeEnabled())
+
+        expect(mockScrollClear).toHaveBeenCalledWith(screen.getByTestId('bank-form-cta'))
     })
 })
