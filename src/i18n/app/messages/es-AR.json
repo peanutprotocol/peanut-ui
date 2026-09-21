@@ -124,7 +124,7 @@
             "verifyDescriptionAdvisory": "Hacé una verificación rápida con nuestro socio de pagos para mantener disponibles las transferencias bancarias."
         },
         "drawers": {
-            "shareBankDetailsDescription": "Recibí pagos a través de tus cuentas en EUR, USD y otras monedas"
+            "shareBankDetailsDescription": "Recibí pagos en EUR, USD y más con tus propios datos bancarios"
         }
     },
     "profile": {
@@ -634,7 +634,7 @@
             "createWallet": "Creá tu Peanut Wallet"
         },
         "bankInstructions": {
-            "title": "Compartí los datos de tu cuenta bancaria",
+            "title": "Compartí tus datos bancarios",
             "description": "Cualquier persona que abra este enlace ve tus datos bancarios y tu nombre completo.",
             "unknownPays": "Una transferencia de alguien que no seas vos no está confirmada en esta cuenta y puede devolverse."
         }
@@ -902,11 +902,11 @@
         "mustMatchBankTransfer": "Esto debe coincidir exactamente con lo que enviás desde tu banco",
         "amountMustMatchBank": "¡El monto debe coincidir con lo que enviás desde tu banco!",
         "methods": {
-            "cryptoDescription": "Depositá desde una billetera o exchange",
+            "cryptoDescription": "Agregá desde una billetera o exchange",
             "bankTransferDescription": "Datos bancarios reutilizables para cobrar"
         },
         "networkDrawer": {
-            "description": "Elegí la red desde la que querés depositar:"
+            "description": "Elegí la red desde la que querés agregar:"
         },
         "supportedNetworksModal": {
             "description": "Una sola dirección para todas las redes EVM listadas abajo: enviá desde cualquiera de ellas y tus fondos se enrutarán correctamente."
@@ -933,7 +933,7 @@
             "etaInstant": "Los depósitos suelen llegar en minutos."
         },
         "pix": {
-            "scanWithBankApp": "Escaneá con la app de tu banco o copiá el código PIX."
+            "scanWithBankApp": "Escaneá con la app de tu banco o copiá el código Pix."
         },
         "confirmationModal": {
             "youMust": "Debés:"
@@ -1587,7 +1587,7 @@
         },
         "countryList": {
             "noResultsDescription": "Intentá buscar con otro término.",
-            "cryptoDepositDescription": "Usá un exchange o tu billetera",
+            "cryptoDepositDescription": "Agregá desde una billetera o exchange",
             "cryptoWithdrawDescription": "Retirá a una billetera o exchange"
         },
         "userCard": {
