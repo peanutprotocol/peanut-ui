@@ -18,7 +18,7 @@
  *
  * ponytail: tailwind scans for LITERAL class names, so a state-prefixed form
  * cannot be built from the plain one at runtime — `data-[state=active]:` has to
- * be typed out. That is why the same three tokens appear twice below. One file
+ * be typed out. That is why the same tokens appear twice below. One file
  * is the ceiling; a shared prefix helper would silently stop generating CSS.
  */
 
@@ -28,18 +28,12 @@ export const PILL_TRACK = 'rounded-full border border-border-default bg-backgrou
 /** the thumb: a bordered white pill inside the bar. */
 export const PILL_THUMB = 'rounded-full border border-border-default bg-background-default'
 
-/** the thumb, as the selected state of a radix trigger (polarity A). */
-export const PILL_THUMB_SELECTED = 'data-[state=active]:border-border-default data-[state=active]:bg-background-default'
-
 /** the inverse track: a bordered white pill (polarity B). */
 export const PILL_TRACK_INVERTED = 'rounded-full border border-border-default bg-background-default'
 
-/** the inverse thumb, as the selected state of a radix trigger (polarity B). */
-export const PILL_TINT_SELECTED = 'data-[state=active]:border-border-default data-[state=active]:bg-background-page'
-
 /**
- * The same polarity-B thumb, drawn on the trigger's `::before` instead of its
- * own border box — what `0_Bruddle/Tabs` uses so the chip can sit FLUSH on the
+ * The polarity-B thumb, drawn on the trigger's `::before` instead of its own
+ * border box — what `0_Bruddle/Tabs` uses so the chip can sit FLUSH on the
  * track's border (kush 2026-09-21: no padding between the chip and the
  * container). Spelled out rather than derived for the reason at the top of this
  * file: tailwind only sees literal class names.
