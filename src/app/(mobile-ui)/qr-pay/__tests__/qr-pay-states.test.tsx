@@ -1292,7 +1292,7 @@ describe('GROUP 4: Success States', () => {
     })
 
     test('Perk claimed shows shake class + go home button', async () => {
-        // Make claimPerk fast for test
+        // Fake timers: skip the hold-to-claim gesture timing
         jest.useFakeTimers()
 
         await completeMantecaPayment({
@@ -1329,11 +1329,10 @@ describe('GROUP 4: Success States', () => {
 
     // Regression: the perk is already claimed server-side during QR-payment
     // processing, and the QR response carries the sponsored amount. The
-    // hold-to-claim gesture must report that reward directly — it must NOT make
-    // a second /perks/claim round-trip (that endpoint now requires a usageId the
-    // client never has, so the old call always 400'd and surfaced a false
-    // "reward is being processed" error even though the reward had landed).
-    test('Perk claim reports the reward from the QR response, no /perks/claim round-trip, no error', async () => {
+    // hold-to-claim gesture must report that reward directly with no error.
+    // (A second /perks/claim round-trip is structurally impossible now —
+    // perksApi is deleted — so this only asserts the reward path.)
+    test('Perk claim reports the reward from the QR response, no error', async () => {
         jest.useFakeTimers()
 
         // BE sends sponsoredUsd; the page maps it to amountSponsored on load.

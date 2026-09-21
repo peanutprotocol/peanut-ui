@@ -1,12 +1,7 @@
 /**
- * The client perk API is retired. Perks are now issued and settled entirely
- * server-side — card activation, CARD_SPEND and FUND_WITHDRAW auto-claim on
- * issuance, and QR-pay rewards are paid by the backend payout retry job. There
- * is no client claim call any more, so `perksApi.getPendingPerks` /
- * `perksApi.claimPerk` are gone along with the home-carousel claim surface.
- *
- * Only the payload shape survives: the backend still emits the `pending_perk`
- * socket frame, and PerkClaimGiftBox still renders a perk.
+ * Perks issue and settle server-side only; there is no client perk API. This
+ * payload type survives for PerkClaimGiftBox's prop — a component with no
+ * mount site, whose removal is an open decision (TASK-22680).
  */
 export type PendingPerk = {
     id: string
