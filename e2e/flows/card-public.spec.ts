@@ -22,6 +22,13 @@ async function shot(page: Page, name: string) {
 
 test.use({ storageState: { cookies: [], origins: [] } })
 
+test.beforeEach(async ({ page }) => {
+    // Fixture controls must not cover product controls or visual evidence.
+    await page.addInitScript(() => {
+        ;(window as Window & { __screenCapture?: boolean }).__screenCapture = true
+    })
+})
+
 test('an ordinary account reaches the application and card terms without a queue or deposit', async ({ page }) => {
     await page.goto('/card?__fixture=card-application')
     const apply = page.getByRole('button', { name: 'Get your card', exact: true })
@@ -77,17 +84,13 @@ test('re-issuing a card explains the Rain wallet permission on the terms step', 
     await page.goto('/card?__fixture=card-reissue')
     await page.getByRole('button', { name: 'Get your card', exact: true }).click()
     await expect(page.getByText('Card Terms', { exact: true })).toBeVisible()
-    await expect(page.getByText(/Approve Rain, our card issuer, to take USDC from your wallet/)).toBeVisible()
+    const permission = page.getByText(/Approve Rain, our card issuer, to take USDC from your wallet/)
+    await expect(permission).toBeVisible()
+    await permission.scrollIntoViewIfNeeded()
     await shot(page, 'reissue-terms')
 })
 
 test('cancelling the last card offers to remove the Rain permission afterwards', async ({ page }) => {
-    // "Cancel card" is the last row of the page, and the floating fixture
-    // banner is fixed over exactly that spot — the click never lands and the
-    // test hangs. __screenCapture is the banner's own switch for staying out.
-    await page.addInitScript(() => {
-        ;(window as Window & { __screenCapture?: boolean }).__screenCapture = true
-    })
     await page.goto('/card?__fixture=card-funding-enabled')
     await page.getByRole('button', { name: 'Cancel card', exact: true }).click()
     // The slide handle takes arrow keys (10% of the travel per press), so the
