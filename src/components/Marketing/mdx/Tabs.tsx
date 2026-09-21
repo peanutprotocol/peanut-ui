@@ -58,8 +58,11 @@ export function Tabs({ labels, children }: TabsProps) {
 
     return (
         <div className={`mx-auto my-8 ${PROSE_WIDTH} px-6 md:px-4`}>
-            {/* forceMount: every panel's prose has to stay in the server HTML for crawlers */}
-            <DsTabs tabs={tabs} aria-label="Content tabs" forceMount />
+            {/* forceMount: every panel's prose has to stay in the server HTML for crawlers.
+                size="lg": `lg`'s first home (kush, 2026-09-21). This row is panelled,
+                desktop-read article furniture, which is the 52px/px-6 step's case —
+                product controls stay on the 44px `md` default. */}
+            <DsTabs tabs={tabs} aria-label="Content tabs" forceMount size="lg" />
         </div>
     )
 }
