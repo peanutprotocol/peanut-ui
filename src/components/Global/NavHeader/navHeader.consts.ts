@@ -17,5 +17,11 @@
 // ring back; the `!`s beat its own background rules (twMerge drops the rest).
 // The icon takes the over-colour foreground on the fill — the variant paints
 // it action-ghost-hover, which is 2.5:1 on the pink.
+//
+// THE RULE: every 40px icon-only nav circle takes this const AND
+// `variant="transparent"`. A `variant="stroke"` circle with `shadow-none`
+// paints the white chip the board has no state for — it is what the setup
+// flow's back and logout circles still did on the blue hero after the other
+// call sites moved (kush QA 2026-09-21).
 export const NAV_CIRCLE_BUTTON_CLASSES =
     'relative size-10 w-10 border border-solid p-0 hover:bg-action-primary! hover:text-foreground-over-color-primary hover:fill-foreground-over-color-primary active:bg-action-primary! active:text-foreground-over-color-primary active:fill-foreground-over-color-primary after:absolute after:-inset-0.5'

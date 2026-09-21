@@ -89,6 +89,31 @@ test.describe('Button press physics', () => {
         }
     })
 
+    // /shhhhh's back circle is the NavHeader one. The setup flow builds its own
+    // navigation row, and its circles were the last call site still drawing a
+    // stroke button with the shadow stripped — a white chip on the #90a8ed
+    // hero, which is the state the board does not have (kush QA 2026-09-21).
+    // /setup/finish renders that row with no backend and no login.
+    test('the setup nav circle is a ring on the hero, not a white chip', async ({ page }) => {
+        await page.goto('/setup/finish', { waitUntil: 'domcontentloaded' })
+
+        const circle = page.getByRole('button', { name: 'Logout' })
+        await expect(circle).toBeVisible()
+
+        expect(await background(circle), 'transparent at rest').toBe('rgba(0, 0, 0, 0)')
+        expect(await boxShadow(circle), 'a nav circle carries no shadow').toBe('none')
+
+        await press(circle)
+        try {
+            await expect
+                .poll(() => background(circle), { message: 'press fill is action-primary' })
+                .toBe('rgb(255, 144, 232)')
+            expect(await translate(circle), 'a shadowless control must not translate').toBe('none')
+        } finally {
+            await page.mouse.up()
+        }
+    })
+
     test('stroke turns brand pink while pressed', async ({ page }) => {
         const stroke = pressable(page, 'btn-stroke')
         await expect(stroke).toBeVisible()
