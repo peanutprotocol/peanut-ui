@@ -74,7 +74,10 @@ let mockBridgeLimits: unknown = null
 jest.mock('@/hooks/useLimits', () => ({
     useLimits: () => ({ mantecaLimits: mockMantecaLimits, bridgeLimits: mockBridgeLimits }),
 }))
-jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }) }))
+const mockSetIsSupportModalOpen = jest.fn()
+jest.mock('@/context/ModalsContext', () => ({
+    useModalsContext: () => ({ setIsSupportModalOpen: mockSetIsSupportModalOpen }),
+}))
 
 const mockInitiateKyc = jest.fn()
 const mockRestartIdentity = jest.fn()
@@ -143,7 +146,10 @@ describe('UnlockPayments', () => {
         mockIdentity = { status: 'processing', submittedAt: new Date(Date.now() - 8 * 86400000).toISOString() }
         render()
         expect(screen.getByText('This is taking longer than usual.')).toBeInTheDocument()
-        expect(screen.getByText("Message us and we'll chase it")).toBeInTheDocument()
+        const supportLink = screen.getByRole('button', { name: "Message us and we'll chase it" })
+        expect(supportLink).toHaveClass('underline')
+        fireEvent.click(supportLink)
+        expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(true)
     })
 
     it('degraded mode shows the outage banner and blocks bank-method taps', () => {

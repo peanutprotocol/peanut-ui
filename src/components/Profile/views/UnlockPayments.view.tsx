@@ -8,6 +8,7 @@ import StatusBadge from '@/components/Global/Badges/StatusBadge'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Notification } from '@/components/0_Bruddle/Notification'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
@@ -409,13 +410,15 @@ const UnlockPayments = () => {
                             ? t('review.sinceDate', { submittedDate: reviewSubmittedDate })
                             : t('review.since')
                     }
-                    ctas={
-                        reviewEscalation
-                            ? [{ label: t('review.messageUs'), onClick: () => setIsSupportModalOpen(true) }]
-                            : undefined
-                    }
                 >
-                    {reviewEscalation ? t('review.escalation') : t('review.body')}
+                    {reviewEscalation ? (
+                        <div className="flex flex-col items-start gap-1">
+                            <span>{t('review.escalation')}</span>
+                            <LinkButton onClick={() => setIsSupportModalOpen(true)}>{t('review.messageUs')}</LinkButton>
+                        </div>
+                    ) : (
+                        t('review.body')
+                    )}
                 </Notification>
             )}
 
