@@ -17,6 +17,7 @@ import BaseInput from '@/components/0_Bruddle/BaseInput'
 import {
     type BankReferenceProblem,
     type BankReferenceSpec,
+    type PayoutSenderDefaultReferenceNoteKey,
     type PayoutSenderNoteKey,
 } from '@/features/withdraw/bank-reference'
 import { useAuth } from '@/context/authContext'
@@ -39,6 +40,8 @@ interface WithdrawBankReviewViewProps {
     referenceSpec: BankReferenceSpec | null
     /** `withdraw.bank` key naming who the recipient's bank shows as sender; null when unknown. */
     payoutSenderNoteKey: PayoutSenderNoteKey | null
+    /** Extra sentence that holds only while the user typed no reference; null when the rail has none. */
+    payoutSenderDefaultReferenceNoteKey: PayoutSenderDefaultReferenceNoteKey | null
     reference: string
     referenceProblem: BankReferenceProblem | null
     onReferenceChange: (reference: string) => void
@@ -60,6 +63,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     confirmPendingCopy,
     referenceSpec,
     payoutSenderNoteKey,
+    payoutSenderDefaultReferenceNoteKey,
     reference,
     referenceProblem,
     onReferenceChange,
@@ -172,7 +176,15 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
             </Card>
 
             {payoutSenderNoteKey && (
-                <p className="text-body-xs text-foreground-secondary">{t(`bank.${payoutSenderNoteKey}`)}</p>
+                <p className="text-body-xs text-foreground-secondary">
+                    {t(`bank.${payoutSenderNoteKey}`)}
+                    {/* The provider's default reference carries the user's name.
+                        A reference they type may replace it, so the promise is
+                        made only while they have typed none. */}
+                    {payoutSenderDefaultReferenceNoteKey && !reference.trim() && (
+                        <> {t(`bank.${payoutSenderDefaultReferenceNoteKey}`)}</>
+                    )}
+                </p>
             )}
 
             {referenceSpec && (

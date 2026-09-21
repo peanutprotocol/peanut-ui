@@ -78,6 +78,7 @@ export default function WithdrawBankPage() {
                     confirmPendingCopy={flow.confirmPendingCopy}
                     referenceSpec={flow.referenceSpec}
                     payoutSenderNoteKey={flow.payoutSenderNoteKey}
+                    payoutSenderDefaultReferenceNoteKey={flow.payoutSenderDefaultReferenceNoteKey}
                     reference={flow.reference}
                     referenceProblem={flow.referenceProblem}
                     onReferenceChange={flow.setReference}
