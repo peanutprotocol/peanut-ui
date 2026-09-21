@@ -32,7 +32,7 @@ import { LIMITS } from '@/constants/query.consts'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useLimits } from '@/hooks/useLimits'
-import { limitSummariesForRows, MethodLimits, type RowLimitSummary } from './MethodLimits'
+import { limitSummariesForRows, MethodLimits } from './MethodLimits'
 import { rowStatusBadge, isRowTappable, BUBBLE_COLOR } from './RowStatusBadge'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
@@ -364,9 +364,11 @@ const UnlockPayments = () => {
         <span className="text-body-s text-foreground-secondary">{t('residence.unverified')}</span>
     )
 
-    // Detail-drawer facts: reuse the page's own limit derivation and the p2p
-    // no-limit rule, so the drawer can never state a cap the section beside it
-    // does not. The Limits block is hidden when a method publishes none.
+    // Detail-drawer facts. Limits live HERE and nowhere else on this screen
+    // (2026-09-21, hugo): three standing cards — the Bridge per-transfer caps,
+    // the BRL/ARS monthly bars and the P2P no-limit line — sat above the fold
+    // and repeated what a tap already says. Same derivation, same formatting,
+    // one tap down. The Limits block is hidden when a method publishes none.
     const detailSummaries = detailsRow ? limitSummariesForRows([detailsRow], mantecaLimits, bridgeLimits, locale) : []
     const detailNoLimit = detailsRow?.labelKey === 'p2p' || detailsRow?.labelKey === 'crypto'
     const showDetailLimits = detailNoLimit || detailSummaries.length > 0
@@ -453,32 +455,14 @@ const UnlockPayments = () => {
                 bankRows={bankGroups.flatMap((group) => group.rows)}
                 onRowClick={handleRowClick}
                 isKycDegraded={isKycDegraded}
-                mantecaLimits={mantecaLimits}
-                bridgeLimits={bridgeLimits}
-                locale={locale}
             />
 
             {/* Spending methods, apart from the ways money moves between a bank
-                and Peanut. The QR row's own limits are the BRL/ARS allowances
-                already stated under the bank list, so they are not repeated. */}
-            {spendGroup && (
-                <RowSection
-                    group={spendGroup}
-                    onRowClick={handleRowClick}
-                    isKycDegraded={isKycDegraded}
-                    noLimit={false}
-                    limitSummaries={[]}
-                />
-            )}
+                and Peanut. */}
+            {spendGroup && <RowSection group={spendGroup} onRowClick={handleRowClick} isKycDegraded={isKycDegraded} />}
 
             {peanutGroup && (
-                <RowSection
-                    group={peanutGroup}
-                    onRowClick={handleRowClick}
-                    isKycDegraded={isKycDegraded}
-                    noLimit
-                    limitSummaries={limitSummariesForRows(peanutGroup.rows, mantecaLimits, bridgeLimits, locale)}
-                />
+                <RowSection group={peanutGroup} onRowClick={handleRowClick} isKycDegraded={isKycDegraded} />
             )}
 
             {showBankRestrictionNote && (
@@ -689,8 +673,7 @@ const UnlockPayments = () => {
                                 </ListGroup>
                             </Section>
 
-                            {/* Limits: reuse MethodLimits, the component the page
-                                already renders under each section. */}
+                            {/* Limits: the only place this screen states them. */}
                             {showDetailLimits && (
                                 <Section title={t('detailsDrawer.limitsTitle')}>
                                     <MethodLimits noLimit={detailNoLimit} summaries={detailSummaries} />
@@ -747,14 +730,10 @@ const RowSection = ({
     group,
     onRowClick,
     isKycDegraded,
-    noLimit,
-    limitSummaries,
 }: {
     group: UnlockGroup
     onRowClick: (row: UnlockRow) => void
     isKycDegraded: boolean
-    noLimit: boolean
-    limitSummaries: RowLimitSummary[]
 }) => {
     const t = useTranslations('profile.unlockPayments')
 
@@ -782,7 +761,6 @@ const RowSection = ({
                     )
                 })}
             </ListGroup>
-            <MethodLimits noLimit={noLimit} summaries={limitSummaries} />
         </Section>
     )
 }

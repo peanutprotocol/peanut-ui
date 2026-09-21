@@ -11,11 +11,12 @@ import type { UnlockRow } from '@/utils/unlock-payments.utils'
 import { useTranslations } from 'next-intl'
 
 /**
- * Per-corridor limit facts for the Accounts & payments screen (extracted so
- * both `UnlockPayments.view` and `AccountsList` can render the same limits
- * strip without importing each other — see the 2026-09-18 currency-first
- * merge). Legacy bank-transfer limits do not apply to reusable deposit
- * accounts, so this only ever covers the KYC-unlock bank/QR rows.
+ * Per-corridor limit facts for the Accounts & payments screen. Rendered in ONE
+ * place: the row's own details drawer (`UnlockPayments.view`). The standing
+ * cards that used to sit under each list were removed on 2026-09-21 — a limit
+ * belongs to a corridor, so it is stated where that corridor is explained.
+ * Legacy bank-transfer limits do not apply to reusable deposit accounts, so
+ * this only ever covers the KYC-unlock bank/QR rows.
  */
 export type RowLimitSummary =
     | { kind: 'manteca'; asset: string; remaining: string; limit: string; usedPercent: number }

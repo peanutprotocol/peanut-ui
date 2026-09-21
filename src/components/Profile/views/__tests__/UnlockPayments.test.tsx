@@ -316,7 +316,7 @@ describe('UnlockPayments', () => {
         expect(mockDismissCooldown).toHaveBeenCalled()
     })
 
-    it('an active LATAM rail shows the inline monthly limit bar on Brazil', () => {
+    it('states the BRL monthly allowance in the row drawer, never as a card on the screen', () => {
         mockRails = [{ id: 'manteca.bank', provider: 'manteca', channel: 'bank', status: 'enabled' }]
         mockMantecaLimits = [
             {
@@ -330,7 +330,11 @@ describe('UnlockPayments', () => {
             },
         ]
         render()
-        expect(screen.getByText(/left this month/)).toBeInTheDocument()
+        // Limits are one tap down, not a standing card above the fold.
+        expect(screen.queryByText(/left this month/)).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByText(/BRL/))
+        expect(within(screen.getByRole('dialog')).getByText(/left this month/)).toBeInTheDocument()
     })
 
     /**
@@ -399,14 +403,19 @@ describe('UnlockPayments', () => {
         })
     })
 
-    it('an active Bridge rail names deposit and withdrawal limits separately', () => {
+    it('names the deposit and withdrawal caps separately, inside the row drawer', () => {
         mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', status: 'enabled' }]
         mockBridgeLimits = { onRampPerTransaction: '25000', offRampPerTransaction: '50000', asset: 'USD' }
         render()
-        expect(screen.getAllByText('Per bank deposit').length).toBeGreaterThan(0)
-        expect(screen.getAllByText('Per bank withdrawal').length).toBeGreaterThan(0)
-        expect(screen.getAllByText('$25,000').length).toBeGreaterThan(0)
-        expect(screen.getAllByText('$50,000').length).toBeGreaterThan(0)
+        expect(screen.queryByText('Per bank deposit')).not.toBeInTheDocument()
+        expect(screen.queryByText('Per bank withdrawal')).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByText('EUR · Bank transfer'))
+        const drawer = screen.getByRole('dialog')
+        expect(within(drawer).getByText('Per bank deposit')).toBeInTheDocument()
+        expect(within(drawer).getByText('Per bank withdrawal')).toBeInTheDocument()
+        expect(within(drawer).getByText('$25,000')).toBeInTheDocument()
+        expect(within(drawer).getByText('$50,000')).toBeInTheDocument()
     })
 
     it('active payment rows explain the method in a drawer', () => {
@@ -456,18 +465,35 @@ describe('UnlockPayments', () => {
         expect(screen.getByText('EUR · Bank transfer')).toBeInTheDocument()
     })
 
-    it('keeps the bank limits when an account row replaces the bank row they came from', () => {
+    /**
+     * Hugo, 2026-09-21 QA: limits were three standing cards on a screen whose
+     * job is naming the corridors. They are not top-level items — every one of
+     * them is already stated in the drawer a tap away, from the same data.
+     */
+    it('renders no limit card anywhere on the screen', () => {
         mockDepositEnabled = true
-        mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', status: 'enabled' }]
+        mockRails = [
+            { id: 'bridge.ach', provider: 'bridge', channel: 'bank', status: 'enabled' },
+            { id: 'manteca.bank', provider: 'manteca', channel: 'bank', status: 'enabled' },
+        ]
         mockBridgeLimits = { onRampPerTransaction: '25000', offRampPerTransaction: '50000', asset: 'USD' }
-        mockDepositAccounts = {
-            SEPA_EU: { status: 'active', instructions: {}, matching: { sender: 'anyone' } },
-            ACH_US: { status: 'active', instructions: {}, matching: { sender: 'anyone' } },
-        }
+        mockMantecaLimits = [
+            {
+                exchangeCountry: 'BRA',
+                type: 'EXCHANGE',
+                asset: 'BRL',
+                yearlyLimit: '120000',
+                availableYearlyLimit: '100000',
+                monthlyLimit: '10000',
+                availableMonthlyLimit: '2500',
+            },
+        ]
         render()
 
-        expect(screen.queryByText('EUR · Bank transfer')).not.toBeInTheDocument()
-        expect(screen.getAllByText('Per bank withdrawal').length).toBeGreaterThan(0)
+        expect(screen.queryByText('Per bank deposit')).not.toBeInTheDocument()
+        expect(screen.queryByText('Per bank withdrawal')).not.toBeInTheDocument()
+        expect(screen.queryByText(/left this month/)).not.toBeInTheDocument()
+        expect(screen.queryByText('No amount limits on Peanut-to-Peanut payments or crypto')).not.toBeInTheDocument()
     })
 
     it.each([
@@ -500,9 +526,14 @@ describe('UnlockPayments', () => {
         expect(screen.getByText('EUR · Bank transfer')).toBeInTheDocument()
     })
 
-    it('states the P2P no-limit fact even before anything is unlocked', () => {
+    it('states the P2P no-limit fact in the crypto drawer too, never on the screen', () => {
         render()
-        expect(screen.getByText('No amount limits on Peanut-to-Peanut payments or crypto')).toBeInTheDocument()
+        expect(screen.queryByText('No amount limits on Peanut-to-Peanut payments or crypto')).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByText('Crypto'))
+        expect(
+            within(screen.getByRole('dialog')).getByText('No amount limits on Peanut-to-Peanut payments or crypto')
+        ).toBeInTheDocument()
     })
 
     // A residence-parked rail. The TOP-LEVEL status is `blocked` (the backend maps
