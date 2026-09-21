@@ -1,8 +1,9 @@
-import { EHistoryUserRole } from '@/utils/history.utils'
+import { EHistoryUserRole, getTransactionSign } from '@/utils/history.utils'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { isFxBearingFlow, isSendLinkEntry } from '@/components/TransactionDetails/transaction-predicates'
 import {
     bankAccountLabelKey,
+    receiptHeadlineAmount,
     receiptIssuedAt,
     type BankAccountLabelKey,
 } from '@/components/TransactionDetails/transaction-details.utils'
@@ -115,10 +116,12 @@ export function buildReceiptPdfModel(
     const allowCancelledSenderFields =
         !isCancelled || (isSendLinkEntry(transaction) && role === EHistoryUserRole.SENDER)
 
-    // One canonical issuance date is always the first field — the shared
-    // status-branched rule (receiptIssuedAt), so page and pdf can never
-    // disagree; never the download time.
-    push(t('transaction.officialReceipt.issuedOn'), formatDate(receiptIssuedAt(transaction), locale))
+    // One canonical issuance date leads the rows — the shared status-branched
+    // rule (receiptIssuedAt), so page and pdf can never disagree; never the
+    // download time. The screen hides the row when that rule yields nothing,
+    // so the document does too rather than printing a dash.
+    const issuedOn = formatDate(receiptIssuedAt(transaction), locale)
+    if (issuedOn !== DATE_FALLBACK) push(t('transaction.officialReceipt.issuedOn'), issuedOn)
 
     const cardType = drawer?.transactionCardType
     push(t('transaction.officialReceipt.pdf.type'), cardType ? t(`transaction.type.${cardType}`) : undefined)
@@ -195,12 +198,9 @@ export function buildReceiptPdfModel(
     // a renamed or printed document back to the source activity.
     push(t('transaction.officialReceipt.reference'), transaction.id)
 
-    const numericAmount = Number(transaction.amount)
-    // A request pot's `amount` is its goal, not proof of money received. The
-    // receipt headline must always use the rollup's collected total, whether
-    // the pot had a goal or not.
-    const receiptAmount = transaction.isRequestPotLink ? Number(transaction.totalAmountCollected) : numericAmount
-    const safeAmount = Number.isFinite(receiptAmount) ? Math.abs(receiptAmount) : 0
+    // One rule for both the screen and this document — see receiptHeadlineAmount.
+    const headline = receiptHeadlineAmount(transaction, Number(transaction.amount), getTransactionSign(transaction))
+    const safeAmount = Math.abs(headline.amount)
 
     return {
         title: t('transaction.officialReceipt.pdf.title'),
@@ -208,7 +208,7 @@ export function buildReceiptPdfModel(
         companyName: RECEIPT_COMPANY.name,
         companyAddressLines: RECEIPT_COMPANY.addressLines,
         site: RECEIPT_COMPANY.site,
-        amountDisplay: `$${formatCurrency(safeAmount.toString())}`,
+        amountDisplay: `${headline.sign}$${formatCurrency(safeAmount.toString())}`,
         convertedAmountDisplay: convertedAmount(transaction),
         rows,
         fileName: `peanut-receipt-${safeFileNamePart(transaction.id)}.pdf`,

@@ -1099,7 +1099,7 @@
             "businessPays": "Só empresas podem pagar isto por transferência bancária. A transferência de um amigo é devolvida.",
             "unknownPays": "Uma transferência de outra pessoa não está confirmada nesta conta e pode ser devolvida.",
             "titleOff": "Seus dados bancários ficam privados",
-            "descriptionOff": "Quem paga pode usar a Peanut ou cripto. Não dá para te pagar por transferência bancária."
+            "descriptionOff": "Quem paga usa a Peanut ou cripto. Pode adicionar dinheiro do próprio banco antes. Esse dinheiro não chega à sua conta bancária."
         },
         "paidByBank": {
             "rowLabel": "Transferência bancária",

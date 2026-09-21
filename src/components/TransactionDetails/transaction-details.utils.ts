@@ -61,6 +61,32 @@ export const transactionDetailsRowKeys: TransactionDetailsRowKey[] = [
  *  receipts date from the cancellation, refunded from the refund, completed
  *  from settlement/claim, pending from creation. one rule shared by the
  *  details-card row and the pdf model so the two can never disagree. */
+/**
+ * The amount a receipt leads with, and the sign in front of it.
+ *
+ * A request pot states what it COLLECTED. Its `amount` is the goal it asked
+ * for, which is not proof that any money arrived, and a pot never carries a
+ * direction sign. Everything else states its own amount, signed the way the
+ * history list signs it.
+ *
+ * The receipt screen and the PDF both derive from here. They used to disagree:
+ * a $100 pot that collected $40 printed $100.00 on screen and $40.00 in the
+ * PDF, and the PDF dropped the sign so a refund and a spend of the same value
+ * printed the same headline.
+ */
+export const receiptHeadlineAmount = (
+    transaction: { isRequestPotLink?: boolean; totalAmountCollected?: number | string | null },
+    /** the amount the caller derived for a non-pot receipt */
+    fallbackAmount: number,
+    sign: '-' | '+' | ''
+): { amount: number; sign: '-' | '+' | ''; isCollectedTotal: boolean } => {
+    if (transaction.isRequestPotLink) {
+        const collected = Number(transaction.totalAmountCollected)
+        return { amount: Number.isFinite(collected) ? collected : 0, sign: '', isCollectedTotal: true }
+    }
+    return { amount: Number.isFinite(fallbackAmount) ? fallbackAmount : 0, sign, isCollectedTotal: false }
+}
+
 export const receiptIssuedAt = (transaction: {
     status?: string
     cancelledDate?: string | Date
