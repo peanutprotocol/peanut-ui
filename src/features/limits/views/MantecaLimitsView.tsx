@@ -6,7 +6,7 @@ import { useLimits } from '@/hooks/useLimits'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
-import SegmentedControl from '@/components/0_Bruddle/SegmentedControl'
+import { Tabs } from '@/components/0_Bruddle/Tabs'
 import ProgressBar from '@/components/0_Bruddle/ProgressBar'
 import Image from 'next/image'
 import Loading from '@/components/Global/Loading'
@@ -72,13 +72,14 @@ const MantecaLimitsView = () => {
                                                 {t('totalAllowed', { asset: limit.asset })}
                                             </span>
                                         </div>
-                                        <SegmentedControl
-                                            options={[
+                                        <Tabs
+                                            size="sm"
+                                            tabs={[
                                                 { value: 'monthly', label: tPeriod('monthly') },
                                                 { value: 'yearly', label: tPeriod('yearly') },
                                             ]}
                                             value={period}
-                                            onChange={(v) => setPeriod(v as LimitsPeriod)}
+                                            onValueChange={(v) => setPeriod(v as LimitsPeriod)}
                                             aria-label={tPeriod('selectAriaLabel')}
                                         />
                                     </div>

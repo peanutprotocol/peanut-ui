@@ -22,7 +22,7 @@ import Checkbox from '@/components/0_Bruddle/Checkbox'
 import { Field } from '@/components/0_Bruddle/Field'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { Section } from '@/components/0_Bruddle/Section'
-import SegmentedControl from '@/components/0_Bruddle/SegmentedControl'
+import { Tabs } from '@/components/0_Bruddle/Tabs'
 import ShareAssetD3 from '@/components/Card/share-asset/ShareAssetD3'
 import type { HeroVariant, UsernameBg } from '@/components/Card/share-asset/shareAsset.types'
 import { captureShareAsset, downloadBlob } from '@/components/Card/share-asset/captureShareAsset'
@@ -128,15 +128,16 @@ export default function ShareBuilderPage() {
                     <Card className="p-4" shadowSize="4">
                         <Section title="Hero message (I got in)">
                             <Field label="Sticker type">
-                                <SegmentedControl
+                                <Tabs
+                                    size="sm"
                                     value={heroVariant}
-                                    onChange={(value) => setHeroVariant(value as HeroVariant | 'none')}
-                                    options={(['none', 'burst', 'pill', 'banner'] as const).map((value) => ({
+                                    onValueChange={(value) => setHeroVariant(value as HeroVariant | 'none')}
+                                    tabs={(['none', 'burst', 'pill', 'banner'] as const).map((value) => ({
                                         value,
                                         label: value,
                                     }))}
                                     aria-label="Hero sticker type"
-                                    fullWidth
+                                    fullWidth="stretch"
                                 />
                             </Field>
                             <Field label="Copy" htmlFor="share-hero-copy">
@@ -212,15 +213,16 @@ export default function ShareBuilderPage() {
                     <Card className="p-4" shadowSize="4">
                         <Section title="Username pill">
                             <Field label="Background">
-                                <SegmentedControl
+                                <Tabs
+                                    size="sm"
                                     value={unameBg}
-                                    onChange={(value) => setUnameBg(value as UsernameBg)}
-                                    options={(['white', 'pink', 'blue'] as const).map((value) => ({
+                                    onValueChange={(value) => setUnameBg(value as UsernameBg)}
+                                    tabs={(['white', 'pink', 'blue'] as const).map((value) => ({
                                         value,
                                         label: value,
                                     }))}
                                     aria-label="Username pill background"
-                                    fullWidth
+                                    fullWidth="stretch"
                                 />
                             </Field>
                             <Field label={`"peanut.me/" size (${unamePrefix.toFixed(2)}× of handle)`}>

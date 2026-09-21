@@ -13,6 +13,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { PILL_THUMB, PILL_TRACK } from '@/components/0_Bruddle/PillSurface'
 import { TAB_ORDER, type TabId } from './tab-order'
 
 /**
@@ -246,7 +247,7 @@ export const BottomNav = () => {
                 // press feedback lives on the tapped icon only (iconPopClass) —
                 // the bar itself stays still (kush ruling 2026-09-21, reverting
                 // the whole-bar squash from 78e1848fb)
-                className="relative flex flex-1 items-center justify-between rounded-full border border-border-default bg-background-page shadow-4"
+                className={`relative flex flex-1 items-center justify-between ${PILL_TRACK} shadow-4`}
             >
                 <Link
                     href="/home"
@@ -319,7 +320,7 @@ export const BottomNav = () => {
                         onPointerCancel={(e) => endPillDrag(e, true)}
                         // -1px, not -2px: the bar's own border is 1px, so a 1px inset puts the
                         // pill's outer edge exactly on the bar's — at 2px it stood proud of it.
-                        className="absolute -top-px -bottom-px left-0 z-0 touch-none rounded-full border border-border-default bg-background-default motion-safe:transition-transform motion-safe:duration-nav-spring motion-safe:ease-nav-spring"
+                        className={`absolute -top-px -bottom-px left-0 z-0 touch-none ${PILL_THUMB} motion-safe:transition-transform motion-safe:duration-nav-spring motion-safe:ease-nav-spring`}
                         style={{
                             transform: `translateX(${restingX(activeBox)}px)`,
                             width: activeBox.width + 2,

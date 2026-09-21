@@ -136,13 +136,6 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             status: 'production',
         },
         {
-            label: 'SegmentedControl',
-            icon: 'switch',
-            href: '/dev/ds/primitives/segmented-control',
-            description: 'Radix tabs styled as a pill row for period/network toggles',
-            status: 'production',
-        },
-        {
             label: 'PinInput',
             icon: 'lock',
             href: '/dev/ds/primitives/pin-input',
@@ -153,7 +146,8 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             label: 'Tabs',
             icon: 'docs',
             href: '/dev/ds/primitives/tabs',
-            description: 'The one content-tab component: contained card-top triggers joined to a bordered panel',
+            description:
+                'One look, no variants — the bottom nav standing still. Three sizes; content tabs and value toggles, same row',
             status: 'production',
         },
         {
