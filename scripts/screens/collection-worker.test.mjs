@@ -91,6 +91,30 @@ function bucket() {
     }
     return storage
 }
+
+test('collection sources keep the canonical default viewport when newer extra-size sets exist', async () => {
+    const storage = bucket()
+    const entries = JSON.parse(storage.objects.get('index.json'))
+    entries.push({
+        path: `2026-09-16/dev/en/320x712/${sha}/run-3-1`,
+        locale: 'en',
+        source: 'synthetic',
+        reportType: 'capture',
+        branch: 'dev',
+        profile: '320x712',
+        complete: true,
+        sequence: 3,
+    })
+    storage.objects.set('index.json', JSON.stringify(entries))
+    const response = await worker.fetch(
+        new Request('https://api.example/v1/screens', {
+            headers: { Authorization: 'Bearer secret' },
+        }),
+        { REPORTS: storage, COLLECTION_SERVICE_TOKEN: 'secret' }
+    )
+    assert.equal(response.status, 200)
+    assert.equal((await response.json()).source, `2026-09-16/dev/en/${sha}/run-1-1`)
+})
 const accessContext = {
     access: {
         aud: 'screen-library-access',

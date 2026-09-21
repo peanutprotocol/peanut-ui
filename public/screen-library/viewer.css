@@ -355,6 +355,9 @@ label {
 #locale-control {
     flex: 0 0 96px;
 }
+#profile-control {
+    flex: 0 0 130px;
+}
 #source-control {
     flex: 0 0 170px;
 }

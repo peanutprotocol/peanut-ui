@@ -10,7 +10,7 @@ import { updateIndexes } from './publication-index.mjs'
 import { migrateLegacyReports } from './private-assets.mjs'
 
 const immutableReportPath =
-    /^\d{4}-\d{2}-\d{2}\/((?:dev|main)-[a-f0-9]{40}|(?:dev|main)\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|compare-dev\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|pr-[1-9][0-9]*\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|compare-main-\d{4}-\d{2}-\d{2}\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|nutcracker\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40})(?:\/run-[0-9]+-[0-9]+)?$/
+    /^\d{4}-\d{2}-\d{2}\/((?:dev|main)-[a-f0-9]{40}|(?:dev|main)\/(?:en|es-419|es-ar|pt-br)\/(?:440x956|360x800|320x712)\/[a-f0-9]{40}|(?:dev|main)\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|compare-dev\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|pr-[1-9][0-9]*\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|compare-main-\d{4}-\d{2}-\d{2}\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}|nutcracker\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40})(?:\/run-[0-9]+-[0-9]+)?$/
 
 const localeInfo = {
     en: { slug: 'en', label: 'English' },
@@ -73,6 +73,14 @@ export async function publishReport({ inputDir, reportPath, env = process.env, s
     if (env.EXPECTED_HEAD && after.commit !== env.EXPECTED_HEAD) throw new Error('Head differs from triggering run')
     if (env.EXPECTED_BASE && report.before?.commit !== env.EXPECTED_BASE)
         throw new Error('Base differs from verified comparison')
+    if (
+        report.type === 'capture' &&
+        reportPath.includes(`/${after.width}x${after.height}/`) === false &&
+        after.width !== 393
+    )
+        throw new Error('Report path does not match capture profile')
+    if (report.type === 'capture' && reportPath.includes(`/${after.width}x${after.height}/`) && after.width === 393)
+        throw new Error('Default profile must use the canonical path')
     // Comparisons above always consume the exact PNG capture artifacts. Only
     // this public copy is rewritten to lossy, full-resolution WebP assets.
     const publicReport = JSON.parse(JSON.stringify(report))
@@ -82,17 +90,21 @@ export async function publishReport({ inputDir, reportPath, env = process.env, s
     async function convertToPublicWebp(name, variable = variableDimensions) {
         if (convertedAssets.has(name)) return convertedAssets.get(name)
         if (!name?.endsWith('.png')) throw new Error('Full screenshots must remain PNG until publication')
-        const source = verifyAsset(assets, name, { variableDimensions: variable })
-        const inputOptions = { limitInputPixels: variable ? 16_000_000 : 393 * 852 }
+        const source = verifyAsset(assets, name, {
+            variableDimensions: variable,
+            width: after.width,
+            height: after.height,
+        })
+        const inputOptions = { limitInputPixels: variable ? 16_000_000 : after.width * after.height }
         const sourceMetadata = await sharp(source, inputOptions).metadata()
         const pipeline = sharp(source, inputOptions)
-        if (!variable) pipeline.resize({ width: 393, height: 852, fit: 'fill' })
+        if (!variable) pipeline.resize({ width: after.width, height: after.height, fit: 'fill' })
         const bytes = await pipeline
             .webp({ quality: 90, alphaQuality: 100, smartSubsample: true, effort: 4 })
             .toBuffer()
         const metadata = await sharp(bytes, inputOptions).metadata()
-        const expectedWidth = variable ? sourceMetadata.width : 393
-        const expectedHeight = variable ? sourceMetadata.height : 852
+        const expectedWidth = variable ? sourceMetadata.width : after.width
+        const expectedHeight = variable ? sourceMetadata.height : after.height
         if (metadata.width !== expectedWidth || metadata.height !== expectedHeight)
             throw new Error('Invalid public WebP dimensions')
         const publicName = `${hash(bytes)}.webp`
@@ -105,7 +117,7 @@ export async function publishReport({ inputDir, reportPath, env = process.env, s
         const publicName = await convertToPublicWebp(screen.image)
         screen.image = publicName
         // Schema compatibility: both fields intentionally resolve to the same
-        // 393 x 852 asset so cards never select a reduced-size variant.
+        // full-size asset so cards never select a reduced-size variant.
         screen.thumbnail = publicName
     }
     for (const capture of publicReport.type === 'comparison'
@@ -180,6 +192,9 @@ export async function publishReport({ inputDir, reportPath, env = process.env, s
                 locale: report.locale ?? 'en',
                 localeLabel: localeInfo[report.locale ?? 'en']?.label ?? report.locale ?? 'English',
                 source: report.type === 'journeys' ? 'nutcracker' : 'synthetic',
+                ...(report.type === 'journeys' || report.type === 'capture'
+                    ? { profile: `${after.width}x${after.height}` }
+                    : {}),
                 complete: report.complete,
                 sequence: Number(env.DEV_SEQUENCE ?? 0),
                 attempt: Number(env.RUN_ATTEMPT ?? 0),

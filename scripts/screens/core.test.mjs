@@ -108,11 +108,26 @@ test('reject empty, duplicate, path traversal, and forged completion', () => {
     assert.throws(() => validateCapture(capture([screen('../escape')])))
     assert.throws(() => validateCapture(capture([{ ...screen('home'), image: '../../secret' }])))
     assert.throws(() => validateCapture({ ...capture([screen('home')]), locale: 'fr', profile: 'fr-393x852' }))
+    assert.throws(() => validateCapture({ ...capture([screen('home')]), width: 440 }))
+    assert.throws(() =>
+        validateCapture({ ...capture([screen('home')]), profile: 'en-999x999', width: 999, height: 999 })
+    )
     assert.equal(
         validateCapture({ ...capture([{ ...screen('home'), status: 'failed', reason: 'timeout' }]), complete: true })
             .complete,
         false
     )
+})
+test('accepts each additional baseline profile only when its name and dimensions agree', () => {
+    for (const [width, height] of [
+        [440, 956],
+        [360, 800],
+        [320, 712],
+    ]) {
+        const input = { ...capture([screen('home')]), profile: `en-${width}x${height}`, width, height }
+        assert.equal(validateCapture(input).profile, input.profile)
+        assert.throws(() => validateCapture({ ...input, height: height + 1 }), /Unsupported capture profile/)
+    }
 })
 test('asset digest and dimensions are checked before decoding', () => {
     const name = '0'.repeat(64) + '.png'
