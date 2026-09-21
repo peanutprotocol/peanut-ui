@@ -7,8 +7,8 @@ import { Icon, type IconName } from '../Global/Icons/Icon'
 import { Button } from './Button'
 import { IconBubble, type IconBubbleColor } from './IconBubble'
 
-type CalloutPriority = 'info' | 'success' | 'attention' | 'helper' | 'error'
-type CalloutVariant = 'inline' | 'floating'
+export type CalloutPriority = 'info' | 'success' | 'attention' | 'helper' | 'error'
+export type CalloutVariant = 'inline' | 'floating'
 
 interface CalloutCta {
     label: string

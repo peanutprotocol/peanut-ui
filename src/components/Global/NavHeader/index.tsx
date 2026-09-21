@@ -10,7 +10,7 @@ import { Banner } from '@/components/Global/Banner'
 import { useRegisterNavHeader } from '@/components/Global/Banner/navHeaderPresence'
 import { NAV_CIRCLE_BUTTON_CLASSES } from './navHeader.consts'
 
-interface NavHeaderProps {
+export interface NavHeaderProps {
     onPrev?: () => void
     disableBackBtn?: boolean
     title?: string
