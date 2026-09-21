@@ -1267,4 +1267,63 @@ describe('useSumsubKycFlow — capability action sessions', () => {
         expect(result.current.error).toBeTruthy()
         expect(result.current.showWrapper).toBe(false)
     })
+    it.each(['BLOCKED', 'SUBMISSION_PENDING', 'READY'] as const)(
+        'clears stale %s state when re-entry resumes collection',
+        async (state) => {
+            mockStartAction.mockResolvedValueOnce({
+                data: { levelName: 'manteca-kyc', session: { ...session, state } },
+            })
+            const { result } = renderHook(() => useSumsubKycFlow())
+            await act(async () => {
+                await result.current.handleStartAction('manteca-kyc-action:BR')
+            })
+            if (state === 'BLOCKED') {
+                expect(result.current.isTerminalError).toBe(true)
+                expect(result.current.error).toBeTruthy()
+            } else {
+                expect(result.current.isVerificationProgressModalOpen).toBe(true)
+            }
+
+            mockStartAction.mockResolvedValueOnce({
+                data: { token: 'resumed-token', levelName: 'manteca-kyc', session },
+            })
+            await act(async () => {
+                await result.current.handleStartAction('manteca-kyc-action:BR')
+            })
+            expect(result.current.isTerminalError).toBe(false)
+            expect(result.current.error).toBeNull()
+            expect(result.current.isVerificationProgressModalOpen).toBe(false)
+            expect(result.current.showWrapper).toBe(true)
+            expect(result.current.accessToken).toBe('resumed-token')
+        }
+    )
+    it('hides the previous SDK while re-entry is pending and when it fails', async () => {
+        mockStartAction.mockResolvedValueOnce({ data: { token: 'old-token', levelName: 'manteca-kyc', session } })
+        const { result } = renderHook(() => useSumsubKycFlow())
+        await act(async () => {
+            await result.current.handleStartAction('manteca-kyc-action:BR')
+        })
+        expect(result.current.showWrapper).toBe(true)
+
+        let complete!: (response: Awaited<ReturnType<typeof startKycAction>>) => void
+        mockStartAction.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    complete = resolve
+                })
+        )
+        let pending!: Promise<void>
+        act(() => {
+            pending = result.current.handleStartAction('manteca-kyc-action:BR')
+        })
+        expect(result.current.isLoading).toBe(true)
+        expect(result.current.showWrapper).toBe(false)
+        await act(async () => {
+            complete({ error: 'Temporary failure' })
+            await pending
+        })
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.isVerificationProgressModalOpen).toBe(false)
+        expect(result.current.error).toBeTruthy()
+    })
 })
