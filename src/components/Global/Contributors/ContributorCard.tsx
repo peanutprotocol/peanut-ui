@@ -45,13 +45,13 @@ const ContributorCard = ({ contributor, position }: { contributor: Contributor; 
                         <UserAvatar
                             name={contributor.username ?? ''}
                             avatarKey={contributor.avatarKey}
-                            size="extra-small"
+                            size="s"
                             decorative
                         />
                     ) : (
                         <AvatarWithBadge
                             name={contributor.username ?? ''}
-                            size={'extra-small'}
+                            size={'s'}
                             inlineStyle={{
                                 backgroundColor: isEvmAddress
                                     ? 'var(--color-background-icon-bubble-yellow)'

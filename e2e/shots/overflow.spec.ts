@@ -147,7 +147,11 @@ for (const [name, fixture] of Object.entries(FIXTURES)) {
                 message: 'fixture mode never engaged — is this a NEXT_PUBLIC_VERCEL_ENV=preview build?',
             })
             .toBe(name)
-        await settle(page)
+        // A fixture whose whole subject is a loader never settles: its
+        // skeleton pulses until a provider answers, which cannot happen here.
+        if (fixture.isLoadingState) {
+            if (fixture.waitFor) await page.locator(fixture.waitFor).first().waitFor({ state: 'visible' })
+        } else await settle(page)
 
         // prove the app actually RENDERED this locale, or the gate scans the
         // English it hydrates with: IntlCore stamps <html lang> only after the

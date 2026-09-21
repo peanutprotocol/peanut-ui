@@ -54,7 +54,7 @@ export function ReceiptTokenRows({
                                             altText={transaction.tokenDisplayDetails.chainName || 'chain'}
                                             fallbackName={transaction.tokenDisplayDetails.chainName || 'C'}
                                             sizeClass="h-3.5 w-3.5 text-[7px]"
-                                            className="rounded-round border-2 border-background-default"
+                                            className="rounded-full border-2 border-background-default"
                                         />
                                     </div>
                                 )}

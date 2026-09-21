@@ -1,6 +1,6 @@
 import DocsLink from '@/components/Global/DocsLink'
 import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Button } from '@/components/0_Bruddle/Button'
 import { isCapacitor } from '@/utils/capacitor'
 import { apiFetch } from '@/utils/api-fetch'
@@ -273,7 +273,7 @@ const SetupPasskey = () => {
                     {preflightWarning && <p className="text-label-l text-foreground-attention">{preflightWarning}</p>}
                     {usernameTaken && (
                         <>
-                            <Notification priority="error">{t('passkey.usernameTaken')}</Notification>
+                            <Callout priority="error">{t('passkey.usernameTaken')}</Callout>
                             <Button
                                 loading={isLoggingIn}
                                 disabled={isLoggingIn}
@@ -286,7 +286,7 @@ const SetupPasskey = () => {
                             </Button>
                         </>
                     )}
-                    {inlineError && <Notification priority="error">{inlineError}</Notification>}
+                    {inlineError && <Callout priority="error">{inlineError}</Callout>}
                 </div>
                 <div>
                     <p className="border-t border-border-subtle pt-2 text-center text-body-xs text-foreground-secondary">

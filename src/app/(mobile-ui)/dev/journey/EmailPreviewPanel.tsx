@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import Checkbox from '@/components/0_Bruddle/Checkbox'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Tabs } from '@/components/0_Bruddle/Tabs'
 import { decisionFlagFor, emailPreviewUrl } from './emailReview'
 import StuckBadge from './StuckBadge'
@@ -91,9 +91,9 @@ export default function EmailPreviewPanel({
                     </div>
 
                     {decision && (
-                        <Notification priority="attention" title={decision.label}>
+                        <Callout priority="attention" title={decision.label}>
                             {decision.note}
-                        </Notification>
+                        </Callout>
                     )}
 
                     <div className="flex flex-wrap items-center justify-between gap-2">

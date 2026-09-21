@@ -21,7 +21,7 @@ import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Section } from '@/components/0_Bruddle/Section'
 import { Tabs } from '@/components/0_Bruddle/Tabs'
 import DisplayIcon from '@/components/Global/DisplayIcon'
@@ -396,7 +396,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', di
     const tokenBrowser = (
         <div className="flex flex-col gap-4">
             {isCrossChainDisabled ? (
-                <Notification priority="attention">{t('tokenSelector.crossChainUnavailable')}</Notification>
+                <Callout priority="attention">{t('tokenSelector.crossChainUnavailable')}</Callout>
             ) : (
                 <>
                     {/* the search field lives OUTSIDE the tab row, so switching a
@@ -413,7 +413,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', di
                     {/* sponsored fees are a fact worth noticing, not grey fine
                         print — and it sits outside the sticky bar so only the
                         search field follows the scroll */}
-                    <Notification priority="info">{t('tokenSelector.sponsoredHint')}</Notification>
+                    <Callout priority="info">{t('tokenSelector.sponsoredHint')}</Callout>
 
                     <Section
                         title={t('tokenSelector.selectANetwork')}
@@ -453,7 +453,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', di
     return (
         <div className="flex flex-col gap-1">
             <ListItem
-                position="single"
+                position="solo"
                 data-testid="token-selector-trigger"
                 onClick={openDrawer}
                 disabled={disabled}

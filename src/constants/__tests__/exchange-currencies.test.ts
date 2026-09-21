@@ -1,6 +1,7 @@
 // The exchange-rate widget takes `from`/`to` from the URL, so this allow-list
 // is what stands between a stale bookmark and a quote in a currency the
 // product does not support.
+import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
 import {
     resolveExchangeCurrencyPair,
     SUPPORTED_EXCHANGE_CURRENCIES,
@@ -47,7 +48,7 @@ describe('toSupportedExchangeCurrency', () => {
     it('is the list the dropdown renders, in display order', () => {
         // CurrencySelect imports this same constant, so the rows and the URL
         // filter cannot drift apart.
-        expect([...SUPPORTED_EXCHANGE_CURRENCIES]).toEqual(['USD', 'EUR', 'GBP', 'MXN', 'ARS', 'BRL'])
+        expect([...SUPPORTED_EXCHANGE_CURRENCIES]).toEqual(['USD', 'EUR', 'GBP', 'MXN', 'ARS', 'BRL', 'COP'])
     })
 })
 
@@ -113,5 +114,28 @@ describe('resolveExchangeCurrencyPair', () => {
         // THB is not routable but is a valid display currency, so it passes
         // through untouched rather than triggering the USD/EUR fallback.
         expect(resolveExchangeCurrencyPair('USD', 'THB', toDisplayCurrency)).toEqual(['USD', 'THB'])
+    })
+})
+
+/**
+ * The dropdown builds each row from `countryCurrencyMappings`, asserting the
+ * mapping exists. A supported currency with no mapping is a crash on render,
+ * which is how COP would have landed if the list had grown on its own.
+ */
+describe('every supported currency can be rendered', () => {
+    it('has a country mapping, flag and name', () => {
+        for (const currency of SUPPORTED_EXCHANGE_CURRENCIES) {
+            const mapping = countryCurrencyMappings.find((m) => m.currencyCode === currency)
+            expect(mapping).toBeDefined()
+            expect(mapping?.flagCode).toBeTruthy()
+            expect(mapping?.currencyName).toBeTruthy()
+        }
+    })
+
+    it('carries the two deposit corridors the hub links to', () => {
+        // BRL and COP are quoted by the FX service (Manteca provider domain),
+        // so the exchange-rate page can answer for both.
+        expect(toSupportedExchangeCurrency('BRL')).toBe('BRL')
+        expect(toSupportedExchangeCurrency('COP')).toBe('COP')
     })
 })

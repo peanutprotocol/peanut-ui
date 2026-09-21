@@ -5,6 +5,7 @@ import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import maintenanceConfig from '@/config/underMaintenance.config'
 import { shouldBlockDevRoute } from '@/constants/dev-tools.consts'
+import { APP_ENTRY_QUERY_PARAM } from '@/constants/migration.consts'
 import { LOCALE_COOKIE, toAppLocale, toMarketingLocale, withCountry } from '@/i18n/localeBridge'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
@@ -33,6 +34,17 @@ export function proxy(request: NextRequest) {
         ) {
             return NextResponse.redirect(new URL('/maintenance', request.url))
         }
+    }
+
+    // QR downloads enter through /home because that path is already claimed by
+    // every released native shell. A browser has no App Link interception, so
+    // route it to the web-only smart-store page while preserving the deferred
+    // handoff. Remove the routing marker so /app can never loop back here.
+    if (pathname === '/home' && request.nextUrl.searchParams.get(APP_ENTRY_QUERY_PARAM) === '1') {
+        const target = request.nextUrl.clone()
+        target.pathname = '/app'
+        target.searchParams.delete(APP_ENTRY_QUERY_PARAM)
+        return NextResponse.redirect(target, 307)
     }
 
     const url = request.nextUrl.clone()

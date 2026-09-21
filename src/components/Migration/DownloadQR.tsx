@@ -6,11 +6,15 @@ import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import StoreBadges from '@/components/Migration/StoreBadges'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { SELF_URL } from '@/constants/general.consts'
-import { type MigrationSurface } from '@/constants/migration.consts'
+import { APP_ENTRY_QUERY_PARAM, type MigrationSurface } from '@/constants/migration.consts'
 import { buildDeferredPayload } from '@/utils/deferred-link'
 import type { StoreHandoff } from '@/utils/migration.utils'
 
-/** Generic downloads encode bare /app; explicit guest handoffs also carry their campaign and destination. */
+/**
+ * QR scans enter through /home, which is claimed by the already-released
+ * native shells. Browsers are redirected to /app by the web proxy; installed
+ * apps consume the marker and any explicit guest handoff directly.
+ */
 export default function DownloadQR({ surface, handoff }: { surface: MigrationSurface; handoff?: StoreHandoff }) {
     const t = useTranslations('migration')
     const [payload, setPayload] = useState<string>()
@@ -27,7 +31,7 @@ export default function DownloadQR({ surface, handoff }: { surface: MigrationSur
 
     return (
         <div className="flex w-full flex-col items-center gap-3 py-2">
-            <QRCodeWrapper url={`${origin}/app${payload ? `?${payload}` : ''}`} />
+            <QRCodeWrapper url={`${origin}/home?${APP_ENTRY_QUERY_PARAM}=1${payload ? `&${payload}` : ''}`} />
             <span className="text-body-xs text-foreground-secondary">{t('qr.scanHint')}</span>
             <StoreBadges surface={surface} payload={payload} />
         </div>

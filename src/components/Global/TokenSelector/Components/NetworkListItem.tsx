@@ -16,7 +16,7 @@ import DisplayIcon from '@/components/Global/DisplayIcon'
 import React from 'react'
 import { twMerge } from '@/utils/tw'
 import { Icon } from '../../Icons/Icon'
-import StatusBadge from '../../Badges/StatusBadge'
+import Badge from '../../Badges/Badge'
 
 interface NetworkListItemProps {
     name: string
@@ -32,7 +32,7 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
     iconUrl,
     isSelected = false,
     isComingSoon = false,
-    position = 'single',
+    position = 'solo',
     onClick,
 }) => {
     const paint = isSelected ? 'text-foreground-over-color-primary' : undefined
@@ -72,7 +72,7 @@ const NetworkListItem: React.FC<NetworkListItemProps> = ({
                 title={<span className={twMerge('capitalize', line)}>{name}</span>}
                 trailing={
                     isComingSoon ? (
-                        <StatusBadge status="soon" />
+                        <Badge status="soon" />
                     ) : (
                         isSelected && <Icon name="check" size={20} className={paint} />
                     )

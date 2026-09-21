@@ -19,7 +19,7 @@ jest.mock('../StoreBadges', () => ({
 
 it('keeps generic downloads bare even when ambient context exists', () => {
     render(<DownloadQR surface="landing_hero" />)
-    expect(screen.getByTestId('qr')).toHaveAttribute('href', `${window.location.origin}/app`)
+    expect(screen.getByTestId('qr')).toHaveAttribute('href', `${window.location.origin}/home?app_entry=1`)
     expect(screen.getByTestId('stores')).toHaveAttribute('data-payload', '')
 })
 
@@ -27,9 +27,9 @@ it('puts an explicit campaign handoff in both the QR and store fallbacks', () =>
     const { rerender } = render(<DownloadQR surface="landing_door" handoff={{ dest: '/card' }} />)
     expect(screen.getByTestId('qr')).toHaveAttribute(
         'href',
-        `${window.location.origin}/app?pnutdl=1&badgeCampaign=door&dest=%2Fcard`
+        `${window.location.origin}/home?app_entry=1&pnutdl=1&badgeCampaign=door&dest=%2Fcard`
     )
     expect(screen.getByTestId('stores')).toHaveAttribute('data-payload', 'pnutdl=1&badgeCampaign=door&dest=%2Fcard')
     rerender(<DownloadQR surface="landing_hero" />)
-    expect(screen.getByTestId('qr')).toHaveAttribute('href', `${window.location.origin}/app`)
+    expect(screen.getByTestId('qr')).toHaveAttribute('href', `${window.location.origin}/home?app_entry=1`)
 })

@@ -172,7 +172,7 @@ function renderPage() {
     mockSearchParams.clear()
     mockSearchParams.set('country', 'argentina')
     mockSearchParams.set('method', 'bank')
-    mockSearchParams.set('destination', '0000003100064523644259')
+    mockSearchParams.set('destination', 'qa.account')
     mockSearchParams.set('isSavedAccount', 'true')
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const view = () => (

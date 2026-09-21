@@ -173,7 +173,7 @@ function discoverRoutes(): Set<string> {
         '/profile/backup',
         '/profile/edit',
         '/profile/exchange-rate',
-        '/profile/identity-verification',
+        '/profile/accounts-and-payments',
         '/home',
         '/send',
         '/request',

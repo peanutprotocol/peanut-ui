@@ -112,7 +112,7 @@ const SIZES = {
 
 type TabsSize = keyof typeof SIZES
 
-const chip = 'before:absolute before:-inset-px before:rounded-round before:border before:border-transparent'
+const chip = 'before:absolute before:-inset-px before:rounded-full before:border before:border-transparent'
 
 export const Tabs = ({
     tabs,

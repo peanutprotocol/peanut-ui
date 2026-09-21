@@ -50,8 +50,6 @@ export type CarouselCTA = {
     iconContainerClassName?: string
     secondaryIcon?: StaticImageData | string
     iconSize?: number
-    // perk claim indicator - shows pink dot instead of X close button
-    isPerkClaim?: boolean
 }
 
 /** Read dismissals from preferences, dropping any whose cooldown has expired.
@@ -222,7 +220,7 @@ export const useHomeCarouselCTAs = () => {
                     // 'default' = browser suppressed prompt (policy/Shields) or
                     // user dismissed it — calling again won't help this session.
                     if (result === 'default') {
-                        toast.warning(t('notifications.blockedToast'))
+                        toast.attention(t('notifications.blockedToast'))
                         dismissCTA('notification-prompt')
                     }
                 },
@@ -236,7 +234,7 @@ export const useHomeCarouselCTAs = () => {
                 id: 'qr-payment',
                 title: <span>{t.rich('qrPay.title', { b })}</span>,
                 description: <span>{t.rich('qrPay.description', { b })}</span>,
-                iconContainerClassName: 'bg-action-secondary',
+                iconContainerClassName: 'bg-background-icon-bubble-yellow',
                 icon: 'qr-code',
                 onClick: () => {
                     setIsQRScannerOpen(true)
@@ -253,7 +251,7 @@ export const useHomeCarouselCTAs = () => {
                 id: 'latam-cashback-invite',
                 title: <span>{t.rich('latamInvite.title', { b })}</span>,
                 description: <span>{t.rich('latamInvite.description', { b })}</span>,
-                iconContainerClassName: 'bg-action-secondary',
+                iconContainerClassName: 'bg-background-icon-bubble-yellow',
                 icon: 'gift',
                 onClick: () => {
                     router.push('/rewards')
@@ -315,11 +313,11 @@ export const useHomeCarouselCTAs = () => {
                 id: 'kyc-prompt',
                 title: <span>{t.rich('kyc.title', { b })}</span>,
                 description: <span>{t.rich('kyc.description', { b })}</span>,
-                iconContainerClassName: 'bg-action-secondary',
+                iconContainerClassName: 'bg-background-icon-bubble-yellow',
                 icon: 'qr-code',
                 iconSize: 16,
                 onClick: () => {
-                    router.push('/profile/identity-verification')
+                    router.push('/profile/accounts-and-payments')
                 },
             })
         }

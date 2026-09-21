@@ -11,7 +11,7 @@ import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
 
-const TONES: ActionModalTone[] = ['error', 'warning', 'success', 'info']
+const TONES: ActionModalTone[] = ['error', 'attention', 'success', 'info']
 
 export default function ModalPage() {
     const [showActionModal, setShowActionModal] = useState(false)
@@ -62,7 +62,7 @@ export default function ModalPage() {
                                 },
                                 {
                                     text: 'Confirm',
-                                    variant: 'purple',
+                                    variant: 'primary',
                                     disabled: !actionCheckbox,
                                     onClick: () => {
                                         setShowActionModal(false)
@@ -75,7 +75,7 @@ export default function ModalPage() {
 
                     <div className="flex flex-col gap-2">
                         <p className="text-body-s text-foreground-secondary">
-                            <code>tone</code> picks the bubble color and a default icon: error (red, ban), warning
+                            <code>tone</code> picks the bubble color and a default icon: error (red, ban), attention
                             (yellow, alert), success (green, check), info (blue, info). An explicit <code>icon</code> or{' '}
                             <code>iconContainerClassName</code> still wins.
                         </p>
@@ -103,7 +103,7 @@ export default function ModalPage() {
                             { name: 'title', type: 'string | ReactNode', default: '-', required: true },
                             {
                                 name: 'tone',
-                                type: "'error' | 'warning' | 'success' | 'info'",
+                                type: "'error' | 'attention' | 'success' | 'info'",
                                 default: '(none)',
                                 description: 'Semantic bubble color + default icon',
                             },
@@ -175,7 +175,7 @@ export default function ModalPage() {
   onClose={() => setVisible(false)}
   title="Confirm Action"
   description="Are you sure?"
-  tone="warning"
+  tone="attention"
   checkbox={{
     text: 'I understand',
     checked: checked,
@@ -183,7 +183,7 @@ export default function ModalPage() {
   }}
   ctas={[
     { text: 'Cancel', variant: 'stroke', onClick: handleCancel },
-    { text: 'Confirm', variant: 'purple', onClick: handleConfirm },
+    { text: 'Confirm', variant: 'primary', onClick: handleConfirm },
   ]}
 />`}
                     />
@@ -199,7 +199,7 @@ export default function ModalPage() {
                     undocumented modal shell.
                 </DesignNote>
                 <DesignNote type="warning">
-                    Prefer <code>tone</code> over iconContainerClassName: yellow is for warnings only, red for errors,
+                    Prefer <code>tone</code> over iconContainerClassName: yellow is for attention only, red for errors,
                     green for success, blue for plain information. Without a tone the bubble is pink (primary-1).
                 </DesignNote>
             </DocSection>

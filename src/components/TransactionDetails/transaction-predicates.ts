@@ -68,6 +68,40 @@ export function hasReceiptPage(transaction: TransactionDetails): boolean {
     return k === 'SEND_LINK' || (!!k && FIAT_RAIL_KINDS.has(k))
 }
 
+/** The two keys `GET /history/:id` resolves a crypto deposit by. */
+const RECEIPT_UUID_KEY = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const RECEIPT_EVM_TX_KEY = /^tx:0x[0-9a-f]{64}$/
+
+/**
+ * Can a document for this entry actually be fetched?
+ *
+ * Every other kind carries the id the history route resolves. A crypto
+ * deposit does too once it is a history row, but the deposit success screen
+ * builds its receipt from the transaction hash, and only an EVM hash has a
+ * `tx:` form the route matches. A Solana hash is base58 and a Tron hash has no
+ * `0x`, so Share and Download there are buttons that always answer 404.
+ *
+ * Extending the route to resolve the other two chains is the real fix; until
+ * then the screen offers no document rather than a failing one.
+ */
+export function hasResolvableReceiptDocument(transaction: TransactionDetails): boolean {
+    if (kindOf(transaction) !== 'CRYPTO_DEPOSIT') return true
+    const id = transaction.id ?? ''
+    return RECEIPT_UUID_KEY.test(id) || RECEIPT_EVM_TX_KEY.test(id)
+}
+
+/**
+ * Kinds a receipt serves to a reader with no session.
+ *
+ * The dedicated page already serves a crypto deposit anonymously, and the API
+ * treats it as public, but the document gates read `hasReceiptPage` — which
+ * does not list it. So the page rendered with no Download affordance and its
+ * PDF twin answered 404: a receipt page carrying no document.
+ */
+export function servesAnonymousReceipt(transaction: TransactionDetails): boolean {
+    return hasReceiptPage(transaction) || kindOf(transaction) === 'CRYPTO_DEPOSIT'
+}
+
 // Renders "Completed" label for the timestamp row instead of "Sent"/"Received".
 // One-shot bank/onchain flows.
 export function usesCompletedTimestampLabel(transaction: TransactionDetails): boolean {

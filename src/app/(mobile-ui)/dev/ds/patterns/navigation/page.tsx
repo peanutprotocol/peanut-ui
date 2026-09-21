@@ -63,12 +63,6 @@ export default function NavigationPage() {
                                 description: 'Disables the back button',
                             },
                             {
-                                name: 'showLogoutBtn',
-                                type: 'boolean',
-                                default: 'false',
-                                description: 'Shows logout icon button on right',
-                            },
-                            {
                                 name: 'hideLabel',
                                 type: 'boolean',
                                 default: 'false',
@@ -92,8 +86,6 @@ export default function NavigationPage() {
                         label="Callback-based"
                         code={`<NavHeader title="Edit Profile" onPrev={() => router.back()} />`}
                     />
-
-                    <CodeBlock label="With logout" code={`<NavHeader title="Account" showLogoutBtn />`} />
                 </DocSection.Code>
             </DocSection>
 
@@ -121,7 +113,7 @@ export default function NavigationPage() {
                         </div>
                         {flowStep < 3 ? (
                             <Button
-                                variant="purple"
+                                variant="primary"
                                 shadowSize="4"
                                 className="w-full"
                                 onClick={() => setFlowStep((s) => s + 1)}
@@ -129,7 +121,7 @@ export default function NavigationPage() {
                                 Next
                             </Button>
                         ) : (
-                            <Button variant="purple" shadowSize="4" className="w-full" onClick={() => setFlowStep(1)}>
+                            <Button variant="primary" shadowSize="4" className="w-full" onClick={() => setFlowStep(1)}>
                                 Restart
                             </Button>
                         )}

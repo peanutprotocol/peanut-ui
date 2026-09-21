@@ -40,12 +40,12 @@ describe('ConnectivityToast', () => {
         )
     })
 
-    it('pushes a warning toast (not error, no support mention) on a timeout', () => {
+    it('pushes an attention toast (not error, no support mention) on a timeout', () => {
         mockConnectivity.mockReturnValue({ show: true, isOffline: false })
         render(<ConnectivityToast />)
         expect(toastFn).toHaveBeenCalledWith(
             expect.objectContaining({
-                type: 'warning',
+                type: 'attention',
                 message: expect.stringMatching(/trouble reaching peanut/i),
             })
         )

@@ -25,8 +25,17 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[]; erro
     { pattern: /users/, statuses: [400, 401, 403, 404] },
     { pattern: /perks/, statuses: [400, 401, 403, 404] },
     // /invites/validate 400 = "Invalid Invite": the user mistyped an invite code.
-    // Expected input validation, surfaced inline to the user — not a server bug.
-    { pattern: /\/invites\/validate/, statuses: [400] },
+    // 409 = a code that resolves to a campaign only, which validateInviteCode
+    // reads as a success (`typedCampaignOnly`). Both are expected outcomes of a
+    // typed code, surfaced inline to the user — not server bugs.
+    { pattern: /\/invites\/validate/, statuses: [400, 409] },
+    // NOT here on purpose: /bridge/exchange-rate 429. It looks like ordinary
+    // quota noise and is not. useGetExchangeRate swallows the failure and
+    // returns a rate of '1', which bankWithdrawMinUsd turns into a wrong
+    // withdrawal minimum (MX shows $50 instead of ~$3) with nothing gating
+    // submission — so this 429 is the only alert for a wrong number on a money
+    // screen, and for the open FX-stampede P2 behind it. It reports until the
+    // keyed single-flight fix in no-cache.ts lands.
     // /tokens/price 404 means the upstream price provider declined the lookup —
     // in practice a Mobula 429. The UI falls back to token denomination, so it is
     // a degraded display, never a wrong number. The backend already downgraded
@@ -71,6 +80,12 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[]; erro
     // mistyped/withdrawn link — both expected, surfaced by the polling/claim UI.
     // The claim-success poller hits this every second until the claim lands.
     { pattern: /\/send-links\/0x[0-9a-fA-F]{40}/, statuses: [404] },
+    // /ens/{name} 404 = the name holds no address record. `resolveEns` handles
+    // it by returning undefined and the UI says so inline, so it is a typed-input
+    // outcome, not a server bug. The name is a PATH segment, so every miss also
+    // opened its own issue carrying the raw value the user typed. The reverse
+    // route is excluded: it answers 200 with `{ name: null }` and never 404s.
+    { pattern: /\/ens\/(?!reverse\/)[^/]+$/, statuses: [404] },
 ]
 
 /**
@@ -472,6 +487,12 @@ export const sanitizeUrl = (url: string) => {
              * username looked up.
              */
             .replace(/\/users\/username\/[^/?]+/gi, '/users/username/{value}')
+            /*
+             * Same for the ENS resolver: the name is a path segment, so a 5xx
+             * or a timeout on the route grouped by whatever the user typed.
+             * `reverse` is a fixed sub-route, not a name.
+             */
+            .replace(/\/ens\/(?!reverse\/)[^/?]+/gi, '/ens/{value}')
             // Replace numeric IDs in query params. Anchored to the end of the
             // value: unanchored, this ate the leading 0 of an 0x-prefixed
             // address and left `{id}xaf88d065`, so every wallet still got its
@@ -534,10 +555,10 @@ const reportNonOkResponse = async (
     // the status falls through and is reported.
     if (skipRule?.errorCodes && bodyCarriesSkippedCode(skipRule.errorCodes, errorContent)) return
 
-    // console.info, not warn — captureConsoleIntegration listens on
-    // ['error','warn'], so a warn here became a SECOND Sentry event for every
-    // non-2xx in the app, grouped by this call site rather than by request.
-    // The explicit captureMessage below is the real report: it fingerprints on
+    // console.info, not error — captureConsoleIntegration listens on error, so
+    // an error here would be a SECOND Sentry event for every non-2xx in the
+    // app, grouped by this call site rather than by request. The explicit
+    // captureMessage below is the real report: it fingerprints on
     // [method, url, status] and carries headers, body and response.
     console.info(`Request to ${String(url).replace(/[\r\n]/g, '')} failed with status ${response.status}`)
     const method = options.method || 'GET'
@@ -663,8 +684,8 @@ export const fetchWithSentry = async (
                 })
             } catch (error) {
                 if (attempt < maxAttempts && error instanceof Error && error.name === 'AbortError') {
-                    // console.info, not warn: captureConsoleIntegration listens on
-                    // warn, and the retry outcome is reported explicitly below.
+                    // console.info: a retry that succeeds is not a failure, and
+                    // the retry outcome is reported explicitly below.
                     console.info(`Request to ${String(telemetryUrl).replace(/[\r\n]/g, '')} timed out — retrying`)
                     await new Promise((resolve) => setTimeout(resolve, TRANSPORT_TIMEOUT_RETRY_DELAY_MS))
                     continue

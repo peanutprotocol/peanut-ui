@@ -92,7 +92,7 @@ export const AboutView = ({ appVersion }: { appVersion: string }) => {
                     <ListItem
                         title={t('rate')}
                         chevron
-                        position="single"
+                        position="solo"
                         onClick={() => void openStoreReviewPage(store)}
                     />
                 </div>

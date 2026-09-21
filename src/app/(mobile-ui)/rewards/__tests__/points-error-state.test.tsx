@@ -33,7 +33,7 @@ jest.mock('@/utils/capacitor', () => ({ isIOSNative: () => false }))
 jest.mock('@/utils/format.utils', () => ({ shortenPoints: (n: number) => ({ number: String(n), suffix: '' }) }))
 jest.mock('@/utils/native-routes', () => ({ profileUrl: (u: string) => `/${u}` }))
 jest.mock('@/utils/general.utils', () => ({ getInitialsFromName: () => 'A' }))
-jest.mock('@/components/Global/Card/card.utils', () => ({ getCardPosition: () => 'single' }))
+jest.mock('@/components/Global/Card/card.utils', () => ({ getCardPosition: () => 'solo' }))
 jest.mock('@/components/0_Bruddle/PageContainer', () => {
     return function MockPageContainer(p: { children?: React.ReactNode }) {
         return <div>{p.children}</div>
@@ -51,7 +51,7 @@ jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 jest.mock('@/components/Global/NavHeader', () => () => null)
 jest.mock('@/components/Global/NavigationArrow', () => () => null)
 jest.mock('@/components/Global/InvitesGraph', () => () => null)
-jest.mock('@/components/Global/InviteFriendsDrawer', () => () => null)
+jest.mock('@/components/Global/InviteFriendsModal', () => () => null)
 jest.mock('@/components/Points/InviteePointsBadge', () => () => null)
 jest.mock('@/components/TransactionDetails/TransactionAvatarBadge', () => () => null)
 jest.mock('@/components/UserHeader', () => ({ VerifiedUserLabel: () => null }))

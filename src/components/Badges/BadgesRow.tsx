@@ -101,7 +101,7 @@ const BadgesRow = ({ badges, className, isSelfProfile = true }: BadgesRowProps) 
     return (
         <div className={twMerge('space-y-3', className)}>
             <h2 className="text-body-m-semibold">{t('title')}</h2>
-            <Card position="single" className="relative flex h-20 items-center justify-center">
+            <Card position="solo" className="relative flex h-20 items-center justify-center">
                 {/* Badge viewport container */}
                 <div
                     ref={viewportRef}

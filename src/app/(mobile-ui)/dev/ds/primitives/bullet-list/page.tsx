@@ -75,9 +75,9 @@ export default function BulletListPage() {
             <DocSection title="Use for facts, not rows or warnings">
                 <DocSection.Content>
                     <p className="text-body-s text-foreground-secondary">
-                        Use <code>ListItem</code> for navigable settings or payment rows. Use <code>Notification</code>{' '}
-                        for a warning or a message that needs a priority treatment. Keep the list semantic and let its
-                        items wrap.
+                        Use <code>ListItem</code> for navigable settings or payment rows. Use <code>Callout</code> for a
+                        warning or a message that needs a priority treatment. Keep the list semantic and let its items
+                        wrap.
                     </p>
                 </DocSection.Content>
             </DocSection>

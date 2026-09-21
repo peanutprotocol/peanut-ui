@@ -84,22 +84,42 @@ export function useWithdrawRootFlow() {
         },
     })
 
-    // Send → Exchange or Wallet enters as /withdraw?method=crypto: the method
-    // is implied, so commit it and land straight on the amount step.
+    // Send and old amount-step links enter the crypto destination flow directly.
     useEffect(() => {
-        if (!isCryptoFromSend) return
-        // A scan names the rail, so it replaces a method the user left selected —
-        // /withdraw keeps its layout mounted, so scanning from the amount step of
-        // a bank withdrawal arrives with that bank method still in flow memory,
-        // and Continue would follow the old bank route (and apply its fiat
-        // minimum) instead of paying the scanned address.
-        if (!selectedMethod || (scanIdParam && selectedMethod.type !== 'crypto')) {
-            setSelectedMethod({ type: 'crypto', title: 'Crypto', countryPath: undefined })
-            setSelectedBankAccount(null)
+        if (!isCryptoFromSend && !(stepper.step === 'amount' && selectedMethod?.type === 'crypto')) return
+        if (scanIdParam && !supportedChainsAndTokens) return
+        const scanned = takeScannedDestination(scanIdParam)
+        const token = scanned ? withdrawTokenForChain(supportedChainsAndTokens?.[scanned.chainId]?.tokens) : undefined
+        if (scanned && token) {
+            setSelectedChainID(scanned.chainId)
+            setSelectedTokenAddress(token.address)
+            setRecipient({ name: undefined, address: scanned.address })
+            setIsValidRecipient(true)
         }
-        if (stepper.step === 'method') void stepper.goTo('amount')
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isCryptoFromSend, selectedMethod, stepper.step, scanIdParam])
+        if (selectedMethod?.type !== 'crypto') {
+            setSelectedMethod({ type: 'crypto', title: 'Crypto', countryPath: undefined })
+        }
+        setSelectedBankAccount(null)
+        const params = new URLSearchParams()
+        if (methodParam) params.set('method', methodParam)
+        if (urlAmount) params.set('amount', urlAmount)
+        router.replace(`/withdraw/crypto${params.size ? `?${params}` : ''}`)
+    }, [
+        isCryptoFromSend,
+        stepper.step,
+        selectedMethod,
+        scanIdParam,
+        supportedChainsAndTokens,
+        methodParam,
+        urlAmount,
+        setSelectedChainID,
+        setSelectedTokenAddress,
+        setRecipient,
+        setIsValidRecipient,
+        setSelectedBankAccount,
+        setSelectedMethod,
+        router,
+    ])
 
     // flag to know if the user has manually entered something
     const userTypedRef = useRef<boolean>(false)
@@ -130,6 +150,7 @@ export function useWithdrawRootFlow() {
             if (iso2 === 'US') accountType = AccountType.US
             else if (iso2 === 'GB') accountType = AccountType.GB
             else if (iso2 === 'MX') accountType = AccountType.CLABE
+            else if (iso2 === 'CO') accountType = AccountType.CO_BANK_TRANSFER
             return { countryIso2: iso2, rateAccountType: accountType }
         }
         return { countryIso2: '', rateAccountType: AccountType.US }
@@ -300,25 +321,6 @@ export function useWithdrawRootFlow() {
         // Route based on selected method type (check method type first to avoid
         // a stale bank account taking priority)
         if (selectedMethod.type === 'crypto') {
-            // Hand the scanned destination to the recipient step the way an
-            // address-book tap does — chain, token and a pre-validated address
-            // in flow state, which InitialWithdrawView then preserves instead
-            // of resetting to USDC on Arbitrum. Consumed here, at its one
-            // legitimate use, so nothing can re-apply it over a destination the
-            // user picks afterwards.
-            // No token means the chain list has not arrived yet — seeding the chain and
-            // recipient without one opens the step with a valid recipient and nothing to
-            // send, so leave it to its own defaults instead.
-            const scannedDestination = takeScannedDestination(scanIdParam)
-            const token = scannedDestination
-                ? withdrawTokenForChain(supportedChainsAndTokens?.[scannedDestination.chainId]?.tokens)
-                : undefined
-            if (scannedDestination && token) {
-                setSelectedChainID(scannedDestination.chainId)
-                setSelectedTokenAddress(token.address)
-                setRecipient({ name: undefined, address: scannedDestination.address })
-                setIsValidRecipient(true)
-            }
             router.push(`/withdraw/crypto${downstreamQuery()}`)
         } else if (selectedMethod.type === 'manteca') {
             // Manteca (AR/BR) accounts route to the Manteca flow. Checked BEFORE
@@ -348,9 +350,10 @@ export function useWithdrawRootFlow() {
                 setError({ showError: true, errorMessage: t('errors.countryUnresolved') })
             }
         } else if (selectedMethod.countryPath) {
-            // Bridge (and any other) countries go to the country page for the
-            // bank-account form
-            router.push(withdrawCountryUrl(selectedMethod.countryPath, downstreamQuery()))
+            // A bridge method with no account yet — an old `?step=amount` link,
+            // or flow memory lost to a refresh. The form comes first now, so
+            // send them there with the amount they typed still in the URL.
+            router.push(withdrawCountryUrl(selectedMethod.countryPath, downstreamQuery({ step: 'form' })))
         } else {
             // No branch matched the selected method — surface an error rather
             // than leaving the user with a silently-dead Continue button.
@@ -371,12 +374,6 @@ export function useWithdrawRootFlow() {
         downstreamQuery,
         setError,
         t,
-        scanIdParam,
-        supportedChainsAndTokens,
-        setSelectedChainID,
-        setSelectedTokenAddress,
-        setRecipient,
-        setIsValidRecipient,
     ])
 
     const handleAmountBack = useCallback(() => {

@@ -179,7 +179,7 @@ export default function CapNudgeCard() {
 
     if (nudge.state === 'under-review' || recentlySubmitted) {
         return (
-            <Card position="single" className="p-4">
+            <Card position="solo" className="p-4">
                 <p className="text-body-s text-foreground-secondary">{t('underReview')}</p>
             </Card>
         )
@@ -187,7 +187,7 @@ export default function CapNudgeCard() {
 
     return (
         <>
-            <Card position="single" className="space-y-3 p-4">
+            <Card position="solo" className="space-y-3 p-4">
                 <p className="text-body-s text-foreground-secondary">{t('description')}</p>
                 <Button
                     className="w-full"

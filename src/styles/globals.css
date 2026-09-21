@@ -97,7 +97,6 @@
     --color-border-default: #161616;
     --color-border-subtle: #9ca3af;
     --color-border-button: #000000;
-    --color-border-button-secondary: #000000;
     --color-border-brand: #ff90e8; /* figma border.brand (renamed+recolored from border.accent purple) */
     --color-border-error: #ff3b30;
     --color-border-disabled: #e7e8e9;
@@ -236,11 +235,6 @@
     --text-button-s--font-weight: 700;
     --text-display: 3.75rem;
 
-    /* semantic radius (figma). border weights live in @layer base :root —
-       --border-width-* is a live v4 namespace, so defining s/m/l here would
-       emit .border-s/.border-l width utilities that hijack the core logical
-       border-inline-start/left utilities (tooltip arrows use bare border-l). */
-    --radius-round: 999px;
     /* physical-card geometry (CardFace) — deliberately off the ui radius
        scale, like the id-1 aspect ratio. visual-qa verdict ui#3201. */
     --radius-card: 0.75rem;
@@ -331,36 +325,6 @@
     --text-8xl--line-height: 10rem;
     --text-9xl: 12rem;
     --text-9xl--line-height: 0.9;
-    --text-h1: 3rem;
-    --text-h1--line-height: 3.5rem;
-    --text-h1--font-weight: 800;
-    --text-h2: 2.25rem;
-    --text-h2--line-height: 2.875rem;
-    --text-h2--font-weight: 800;
-    --text-h3: 1.875rem;
-    --text-h3--line-height: 2.375rem;
-    --text-h3--font-weight: 800;
-    --text-h4: 1.5rem;
-    --text-h4--line-height: 2rem;
-    --text-h4--font-weight: 800;
-    --text-h5: 1.25rem;
-    --text-h5--line-height: 1.75rem;
-    --text-h5--font-weight: 800;
-    --text-h6: 1.125rem;
-    --text-h6--line-height: 1.5rem;
-    --text-h6--font-weight: 800;
-    --text-h7: 1rem;
-    --text-h7--line-height: 1.25rem;
-    --text-h7--font-weight: 800;
-    --text-h8: 0.875rem;
-    --text-h8--line-height: 1rem;
-    --text-h8--font-weight: 800;
-    --text-h9: 0.75rem;
-    --text-h9--line-height: 0.875rem;
-    --text-h9--font-weight: 800;
-    --text-h10: 0.625rem;
-    --text-h10--line-height: 0.75rem;
-    --text-h10--font-weight: 800;
     --text-headingLarge: 7rem;
     --text-headingLarge--line-height: 6.5rem;
     --text-headingMedium: 5rem;
@@ -750,13 +714,6 @@
     :root {
         color-scheme: light;
 
-        /* figma border-weight tokens (var() consumers only) — kept out of
-           @theme so no border-s/m/l width utilities get generated (border-s
-           and border-l would shadow the core logical-property utilities) */
-        --border-width-s: 1.5px;
-        --border-width-m: 2px;
-        --border-width-l: 2.5px;
-
         /* figma icon-size tokens (Size/*) — plain vars for the same reason */
         --icon-size-xs: 16px;
         --icon-size-s: 20px;
@@ -792,6 +749,23 @@
         color: var(--color-foreground-secondary);
     }
 
+    /* An autofilled field keeps the DS input surface. Chrome paints its own
+       #e8f0fe over the author background-color (the recipient field turned
+       light blue once the browser filled it, with a white notch where the
+       clear button sits on its own background). background-color cannot win
+       that, so repaint the box with an inset shadow and pin the text color. */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    input:-webkit-autofill:active,
+    textarea:-webkit-autofill,
+    select:-webkit-autofill {
+        box-shadow: 0 0 0 1000px var(--color-background-default) inset;
+        -webkit-box-shadow: 0 0 0 1000px var(--color-background-default) inset;
+        -webkit-text-fill-color: var(--color-foreground-primary);
+        caret-color: var(--color-foreground-primary);
+    }
+
     /* v3-preflight parity: buttons keep the pointer cursor (v4 uses default) */
     button:not(:disabled),
     [role='button']:not(:disabled) {
@@ -815,7 +789,7 @@
        (touch-target law), Roboto Flex bold via text-button-*, blue focus ring,
        disabled = 40% opacity (was gray fill). */
     .btn {
-        @apply inline-flex h-11 items-center justify-center rounded-round border border-border-button fill-foreground-primary px-3 text-button-m text-foreground-primary transition-colors focus-visible:outline-[3px] focus-visible:outline-action-focus disabled:cursor-not-allowed disabled:opacity-40;
+        @apply inline-flex h-11 items-center justify-center rounded-full border border-border-button fill-foreground-primary px-3 text-button-m text-foreground-primary transition-colors focus-visible:outline-[3px] focus-visible:outline-action-focus disabled:cursor-not-allowed disabled:opacity-40;
     }
     .btn svg {
         @apply fill-inherit;
@@ -831,8 +805,8 @@
         }
     }
     /* variant classes are deltas on top of .btn (the component always pairs them;
-       the few raw call-sites all write "btn btn-purple"). board mapping:
-       purple = button.type.primary, stroke = button.type.secondary,
+       the few raw call-sites all write "btn btn-primary"). board mapping:
+       primary = button.type.primary, stroke = button.type.secondary,
        transparent* = button.type.ghost. primary-soft is the last off-board
        variant — shape/type restyle inherited from .btn, colors kept until a
        rebuild migrates it. */
@@ -842,12 +816,14 @@
     .btn-transparent-dark {
         @apply border-transparent fill-foreground-primary text-foreground-primary hover:fill-action-ghost-hover hover:text-action-ghost-hover active:fill-action-ghost-hover active:text-action-ghost-hover;
     }
-    .btn-purple {
-        /* board 17311:135055: hover drops the offset shadow (flat) */
-        @apply bg-action-primary shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] hover:bg-action-primary-hover hover:shadow-none active:bg-action-primary-hover disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
+    /* the offset shadow stays on hover. dropping it there left nothing for the
+       press translate in Button.tsx to fall into, so a desktop click moved the
+       button 4px with no shadow to replace. */
+    .btn-primary {
+        @apply bg-action-primary shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] hover:bg-action-primary-hover active:bg-action-primary-hover disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
     }
     .btn-stroke {
-        @apply bg-background-default shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] hover:shadow-none active:bg-action-primary disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
+        @apply bg-background-default shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)] active:bg-action-primary disabled:shadow-[0.0625rem_0.0625rem_0_var(--color-shadow-primary)];
     }
     .btn-square {
         @apply !px-0;
@@ -1317,10 +1293,6 @@ Firefox input[type='number'] {
     transform-origin: center center;
 }
 
-.text-h2 {
-    @apply text-2xl md:text-3xl lg:text-4xl;
-}
-
 /* elements that shouldn't be translated */
 .notranslate {
     -webkit-user-modify: read-only !important;
@@ -1625,4 +1597,21 @@ input::placeholder {
     .receipt-page {
         padding: 0 !important;
     }
+}
+
+/* ── Crisp launcher ── */
+
+/*
+ * Defence in depth, not the fix. The stock Crisp bubble belongs to the
+ * marketing site; the app has its own support drawer. The marketing layout
+ * hides the bubble when it unmounts (utils/crisp-launcher) — this rule is the
+ * backstop, so a future main-window Crisp loader cannot put a bubble over an
+ * app screen either.
+ *
+ * `data-crisp-launcher` is set by SupportDrawer, which only app layouts mount.
+ * The drawer's own chatbox lives in the `/crisp-proxy` iframe — a separate
+ * document with no drawer and no marker — so this never hides it.
+ */
+html[data-crisp-launcher='hidden'] .crisp-client {
+    display: none !important;
 }

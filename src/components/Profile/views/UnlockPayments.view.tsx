@@ -1,14 +1,17 @@
 'use client'
 
+import Image from 'next/image'
+import { PEANUTMAN } from '@/assets/mascot'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
-import Card from '@/components/Global/Card'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
+import AccountsList from './AccountsList'
+import Badge from '@/components/Global/Badges/Badge'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
 import UnlockMethodModal from '@/components/IdentityVerification/UnlockMethodModal'
@@ -29,8 +32,8 @@ import { LIMITS } from '@/constants/query.consts'
 import { useCardInfo } from '@/hooks/useCardInfo'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useLimits } from '@/hooks/useLimits'
-import ProgressBar from '@/components/0_Bruddle/ProgressBar'
-import { getCurrencySymbol, getLimitColorClass, getLimitData } from '@/features/limits/utils'
+import { limitSummariesForRows, MethodLimits, type RowLimitSummary } from './MethodLimits'
+import { rowStatusBadge, isRowTappable, BUBBLE_COLOR } from './RowStatusBadge'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
@@ -38,18 +41,12 @@ import { useKycDegraded } from '@/hooks/useKycDegraded'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import posthog from 'posthog-js'
 import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
+import { isTerminalRailRejection } from '@/utils/capability-gate'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { type RailCapability } from '@/types/capabilities'
-import type { MantecaLimit, BridgeLimits } from '@/interfaces/interfaces'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useAuth } from '@/context/authContext'
-import {
-    buildUnlockGroups,
-    type BankRegionChip,
-    type UnlockChip,
-    type UnlockGroup,
-    type UnlockRow,
-} from '@/utils/unlock-payments.utils'
+import { buildUnlockGroups, type BankRegionChip, type UnlockGroup, type UnlockRow } from '@/utils/unlock-payments.utils'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { readDeclaredResidence, readSecondResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 import { countryData } from '@/components/AddMoney/consts'
@@ -78,55 +75,6 @@ function getModalVariant(rail: RailCapability | undefined, hasSumsubAction: bool
     }
 }
 
-/**
- * Inline limit summary for an ACTIVE bank row — the limits merge: usage lives
- * on the method it belongs to instead of a separate Limits screen. Manteca
- * (BR/AR) exposes monthly allowances → a usage bar; Bridge (US/MX/EU) only
- * caps per transaction → a plain line.
- */
-type RowLimitSummary =
-    | { kind: 'manteca'; asset: string; remaining: string; limit: string; usedPercent: number }
-    | { kind: 'bridge'; perTransaction: string }
-
-// Whole-unit cap with locale grouping ($100,000, not $100000): the shared
-// formatter only abbreviates from seven digits and never groups.
-function formatCap(amount: number, currency: string, locale: string): string {
-    const symbol = getCurrencySymbol(currency)
-    const separator = symbol.length > 1 && symbol === symbol.toUpperCase() ? ' ' : ''
-    return `${symbol}${separator}${new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(amount)}`
-}
-
-function limitSummariesForGroup(
-    group: UnlockGroup,
-    mantecaLimits: MantecaLimit[] | null,
-    bridgeLimits: BridgeLimits | null,
-    locale: string
-): RowLimitSummary[] {
-    const refs = new Set(group.rows.filter((row) => row.chip === 'active').flatMap((row) => row.limitRefs ?? []))
-    const summaries: RowLimitSummary[] = []
-    for (const ref of refs) {
-        if (ref === 'bridge') {
-            const cap = Number(bridgeLimits?.onRampPerTransaction)
-            if (bridgeLimits && Number.isFinite(cap) && cap > 0) {
-                summaries.push({ kind: 'bridge', perTransaction: formatCap(cap, bridgeLimits.asset || 'USD', locale) })
-            }
-            continue
-        }
-        const limit = mantecaLimits?.find((l) => l.asset === ref)
-        if (limit) {
-            const monthly = getLimitData(limit, 'monthly')
-            summaries.push({
-                kind: 'manteca',
-                asset: ref,
-                remaining: formatCap(monthly.remaining, ref, locale),
-                limit: formatCap(monthly.limit, ref, locale),
-                usedPercent: monthly.limit > 0 ? (monthly.remaining / monthly.limit) * 100 : 0,
-            })
-        }
-    }
-    return summaries
-}
-
 type BankRegionPath = 'europe' | 'north-america' | 'latam'
 
 const UnlockPayments = () => {
@@ -138,6 +86,7 @@ const UnlockPayments = () => {
     const onBack = useSafeBack('/profile', { replace: true })
     const router = useRouter()
     const [openView, setOpenView] = useQueryState('open', parseAsString)
+    const [detailsRow, setDetailsRow] = useState<UnlockRow | null>(null)
     const { user, fetchUser } = useAuth()
     const { rails, isKycApproved, railsForProvider, nextActionsForRail } = useCapabilities()
     const restrictions = useResidenceRestrictions()
@@ -243,6 +192,13 @@ const UnlockPayments = () => {
         ]
     )
 
+    // The three lists this screen shows, named by group id rather than by
+    // position: the bank rows feed the "Add and withdraw money" list, the
+    // other two get their own sections below it.
+    const peanutGroup = groups.find((group) => group.id === 'everywhere')
+    const spendGroup = groups.find((group) => group.id === 'spend')
+    const bankGroups = groups.filter((group) => group.id !== 'everywhere' && group.id !== 'spend')
+
     // ── modal machinery (carried over from the retired UnlockedRegions view) ──
     const [selectedRegion, setSelectedRegion] = useState<Region | null>(null)
     const [selectedMethodLabel, setSelectedMethodLabel] = useState<string | null>(null)
@@ -272,6 +228,15 @@ const UnlockPayments = () => {
         ? nextActionsForRail(clickedRegionRail.id).some((action) => action.kind === 'sumsub')
         : false
     const baseModalVariant = selectedRegion ? getModalVariant(clickedRegionRail, clickedRailHasSumsubAction) : null
+    // Only support can unblock a terminally rejected rail. This surface holds
+    // none of the Sumsub reject fields the modal reads, so it always offered
+    // "Try again" — a retry that cannot succeed, on the one screen of three
+    // that did not say so. The rail's own verdict is the answer.
+    const clickedRailIsTerminal = useMemo(() => {
+        if (!clickedRegionRail) return false
+        const byKey = new Map(nextActionsForRail(clickedRegionRail.id).map((action) => [action.key, action]))
+        return isTerminalRailRejection(clickedRegionRail, byKey)
+    }, [clickedRegionRail, nextActionsForRail])
 
     const providerRejectionForRegion = clickedRegionProvider === 'bridge' ? bridgeRejection : mantecaRejection
     const providerRejectionReasonKey = reasonCodeKey(providerRejectionForRegion.reasonCode)
@@ -323,6 +288,10 @@ const UnlockPayments = () => {
                 router.push(row.href)
                 return
             }
+            if (row.chip === 'active' || row.chip === 'alwaysOn') {
+                setDetailsRow(row)
+                return
+            }
             if (!row.regionPath) return
             // During a verification outage the unlock modal renders its degraded
             // variant (choke point in InitiateKycModal covers the other gates);
@@ -370,10 +339,17 @@ const UnlockPayments = () => {
     const showBankRestrictionNote = restrictions.banking
 
     const residenceTrailing = !residenceIso2 ? undefined : residence?.verified ? (
-        <StatusBadge status="completed" customText={t('residence.verified')} />
+        <Badge status="completed" customText={t('residence.verified')} />
     ) : (
         <span className="text-body-s text-foreground-secondary">{t('residence.unverified')}</span>
     )
+
+    // Detail-drawer facts: reuse the page's own limit derivation and the p2p
+    // no-limit rule, so the drawer can never state a cap the section beside it
+    // does not. The Limits block is hidden when a method publishes none.
+    const detailSummaries = detailsRow ? limitSummariesForRows([detailsRow], mantecaLimits, bridgeLimits, locale) : []
+    const detailNoLimit = detailsRow?.labelKey === 'p2p' || detailsRow?.labelKey === 'crypto'
+    const showDetailLimits = detailNoLimit || detailSummaries.length > 0
 
     return (
         <PageStack gap="6" className="pb-10">
@@ -402,7 +378,7 @@ const UnlockPayments = () => {
             </div>
 
             {isKycDegraded && (
-                <Notification
+                <Callout
                     priority="attention"
                     title={t('degraded.title')}
                     ctas={[
@@ -416,11 +392,11 @@ const UnlockPayments = () => {
                     ]}
                 >
                     {t('degraded.body')}
-                </Notification>
+                </Callout>
             )}
 
             {isIdentityInReview && !isKycDegraded && (
-                <Notification
+                <Callout
                     priority="helper"
                     title={
                         reviewSubmittedDate
@@ -434,7 +410,7 @@ const UnlockPayments = () => {
                     }
                 >
                     {reviewEscalation ? t('review.escalation') : t('review.body')}
-                </Notification>
+                </Callout>
             )}
 
             {/* Pending Bridge verification tasks (ToS / hosted re-verification). */}
@@ -448,15 +424,42 @@ const UnlockPayments = () => {
                 />
             )}
 
-            {groups.map((group) => (
-                <UnlockSection
-                    key={group.id}
-                    group={group}
+            {/* Currency-first merge (2026-09-18): every receiving corridor —
+                held VA accounts and the KYC-unlock bank/QR rows alike — in one
+                "Your accounts" list, flag-led, region headers dropped. The
+                first group is always "everywhere" (buildUnlockGroups), and its
+                own-region-first sort survives into the flattened row order. */}
+            <AccountsList
+                bankRows={bankGroups.flatMap((group) => group.rows)}
+                onRowClick={handleRowClick}
+                isKycDegraded={isKycDegraded}
+                mantecaLimits={mantecaLimits}
+                bridgeLimits={bridgeLimits}
+                locale={locale}
+            />
+
+            {/* Spending methods, apart from the ways money moves between a bank
+                and Peanut. The QR row's own limits are the BRL/ARS allowances
+                already stated under the bank list, so they are not repeated. */}
+            {spendGroup && (
+                <RowSection
+                    group={spendGroup}
                     onRowClick={handleRowClick}
                     isKycDegraded={isKycDegraded}
-                    limitSummaries={limitSummariesForGroup(group, mantecaLimits, bridgeLimits, locale)}
+                    noLimit={false}
+                    limitSummaries={[]}
                 />
-            ))}
+            )}
+
+            {peanutGroup && (
+                <RowSection
+                    group={peanutGroup}
+                    onRowClick={handleRowClick}
+                    isKycDegraded={isKycDegraded}
+                    noLimit
+                    limitSummaries={limitSummariesForRows(peanutGroup.rows, mantecaLimits, bridgeLimits, locale)}
+                />
+            )}
 
             {showBankRestrictionNote && (
                 <p className="text-body-xs text-foreground-secondary">{t('bankNotAvailableNote')}</p>
@@ -522,6 +525,7 @@ const UnlockPayments = () => {
                 rejectLabels={null}
                 rejectType={null}
                 failureCount={undefined}
+                isTerminal={clickedRailIsTerminal}
             />
 
             <ActionModal
@@ -566,7 +570,7 @@ const UnlockPayments = () => {
                                   }
                                   flow.handleSelfHealResubmit(providerRejectionForRegion.provider)
                               },
-                              variant: 'purple' as const,
+                              variant: 'primary' as const,
                               shadowSize: '4' as const,
                           }
                         : providerRejectionForRegion.state === 'restart-identity'
@@ -576,7 +580,7 @@ const UnlockPayments = () => {
                                     handleModalClose()
                                     flow.handleRestartIdentity()
                                 },
-                                variant: 'purple' as const,
+                                variant: 'primary' as const,
                                 shadowSize: '4' as const,
                             }
                           : {
@@ -585,7 +589,7 @@ const UnlockPayments = () => {
                                     handleModalClose()
                                     setIsSupportModalOpen(true)
                                 },
-                                variant: 'purple' as const,
+                                variant: 'primary' as const,
                                 shadowSize: '4' as const,
                             },
                 ]}
@@ -606,7 +610,7 @@ const UnlockPayments = () => {
                         ? [
                               {
                                   text: tCommon('tryAgain'),
-                                  variant: 'purple',
+                                  variant: 'primary',
                                   shadowSize: '4',
                                   disabled: flow.isLoading,
                                   onClick: () => {
@@ -626,13 +630,56 @@ const UnlockPayments = () => {
                         : [
                               {
                                   text: tCommon('gotIt'),
-                                  variant: 'purple',
+                                  variant: 'primary',
                                   shadowSize: '4',
                                   onClick: () => setErrorAcknowledged(true),
                               },
                           ]
                 }
             />
+
+            <Drawer open={!!detailsRow} onOpenChange={(open) => !open && setDetailsRow(null)}>
+                <DrawerContent>
+                    {detailsRow && (
+                        <div className="flex flex-col gap-6 pt-1 pb-6">
+                            {/* Hero: method mark + name + one-line value prop.
+                                Mirrors InitiateKycModal's drawer hero (IconBubble
+                                + DrawerHeader/DrawerTitle + a secondary line). */}
+                            <div className="flex flex-col items-center gap-4 text-center">
+                                {peanutRowLeading(detailsRow, 'm')}
+                                <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
+                                    <DrawerTitle>{t(`rows.${detailsRow.labelKey}`)}</DrawerTitle>
+                                    <DrawerDescription>{t(`valueProp.${detailsRow.labelKey}`)}</DrawerDescription>
+                                </DrawerHeader>
+                            </div>
+
+                            {/* What you can do: the same Section + ListGroup +
+                                ListItem row vocabulary the page's own row lists
+                                use, with a green check to read as a capability. */}
+                            <Section title={t('detailsDrawer.aboutTitle')}>
+                                <ListGroup>
+                                    <ListItem
+                                        leading={<IconBubble icon="check" size="s" color="green" />}
+                                        title={
+                                            <span className="break-words whitespace-normal">
+                                                {t(`details.${detailsRow.labelKey}`)}
+                                            </span>
+                                        }
+                                    />
+                                </ListGroup>
+                            </Section>
+
+                            {/* Limits: reuse MethodLimits, the component the page
+                                already renders under each section. */}
+                            {showDetailLimits && (
+                                <Section title={t('detailsDrawer.limitsTitle')}>
+                                    <MethodLimits noLimit={detailNoLimit} summaries={detailSummaries} />
+                                </Section>
+                            )}
+                        </div>
+                    )}
+                </DrawerContent>
+            </Drawer>
 
             <SumsubKycModals flow={flow} />
         </PageStack>
@@ -648,121 +695,74 @@ function regionGroupKey(path: 'europe' | 'north-america' | 'latam'): 'europe' | 
     return 'southAmerica'
 }
 
-type IconBubbleColor = NonNullable<React.ComponentProps<typeof IconBubble>['color']>
-
-const BUBBLE_COLOR: Record<UnlockChip, IconBubbleColor> = {
-    active: 'green',
-    alwaysOn: 'green',
-    unlock: 'blue',
-    processing: 'blue',
-    attention: 'yellow',
-    notAvailable: 'gray',
+/**
+ * The two icon-led sections under the bank list: "Spend" (card + QR payments)
+ * and "Peanut" (the always-on P2P and crypto rows). The bank/QR corridor rows
+ * live in `AccountsList`, alongside the held account rows.
+ */
+/**
+ * Peanut-native rows keep their own brand mark instead of the generic
+ * status-color bubble every other row uses — same assets as elsewhere in the
+ * app (grep, don't invent): the mascot-on-yellow from the Contacts entry row
+ * (SendRouter.view.tsx) and the card-on-yellow avatar background rows use for
+ * a card spend with no merchant logo (TransactionAvatarBadge's AVATAR_WALLET_BG).
+ */
+function peanutRowLeading(row: UnlockRow, size: 's' | 'm' = 's') {
+    if (row.labelKey === 'p2p') {
+        return (
+            <IconBubble
+                icon={<Image src={PEANUTMAN} alt="" className={size === 's' ? 'h-5 w-auto' : 'h-8 w-auto'} />}
+                size={size}
+                color="yellow"
+            />
+        )
+    }
+    if (row.labelKey === 'card') {
+        return <IconBubble icon="credit-card" size={size} color="yellow" />
+    }
+    return <IconBubble icon={row.icon as IconName} size={size} color={BUBBLE_COLOR[row.chip]} />
 }
 
-/**
- * One region of the list (option D of the DS rebuild): a Section heading over
- * a ListGroup of method rows, closed by the region's own limits card so the
- * numbers sit next to the methods they govern.
- */
-const UnlockSection = ({
+const RowSection = ({
     group,
     onRowClick,
     isKycDegraded,
+    noLimit,
     limitSummaries,
 }: {
     group: UnlockGroup
     onRowClick: (row: UnlockRow) => void
     isKycDegraded: boolean
+    noLimit: boolean
     limitSummaries: RowLimitSummary[]
 }) => {
     const t = useTranslations('profile.unlockPayments')
 
-    const rowTrailing = (row: UnlockRow) => {
-        switch (row.chip) {
-            case 'active':
-            case 'alwaysOn':
-                return <StatusBadge status="completed" customText={t(`chips.${row.chip}`)} />
-            case 'processing':
-                return <StatusBadge status="processing" customText={t('chips.processing')} />
-            case 'attention':
-                return <StatusBadge status="pending" customText={t('chips.attention')} />
-            case 'notAvailable':
-                if (row.labelKey === 'card') {
-                    return (
-                        <StatusBadge
-                            status="custom"
-                            customText={t('chips.notAvailable')}
-                            className="bg-background-badge-helper"
-                        />
-                    )
-                }
-                return <span className="text-body-s text-foreground-secondary">{t('chips.notAvailable')}</span>
-            case 'unlock':
-                return <span className="text-body-s text-foreground-secondary">{t('chips.unlock')}</span>
-        }
-    }
-
-    const showLimits = group.id === 'everywhere' || limitSummaries.length > 0
-
     return (
-        <Section
-            title={
-                <span className="flex items-center gap-2">
-                    {t(`groups.${group.labelKey}`)}
-                    {group.isYourRegion && <StatusBadge status="custom" customText={t('yourRegion')} />}
-                </span>
-            }
-        >
+        <Section title={t(`groups.${group.labelKey}`)}>
             <ListGroup>
                 {group.rows.map((row) => {
-                    // During a verification outage the unlock path is closed (the tap
-                    // guard would no-op), so render those rows inert instead of
-                    // letting them look actionable under the degraded banner.
-                    const tappable = !!row.href || (!!row.regionPath && !isKycDegraded)
+                    const tappable = isRowTappable(row, isKycDegraded)
                     return (
                         <ListItem
                             key={row.id}
                             className="min-h-18"
                             disabled={row.chip === 'notAvailable'}
-                            leading={<IconBubble icon={row.icon as IconName} size="s" color={BUBBLE_COLOR[row.chip]} />}
+                            leading={peanutRowLeading(row)}
                             title={<span className="break-words whitespace-normal">{t(`rows.${row.labelKey}`)}</span>}
-                            trailing={rowTrailing(row)}
+                            // QR payments are the one row people do not
+                            // recognise by name, so it carries the one-line
+                            // explainer under its title.
+                            body={row.labelKey === 'qrPay' ? t('qrPayNote') : undefined}
+                            bodyWrap
+                            trailing={rowStatusBadge(row, t)}
                             chevron={tappable}
                             onClick={tappable ? () => onRowClick(row) : undefined}
                         />
                     )
                 })}
             </ListGroup>
-            {showLimits && (
-                <Card position="single" className="flex flex-col gap-3 px-4 py-3">
-                    {/* P2P has no cap at all (no fiat provider behind it), so the
-                        Everywhere group always states that — it is the one limit
-                        that exists before any unlock. */}
-                    {group.id === 'everywhere' && (
-                        <div className="flex flex-col gap-1">
-                            <p className="text-body-s text-foreground-secondary">{t('limits.p2pNoLimit')}</p>
-                            <ProgressBar value={100} />
-                        </div>
-                    )}
-                    {limitSummaries.map((summary) =>
-                        summary.kind === 'manteca' ? (
-                            <div key={summary.asset} className="flex flex-col gap-1">
-                                <p className="text-body-s text-foreground-secondary">
-                                    {t('limits.monthlyLeft', { remaining: summary.remaining, limit: summary.limit })}
-                                </p>
-                                <ProgressBar
-                                    value={summary.usedPercent}
-                                    fillClassName={getLimitColorClass(summary.usedPercent, 'bg')}
-                                />
-                            </div>
-                        ) : (
-                            <p key="bridge" className="text-body-s text-foreground-secondary">
-                                {t('limits.perTransfer', { amount: summary.perTransaction })}
-                            </p>
-                        )
-                    )}
-                </Card>
-            )}
+            <MethodLimits noLimit={noLimit} summaries={limitSummaries} />
         </Section>
     )
 }

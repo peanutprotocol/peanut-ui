@@ -105,7 +105,7 @@ describe('Tabs', () => {
         render(<Tabs tabs={TABS} aria-label="demo" />)
         const list = screen.getByRole('tablist')
         // track: bordered white pill, NO padding of its own
-        expect(list.className).toContain('rounded-round')
+        expect(list.className).toContain('rounded-full')
         expect(list.className).toContain('border-border-default')
         expect(list.className).toContain('bg-background-default')
         expect(list.className).toContain('p-0')
@@ -116,7 +116,7 @@ describe('Tabs', () => {
         // lands on the track's border instead of floating inside it
         expect(tab.className).toContain('before:absolute')
         expect(tab.className).toContain('before:-inset-px')
-        expect(tab.className).toContain('before:rounded-round')
+        expect(tab.className).toContain('before:rounded-full')
         // selection is carried by a border, never by fill alone
         expect(tab.className).toContain('data-[state=active]:before:border-border-default')
         expect(tab.className).toContain('data-[state=active]:before:bg-background-page')
@@ -157,7 +157,7 @@ describe('Tabs', () => {
         // everything that must NOT vary with size
         const shared = [
             'before:-inset-px',
-            'before:rounded-round',
+            'before:rounded-full',
             'data-[state=active]:before:border-border-default',
             'data-[state=active]:before:bg-background-page',
             'focus-visible:outline-action-focus',

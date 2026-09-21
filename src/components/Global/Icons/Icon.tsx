@@ -23,6 +23,7 @@ import {
     CirclePlus,
     Clipboard,
     Clock,
+    Coins,
     ContactRound,
     Copy,
     CreditCard,
@@ -121,6 +122,7 @@ export type IconName =
     | 'wallet-cancel'
     | 'wallet-outline'
     | 'currency'
+    | 'coins'
     | 'achievements'
     | 'link'
     | 'link-slash'
@@ -281,6 +283,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     'wallet-cancel': WalletCancelIcon,
     'wallet-outline': (props) => <LucideWrapper Icon={Wallet} {...props} />,
     currency: (props) => <LucideWrapper Icon={Banknote} {...props} />,
+    coins: (props) => <LucideWrapper Icon={Coins} {...props} />,
     achievements: (props) => <LucideWrapper Icon={Award} {...props} />,
     link: (props) => <LucideWrapper Icon={LinkIcon} {...props} />,
     'link-slash': (props) => <LucideWrapper Icon={Unlink} {...props} />,

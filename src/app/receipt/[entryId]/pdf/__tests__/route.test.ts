@@ -142,6 +142,22 @@ describe('GET /receipt/[entryId]/pdf', () => {
         expect(mockRender).not.toHaveBeenCalled()
     })
 
+    // The page already serves a crypto deposit to a reader with no session, so
+    // its document must answer too. It used to 404, leaving a receipt page with
+    // no way to save or send what it showed.
+    test('renders a crypto deposit for a reader with no session', async () => {
+        mockGetHistoryEntry.mockResolvedValue({ status: 'COMPLETED', kind: 'CRYPTO_DEPOSIT' } as never)
+        mockMap.mockReturnValueOnce({
+            transactionDetails: { id: 'entry-deposit', extraDataForDrawer: { kind: 'CRYPTO_DEPOSIT' } },
+        } as never)
+        mockRender.mockClear()
+
+        const response = await get('entry-deposit', 'kind=CRYPTO_DEPOSIT')
+
+        expect(response.status).toBe(200)
+        expect(mockRender).toHaveBeenCalled()
+    })
+
     test('renders a private receipt with bearer auth and never caches it publicly', async () => {
         mockGetHistoryEntry.mockResolvedValue({ status: 'COMPLETED', kind: 'DIRECT_TRANSFER' })
         mockMap.mockReturnValue({

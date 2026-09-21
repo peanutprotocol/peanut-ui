@@ -564,6 +564,8 @@ jobs:
                   # /dev page the regression specs drive. Locally .env sets
                   # it; CI has no .env, so set it here.
                   NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3080
+                  # Match the screen-library build: restored Webpack hashes crash WasmHash.
+                  SCREEN_CAPTURE_BUILD: '1'
               run: pnpm build
 
             # Push runs only (dev/main/DS train land several times a day), so

@@ -145,6 +145,26 @@ describe('useGuestStoreHandoff surface', () => {
         expect(result.current.storeHandoffModal).toBeNull()
     })
 
+    /* handoffActive is what labels the button. A CTA reading "Download Peanut"
+       that still opens web signup is worse than the old copy, so it must track
+       the same two gates the intercept uses. */
+    it('reports the hand-off active only where the intercept will take the click', () => {
+        const { result } = renderHookWithIntl(() => useGuestStoreHandoff())
+        expect(result.current.handoffActive).toBe(true)
+    })
+
+    it('reports no hand-off while the migration flag is off', () => {
+        mockMigrationOn = false
+        const { result } = renderHookWithIntl(() => useGuestStoreHandoff())
+        expect(result.current.handoffActive).toBe(false)
+    })
+
+    it('reports no hand-off inside the native app', () => {
+        mockIsCapacitor = true
+        const { result } = renderHookWithIntl(() => useGuestStoreHandoff())
+        expect(result.current.handoffActive).toBe(false)
+    })
+
     it('tracks the guest impression against the caller surface', () => {
         renderHookWithIntl(() =>
             useGuestStoreHandoff({ trackImpressionWhenGuest: true, surface: MIGRATION_SURFACES.LANDING_DOOR })

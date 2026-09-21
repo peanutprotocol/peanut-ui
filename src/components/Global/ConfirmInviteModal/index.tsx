@@ -26,8 +26,15 @@ const ConfirmInviteModal: FC<ConfirmInviteModalProps> = ({
     return (
         <ActionModal
             hideOverlay
-            modalPanelClassName="rounded-none border-0"
-            contentContainerClassName="isolate"
+            // the white surface moves from the panel to the content box on purpose.
+            // the panel is a stacking context (transform-gpu + will-change), so a
+            // -z-10 child can never paint behind the panel's OWN background — the
+            // mascot came out in front of the modal, over the title. behind an
+            // in-flow child's background it can: negative z paints before block
+            // backgrounds. `isolate` here made it worse by trapping the mascot in
+            // the content box's own context.
+            modalPanelClassName="rounded-none border-0 bg-transparent dark:bg-transparent"
+            contentContainerClassName="bg-background-default"
             visible={isOpen}
             onClose={onClose}
             title={t('confirmInviteModal.title')}
@@ -37,7 +44,7 @@ const ConfirmInviteModal: FC<ConfirmInviteModalProps> = ({
                 {
                     text: '',
                     shadowSize: '4',
-                    variant: 'purple',
+                    variant: 'primary',
                     className: 'sm:flex-none',
                     onClick: handleContinueWithPeanut,
                     children: (

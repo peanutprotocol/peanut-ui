@@ -1,11 +1,14 @@
 'use client'
+import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 
 import { API_ERROR_CODES } from '@/services/api-error'
 
 import { submitSignedSpend } from '@/hooks/wallet/signSpendRetry'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import Image from 'next/image'
+import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { FieldColumn } from '@/components/0_Bruddle/FieldColumn'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
 import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
@@ -29,8 +32,6 @@ import { mantecaApi, type WithdrawPriceLock } from '@/services/manteca'
 import { useCurrency } from '@/hooks/useCurrency'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { countryData } from '@/components/AddMoney/consts'
-import { getFlagUrl } from '@/constants/countryCurrencyMapping'
-import Image from 'next/image'
 import { formatNumberForDisplay } from '@/utils/general.utils'
 import { validateCbuCvuAlias, validatePixKey, normalizePixInput, isPixEmvcoQr } from '@/utils/withdraw.utils'
 import ValidatedInput from '@/components/Global/ValidatedInput'
@@ -68,7 +69,6 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
 import { getLimitsWarningCardProps, isBrUserEligibleForLimitIncrease } from '@/features/limits/utils'
-import { withdrawCountryUrl } from '@/utils/native-routes'
 import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
 import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
@@ -77,6 +77,7 @@ import { isVerifiedForCountry } from '@/utils/regions.utils'
 import PixKeySendView from '@/features/withdraw/views/PixKeySendView'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useWithdrawAmount } from '@/features/withdraw/useWithdrawAmount'
+import { shouldShowAmountError } from '@/features/limits/amount-error-gating'
 import { useMantecaAmountSeed } from '@/features/withdraw/useMantecaAmountSeed'
 import { WITHDRAW_MANTECA_STEPS } from '@/features/withdraw/types'
 import { mantecaStepGuards, type MantecaOutcome } from '@/features/withdraw/step-guards'
@@ -126,13 +127,15 @@ function MantecaBankWithdrawFlow() {
     const [urlAmount] = useWithdrawAmount()
     const searchParams = useSearchParams()
     const paramAddress = searchParams.get('destination')
-    const isSavedAccount = searchParams.get('isSavedAccount') === 'true'
+    const isSavedAccount =
+        searchParams.get('isSavedAccount') === 'true' && !!paramAddress && validateCbuCvuAlias(paramAddress).valid
+    const [destinationConfirmed, setDestinationConfirmed] = useState(isSavedAccount)
     const [destinationAddress, setDestinationAddress] = useState<string>(paramAddress ?? '')
     const [selectedBank, setSelectedBank] = useState<MantecaBankCode | null>(null)
     const [accountType, setAccountType] = useState<MantecaAccountType | null>(null)
     // client-side destination/bank-details validation renders as the field's
     // own error under the inputs; errorMessage keeps flow failures (rate lock,
-    // provider, signing) in the Notification
+    // provider, signing) in the Callout
     const [fieldError, setFieldError] = useState<string | null>(null)
     const [errorMessage, setErrorMessageRaw] = useState<string | null>(null)
     // Companion code for `errorMessage` so the retry-vs-block gate compares a
@@ -152,12 +155,12 @@ function MantecaBankWithdrawFlow() {
     // submission. A hand-edited ?step=success (or =failure) with no completed
     // operation falls back to a working step (Chip review, PR #2917).
     const [outcome, setOutcome] = useState<MantecaOutcome>(null)
-    // amount → bank-details → review → success|failure as named screen ids in
-    // the URL. Guards bounce a refresh/deep-link into a step whose local state
-    // did not survive back to the amount step (which re-seeds from ?amount=).
+    // Destination first; the rate is locked only after the amount is entered.
     const stepper = useFlowStepper({
         steps: WITHDRAW_MANTECA_STEPS,
+        defaultStep: isSavedAccount ? 'amount' : 'bank-details',
         guards: mantecaStepGuards({
+            hasDestination: destinationConfirmed,
             hasAmount: !!usdAmount,
             priceLocked: !!priceLock,
             outcome,
@@ -186,7 +189,6 @@ function MantecaBankWithdrawFlow() {
     const [showKycModal, setShowKycModal] = useState(false)
 
     // Get method and country from URL parameters
-    const selectedMethodType = searchParams.get('method') // mercadopago, pix, bank-transfer, etc.
     const countryFromUrl = searchParams.get('country') // argentina, brazil, etc.
     const countryPath = countryFromUrl
 
@@ -196,7 +198,9 @@ function MantecaBankWithdrawFlow() {
         return countryData.find((country) => country.type === 'country' && country.path === countryPath)
     }, [countryPath])
 
-    const onBack = useSafeBack(withdrawCountryUrl(selectedCountry?.path || ''))
+    const { isFromSendFlow } = useSendFlowOrigin()
+    const backToWithdraw = useSafeBack('/withdraw?showAll=true')
+    const onBack = () => (isFromSendFlow ? router.replace('/send') : backToWithdraw())
 
     const countryConfig = useMemo(() => {
         if (!selectedCountry || !isMantecaSupportedCountryCode(selectedCountry.id)) return undefined
@@ -218,11 +222,18 @@ function MantecaBankWithdrawFlow() {
         amount: usdAmount,
         currency: selectedCountry?.currency,
     })
+    // the card is the only thing that can replace the amount message, so the
+    // message rule reads the same props the card is rendered from
+    const limitsCardProps = getLimitsWarningCardProps({
+        validation: limitsValidation,
+        flowType: 'offramp',
+        currency: limitsValidation.currency,
+    })
 
     // Synchronous twin of the balanceErrorMessage effect below (same
     // minimum/ceiling predicates, live balance). Effect-set state lags the
     // render by a tick, so every decision that must not outrun the balance —
-    // the ?amount= seed advance, the price lock, and the submission itself —
+    // the price lock and the submission itself —
     // asks this instead of the message state (Chip rounds 3+6).
     const isAmountWithinLiveBalance = useCallback(
         (usd: string) => {
@@ -236,31 +247,11 @@ function MantecaBankWithdrawFlow() {
         [balance]
     )
 
-    // Blanket mount reset — registered BEFORE the ?amount= seed below, so a
-    // fresh mount clears leftover flow state FIRST and the seed then arms on
-    // clean state. Registered after, the reset ran after the seed's mount
-    // effects and clobbered the seeded amounts (the hand-off silently died —
-    // caught by manteca-withdraw-gates.test.tsx). resetState is defined below;
-    // the callback runs post-render, when it exists.
-    useEffect(() => {
-        resetState()
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
-
-    // ?amount= hand-off from the shared amount step: seed both denominations
-    // and advance past this flow's amount screen ONLY once its balance/limits
-    // gates pass for the seeded amount (Chip review round 3). A blocked amount
-    // stays on the amount screen, which renders the reason.
-    const { seededFromUrl, resetSeed } = useMantecaAmountSeed({
+    const { resetSeed } = useMantecaAmountSeed({
         urlAmount,
         currencyPriceSell: currencyPrice?.sell,
-        step,
-        isAmountAllowed: isAmountWithinLiveBalance,
-        limitsLoading: limitsValidation.isLoading,
-        limitsBlocking: limitsValidation.isBlocking,
         setUsdAmount,
         setCurrencyAmount,
-        goToBankDetails: () => void stepper.goTo('bank-details'),
     })
 
     // BR self-service limit increase flow
@@ -272,23 +263,7 @@ function MantecaBankWithdrawFlow() {
         onNeedsSupport: () => openSupportWithMessage(t('manteca.increaseLimitsMessage')),
     })
 
-    // Get country flag code
-    const countryFlagCode = useMemo(() => {
-        return selectedCountry?.iso2?.toLowerCase()
-    }, [selectedCountry])
-
-    // Get method display info
-    const methodDisplayInfo = useMemo(() => {
-        const methodNames: { [key: string]: string } = {
-            mercadopago: t('methods.mercadopago'),
-            pix: t('methods.pix'),
-            'bank-transfer': t('methods.bankTransfer'),
-        }
-
-        return {
-            name: methodNames[selectedMethodType || 'bank-transfer'] || t('methods.bankTransfer'),
-        }
-    }, [selectedMethodType, t])
+    const countryFlagCode = selectedCountry?.iso2?.toLowerCase()
 
     const validateDestinationAddress = async (value: string) => {
         value = value.trim()
@@ -380,7 +355,7 @@ function MantecaBankWithdrawFlow() {
         return true
     }, [usdAmount, balance, t, tErrors, setErrorMessage])
 
-    const handleBankDetailsSubmit = useCallback(async () => {
+    const handlePrepareReview = useCallback(async () => {
         // prevent duplicate requests from rapid clicks
         if (isLockingPrice) return
         if (!validateSubmissionAmount()) {
@@ -388,7 +363,7 @@ function MantecaBankWithdrawFlow() {
             return
         }
 
-        if (!destinationAddress.trim()) {
+        if (!destinationConfirmed || !destinationAddress.trim()) {
             setFieldError(t('errors.enterAccountAddress'))
             return
         }
@@ -470,6 +445,7 @@ function MantecaBankWithdrawFlow() {
         isUserMantecaKycApprovedForCountry,
         isLockingPrice,
         validateSubmissionAmount,
+        destinationConfirmed,
         handleOnboardingError,
         balance,
         balanceErrorMessage,
@@ -680,6 +656,7 @@ function MantecaBankWithdrawFlow() {
     // "Try again" pairs this with stepper.reset()
     const resetState = () => {
         resetSeed()
+        setDestinationConfirmed(isSavedAccount)
         setOutcome(null)
         setCurrencyAmount(undefined)
         setUsdAmount(undefined)
@@ -750,7 +727,7 @@ function MantecaBankWithdrawFlow() {
     if (selectedCountry && countryConfig && (isCurrencyLoading || !currencyPrice)) {
         return (
             <RateGateScreen
-                title={tNav('withdraw')}
+                title={tNav(isFromSendFlow ? 'send' : 'withdraw')}
                 onBack={onBack}
                 isLoading={isCurrencyLoading}
                 onRetry={refetchCurrency}
@@ -766,7 +743,7 @@ function MantecaBankWithdrawFlow() {
         return (
             <div className="flex min-h-inherit flex-col gap-8">
                 <SoundPlayer sound="success" />
-                <NavHeader title={tNav('withdraw')} />
+                <NavHeader title={tNav(isFromSendFlow ? 'send' : 'withdraw')} />
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <Card className="flex flex-row items-center gap-3 p-4">
                         <div className="flex items-center gap-3">
@@ -812,7 +789,7 @@ function MantecaBankWithdrawFlow() {
     if (step === 'failure') {
         return (
             <div className="flex min-h-inherit flex-col gap-8">
-                <NavHeader title={tNav('withdraw')} />
+                <NavHeader title={tNav(isFromSendFlow ? 'send' : 'withdraw')} />
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <Card className="shadow-4">
                         <Card.Header>
@@ -825,7 +802,7 @@ function MantecaBankWithdrawFlow() {
                                     resetState()
                                     void stepper.reset()
                                 }}
-                                variant="purple"
+                                variant="primary"
                             >
                                 {tCommon('tryAgain')}
                             </Button>
@@ -843,6 +820,7 @@ function MantecaBankWithdrawFlow() {
             <InitiateKycModal
                 cooldownActive={!!sumsubFlow.errorCooldown}
                 prepPath="extended"
+                taxIdCountry={selectedCountry?.id === 'BR' ? 'BR' : selectedCountry?.id === 'AR' ? 'AR' : undefined}
                 visible={showKycModal}
                 onClose={() => setShowKycModal(false)}
                 onVerify={async () => {
@@ -893,7 +871,7 @@ function MantecaBankWithdrawFlow() {
                 isMultiLevel
             />
             <NavHeader
-                title={tNav('withdraw')}
+                title={tNav(isFromSendFlow ? 'send' : 'withdraw')}
                 onPrev={() => {
                     if (step === 'review') {
                         // clear price lock and restore original amount when going back
@@ -902,16 +880,9 @@ function MantecaBankWithdrawFlow() {
                             setCurrencyAmount(originalCurrencyAmount)
                             setOriginalCurrencyAmount(undefined)
                         }
-                        void stepper.goTo('bank-details')
-                    } else if (step === 'bank-details') {
-                        // an amount seeded from ?amount= was entered on the root
-                        // amount step — back returns there, not to a second
-                        // amount entry (TASK-21664)
-                        if (seededFromUrl) {
-                            onBack()
-                            return
-                        }
                         void stepper.goTo('amount')
+                    } else if (step === 'amount' && !isSavedAccount) {
+                        void stepper.goTo('bank-details')
                     } else {
                         onBack()
                     }
@@ -921,8 +892,18 @@ function MantecaBankWithdrawFlow() {
             {step === 'amount' && (
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
                     <div className="text-heading-xs text-foreground-primary">{t('amountToWithdraw')}</div>
-                    {/* only show the balance error if limits blocking card is not displayed (warnings can coexist) */}
-                    <FieldColumn error={!limitsValidation.isBlocking ? balanceErrorMessage : undefined}>
+                    {/* the balance error yields to the limits card only when that card renders */}
+                    <FieldColumn
+                        error={
+                            shouldShowAmountError({
+                                showError: !!balanceErrorMessage,
+                                showsLimitsCard: !!limitsCardProps,
+                                limitsBlocking: limitsValidation.isBlocking,
+                            })
+                                ? balanceErrorMessage
+                                : undefined
+                        }
+                    >
                         <AmountInput
                             initialAmount={currencyAmount}
                             setPrimaryAmount={setCurrencyAmount}
@@ -950,40 +931,30 @@ function MantecaBankWithdrawFlow() {
                     </FieldColumn>
 
                     {/* limits warning/error card - uses centralized helper for props */}
-                    {(() => {
-                        const limitsCardProps = getLimitsWarningCardProps({
-                            validation: limitsValidation,
-                            flowType: 'offramp',
-                            currency: limitsValidation.currency,
-                        })
-                        if (!limitsCardProps) return null
-                        return (
-                            <LimitsWarningCard
-                                {...limitsCardProps}
-                                onIncreaseLimits={
-                                    isBrEligible && limitsValidation.isBlocking
-                                        ? limitIncreaseFlow.handleInitiate
-                                        : undefined
-                                }
-                                isIncreaseLimitsLoading={limitIncreaseFlow.isLoading}
-                            />
-                        )
-                    })()}
+                    {limitsCardProps && (
+                        <LimitsWarningCard
+                            {...limitsCardProps}
+                            onIncreaseLimits={
+                                isBrEligible && limitsValidation.isBlocking
+                                    ? limitIncreaseFlow.handleInitiate
+                                    : undefined
+                            }
+                            isIncreaseLimitsLoading={limitIncreaseFlow.isLoading}
+                        />
+                    )}
 
                     <Button
-                        variant="purple"
+                        variant="primary"
                         shadowSize="4"
-                        onClick={() => {
-                            if (usdAmount) {
-                                // If coming from saved account flow, skip bank details step and go to review
-                                if (isSavedAccount) {
-                                    handleBankDetailsSubmit()
-                                } else {
-                                    void stepper.goTo('bank-details')
-                                }
-                            }
-                        }}
-                        disabled={!Number(usdAmount) || !!balanceErrorMessage || limitsValidation.isBlocking}
+                        onClick={handlePrepareReview}
+                        loading={isLockingPrice}
+                        disabled={
+                            !Number(usdAmount) ||
+                            !!balanceErrorMessage ||
+                            limitsValidation.isLoading ||
+                            limitsValidation.isBlocking ||
+                            isLockingPrice
+                        }
                         className="w-full"
                     >
                         {tCommon('continue')}
@@ -993,43 +964,12 @@ function MantecaBankWithdrawFlow() {
 
             {step === 'bank-details' && (
                 <div className="my-auto space-y-4 flex h-full flex-col justify-center">
-                    {/* Amount Display Card */}
-                    <Card className="p-4">
-                        <div className="space-x-3 flex items-center">
-                            <div className="relative h-12 w-12">
-                                <Image
-                                    src={getFlagUrl(countryFlagCode)}
-                                    alt={t('manteca.flagAlt')}
-                                    width={48}
-                                    height={48}
-                                    className="h-12 w-12 rounded-full object-cover"
-                                />
-                                <IconBubble
-                                    icon="bank"
-                                    size="xs"
-                                    color="blue"
-                                    className="absolute -right-1 -bottom-1"
-                                />
-                            </div>
-                            <div>
-                                <p className="flex items-center gap-1 text-center text-body-s text-foreground-secondary">
-                                    <Icon name="arrow-up" size={10} /> {t('manteca.youreWithdrawing')}
-                                </p>
-                                <p className="text-heading-s text-foreground-primary">
-                                    {currencyCode} {formatNumberForDisplay(currencyAmount, { maxDecimals: 2 })}
-                                </p>
-                                <div className="text-heading-card text-foreground-primary">
-                                    ≈ {formatNumberForDisplay(usdAmount, { maxDecimals: 2 })} USD
-                                </div>
-                            </div>
-                        </div>
-                    </Card>
-
                     {/* Bank Details Form */}
                     <div className="space-y-4">
                         <h2 className="text-heading-card text-foreground-primary">
-                            {t('manteca.enterMethodDetails', { method: methodDisplayInfo.name })}
+                            {t('manteca.enterAccountDetails')}
                         </h2>
+                        <p className="text-body-s text-foreground-secondary">{t('manteca.accountDetailsHint')}</p>
                         <div className="space-y-2">
                             <FieldColumn error={fieldError}>
                                 <ValidatedInput
@@ -1039,6 +979,7 @@ function MantecaBankWithdrawFlow() {
                                         // Auto-normalize PIX keys for Brazil: strip whitespace and normalize phone numbers
                                         const normalizedValue =
                                             countryPath === 'brazil' ? normalizePixInput(update.value) : update.value
+                                        setDestinationConfirmed(false)
                                         setDestinationAddress(normalizedValue)
                                         setIsDestinationAddressValid(update.isValid)
                                         setIsDestinationAddressChanging(update.isChanging)
@@ -1084,22 +1025,22 @@ function MantecaBankWithdrawFlow() {
                         </div>
 
                         <Button
-                            onClick={handleBankDetailsSubmit}
+                            onClick={() => {
+                                setDestinationConfirmed(true)
+                                void stepper.goTo('amount')
+                            }}
                             disabled={
-                                !isCompleteBankDetails ||
-                                isDestinationAddressChanging ||
-                                !isDestinationAddressValid ||
-                                isLockingPrice
+                                !isCompleteBankDetails || isDestinationAddressChanging || !isDestinationAddressValid
                             }
-                            loading={isDestinationAddressChanging || isLockingPrice}
+                            loading={isDestinationAddressChanging}
                             className="w-full"
                             shadowSize="4"
                         >
-                            {isLockingPrice ? t('manteca.lockingRate') : t('review')}
+                            {tCommon('continue')}
                         </Button>
 
                         {(errorMessage || sumsubFlow.error) && (
-                            <Notification priority="error">{(errorMessage || sumsubFlow.error)!}</Notification>
+                            <Callout priority="error">{(errorMessage || sumsubFlow.error)!}</Callout>
                         )}
                     </div>
                 </div>
@@ -1166,7 +1107,7 @@ function MantecaBankWithdrawFlow() {
                         {isLoading ? tLoading(loadingStateKey(loadingState)) : tNav('withdraw')}
                     </Button>
                     {(errorMessage || sumsubFlow.error) && (
-                        <Notification priority="error">{(errorMessage || sumsubFlow.error)!}</Notification>
+                        <Callout priority="error">{(errorMessage || sumsubFlow.error)!}</Callout>
                     )}
                 </div>
             )}

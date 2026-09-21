@@ -1,7 +1,7 @@
 'use client'
 import { type FC, useState } from 'react'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
@@ -38,11 +38,11 @@ const AddCardEntryScreen: FC<Props> = ({ onApply, onPrev, applyError }) => {
                 <p className="text-foreground-secondary">{t('entry.description')}</p>
             </div>
 
-            {/* The DS checklist body — Notification's `items` slot exists
+            {/* The DS checklist body — Callout's `items` slot exists
              * because hand-rolled tinted check-lists kept getting the icon
              * alignment wrong (components.md: "don't: hand-rolled tinted
              * boxes"). This was the fifth hand-roll. */}
-            <Notification priority="info" items={FEATURE_KEYS.map((featureKey) => t(featureKey))} />
+            <Callout priority="info" items={FEATURE_KEYS.map((featureKey) => t(featureKey))} />
 
             {/* Error above the CTA, not below: the (mobile-ui) layout pins a
              * QR FAB at the bottom-center that pokes ~27px UP into the page,
@@ -50,12 +50,12 @@ const AddCardEntryScreen: FC<Props> = ({ onApply, onPrev, applyError }) => {
              * by it. Other surfaces (Withdraw, Send link) get away with
              * below-CTA because their pages scroll; this one fits the
              * viewport so the FAB collision is unavoidable. */}
-            {applyError && <Notification priority="error">{applyError}</Notification>}
+            {applyError && <Callout priority="error">{applyError}</Callout>}
             <Button
                 onClick={handleClick}
                 loading={isApplying}
                 disabled={isApplying}
-                variant="purple"
+                variant="primary"
                 shadowSize="4"
                 className="w-full"
             >

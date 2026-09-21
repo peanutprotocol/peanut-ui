@@ -9,7 +9,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { Icon } from '@/components/Global/Icons/Icon'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import CardPinSetupFlow from '@/components/Card/CardPinSetupFlow'
@@ -119,7 +119,7 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
                     title={t('noPinTitle')}
                     description={t('noPinBody')}
                     cta={
-                        <Button variant="purple" className="mt-4 w-full" onClick={() => void setMode('set')}>
+                        <Button variant="primary" className="mt-4 w-full" onClick={() => void setMode('set')}>
                             {t('setPin')}
                         </Button>
                     }
@@ -164,8 +164,8 @@ const CardPinScreen: FC<Props> = ({ cardId, onPrev }) => {
                         }}
                     />
                 </ListGroup>
-                {error && <Notification priority="error">{error}</Notification>}
-                <Notification priority="info">{t('hiddenNote')}</Notification>
+                {error && <Callout priority="error">{error}</Callout>}
+                <Callout priority="info">{t('hiddenNote')}</Callout>
             </div>
         </PageStack>
     )

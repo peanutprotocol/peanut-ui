@@ -124,6 +124,22 @@ export const ANALYTICS_EVENTS = {
     // funnel: a native WebView can swallow a same-origin push without throwing.
     LIMITS_CHECK_LINK_NAVIGATION: 'limits_check_link_navigation',
 
+    // ── Standing deposit accounts (/get-paid) ──
+    // Bank details the user holds and hands to a payer. `corridor` is the rail
+    // method code (ACH_US, SEPA_EU…) and is the ONLY thing these carry: the
+    // account numbers themselves never reach analytics.
+    DEPOSIT_ACCOUNT_CLAIM_STARTED: 'deposit_account_claim_started',
+    DEPOSIT_ACCOUNT_CLAIM_FAILED: 'deposit_account_claim_failed',
+    DEPOSIT_ACCOUNT_DETAILS_VIEWED: 'deposit_account_details_viewed',
+    DEPOSIT_ACCOUNT_SHARED: 'deposit_account_shared',
+    DEPOSIT_ACCOUNT_GATE_BLOCKED: 'deposit_account_gate_blocked',
+    // The funnel had a start and a failure and no success, so nothing could
+    // answer "how many taps became an account".
+    DEPOSIT_ACCOUNT_CLAIMED: 'deposit_account_claimed',
+    // The provider review two corridors wait on: asked for, and granted.
+    DEPOSIT_ACCOUNT_ENDORSEMENT_REQUESTED: 'deposit_account_endorsement_requested',
+    DEPOSIT_ACCOUNT_ENDORSEMENT_APPROVED: 'deposit_account_endorsement_approved',
+
     // ── Withdraw ──
     WITHDRAW_AMOUNT_ENTERED: 'withdraw_amount_entered',
     WITHDRAW_METHOD_SELECTED: 'withdraw_method_selected',

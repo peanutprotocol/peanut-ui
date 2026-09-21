@@ -1,10 +1,10 @@
 import { useTranslations } from 'next-intl'
-import StatusBadge, { type StatusType } from '@/components/Global/Badges/StatusBadge'
+import Badge, { type StatusType } from '@/components/Global/Badges/Badge'
 import { daysSince, lastUsedTone, type LastUsedTone } from '@/utils/saved-address.utils'
 
 // Recency → DS badge semantics: recent = success, aging = attention. Stale is
 // GREY, not error — red reads as "something is wrong", grey as "not
-// necessarily current" (exchanges rotate deposit addresses). StatusBadge has
+// necessarily current" (exchanges rotate deposit addresses). Badge has
 // no grey status, so stale overrides to the DS helper-badge grey.
 const TONE_BADGE: Record<LastUsedTone, { status: StatusType; className?: string }> = {
     recent: { status: 'completed' },
@@ -20,7 +20,7 @@ export default function LastUsedPill({ lastUsedAt, className }: { lastUsedAt: st
     const badge = TONE_BADGE[tone]
     return (
         <span data-tone={tone} className={className}>
-            <StatusBadge
+            <Badge
                 status={badge.status}
                 size="small"
                 className={badge.className}

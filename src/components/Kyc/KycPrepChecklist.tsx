@@ -1,6 +1,6 @@
 'use client'
 
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import Card from '@/components/Global/Card'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { useTranslations } from 'next-intl'
@@ -22,7 +22,7 @@ export type KycPrepPath = 'standard' | 'extended' | 'hosted'
  * AFTER the list so it reads as the consequence of not having those documents
  * rather than as a preamble to them.
  */
-const KycPrepChecklist = ({ path }: { path: KycPrepPath }) => {
+const KycPrepChecklist = ({ path, taxIdCountry }: { path: KycPrepPath; taxIdCountry?: 'AR' | 'BR' }) => {
     const t = useTranslations('kyc.prep')
     const isHosted = path === 'hosted'
     const items =
@@ -31,6 +31,12 @@ const KycPrepChecklist = ({ path }: { path: KycPrepPath }) => {
             : isHosted
               ? (['id', 'selfie', 'proofOfAddress'] as const)
               : (['id', 'selfie'] as const)
+    // The tax-ID row lists one country's document. The extended path is Manteca-
+    // only, so the caller knows whether it is Argentina or Brazil — name that
+    // country's tax ID instead of the both-countries string that showed a
+    // Brazilian CPF inside the Argentina drawer.
+    const taxIdBodyKey =
+        taxIdCountry === 'AR' ? 'items.taxId.bodyAR' : taxIdCountry === 'BR' ? 'items.taxId.bodyBR' : 'items.taxId.body'
 
     return (
         <div className="flex w-full flex-col gap-3 text-left" data-testid="kyc-prep-checklist">
@@ -40,24 +46,22 @@ const KycPrepChecklist = ({ path }: { path: KycPrepPath }) => {
                 the short document name so the value has room, and what counts as
                 that document stays on screen under its row — it is the part a
                 user gets wrong, so it does not belong behind a tooltip. */}
-            <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">
+            <Card position="solo" className="divide-y divide-dashed divide-border-default px-4 py-0">
                 {items.map((item) => (
                     <div key={item} className="pb-3">
                         <DataRow label={t(`items.${item}.label`)} value={t(`items.${item}.title`)} />
-                        <p className="text-body-xs text-foreground-secondary">{t(`items.${item}.body`)}</p>
+                        <p className="text-body-xs text-foreground-secondary">
+                            {t(item === 'taxId' ? taxIdBodyKey : `items.${item}.body`)}
+                        </p>
                     </div>
                 ))}
             </Card>
             {isHosted && (
-                <Notification
-                    priority="attention"
-                    title={t('singleSession.title')}
-                    data-testid="kyc-prep-single-session"
-                >
+                <Callout priority="attention" title={t('singleSession.title')} data-testid="kyc-prep-single-session">
                     {/* The banner's own body step is text-body-m, which reads
                         louder than the requirement titles right above it. */}
                     <span className="text-body-s">{t('singleSession.body')}</span>
-                </Notification>
+                </Callout>
             )}
             {/* Above "how long": the note is about WHAT may still be asked for,
                 so it belongs with the requirements list it qualifies. Duration

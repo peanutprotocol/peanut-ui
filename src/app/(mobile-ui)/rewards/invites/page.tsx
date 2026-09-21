@@ -22,7 +22,7 @@ import { useCountUp } from '@/hooks/useCountUp'
 import { useInView } from 'framer-motion'
 import { useRef, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
-import InviteFriendsDrawer from '@/components/Global/InviteFriendsDrawer'
+import InviteFriendsModal from '@/components/Global/InviteFriendsModal'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { isIOSNative } from '@/utils/capacitor'
 import InviteePointsBadge from '@/components/Points/InviteePointsBadge'
@@ -86,7 +86,7 @@ const InvitesPage = () => {
                         description={t('shareInviteLinkPrompt')}
                         cta={
                             <Button
-                                variant="purple"
+                                variant="primary"
                                 shadowSize="4"
                                 size="small"
                                 className="mt-2"
@@ -97,7 +97,7 @@ const InvitesPage = () => {
                         }
                     />
                 </div>
-                <InviteFriendsDrawer
+                <InviteFriendsModal
                     visible={isInviteModalOpen}
                     onClose={() => setIsInviteModalOpen(false)}
                     username={user?.user.username ?? ''}
@@ -172,7 +172,7 @@ const InvitesPage = () => {
                                             isLinkTransaction={false}
                                             transactionType={'send'}
                                             context="card"
-                                            size="small"
+                                            size="m"
                                         />
                                     </div>
                                     <div className="min-w-0 flex-1 truncate font-roboto text-body-m">

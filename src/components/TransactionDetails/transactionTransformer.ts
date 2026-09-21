@@ -1,4 +1,4 @@
-import { type StatusType } from '@/components/Global/Badges/StatusBadge'
+import { type IconStatusType, type StatusType } from '@/components/Global/Badges/Badge'
 import {
     type TransactionDirection,
     type TransactionType as TransactionCardType,
@@ -13,13 +13,13 @@ import {
     getTokenLogo,
     getChainLogo,
 } from '@/utils/general.utils'
-import { type StatusPillType } from '../Global/StatusPill'
 import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/services.types'
 import { dispatchStrategy, isIntentKind, type IntentKind } from './strategies/registry'
 import { TRANSACTION_NAME_KEYS, reaperFailKey, type TransactionNameKey } from './transaction-name-keys'
 import { parseWireAmount } from './transaction-details.utils'
+import { pipelineAlert } from '@/utils/pipelineAlerts'
 
 /** Rain dispute lifecycle status values. Source: Rain dispute.* webhooks. */
 export type DisputeStatus = 'pending' | 'inReview' | 'accepted' | 'rejected' | 'canceled' | 'resolvedByMerchant'
@@ -161,13 +161,28 @@ const REAPER_FAIL_COPY: Record<string, string> = {
     refund_timeout: "Refund didn't complete",
 }
 
+// One Sentry signal per unknown word per session: the transformer runs on
+// every render of every row.
+const reportedBridgeStatuses = new Set<string>()
+function reportUnknownBridgeStatus(entry: HistoryEntry, status: string | undefined): void {
+    const word = status ?? '(none)'
+    if (reportedBridgeStatuses.has(word)) return
+    reportedBridgeStatuses.add(word)
+    pipelineAlert(
+        'projection_drift',
+        `transactionTransformer: unknown Bridge wire status "${word}"`,
+        { entryUuid: entry.uuid, kind: entry.extraData?.kind, status: word },
+        'warning'
+    )
+}
+
 /**
- * Map raw `entry.status` to the drawer's StatusPillType. Two regimes:
+ * Map raw `entry.status` to the drawer's IconStatusType. Two regimes:
  * Bridge/bank rails (AWAITING_FUNDS / FUNDS_RECEIVED / PAYMENT_*) and
  * the rest (NEW/PENDING/COMPLETED/...). SEND_LINK with COMPLETED status
  * stays "pending" until claimed (sender-side).
  */
-function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDirection): StatusPillType {
+function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDirection): IconStatusType {
     const status = entry.status?.toUpperCase()
     const provider = entry.extraData?.provider
     const isBridgeRails = provider === 'BRIDGE' || entry.extraData?.fulfillmentType === 'bridge'
@@ -181,15 +196,27 @@ function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDir
             case 'PAYMENT_SUBMITTED':
                 return 'processing'
             case 'PAYMENT_PROCESSED':
+            // The API sends COMPLETED when the intent never stored a Bridge
+            // state, which is every deposit-account deposit. Without this case
+            // those rows read "Processing" forever after the money is credited.
+            case 'COMPLETED':
                 return 'completed'
             case 'UNDELIVERABLE':
             case 'RETURNED':
             case 'REFUNDED':
             case 'ERROR':
+            case 'FAILED':
+            case 'EXPIRED':
                 return 'failed'
             case 'CANCELED':
+            case 'CANCELLED':
                 return 'cancelled'
             default:
+                // A word this switch does not know must not read as in-flight
+                // when the API already stamped the row as finished.
+                reportUnknownBridgeStatus(entry, status)
+                if (entry.completedAt) return 'completed'
+                if (entry.cancelledAt) return 'cancelled'
                 return 'processing'
         }
     }
@@ -239,7 +266,7 @@ function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDir
         default: {
             const knownStatuses: StatusType[] = ['completed', 'pending', 'failed', 'cancelled', 'soon', 'processing']
             const lower = entry.status?.toLowerCase()
-            return lower && knownStatuses.includes(lower as StatusPillType) ? (lower as StatusPillType) : 'pending'
+            return lower && knownStatuses.includes(lower as IconStatusType) ? (lower as IconStatusType) : 'pending'
         }
     }
 }
@@ -352,7 +379,7 @@ export interface TransactionDetails {
     currencySymbol?: string
     tokenSymbol?: string
     initials: string
-    status?: StatusPillType
+    status?: IconStatusType
     isVerified?: boolean
     haveSentMoneyToUser?: boolean
     date: string | Date
@@ -361,6 +388,10 @@ export interface TransactionDetails {
     /** Catalog key (under `transaction`) for FE-generated memos (the test
      *  deposit). Render sites prefer `t(memoKey)` over the raw `memo`. */
     memoKey?: 'memoTestDeposit'
+    /** Catalog key (under `transaction`) that replaces the row's type label
+     *  when the type alone would be wrong — a deposit going back to the payer
+     *  is not "Bank deposit". */
+    actionLabelKey?: 'type.beingReturned' | 'type.returnedToSender'
     attachmentUrl?: string
     cancelledDate?: string | Date
     txHash?: string
@@ -395,6 +426,8 @@ export interface TransactionDetails {
         rewardData?: RewardData
         fulfillmentType?: 'bridge' | 'wallet'
         bridgeTransferId?: string
+        /** The payer's own reference on a bank deposit, as their bank sent it. */
+        senderReference?: string
         avatarUrl?: string
         perkReward?: HistoryEntryPerkReward
         perk?: {
@@ -421,8 +454,9 @@ export interface TransactionDetails {
             merchantCountry: string | null
             merchantMcc: string | null
             /** Rain-enriched brand logo URL when their enrichment identified the
-             *  merchant. Drawer keeps the generic card icon for v1; this is
-             *  plumbed so a future swap doesn't need a backend change. */
+             *  merchant. Rendered as the row and receipt avatar (MerchantLogoIcon),
+             *  falling back to the generic card icon when null/empty or on a load
+             *  error. */
             merchantLogo: string | null
             merchantId: string | null
             localAmount: string | null
@@ -519,7 +553,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     const isLinkTx = out.isLinkTx
     let fullName = out.fullName ?? ''
     const showFullName = out.showFullName
-    let uiStatus: StatusPillType = out.uiStatus ?? 'pending'
+    let uiStatus: IconStatusType = out.uiStatus ?? 'pending'
     const strategyOverrodeUiStatus = out.uiStatus !== undefined
 
     if (!isPeerActuallyUser) {
@@ -558,6 +592,22 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     // Strategy uiStatus wins (e.g. SEND_LINK BOTH → 'cancelled'); otherwise
     // map raw entry.status via the shared helper.
     if (!strategyOverrodeUiStatus) uiStatus = mapEntryStatusToUiStatus(entry, direction)
+
+    // A deposit whose refund is on its way back to the payer. The intent stays
+    // non-terminal on purpose, so the status alone reads as an ordinary deposit
+    // still in progress — `extraData.refundInFlight` is the only thing that
+    // says the money is going the other way (peanut-api-ts `src/db/history.ts`).
+    const isDepositBeingReturned = direction === 'bank_deposit' && entry.extraData?.refundInFlight === true
+    if (isDepositBeingReturned) uiStatus = 'processing'
+
+    // The return finished: the payer has the money and the intent is terminal.
+    // Bridge rails map RETURNED/REFUNDED to 'failed', which tells the user the
+    // deposit never worked. It did work, and then the bank sent it back — a
+    // different thing to know, and the only one that says what to do next.
+    const returnedStatus = entry.status?.toUpperCase()
+    const isDepositReturned =
+        direction === 'bank_deposit' && (returnedStatus === 'REFUNDED' || returnedStatus === 'RETURNED')
+    if (isDepositReturned) uiStatus = 'refunded'
 
     // Active dispute trumps the underlying spend's status — a card spend
     // that's been contested isn't really "completed" from the user's POV,
@@ -634,6 +684,11 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         // in the drawer, so a duplicate "Comment" row is just noise. Backend
         // already sets memo=undefined for card entries, but defend in depth.
         memoKey: isTestDeposit ? 'memoTestDeposit' : undefined,
+        actionLabelKey: isDepositReturned
+            ? ('type.returnedToSender' as const)
+            : isDepositBeingReturned
+              ? ('type.beingReturned' as const)
+              : undefined,
         memo: (() => {
             if (isTestDeposit) return 'Your peanut wallet is ready to use!'
             const kind = intentKindOf(entry)
@@ -665,6 +720,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             rewardData,
             fulfillmentType: entry.extraData?.fulfillmentType,
             bridgeTransferId: entry.extraData?.bridgeTransferId,
+            senderReference: entry.extraData?.senderReference?.trim() || undefined,
             // Card-payment specifics — populated only for Rain CARD_SPEND /
             // card-refund entries. Drawer reads these to render the merchant
             // hero, status timeline, decline reason, and "Adjusted from $X"

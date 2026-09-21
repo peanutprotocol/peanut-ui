@@ -40,7 +40,7 @@ const TokenListItem: React.FC<TokenListItemProps> = ({
     balance,
     onClick,
     isSelected,
-    position = 'single',
+    position = 'solo',
     showBalance = false,
 }) => {
     const { supportedChainsAndTokens } = useContext(tokenSelectorContext)

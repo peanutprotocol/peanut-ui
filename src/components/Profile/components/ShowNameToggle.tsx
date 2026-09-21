@@ -50,14 +50,14 @@ const ShowNameToggle = ({ checked, onChange }: ShowNameToggleProps) => {
             <ActionModal
                 visible={isConfirming}
                 onClose={() => setIsConfirming(false)}
-                tone="warning"
+                tone="attention"
                 icon="eye"
                 title={t('showFullNameConfirm.title')}
                 description={t('showFullNameConfirm.description')}
                 ctas={[
                     {
                         text: tCommon('confirm'),
-                        variant: 'purple',
+                        variant: 'primary',
                         shadowSize: '4',
                         onClick: () => {
                             setIsConfirming(false)

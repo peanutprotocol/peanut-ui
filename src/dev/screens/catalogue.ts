@@ -82,9 +82,7 @@ const definitions: Screen[] = [
         route: f.route,
         fixture: id,
         clicks: [],
-        // The pending application screen IS a spinner ("Setting up your
-        // card…") — same carve-out as 24-b-kycverificationinprogressmodal.
-        expectsLoading: id === 'card-pending',
+        expectsLoading: f.isLoadingState || id === 'card-pending',
     })),
     ...PAGE_CAPTURES.map((p) => ({
         ...p,

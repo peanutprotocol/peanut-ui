@@ -3,6 +3,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { useAuth } from '@/context/authContext'
 import NavHeader from '../Global/NavHeader'
+import { NAV_CIRCLE_BUTTON_CLASSES } from '../Global/NavHeader/navHeader.consts'
 import ProfileHeader from './components/ProfileHeader'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import ProfileMenuItem from './components/ProfileMenuItem'
@@ -24,17 +25,17 @@ import dynamic from 'next/dynamic'
 const AvatarPicker = dynamic(() => import('@/components/Avatar/AvatarPicker').then((m) => m.AvatarPicker), {
     ssr: false,
 })
-const InviteFriendsDrawer = dynamic(() => import('../Global/InviteFriendsDrawer'), { ssr: false })
+const InviteFriendsModal = dynamic(() => import('../Global/InviteFriendsModal'), { ssr: false })
 const OtaUpdateModal = dynamic(() => import('./components/OtaUpdateModal'), { ssr: false })
 const StoreUpdateModal = dynamic(() => import('./components/StoreUpdateModal'), { ssr: false })
 
 export const Profile = () => {
     const { logoutUser, isLoggingOut, user } = useAuth()
-    const [isInviteFriendsDrawerOpen, setIsInviteFriendsDrawerOpen] = useState(false)
-    const [isInviteFriendsDrawerMounted, setIsInviteFriendsDrawerMounted] = useState(false)
-    const openInviteFriendsDrawer = () => {
-        setIsInviteFriendsDrawerMounted(true)
-        setIsInviteFriendsDrawerOpen(true)
+    const [isInviteFriendsModalOpen, setIsInviteFriendsModalOpen] = useState(false)
+    const [isInviteFriendsModalMounted, setIsInviteFriendsModalMounted] = useState(false)
+    const openInviteFriendsModal = () => {
+        setIsInviteFriendsModalMounted(true)
+        setIsInviteFriendsModalOpen(true)
     }
     // URL state so the badge-earned toast can deep-link straight into the picker
     const [avatarPickerOpen, setAvatarPickerOpen] = useQueryState(AVATAR_PICKER_PARAM, avatarPickerParser)
@@ -87,7 +88,23 @@ export const Profile = () => {
 
     return (
         <div className="h-full w-full bg-background-page">
-            <NavHeader hideLabel showLogoutBtn onPrev={onBack} />
+            <NavHeader
+                hideLabel
+                onPrev={onBack}
+                rightElement={
+                    // Log Out already has its own button at the bottom of this
+                    // screen (below) — a second one up here was redundant. Edit
+                    // profile earns the top-right slot instead: it's the one
+                    // action worth reaching without scrolling.
+                    <Button
+                        variant="transparent"
+                        href="/profile/edit"
+                        icon="edit"
+                        aria-label={t('menu.personalDetails')}
+                        className={NAV_CIRCLE_BUTTON_CLASSES}
+                    />
+                }
+            />
             <div className="space-y-8">
                 {/* the share pill is the profile's one share affordance — the
                     copy-username icon it used to lean on was removed
@@ -109,7 +126,7 @@ export const Profile = () => {
                         <ProfileMenuItem
                             icon="globe-lock"
                             label={t('menu.unlockedRegions')}
-                            href="/profile/identity-verification"
+                            href="/profile/accounts-and-payments"
                             // same chip treatment as the card row's "New!" — a
                             // pulsing dot was a second attention language on
                             // one screen.
@@ -130,7 +147,7 @@ export const Profile = () => {
                         <ProfileMenuItem
                             icon="smile"
                             label={t('menu.inviteFriends')}
-                            onClick={openInviteFriendsDrawer}
+                            onClick={openInviteFriendsModal}
                             href="/dummy" // Dummy link, wont be called
                         />
                         <ProfileMenuItem icon="achievements" label={t('menu.yourBadges')} href="/badges" />
@@ -139,7 +156,6 @@ export const Profile = () => {
                             label={t('menu.points')}
                             href="/rewards"
                         />
-                        <ProfileMenuItem icon="user" label={t('menu.personalDetails')} href="/profile/edit" />
                     </ListGroup>
 
                     <ListGroup>
@@ -194,11 +210,11 @@ export const Profile = () => {
             </div>
 
             {/* Load on first use, then retain the controlled root so visible=false
-                can run Vaul's close transition before the page unmounts. */}
-            {isInviteFriendsDrawerMounted && (
-                <InviteFriendsDrawer
-                    visible={isInviteFriendsDrawerOpen}
-                    onClose={() => setIsInviteFriendsDrawerOpen(false)}
+                can run the modal's close transition before the page unmounts. */}
+            {isInviteFriendsModalMounted && (
+                <InviteFriendsModal
+                    visible={isInviteFriendsModalOpen}
+                    onClose={() => setIsInviteFriendsModalOpen(false)}
                     username={user?.user.username ?? ''}
                     source="profile"
                 />

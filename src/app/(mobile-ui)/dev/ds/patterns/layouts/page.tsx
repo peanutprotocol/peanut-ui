@@ -1,7 +1,7 @@
 'use client'
 
 import { Icon } from '@/components/Global/Icons/Icon'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
@@ -39,7 +39,7 @@ export default function LayoutsPage() {
                             </div>
                             <div className="flex flex-1 items-center justify-center">
                                 <div className="space-y-2 text-center">
-                                    <div className="mx-auto size-8 rounded-round bg-action-primary/30" />
+                                    <div className="mx-auto size-8 rounded-full bg-action-primary/30" />
                                     <div className="text-label-m">Main Content</div>
                                     <div className="text-body-xs text-foreground-secondary">flex-1 + items-center</div>
                                 </div>
@@ -64,7 +64,7 @@ export default function LayoutsPage() {
   </div>
 
   {/* Bottom CTA */}
-  <Button variant="purple" shadowSize="4" className="w-full">
+  <Button variant="primary" shadowSize="4" className="w-full">
     Continue
   </Button>
 </div>`}
@@ -120,7 +120,7 @@ export default function LayoutsPage() {
   <div className="flex-1" />
 
   {/* Pinned CTA */}
-  <Button variant="purple" shadowSize="4" className="w-full">
+  <Button variant="primary" shadowSize="4" className="w-full">
     Save Changes
   </Button>
 </div>`}
@@ -192,33 +192,33 @@ export default function LayoutsPage() {
             {/* Common Mistakes */}
             <DocSection title="Common Mistakes">
                 <DocSection.Content>
-                    <Notification priority="error" title="Wrong">
+                    <Callout priority="error" title="Wrong">
                         <p>
                             Without h-full the flex container collapses to content height. The CTA sits right below
                             content instead of at the bottom.
                         </p>
-                    </Notification>
+                    </Callout>
 
-                    <Notification priority="success" title="Correct">
+                    <Callout priority="success" title="Correct">
                         <p>
                             h-full ensures the flex column fills the available height from PageContainer. flex-1 on the
                             content area pushes the CTA to the bottom.
                         </p>
-                    </Notification>
+                    </Callout>
 
-                    <Notification priority="error" title="Wrong">
+                    <Callout priority="error" title="Wrong">
                         <p>
                             overflow-y-auto alone does nothing unless the element has a bounded height. Use flex-1
                             inside a flex-col container, or set an explicit max-height.
                         </p>
-                    </Notification>
+                    </Callout>
 
-                    <Notification priority="success" title="Correct">
+                    <Callout priority="success" title="Correct">
                         <p>
                             Inside a flex column with h-full, flex-1 fills remaining space and provides the bounded
                             height that overflow-y-auto needs to actually scroll.
                         </p>
-                    </Notification>
+                    </Callout>
                 </DocSection.Content>
                 <DocSection.Code>
                     <CodeBlock

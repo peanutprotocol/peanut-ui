@@ -43,11 +43,11 @@ export const PAGE_CAPTURES: PageCapture[] = [
     { id: 'p09-profile-about', name: 'Profile — about', route: '/profile/about' },
     { id: 'p10-exchange-rate', name: 'Exchange rate', route: '/profile/exchange-rate' },
 
-    { id: 'p11-identity-verification', name: 'Identity verification', route: '/profile/identity-verification' },
+    { id: 'p11-identity-verification', name: 'Identity verification', route: '/profile/accounts-and-payments' },
     {
         id: 'p12-identity-additional',
         name: 'Identity — additional',
-        route: '/profile/identity-verification/additional',
+        route: '/profile/accounts-and-payments/additional',
     },
     { id: 'p13-limits', name: 'Limits', route: '/limits' },
 
@@ -90,7 +90,7 @@ export const PAGE_CAPTURES: PageCapture[] = [
     {
         id: 'p38-kyc-action-required',
         name: 'Identity — action required',
-        route: '/profile/identity-verification',
+        route: '/profile/accounts-and-payments',
         fixture: 'kyc-action-required',
     },
     { id: 'p39-language', name: 'Language', route: '/settings/language', fixture: 'settings-language' },
@@ -123,13 +123,17 @@ PAGE_CAPTURES.push(
         route: '/withdraw/spain/bank',
         entryRoute: '/withdraw?amount=50',
         actions: [
-            { click: 'ES27' },
+            { click: '0802' },
             { fill: { selector: 'input[inputmode=decimal]', value: '50' } },
             { click: 'Continue' },
         ],
         fixture: 'withdraw',
     },
-    { id: 'p65-withdraw-argentina', name: 'Withdraw — Argentina', route: '/withdraw/argentina', fixture: 'withdraw' },
+    // p65-withdraw-argentina removed: Argentina has one live withdraw rail
+    // (Manteca), so /withdraw/argentina redirects straight to /withdraw/manteca
+    // (AddWithdrawCountriesList redirect, added 2026-09-16). A screenshot there
+    // never settles on /withdraw/argentina, and the Manteca form it lands on is
+    // already covered by p16-withdraw-manteca.
     { id: 'p67-recipient', name: 'Recipient profile', route: '/demo' },
     {
         id: 'p68-invite',

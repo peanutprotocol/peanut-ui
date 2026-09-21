@@ -58,7 +58,7 @@ describe('CurrencySelect selection', () => {
 
 // The hand-rolled keyboard path: moveActive wrap-around arithmetic, Home/End,
 // Enter→select. Row order is SUPPORTED_EXCHANGE_CURRENCIES: USD, EUR, GBP,
-// MXN, ARS, BRL — USD selected means the list opens with USD active.
+// MXN, ARS, BRL, COP — USD selected means the list opens with USD active.
 describe('CurrencySelect keyboard navigation', () => {
     const openWithKeyboard = () => {
         const setSelectedCurrency = jest.fn()
@@ -92,7 +92,7 @@ describe('CurrencySelect keyboard navigation', () => {
         const { setSelectedCurrency, trigger, listbox } = openWithKeyboard()
         fireEvent.keyDown(listbox, { key: 'End' })
         fireEvent.keyDown(listbox, { key: 'Enter' })
-        expectSelectedAndClosed(setSelectedCurrency, trigger, 'BRL')
+        expectSelectedAndClosed(setSelectedCurrency, trigger, 'COP')
     })
 
     it('Home then Enter selects the first currency', () => {

@@ -56,7 +56,7 @@ const MantecaLimitsView = () => {
                                 limitData.limit > 0 ? (limitData.remaining / limitData.limit) * 100 : 0
 
                             return (
-                                <Card key={limit.asset} position="single" className="space-y-3">
+                                <Card key={limit.asset} position="solo" className="space-y-3">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             {flagUrl && (

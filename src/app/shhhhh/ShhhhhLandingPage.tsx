@@ -153,7 +153,7 @@ export default function ShhhhhLandingPage() {
                     the same hex as the purple fill. */}
                 <Button
                     className="mx-auto mt-8 sm:w-auto sm:min-w-64 sm:px-10"
-                    variant="purple"
+                    variant="primary"
                     shadowSize="4"
                     onClick={handleCTA}
                     loading={busy}

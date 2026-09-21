@@ -15,7 +15,13 @@
 
 import { createContext, useContext, useState, useMemo, useCallback, type ReactNode } from 'react'
 import { type Address, type Hash } from 'viem'
-import { type TRequestResponse, type ChargeEntry, type PaymentCreationResponse } from '@/services/services.types'
+import {
+    type TRequestResponse,
+    type TRequestChargeResponse,
+    type PaymentCreationResponse,
+} from '@/services/services.types'
+import { collectedTotal, usdRemainingOf } from './collected'
+import { useRequestPayAmounts } from '@/components/Request/Pay/useRequestPayAmounts'
 
 // view states for contribute pot flow
 export type ContributePotFlowView = 'INITIAL' | 'STATUS' | 'EXTERNAL_WALLET'
@@ -79,8 +85,8 @@ interface ContributePotFlowContextValue {
     setAttachment: (attachment: ContributePotAttachment) => void
 
     // charge and payment results
-    charge: ChargeEntry | null
-    setCharge: (charge: ChargeEntry | null) => void
+    charge: TRequestChargeResponse | null
+    setCharge: (charge: TRequestChargeResponse | null) => void
     payment: PaymentCreationResponse | null
     setPayment: (payment: PaymentCreationResponse | null) => void
     txHash: Hash | null
@@ -127,7 +133,7 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
     const [attachment, setAttachment] = useState<ContributePotAttachment>({})
 
     // charge and payment results
-    const [charge, setCharge] = useState<ChargeEntry | null>(null)
+    const [charge, setCharge] = useState<TRequestChargeResponse | null>(null)
     const [payment, setPayment] = useState<PaymentCreationResponse | null>(null)
     const [txHash, setTxHash] = useState<Hash | null>(null)
     const [isExternalWalletPayment, setIsExternalWalletPayment] = useState(false)
@@ -153,9 +159,16 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
         return request?.tokenAmount ? parseFloat(request.tokenAmount) : 0
     }, [request?.tokenAmount])
 
-    const totalCollected = useMemo(() => {
-        return request?.totalCollectedAmount ?? 0
-    }, [request?.totalCollectedAmount])
+    /**
+     * charges and bank deposits together — see `collectedTotal`.
+     *
+     * The payer's read of a request carries no `receivedAmount`, so what a bank
+     * transfer paid is counted from what the request still needs. Without it
+     * the payer read "$0 contributed" on a request somebody had already paid by
+     * bank — the requester saw the right figure, and only the requester.
+     */
+    const { payAmounts } = useRequestPayAmounts(request?.uuid)
+    const totalCollected = useMemo(() => collectedTotal(request, usdRemainingOf(payAmounts)), [request, payAmounts])
 
     // derive contributors from charges
     const contributors = useMemo<PotContributor[]>(() => {

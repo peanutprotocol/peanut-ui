@@ -21,13 +21,13 @@ export interface ActionModalCheckboxProps {
     inputClassName?: string
 }
 
-export type ActionModalTone = 'error' | 'warning' | 'success' | 'info'
+export type ActionModalTone = 'error' | 'attention' | 'success' | 'info'
 
-// mirrors PRIORITY_STYLES in 0_Bruddle/Notification: yellow is for warnings
+// mirrors PRIORITY_STYLES in 0_Bruddle/Callout: yellow is for attention
 // only, red for errors, green for success, blue for plain information
 const TONE_STYLES: Record<ActionModalTone, { icon: IconName; color: IconBubbleColor }> = {
     error: { icon: 'ban', color: 'red' },
-    warning: { icon: 'alert', color: 'yellow' },
+    attention: { icon: 'alert', color: 'yellow' },
     success: { icon: 'check', color: 'green' },
     info: { icon: 'info', color: 'blue' },
 }
@@ -58,7 +58,12 @@ export interface ActionModalProps {
     footer?: React.ReactNode
     /** The footer is decoration (an absolutely positioned mascot), not an
      *  action. It renders outside the in-flow wrapper, so it adds no row of
-     *  its own beneath the ctas. */
+     *  its own beneath the ctas.
+     *  To paint such art BEHIND the panel, move the surface background off the
+     *  panel and onto the content box (`modalPanelClassName="bg-transparent"` +
+     *  `contentContainerClassName="bg-background-default"`). The panel is its own
+     *  stacking context, so a negative z-index inside it still paints on top of
+     *  the panel's own background — see ConfirmInviteModal. */
     footerIsDecorative?: boolean
     content?: React.ReactNode
     classOverlay?: string
@@ -218,7 +223,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                                         {
                                             text,
                                             onClick,
-                                            variant = 'purple',
+                                            variant = 'primary',
                                             className: btnClassName,
                                             icon: btnIcon,
                                             iconPosition,

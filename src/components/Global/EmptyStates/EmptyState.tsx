@@ -9,7 +9,7 @@ interface EmptyStateProps {
     icon: IconName
     iconColor?: IconBubbleColor
     title: string | React.ReactNode
-    description?: string
+    description?: React.ReactNode
     cta?: React.ReactNode
     containerClassName?: HTMLDivElement['className']
 }

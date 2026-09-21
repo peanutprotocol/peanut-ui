@@ -15,11 +15,13 @@ interface CardProps {
     onKeyDown?: React.KeyboardEventHandler<HTMLDivElement>
     'aria-disabled'?: boolean
     'aria-label'?: string
+    /** a card that opens a section below it, rather than navigating */
+    'aria-expanded'?: boolean
 }
 
 const Card: React.FC<CardProps> = ({
     children,
-    position = 'single',
+    position = 'solo',
     className = '',
     onClick,
     border = true,
@@ -30,14 +32,15 @@ const Card: React.FC<CardProps> = ({
     onKeyDown,
     'aria-disabled': ariaDisabled,
     'aria-label': ariaLabel,
+    'aria-expanded': ariaExpanded,
 }) => {
     const getBorderRadius = () => {
         switch (position) {
-            case 'single':
+            case 'solo':
                 return 'rounded-sm'
-            case 'first':
+            case 'top':
                 return 'rounded-t-sm'
-            case 'last':
+            case 'bottom':
                 return 'rounded-b-sm'
             case 'middle':
                 return ''
@@ -50,13 +53,13 @@ const Card: React.FC<CardProps> = ({
         if (!border) return ''
 
         switch (position) {
-            case 'single':
+            case 'solo':
                 return 'border border-border-default'
-            case 'first':
+            case 'top':
                 return 'border border-border-default'
             case 'middle':
                 return 'border border-border-default border-t-0'
-            case 'last':
+            case 'bottom':
                 return 'border border-border-default border-t-0'
             default:
                 return 'border border-border-default'
@@ -89,6 +92,7 @@ const Card: React.FC<CardProps> = ({
             onKeyDown={onKeyDown ?? defaultKeyDown}
             aria-disabled={ariaDisabled}
             aria-label={ariaLabel}
+            aria-expanded={ariaExpanded}
         >
             {children}
         </div>

@@ -13,7 +13,7 @@ import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { PropsTable } from '../../_components/PropsTable'
 import { CodeBlock } from '../../_components/CodeBlock'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 
 const historyRows = [
     { icon: 'bank', title: 'Bank deposit', body: '12 Sep 2026', amount: '+$50.00' },
@@ -233,12 +233,12 @@ export default function TabsPage() {
                         </table>
                     </div>
 
-                    <Notification priority="attention" title="sm is 36px — under the 44px touch minimum">
+                    <Callout priority="attention" title="sm is 36px — under the 44px touch minimum">
                         It clears WCAG 2.5.8 AA (24px) but misses 2.5.5 AAA and Apple&apos;s 44pt guidance. Accepted by
                         kush on 2026-09-21 for dense control panels, pending a real-device test. Use it for the Manteca
                         period toggle, the explorer filter panel, the content-hub filters and the dev panels — never for
                         a primary control.
-                    </Notification>
+                    </Callout>
 
                     <p className="mt-4 text-body-s text-foreground-secondary">
                         <strong className="text-foreground-primary">lg is unused today.</strong> It lands on

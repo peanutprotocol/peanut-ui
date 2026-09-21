@@ -13,7 +13,7 @@ import { formatBankAccountDisplay, shortDepositReference } from '@/utils/format.
 import { applyBridgeCrossCurrencyFee, getCurrencyConfig, getCurrencySymbol } from '@/utils/bridge.utils'
 import { RequestFulfillmentBankFlowStep, useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { formatAmount } from '@/utils/general.utils'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { resolveBridgeAccountHolderName } from '@/constants/payment.consts'
@@ -199,24 +199,24 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
 
         if (isUs) {
             lines.push(
-                line(t('bankDetails.beneficiaryName'), String(onrampData?.depositInstructions?.bankBeneficiaryName)),
+                line(t('bankDetails.beneficiaryName'), onrampData?.depositInstructions?.bankBeneficiaryName || loading),
                 line(
                     t('bankDetails.beneficiaryAddress'),
-                    String(onrampData?.depositInstructions?.bankBeneficiaryAddress)
+                    onrampData?.depositInstructions?.bankBeneficiaryAddress || loading
                 )
             )
         }
 
         if (!isUs && !isMexico && !isUk) {
             lines.push(
-                line(t('bankDetails.accountHolderName'), String(onrampData?.depositInstructions?.accountHolderName))
+                line(t('bankDetails.accountHolderName'), onrampData?.depositInstructions?.accountHolderName || loading)
             )
         }
 
         // for mexico, include clabe
         if (isMexico) {
             lines.push(
-                line(t('bankDetails.accountHolderName'), String(onrampData?.depositInstructions?.accountHolderName)),
+                line(t('bankDetails.accountHolderName'), onrampData?.depositInstructions?.accountHolderName || loading),
                 line(t('bankDetails.clabe'), onrampData?.depositInstructions?.clabe || loading)
             )
         }
@@ -289,9 +289,9 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                         <CopyToClipboard textToCopy={formattedCurrencyAmount} fill="black" iconSize="4" />
                     </div>
 
-                    <Notification priority="attention" className="mt-4">
+                    <Callout priority="attention" className="mt-4">
                         {t('bankDetails.sendExactAmount')}
-                    </Notification>
+                    </Callout>
                 </Card>
 
                 <Card className="p-4">
@@ -310,9 +310,9 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                         )}
                     </div>
 
-                    <Notification priority="attention" className="mt-4">
+                    <Callout priority="attention" className="mt-4">
                         {t('bankDetails.pasteInReferenceField')}
-                    </Notification>
+                    </Callout>
                 </Card>
 
                 <Card className="gap-2 rounded-sm">
@@ -440,7 +440,7 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                     )}
                 </Card>
 
-                <Notification priority="attention" hideIcon title={t('bankDetails.doubleCheckTitle')}>
+                <Callout priority="attention" hideIcon title={t('bankDetails.doubleCheckTitle')}>
                     <BulletList
                         items={[
                             t('bankDetails.doubleCheckAmount', { amount: formattedCurrencyAmount }),
@@ -457,7 +457,7 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                                 : []),
                         ]}
                     />
-                </Notification>
+                </Callout>
 
                 {/* Arrival expectation per rail: waiting for money with no ETA
                     is the classic support-ticket generator. Copy is honest about
@@ -472,7 +472,7 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
                             : t('bankDetails.etaSepa')}
                 </p>
 
-                <Button onClick={() => router.push('/home')} variant="purple" className="w-full" shadowSize="4">
+                <Button onClick={() => router.push('/home')} variant="primary" className="w-full" shadowSize="4">
                     {t('bankDetails.sentTransfer')}
                 </Button>
 

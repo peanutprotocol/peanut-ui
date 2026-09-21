@@ -61,7 +61,7 @@ const MantecaPixQrDeposit: FC<{
                     <IconBubble icon="check" size="l" color="green" />
                     <h2 className="text-heading-s text-foreground-primary">{t('pix.depositReceived')}</h2>
                     <p className="text-body-s text-foreground-secondary">{t('pix.balanceUpdated')}</p>
-                    <Button variant="purple" shadowSize="4" className="w-full" onClick={onDone}>
+                    <Button variant="primary" shadowSize="4" className="w-full" onClick={onDone}>
                         {tCommon('done')}
                     </Button>
                 </div>

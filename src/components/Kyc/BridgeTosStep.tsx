@@ -127,7 +127,7 @@ export const BridgeTosStep = ({ visible, onComplete, onSkip, reasonCode }: Bridg
                         text: isLoading ? tCommon('loading') : error ? tCommon('tryAgain') : t('bridgeTos.acceptTerms'),
                         onClick: handleAcceptTerms,
                         disabled: isLoading,
-                        variant: 'purple',
+                        variant: 'primary',
                         className: 'w-full',
                         shadowSize: '4',
                     },

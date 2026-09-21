@@ -9,7 +9,9 @@ interface CreateRequestLinkCtaProps {
     generatedLink: string | null
     isCreatingLink: boolean
     isUpdatingRequest: boolean
-    tokenValue: string
+    /** what the requester asked for, in `currency` */
+    requestAmount: string
+    currency: string
     onGenerate: () => void
 }
 
@@ -22,7 +24,8 @@ export const CreateRequestLinkCta = ({
     generatedLink,
     isCreatingLink,
     isUpdatingRequest,
-    tokenValue,
+    requestAmount,
+    currency,
     onGenerate,
 }: CreateRequestLinkCtaProps) => {
     const t = useTranslations('request')
@@ -52,9 +55,11 @@ export const CreateRequestLinkCta = ({
                     </Button>
                 ) : (
                     <ShareButton url={generatedLink}>
-                        {!tokenValue || !parseFloat(tokenValue) || parseFloat(tokenValue) === 0
+                        {!(parseFloat(requestAmount) > 0)
                             ? t('shareOpenRequest')
-                            : t('shareAmountRequest', { amount: tokenValue })}
+                            : currency === 'USD'
+                              ? t('shareAmountRequest', { amount: requestAmount })
+                              : t('shareCurrencyAmountRequest', { amount: requestAmount, currency })}
                     </ShareButton>
                 ))}
         </>

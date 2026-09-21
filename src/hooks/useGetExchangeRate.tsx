@@ -20,7 +20,12 @@ export interface IExchangeRate {
 // FX rate routes through `getCachedCurrencyPrice` in actions/currency.ts).
 // TODO: Manteca-currency display rates should route through that helper too
 // instead of returning '1'; separate PR.
-const BRIDGE_FX_ACCOUNT_TYPES: ReadonlySet<AccountType> = new Set([AccountType.IBAN, AccountType.CLABE, AccountType.GB])
+const BRIDGE_FX_ACCOUNT_TYPES: ReadonlySet<AccountType> = new Set([
+    AccountType.IBAN,
+    AccountType.CLABE,
+    AccountType.GB,
+    AccountType.CO_BANK_TRANSFER,
+])
 
 export default function useGetExchangeRate({ accountType, enabled = true }: IExchangeRate) {
     const { data: exchangeRate, isFetching: isFetchingRate } = useQuery({

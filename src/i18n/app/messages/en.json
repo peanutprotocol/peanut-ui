@@ -141,6 +141,7 @@
             "firstPayment": "Make your first payment",
             "firstPaymentNote": "Send a few dollars to a Peanut user, ENS name or wallet address. It lands in seconds.",
             "addMoneyRoutes": "Bank transfer or crypto",
+            "addMoneyStandingAccounts": "Claim your own bank details. Get paid in euros, dollars and more.",
             "addMoneyRoutesKyc": "Bank transfer or crypto · bank needs a one-time ID check",
             "addMoneyRoutesNoBank": "Crypto from any wallet or exchange",
             "getCardNote": "Your dollars, in pink, wherever Visa is accepted."
@@ -163,53 +164,15 @@
             "noTransactionsTitle": "No transactions yet!",
             "emptyDescription": "Start by sending or requesting money"
         },
-        "welcomeUnlock": {
-            "title": "You're unlocked",
-            "cta": "Send money",
-            "youCanNow": "You can now:",
-            "items": {
-                "qr": {
-                    "label": "Argentina & Brazil",
-                    "value": "QR payments"
-                },
-                "us": {
-                    "label": "United States",
-                    "value": "US dollar bank transfers"
-                },
-                "europe": {
-                    "label": "Europe",
-                    "value": "Euro bank transfers"
-                },
-                "mexico": {
-                    "label": "Mexico",
-                    "value": "Mexican peso bank transfers"
-                },
-                "ownCountry": {
-                    "value": "Bank transfers to your own accounts"
-                }
-            }
-        },
         "perk": {
-            "surpriseTitle": "You just earned ${amount}!",
-            "surpriseDescriptionFirst": "Check out your rewards now and earn more.",
-            "surpriseDescriptionNext": "Check out your rewards and how to earn more.",
             "usedPeanut": "<name>{inviteeName}</name> used Peanut",
-            "rewardClaimed": "Reward claimed!",
-            "shareAndEarn": "Share & earn",
-            "inviteFriendsToEarnMore": "Invite friends to earn more",
             "holdToUnwrap": "Hold to unwrap your reward",
             "iosCopy": {
-                "surpriseDescriptionFirst": "Check out your cashback and how to earn more.",
-                "surpriseDescriptionNext": "Check out your cashback and how to earn more.",
                 "usedPeanut": "<name>{inviteeName}</name> paid with Peanut",
-                "rewardClaimed": "Cashback claimed!",
                 "holdToUnwrap": "Hold to unwrap your cashback"
             }
         },
         "carousel": {
-            "rewardReady": "<b>+${amount}</b> reward ready!",
-            "usedPeanutTapToClaim": "<name>{inviteeName}</name> used Peanut. Tap to claim.",
-            "tapToClaim": "Tap to claim your reward.",
             "invite": {
                 "title": "Invite friends. Earn rewards",
                 "description": "Earn rewards every time your friends use Peanut."
@@ -243,11 +206,7 @@
             "closeTitled": "Close {title}",
             "closeVerificationPrompt": "Close verification prompt",
             "closeNotificationPrompt": "Close notification prompt",
-            "claimablePerk": "Claimable perk",
             "iosCopy": {
-                "rewardReady": "<b>+${amount}</b> cashback ready!",
-                "usedPeanutTapToClaim": "<name>{inviteeName}</name> paid with Peanut. Tap to claim.",
-                "tapToClaim": "Tap to claim your cashback.",
                 "invite": {
                     "title": "Invite friends. Earn cashback",
                     "description": "Earn cashback every time your friends pay with Peanut."
@@ -267,7 +226,25 @@
         },
         "pendingTasks": {
             "completeBefore": "Complete before {deadline}",
-            "dismiss": "Dismiss {task}"
+            "dismiss": "Dismiss {task}",
+            "verifyTitle": "Additional verification needed",
+            "verifyTitleCorridor": "Verify to unlock {corridor}",
+            "verifyDescription": "Complete a quick verification with our payment partner to enable bank transfers.",
+            "verifyDescriptionAdvisory": "Complete a quick verification with our payment partner to keep bank transfers available.",
+            "verifyDescriptionCorridor": "Finish verifying to unlock {corridor}.",
+            "verifyDescriptionCorridorAdvisory": "Finish verifying to keep {corridor} available.",
+            "tosTitle": "Accept Terms of Service",
+            "tosDescription": "Accept our payment partner's terms to enable bank transfers.",
+            "tosDescriptionAdvisory": "Accept our payment partner's terms to keep bank transfers available.",
+            "tosSepaTitle": "Accept updated bank transfer provider terms",
+            "tosSepaDescription": "Accept our bank transfer provider's updated Terms of Service to enable euro and British pound bank transfers.",
+            "tosSepaDescriptionAdvisory": "Accept our bank transfer provider's updated Terms of Service to keep euro and British pound bank transfers available.",
+            "corridors": {
+                "USD": "US dollar bank transfers",
+                "EUR": "Euro bank transfers",
+                "GBP": "British pound bank transfers",
+                "MXN": "Mexican peso bank transfers"
+            }
         },
         "iosCopy": {
             "rewards": "Cashback"
@@ -279,7 +256,11 @@
             "sendToFriends": "Send to friends",
             "sendToFriendsDescription": "Link, Contacts, Bank, Crypto",
             "withdrawToOwnAccounts": "Withdraw to own accounts",
-            "withdrawToOwnAccountsDescription": "Bank, Mercado, Crypto"
+            "withdrawToOwnAccountsDescription": "Euro, Dollars, crypto and more",
+            "shareRequestLink": "Share a request link",
+            "shareRequestLinkDescription": "Request an amount with a shareable link",
+            "shareBankDetails": "Share bank details",
+            "shareBankDetailsDescription": "Get paid through your EUR, USD and other virtual accounts"
         }
     },
     "profile": {
@@ -297,7 +278,7 @@
             "yourBadges": "Your Badges",
             "points": "Points",
             "personalDetails": "Edit profile",
-            "unlockedRegions": "Payment Channels",
+            "unlockedRegions": "Accounts and payments",
             "paymentLimits": "Payment limits",
             "showMyFullName": "Show my full name",
             "backup": "Backup",
@@ -356,8 +337,8 @@
             }
         },
         "unlockPayments": {
-            "title": "Payment Channels",
-            "description": "Everything you can use today, and what opens after ID verification.",
+            "title": "Accounts and payments",
+            "description": "Your accounts, payment methods and verification status.",
             "residence": {
                 "label": "Residence: {country}",
                 "unknown": "Residence not set",
@@ -369,26 +350,23 @@
             },
             "yourRegion": "Your region",
             "groups": {
-                "everywhere": "Everywhere",
+                "everywhere": "Peanut",
                 "southAmerica": "South America",
                 "northAmerica": "North America",
-                "europe": "Europe"
+                "europe": "Europe",
+                "spend": "Spend"
             },
             "rows": {
                 "p2p": "Peanut-to-Peanut payments",
                 "card": "Peanut card",
-                "saBank": "PIX (Brazil), QR & bank transfers (Argentina)",
-                "pixBank": "PIX payments & transfers (Brazil)",
-                "pixQr": "PIX QR payments (Brazil)",
-                "brBank": "PIX transfers (Brazil)",
-                "arQrBank": "QR payments & transfers (Argentina)",
-                "arQr": "QR payments (Argentina)",
-                "arBank": "Bank transfers (Argentina)",
-                "naBank": "US dollar and Mexican peso bank transfers",
-                "sepa": "Euro bank transfers"
+                "crypto": "Crypto",
+                "saBank": "BRL and ARS · Pix and bank transfer",
+                "naBank": "USD and MXN · Bank transfer",
+                "sepa": "EUR · Bank transfer",
+                "qrPay": "QR payments · Brazil and Argentina"
             },
             "chips": {
-                "active": "Active",
+                "active": "Available",
                 "alwaysOn": "Always on",
                 "unlock": "Unlock",
                 "processing": "Processing",
@@ -426,15 +404,43 @@
             },
             "limits": {
                 "monthlyLeft": "{remaining} of {limit} left this month",
-                "perTransfer": "Up to {amount} per transfer",
-                "p2pNoLimit": "No limits on Peanut-to-Peanut payments"
+                "p2pNoLimit": "No amount limits on Peanut-to-Peanut payments or crypto",
+                "depositPerTransfer": "Per bank deposit",
+                "withdrawalPerTransfer": "Per bank withdrawal"
             },
             "cooldown": {
                 "title": "Give it a little time",
                 "until": "Verification attempts are temporarily limited. You can try again after {until}.",
                 "short": "Verification attempts are temporarily limited. Please try again in a little while.",
                 "dismiss": "I'll try later"
-            }
+            },
+            "accountsTitle": "Your account numbers",
+            "accountsSubtitle": "Bank details in your name. Give them to someone else and the money arrives in Peanut.",
+            "details": {
+                "p2p": "Send and receive money with other Peanut users.",
+                "crypto": "Add or withdraw crypto from any wallet or exchange — no verification required.",
+                "saBank": "Add and withdraw money through bank accounts in Brazil and Argentina.",
+                "naBank": "Add or withdraw money using US bank transfers and Mexico’s SPEI network.",
+                "sepa": "Add or withdraw euros using SEPA bank transfers.",
+                "card": "Pay with your Peanut card.",
+                "qrPay": "Pay in shops in Brazil and Argentina by scanning a QR code."
+            },
+            "valueProp": {
+                "p2p": "Split bills and pay friends in one tap.",
+                "card": "Spend your Peanut balance in the real world.",
+                "crypto": "Send and receive on-chain, no bank needed.",
+                "saBank": "Move money with banks in Brazil and Argentina.",
+                "naBank": "Connect your US and Mexican bank money.",
+                "sepa": "Hold and move euros without a local bank.",
+                "qrPay": "Scan and pay where you live."
+            },
+            "detailsDrawer": {
+                "aboutTitle": "What you can do",
+                "limitsTitle": "Limits"
+            },
+            "waysTitle": "Add and withdraw money",
+            "waysSubtitle": "Move money between your bank and Peanut in these currencies.",
+            "qrPayNote": "Pay in shops by scanning a QR code. Open to every verified user."
         },
         "backup": {
             "title": "Backup",
@@ -610,13 +616,15 @@
             "error": "Could not delete your account. Please try again.",
             "sadPeanutAlt": "Sad peanut",
             "pointingPeanutAlt": "Peanut pointing",
-            "cryingPeanutAlt": "Crying peanut"
+            "cryingPeanutAlt": "Crying peanut",
+            "depositInFlight": "A deposit is still arriving. Wait for it to arrive, then withdraw your balance before deleting your account.",
+            "depositAccountsUnavailable": "We couldn’t close your bank accounts. Your Peanut account is still active. Please try again later."
         }
     },
     "limits": {
         "title": "Payment limits",
         "pageDescription": "Payment limits control how much you can send and receive. Limits vary by region and reset monthly or yearly.",
-        "unlockedRegions": "Unlocked regions",
+        "unlockedRegions": "Accounts and payments",
         "lockedRegions": "Locked regions",
         "otherRegions": "Other regions",
         "cardLimits": {
@@ -1040,6 +1048,7 @@
         "createRequest": "Create request",
         "shareOpenRequest": "Share open request",
         "shareAmountRequest": "Share ${amount} request",
+        "shareCurrencyAmountRequest": "Share {amount} {currency} request",
         "billSplitFor": "Bill split for {merchant}",
         "linkCreatedToast": "Link created successfully!",
         "linkCreatedAndCopiedToast": "Link created and copied to clipboard!",
@@ -1051,6 +1060,9 @@
             "enterRecipient": "Please enter a recipient address",
             "missingUsernameOrAmount": "Username or amount is missing",
             "createRequestFailed": "Failed to create request.",
+            "rateUnavailable": "There is no {currency} rate right now. Try again, or request in USD.",
+            "invalidRequestedAmount": "This amount is not valid in {currency}. Check the decimals and try again.",
+            "currencyNotAvailable": "Requests in {currency} are not available yet. Request in USD.",
             "validatingRecipient": "Validating recipient..."
         },
         "validation": {
@@ -1060,6 +1072,30 @@
             "missingRecipientMessage": "No username provided in the URL. Please check the link and try again.",
             "goToHome": "Go to home",
             "createWallet": "Create your Peanut Wallet"
+        },
+        "currency": {
+            "label": "Request in",
+            "select": "Select the request currency",
+            "triggerLabel": "Request currency: {currency}",
+            "exactNote": "A payer who pays by bank in {currency} sees this exact amount. Other payers see an estimate."
+        },
+        "bankInstructions": {
+            "title": "Share your bank account details",
+            "description": "Anyone who opens this link sees your bank details and full name.",
+            "anyonePays": "They can then pay you by bank transfer.",
+            "businessPays": "Only businesses can pay this by bank transfer. A friend's transfer is returned.",
+            "unknownPays": "A transfer from anyone but you is not confirmed on this account, and it may be returned.",
+            "titleOff": "Your bank details stay private",
+            "descriptionOff": "Payers can pay you with Peanut or crypto."
+        },
+        "paidByBank": {
+            "rowLabel": "Bank transfer",
+            "receivedPartial": "${received} of ${requested} received",
+            "receivedPartialSettled": "${received} of ${requested} by bank transfer. The rest was paid another way.",
+            "badgePaid": "Paid",
+            "badgePartial": "Partly paid",
+            "paidByName": "Paid by {name}",
+            "paidByBank": "Paid by bank transfer"
         }
     },
     "payment": {
@@ -1151,7 +1187,32 @@
             "invalidPaymentUrlDescription": "The link is incomplete or mistyped. Ask the sender to share it again.",
             "requestNotFoundTitle": "Request not found",
             "requestNotFoundDescription": "This payment request doesn't exist or was removed. Ask the sender for a new link."
-        }
+        },
+        "requestCurrencyNote": "This request asks for {amount} {currency}. With Peanut, crypto or a dollar bank transfer you pay its dollar amount, which was fixed when the request was made.",
+        "requestCurrencyNotePartPaid": "This request asks for {amount} {currency}, and {remaining} {currency} is left to pay. With Peanut, crypto or a dollar bank transfer you pay the dollar amount, which was fixed when the request was made.",
+        "bankTransfer": {
+            "title": "Pay by bank transfer",
+            "description": "Send from your bank to the requester's account.",
+            "payInCurrency": "Pay in {currency} · {rail}",
+            "transferSection": "What to send",
+            "referenceLabel": "Payment reference",
+            "referenceNote": "Add this reference to your transfer. Without it the payment is not matched to this request.",
+            "unavailable": "Bank transfer is not available for this request right now.",
+            "amountLabel": "Amount to send",
+            "amountValue": "{amount} {currency}",
+            "amountValueApprox": "≈ {amount} {currency}",
+            "exactBadge": "Exact amount",
+            "estimateBadge": "Estimate",
+            "amountNote": "Estimated at today’s rate. Your bank may convert at a different rate, so the exact amount can change.",
+            "amountNoteSameCurrency": "Send this amount and the request is marked paid.",
+            "amountNoteBankConverts": "There is no {currency} estimate right now. Send the {currency} amount that equals this USD amount. Your bank sets the rate.",
+            "senderBusinessOnly": "Only a business account can pay this. A transfer from a personal account is returned.",
+            "senderUnknown": "This account has not confirmed it accepts payments from other people, so your transfer may be returned.",
+            "otherWays": "See other ways to pay"
+        },
+        "requestAsksFor": "{amount} {currency} requested",
+        "requestAsksForDollars": "${amount} in dollars, fixed when the request was made",
+        "requestAlreadyCovered": "This request is already covered. There is nothing left to pay."
     },
     "claim": {
         "receive": "Receive",
@@ -1670,7 +1731,8 @@
             "crypto": "Crypto",
             "cryptoDescription": "Deposit from a wallet or exchange",
             "bankTransfer": "Bank transfer",
-            "kycRequired": "KYC required"
+            "kycRequired": "KYC required",
+            "bankTransferDescription": "Reusable bank details to get paid"
         },
         "networkDrawer": {
             "title": "Choose Network",
@@ -1686,7 +1748,7 @@
             "warning": "Sending to the wrong network or token will result in permanent loss."
         },
         "howToDeposit": {
-            "title": "How to Deposit",
+            "title": "How to deposit",
             "warning": "Sending to the wrong network or token will result in permanent loss.",
             "default": {
                 "step1": "Copy the deposit address above",
@@ -1703,8 +1765,8 @@
             "tooltipTron": "Your Tron deposit address. Deposits are bridged to Arbitrum (±0.1% variance).",
             "universalDepositAddress": "Universal Deposit Address",
             "depositAddress": "Deposit Address",
-            "supportedNetworks": "Supported Networks:",
-            "supportedTokens": "Supported Tokens:",
+            "supportedNetworks": "Supported Networks",
+            "supportedTokens": "Supported Tokens",
             "supportedTokensInline": "Supported tokens:",
             "supportedEvmNetworks": "Supported EVM networks",
             "evmNetworks": "EVM networks",
@@ -1716,7 +1778,7 @@
             "minDepositForLabel": "Min deposit for {network}",
             "maxDepositForLabel": "Max deposit for {network}",
             "bridgingVarianceNote": "Deposits are bridged to Arbitrum and can vary slightly (±0.1%).",
-            "bridgingVarianceNoteEvm": "USDC on Arbitrum arrives exactly. Deposits from other chains or tokens are bridged and can vary slightly (±0.1%).",
+            "bridgingVarianceNoteEvm": "USDC on Arbitrum arrives at the full amount. Deposits from other chains or tokens are bridged and can vary slightly (±0.1%).",
             "addressErrorTitle": "We couldn't prepare your deposit address",
             "addressErrorDescription": "Nothing was sent. Please try again — if this keeps happening, contact support.",
             "marketMovedTitle": "Oops! Market moved",
@@ -1816,26 +1878,17 @@
         "bankNotAvailableNote": "Bank transfers aren't available in your country. You can still add and withdraw crypto."
     },
     "withdraw": {
-        "amountToWithdraw": "Amount to withdraw",
+        "amountToWithdraw": "Amount to cash out",
         "amountToSend": "Amount to send",
-        "howWouldYouLikeToWithdraw": "How would you like to withdraw?",
+        "howWouldYouLikeToWithdraw": "How would you like to cash out?",
         "howWouldYouLikeToSend": "How would you like to send?",
         "chooseWithdrawingMethod": "Choose withdrawing method",
-        "noAccountsTitle": "No accounts yet",
-        "noAccountsDescription": "Add your accounts details once<br></br>to withdraw in one tap.",
         "addAccount": "Add account",
         "selectNewMethod": "Select new method",
         "recentMethods": "Recent methods",
         "review": "Review",
         "backToHome": "Back to home",
         "somethingWentWrong": "Something went wrong!",
-        "methods": {
-            "mercadopago": "MercadoPago",
-            "pix": "Pix",
-            "bankTransfer": "Bank Transfer",
-            "euroBankTransfers": "Euro bank transfers",
-            "euroBankTransfersDescription": "Usually arrives within 20 minutes, up to 1 business day."
-        },
         "initial": {
             "placeholderEns": "Address or ENS",
             "placeholderAddress": "Address",
@@ -1878,6 +1931,22 @@
             "sortCode": "Sort Code",
             "routingNumber": "Routing Number",
             "fee": "Fee",
+            "reference": "Reference (optional)",
+            "referenceHelperSepa": "The recipient's bank shows it with the payment. 6 to 140 characters: letters a-z, numbers, spaces and & - . /",
+            "referenceHelperAch": "The recipient's bank shows it with the payment. Up to 10 characters: letters a-z, numbers and spaces.",
+            "referenceHelperFasterPayments": "The recipient's bank shows it with the payment. Up to 18 characters: letters a-z, numbers, spaces and & - . /",
+            "referenceHelperSpei": "The recipient's bank shows it with the payment. Up to 40 characters: letters a-z, numbers and spaces.",
+            "referenceHelperCoBankTransfer": "The recipient's bank shows it with the payment. Up to 18 characters: letters a-z, numbers, spaces and & - . /",
+            "referenceTooShort": "Use at least {min} characters, or leave it empty.",
+            "referenceTooLong": "Use at most {max} characters.",
+            "referenceInvalidCharsSepa": "Use only letters a-z, numbers, spaces and & - . /",
+            "referenceInvalidCharsAch": "Use only letters a-z, numbers and spaces.",
+            "referenceInvalidCharsSpei": "Use only letters a-z, numbers and spaces.",
+            "payoutSenderSepa": "The payment arrives from our payment partner, not from your own name.",
+            "payoutSenderSepaDefaultReference": "Your name is in the payment reference.",
+            "payoutSenderAch": "The payment arrives from our payment partner, not from your own name. Your bank statement shows Peanut.",
+            "payoutSenderSpei": "The payment arrives from our payment partner's local bank, not from your own name.",
+            "payoutSenderWire": "The payment arrives from Peanut, not from your own name.",
             "bankAccount": "Bank Account",
             "transferProcessing": "Transfer processing",
             "confirmPending": "Your transfer is processing. Funds were sent on-chain successfully — this can take a few minutes to confirm. If you don't see the withdrawal in your activity within 30 minutes, please contact support."
@@ -1886,16 +1955,16 @@
             "youJustWithdrew": "You just withdrew",
             "toDestination": "to {destination}",
             "youreWithdrawing": "You're withdrawing",
-            "enterMethodDetails": "Enter {method} details",
             "selectAccountType": "Select account type",
             "selectBank": "Select bank",
             "ownAccountOnly": "You can only withdraw to accounts under your name.",
             "redirecting": "Redirecting...",
-            "lockingRate": "Locking rate...",
             "exchangeRate": "Exchange Rate",
             "exchangeRateInfo": "Rate shown is current but may vary slightly until payment is confirmed.",
             "flagAlt": "flag",
-            "increaseLimitsMessage": "Hi, I would like to increase my payment limits."
+            "increaseLimitsMessage": "Hi, I would like to increase my payment limits.",
+            "enterAccountDetails": "Enter bank or wallet details",
+            "accountDetailsHint": "Use your CBU, CVU or alias, including Mercado Pago."
         },
         "bankForm": {
             "heading": "Enter bank account details",
@@ -1911,7 +1980,7 @@
             "iban": "IBAN",
             "ibanRequired": "IBAN is required",
             "ibanInvalid": "Invalid IBAN",
-            "ibanUnsupported": "This IBAN isn't supported for withdrawals",
+            "ibanUnsupported": "We cannot send euros to this IBAN. Enter an IBAN from a SEPA country.",
             "accountNumber": "Account Number",
             "accountNumberRequired": "Account number is required",
             "accountNumberUk": "Account number must be 6-8 digits",
@@ -1939,7 +2008,38 @@
             "stateRequired": "State is required",
             "postalCode": "Your Postal Code",
             "postalCodeRequired": "Postal code is required",
-            "unsupportedCountry": "Unsupported country"
+            "unsupportedCountry": "Unsupported country",
+            "accountNumberCo": "Account number must be 5 to 20 digits",
+            "documentType": "Document type",
+            "documentTypeRequired": "Document type is required",
+            "documentTypeCc": "Cédula de ciudadanía",
+            "documentTypeCe": "Cédula de extranjería",
+            "documentTypeNit": "NIT",
+            "documentTypePp": "Passport",
+            "documentNumber": "Document number",
+            "documentNumberRequired": "Document number is required",
+            "documentNumberInvalid": "Document number must be 5 to 15 digits",
+            "bankCode": "Bank code",
+            "bankCodeRequired": "Bank code is required",
+            "bankCodeInvalid": "Bank code must be 3 or 4 digits",
+            "bankCodeHelper": "Your bank's code, 3 or 4 digits. Your bank app or a statement shows it.",
+            "accountCategory": "Account type",
+            "accountCategoryRequired": "Account type is required",
+            "accountCategorySavings": "Savings",
+            "accountCategoryChecking": "Checking",
+            "phoneNumber": "Phone number",
+            "phoneNumberRequired": "Phone number is required",
+            "phoneNumberInvalid": "Enter a Colombian number, for example +573001234567",
+            "phoneNumberHelper": "The number registered with your bank.",
+            "pasteAria": "Paste from clipboard",
+            "pasteEmpty": "Nothing to paste",
+            "pasteUnavailable": "Can't read the clipboard",
+            "bicAutoFilled": "We filled this in from your IBAN. Check it against your bank and change it if it is wrong.",
+            "bicCountryMismatch": "This BIC belongs to a bank in another country than the IBAN",
+            "ownAccount": "This is my own account",
+            "ownAccountFilled": "We filled in what we already know. Check it and change anything that is wrong.",
+            "groupBankAccount": "Bank account",
+            "groupAccountOwner": "Account owner"
         },
         "errors": {
             "invalidNumber": "Please enter a valid number.",
@@ -1955,7 +2055,7 @@
             "confirmDetailsFailed": "Failed to load withdrawal details for confirmation. Please go back and try again.",
             "essentialInfoMissing": "Essential withdrawal information is missing.",
             "txNotPrepared": "Transaction not prepared. Please try again.",
-            "userDetailsMissing": "User details, bridge account, or wallet address not found.",
+            "userDetailsMissing": "User details, bank account, or wallet address not found.",
             "bankAccountMissing": "Bank account is missing.",
             "depositAddressFailed": "Failed to get deposit address from the backend.",
             "enterAccountAddress": "Please enter your account address",
@@ -1971,8 +2071,14 @@
             "feeExceedsAmount": "The network fee is more than this withdrawal. Enter a larger amount or pick a cheaper network."
         },
         "resolvesTo": "resolves to",
-        "addNewAccount": "Add new account",
-        "mercadoPagoDescription": "Your accounts only - instant transfer"
+        "withdrawToBank": "Withdraw to a bank account",
+        "withdrawToCrypto": "Withdraw to a crypto address",
+        "currencyList": {
+            "searchPlaceholder": "Search currency or country",
+            "flagAlt": "{currency} flag",
+            "otherCountriesTitle": "Other countries",
+            "otherCountriesPitch": "Find your country and cash out in its local currency"
+        }
     },
     "transaction": {
         "drawerTitle": "Transaction Details",
@@ -1980,6 +2086,7 @@
             "issuedBy": "Issued by:",
             "reference": "Reference",
             "issuedOn": "Issued on",
+            "footer": "Receipt from Peanut · peanut.me",
             "pdf": {
                 "title": "Transaction Receipt",
                 "issuedBy": "Issued by Squirrel Labs Ltd",
@@ -2010,6 +2117,8 @@
             "bank_claim": "Claim",
             "bank_withdraw": "Withdraw",
             "bank_deposit": "Add",
+            "beingReturned": "Being returned to the payer",
+            "returnedToSender": "Returned to sender",
             "bank_request_fulfillment": "Request paid via bank",
             "card_pay": "Pay",
             "refund": "Refund",
@@ -2087,6 +2196,7 @@
             "txId": "Transaction ID",
             "fee": "Fee",
             "transferId": "Transfer ID",
+            "senderReference": "Sender's reference",
             "pointsEarned": "Points earned",
             "networkFee": "Network fee",
             "attachment": "Attachment",
@@ -2096,6 +2206,7 @@
             "address": "Address",
             "estimateConversion": "Estimate conversion"
         },
+        "returnedReason": "The bank sent this payment back. This usually happens when the details did not match the sender's name, or the sender's bank refused it.",
         "perkBanner": {
             "title": "You earned a reward!",
             "capped": "${amount} reward — campaign limit reached!",
@@ -2121,6 +2232,9 @@
             "moreActions": "More actions",
             "splitBill": "Split this bill",
             "shareReceipt": "Share Receipt",
+            "copyLink": "Copy link",
+            "linkCopied": "Link copied",
+            "linkCopyFailed": "Could not copy the link",
             "downloadPdf": "Download Receipt (PDF)",
             "pdfDownloadedInstead": "This browser downloaded the receipt because file sharing is unavailable.",
             "receiptPdfUnavailable": "Receipt PDF is unavailable. Please try again.",
@@ -2603,6 +2717,7 @@
             "descriptionProviderRejection": "Please upload a clearer photo of your ID to continue.",
             "descriptionCrossRegion": "Your identity is already verified. To turn on payments in {region}, we need to confirm a few more details.",
             "descriptionCrossRegionGeneric": "Your identity is already verified. To turn on payments here, we need to confirm a few more details.",
+            "descriptionCountryPayments": "Confirm your ID to turn on bank transfers and payments in {region}.",
             "descriptionRegionUnavailable": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime.",
             "titleBankUnavailable": "Not available in your country",
             "descriptionBankUnavailable": "Bank transfers aren't available in your country, so an ID check wouldn't unlock them. Your funds are safe, and you can still send and receive money with other people.",
@@ -2968,7 +3083,9 @@
                 "taxId": {
                     "label": "Tax ID",
                     "title": "Your tax ID",
-                    "body": "CPF in Brazil, CUIT or CUIL in Argentina. Needed for local bank transfers."
+                    "body": "CPF in Brazil, CUIT or CUIL in Argentina. Needed for local bank transfers.",
+                    "bodyAR": "CUIT or CUIL, from your DNI. Needed for local bank transfers.",
+                    "bodyBR": "CPF. Needed for local bank transfers."
                 },
                 "questions": {
                     "label": "Questions",
@@ -2998,10 +3115,17 @@
             "title": "What to expect",
             "description": "Our payment partner needs a few more things before your bank transfers work.",
             "descriptionAdvisory": "Our payment partner needs a few more things to keep your bank transfers working.",
+            "checking": "Checking with our payment partner…",
+            "stillPending": "If you finished the check, there is nothing more to do. The status can take a few minutes to update, or 1 to 3 business days if a reviewer looks at it. Starting again creates a new check.",
             "done": {
                 "title": "Nothing left to do here",
                 "description": "This verification step is no longer needed. Your current status is on your profile.",
                 "cta": "See my status"
+            },
+            "nativeInstead": {
+                "title": "Upload the document in the app instead",
+                "description": "Our payment partner asked for a document. The hosted check cannot collect it; the upload in your profile can.",
+                "cta": "Go to my profile"
             }
         },
         "correction": {
@@ -3098,6 +3222,14 @@
         "txReverted": "Transaction reverted, please try again"
     },
     "global": {
+        "countryWaitlist": {
+            "title": "Bank transfers in {country}",
+            "body": "Bank transfers are not available here yet. Join the list and we’ll let you know when they are.",
+            "join": "Notify me",
+            "joinedTitle": "You’re on the list",
+            "joinedBody": "We’ll let you know when bank transfers are available in {country}.",
+            "error": "Could not update the waitlist. Please try again."
+        },
         "amountInput": {
             "balance": "Balance:",
             "useFullBalance": "Use full balance: {balance}",
@@ -3188,8 +3320,11 @@
             "unrecognized": "Sorry, this QR code couldn't be recognized.",
             "pixRecurringIntro": "This QR code is for a recurring payment (PIX Automático).",
             "pixRecurringBody": "Peanut doesn't support recurring PIX payments — please ask for a regular PIX QR code instead.",
+            "argentinaAliasIntro": "This looks like an Argentine payment alias.",
+            "argentinaAliasBody": "You can't pay another person by alias. To pay a business, scan its payment QR code. To move money to your own account, use Withdraw.",
             "titleUnrecognized": "Unrecognized QR code",
             "titlePixRecurring": "PIX Automático not supported",
+            "titleArgentinaAlias": "Can't pay an alias",
             "titleNotSupported": "{qrName} not supported yet.",
             "titleWillBeNotified": "You're on the list!",
             "titleDirectSend": "Payment Confirmation",
@@ -3379,11 +3514,12 @@
             "copied": "Copied"
         },
         "peanutActionCard": {
-            "requestTitle": "Request money from friends",
-            "requestDescription": "They don't need an account to pay",
+            "requestTitle": "Request money",
+            "requestDescription": "For friends, your employer, or anyone in the world",
             "sendTitle": "Create a payment link",
             "sendDescription": "Anyone with the link can receive the money",
-            "perfectToDm": "Perfect to DM friends!"
+            "perfectToDm": "Perfect to DM friends!",
+            "requestPerfectToShare": "Perfect to send via DM or WhatsApp!"
         },
         "peanutActionDetailsCard": {
             "sendingTo": "You're sending {recipient}",
@@ -3402,7 +3538,10 @@
         "generalRecipientInput": {
             "walletAddress": "Wallet address",
             "invalidChainAddress": "Invalid {chain} address",
-            "invalidIban": "Invalid IBAN, country not supported"
+            "invalidIban": "Invalid IBAN, country not supported",
+            "argentineAlias": "You can't pay another person by alias. Scan the merchant payment QR code, or use Withdraw to send to your own account.",
+            "invalidEns": "This is not a valid ENS name.",
+            "unsupportedRecipient": "Enter a wallet address or an ENS name."
         },
         "shareButton": {
             "share": "Share",
@@ -3464,6 +3603,7 @@
         },
         "savedAccounts": {
             "title": "Saved accounts",
+            "bankSectionTitle": "Bank accounts",
             "selectNewMethod": "Select new method",
             "flagAlt": "{country} flag",
             "flagAltGeneric": "Country flag"
@@ -3471,14 +3611,18 @@
         "savedAddresses": {
             "title": "Crypto address book",
             "lastUsed": "{days, plural, =0 {Used today} =1 {Used yesterday} other {Used # days ago}}",
-            "editTitle": "Edit address",
-            "editAria": "Edit {nickname}",
-            "nicknameLabel": "Nickname",
             "nicknamePlaceholder": "e.g. Binance",
             "deleteCta": "Delete address",
             "savePrompt": "Save to address book",
-            "editFailed": "Could not update the address. Try again.",
             "nicknameRequired": "Add a nickname to save this address."
+        },
+        "savedDestinations": {
+            "editTitle": "Edit name",
+            "nameLabel": "Name",
+            "namePlaceholder": "e.g. Payroll",
+            "deleteCta": "Delete",
+            "editFailed": "Could not save the name. Try again.",
+            "editAria": "Edit {name}"
         },
         "pointsCard": {
             "earned": "You've earned {count, plural, one {# point} other {# points}}!"
@@ -3585,6 +3729,7 @@
         "logOut": "Log out"
     },
     "migration": {
+        "downloadPeanut": "Download Peanut",
         "downloadPrompt": {
             "earlyTitle": "The Peanut app is here!",
             "earlyDescription": "Peanut is now an app, on the App Store and Google Play. Same account, faster experience, instant alerts when money lands.",
@@ -3857,6 +4002,287 @@
                 "name": "Bossy Goose",
                 "line": "Herds the group"
             }
+        }
+    },
+    "depositAccounts": {
+        "opened": {
+            "heading": "Your {currency} account is ready!",
+            "body": "Your own bank details, ready for your next payment.",
+            "cta": "See my account details"
+        },
+        "title": "Your bank details",
+        "list": {
+            "addTitle": "Add money",
+            "addHeading": "Where is the money coming from?",
+            "searchPlaceholder": "Search country, currency or account",
+            "noMatchTitle": "No match for “{query}”",
+            "clearSearch": "Clear search",
+            "countriesTitle": "Ways to send yourself money",
+            "countriesPitch": "No account needed. Pick the country your bank is in.",
+            "sectionTitle": "Your account numbers",
+            "accountsPitch": "Bank details in your name. Share them once and get paid straight into Peanut.",
+            "badgeReady": "Ready",
+            "badgeActive": "Active",
+            "badgeNotSetUp": "Not set up",
+            "badgeUnavailable": "Unavailable",
+            "badgeVerify": "Requires verification",
+            "badgeNotOffered": "Not available",
+            "badgeRevoked": "Revoked",
+            "accountLimitNote": "You can open up to {cap} bank accounts. Need more? Contact support.",
+            "accountLimitOverCap": "You have {used} bank accounts, more than the current limit. Contact support to open another.",
+            "accountCounter": "{used} of {cap} used",
+            "accountCounterOverCap": "{used} accounts",
+            "accountLimitReached": "You’ve used all {cap} accounts. Need another? Contact support.",
+            "accountLimitWhy": "Why a limit? Keeping each bank account open costs us money, and we don’t charge you for it.",
+            "errorTitle": "We could not load your accounts",
+            "errorBody": "Your accounts are fine — we just could not read them. Check your connection and try again.",
+            "errorRetry": "Try again",
+            "badgeActionNeeded": "Action needed",
+            "badgeAvailable": "Available"
+        },
+        "claim": {
+            "heading": "Bank details in {currency}",
+            "subheading": "Real bank details your employer, client or platform already knows how to use.",
+            "conditionTerms": "Who can pay you depends on the rules for {currency}. You will see them as soon as the account is open.",
+            "statePending": "State rules are confirmed when you open the account.",
+            "benefitStable": "Hand these details over once — they stay the same for every payment after.",
+            "benefitBalance": "Money arrives in your Peanut balance as USD.",
+            "conditionNoReference": "No reference or memo to remember.",
+            "cta": "Open {currency} account",
+            "errorTitle": "We could not open the account",
+            "faqMinimum": "Minimum deposit is {min}.",
+            "faqSepaShared": "A Euro (SEPA) account works across the Eurozone. The IBAN may be issued in another EU country."
+        },
+        "details": {
+            "heading": "{currency} · {rail}",
+            "provisioning": "Setting up your {currency} account, usually under a minute.",
+            "sectionTitle": "Bank details",
+            "shareCta": "Share details",
+            "unavailableTitle": "{currency} details are not available to you yet",
+            "unavailableBody": "We check this before showing details, so no payment can go missing.",
+            "unavailableCta": "Choose another currency",
+            "timedOutTitle": "We could not open your {currency} account",
+            "timedOutBody": "Nothing was charged. Try again in a moment, or choose another currency.",
+            "timedOutRetry": "Try again",
+            "revokedTitle": "Your {currency} details no longer work",
+            "revokedBody": "Anything sent to them is returned to the sender. Tell anyone who pays you to stop using them, then contact support to have them replaced.",
+            "revokedCta": "Contact support",
+            "topUpCta": "Add {currency} instead",
+            "whoCanPay": "Who can pay you",
+            "residenceCta": "Update your residence",
+            "qrPayCta": "Pay a QR code"
+        },
+        "share": {
+            "copyCta": "Copy all details",
+            "copied": "Details copied",
+            "copyFailed": "Could not copy the details",
+            "textIntroOwn": "Here are my bank details to get paid in {currency}:",
+            "textIntroPooled": "Bank details to pay {user} in {currency}:",
+            "textOutro": "Sent from Peanut · peanut.me",
+            "sheetTitleOwn": "My bank details",
+            "sheetTitlePooled": "Bank details to pay {user}",
+            "payerBusinessOnly": "Please pay from a business account. A transfer from a personal account is returned.",
+            "payerUnconfirmed": "This account may return a transfer from another person or business. Check with me before you send."
+        },
+        "rows": {
+            "accountHolder": "Account holder",
+            "bank": "Bank",
+            "iban": "IBAN",
+            "bic": "BIC",
+            "sortCode": "Sort code",
+            "accountNumber": "Account number",
+            "routingNumber": "Routing number",
+            "clabe": "CLABE",
+            "bankAddress": "Bank address",
+            "accepts": "Accepts",
+            "beneficiaryAddress": "Recipient address",
+            "rails": {
+                "ach_push": "ACH",
+                "fednow": "FedNow",
+                "wire": "Wire",
+                "sepa": "SEPA",
+                "faster_payments": "Faster Payments",
+                "spei": "SPEI",
+                "pix": "Pix",
+                "transfer_ar": "Bank transfer",
+                "fallback": "Bank transfer",
+                "bre_b": "Bre-B"
+            },
+            "brCode": "Pix code",
+            "breBKey": "Bre-B key"
+        },
+        "corridors": {
+            "SEPA_EU": {
+                "arrivalDetail": "SEPA transfers usually arrive the same business day, at most in two.",
+                "railName": "SEPA"
+            },
+            "FASTER_PAYMENTS_GB": {
+                "arrivalDetail": "Faster Payments usually arrive within minutes.",
+                "railName": "Faster Payments"
+            },
+            "ACH_US": {
+                "arrivalDetail": "ACH arrives in one to three business days. A wire arrives the same day.",
+                "railName": "ACH or wire"
+            },
+            "SPEI_MX": {
+                "arrivalDetail": "SPEI transfers usually arrive within minutes.",
+                "railName": "SPEI"
+            },
+            "PIX_BR": {
+                "arrivalDetail": "Pix transfers usually arrive within minutes.",
+                "railName": "Pix"
+            },
+            "BANK_TRANSFER_AR": {
+                "arrivalDetail": "Argentine transfers usually arrive within minutes.",
+                "railName": "Bank or Mercado Pago",
+                "residenceTitle": "Residence required",
+                "residenceRequired": "Only legal residents of Argentina can add money this way. Your nationality does not matter — where you live does.",
+                "qrPay": "You can still pay a Mercado Pago QR code in Argentina from your balance."
+            },
+            "BANK_TRANSFER_CO": {
+                "railName": "Bre-B",
+                "arrivalDetail": "Bre-B transfers usually arrive within minutes."
+            }
+        },
+        "gate": {
+            "verifyTitle": "Verify your identity first",
+            "verifyBody": "We can only open an account in your name once we know who you are.",
+            "verifyCta": "Verify identity",
+            "tosTitle": "One document to agree to",
+            "tosCta": "Read and agree",
+            "waitTitle": "We are setting this up",
+            "waitBody": "Nothing for you to do. This page updates by itself.",
+            "blockedTitle": "We cannot open an account for you",
+            "supportCta": "Contact support",
+            "emailTitle": "We need an email address",
+            "emailBody": "Your identity is verified. We never got an email address to pass on, so the account cannot be opened until you add one.",
+            "emailCta": "Add your email",
+            "notYetTitle": "Not available to you yet",
+            "notYetBody": "We are opening this gradually.",
+            "limitTitle": "You already have {count, plural, one {# account} other {# accounts}}",
+            "limitBody": "That is your current limit. If you need another, support can turn one on for you.",
+            "reviewTitle": "We're creating your account",
+            "reviewBody": "This usually takes a few minutes. We'll let you know when it's ready.",
+            "reviewCta": "Back to Add money",
+            "blockedBody": "We could not open this account, and nothing in the app can fix it. Contact support and we will look into it.",
+            "finishReviewTitle": "One more check for this account",
+            "finishReviewBody": "Your identity is verified. {currency} accounts need one extra check by our payment partner. It opens on their page, and this screen updates when you come back.",
+            "finishReviewSupportBody": "Your identity is verified. {currency} accounts need one extra check by our payment partner, and it cannot be started from the app for your account. Contact support and we will help you finish it.",
+            "finishReviewCta": "Continue",
+            "actFailed": "We could not open the check. Try again in a moment.",
+            "topUpCta": "Send from your own bank",
+            "limitBodyTopUp": "That is your current limit. You can still add money by sending it from your own bank. Support can open another account if you need one."
+        },
+        "rules": {
+            "providerHeld": {
+                "line": "The account is held for you, not in your own name.",
+                "payer": "The account is held for {user}, not in their own name.",
+                "why": "Money paid in still lands in your Peanut balance. The name on the account is not your own, so a payroll form that checks the name needs the account holder shown above."
+            },
+            "ownAccount": {
+                "line": "From your own account: yes.",
+                "payer": "From the account holder's own account: yes.",
+                "why": "Transfers from your own bank account are supported. Contact support before sending more than US$100,000."
+            },
+            "ownAccountMax": {
+                "line": "From your own account: up to {max}.",
+                "payer": "From the account holder's own account: up to {max}.",
+                "why": "Money you send yourself is a top-up, not a payment from someone else. Transfers from your own account are accepted up to {max} in this currency. If a larger transfer of your own comes back, contact support."
+            },
+            "ownAccountNo": {
+                "line": "From your own account: not yet.",
+                "payer": "From the account holder's own account: not yet.",
+                "why": "Transfers from your own bank account are not accepted in this currency yet. We will say so here the day that changes."
+            },
+            "businessAny": {
+                "line": "From a business: any amount.",
+                "payer": "From a business: any amount.",
+                "why": "A payment from a business has no limit. Salary and invoices go through unchanged."
+            },
+            "businessNotYet": {
+                "line": "From a business: not yet.",
+                "payer": "From a business: not yet.",
+                "why": "Payments from a business are not available in this currency yet. We will say so here the day that changes."
+            },
+            "businessUnconfirmed": {
+                "line": "From a business: not confirmed.",
+                "payer": "From a business: not confirmed. The transfer may be returned.",
+                "why": "Payments from a business are not confirmed in this currency. The details work; if a payment ever comes back, tell us and we will sort it out."
+            },
+            "individualAny": {
+                "line": "From another person: any amount.",
+                "payer": "From another person: any amount.",
+                "why": "Payments from other people are accepted in this currency, so you can hand these details to whoever is paying you."
+            },
+            "individualCap": {
+                "line": "From another person: less than {cap} each time.",
+                "payer": "From another person: less than {cap} each time.",
+                "why": "A single payment from another person is capped at {cap}. A business can pay any amount. To receive more than {cap} from one person in a single payment, contact support."
+            },
+            "individualCapFamily": {
+                "line": "Family who share your surname: any amount.",
+                "payer": "Family who share the account holder surname: any amount.",
+                "why": "Family members who share your surname can pay any amount in this currency; anyone else is held to the per-payment cap."
+            },
+            "individualVolume": {
+                "line": "From another person: up to {limit} in total. Ask support about the period.",
+                "payer": "From another person: up to {limit} in total. Ask the account holder to check the period with support.",
+                "why": "The total other people may pay into this account is capped at {limit}. The period this total covers is not published, so contact support before a large payment. A business can pay any amount."
+            },
+            "individualNotYet": {
+                "line": "From another person: not yet.",
+                "payer": "From another person: not yet.",
+                "why": "Payments from other people are not available on this account yet."
+            },
+            "individualUnconfirmed": {
+                "line": "From another person: not confirmed.",
+                "payer": "From another person: not confirmed. The transfer may be returned.",
+                "why": "Payments from other people are not confirmed in this currency. The details work; if a payment ever comes back, tell us and we will sort it out."
+            },
+            "minimum": {
+                "line": "Minimum deposit: {min}.",
+                "payer": "Minimum deposit: {min}.",
+                "why": "Deposits must be at least {min}, including test payments."
+            },
+            "stateRestricted": {
+                "line": "Only you can pay in, from a bank account in your own name.",
+                "payer": "Only the account holder can pay into this account.",
+                "why": "The state on your address does not allow anyone but you to pay into an account like this one. Your own transfers work as normal, and the details stay valid."
+            },
+            "ownName": {
+                "line": "Top up from a bank account in your own name.",
+                "payer": "Only the account holder can pay into this account.",
+                "why": "Only a transfer from an account in your own name is credited. A payment from anyone else is returned to the sender."
+            },
+            "businessAllowed": {
+                "line": "From a business: supported.",
+                "payer": "From a business: supported.",
+                "why": "Registered businesses can pay you. The limits shown here still apply."
+            },
+            "maximum": {
+                "line": "Maximum payment: {max}.",
+                "payer": "Maximum payment: {max}.",
+                "why": "This is the maximum amount accepted in one payment on this rail."
+            },
+            "monthlyLimit": {
+                "line": "Monthly limit: {limit} equivalent.",
+                "payer": "Monthly limit: {limit} equivalent.",
+                "why": "This limit applies across payments to your account. Contact support if you need a higher limit."
+            }
+        },
+        "errors": {
+            "generic": "We could not open the account. Try again in a moment.",
+            "notAvailable": "Standing accounts are not open to your account yet.",
+            "residenceRestricted": "Bank details are not available where you live. Update your residence if you have moved.",
+            "accountLimit": "You have reached your bank account limit. Support can open another one for you.",
+            "refused": "We could not open this account right now. Try again in a few minutes. If it still fails, contact support.",
+            "providerRefused": "We could not open this account, and trying again will not change that. Contact support and we will look into it.",
+            "tooManyAttempts": "Too many attempts. Wait a minute, then try again."
+        },
+        "fees": {
+            "noFee": "No Peanut fee.",
+            "converted": "Converted to USD at the exchange rate. A conversion fee applies.",
+            "seeRates": "See exchange rates"
         }
     }
 }

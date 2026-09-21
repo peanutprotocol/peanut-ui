@@ -9,9 +9,10 @@ function httpsOrigin(value, label) {
         origin.pathname !== '/' ||
         origin.search ||
         origin.hash ||
-        origin.hostname.endsWith('.workers.dev')
+        origin.username ||
+        origin.password
     )
-        throw new Error(`Configure ${label} as a custom HTTPS origin`)
+        throw new Error(`Configure ${label} as an HTTPS origin`)
     return origin.origin
 }
 
@@ -23,13 +24,14 @@ export function collectionWorkerConfiguration(env = process.env) {
     const apiOrigin = httpsOrigin(env.SCREEN_LIBRARY_COLLECTION_API_URL, 'SCREEN_LIBRARY_COLLECTION_API_URL')
     const galleryOrigin = httpsOrigin(env.SCREEN_LIBRARY_PUBLIC_URL, 'SCREEN_LIBRARY_PUBLIC_URL')
     if (!env.SCREEN_LIBRARY_ACCESS_AUD) throw new Error('Configure SCREEN_LIBRARY_ACCESS_AUD')
+    const usesWorkersDev = new URL(apiOrigin).hostname.endsWith('.workers.dev')
     return {
         name: 'peanut-screen-library-collections',
         main: 'index.mjs',
         compatibility_date: '2026-09-16',
-        workers_dev: false,
+        workers_dev: usesWorkersDev,
         preview_urls: false,
-        routes: [{ pattern: new URL(apiOrigin).hostname, custom_domain: true }],
+        ...(!usesWorkersDev ? { routes: [{ pattern: new URL(apiOrigin).hostname, custom_domain: true }] } : {}),
         vars: {
             SCREEN_LIBRARY_PUBLIC_URL: galleryOrigin,
             SCREEN_LIBRARY_ACCESS_AUD: env.SCREEN_LIBRARY_ACCESS_AUD,

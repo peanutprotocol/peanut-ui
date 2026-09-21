@@ -12,6 +12,10 @@
  * badge, the icon squash and the QR circle. None of that has a meaning on a tab
  * row, so none of it is here.
  *
+ * radius: `rounded-full`, NOT `rounded-round`. dev dropped --radius-round in
+ * 70ccf89fd as a duplicate of tailwind's own name; the token no longer exists,
+ * so `rounded-round` would resolve to no radius at all.
+ *
  * ponytail: tailwind scans for LITERAL class names, so a state-prefixed form
  * cannot be built from the plain one at runtime — `data-[state=active]:` has to
  * be typed out. That is why the same three tokens appear twice below. One file
@@ -19,16 +23,16 @@
  */
 
 /** the bar: a bordered pill on the page tint. BottomNav adds `shadow-4`. */
-export const PILL_TRACK = 'rounded-round border border-border-default bg-background-page'
+export const PILL_TRACK = 'rounded-full border border-border-default bg-background-page'
 
 /** the thumb: a bordered white pill inside the bar. */
-export const PILL_THUMB = 'rounded-round border border-border-default bg-background-default'
+export const PILL_THUMB = 'rounded-full border border-border-default bg-background-default'
 
 /** the thumb, as the selected state of a radix trigger (polarity A). */
 export const PILL_THUMB_SELECTED = 'data-[state=active]:border-border-default data-[state=active]:bg-background-default'
 
 /** the inverse track: a bordered white pill (polarity B). */
-export const PILL_TRACK_INVERTED = 'rounded-round border border-border-default bg-background-default'
+export const PILL_TRACK_INVERTED = 'rounded-full border border-border-default bg-background-default'
 
 /** the inverse thumb, as the selected state of a radix trigger (polarity B). */
 export const PILL_TINT_SELECTED = 'data-[state=active]:border-border-default data-[state=active]:bg-background-page'

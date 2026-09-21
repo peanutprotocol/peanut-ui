@@ -53,17 +53,17 @@ export default function ListItemPage() {
             >
                 <DocSection.Content>
                     <div>
-                        <ListItem title="Top row" position="first" chevron onClick={() => {}} />
+                        <ListItem title="Top row" position="top" chevron onClick={() => {}} />
                         <ListItem title="Middle row" position="middle" chevron onClick={() => {}} />
-                        <ListItem title="Bottom row" position="last" chevron onClick={() => {}} />
+                        <ListItem title="Bottom row" position="bottom" chevron onClick={() => {}} />
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
                     <CodeBlock
                         label="Grouped"
-                        code={`<ListItem title="Top" position="first" />
+                        code={`<ListItem title="Top" position="top" />
 <ListItem title="Middle" position="middle" />
-<ListItem title="Bottom" position="last" />`}
+<ListItem title="Bottom" position="bottom" />`}
                     />
                 </DocSection.Code>
             </DocSection>
@@ -105,8 +105,8 @@ export default function ListItemPage() {
                     { name: 'chevron', type: 'boolean', default: 'false', description: 'Trailing nav chevron' },
                     {
                         name: 'position',
-                        type: "'single' | 'first' | 'middle' | 'last'",
-                        default: "'single'",
+                        type: "'solo' | 'top' | 'middle' | 'bottom'",
+                        default: "'solo'",
                         description: 'Grouped-list borders/radius',
                     },
                     {

@@ -15,25 +15,14 @@ export type UnlockChip = 'active' | 'alwaysOn' | 'unlock' | 'processing' | 'atte
 export type BankRegionChip = Exclude<UnlockChip, 'alwaysOn' | 'notAvailable'>
 
 /** Exact key unions so next-intl's typed t() accepts the derived keys. */
-export type UnlockRowLabelKey =
-    | 'p2p'
-    | 'card'
-    | 'saBank'
-    | 'pixBank'
-    | 'pixQr'
-    | 'arQrBank'
-    | 'arQr'
-    | 'brBank'
-    | 'arBank'
-    | 'naBank'
-    | 'sepa'
-export type UnlockGroupLabelKey = 'everywhere' | 'southAmerica' | 'northAmerica' | 'europe'
+export type UnlockRowLabelKey = 'p2p' | 'card' | 'crypto' | 'qrPay' | 'saBank' | 'naBank' | 'sepa'
+export type UnlockGroupLabelKey = 'everywhere' | 'spend' | 'southAmerica' | 'northAmerica' | 'europe'
 
 export interface UnlockRow {
     id: string
     /** i18n key under profile.unlockPayments.rows */
     labelKey: UnlockRowLabelKey
-    icon: 'qr-code' | 'bank' | 'credit-card' | 'wallet'
+    icon: 'qr-code' | 'bank' | 'credit-card' | 'wallet' | 'coins'
     chip: UnlockChip
     /** region path the tap routes into (existing region modal machinery); absent = not tappable */
     regionPath?: 'europe' | 'north-america' | 'latam'
@@ -45,6 +34,15 @@ export interface UnlockRow {
      * A merged row (one unlock covering two countries) carries several.
      */
     limitRefs?: readonly ('BRL' | 'ARS' | 'bridge')[]
+    /**
+     * Currency-first accounts list (2026-09-18): the flag that replaces the
+     * generic qr-code/bank icon as this row's leading glyph. One per row: a
+     * ListItem leading is one element, and two flags on the merged rows read
+     * as clutter. A row whose one unlock covers two countries (naBank, the
+     * unsplit saBank) shows the user's own country, else the first listed.
+     * Absent on `p2p`/`card`, which keep their icons in the "Peanut" group.
+     */
+    flag?: string
 }
 
 export interface UnlockGroup {
@@ -72,9 +70,21 @@ export interface BuildUnlockGroupsInput {
 
 const CARD_ROW_BASE = { id: 'card', labelKey: 'card', icon: 'credit-card' } as const
 
+/** The countries each row covers, as flag codes — see `UnlockRow.flag`. `p2p`/`card` carry none. */
+const ROW_FLAGS: Partial<Record<UnlockRowLabelKey, readonly string[]>> = {
+    saBank: ['br', 'ar'],
+    naBank: ['us', 'mx'],
+    sepa: ['eu'],
+}
+
 export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] {
     const { regionChips, qrOnly, restrictions, card, residenceIso2, secondResidenceIso2, isEuropeResidence } = input
     const residences = new Set([residenceIso2, secondResidenceIso2].filter(Boolean) as string[])
+
+    const flagFor = (labelKey: UnlockRowLabelKey): string | undefined => {
+        const countries = ROW_FLAGS[labelKey]
+        return countries?.find((iso2) => residences.has(iso2.toUpperCase())) ?? countries?.[0]
+    }
 
     const bankChip = (chip: BankRegionChip): UnlockChip => (restrictions.banking ? 'notAvailable' : chip)
     const bankRow = (
@@ -91,6 +101,7 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
             icon,
             chip,
             limitRefs,
+            flag: flagFor(labelKey),
             // active and unavailable rows are facts, not actions
             ...(chip === 'active' || chip === 'notAvailable' ? {} : { regionPath }),
         }
@@ -104,53 +115,59 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
         ...(cardChip === 'notAvailable' ? {} : { href: '/card' }),
     }
 
+    // QR payments in Brazil and Argentina are a SPENDING method, not a way to
+    // add or withdraw money, so they are their own row in the Spend section
+    // rather than a word inside a bank row. The chip stays derived from the
+    // same capability data the bank rows read: a user holds QR either through
+    // the QR-only overlay (Bridge-verified, no Manteca bank rails) or through
+    // an active LATAM unlock. Anyone else gets the LATAM offer chip, and the
+    // tap lands on the same region intent the merged bank row uses.
+    const hasQrAccess = qrOnly.brazil || qrOnly.argentina || regionChips.latam === 'active'
+    const qrChip: UnlockChip = restrictions.banking ? 'notAvailable' : hasQrAccess ? 'active' : regionChips.latam
+    const qrRow: UnlockRow = {
+        id: 'qr-pay',
+        labelKey: 'qrPay',
+        icon: 'qr-code',
+        chip: qrChip,
+        limitRefs: ['BRL', 'ARS'],
+        ...(qrChip === 'active' || qrChip === 'notAvailable' ? {} : { regionPath: 'latam' as const }),
+    }
+
     const groups: UnlockGroup[] = [
         {
             id: 'everywhere',
             labelKey: 'everywhere',
             isYourRegion: false,
-            rows: [{ id: 'p2p', labelKey: 'p2p', icon: 'wallet', chip: 'alwaysOn' }, cardRow],
+            rows: [
+                { id: 'p2p', labelKey: 'p2p', icon: 'wallet', chip: 'alwaysOn' },
+                // On-chain, no KYC and no Peanut unlock gates it — same
+                // always-on layer as P2P (regression fix, ui#3271 QA pass 2:
+                // the currency-first merge dropped this row entirely).
+                { id: 'crypto', labelKey: 'crypto', icon: 'coins', chip: 'alwaysOn' },
+            ],
+        },
+        // Spending, named apart from adding and withdrawing money (2026-09-21):
+        // the card and QR payments both pay a shop, and neither moves money
+        // between a bank and Peanut.
+        {
+            id: 'spend',
+            labelKey: 'spend',
+            isYourRegion: false,
+            rows: [cardRow, qrRow],
         },
         // Brazil + Argentina share one Manteca verification (one unlock opens
         // both), so they present as a single South America group with ONE
         // merged row — separate country rows would imply two unlocks where
         // there is only one. Mexico is NOT here — it rides Bridge with the US
-        // (LATAM would wrongly claim it). The row only splits per country for
-        // the QR-only overlay, where the two countries genuinely differ
-        // (Bridge-verified users hold AR/BR QR without the Manteca bank rails).
+        // (LATAM would wrongly claim it). The row used to split per country
+        // for the QR-only overlay; QR is now its own Spend row, so the bank
+        // row states the one thing left to state: which currencies move
+        // between a bank and Peanut, behind one unlock.
         {
             id: 'southAmerica',
             labelKey: 'southAmerica',
             isYourRegion: residences.has('BR') || residences.has('AR'),
-            rows:
-                (!qrOnly.brazil && !qrOnly.argentina) || regionChips.latam === 'active'
-                    ? [bankRow('sa-bank', 'saBank', 'qr-code', 'latam', ['BRL', 'ARS'])]
-                    : [
-                          ...(qrOnly.brazil
-                              ? [
-                                    {
-                                        id: 'pix-qr',
-                                        labelKey: 'pixQr',
-                                        icon: 'qr-code',
-                                        chip: bankChip('active'),
-                                        limitRefs: ['BRL'],
-                                    } as UnlockRow,
-                                    bankRow('br-bank', 'brBank', 'bank', 'latam', ['BRL']),
-                                ]
-                              : [bankRow('pix-bank', 'pixBank', 'qr-code', 'latam', ['BRL'])]),
-                          ...(qrOnly.argentina
-                              ? [
-                                    {
-                                        id: 'ar-qr',
-                                        labelKey: 'arQr',
-                                        icon: 'qr-code',
-                                        chip: bankChip('active'),
-                                        limitRefs: ['ARS'],
-                                    } as UnlockRow,
-                                    bankRow('ar-bank', 'arBank', 'bank', 'latam', ['ARS']),
-                                ]
-                              : [bankRow('ar-qr-bank', 'arQrBank', 'qr-code', 'latam', ['ARS'])]),
-                      ],
+            rows: [bankRow('sa-bank', 'saBank', 'bank', 'latam', ['BRL', 'ARS'])],
         },
         // US + Mexico share one Bridge verification (ACH/Wire and SPEI unlock
         // together), so they present as one North America group with one
@@ -169,9 +186,37 @@ export function buildUnlockGroups(input: BuildUnlockGroupsInput): UnlockGroup[] 
         },
     ]
 
-    // Everywhere leads (the always-on layer is the first thing anyone sees),
-    // then the user's own region, then the rest in catalog order.
-    const [everywhere, ...rest] = groups
+    // Everywhere and Spend lead (the always-on layer and the spending methods
+    // are not regions), then the user's own region, then the rest in catalog
+    // order. The view renders the two lead groups in its own sections.
+    const [everywhere, spend, ...rest] = groups
     rest.sort((a, b) => Number(b.isYourRegion) - Number(a.isYourRegion))
-    return [everywhere, ...rest]
+    return [everywhere, spend, ...rest]
+}
+
+/**
+ * The bank/QR rows that survive the currency-first "Your accounts" merge
+ * (2026-09-18), once a VA account already covers the same corridor.
+ *
+ * A row goes only when nothing is lost with it: the account is ACTIVE and the
+ * row's own chip is `active`. A revoked or provisioning account does not cover
+ * the corridor, and a row with any other chip is the user's only way into the
+ * fix or rejection modal for that rail.
+ *
+ * Scoped to the two rows that map 1:1 onto a single VA product: `sepa`
+ * (Europe/EUR) and `naBank` (North America, one Bridge unlock behind both
+ * USD and MXN). Brazil/Argentina are deliberately left alone — the Manteca
+ * PIX/QR rows are a distinct product from any Bridge BRL/ARS VA, not a
+ * duplicate of it, so both may legitimately show at once.
+ */
+export function dedupeHeldBankRows(
+    rows: readonly UnlockRow[],
+    activeAccountCurrencies: ReadonlySet<string>
+): UnlockRow[] {
+    return rows.filter((row) => {
+        if (row.chip !== 'active') return true
+        if (row.labelKey === 'sepa') return !activeAccountCurrencies.has('EUR')
+        if (row.labelKey === 'naBank') return !activeAccountCurrencies.has('USD') && !activeAccountCurrencies.has('MXN')
+        return true
+    })
 }

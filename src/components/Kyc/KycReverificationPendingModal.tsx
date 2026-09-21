@@ -28,7 +28,7 @@ export const KycReverificationPendingModal = ({ isOpen, onClose, message }: KycR
             visible={isOpen}
             onClose={onClose}
             icon="clock"
-            iconContainerClassName="bg-action-secondary text-black"
+            iconContainerClassName="bg-background-icon-bubble-yellow text-black"
             title={t('reverificationPending.title')}
             description={<p>{message ?? t('reverificationPending.description')}</p>}
             ctas={[
@@ -38,7 +38,7 @@ export const KycReverificationPendingModal = ({ isOpen, onClose, message }: KycR
                         onClose()
                         router.push('/home')
                     },
-                    variant: 'purple',
+                    variant: 'primary',
                     className: 'w-full',
                     shadowSize: '4',
                 },

@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { NumberedList } from '@/components/0_Bruddle/NumberedList'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { useTranslations } from 'next-intl'
@@ -32,8 +32,8 @@ const HowToDepositDrawer = ({ visible, onClose }: HowToDepositDrawerProps) => {
                     </DrawerHeader>
                     <div className="flex w-full flex-col gap-4 text-left">
                         <NumberedList items={steps} />
-                        {/* the one genuine risk on this screen keeps the single Notification slot */}
-                        <Notification priority="attention">{t('warning')}</Notification>
+                        {/* the one genuine risk on this screen keeps the single Callout slot */}
+                        <Callout priority="attention">{t('warning')}</Callout>
                         <Button shadowSize="4" className="w-full justify-center" onClick={onClose}>
                             {tCommon('close')}
                         </Button>

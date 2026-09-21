@@ -1,7 +1,7 @@
 'use client'
 import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import Card from '@/components/Global/Card'
 import DisplayIcon from '@/components/Global/DisplayIcon'
 import NavHeader from '@/components/Global/NavHeader'
@@ -300,7 +300,7 @@ export const ConfirmClaimLinkView = ({
                     {t('receiveNow')}
                 </Button>
 
-                {errorState.showError && <Notification priority="error">{errorState.errorMessage}</Notification>}
+                {errorState.showError && <Callout priority="error">{errorState.errorMessage}</Callout>}
             </PageStack.Center>
         </PageStack>
     )

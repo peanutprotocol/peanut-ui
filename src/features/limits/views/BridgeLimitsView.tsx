@@ -61,7 +61,7 @@ const BridgeLimitsView = () => {
                     {/* main limits card - only for bank transfer regions */}
                     {showBankTransferLimits && (
                         <Section title={t('fiatLimits')}>
-                            <Card position="single" className="space-y-2 p-4">
+                            <Card position="solo" className="space-y-2 p-4">
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2">
                                         <Icon name="check" className="text-green-500" size={16} />

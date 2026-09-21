@@ -19,7 +19,7 @@ export default function DirectSendQr({
     return (
         <Button
             onClick={() => setIsQRScannerOpen(true)}
-            variant="purple"
+            variant="primary"
             shadowSize="4"
             className={twMerge('mx-auto h-20 w-20 cursor-pointer justify-center rounded-full p-4.5', className)}
             disabled={disabled}
