@@ -641,7 +641,7 @@ describe('UnlockPayments', () => {
 
             const bankRow = screen.getByText('BRL · Pix')
             expect(within(bankRow.closest('.border') as HTMLElement).getByText('Unlock')).toBeInTheDocument()
-            const qrRow = screen.getByText('QR payments · Brazil and Argentina')
+            const qrRow = screen.getByText('QR payments')
             expect(within(qrRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
 
             // the row is the way into the onboarding that makes it true
@@ -656,7 +656,7 @@ describe('UnlockPayments', () => {
 
             const bankRow = screen.getByText('BRL · Pix')
             expect(within(bankRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
-            const qrRow = screen.getByText('QR payments · Brazil and Argentina')
+            const qrRow = screen.getByText('QR payments')
             expect(within(qrRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
         })
 
@@ -752,15 +752,15 @@ describe('UnlockPayments', () => {
             const bankHeading = screen.getByText('Add and withdraw money')
             expect(bankHeading.compareDocumentPosition(spendHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
             expect(screen.getByText('Peanut card')).toBeInTheDocument()
-            expect(screen.getByText('QR payments · Brazil and Argentina')).toBeInTheDocument()
-            expect(
-                screen.getByText('Pay in shops by scanning a QR code. Open to every verified user.')
-            ).toBeInTheDocument()
+            expect(screen.getByText('QR payments')).toBeInTheDocument()
+            // the title used to carry the corridor and wrapped over three
+            // lines at 375px; the description holds it in two
+            expect(screen.getByText('Brazil and Argentina. Pay in shops by scanning a QR code.')).toBeInTheDocument()
 
             // no Manteca rail yet: the row is the same unlock offer the bank
             // row is, and the tap opens the same region intent
-            fireEvent.click(screen.getByText('QR payments · Brazil and Argentina'))
-            expect(screen.getByText('unlock-modal-open:QR payments · Brazil and Argentina')).toBeInTheDocument()
+            fireEvent.click(screen.getByText('QR payments'))
+            expect(screen.getByText('unlock-modal-open:QR payments')).toBeInTheDocument()
             expect(mockPush).not.toHaveBeenCalled()
         })
 
@@ -768,7 +768,7 @@ describe('UnlockPayments', () => {
             mockRails = [{ id: 'manteca.bank', provider: 'manteca', channel: 'bank', country: 'BR', status: 'enabled' }]
             render()
 
-            const qrRow = screen.getByText('QR payments · Brazil and Argentina')
+            const qrRow = screen.getByText('QR payments')
             fireEvent.click(qrRow)
             const drawer = screen.getByRole('dialog')
             expect(

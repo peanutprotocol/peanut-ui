@@ -365,7 +365,7 @@
                 "usd": "USD · Bank transfer",
                 "mxn": "MXN · SPEI",
                 "sepa": "EUR · Bank transfer",
-                "qrPay": "QR payments · Brazil and Argentina"
+                "qrPay": "QR payments"
             },
             "chips": {
                 "active": "Available",
@@ -446,7 +446,7 @@
             },
             "waysTitle": "Add and withdraw money",
             "waysSubtitle": "Move money between your bank and Peanut in these currencies.",
-            "qrPayNote": "Pay in shops by scanning a QR code. Open to every verified user."
+            "qrPayNote": "Brazil and Argentina. Pay in shops by scanning a QR code."
         },
         "backup": {
             "title": "Backup",

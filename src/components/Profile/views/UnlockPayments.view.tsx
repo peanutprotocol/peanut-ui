@@ -758,8 +758,10 @@ const RowSection = ({
                             leading={peanutRowLeading(row)}
                             title={<span className="break-words whitespace-normal">{t(`rows.${row.labelKey}`)}</span>}
                             // QR payments are the one row people do not
-                            // recognise by name, so it carries the one-line
-                            // explainer under its title.
+                            // recognise by name, so it carries the explainer
+                            // under its title — including the two countries,
+                            // which used to sit in the title and wrapped it
+                            // over three lines at 375px.
                             body={row.labelKey === 'qrPay' ? t('qrPayNote') : undefined}
                             bodyWrap
                             trailing={rowStatusBadge(row, t)}
