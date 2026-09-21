@@ -126,8 +126,9 @@ describe('useAddMoneyCryptoFlow', () => {
         expect(result.current.depositTransactionDetails?.tokenSymbol).toBe('USDT')
     })
 
-    // GET /history/:id resolves a crypto deposit by the `tx:` prefixed EVM hash
-    // and by nothing else, so a bare hash 404s and the receipt cannot be shared.
+    // A bare hash is not a receipt key: GET /history/:id resolves a crypto
+    // deposit by the `tx:` surrogate, the intent uuid, or a history row's
+    // `<hash>-<logIndex>`. The success screen builds the first of those.
     it('keys the receipt on the prefixed transaction hash', () => {
         const { result } = renderFlow()
 
@@ -144,9 +145,11 @@ describe('useAddMoneyCryptoFlow', () => {
         expect(result.current.depositTransactionDetails?.txHash).toBe('0xAB'.padEnd(66, 'c'))
     })
 
-    // Only an EVM hash has a `tx:` form. A Solana hash is base58 and
-    // case-sensitive, so lowercasing it would corrupt it, and a Tron hash has
-    // no `0x` at all. Neither is rewritten, and neither is offered a document.
+    // The hash on this screen is always EVM, because Rhino bridges a Solana or
+    // Tron deposit to Arbitrum and this is that settlement transfer. The
+    // passthrough below is the guard on that: should a chain's own hash ever
+    // reach here, it is carried byte-for-byte rather than lowercased into a
+    // different string, and it is offered no document it cannot fetch.
     it.each([
         ['solana', '5Tx9AbCdEfGhJkLmNpQrStUvWxYz1234567890AbCdEfGhJkLmNpQrStUvWxYz'],
         ['tron', 'TXYZa1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0'],

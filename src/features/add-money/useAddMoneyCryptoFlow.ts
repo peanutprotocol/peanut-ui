@@ -106,12 +106,13 @@ export function useAddMoneyCryptoFlow() {
         const now = new Date()
         return {
             // GET /history/:id resolves a crypto deposit by `tx:<lowercase evm
-            // hash>` and by nothing else, so a bare hash 404s — a tx hash is
-            // not a receipt key. Only an EVM hash has that form: a Solana hash
-            // is base58 and CASE-SENSITIVE, and a Tron hash carries no `0x`,
-            // so neither is touched here and neither is offered a document
-            // (hasResolvableReceiptDocument). Resolving those two chains is a
-            // history-route change.
+            // hash>`, by the intent uuid, and by a history row's
+            // `<hash>-<logIndex>` — never by a bare hash, which is not a
+            // receipt key. The hash here is always EVM whatever network the
+            // user picked: Rhino bridges a Solana or Tron deposit to Arbitrum
+            // and this is that settlement transfer. The base58 branch stays
+            // anyway, so a hash that is not EVM-shaped is passed through
+            // byte-for-byte rather than lowercased into a different string.
             id: receiptIdForDepositHash(depositResult.txHash),
             txHash: depositResult.txHash,
             explorerUrl,
