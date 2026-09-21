@@ -303,14 +303,13 @@ function MenuFold({ fold }: { fold: Extract<Merchant['fold2'], { type: 'menu' }>
                 </h2>
                 <p className="font-roboto-flex mx-auto mt-6 max-w-2xl text-body-l">{fold.tagline}</p>
 
-                {/* TASK-22707: the one tabs look. This was a 2-button pill.
-                    `tone="on-color"` because the row sits on yellow-500:
-                    foreground-secondary is 3.85:1 there (under AA), the
-                    over-color pair is 5.02:1. Same look, adapted colours. */}
+                {/* TASK-22707: the one tabs look. The nav look brings its own
+                    white track, so the labels sit on white and never touch
+                    yellow-500 — which is what the old `tone` prop existed to
+                    work around. */}
                 <div className="mt-10 inline-block">
                     <Tabs
                         aria-label="Currency"
-                        tone="on-color"
                         value={currency}
                         onValueChange={(v) => setCurrency(v as Currency)}
                         tabs={[

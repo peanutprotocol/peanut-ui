@@ -97,42 +97,36 @@ describe('Tabs', () => {
         expect(screen.getByText('panel two').closest('[data-state="inactive"]')).not.toBeNull()
     })
 
-    // the Weight look distinguishes the two states with two type tokens and the
-    // foreground tokens — nothing else. If a border/fill/rule ever comes back,
-    // or a raw font-weight utility replaces the token pair, this fails.
-    test('active and inactive states are type tokens only, and focus is ruled', () => {
+    // The look is BottomNav's bar standing still, welded flush to it. If the
+    // chip ever floats inside a padded track again, or the chip border is
+    // dropped in favour of fill alone (the fills are only 1.09:1 apart), this
+    // fails.
+    test('the chip is welded flush to the track, and the border carries selection', () => {
         render(<Tabs tabs={TABS} aria-label="demo" />)
-        const [active, inactive] = screen.getAllByRole('tab')
-        expect(active.className).toContain('data-[state=active]:text-body-m-semibold')
-        expect(active.className).toContain('data-[state=inactive]:text-body-m')
-        expect(active.className).not.toMatch(/\bfont-(semibold|bold|medium)\b/)
-        expect(active.className).not.toMatch(/\b(border|bg)-/)
-        expect(inactive.className).toContain('focus-visible:outline-action-focus')
-    })
+        const list = screen.getByRole('tablist')
+        // track: bordered white pill, NO padding of its own
+        expect(list.className).toContain('rounded-round')
+        expect(list.className).toContain('border-border-default')
+        expect(list.className).toContain('bg-background-default')
+        expect(list.className).toContain('p-0')
+        expect(list.className).toContain('gap-0')
 
-    // `tone` swaps the two foreground tokens and NOTHING else — same Weight look,
-    // colour-adapted to a brand fill. on-color exists because foreground-secondary
-    // is 3.85:1 on yellow-500 (under AA) and the over-color pair is 5.02:1.
-    test('tone="on-color" swaps only the two foreground tokens', () => {
-        const { unmount } = render(<Tabs tabs={TABS} aria-label="demo" />)
-        const byDefault = screen.getAllByRole('tab')[0].className
-        expect(byDefault).toContain('text-foreground-secondary')
-        expect(byDefault).toContain('data-[state=active]:text-foreground-primary')
-        expect(byDefault).not.toContain('over-color')
-        unmount()
-
-        render(<Tabs tabs={TABS} aria-label="demo" tone="on-color" />)
-        const onColor = screen.getAllByRole('tab')[0].className
-        expect(onColor).toContain('text-foreground-over-color-secondary')
-        expect(onColor).toContain('data-[state=active]:text-foreground-over-color-primary')
-        // the default pair must be gone, not merely overridden
-        expect(onColor).not.toMatch(/(^|\s)text-foreground-secondary(\s|$)/)
-        expect(onColor).not.toContain('data-[state=active]:text-foreground-primary')
-        // everything else is identical: same type tokens, same ring, still no box
-        expect(onColor).toContain('data-[state=inactive]:text-body-m')
-        expect(onColor).toContain('data-[state=active]:text-body-m-semibold')
-        expect(onColor).toContain('focus-visible:outline-action-focus')
-        expect(onColor).not.toMatch(/\bfont-(semibold|bold|medium)\b/)
-        expect(onColor).not.toMatch(/\b(border|bg)-/)
+        const [tab] = screen.getAllByRole('tab')
+        // the weld: the chip is a ::before pinned 1px outside the trigger, so it
+        // lands on the track's border instead of floating inside it
+        expect(tab.className).toContain('before:absolute')
+        expect(tab.className).toContain('before:-inset-px')
+        expect(tab.className).toContain('before:rounded-round')
+        // selection is carried by a border, never by fill alone
+        expect(tab.className).toContain('data-[state=active]:before:border-border-default')
+        expect(tab.className).toContain('data-[state=active]:before:bg-background-page')
+        // inactive keeps a same-width transparent border so nothing shifts
+        expect(tab.className).toContain('before:border-transparent')
+        // focus stays ruled, never pink
+        expect(tab.className).toContain('focus-visible:outline-action-focus')
+        expect(tab.className).not.toContain('action-primary')
+        // static: no shadow plane, no spring — those stay in BottomNav
+        expect(list.className).not.toContain('shadow-')
+        expect(tab.className).not.toContain('transition-transform')
     })
 })

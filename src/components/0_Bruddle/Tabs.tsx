@@ -3,31 +3,42 @@
 import { Content, List, Root, Trigger } from '@radix-ui/react-tabs'
 import { type ReactNode } from 'react'
 import { twMerge } from '@/utils/tw'
+import { PILL_TINT_SELECTED_CHIP, PILL_TRACK_INVERTED } from './PillSurface'
 
 /**
  * The ONE tab component for product and marketing. One look, no variants
- * (TASK-22707 — it absorbed the old `SegmentedControl`, and kush ruled the
- * "Weight" look on 2026-09-18 after the six-look proposals page).
+ * (TASK-22707 — it absorbed the old `SegmentedControl`).
  *
- * Weight is type only: no rule, no border, no fill anywhere on the trigger row.
- * The active label carries the strong foreground token at semibold, the rest
- * stay secondary. The two states carry two DIFFERENT type tokens rather than
- * one token plus a `font-semibold` utility — a type token owns its own weight
- * (ds-lint `fontWeightOnTypeToken`), and the states are mutually exclusive so
- * nothing stacks.
+ * The look is the app's own bottom navigation standing still (kush, 2026-09-21,
+ * superseding the type-only "Weight" ruling): a bordered pill track carrying a
+ * bordered chip, in polarity B — WHITE track, PAGE-TINT chip. The resting
+ * surface is shared with `Global/BottomNav` through `PillSurface`, so the two
+ * can never drift. Everything that makes the nav a nav — the `shadow-4` plane,
+ * the spring, the sliding thumb, the 68x52 icon slot — is nav-only and stays
+ * there. This row is static: no shadow, no slide, no spring.
  *
- * Because there is no fill, this look says NOTHING about how a selected list
- * row should look. The app-wide selected-surface question is still open — see
- * ui#3232's pink NetworkListItem.
+ * FLUSH, not inset (kush: "there should be no padding between the active pill
+ * and the main container"). The track has NO padding, and the chip is NOT the
+ * trigger's own border box — it is a `::before` pinned at `-inset-px`, exactly
+ * the model `BottomNav` uses for its thumb (`absolute -top-px -bottom-px`).
+ * That draws the chip 1px outside the trigger on all four sides, so its border
+ * lands ON TOP of the track's border and the two read as one complete outline
+ * instead of a chip floating in a box. 1px, not 2px, because the track's
+ * border is 1px.
+ *
+ * Why a pseudo-element and not a negative margin: a negative margin would make
+ * every trigger overlap its neighbour by 2px and would spend a point of the
+ * `offScaleSpacing` ratchet. The chip is decoration that must escape the flow
+ * box, which is what an out-of-flow box is for. The label then needs `z-10` to
+ * sit above it — same reason `BottomNav` lifts its icons.
+ *
+ * The two fills are 1.09:1 apart (background-default vs background-page), so
+ * the FILL CANNOT CARRY SELECTION on its own. The chip's 1px `border-default`
+ * outline does that (18.09:1 on white, 16.60:1 on the tint), with the label
+ * colour as the second channel. Never let a future change drop the chip border
+ * and lean on fill.
  *
  * Radix headless base, semantic tokens only.
- * code-first per the owner ruling 2026-09-16 — figma board pending.
- *
- * API is a `tabs` array, not an Accordion-style compound: both consumers hand
- * over a flat list of labelled panels anyway (the MDX adapter derives it from
- * <TabPanel> children, product screens from data), and keeping the List and the
- * Contents as exact siblings in one order is the component's job, not every
- * caller's.
  */
 
 interface TabDef {
@@ -54,38 +65,28 @@ interface TabsProps {
     onValueChange?: (value: string) => void
     /** stretch the tabs to fill the row (network toggles) */
     fullWidth?: boolean
-    /**
-     * Which foreground pair the labels use. Same look either way — this swaps
-     * the two TEXT COLOUR tokens and nothing else, so a row on a brand fill
-     * stays readable. `on-color` exists because `foreground-secondary` is
-     * 3.85:1 on `yellow-500` (under AA); `foreground-over-color-secondary` is
-     * 5.02:1 there.
-     */
-    tone?: 'default' | 'on-color'
 }
 
-// the one focus treatment (matches .btn in globals.css). radix Content has
-// tabIndex=0, so panels get the same ring instead of an invisible focus stop.
-// The old pill had no ring at all; Weight has no border to lean on either, so
-// this is the only thing that marks keyboard focus.
+// the full DS ring (design.md law 8 — focus is ruled, never pink). radix
+// Content has tabIndex=0, so panels get the same ring instead of an invisible
+// focus stop. BottomNav's ring omits `z-10` and `outline-solid`; that
+// divergence is left alone here and tracked as a follow-up.
 const focusRing =
     'focus-visible:z-10 focus-visible:outline-[3px] focus-visible:outline-solid focus-visible:outline-action-focus'
 
-// the ring must not clip at the scroll edges, so the wrapper owns overflow with
-// a 4px inner gutter (>=3px ring) and a negative margin to keep the layout.
+// The ring is drawn OUTSIDE the track, so the scroll container has to be the
+// wrapper, not the track: `overflow-x-auto` establishes a clip box even when
+// nothing actually overflows, which would cut the ring off on every row. The
+// 4px gutter keeps the ring clear of the scroll edges.
 const scrollWrap = '-m-1 overflow-x-auto p-1'
 
-// shape + type. The two type tokens sit across mutually exclusive data-state
-// selectors so a type token never stacks with a font-weight utility (ds-lint
-// `fontWeightOnTypeToken`).
+// the trigger is a plain flow box; the chip rides 1px outside it as `::before`.
+// The transparent resting border keeps the chip's geometry identical in both
+// states, so switching tabs never shifts anything.
 const trigger =
-    'relative flex min-h-11 shrink-0 items-center justify-center gap-1 px-0 whitespace-nowrap transition-colors duration-instant active:text-action-ghost-hover data-[state=inactive]:text-body-m data-[state=active]:text-body-m-semibold'
+    'relative flex min-h-11 shrink-0 items-center justify-center gap-1 px-4 text-body-m whitespace-nowrap text-foreground-secondary transition-colors duration-instant active:text-action-ghost-hover data-[state=active]:z-10 data-[state=active]:text-foreground-primary'
 
-// the ONLY thing `tone` changes: which foreground pair the labels use.
-const toneClasses = {
-    default: 'text-foreground-secondary data-[state=active]:text-foreground-primary',
-    'on-color': 'text-foreground-over-color-secondary data-[state=active]:text-foreground-over-color-primary',
-} as const
+const chip = 'before:absolute before:-inset-px before:rounded-round before:border before:border-transparent'
 
 export const Tabs = ({
     tabs,
@@ -94,7 +95,6 @@ export const Tabs = ({
     value,
     onValueChange,
     fullWidth = false,
-    tone = 'default',
 }: TabsProps) => {
     // no tab carries a panel → render the trigger row alone. A bordered empty
     // panel under a value toggle is the reason this branch exists.
@@ -112,15 +112,27 @@ export const Tabs = ({
             <div className={scrollWrap}>
                 <List
                     aria-label={ariaLabel}
-                    className={twMerge('flex items-stretch gap-6', fullWidth ? 'w-full' : 'w-max min-w-full')}
+                    className={twMerge(
+                        // gap-0 and no padding: the chips meet the track edge
+                        'flex w-max items-stretch gap-0 p-0',
+                        PILL_TRACK_INVERTED,
+                        fullWidth && 'w-full'
+                    )}
                 >
                     {tabs.map((tab) => (
                         <Trigger
                             key={tab.value}
                             value={tab.value}
-                            className={twMerge(trigger, toneClasses[tone], focusRing, fullWidth && 'flex-1')}
+                            className={twMerge(
+                                trigger,
+                                chip,
+                                PILL_TINT_SELECTED_CHIP,
+                                focusRing,
+                                fullWidth && 'flex-1'
+                            )}
                         >
-                            {tab.label}
+                            {/* above the chip, the way BottomNav lifts its icons */}
+                            <span className="relative z-10 flex items-center gap-1">{tab.label}</span>
                         </Trigger>
                     ))}
                 </List>
@@ -134,9 +146,7 @@ export const Tabs = ({
                         // data-[state=inactive]:hidden is what hides a forceMount panel:
                         // radix computes its own hidden attribute from `forceMount ||
                         // isSelected`, so with forceMount on it never sets it and every
-                        // panel would render stacked.
-                        // mt-4, not the old -mt-px weld: Weight draws no card-top, so
-                        // the panel stands on its own with a normal gap above it.
+                        // panel would render stacked
                         className={twMerge(
                             'mt-4 rounded-sm border border-border-default bg-background-default p-4 data-[state=inactive]:hidden',
                             focusRing
