@@ -234,3 +234,24 @@ describe('WithdrawBankReviewView — the account is the only country on the scre
         expect(screen.queryByText('We send EUR to your bank')).not.toBeInTheDocument()
     })
 })
+
+/**
+ * The form stopped asking for a BIC, so a euro account added after that change
+ * carries none. An unconditional row read "BIC: N/A" on every new account.
+ */
+describe('WithdrawBankReviewView — the BIC row', () => {
+    it('shows the BIC of a saved account that still carries one', () => {
+        renderWithIntl(<Harness rail="sepa" />)
+
+        expect(screen.getByText('BIC')).toBeInTheDocument()
+        expect(screen.getByText('COBADEFFXXX')).toBeInTheDocument()
+    })
+
+    it('leaves the row out for an account with no BIC, rather than showing N/A', () => {
+        const noBic = { ...ibanAccount, bic: undefined } as unknown as Account
+        renderWithIntl(<Harness rail="sepa" account={noBic} />)
+
+        expect(screen.queryByText('BIC')).not.toBeInTheDocument()
+        expect(screen.queryByText('N/A')).not.toBeInTheDocument()
+    })
+})

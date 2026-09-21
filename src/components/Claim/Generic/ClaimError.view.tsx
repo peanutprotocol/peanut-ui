@@ -26,7 +26,7 @@ export const ClaimErrorView = ({ title, message, primaryButtonText, onPrimaryCli
                 <p className="text-body-s font-normal md:max-w-xs">{message}</p>
             </div>
             <div className="flex w-full flex-col gap-2">
-                <Button onClick={onPrimaryClick} size="medium" shadowSize="4" variant="purple" className="w-full">
+                <Button onClick={onPrimaryClick} size="medium" shadowSize="4" variant="primary" className="w-full">
                     {primaryButtonText}
                 </Button>
                 <Button

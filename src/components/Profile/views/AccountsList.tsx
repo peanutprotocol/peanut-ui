@@ -5,9 +5,7 @@ import { Section } from '@/components/0_Bruddle/Section'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import type { UnlockRow } from '@/utils/unlock-payments.utils'
 import { bankListItems } from './bankListItems'
-import { limitSummariesForRows, MethodLimits } from './MethodLimits'
 import VaAwareAccountRows from './VaAwareAccountRows'
-import type { MantecaLimit, BridgeLimits } from '@/interfaces/interfaces'
 import { useTranslations } from 'next-intl'
 
 /**
@@ -33,42 +31,23 @@ export default function AccountsList({
     bankRows,
     onRowClick,
     isKycDegraded,
-    mantecaLimits,
-    bridgeLimits,
-    locale,
 }: {
     /** the flattened, own-region-first KYC-unlock bank/QR rows (region headers already stripped) */
     bankRows: UnlockRow[]
     onRowClick: (row: UnlockRow) => void
     isKycDegraded: boolean
-    mantecaLimits: MantecaLimit[] | null
-    bridgeLimits: BridgeLimits | null
-    locale: string
 }) {
     const t = useTranslations('profile.unlockPayments')
     const depositAccountsEnabled = useDepositAccountsEnabled()
 
     if (depositAccountsEnabled) {
-        return (
-            <VaAwareAccountRows
-                bankRows={bankRows}
-                onRowClick={onRowClick}
-                isKycDegraded={isKycDegraded}
-                mantecaLimits={mantecaLimits}
-                bridgeLimits={bridgeLimits}
-                locale={locale}
-            />
-        )
+        return <VaAwareAccountRows bankRows={bankRows} onRowClick={onRowClick} isKycDegraded={isKycDegraded} />
     }
 
     return (
         <Section title={t('waysTitle')}>
             <p className="text-body-s text-foreground-secondary">{t('waysSubtitle')}</p>
             <ListGroup>{bankListItems(bankRows, onRowClick, isKycDegraded, t)}</ListGroup>
-            <MethodLimits
-                noLimit={false}
-                summaries={limitSummariesForRows(bankRows, mantecaLimits, bridgeLimits, locale)}
-            />
         </Section>
     )
 }

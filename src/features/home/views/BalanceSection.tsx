@@ -90,7 +90,7 @@ export function BalanceSection({ balance, isFetching, isStale, isHidden, onToggl
                         <>
                             <span
                                 className={twMerge(
-                                    'flex size-12 items-center justify-center rounded-round border border-border-default transition-colors duration-instant',
+                                    'flex size-12 items-center justify-center rounded-full border border-border-default transition-colors duration-instant',
                                     // pressed = action-primary per button board 17308:13973
                                     // ("buttons turn primary when pressed"); the submenu
                                     // board's ghost-hover binding resolves to the same pink

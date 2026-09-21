@@ -5,7 +5,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { NumberedList } from '@/components/0_Bruddle/NumberedList'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 
@@ -82,14 +82,14 @@ export const BackupFaqDrawers = ({ active, onClose, platform }: BackupFaqDrawers
                     {/* The heading rides in `children`, not the `title` prop: the
                         prop's semibold body step is the wrong weight for a
                         mini-header, and text-current keeps it on the tint. */}
-                    <Notification priority="success">
+                    <Callout priority="success">
                         <MiniHeader className="text-current">{t('losePhoneModal.enabledTitle')}</MiniHeader>
                         <p className="mt-1">{t('losePhoneModal.enabledDescription', { platform })}</p>
-                    </Notification>
-                    <Notification priority="error">
+                    </Callout>
+                    <Callout priority="error">
                         <MiniHeader className="text-current">{t('losePhoneModal.noBackupTitle')}</MiniHeader>
                         <p className="mt-1">{t('losePhoneModal.noBackupDescription')}</p>
-                    </Notification>
+                    </Callout>
                 </div>
             </FaqDrawer>
 

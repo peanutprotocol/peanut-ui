@@ -3,8 +3,8 @@
 import NavHeader from '@/components/Global/NavHeader'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
-import { Notification } from '@/components/0_Bruddle/Notification'
-import ScrollableList from '@/components/Global/TokenSelector/Components/ScrollableList'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import TokenListItem from '@/components/Global/TokenSelector/Components/TokenListItem'
 import { type IUserBalance } from '@/interfaces/interfaces'
 import { useState, useCallback, useContext } from 'react'
@@ -193,7 +193,7 @@ export default function RecoverFundsPage() {
                         </div>
                     </Card>
                     <Button
-                        variant="purple"
+                        variant="primary"
                         shadowSize="4"
                         onClick={recoverFunds}
                         disabled={isLoading || isSigning}
@@ -252,7 +252,7 @@ export default function RecoverFundsPage() {
                         </div>
                     </Card>
                     <Button
-                        variant="purple"
+                        variant="primary"
                         shadowSize="4"
                         onClick={() => {
                             router.push('/home')
@@ -301,7 +301,7 @@ export default function RecoverFundsPage() {
                         description={balancesError ? tCommon('genericError') : t('noTokensDescription')}
                         cta={
                             <Button
-                                variant="purple"
+                                variant="primary"
                                 shadowSize="4"
                                 size="small"
                                 className="mt-2"
@@ -315,11 +315,12 @@ export default function RecoverFundsPage() {
             ) : (
                 <PageStack.Center className="gap-4">
                     <h1>{t('selectToken')}</h1>
-                    <ScrollableList>
+                    <ListGroup role="listbox" aria-label={t('selectToken')}>
                         {tokenBalances.map((balance) => (
                             <TokenListItem
                                 key={balance.address}
                                 balance={balance}
+                                showBalance
                                 isSelected={
                                     !!selectedBalance &&
                                     areEvmAddressesEqual(balance.address, selectedBalance?.address) &&
@@ -330,7 +331,7 @@ export default function RecoverFundsPage() {
                                 }}
                             />
                         ))}
-                    </ScrollableList>
+                    </ListGroup>
                     <GeneralRecipientInput
                         placeholder={t('recipientPlaceholder')}
                         recipient={recipient}
@@ -341,7 +342,7 @@ export default function RecoverFundsPage() {
                         }}
                     />
                     <Button
-                        variant="purple"
+                        variant="primary"
                         shadowSize="4"
                         onClick={() => {
                             setStatus('review')
@@ -358,7 +359,7 @@ export default function RecoverFundsPage() {
                     >
                         {t('review')}
                     </Button>
-                    {!!errorMessage && <Notification priority="error">{errorMessage}</Notification>}
+                    {!!errorMessage && <Callout priority="error">{errorMessage}</Callout>}
                 </PageStack.Center>
             )}
         </PageStack>

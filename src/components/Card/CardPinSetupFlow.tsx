@@ -6,7 +6,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { Button } from '@/components/0_Bruddle/Button'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import PinInput from '@/components/Card/PinInput'
 import { type PinRejectionReason, validatePin } from '@/components/Card/pin.utils'
@@ -86,7 +86,7 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
                     align="center"
                     size="s"
                 />
-                <Button variant="purple" className="w-full" onClick={onDone}>
+                <Button variant="primary" className="w-full" onClick={onDone}>
                     {tCommon('close')}
                 </Button>
             </div>
@@ -107,9 +107,9 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
                     <PinInput value={second} onChange={setSecond} disabled={step === 'saving'} />
                     {fieldError && <FieldError>{fieldError}</FieldError>}
                 </div>
-                {flowError && <Notification priority="error">{flowError}</Notification>}
+                {flowError && <Callout priority="error">{flowError}</Callout>}
                 <Button
-                    variant="purple"
+                    variant="primary"
                     className="w-full"
                     onClick={onConfirm}
                     loading={step === 'saving'}
@@ -144,7 +144,7 @@ const CardPinSetupFlow: FC<Props> = ({ cardId, onDone }) => {
             </div>
             <BulletList items={[t('pin.ruleSequential'), t('pin.ruleRepeating'), t('pin.ruleChangeLater')]} />
             <Button
-                variant="purple"
+                variant="primary"
                 className="w-full"
                 onClick={onContinueFromChoose}
                 disabled={!choosePinValidation || !choosePinValidation.valid}

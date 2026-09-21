@@ -67,7 +67,7 @@ function ValidationErrorView({
                     }}
                     size="medium"
                     shadowSize="4"
-                    variant="purple"
+                    variant="primary"
                     className="w-full"
                 >
                     {buttonText}

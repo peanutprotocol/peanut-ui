@@ -36,15 +36,15 @@ export const DepositMethodList = ({ methods, onItemClick, isAllMethodsView = fal
                 const isCurrentMethodCountry = method.type === 'country'
 
                 if (isSingleOverall) {
-                    determinedPosition = 'single'
+                    determinedPosition = 'solo'
                 } else if (isFirstOverall) {
-                    determinedPosition = isCryptoAtSlot0 && isAllMethodsView ? 'single' : 'first'
+                    determinedPosition = isCryptoAtSlot0 && isAllMethodsView ? 'solo' : 'top'
                 } else if (isCryptoAtSlot0 && isCurrentMethodCountry && index === 1 && isAllMethodsView) {
                     // if crypto card is at methods[0], and this is the country card at methods[1],
                     // treat this country card as 'first' in its own group.
-                    determinedPosition = 'first'
+                    determinedPosition = 'top'
                 } else if (isLastOverall) {
-                    determinedPosition = 'last'
+                    determinedPosition = 'bottom'
                 } else {
                     determinedPosition = 'middle'
                 }

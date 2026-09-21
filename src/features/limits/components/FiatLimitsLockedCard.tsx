@@ -14,7 +14,7 @@ export default function FiatLimitsLockedCard() {
 
     return (
         <Section title={t('title')}>
-            <Card position="single" className="p-0">
+            <Card position="solo" className="p-0">
                 <div className="flex flex-col items-center justify-center gap-3 px-4 py-6">
                     <div className="flex size-10 items-center justify-center rounded-full bg-action-primary">
                         <Icon name="globe-lock" size={20} />
@@ -24,7 +24,7 @@ export default function FiatLimitsLockedCard() {
                         <div className="mt-1 text-body-s text-foreground-secondary">{t('description')}</div>
                     </div>
                     <Button
-                        variant="purple"
+                        variant="primary"
                         shadowSize="4"
                         size="medium"
                         onClick={() => router.push('/profile/accounts-and-payments')}

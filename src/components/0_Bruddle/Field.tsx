@@ -19,7 +19,7 @@ interface FieldProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
  * Form-field chrome from the form board (figma `17802:61539`): label + control
  * + one helper/error line in a single column. The error is text only
  * (`FieldError`) and replaces the helper — Field never paints error borders on
- * its control. Flow-level failures stay `Notification priority="error"` (see
+ * its control. Flow-level failures stay `Callout priority="error"` (see
  * design.md "error display").
  *
  * react-hook-form is the expected state owner: wrap the control in a

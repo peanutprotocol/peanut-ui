@@ -1,4 +1,4 @@
-import { type StatusType } from '@/components/Global/Badges/StatusBadge'
+import { type IconStatusType, type StatusType } from '@/components/Global/Badges/Badge'
 import {
     type TransactionDirection,
     type TransactionType as TransactionCardType,
@@ -13,7 +13,6 @@ import {
     getTokenLogo,
     getChainLogo,
 } from '@/utils/general.utils'
-import { type StatusPillType } from '../Global/StatusPill'
 import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/services.types'
@@ -178,12 +177,12 @@ function reportUnknownBridgeStatus(entry: HistoryEntry, status: string | undefin
 }
 
 /**
- * Map raw `entry.status` to the drawer's StatusPillType. Two regimes:
+ * Map raw `entry.status` to the drawer's IconStatusType. Two regimes:
  * Bridge/bank rails (AWAITING_FUNDS / FUNDS_RECEIVED / PAYMENT_*) and
  * the rest (NEW/PENDING/COMPLETED/...). SEND_LINK with COMPLETED status
  * stays "pending" until claimed (sender-side).
  */
-function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDirection): StatusPillType {
+function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDirection): IconStatusType {
     const status = entry.status?.toUpperCase()
     const provider = entry.extraData?.provider
     const isBridgeRails = provider === 'BRIDGE' || entry.extraData?.fulfillmentType === 'bridge'
@@ -267,7 +266,7 @@ function mapEntryStatusToUiStatus(entry: HistoryEntry, direction: TransactionDir
         default: {
             const knownStatuses: StatusType[] = ['completed', 'pending', 'failed', 'cancelled', 'soon', 'processing']
             const lower = entry.status?.toLowerCase()
-            return lower && knownStatuses.includes(lower as StatusPillType) ? (lower as StatusPillType) : 'pending'
+            return lower && knownStatuses.includes(lower as IconStatusType) ? (lower as IconStatusType) : 'pending'
         }
     }
 }
@@ -380,7 +379,7 @@ export interface TransactionDetails {
     currencySymbol?: string
     tokenSymbol?: string
     initials: string
-    status?: StatusPillType
+    status?: IconStatusType
     isVerified?: boolean
     haveSentMoneyToUser?: boolean
     date: string | Date
@@ -554,7 +553,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     const isLinkTx = out.isLinkTx
     let fullName = out.fullName ?? ''
     const showFullName = out.showFullName
-    let uiStatus: StatusPillType = out.uiStatus ?? 'pending'
+    let uiStatus: IconStatusType = out.uiStatus ?? 'pending'
     const strategyOverrodeUiStatus = out.uiStatus !== undefined
 
     if (!isPeerActuallyUser) {

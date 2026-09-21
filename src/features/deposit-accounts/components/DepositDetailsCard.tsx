@@ -21,13 +21,13 @@ export function DepositDetailsCard({ rows }: { rows: DepositDetailRow[] }) {
 
     return (
         <div className="flex flex-col gap-2">
-            <Card position="single" className="divide-y divide-dashed divide-border-default px-4 py-0">
+            <Card position="solo" className="divide-y divide-dashed divide-border-default px-4 py-0">
                 {mainRows.map((row) => (
                     <DataRow key={row.label} label={row.label} value={row.value} allowCopy={row.copyable !== false} />
                 ))}
             </Card>
             {addressRows.length > 0 && (
-                <Card position="single" className="px-4 py-0">
+                <Card position="solo" className="px-4 py-0">
                     {addressRows.map((row, index) => (
                         <PaymentInfoRow
                             key={row.label}

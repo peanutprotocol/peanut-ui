@@ -4,7 +4,7 @@ import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { useTranslations } from 'next-intl'
 
 interface OnrampConfirmationModalProps {
@@ -40,7 +40,7 @@ export const OnrampConfirmationModal = ({
                     </div>
                     {/* Two topics, two grey mini-headers, plain text under each —
                         neither was ever a warning. That leaves the mismatch block
-                        as the one Notification, and the only coloured thing on a
+                        as the one Callout, and the only coloured thing on a
                         screen that confirms an irreversible transfer. */}
                     <div className="flex w-full flex-col gap-4 text-left">
                         <div className="flex flex-col gap-1">
@@ -62,9 +62,9 @@ export const OnrampConfirmationModal = ({
                             <p className="text-body-s text-foreground-primary">{t('pasteReference')}</p>
                         </div>
 
-                        <Notification priority="error" title={t('mismatchTitle')}>
+                        <Callout priority="error" title={t('mismatchTitle')}>
                             {t('mismatchDescription')}
-                        </Notification>
+                        </Callout>
                     </div>
                     {/* data-vaul-no-drag: the horizontal slide gesture must not start a drawer drag */}
                     <div className="mt-4 w-full" data-vaul-no-drag>

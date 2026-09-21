@@ -1,7 +1,7 @@
 'use client'
 
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import DevPageShell from '@/app/(mobile-ui)/dev/_components/DevPageShell'
 import { clearFixture, FIXTURE_PARAM, fixtureHref } from '@/dev/fixtures/active'
 import { FIXTURES } from '@/dev/fixtures/registry'
@@ -40,7 +40,7 @@ export default function FixtureList() {
                 })}
             </div>
 
-            <Notification
+            <Callout
                 priority="info"
                 title="Info"
                 items={[

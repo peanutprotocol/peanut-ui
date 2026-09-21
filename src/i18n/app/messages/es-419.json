@@ -254,13 +254,13 @@
         "hideBalance": "Ocultar saldo",
         "drawers": {
             "sendToFriends": "Enviar a amigos",
-            "sendToFriendsDescription": "Link, contactos, banco, cripto",
-            "withdrawToOwnAccounts": "Retirar a tus cuentas",
-            "withdrawToOwnAccountsDescription": "Euros, dólares, cripto y más",
+            "sendToFriendsDescription": "Link, contactos, transferencia bancaria y cripto",
+            "withdrawToOwnAccounts": "Retirar a tus propias cuentas",
+            "withdrawToOwnAccountsDescription": "Transferencia bancaria y cripto",
             "shareRequestLink": "Compartir un enlace de solicitud",
             "shareRequestLinkDescription": "Solicita un monto con un enlace para compartir",
             "shareBankDetails": "Compartir datos bancarios",
-            "shareBankDetailsDescription": "Recibe pagos a través de tus cuentas en EUR, USD y otras monedas"
+            "shareBankDetailsDescription": "Recibe pagos en EUR, USD y más con datos bancarios a tu nombre."
         }
     },
     "profile": {
@@ -353,21 +353,19 @@
                 "everywhere": "Peanut",
                 "southAmerica": "América del Sur",
                 "northAmerica": "América del Norte",
-                "europe": "Europa"
+                "europe": "Europa",
+                "spend": "Gastar"
             },
             "rows": {
                 "p2p": "Pagos de Peanut a Peanut",
                 "card": "Tarjeta Peanut",
                 "crypto": "Cripto",
-                "saBank": "PIX (Brasil), QR y transferencias bancarias (Argentina)",
-                "pixBank": "Pagos y transferencias PIX (Brasil)",
-                "pixQr": "Pagos QR con PIX (Brasil)",
-                "brBank": "Transferencias PIX (Brasil)",
-                "arQrBank": "Pagos QR y transferencias (Argentina)",
-                "arQr": "Pagos QR (Argentina)",
-                "arBank": "Transferencias bancarias (Argentina)",
-                "naBank": "Transferencias bancarias en dólares y pesos mexicanos",
-                "sepa": "Transferencias bancarias en euros"
+                "brl": "BRL · Pix",
+                "ars": "ARS · Transferencia bancaria",
+                "usd": "USD · Transferencia bancaria",
+                "mxn": "MXN · SPEI",
+                "sepa": "EUR · Transferencia bancaria",
+                "qrPay": "Pagos QR"
             },
             "chips": {
                 "active": "Disponible",
@@ -422,38 +420,33 @@
             "accountsSubtitle": "Datos bancarios a tu nombre. Dáselos a otra persona y el dinero llega a Peanut.",
             "details": {
                 "p2p": "Envía y recibe dinero de otros usuarios de Peanut.",
+                "card": "Paga con tu tarjeta Peanut.",
                 "crypto": "Agrega o retira cripto desde cualquier billetera o exchange, sin verificación.",
-                "saBank": "Paga con QR y transfiere dinero a través de cuentas bancarias en Brasil y Argentina.",
-                "pixBank": "Paga códigos QR Pix y transfiere dinero a través de cuentas bancarias brasileñas.",
-                "pixQr": "Paga códigos QR Pix en Brasil.",
-                "arQrBank": "Paga códigos QR y transfiere dinero a través de cuentas bancarias argentinas.",
-                "arQr": "Paga códigos QR en Argentina.",
-                "brBank": "Transfiere dinero a través de cuentas bancarias brasileñas.",
-                "arBank": "Transfiere dinero a través de cuentas bancarias argentinas.",
-                "naBank": "Agrega o retira dinero mediante transferencias bancarias de Estados Unidos y la red SPEI de México.",
+                "brl": "Agrega o retira reales brasileños con Pix.",
+                "ars": "Agrega o retira pesos argentinos desde tu banco.",
+                "usd": "Agrega o retira dólares mediante transferencias bancarias de Estados Unidos.",
+                "mxn": "Agrega o retira pesos mexicanos por la red SPEI.",
                 "sepa": "Agrega o retira euros mediante transferencias SEPA.",
-                "card": "Paga con tu tarjeta Peanut."
+                "qrPay": "Paga en comercios de Brasil y Argentina escaneando un código QR."
             },
             "valueProp": {
                 "p2p": "Divide cuentas y paga a tus amigos en un toque.",
                 "card": "Usa tu saldo de Peanut en el mundo real.",
                 "crypto": "Envía y recibe on-chain, sin necesidad de banco.",
-                "saBank": "Maneja tu dinero como local en Brasil y Argentina.",
-                "pixBank": "Mueve dinero por Brasil al instante.",
-                "pixQr": "Escanea, paga y listo, donde funcione Pix.",
-                "brBank": "Llega a cualquier cuenta bancaria en Brasil.",
-                "arQrBank": "Paga y cobra en cualquier lugar de Argentina.",
-                "arQr": "Escanea y paga en cualquier QR de Argentina.",
-                "arBank": "Llega a cualquier cuenta bancaria en Argentina.",
-                "naBank": "Conecta tu dinero de bancos de EE. UU. y México.",
-                "sepa": "Guarda y mueve euros sin un banco local."
+                "brl": "Mueve reales entre tu banco y Peanut.",
+                "ars": "Mueve pesos argentinos entre tu banco y Peanut.",
+                "usd": "Mueve dólares entre tu banco y Peanut.",
+                "mxn": "Mueve pesos mexicanos entre tu banco y Peanut.",
+                "sepa": "Guarda y mueve euros sin un banco local.",
+                "qrPay": "Escanea y paga donde vives."
             },
             "detailsDrawer": {
                 "aboutTitle": "Qué puedes hacer",
                 "limitsTitle": "Límites"
             },
-            "waysTitle": "Formas de enviarte dinero",
-            "waysSubtitle": "Mueve tu propio dinero entre Peanut y tu banco. No recibes un número de cuenta propio."
+            "waysTitle": "Agregar y retirar dinero",
+            "waysSubtitle": "Mueve dinero entre tu banco y Peanut en estas monedas.",
+            "qrPayNote": "Brasil y Argentina. Paga en comercios escaneando un código QR."
         },
         "backup": {
             "title": "Respaldo",
@@ -1018,11 +1011,11 @@
         "methods": {
             "contactsTitle": "Nombre de usuario de Peanut",
             "contactsDescription": "Ingresa un @usuario exacto o elige un contacto",
-            "bankTitle": "Banco",
+            "bankTitle": "Transferencia bancaria",
             "bankDescription": "EUR, USD, MXN, ARS y más",
             "instantTransfers": "Transferencias instantáneas",
-            "exchangeOrWalletTitle": "Exchange o billetera",
-            "exchangeOrWalletDescription": "Binance, Metamask y más"
+            "exchangeOrWalletTitle": "Cripto",
+            "exchangeOrWalletDescription": "Binance, MetaMask y más"
         },
         "contacts": {
             "searchPlaceholder": "Destinatario",
@@ -1093,13 +1086,13 @@
             "exactNote": "Quien paga por banco en {currency} ve este monto exacto. Los demás ven un estimado."
         },
         "bankInstructions": {
-            "title": "Comparte los datos de tu cuenta bancaria",
+            "title": "Comparte tus datos bancarios",
             "description": "Cualquier persona que abra este enlace ve tus datos bancarios y tu nombre completo.",
             "anyonePays": "Luego puede pagarte por transferencia bancaria.",
             "businessPays": "Solo las empresas pueden pagar esto por transferencia bancaria. La transferencia de un amigo se devuelve.",
             "unknownPays": "Una transferencia de alguien que no seas tú no está confirmada en esta cuenta y puede devolverse.",
             "titleOff": "Tus datos bancarios quedan privados",
-            "descriptionOff": "Quien paga usa Peanut o cripto. Puede agregar dinero desde su propio banco primero. Ese dinero no llega a tu cuenta bancaria."
+            "descriptionOff": "Quien te paga puede hacerlo con Peanut o cripto."
         },
         "paidByBank": {
             "rowLabel": "Transferencia bancaria",
@@ -1178,7 +1171,7 @@
             "description": "Ya tienes fondos suficientes en tu cuenta de Peanut. Este método es instantáneo y evita demoras.",
             "payWithPeanut": "Pagar con Peanut"
         },
-        "requiresVerification": "REQUIERE VERIFICACIÓN",
+        "requiresVerification": "Requiere verificación",
         "contributors": {
             "seeAll": "Ver todos los contribuyentes",
             "title": "Contribuyentes ({count})"
@@ -1287,7 +1280,7 @@
             "devconnectLogoAlt": "Logo de Devconnect",
             "starAlt": "estrella",
             "invitedBy": "¡{username} te invitó, tienes acceso anticipado!",
-            "requiresVerification": "REQUIERE VERIFICACIÓN"
+            "requiresVerification": "Requiere verificación"
         },
         "minAmount": {
             "title": "Monto mínimo",
@@ -1744,13 +1737,13 @@
             "crypto": "Cripto",
             "cryptoDescription": "Deposita desde una billetera o exchange",
             "bankTransfer": "Transferencia bancaria",
-            "kycRequired": "Requiere KYC",
+            "kycRequired": "Requiere verificación",
             "bankTransferDescription": "Datos bancarios reutilizables para cobrar"
         },
         "networkDrawer": {
             "title": "Elegir red",
-            "description": "Elige la red desde la que quieres depositar:",
-            "evmDescription": "{count} redes - 1 dirección",
+            "description": "Elige la red desde la que quieres agregar:",
+            "evmDescription": "{count} redes, 1 dirección",
             "supportedTokens": "{count, plural, one {# token compatible} other {# tokens compatibles}}",
             "evmTokensOnNetworks": "{tokens, plural, one {# token compatible} other {# tokens compatibles}} en {networks} redes"
         },
@@ -1771,7 +1764,7 @@
             }
         },
         "crypto": {
-            "title": "Depositar cripto",
+            "title": "Agregar cripto",
             "sendTokensToAddress": "Envía tokens a esta dirección de <b>{network}</b>",
             "tooltipEvm": "{count} redes EVM compatibles. Para montos exactos, deposita USDC en Arbitrum. Otras redes/tokens se puentean (±0.1%).",
             "tooltipSol": "Tu dirección de depósito de Solana. Los depósitos se puentean a Arbitrum (variación de ±0.1%).",
@@ -1823,13 +1816,13 @@
         "processingDepositTitle": "Procesando tu depósito",
         "processingDepositBody": "Estamos confirmando tu depósito.",
         "pix": {
-            "payWithPix": "Pagar con PIX",
+            "payWithPix": "Pagar con Pix",
             "depositReceived": "¡Depósito recibido!",
             "balanceUpdated": "Tu saldo se actualizó.",
             "expiresIn": "Vence en {time}",
             "qrExpired": "Este código QR venció.",
             "goBack": "Volver",
-            "scanWithBankApp": "Escanea con la app de tu banco o copia el código PIX."
+            "scanWithBankApp": "Escanea con la app de tu banco o copia el código Pix."
         },
         "confirmationModal": {
             "title": "Importante",
@@ -1929,7 +1922,7 @@
         "pixKey": {
             "title": "Enviar con Pix",
             "heading": "Ingresa la clave Pix",
-            "placeholder": "Clave PIX",
+            "placeholder": "Clave Pix",
             "info": "Envía a cualquier clave Pix: email, teléfono (incluye +55), CPF/CNPJ o clave aleatoria.",
             "invalid": "Clave Pix inválida"
         },
@@ -1998,9 +1991,6 @@
             "accountNumberRequired": "El número de cuenta es obligatorio",
             "accountNumberUk": "El número de cuenta debe tener entre 6 y 8 dígitos",
             "accountNumberInvalid": "Número de cuenta inválido",
-            "bic": "BIC",
-            "bicRequired": "El BIC es obligatorio",
-            "bicInvalid": "Código BIC inválido",
             "routingNumber": "Número de ruta",
             "routingNumberRequired": "El número de ruta es obligatorio",
             "routingNumberInvalid": "Número de ruta inválido",
@@ -2047,8 +2037,10 @@
             "pasteAria": "Pegar desde el portapapeles",
             "pasteEmpty": "No hay nada para pegar",
             "pasteUnavailable": "No se pudo leer el portapapeles",
-            "bicAutoFilled": "Completamos esto con tu IBAN. Verifícalo con tu banco y cámbialo si no es correcto.",
-            "bicCountryMismatch": "Este BIC es de un banco de otro país que el IBAN"
+            "ownAccount": "Esta es mi propia cuenta",
+            "ownAccountFilled": "Completamos lo que ya sabemos. Verifícalo y cambia lo que no sea correcto.",
+            "groupBankAccount": "Cuenta bancaria",
+            "groupAccountOwner": "Titular de la cuenta"
         },
         "errors": {
             "invalidNumber": "Ingresa un número válido.",
@@ -2128,7 +2120,7 @@
             "bank_deposit": "Ingreso",
             "beingReturned": "Volviendo a quien pagó",
             "returnedToSender": "Devuelto a quien pagó",
-            "bank_request_fulfillment": "Solicitud pagada por banco",
+            "bank_request_fulfillment": "Solicitud pagada por transferencia bancaria",
             "card_pay": "Pago",
             "refund": "Reembolso",
             "setup": "Configuración",

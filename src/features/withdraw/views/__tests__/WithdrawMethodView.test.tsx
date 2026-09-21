@@ -102,16 +102,19 @@ jest.mock('@/features/withdraw/components/WithdrawCurrencyList', () => ({
         onCryptoClick,
         enforceSupportedCountries,
         initialQuery,
+        pendingPath,
     }: {
         onCountryClick: (c: unknown) => void
         onCryptoClick?: () => void
         enforceSupportedCountries?: boolean
         initialQuery?: string
+        pendingPath?: string | null
     }) => (
         <div
             data-testid="currency-list"
             data-send-gate={String(!!enforceSupportedCountries)}
             data-initial-query={initialQuery}
+            data-pending-path={pendingPath ?? ''}
         >
             {[
                 { id: 'SEPA', path: 'euro-area', currency: 'EUR', title: 'Euro bank account' },
@@ -499,5 +502,33 @@ describe('WithdrawMethodView — the euro area routes with no country', () => {
         fireEvent.click(screen.getByTestId('country-germany'))
 
         expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/germany?step=form')
+    })
+})
+
+/**
+ * Round-5 QA: tapping EUR took about two seconds on staging.
+ *
+ * Every destination here lands on /withdraw/[country], a dynamic route that is
+ * fetched at tap time: measured on a production build at 375x667 with Fast 4G
+ * throttling, 461ms passes between the tap and the first usable field, and on
+ * staging it is about two seconds. Until that fetch is cheaper, the screen at
+ * least says it heard the tap, and takes no second one.
+ */
+describe('WithdrawMethodView — the tap is acknowledged while the route loads', () => {
+    it('marks the tapped row as pending, so the wait is shown where the user pressed', () => {
+        renderView({ showAll: 'true' })
+        fireEvent.click(screen.getByTestId('country-euro-area'))
+
+        expect(screen.getByTestId('currency-list')).toHaveAttribute('data-pending-path', 'euro-area')
+    })
+
+    it('ignores a second tap while the first is still navigating', () => {
+        renderView({ showAll: 'true' })
+        fireEvent.click(screen.getByTestId('country-euro-area'))
+        fireEvent.click(screen.getByTestId('country-germany'))
+
+        // the first answer stands: Germany never becomes a second navigation
+        expect(mockRouterPush).toHaveBeenCalledTimes(1)
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/euro-area?step=form')
     })
 })

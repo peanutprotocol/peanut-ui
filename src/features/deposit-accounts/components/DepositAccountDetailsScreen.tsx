@@ -64,7 +64,7 @@ export function DepositAccountDetailsScreen({
                              * to a button that loops.
                              */
                             <div className="flex w-full flex-col gap-2">
-                                <Button variant="purple" className="w-full" onClick={onContactSupport}>
+                                <Button variant="primary" className="w-full" onClick={onContactSupport}>
                                     {t('details.revokedCta')}
                                 </Button>
                                 <Button variant="stroke" className="w-full" onClick={onBack}>
@@ -92,7 +92,7 @@ export function DepositAccountDetailsScreen({
                         title={t('details.timedOutTitle', { currency: rail.currency })}
                         description={t('details.timedOutBody')}
                     />
-                    <Button variant="purple" className="w-full" onClick={onRetry}>
+                    <Button variant="primary" className="w-full" onClick={onRetry}>
                         {t('details.timedOutRetry')}
                     </Button>
                     <Button variant="stroke" className="w-full" onClick={onBack}>

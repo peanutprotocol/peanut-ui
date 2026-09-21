@@ -64,6 +64,16 @@ describe('demoRespond — routing', () => {
         expect(data.user.username).toBe(DEMO_USER.user.username)
     })
 
+    it('answers the verified-address read the bank form makes on open, even in strict capture mode', async () => {
+        // The form asks for it the moment it opens with "this account is mine"
+        // ticked. Unmapped, strict mode throws and the screen-capture harness
+        // fails the screen ("Missing synthetic responses").
+        const res = await demoRespond('/users/me/verified-address', { method: 'GET' }, { offline: true, strict: true })
+        expect(res.status).toBe(200)
+        // Nothing to prefill, so the form asks — no synthetic address is served.
+        expect(await res.json()).toEqual({})
+    })
+
     it('only advertises badges with live unlock paths in the demo catalog', async () => {
         const { data } = await body('/badge/catalog')
         const codes = data.badges.map(({ code }: { code: string }) => code)

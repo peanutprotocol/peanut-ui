@@ -8,7 +8,7 @@ import AmountInput from '@/components/Global/AmountInput'
 import { useTranslations } from 'next-intl'
 import { useRef } from 'react'
 import type { AmountInputSides } from '../requestCurrency'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useRequestBack } from '@/components/Request/useRequestBack'
 import { BankInstructionsToggle } from './BankInstructionsToggle'
@@ -94,7 +94,7 @@ export const CreateRequestLinkView = () => {
 
                 {/* only meaningful while the amount is empty (coderabbit #2780) */}
                 {(!requestAmount || Number(requestAmount) === 0) && (
-                    <Notification priority="helper">{t('leaveEmptyHint')}</Notification>
+                    <Callout priority="helper">{t('leaveEmptyHint')}</Callout>
                 )}
 
                 {/* Before a request exists the QR already encodes the profile

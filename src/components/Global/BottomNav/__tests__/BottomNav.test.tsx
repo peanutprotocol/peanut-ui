@@ -108,6 +108,14 @@ describe('BottomNav pill release', () => {
         expect(icon.className).not.toContain('scale-[0.82]')
     })
 
+    it('no nav control carries the button press translate', () => {
+        // the bar and the QR circle carry shadow-4 for depth, but they are not
+        // Buttons: their press feedback is the squash above. A shadowed Button
+        // would drop 4px into its shadow, which reads as the whole nav moving.
+        const { container } = render(<BottomNav />)
+        expect(container.querySelector('[class*="active:translate"]')).toBeNull()
+    })
+
     it('leaving the tab routes clears the pill', () => {
         const { rerender } = render(<BottomNav />)
         expect(screen.getByTestId('bottom-nav-pill')).toBeInTheDocument()
@@ -240,14 +248,12 @@ describe('BottomNav support selection and container response', () => {
         expect(screen.queryByTestId('bottom-nav-pill')).not.toBeInTheDocument()
     })
 
-    it('responds to pressing the selected Home pill and restores the container on cancellation', () => {
+    it('the bar itself never squashes on press — feedback is the icon pop only', () => {
         render(<BottomNav />)
         const pill = screen.getByTestId('bottom-nav-pill')
         const bar = pill.parentElement!
         fireEvent.pointerDown(pill, { pointerId: 1, clientX: 10 })
-        expect(bar.className).toContain('motion-safe:scale-y-[0.96]')
-        fireEvent.pointerCancel(pill, { pointerId: 1, clientX: 10 })
-        expect(bar.className).not.toContain('motion-safe:scale-y-[0.96]')
-        expect(bar.className).toContain('motion-safe:duration-nav-pop')
+        expect(bar.className).not.toMatch(/scale-/)
+        expect(bar.getAttribute('style') ?? '').not.toContain('transform-origin')
     })
 })

@@ -29,6 +29,12 @@ states for the combined direct-send, semantic-request and request-pot row, so th
 review has 16 ordered screenshots rather than collapsing three distinct choices
 into one label.
 
+The revised `docs/screen-collections/multi-action-screens.json` focuses on
+simultaneous action controls. It excludes menus and repeated option lists and
+adds a Home fixture with the additional bank-transfer verification card beside
+Add, Send and Request. The new fixture must be captured from the revision that
+adds it before it can appear in a hosted collection.
+
 Create a self-contained local review from capture directories:
 
 ```sh

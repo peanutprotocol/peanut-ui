@@ -135,7 +135,7 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
             {submitError && <p className="text-body-s text-foreground-error">{submitError}</p>}
 
             <Button
-                variant="purple"
+                variant="primary"
                 shadowSize="4"
                 className="mt-auto w-full"
                 onClick={handleContinue}

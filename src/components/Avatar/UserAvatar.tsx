@@ -29,7 +29,7 @@ interface UserAvatarProps {
  * a sticker. A name that does not start with a-z falls through to the
  * first-letter avatar, which stays the one place that renders a bare initial.
  */
-export function UserAvatar({ name, avatarKey, size = 'extra-small', className, decorative }: UserAvatarProps) {
+export function UserAvatar({ name, avatarKey, size = 's', className, decorative }: UserAvatarProps) {
     const t = useTranslations('common')
     const picked = avatarKey ? avatarSrc(avatarKey) : null
     const letter = picked ? null : letterAvatarSrc(name)

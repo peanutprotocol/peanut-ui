@@ -114,10 +114,10 @@ describe('multi-currency rail sets are qualified, not promised', () => {
 // unavailable for the same residence.
 describe('residenceAvailability vs buildUnlockGroups', () => {
     const ROW_FOR_RAIL: Record<AvailabilityRailKey, UnlockRowLabelKey> = {
-        pix: 'saBank',
-        arQr: 'saBank',
-        spei: 'naBank',
-        usdAch: 'naBank',
+        pix: 'brl',
+        arQr: 'ars',
+        spei: 'mxn',
+        usdAch: 'usd',
         eurSepa: 'sepa',
         gbpFps: 'sepa',
     }
@@ -127,8 +127,8 @@ describe('residenceAvailability vs buildUnlockGroups', () => {
     const unlockRowsFor = (iso2: string) => {
         const restrictions = deriveResidenceRestrictionsFrom(sets, iso2)
         return buildUnlockGroups({
-            regionChips: { europe: 'unlock', 'north-america': 'unlock', latam: 'unlock' },
-            qrOnly: { brazil: false, argentina: false },
+            bankChips: { brl: 'unlock', ars: 'unlock', usd: 'unlock', mxn: 'unlock', sepa: 'unlock' },
+            canPayQr: false,
             restrictions,
             card: 'get',
             residenceIso2: iso2,

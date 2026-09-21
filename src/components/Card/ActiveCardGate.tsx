@@ -55,7 +55,7 @@ const ActiveCardGate = ({ noCardMessageKey = 'noActiveCard', children }: ActiveC
                             iconColor="brand"
                             title={t(noCardMessageKey)}
                             cta={
-                                <Button variant="purple" className="mt-4 w-full" onClick={onBack}>
+                                <Button variant="primary" className="mt-4 w-full" onClick={onBack}>
                                     {t('backToCard')}
                                 </Button>
                             }

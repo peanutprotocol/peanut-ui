@@ -16,7 +16,7 @@
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Divider from '@/components/0_Bruddle/Divider'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import Badge from '@/components/Global/Badges/Badge'
 import IconStack from '@/components/Global/IconStack'
 import Loading from '@/components/Global/Loading'
 import ActionModal from '@/components/Global/ActionModal'
@@ -35,7 +35,7 @@ import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPea
 import { PayByBankTransferDrawer } from './PayByBankTransferDrawer'
 import { isUsdPeggedRequest, minorUnitDigits } from '@/features/deposit-accounts/payerAmount'
 import { useRequestPayAmounts } from '@/components/Request/Pay/useRequestPayAmounts'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { useFormatter, useTranslations } from 'next-intl'
 import { stashInvite } from '@/utils/invite-stash'
 import { usdRemainingOf } from '../collected'
@@ -313,15 +313,15 @@ export function RequestPotActionList({
     // cannot get it back.
     if (alreadyCovered) {
         return (
-            <Notification priority="attention" data-testid="request-already-covered">
+            <Callout priority="attention" data-testid="request-already-covered">
                 {t('requestAlreadyCovered')}
-            </Notification>
+            </Callout>
         )
     }
 
     return (
         <div className="space-y-2">
-            {otherCurrencyNote && <Notification priority="helper">{otherCurrencyNote}</Notification>}
+            {otherCurrencyNote && <Callout priority="helper">{otherCurrencyNote}</Callout>}
 
             {/* pay with peanut button */}
             <SendWithPeanutCta
@@ -346,13 +346,13 @@ export function RequestPotActionList({
                     return (
                         <ListItem
                             key={method.id}
-                            position="single"
+                            position="solo"
                             body={<div className="text-body-xs">{methodLabels(method).description}</div>}
                             title={
                                 <div className="flex items-center gap-2">
                                     {methodLabels(method).title}
                                     {(method.soon || methodRequiresVerification) && (
-                                        <StatusBadge
+                                        <Badge
                                             status={methodRequiresVerification ? 'custom' : 'soon'}
                                             customText={methodRequiresVerification ? t('requiresVerification') : ''}
                                         />
@@ -375,7 +375,7 @@ export function RequestPotActionList({
                 onClose={() => setShowMinAmountError(false)}
                 title={t('minAmount.title')}
                 description={t('minAmount.description', { minAmount: MIN_BANK_TRANSFER_AMOUNT })}
-                tone="warning"
+                tone="attention"
                 ctas={[{ text: tCommon('close'), shadowSize: '4', onClick: () => setShowMinAmountError(false) }]}
                 preventClose={false}
             />

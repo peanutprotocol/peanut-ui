@@ -29,10 +29,10 @@ export default function CardsGlobalPage() {
             {/* Single Card */}
             <DocSection title="Single Card">
                 <DocSection.Content>
-                    <Card position="single">
+                    <Card position="solo">
                         <div className="flex items-center justify-between py-1">
                             <span className="text-label-l">Single Card</span>
-                            <span className="text-body-xs text-foreground-secondary">position=&quot;single&quot;</span>
+                            <span className="text-body-xs text-foreground-secondary">position=&quot;solo&quot;</span>
                         </div>
                     </Card>
                 </DocSection.Content>
@@ -41,7 +41,7 @@ export default function CardsGlobalPage() {
 
                     <CodeBlock
                         label="Usage"
-                        code={`<Card position="single">
+                        code={`<Card position="solo">
   <div>Content</div>
 </Card>`}
                     />
@@ -58,7 +58,7 @@ export default function CardsGlobalPage() {
                     </p>
 
                     <div>
-                        {(['first', 'middle', 'middle', 'middle', 'last'] as const).map((pos, i) => (
+                        {(['top', 'middle', 'middle', 'middle', 'bottom'] as const).map((pos, i) => (
                             <Card key={i} position={pos}>
                                 <div className="flex items-center justify-between py-1">
                                     <span className="text-body-s">Item {i + 1}</span>
@@ -75,9 +75,9 @@ export default function CardsGlobalPage() {
                         label="Usage"
                         code={`{items.map((item, index) => {
   const position =
-    items.length === 1 ? 'single' :
-    index === 0 ? 'first' :
-    index === items.length - 1 ? 'last' :
+    items.length === 1 ? 'solo' :
+    index === 0 ? 'top' :
+    index === items.length - 1 ? 'bottom' :
     'middle'
 
   return (
@@ -94,13 +94,13 @@ export default function CardsGlobalPage() {
             <DocSection title="Clickable Cards">
                 <DocSection.Content>
                     <div>
-                        <Card position="first" onClick={() => {}}>
+                        <Card position="top" onClick={() => {}}>
                             <div className="flex items-center justify-between py-1">
                                 <span className="text-body-s">Clickable item 1</span>
                                 <span className="text-body-xs text-foreground-secondary">&rarr;</span>
                             </div>
                         </Card>
-                        <Card position="last" onClick={() => {}}>
+                        <Card position="bottom" onClick={() => {}}>
                             <div className="flex items-center justify-between py-1">
                                 <span className="text-body-s">Clickable item 2</span>
                                 <span className="text-body-xs text-foreground-secondary">&rarr;</span>
@@ -111,7 +111,7 @@ export default function CardsGlobalPage() {
                 <DocSection.Code>
                     <CodeBlock
                         label="Usage"
-                        code={`<Card position="single" onClick={() => router.push('/detail')}>
+                        code={`<Card position="solo" onClick={() => router.push('/detail')}>
   <div>Clickable card content</div>
 </Card>`}
                     />
@@ -121,7 +121,7 @@ export default function CardsGlobalPage() {
             {/* No Border */}
             <DocSection title="Without Border">
                 <DocSection.Content>
-                    <Card position="single" border={false}>
+                    <Card position="solo" border={false}>
                         <div className="py-1">
                             <span className="text-body-s">No border card</span>
                         </div>
@@ -140,8 +140,8 @@ export default function CardsGlobalPage() {
                     rows={[
                         {
                             name: 'position',
-                            type: "'single' | 'first' | 'middle' | 'last'",
-                            default: "'single'",
+                            type: "'solo' | 'top' | 'middle' | 'bottom'",
+                            default: "'solo'",
                             description: 'Controls border-radius for stacking',
                         },
                         { name: 'border', type: 'boolean', default: 'true', description: 'Show/hide border' },
@@ -171,10 +171,10 @@ export default function CardsGlobalPage() {
                         </thead>
                         <tbody>
                             {[
-                                ['single', 'rounded-sm (all)', 'border border-border-default'],
-                                ['first', 'rounded-t-sm (top only)', 'border border-border-default'],
+                                ['solo', 'rounded-sm (all)', 'border border-border-default'],
+                                ['top', 'rounded-t-sm (top only)', 'border border-border-default'],
                                 ['middle', 'none', 'border border-border-default border-t-0'],
-                                ['last', 'rounded-b-sm (bottom only)', 'border border-border-default border-t-0'],
+                                ['bottom', 'rounded-b-sm (bottom only)', 'border border-border-default border-t-0'],
                             ].map(([pos, radius, border]) => (
                                 <tr key={pos} className="border-b border-border-default last:border-0">
                                     <td className="px-3 py-2 font-mono text-label-m">{pos}</td>

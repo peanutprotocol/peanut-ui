@@ -136,7 +136,7 @@ export default function SmartStoreRedirect() {
                         stores.map((s, i) => (
                             <Button
                                 key={s}
-                                variant={i === 0 ? 'purple' : 'stroke'}
+                                variant={i === 0 ? 'primary' : 'stroke'}
                                 shadowSize="4"
                                 icon={redirecting ? undefined : s === 'ios' ? 'apple-logo' : 'google-play'}
                                 className={twMerge('w-full', redirecting && i > 0 && 'hidden')}

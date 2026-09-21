@@ -56,7 +56,7 @@ export const IconBubble = ({
 }: IconBubbleProps) => (
     <div
         className={twMerge(
-            'flex shrink-0 items-center justify-center rounded-round text-foreground-primary',
+            'flex shrink-0 items-center justify-center rounded-full text-foreground-primary',
             bubbleSizes[size],
             bubbleColors[color],
             className

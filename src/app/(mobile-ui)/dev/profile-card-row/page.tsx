@@ -10,7 +10,7 @@ export default function ProfileCardRowPreviewPage() {
             description="The public card entry uses the same label and destination for every account."
             width="prose"
         >
-            <ProfileMenuItem icon="credit-card" label="Peanut Card" href="/card" position="single" />
+            <ProfileMenuItem icon="credit-card" label="Peanut Card" href="/card" position="solo" />
         </DevPageShell>
     )
 }

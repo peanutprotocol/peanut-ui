@@ -58,7 +58,7 @@ export function ResidenceRequiredScreen({
                     cta={
                         <div className="mt-4 flex w-full flex-col items-center gap-4">
                             {/* the residence row on Unlock payments, opened on arrival */}
-                            <Button variant="purple" className="w-full" href={residenceChangeHref}>
+                            <Button variant="primary" className="w-full" href={residenceChangeHref}>
                                 {t('details.residenceCta')}
                             </Button>
                             {qrPayHref && (

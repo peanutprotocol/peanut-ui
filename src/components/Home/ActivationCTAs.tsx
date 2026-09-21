@@ -218,7 +218,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
             },
             card: {
                 icon: 'credit-card',
-                iconBg: 'bg-action-secondary',
+                iconBg: 'bg-background-icon-bubble-yellow',
                 title: t('steps.card.title'),
                 description: t('steps.card.description'),
                 ctaLabel: t('steps.card.cta'),
@@ -427,7 +427,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
     }
 
     return (
-        <Card position="single" className="p-0">
+        <Card position="solo" className="p-0">
             <div className="flex flex-col items-center justify-center gap-3 px-4 py-6">
                 <div className={`flex size-12 items-center justify-center rounded-full ${step.iconBg}`}>
                     <Icon name={step.icon} size={24} />
@@ -437,7 +437,7 @@ export default function ActivationCTAs({ activationStep, onDismissCard }: Activa
                     <div className="text-body-s text-foreground-secondary">{step.description}</div>
                 </div>
                 <Button
-                    variant="purple"
+                    variant="primary"
                     shadowSize="4"
                     className="mt-2 w-full"
                     onClick={() => {

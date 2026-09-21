@@ -124,7 +124,7 @@
             "verifyDescriptionAdvisory": "Hacé una verificación rápida con nuestro socio de pagos para mantener disponibles las transferencias bancarias."
         },
         "drawers": {
-            "shareBankDetailsDescription": "Recibí pagos a través de tus cuentas en EUR, USD y otras monedas"
+            "shareBankDetailsDescription": "Recibí pagos en EUR, USD y más con datos bancarios a tu nombre."
         }
     },
     "profile": {
@@ -178,21 +178,19 @@
                 "everywhere": "Peanut",
                 "southAmerica": "América del Sur",
                 "northAmerica": "América del Norte",
-                "europe": "Europa"
+                "europe": "Europa",
+                "spend": "Gastar"
             },
             "rows": {
                 "p2p": "Pagos de Peanut a Peanut",
                 "card": "Tarjeta Peanut",
                 "crypto": "Cripto",
-                "saBank": "PIX (Brasil), QR y transferencias bancarias (Argentina)",
-                "pixBank": "Pagos y transferencias PIX (Brasil)",
-                "pixQr": "Pagos QR con PIX (Brasil)",
-                "brBank": "Transferencias PIX (Brasil)",
-                "arQrBank": "Pagos QR y transferencias (Argentina)",
-                "arQr": "Pagos QR (Argentina)",
-                "arBank": "Transferencias bancarias (Argentina)",
-                "naBank": "Transferencias bancarias en dólares y pesos mexicanos",
-                "sepa": "Transferencias bancarias en euros"
+                "brl": "BRL · Pix",
+                "ars": "ARS · Transferencia bancaria",
+                "usd": "USD · Transferencia bancaria",
+                "mxn": "MXN · SPEI",
+                "sepa": "EUR · Transferencia bancaria",
+                "qrPay": "Pagos QR"
             },
             "chips": {
                 "active": "Disponible",
@@ -246,38 +244,33 @@
             "accountsSubtitle": "Datos bancarios a tu nombre. Dáselos a otra persona y el dinero llega a Peanut.",
             "details": {
                 "p2p": "Mandá y recibí plata de otros usuarios de Peanut.",
+                "card": "Pagá con tu tarjeta Peanut.",
                 "crypto": "Agregá o retirá cripto desde cualquier billetera o exchange, sin verificación.",
-                "saBank": "Pagá con QR y transferí plata a través de cuentas bancarias en Brasil y Argentina.",
-                "pixBank": "Pagá códigos QR Pix y transferí plata a través de cuentas bancarias brasileñas.",
-                "pixQr": "Pagá códigos QR Pix en Brasil.",
-                "arQrBank": "Pagá códigos QR y transferí plata a través de cuentas bancarias argentinas.",
-                "arQr": "Pagá códigos QR en Argentina.",
-                "brBank": "Transferí plata a través de cuentas bancarias brasileñas.",
-                "arBank": "Transferí plata a través de cuentas bancarias argentinas.",
-                "naBank": "Agregá o retirá plata mediante transferencias bancarias de Estados Unidos y la red SPEI de México.",
+                "brl": "Agregá o retirá reales brasileños con Pix.",
+                "ars": "Agregá o retirá pesos argentinos desde tu banco.",
+                "usd": "Agregá o retirá dólares mediante transferencias bancarias de Estados Unidos.",
+                "mxn": "Agregá o retirá pesos mexicanos por la red SPEI.",
                 "sepa": "Agregá o retirá euros mediante transferencias SEPA.",
-                "card": "Pagá con tu tarjeta Peanut."
+                "qrPay": "Pagá en comercios de Brasil y Argentina escaneando un código QR."
             },
             "valueProp": {
                 "p2p": "Dividí cuentas y pagá a tus amigos en un toque.",
                 "card": "Usá tu saldo de Peanut en el mundo real.",
                 "crypto": "Enviá y recibí on-chain, sin necesidad de banco.",
-                "saBank": "Manejá tu plata como local en Brasil y Argentina.",
-                "pixBank": "Mové plata por Brasil al instante.",
-                "pixQr": "Escaneá, pagá y listo, donde funcione Pix.",
-                "brBank": "Llegá a cualquier cuenta bancaria en Brasil.",
-                "arQrBank": "Pagá y cobrá en cualquier lugar de Argentina.",
-                "arQr": "Escaneá y pagá en cualquier QR de Argentina.",
-                "arBank": "Llegá a cualquier cuenta bancaria en Argentina.",
-                "naBank": "Conectá tu plata de bancos de EE. UU. y México.",
-                "sepa": "Guardá y mové euros sin un banco local."
+                "brl": "Mové reales entre tu banco y Peanut.",
+                "ars": "Mové pesos argentinos entre tu banco y Peanut.",
+                "usd": "Mové dólares entre tu banco y Peanut.",
+                "mxn": "Mové pesos mexicanos entre tu banco y Peanut.",
+                "sepa": "Guardá y mové euros sin un banco local.",
+                "qrPay": "Escaneá y pagá donde vivís."
             },
             "detailsDrawer": {
                 "aboutTitle": "Qué podés hacer",
                 "limitsTitle": "Límites"
             },
-            "waysTitle": "Formas de enviarte dinero",
-            "waysSubtitle": "Mové tu propio dinero entre Peanut y tu banco. No recibís un número de cuenta propio."
+            "waysTitle": "Agregar y retirar dinero",
+            "waysSubtitle": "Mové dinero entre tu banco y Peanut en estas monedas.",
+            "qrPayNote": "Brasil y Argentina. Pagá en comercios escaneando un código QR."
         },
         "backup": {
             "nonCustodial": {
@@ -647,7 +640,7 @@
             "createWallet": "Creá tu Peanut Wallet"
         },
         "bankInstructions": {
-            "title": "Compartí los datos de tu cuenta bancaria",
+            "title": "Compartí tus datos bancarios",
             "description": "Cualquier persona que abra este enlace ve tus datos bancarios y tu nombre completo.",
             "unknownPays": "Una transferencia de alguien que no seas vos no está confirmada en esta cuenta y puede devolverse."
         }
@@ -919,7 +912,7 @@
             "bankTransferDescription": "Datos bancarios reutilizables para cobrar"
         },
         "networkDrawer": {
-            "description": "Elegí la red desde la que querés depositar:"
+            "description": "Elegí la red desde la que querés agregar:"
         },
         "supportedNetworksModal": {
             "description": "Una sola dirección para todas las redes EVM listadas abajo: enviá desde cualquiera de ellas y tus fondos se enrutarán correctamente."
@@ -946,7 +939,7 @@
             "etaInstant": "Los depósitos suelen llegar en minutos."
         },
         "pix": {
-            "scanWithBankApp": "Escaneá con la app de tu banco o copiá el código PIX."
+            "scanWithBankApp": "Escaneá con la app de tu banco o copiá el código Pix."
         },
         "confirmationModal": {
             "youMust": "Debés:"

@@ -21,7 +21,7 @@ import Card from '@/components/Global/Card'
 import CreateAccountButton from '@/components/Global/CreateAccountButton'
 import NavHeader from '@/components/Global/NavHeader'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
-import { type StatusPillType } from '@/components/Global/StatusPill'
+import { type IconStatusType } from '@/components/Global/Badges/Badge'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
@@ -175,7 +175,7 @@ const PaymentSuccessView = ({
             // `txHash` below.
             id: chargeDetails.uuid,
             txHash: paymentDetails?.payerTransactionHash,
-            status: 'completed' as StatusPillType,
+            status: 'completed' as IconStatusType,
             amount: parseFloat(amountValue),
             createdAt: new Date(paymentDetails?.createdAt ?? chargeDetails.createdAt),
             completedAt: new Date(),

@@ -21,6 +21,7 @@ jest.mock('next/image', () => ({
 
 jest.mock('@/components/0_Bruddle/IconBubble', () => ({ IconBubble: () => null }))
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
+jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div data-testid="loading" /> }))
 
 // CountryList is exercised in its own suite; here it is a stub that surfaces the
 // countries it was given and drives onCountryClick, so we can assert the
@@ -53,7 +54,12 @@ const onCountryClick = jest.fn()
 const onCryptoClick = jest.fn()
 
 const renderList = (
-    props: { enforceSupportedCountries?: boolean; initialQuery?: string; onCryptoClick?: () => void } = {}
+    props: {
+        enforceSupportedCountries?: boolean
+        initialQuery?: string
+        onCryptoClick?: () => void
+        pendingPath?: string | null
+    } = {}
 ) =>
     render(
         <WithdrawCurrencyList
@@ -183,5 +189,33 @@ describe('WithdrawCurrencyList — send-to-bank keeps the country gate', () => {
         expect(currencyRows()).toEqual([])
         search('ARS')
         expect(currencyRows()).toEqual([])
+    })
+})
+
+/**
+ * Round-5 QA: the tap on EUR crosses to a dynamic route, and on a mobile link
+ * that wait is long enough to read as a dead screen. The row the user pressed
+ * carries it, so the screen says it heard the tap.
+ */
+describe('WithdrawCurrencyList — the tapped row carries the wait', () => {
+    it('loads in place on the row a navigation is heading to', () => {
+        renderList({ pendingPath: 'euro-area' })
+
+        const eur = screen.getByTestId('withdraw-currency-EUR')
+        expect(eur).toContainElement(screen.getByTestId('loading'))
+        expect(eur).toHaveAttribute('aria-disabled', 'true')
+    })
+
+    it('leaves every other row alone', () => {
+        renderList({ pendingPath: 'euro-area' })
+
+        expect(screen.getAllByTestId('loading')).toHaveLength(1)
+        expect(screen.getByTestId('withdraw-currency-GBP')).not.toHaveAttribute('aria-disabled')
+    })
+
+    it('shows no loading row when nothing is navigating', () => {
+        renderList()
+
+        expect(screen.queryByTestId('loading')).not.toBeInTheDocument()
     })
 })

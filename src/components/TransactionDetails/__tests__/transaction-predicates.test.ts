@@ -345,26 +345,41 @@ describe('servesAnonymousReceipt', () => {
 })
 
 /**
- * The deposit success screen keys its receipt on the transaction hash, and the
- * history route resolves only the EVM `tx:` form — so Share and Download on a
- * Solana or Tron deposit were buttons that always answered 404.
+ * A crypto deposit's receipt is keyed three ways, and the history route reads
+ * all three. The `<hash>-<logIndex>` row key is the one a deposit opened from
+ * history carries; Share and Download were withheld from it while the route
+ * still 404'd on it.
+ *
+ * A Solana or Tron deposit is bridged to Arbitrum and keyed on that settlement
+ * transfer, so it arrives here as an ordinary EVM hash and is offered a
+ * document like any other deposit. An id that no route resolves still is not.
  */
 describe('hasResolvableReceiptDocument', () => {
     const deposit = (id: string) =>
         ({ id, extraDataForDrawer: { kind: 'CRYPTO_DEPOSIT' } }) as unknown as TransactionDetails
+    const evmHash = '0xab'.padEnd(66, 'c')
 
-    it('resolves a crypto deposit that is already a history row', () => {
+    it('resolves a crypto deposit carrying its intent uuid', () => {
         expect(hasResolvableReceiptDocument(deposit('b27d2f1a-0000-4000-8000-000000000001'))).toBe(true)
     })
 
-    it('resolves a deposit keyed on an EVM hash', () => {
-        expect(hasResolvableReceiptDocument(deposit(`tx:${'0xab'.padEnd(66, 'c')}`))).toBe(true)
+    it('resolves a deposit keyed on the success screen tx surrogate', () => {
+        expect(hasResolvableReceiptDocument(deposit(`tx:${evmHash}`))).toBe(true)
     })
 
     it.each([
-        ['a solana hash', '5Tx9AbCdEfGhJkLmNpQrStUvWxYz1234567890AbCdEfGhJkLmNpQrStUvWxYz'],
-        ['a tron hash', 'TXYZa1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0'],
-        ['a bare evm hash', '0xab'.padEnd(66, 'c')],
+        ['an arbitrum deposit', `${evmHash}-0`],
+        ['a solana deposit, keyed on its arbitrum settlement transfer', `${evmHash}-7`],
+        ['a tron deposit, keyed the same way', `${evmHash}-12`],
+    ])('offers a document to %s opened from history', (_name, id) => {
+        expect(hasResolvableReceiptDocument(deposit(id))).toBe(true)
+    })
+
+    it.each([
+        ['a raw solana signature', '5Tx9AbCdEfGhJkLmNpQrStUvWxYz1234567890AbCdEfGhJkLmNpQrStUvWxYz'],
+        ['a raw tron txid', 'TXYZa1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0'],
+        ['a bare evm hash with no log index', evmHash],
+        ['a row key with a non-numeric log index', `${evmHash}-x`],
         ['the no-hash fallback', 'deposit'],
     ])('offers no document for %s', (_name, id) => {
         expect(hasResolvableReceiptDocument(deposit(id))).toBe(false)

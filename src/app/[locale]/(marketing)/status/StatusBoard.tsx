@@ -1,6 +1,6 @@
 import { Hero } from '@/components/Marketing/mdx/Hero'
 import { Card } from '@/components/0_Bruddle/Card'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { t } from '@/i18n'
 import { type Translations } from '@/i18n/types'
 import { IncidentList } from './IncidentList'
@@ -146,9 +146,9 @@ const BANNER_PRIORITY: Record<BucketState, 'success' | 'attention' | 'error'> = 
 
 export function StatusBanner({ state, title, detail }: { state: BucketState; title: string; detail?: string }) {
     return (
-        <Notification priority={BANNER_PRIORITY[state]} title={title}>
+        <Callout priority={BANNER_PRIORITY[state]} title={title}>
             {detail}
-        </Notification>
+        </Callout>
     )
 }
 

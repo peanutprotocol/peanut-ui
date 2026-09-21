@@ -34,7 +34,7 @@ export function QrClaimUnavailableView({
                         </p>
                     </div>
                 </Card>
-                <Button variant="purple" shadowSize="4" onClick={() => router.push('/home')} className="w-full">
+                <Button variant="primary" shadowSize="4" onClick={() => router.push('/home')} className="w-full">
                     {tCommon('goToHome')}
                 </Button>
             </PageStack.Center>

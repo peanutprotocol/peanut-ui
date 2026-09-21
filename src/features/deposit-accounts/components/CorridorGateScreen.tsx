@@ -1,9 +1,9 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import Badge from '@/components/Global/Badges/Badge'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NavHeader from '@/components/Global/NavHeader'
 import type { DepositGateView } from '../depositGate'
@@ -121,7 +121,7 @@ export function CorridorGateScreen({
     const actButton = (
         <Button
             key="act"
-            variant={topUpLeads ? 'stroke' : 'purple'}
+            variant={topUpLeads ? 'stroke' : 'primary'}
             className="w-full"
             loading={isActing}
             disabled={isActing}
@@ -134,7 +134,7 @@ export function CorridorGateScreen({
     const topUpButton = onTopUp ? (
         <Button
             key="top-up"
-            variant={topUpLeads ? 'purple' : 'stroke'}
+            variant={topUpLeads ? 'primary' : 'stroke'}
             className="w-full"
             onClick={onTopUp}
             data-testid="corridor-gate-top-up"
@@ -149,15 +149,15 @@ export function CorridorGateScreen({
             <PageStack.Center>
                 {notice.action === 'pending-review' && (
                     <div className="mb-4 flex justify-center">
-                        <StatusBadge status="pending" />
+                        <Badge status="pending" />
                     </div>
                 )}
-                {/* a flow-level failure, so a Notification: it carries role="alert"
+                {/* a flow-level failure, so a Callout: it carries role="alert"
                     and the button below is the retry */}
                 {actFailed && (
-                    <Notification priority="error" className="mb-4" data-testid="corridor-gate-act-failed">
+                    <Callout priority="error" className="mb-4" data-testid="corridor-gate-act-failed">
                         {t('gate.actFailed')}
-                    </Notification>
+                    </Callout>
                 )}
                 <EmptyState
                     icon={ICONS[notice.action as keyof typeof ICONS] ?? 'globe-lock'}

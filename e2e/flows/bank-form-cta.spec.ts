@@ -19,11 +19,8 @@ import { test, expect, type Page } from '@playwright/test'
 
 test.use({ viewport: { width: 375, height: 667 } })
 
-// CaixaBank: a bank the tables know, so the BIC arrives filled in
-const DERIVABLE_IBAN = 'ES9121000418450200051332'
-
-// an Italian IBAN whose bank is in neither table, so the BIC has to be typed
-const UNDERIVABLE_IBAN = 'IT60X0542811101000000123456'
+// a Spanish IBAN; SEPA asks for nothing else
+const SEPA_IBAN = 'ES9121000418450200051332'
 
 /** What a tap at the button's centre lands on: the button itself, or whatever covers it. */
 async function tapTargetAtCentre(page: Page) {
@@ -42,6 +39,45 @@ async function tapTargetAtCentre(page: Page) {
 }
 
 test.describe('bank form submit button at 375x667', () => {
+    /*
+     * The disabled state, which is what a user sees first and for longest.
+     * `scrollClearOfBottomNav` only fires once the form can be submitted, so
+     * nothing moves the button here — the page's own bottom reservation has to
+     * be enough. Held for the three corridors with the most fields; the form is
+     * left EMPTY on purpose.
+     */
+    for (const [corridor, path] of [
+        ['the euro area', '/withdraw/spain'],
+        ['the United States', '/withdraw/usa'],
+        ['Mexico', '/withdraw/mexico'],
+    ] as const) {
+        test(`${corridor}: an empty form's disabled button is reachable and clear of the nav`, async ({ page }) => {
+            await page.goto(`${path}?step=form&__fixture=withdraw-bank-form`, { waitUntil: 'domcontentloaded' })
+            await page.addStyleTag({ content: '[data-fixture-banner]{display:none!important}' })
+            const button = page.getByTestId('bank-form-cta').locator('button')
+            await expect(button).toBeVisible({ timeout: 60_000 })
+            await expect(button).toBeDisabled()
+
+            // the user's own scroll to the end of the page, and nothing else
+            await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight }))
+            await expect.poll(() => tapTargetAtCentre(page), { timeout: 10_000 }).toBe('button')
+
+            // and the last field's paste control is not covered either — it sits
+            // at the interactive edge nearest the nav
+            const covered = await page.evaluate(() => {
+                const controls = Array.from(document.querySelectorAll('form button[aria-label="Paste from clipboard"]'))
+                return controls
+                    .filter((el) => el.getBoundingClientRect().width > 0 && el.getBoundingClientRect().top > 0)
+                    .filter((el) => {
+                        const box = el.getBoundingClientRect()
+                        const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)
+                        return !(hit && el.contains(hit))
+                    }).length
+            })
+            expect(covered).toBe(0)
+        })
+    }
+
     test('is clear of the bottom nav as soon as the form can be submitted', async ({ page }) => {
         await page.goto('/withdraw/spain?step=form&__fixture=withdraw-bank-form', { waitUntil: 'domcontentloaded' })
         // the dev fixture banner is fixed over the bottom of the page; it is not part of the app
@@ -52,10 +88,10 @@ test.describe('bank form submit button at 375x667', () => {
         // Filled from the top down, the way a user does, with no scrolling of
         // our own: Playwright scrolls a field into view to type, as a tap does.
         await page.locator('#bank-accountOwnerName').fill('Ana Silva')
-        await page.locator('#bank-accountNumber').fill(DERIVABLE_IBAN)
+        await page.locator('#bank-accountNumber').fill(SEPA_IBAN)
         await page.locator('#bank-accountNumber').blur()
-        // the BIC field stays on screen carrying the derived value
-        await expect(page.locator('#bank-bic')).toHaveValue('CAIXESBB', { timeout: 30_000 })
+        // no BIC field on a SEPA rail: the IBAN is the whole account group
+        await expect(page.locator('#bank-bic')).toHaveCount(0)
         await page.locator('#bank-street').fill('Calle Mayor 1')
         await page.locator('#bank-city').fill('Madrid')
         await page.locator('#bank-postalCode').fill('28013')
@@ -83,36 +119,5 @@ test.describe('bank form submit button at 375x667', () => {
                 { timeout: 10_000 }
             )
             .toBe(0)
-    })
-
-    /*
-     * The same height as the test above, now that the BIC field never hides,
-     * but not the same path to a submittable form. Here the BIC is typed rather
-     * than derived, so the button waits on a provider check of what the user
-     * entered before it enables, and the scroll that brings it clear starts
-     * from a field further down the form. The two enabling sequences are worth
-     * holding apart even though the layout no longer differs.
-     */
-    test('is clear of the bottom nav when the BIC has to be typed', async ({ page }) => {
-        await page.goto('/withdraw/italy?step=form&__fixture=withdraw-bank-form', { waitUntil: 'domcontentloaded' })
-        await page.addStyleTag({ content: '[data-fixture-banner]{display:none!important}' })
-        const button = page.getByTestId('bank-form-cta').locator('button')
-        await expect(button).toBeVisible({ timeout: 60_000 })
-
-        await page.locator('#bank-accountOwnerName').fill('Giulia Rossi')
-        await page.locator('#bank-accountNumber').fill(UNDERIVABLE_IBAN)
-        await page.locator('#bank-accountNumber').blur()
-        // nothing derives for this bank, so the field is there and empty
-        await expect(page.locator('#bank-bic')).toBeVisible({ timeout: 30_000 })
-        await expect(page.locator('#bank-bic')).toHaveValue('')
-        await page.locator('#bank-bic').fill('BCITITMM')
-        await page.locator('#bank-bic').blur()
-        await page.locator('#bank-street').fill('Via Roma 1')
-        await page.locator('#bank-city').fill('Roma')
-        await page.locator('#bank-postalCode').fill('00100')
-        await page.locator('#bank-postalCode').blur()
-
-        await expect(button).toBeEnabled({ timeout: 30_000 })
-        await expect.poll(() => tapTargetAtCentre(page), { timeout: 10_000 }).toBe('button')
     })
 })

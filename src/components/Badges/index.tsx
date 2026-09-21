@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import Badge from '@/components/Global/Badges/Badge'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
@@ -117,11 +117,7 @@ export const Badges = () => {
                             )}
                         >
                             {badge.earned && (
-                                <StatusBadge
-                                    status="custom"
-                                    customText={t('earned')}
-                                    className="absolute top-1 right-1"
-                                />
+                                <Badge status="custom" customText={t('earned')} className="absolute top-1 right-1" />
                             )}
                             <BadgeImage
                                 src={badge.logo!}

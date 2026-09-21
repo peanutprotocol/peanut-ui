@@ -7,7 +7,7 @@ import { updateUserById } from '@/app/actions/users'
 import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { useBadgeCopy } from '@/components/Badges/useBadgeCopy'
-import StatusBadge from '@/components/Global/Badges/StatusBadge'
+import Badge from '@/components/Global/Badges/Badge'
 import { Drawer, DrawerContent } from '@/components/Global/Drawer'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { useAuth } from '@/context/authContext'
@@ -165,7 +165,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                     )}
                                 >
                                     {earned && (
-                                        <StatusBadge
+                                        <Badge
                                             status="custom"
                                             customText={t('earned')}
                                             className="absolute top-1 right-1"
@@ -174,7 +174,7 @@ export function AvatarPicker({ open, onOpenChange }: AvatarPickerProps) {
                                     <UserAvatar
                                         name={initial ? username : undefined}
                                         avatarKey={initial ? initialKey : key}
-                                        size="medium"
+                                        size="l"
                                     />
                                     {/* Two fixed lines keep tile heights equal at 320px. */}
                                     <span className="mt-1 line-clamp-2 h-8 text-label-m">{name}</span>

@@ -64,7 +64,7 @@ const UnlockMethodModal = ({
                         <Button
                             icon="check-circle"
                             shadowSize="4"
-                            variant="purple"
+                            variant="primary"
                             className="w-full justify-center"
                             disabled={isLoading}
                             onClick={onUnlock}

@@ -89,7 +89,7 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             label: 'FieldError',
             icon: 'alert',
             href: '/dev/ds/primitives/field-error',
-            description: 'Inline field-level error (Body/XS, foreground-error) — flow errors stay Notification',
+            description: 'Inline field-level error (Body/XS, foreground-error) — flow errors stay Callout',
             status: 'production',
         },
         {
@@ -136,13 +136,6 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             status: 'production',
         },
         {
-            label: 'SegmentedControl',
-            icon: 'switch',
-            href: '/dev/ds/primitives/segmented-control',
-            description: 'Radix tabs styled as a pill row for period/network toggles',
-            status: 'production',
-        },
-        {
             label: 'PinInput',
             icon: 'lock',
             href: '/dev/ds/primitives/pin-input',
@@ -153,7 +146,8 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             label: 'Tabs',
             icon: 'docs',
             href: '/dev/ds/primitives/tabs',
-            description: 'The one content-tab component: contained card-top triggers joined to a bordered panel',
+            description:
+                'One look, no variants — the bottom nav standing still. Three sizes; content tabs and value toggles, same row',
             status: 'production',
         },
         {
@@ -175,7 +169,7 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             icon: 'bell',
             href: '/dev/ds/primitives/toast',
             description:
-                'Floating transient feedback over Notification. Four tones, reading-time auto-dismiss, persistent and custom-content options',
+                'Floating transient feedback over Callout. Four tones, reading-time auto-dismiss, persistent and custom-content options',
             status: 'production',
         },
         {
@@ -186,10 +180,10 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             status: 'production',
         },
         {
-            label: 'Notification',
+            label: 'Callout',
             icon: 'alert',
-            href: '/dev/ds/primitives/notification',
-            description: 'Inline notification banner. 5 priorities, title + body, dismiss, up to 2 CTAs',
+            href: '/dev/ds/primitives/callout',
+            description: 'Inline callout banner. 5 priorities, title + body, dismiss, up to 2 CTAs',
             status: 'limited',
         },
         {

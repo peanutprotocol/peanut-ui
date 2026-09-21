@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { ALL_COUNTRIES_ALPHA3_TO_ALPHA2 } from '@/components/AddMoney/consts'
 import Card from '@/components/Global/Card'
 import PeanutActionDetailsCard from '@/components/Global/PeanutActionDetailsCard'
@@ -101,9 +101,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     const isNonEuroSepa = isNonEuroSepaCountry(nonEuroCurrency)
 
     const getBicAndRoutingNumber = () => {
-        if (bankAccount.type === AccountType.IBAN) {
-            return bankAccount.bic?.toUpperCase() ?? 'N/A'
-        } else if (bankAccount.type === AccountType.US) {
+        if (bankAccount.type === AccountType.US) {
             return bankAccount.routingNumber?.toUpperCase() ?? 'N/A'
         } else if (bankAccount.type === AccountType.CLABE) {
             return bankAccount.identifier?.toUpperCase() ?? 'N/A'
@@ -117,7 +115,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
         <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center pb-4">
             <PeanutActionDetailsCard
                 countryCodeForFlag={accountCountryCode}
-                avatarSize="small"
+                avatarSize="m"
                 transactionType={'WITHDRAW_BANK_ACCOUNT'}
                 recipientType={'BANK_ACCOUNT'}
                 recipientName={bankAccount?.identifier ?? t('bank.bankAccount')}
@@ -128,9 +126,9 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
 
             {/* Warning for non-EUR SEPA countries (not UK — UK uses Faster Payments with GBP) */}
             {isNonEuroSepa && bankAccount?.type !== AccountType.GB && (
-                <Notification priority="info" title={t('bank.eurTitle')}>
+                <Callout priority="info" title={t('bank.eurTitle')}>
                     {t('bank.eurDescription')}
-                </Notification>
+                </Callout>
             )}
 
             <Card className="rounded-sm">
@@ -148,7 +146,13 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                                     : '' /* fallback to empty string to avoid runtime error */
                             }
                         />
-                        <PaymentInfoRow label={t('bank.bic')} value={getBicAndRoutingNumber()} />
+                        {/* The form no longer asks for a BIC, so a new euro
+                            account has none. Show the row only for the saved
+                            accounts that still carry one — an empty "N/A" row
+                            tells the user nothing. */}
+                        {bankAccount.bic && (
+                            <PaymentInfoRow label={t('bank.bic')} value={bankAccount.bic.toUpperCase()} />
+                        )}
                     </>
                 ) : bankAccount?.type === AccountType.CLABE ? (
                     <PaymentInfoRow label={t('bank.clabe')} value={bankAccount?.identifier.toUpperCase()} />
@@ -252,13 +256,13 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 </Button>
             )}
             {submittedTxHash ? (
-                <Notification priority="info" title={t('bank.transferProcessing')}>
+                <Callout priority="info" title={t('bank.transferProcessing')}>
                     {confirmPendingCopy}
-                </Notification>
+                </Callout>
             ) : (
-                error.showError && <Notification priority="error">{error.errorMessage}</Notification>
+                error.showError && <Callout priority="error">{error.errorMessage}</Callout>
             )}
-            {balanceErrorMessage && <Notification priority="error">{balanceErrorMessage}</Notification>}
+            {balanceErrorMessage && <Callout priority="error">{balanceErrorMessage}</Callout>}
         </div>
     )
 }

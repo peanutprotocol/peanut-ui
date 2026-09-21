@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
@@ -20,7 +20,7 @@ import { DepositRuleList } from './DepositRuleList'
  *
  * It sells the outcome (a real account, not a lookup) before it asks for the
  * tap: three benefit rows for what the account actually buys them, and the
- * conditions — a bank's rules, not ours — held to one Notification above the
+ * conditions — a bank's rules, not ours — held to one Callout above the
  * CTA rather than stacked into the page.
  *
  * Who may pay in is stated here, in the same three lines the details screen
@@ -120,13 +120,13 @@ export function ClaimAccountScreen({
              * The CTA is the LAST child, and that is load-bearing rather than
              * taste. The shell reserves 6rem below the scroller to clear the
              * fixed bottom nav, and the reservation clears whatever ends the
-             * page. With the Notification after it the reservation cleared the
-             * Notification instead, and at 375x667 the button first painted at
+             * page. With the Callout after it the reservation cleared the
+             * Callout instead, and at 375x667 the button first painted at
              * y 602 against a nav that owns 597-667 — visibly there, 49px of it
              * behind the nav, and a tap on it switched tabs.
              */}
             <PageStack.Footer>
-                {/* one Notification, max: an error the user must act on replaces
+                {/* one Callout, max: an error the user must act on replaces
                     the general conditions rather than stacking beside them */}
                 {isUnavailable ? (
                     /*
@@ -136,11 +136,11 @@ export function ClaimAccountScreen({
                      * when it is only a wait, and never the backend's own
                      * sentence.
                      */
-                    <Notification priority="attention" title={t('gate.notYetTitle')}>
+                    <Callout priority="attention" title={t('gate.notYetTitle')}>
                         {t('gate.notYetBody')}
-                    </Notification>
+                    </Callout>
                 ) : error ? (
-                    <Notification
+                    <Callout
                         priority="error"
                         title={t('claim.errorTitle')}
                         ctas={
@@ -148,9 +148,9 @@ export function ClaimAccountScreen({
                         }
                     >
                         {error}
-                    </Notification>
+                    </Callout>
                 ) : (
-                    <Notification
+                    <Callout
                         priority="helper"
                         title={tGlobal('balanceWarningModal.goodToKnow')}
                         items={[
@@ -172,7 +172,7 @@ export function ClaimAccountScreen({
                 )}
                 {!isUnavailable && (
                     <Button
-                        variant="purple"
+                        variant="primary"
                         className="w-full"
                         loading={isClaiming}
                         disabled={isClaiming}

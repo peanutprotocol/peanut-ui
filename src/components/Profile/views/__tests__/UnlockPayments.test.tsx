@@ -62,6 +62,26 @@ jest.mock('@/hooks/useCapabilities', () => ({
         isKycApproved: mockIsKycApproved,
         railsForProvider: () => [],
         nextActionsForRail: () => [],
+        // the real per-operation read: `operations?.[op] ?? status`, so a rail
+        // that is enabled for `pay` alone can never answer yes for `deposit`
+        canDo: (op: string, opts?: { provider?: string }) =>
+            (mockRails as Array<Record<string, any>>).some(
+                (rail) =>
+                    (!opts?.provider || rail.provider === opts.provider) &&
+                    ((rail.operations?.[op] as string | undefined) ?? rail.status) === 'enabled'
+            ),
+        // The real gate, not a second hand-rolled copy of it: the per-currency
+        // chips are only as truthful as the country scoping behind them, and a
+        // mock that ignores `rail.country` would pass a split these rails
+        // cannot actually support. Every rail fixture below names its country.
+        gateFor: (op: string, scope?: Record<string, unknown>) =>
+            jest
+                .requireActual('@/utils/capability-gate')
+                .deriveGate(
+                    { rails: mockRails, nextActions: [], identityVerified: mockIsKycApproved, isLoading: false },
+                    op,
+                    scope
+                ),
     }),
 }))
 
@@ -205,7 +225,7 @@ describe('UnlockPayments', () => {
         mockKycDegraded = true
         render()
         expect(screen.getByText('Verification is temporarily down')).toBeInTheDocument()
-        fireEvent.click(screen.getByText('Euro bank transfers'))
+        fireEvent.click(screen.getByText('EUR · Bank transfer'))
         expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
     })
 
@@ -217,7 +237,7 @@ describe('UnlockPayments', () => {
         // an empty "Your account numbers" heading would promise details that do
         // not exist.
         expect(screen.queryByText('Your account numbers')).not.toBeInTheDocument()
-        const accountsHeading = screen.getByText('Ways to send yourself money')
+        const accountsHeading = screen.getByText('Add and withdraw money')
         const peanutHeading = screen.getByText('Peanut')
         expect(accountsHeading.compareDocumentPosition(peanutHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
         expect(screen.getByText('Peanut-to-Peanut payments')).toBeInTheDocument()
@@ -228,7 +248,7 @@ describe('UnlockPayments', () => {
     it('a region-restricted user gets the region screen instead of an unlock offer', () => {
         mockRegionRestricted = true
         render()
-        fireEvent.click(screen.getByText('Euro bank transfers'))
+        fireEvent.click(screen.getByText('EUR · Bank transfer'))
         expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
         expect(screen.getByText('region-restricted-modal')).toBeInTheDocument()
         expect(mockInitiateKyc).not.toHaveBeenCalled()
@@ -236,8 +256,8 @@ describe('UnlockPayments', () => {
 
     it('a bank-method tap opens the method-worded unlock modal and NEVER routes to /card', () => {
         render()
-        fireEvent.click(screen.getByText('Euro bank transfers'))
-        expect(screen.getByText('unlock-modal-open:Euro bank transfers')).toBeInTheDocument()
+        fireEvent.click(screen.getByText('EUR · Bank transfer'))
+        expect(screen.getByText('unlock-modal-open:EUR · Bank transfer')).toBeInTheDocument()
         expect(mockPush).not.toHaveBeenCalled()
     })
 
@@ -255,8 +275,8 @@ describe('UnlockPayments', () => {
         // Region headers are gone (2026-09-18 currency-first merge), so the
         // "floats up" contract now shows in row order: the residence's own
         // region (South America) sorts before the others in the merged list.
-        const brazilRow = screen.getByText('PIX (Brazil), QR & bank transfers (Argentina)')
-        const europeRow = screen.getByText('Euro bank transfers')
+        const brazilRow = screen.getByText('BRL · Pix')
+        const europeRow = screen.getByText('EUR · Bank transfer')
         expect(brazilRow.compareDocumentPosition(europeRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 
@@ -266,7 +286,7 @@ describe('UnlockPayments', () => {
         expect(screen.getAllByText('Not available').length).toBeGreaterThanOrEqual(4)
         // Both P2P and crypto are always-on and untouched by a bank/card restriction.
         expect(screen.getAllByText('Always on').length).toBeGreaterThanOrEqual(2)
-        fireEvent.click(screen.getByText('Euro bank transfers'))
+        fireEvent.click(screen.getByText('EUR · Bank transfer'))
         expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
     })
 
@@ -308,8 +328,8 @@ describe('UnlockPayments', () => {
         expect(mockDismissCooldown).toHaveBeenCalled()
     })
 
-    it('an active LATAM rail shows the inline monthly limit bar on Brazil', () => {
-        mockRails = [{ id: 'manteca.bank', provider: 'manteca', channel: 'bank', status: 'enabled' }]
+    it('states the BRL monthly allowance in the row drawer, never as a card on the screen', () => {
+        mockRails = [{ id: 'manteca.bank', provider: 'manteca', channel: 'bank', country: 'BR', status: 'enabled' }]
         mockMantecaLimits = [
             {
                 exchangeCountry: 'BRA',
@@ -322,7 +342,11 @@ describe('UnlockPayments', () => {
             },
         ]
         render()
-        expect(screen.getByText(/left this month/)).toBeInTheDocument()
+        // Limits are one tap down, not a standing card above the fold.
+        expect(screen.queryByText(/left this month/)).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByText(/BRL/))
+        expect(within(screen.getByRole('dialog')).getByText(/left this month/)).toBeInTheDocument()
     })
 
     /**
@@ -339,12 +363,8 @@ describe('UnlockPayments', () => {
         it('no rail: the ways-in section offers the unlock, and promises no account number', () => {
             render()
 
-            expect(screen.getByText('Ways to send yourself money')).toBeInTheDocument()
-            expect(
-                screen.getByText(
-                    'Move your own money between Peanut and your bank. You get no account number of your own.'
-                )
-            ).toBeInTheDocument()
+            expect(screen.getByText('Add and withdraw money')).toBeInTheDocument()
+            expect(screen.getByText('Move money between your bank and Peanut in these currencies.')).toBeInTheDocument()
             expect(screen.queryByText('Your account numbers')).not.toBeInTheDocument()
             expect(screen.getAllByText('Unlock').length).toBeGreaterThan(0)
             // the word that meant two things is gone from the vocabulary
@@ -352,7 +372,7 @@ describe('UnlockPayments', () => {
         })
 
         it('rail only: the row reads Available, and still no account numbers section', () => {
-            mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', status: 'enabled' }]
+            mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }]
             render()
 
             expect(screen.getAllByText('Available').length).toBeGreaterThan(0)
@@ -367,17 +387,17 @@ describe('UnlockPayments', () => {
          */
         it('rail and an account they could open: still rail access only', () => {
             mockDepositEnabled = true
-            mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', status: 'enabled' }]
+            mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }]
             mockDepositAccounts = {}
             render()
 
             expect(screen.queryByText('Your account numbers')).not.toBeInTheDocument()
-            expect(screen.getByText('Ways to send yourself money')).toBeInTheDocument()
+            expect(screen.getByText('Add and withdraw money')).toBeInTheDocument()
         })
 
         it('an account held: it gets its own section, its own words, and Ready', () => {
             mockDepositEnabled = true
-            mockRails = [{ id: 'bridge.sepa', provider: 'bridge', channel: 'bank', status: 'enabled' }]
+            mockRails = [{ id: 'bridge.sepa', provider: 'bridge', channel: 'bank', country: 'EU', status: 'enabled' }]
             mockDepositAccounts = {
                 SEPA_EU: { status: 'active', instructions: {}, matching: { sender: 'anyone' } },
             }
@@ -395,14 +415,19 @@ describe('UnlockPayments', () => {
         })
     })
 
-    it('an active Bridge rail names deposit and withdrawal limits separately', () => {
-        mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', status: 'enabled' }]
+    it('names the deposit and withdrawal caps separately, inside the row drawer', () => {
+        mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }]
         mockBridgeLimits = { onRampPerTransaction: '25000', offRampPerTransaction: '50000', asset: 'USD' }
         render()
-        expect(screen.getAllByText('Per bank deposit').length).toBeGreaterThan(0)
-        expect(screen.getAllByText('Per bank withdrawal').length).toBeGreaterThan(0)
-        expect(screen.getAllByText('$25,000').length).toBeGreaterThan(0)
-        expect(screen.getAllByText('$50,000').length).toBeGreaterThan(0)
+        expect(screen.queryByText('Per bank deposit')).not.toBeInTheDocument()
+        expect(screen.queryByText('Per bank withdrawal')).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByText('USD · Bank transfer'))
+        const drawer = screen.getByRole('dialog')
+        expect(within(drawer).getByText('Per bank deposit')).toBeInTheDocument()
+        expect(within(drawer).getByText('Per bank withdrawal')).toBeInTheDocument()
+        expect(within(drawer).getByText('$25,000')).toBeInTheDocument()
+        expect(within(drawer).getByText('$50,000')).toBeInTheDocument()
     })
 
     it('active payment rows explain the method in a drawer', () => {
@@ -417,7 +442,7 @@ describe('UnlockPayments', () => {
 
     it('held bank accounts reuse account details, retain the profile return path, and drop the duplicate active row', () => {
         mockDepositEnabled = true
-        mockRails = [{ id: 'bridge.sepa', provider: 'bridge', channel: 'bank', status: 'enabled' }]
+        mockRails = [{ id: 'bridge.sepa', provider: 'bridge', channel: 'bank', country: 'EU', status: 'enabled' }]
         mockDepositAccounts = {
             SEPA_EU: { status: 'active', instructions: {}, matching: { sender: 'business-only' } },
         }
@@ -428,7 +453,7 @@ describe('UnlockPayments', () => {
         // under the other. One list called "Your accounts" said both were the
         // same thing, under a subtitle promising account numbers to share.
         expect(screen.getByText('Your account numbers')).toBeInTheDocument()
-        expect(screen.getByText('Ways to send yourself money')).toBeInTheDocument()
+        expect(screen.getByText('Add and withdraw money')).toBeInTheDocument()
         fireEvent.click(screen.getByText('EUR · SEPA'))
         expect(mockPush).toHaveBeenCalledWith(
             '/add-money?method=bank&step=details&corridor=SEPA_EU&returnTo=%2Fprofile%2Faccounts-and-payments'
@@ -436,7 +461,7 @@ describe('UnlockPayments', () => {
         // An active EUR account covers the same corridor as the active "Euro
         // bank transfers" row (2026-09-18 currency-first merge) — the merged
         // list shows it once, not twice.
-        expect(screen.queryByText('Euro bank transfers')).not.toBeInTheDocument()
+        expect(screen.queryByText('EUR · Bank transfer')).not.toBeInTheDocument()
     })
 
     it('keeps the bank row when the account cannot stand in for it', () => {
@@ -449,21 +474,38 @@ describe('UnlockPayments', () => {
         render()
 
         expect(screen.getByText('EUR · SEPA')).toBeInTheDocument()
-        expect(screen.getByText('Euro bank transfers')).toBeInTheDocument()
+        expect(screen.getByText('EUR · Bank transfer')).toBeInTheDocument()
     })
 
-    it('keeps the bank limits when an account row replaces the bank row they came from', () => {
+    /**
+     * Hugo, 2026-09-21 QA: limits were three standing cards on a screen whose
+     * job is naming the corridors. They are not top-level items — every one of
+     * them is already stated in the drawer a tap away, from the same data.
+     */
+    it('renders no limit card anywhere on the screen', () => {
         mockDepositEnabled = true
-        mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', status: 'enabled' }]
+        mockRails = [
+            { id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' },
+            { id: 'manteca.bank', provider: 'manteca', channel: 'bank', country: 'BR', status: 'enabled' },
+        ]
         mockBridgeLimits = { onRampPerTransaction: '25000', offRampPerTransaction: '50000', asset: 'USD' }
-        mockDepositAccounts = {
-            SEPA_EU: { status: 'active', instructions: {}, matching: { sender: 'anyone' } },
-            ACH_US: { status: 'active', instructions: {}, matching: { sender: 'anyone' } },
-        }
+        mockMantecaLimits = [
+            {
+                exchangeCountry: 'BRA',
+                type: 'EXCHANGE',
+                asset: 'BRL',
+                yearlyLimit: '120000',
+                availableYearlyLimit: '100000',
+                monthlyLimit: '10000',
+                availableMonthlyLimit: '2500',
+            },
+        ]
         render()
 
-        expect(screen.queryByText('Euro bank transfers')).not.toBeInTheDocument()
-        expect(screen.getAllByText('Per bank withdrawal').length).toBeGreaterThan(0)
+        expect(screen.queryByText('Per bank deposit')).not.toBeInTheDocument()
+        expect(screen.queryByText('Per bank withdrawal')).not.toBeInTheDocument()
+        expect(screen.queryByText(/left this month/)).not.toBeInTheDocument()
+        expect(screen.queryByText('No amount limits on Peanut-to-Peanut payments or crypto')).not.toBeInTheDocument()
     })
 
     it.each([
@@ -476,7 +518,7 @@ describe('UnlockPayments', () => {
         // ListGroup positions its direct children: every row after the first
         // drops its top border. Rows behind a wrapper component each kept all
         // four and rendered as separate cards.
-        const rows = ['Euro bank transfers', 'US dollar and Mexican peso bank transfers'].map((title) =>
+        const rows = ['EUR · Bank transfer', 'USD · Bank transfer'].map((title) =>
             screen.getByText(title).closest('.border')
         )
         const group = rows[0]?.parentElement
@@ -491,14 +533,19 @@ describe('UnlockPayments', () => {
         // The ways-in list still renders the KYC-unlock bank/QR rows with the
         // flag off — only the VA fetch (and its rows) are gated. With no
         // standing accounts at all, the account-numbers heading must not appear.
-        expect(screen.getByText('Ways to send yourself money')).toBeInTheDocument()
+        expect(screen.getByText('Add and withdraw money')).toBeInTheDocument()
         expect(screen.queryByText('Your account numbers')).not.toBeInTheDocument()
-        expect(screen.getByText('Euro bank transfers')).toBeInTheDocument()
+        expect(screen.getByText('EUR · Bank transfer')).toBeInTheDocument()
     })
 
-    it('states the P2P no-limit fact even before anything is unlocked', () => {
+    it('states the P2P no-limit fact in the crypto drawer too, never on the screen', () => {
         render()
-        expect(screen.getByText('No amount limits on Peanut-to-Peanut payments or crypto')).toBeInTheDocument()
+        expect(screen.queryByText('No amount limits on Peanut-to-Peanut payments or crypto')).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByText('Crypto'))
+        expect(
+            within(screen.getByRole('dialog')).getByText('No amount limits on Peanut-to-Peanut payments or crypto')
+        ).toBeInTheDocument()
     })
 
     // A residence-parked rail. The TOP-LEVEL status is `blocked` (the backend maps
@@ -509,7 +556,7 @@ describe('UnlockPayments', () => {
         id: 'bridge.sepa_eu',
         provider: 'bridge',
         channel: 'bank',
-        country: 'DE',
+        country: 'EU',
         status: 'blocked',
         reason: {
             code: 'residence_unresolved',
@@ -536,7 +583,7 @@ describe('UnlockPayments', () => {
         mockRails = [residenceParkedRail]
         mockIsKycApproved = true
         render()
-        fireEvent.click(screen.getByText('Euro bank transfers'))
+        fireEvent.click(screen.getByText('EUR · Bank transfer'))
         fireEvent.click(screen.getByText('Upload document'))
 
         expect(mockFixableRejection).toHaveBeenCalledWith(
@@ -562,11 +609,180 @@ describe('UnlockPayments', () => {
         ]
         mockIsKycApproved = true
         render()
-        fireEvent.click(screen.getByText('PIX (Brazil), QR & bank transfers (Argentina)'))
+        fireEvent.click(screen.getByText('BRL · Pix'))
         fireEvent.click(screen.getByText('Upload document'))
 
         expect(mockSelfHealResubmit).toHaveBeenCalledWith('MANTECA')
         expect(mockFixableRejection).not.toHaveBeenCalled()
+    })
+
+    /**
+     * Holding a rail is not being allowed to use it. Every Sumsub-approved
+     * user is enrolled on the QR-tier Manteca rails whatever their residence:
+     * `pay` is enabled, `deposit` and `withdraw` wait for the full account. A
+     * row that adds and withdraws money must read that operation, or a
+     * verified German is told Brazilian and Argentine bank transfers are
+     * Available — with no tap into the onboarding that would make it true.
+     */
+    describe('a bank row states the operation it names, not the rail behind it', () => {
+        const qrPoolRail = {
+            id: 'manteca.pix_br',
+            provider: 'manteca',
+            channel: 'bank',
+            country: 'BR',
+            status: 'enabled',
+            operations: { pay: 'enabled', deposit: 'requires-info', withdraw: 'requires-info' },
+        }
+
+        it('a QR-pool user can pay by QR, and is offered the bank unlock', () => {
+            mockRails = [qrPoolRail]
+            mockIsKycApproved = true
+            render()
+
+            const bankRow = screen.getByText('BRL · Pix')
+            expect(within(bankRow.closest('.border') as HTMLElement).getByText('Unlock')).toBeInTheDocument()
+            const qrRow = screen.getByText('QR payments')
+            expect(within(qrRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
+
+            // the row is the way into the onboarding that makes it true
+            fireEvent.click(bankRow)
+            expect(screen.getByText('unlock-modal-open:BRL · Pix')).toBeInTheDocument()
+        })
+
+        it('a full Manteca account reads Available on both rows', () => {
+            mockRails = [{ ...qrPoolRail, operations: { pay: 'enabled', deposit: 'enabled', withdraw: 'enabled' } }]
+            mockIsKycApproved = true
+            render()
+
+            const bankRow = screen.getByText('BRL · Pix')
+            expect(within(bankRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
+            const qrRow = screen.getByText('QR payments')
+            expect(within(qrRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
+        })
+
+        // North America and Europe hold the same class of gap: the rail exists,
+        // the operation does not. A mid-flight rail keeps its own Processing
+        // chip (pendingBankRailRegionPaths, unchanged) — what it must never
+        // say is Available.
+        it('a Bridge rail that cannot move money yet never reads Available', () => {
+            mockRails = [
+                {
+                    id: 'bridge.ach_us',
+                    provider: 'bridge',
+                    channel: 'bank',
+                    country: 'US',
+                    status: 'requires-info',
+                    operations: { deposit: 'requires-info', withdraw: 'requires-info' },
+                },
+            ]
+            mockIsKycApproved = true
+            render()
+
+            const row = screen.getByText('USD · Bank transfer').closest('.border') as HTMLElement
+            expect(within(row).queryByText('Available')).not.toBeInTheDocument()
+            expect(within(row).getByText('Processing')).toBeInTheDocument()
+        })
+    })
+
+    /**
+     * One row per currency (ruled 2026-09-21, hugo — "prob makes sense to split
+     * usa and Mexico"). A merged row gave two currencies one chip, so a user
+     * with a working US rail and no Mexican one read "Available" on a row that
+     * named MXN. Each chip is now scoped to its own corridor's country.
+     */
+    describe('one row per currency', () => {
+        const badgeFor = (title: string) => within(screen.getByText(title).closest('.border') as HTMLElement)
+
+        it('names each currency on its own row, in its own group', () => {
+            render()
+            for (const title of ['BRL · Pix', 'ARS · Bank transfer', 'USD · Bank transfer', 'MXN · SPEI']) {
+                expect(screen.getByText(title)).toBeInTheDocument()
+            }
+            expect(screen.queryByText(/USD and MXN/)).not.toBeInTheDocument()
+            expect(screen.queryByText(/BRL and ARS/)).not.toBeInTheDocument()
+        })
+
+        it('a US-only Bridge rail says Available on USD and never on MXN', () => {
+            mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }]
+            render()
+
+            expect(badgeFor('USD · Bank transfer').getByText('Available')).toBeInTheDocument()
+            expect(badgeFor('MXN · SPEI').queryByText('Available')).not.toBeInTheDocument()
+            expect(badgeFor('MXN · SPEI').getByText('Unlock')).toBeInTheDocument()
+        })
+
+        it('a Brazil-only Manteca rail says Available on BRL and never on ARS', () => {
+            mockRails = [
+                { id: 'manteca.pix_br', provider: 'manteca', channel: 'bank', country: 'BR', status: 'enabled' },
+            ]
+            render()
+
+            expect(badgeFor('BRL · Pix').getByText('Available')).toBeInTheDocument()
+            expect(badgeFor('ARS · Bank transfer').queryByText('Available')).not.toBeInTheDocument()
+        })
+
+        it('sibling rows still route into the one verification that opens both', () => {
+            render()
+            fireEvent.click(screen.getByText('MXN · SPEI'))
+            expect(screen.getByText('unlock-modal-open:MXN · SPEI')).toBeInTheDocument()
+        })
+
+        it("a usable row opens that currency's own details drawer", () => {
+            mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }]
+            render()
+
+            fireEvent.click(screen.getByText('USD · Bank transfer'))
+            const drawer = screen.getByRole('dialog')
+            expect(within(drawer).getByText('Add and withdraw dollars using US bank transfers.')).toBeInTheDocument()
+            expect(within(drawer).queryByText(/Mexican pesos/)).not.toBeInTheDocument()
+        })
+    })
+
+    /**
+     * Spending is not adding or withdrawing money, and the two used to share
+     * one list: QR payments were a word inside a bank row titled after a bank
+     * transfer, so a verified user could not tell that they can already pay a
+     * shop in Brazil or Argentina.
+     */
+    describe('the Spend section', () => {
+        it('names the card and QR payments, and offers QR to a user without it', () => {
+            render()
+
+            const spendHeading = screen.getByText('Spend')
+            const bankHeading = screen.getByText('Add and withdraw money')
+            expect(bankHeading.compareDocumentPosition(spendHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+            expect(screen.getByText('Peanut card')).toBeInTheDocument()
+            expect(screen.getByText('QR payments')).toBeInTheDocument()
+            // the title used to carry the corridor and wrapped over three
+            // lines at 375px; the description holds it in two
+            expect(screen.getByText('Brazil and Argentina. Pay in shops by scanning a QR code.')).toBeInTheDocument()
+
+            // no Manteca rail yet: the row is the same unlock offer the bank
+            // row is, and the tap opens the same region intent
+            fireEvent.click(screen.getByText('QR payments'))
+            expect(screen.getByText('unlock-modal-open:QR payments')).toBeInTheDocument()
+            expect(mockPush).not.toHaveBeenCalled()
+        })
+
+        it('reads Available once the QR rail is live, and explains itself in the drawer', () => {
+            mockRails = [{ id: 'manteca.bank', provider: 'manteca', channel: 'bank', country: 'BR', status: 'enabled' }]
+            render()
+
+            const qrRow = screen.getByText('QR payments')
+            fireEvent.click(qrRow)
+            const drawer = screen.getByRole('dialog')
+            expect(
+                within(drawer).getByText('Pay in shops in Brazil and Argentina by scanning a QR code.')
+            ).toBeInTheDocument()
+            expect(mockInitiateKyc).not.toHaveBeenCalled()
+        })
+
+        it('the bank list never mentions QR any more', () => {
+            render()
+
+            const bankRow = screen.getByText('BRL · Pix')
+            expect(bankRow.textContent).not.toMatch(/QR/)
+        })
     })
 
     it('a pending residence verification is surfaced without replacing the active country', () => {

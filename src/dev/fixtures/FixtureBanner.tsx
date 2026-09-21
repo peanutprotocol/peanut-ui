@@ -6,7 +6,7 @@
 // their real account.
 
 import { useEffect, useState } from 'react'
-import { Notification } from '@/components/0_Bruddle/Notification'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { DEV_TOOLS_ENABLED } from '@/constants/dev-tools.consts'
 import { FIXTURE_PARAM, peekActiveFixture } from '@/dev/fixtures/active'
 
@@ -21,7 +21,7 @@ export function FixtureBanner() {
     if (!name) return null
 
     return (
-        <Notification
+        <Callout
             data-fixture-banner=""
             data-testid="fixture-banner"
             variant="floating"
@@ -38,6 +38,6 @@ export function FixtureBanner() {
             ]}
         >
             API responses on this page are simulated.
-        </Notification>
+        </Callout>
     )
 }
