@@ -1279,6 +1279,7 @@
     },
     "qrPay": {
         "youArePaying": "Você está pagando",
+        "reviewUpdatedQuote": "Revise a cotação atualizada para continuar.",
         "paymentMethodAlt": "Método de pagamento",
         "peanutManAlt": "Peanut Man",
         "waitingForMerchant": "Aguardando o lojista definir o valor",
@@ -1873,6 +1874,7 @@
         "bankNotAvailableNote": "Transferências bancárias não estão disponíveis no seu país. Você ainda pode adicionar e sacar cripto."
     },
     "withdraw": {
+        "reviewUpdatedQuote": "Revise a cotação atualizada para continuar.",
         "amountToWithdraw": "Valor a sacar",
         "amountToSend": "Valor a enviar",
         "howWouldYouLikeToWithdraw": "Como você quer sacar?",
@@ -3354,6 +3356,7 @@
             "successTitle": "Cartão reativado",
             "successDescription": "Seu cartão está pronto — tente o saque de novo.",
             "cancelledError": "A reativação foi cancelada. Toque em Reativar cartão para tentar de novo.",
+            "rotatedError": "Seu cartão foi atualizado enquanto salvávamos. Toque em Reativar cartão mais uma vez.",
             "unexpectedError": "Não conseguimos reativar seu cartão. Tente novamente.",
             "reEnableCta": "Reativar cartão",
             "workingCta": "Processando…",

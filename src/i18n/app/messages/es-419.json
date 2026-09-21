@@ -1279,6 +1279,7 @@
     },
     "qrPay": {
         "youArePaying": "Estás pagando",
+        "reviewUpdatedQuote": "Revisa la cotización actualizada para continuar.",
         "paymentMethodAlt": "Método de pago",
         "peanutManAlt": "Peanut Man",
         "waitingForMerchant": "Esperando a que el comercio ingrese el monto",
@@ -1873,6 +1874,7 @@
         "bankNotAvailableNote": "Las transferencias bancarias no están disponibles en tu país. Todavía puedes ingresar y retirar cripto."
     },
     "withdraw": {
+        "reviewUpdatedQuote": "Revisa la cotización actualizada para continuar.",
         "amountToWithdraw": "Monto a retirar",
         "amountToSend": "Monto a enviar",
         "howWouldYouLikeToWithdraw": "¿Cómo quieres retirar?",
@@ -3354,6 +3356,7 @@
             "successTitle": "Tarjeta reactivada",
             "successDescription": "Tu tarjeta está lista — intenta tu retiro de nuevo.",
             "cancelledError": "Se canceló la reactivación. Toca Reactivar tarjeta para intentarlo otra vez.",
+            "rotatedError": "Tu tarjeta se actualizó mientras guardábamos. Toca Reactivar tarjeta una vez más.",
             "unexpectedError": "No pudimos reactivar tu tarjeta. Inténtalo de nuevo.",
             "reEnableCta": "Reactivar tarjeta",
             "workingCta": "Procesando…",
