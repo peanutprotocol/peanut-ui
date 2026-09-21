@@ -1955,6 +1955,10 @@
             "referenceInvalidCharsSepa": "Solo letras a-z, números, espacios y & - . /",
             "referenceInvalidCharsAch": "Solo letras a-z, números y espacios.",
             "referenceInvalidCharsSpei": "Solo letras a-z, números y espacios.",
+            "payoutSenderSepa": "El pago llega de nuestro socio de pagos, no a tu nombre. Tu nombre va en la referencia del pago.",
+            "payoutSenderAch": "El pago llega de nuestro socio de pagos, no a tu nombre. Tu banco muestra Peanut.",
+            "payoutSenderSpei": "El pago llega del banco local de nuestro socio de pagos, no a tu nombre.",
+            "payoutSenderWire": "El pago llega de Peanut, no a tu nombre.",
             "bankAccount": "Cuenta bancaria",
             "transferProcessing": "Transferencia en proceso",
             "confirmPending": "Tu transferencia se está procesando. Los fondos se enviaron on-chain correctamente: la confirmación puede tardar unos minutos. Si no ves el retiro en tu actividad dentro de 30 minutos, contacta a soporte."
