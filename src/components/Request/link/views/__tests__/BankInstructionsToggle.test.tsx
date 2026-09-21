@@ -157,26 +157,33 @@ describe('BankInstructionsToggle', () => {
         })
 
         // OFF says the details stay private and states the one thing the
-        // requester wants to know: no transfer can reach their account. It
-        // drops the sender-line — there is no live disclosure to qualify.
+        // requester wants to know: no transfer reaches their account. It keeps
+        // the fact that the pay screen lists a bank method either way — that
+        // method funds the payer's own balance, so "only Peanut and crypto"
+        // was untrue. It drops the sender-line: there is no live disclosure to
+        // qualify.
         it('shows the opt-out copy while unchecked, with no sender line', () => {
             accounts = { SEPA_EU: account('active', 'business-only') }
 
             renderToggle(false)
 
             expect(screen.getByText('Your bank details stay private')).toBeInTheDocument()
-            expect(screen.getByText(/Payers can pay with Peanut or crypto\./)).toBeInTheDocument()
+            expect(screen.getByText(/Payers pay with Peanut or crypto\./)).toBeInTheDocument()
             expect(screen.queryByText(/Only businesses can pay this by bank transfer\./)).not.toBeInTheDocument()
         })
 
-        // The complaint this copy came from: the opt-out screen still read as
-        // an offer to pay by bank, on a request whose bank details nobody gets.
-        it('does not offer a bank transfer while unchecked', () => {
+        // The complaint this copy came from: the opt-out screen read as an
+        // offer to pay the requester by bank, on a request whose bank details
+        // nobody gets. Both halves have to be on screen — the payer's own bank
+        // can fund the payment, and the money still does not land in the
+        // requester's account.
+        it('separates paying from a bank from being paid into one', () => {
             accounts = { SEPA_EU: account('active') }
 
             renderToggle(false)
 
-            expect(screen.getByText(/They cannot pay you by bank transfer\./)).toBeInTheDocument()
+            expect(screen.getByText(/add money from their own bank first/)).toBeInTheDocument()
+            expect(screen.getByText(/does not arrive in your bank account/)).toBeInTheDocument()
         })
 
         // A name that flips with the state reads "Don't share…, switch, off".

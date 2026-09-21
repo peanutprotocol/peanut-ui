@@ -9,6 +9,7 @@ import {
     transactionDetailsRowKeys,
 } from '@/components/TransactionDetails/transaction-details.utils'
 import {
+    hasResolvableReceiptDocument,
     servesAnonymousReceipt,
     isCardPaymentEntry,
     isCardSpend as isCardSpendTransaction,
@@ -258,7 +259,13 @@ export function useReceiptViewModel(
     // interactive send/request action. Existing public receipt kinds share a
     // capability URL; all other kinds share an authenticated PDF file.
     const meetsShareConditions = useMemo(
-        () => !!transaction && !isPendingSentLink && !isPendingRequester && !isPendingRequestee,
+        () =>
+            !!transaction &&
+            !isPendingSentLink &&
+            !isPendingRequester &&
+            !isPendingRequestee &&
+            // no document affordance where the document cannot be fetched
+            hasResolvableReceiptDocument(transaction),
         [transaction, isPendingSentLink, isPendingRequester, isPendingRequestee]
     )
 

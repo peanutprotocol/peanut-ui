@@ -18,6 +18,19 @@ import { useQueryState, parseAsStringEnum, parseAsString } from 'nuqs'
 import posthog from 'posthog-js'
 import { useCallback, useMemo, useState } from 'react'
 
+/** An EVM transaction hash, the only shape the history route keys a receipt on. */
+const EVM_TX_HASH = /^0x[0-9a-f]{64}$/i
+
+/**
+ * The receipt key for a deposit hash: the `tx:` form for an EVM hash, and the
+ * hash itself, untouched, for a Solana or Tron one — lowercasing a base58
+ * Solana hash would corrupt it.
+ */
+export function receiptIdForDepositHash(txHash: string | undefined): string {
+    if (!txHash) return 'deposit'
+    return EVM_TX_HASH.test(txHash) ? `tx:${txHash.toLowerCase()}` : txHash
+}
+
 // static — peanut wallet is always on arbitrum
 const DEPOSIT_EXPLORER_BASE_URL = getExplorerUrl(PEANUT_WALLET_CHAIN.id.toString())
 
@@ -92,11 +105,14 @@ export function useAddMoneyCryptoFlow() {
                 : undefined
         const now = new Date()
         return {
-            // GET /history/:id resolves a crypto deposit by `tx:<lowercase hash>`
-            // and by nothing else, so a bare hash 404s and Share receipt fails
-            // every time. Same key the send and request receipts use — a tx
-            // hash is not a receipt key.
-            id: depositResult.txHash ? `tx:${depositResult.txHash.toLowerCase()}` : 'deposit',
+            // GET /history/:id resolves a crypto deposit by `tx:<lowercase evm
+            // hash>` and by nothing else, so a bare hash 404s — a tx hash is
+            // not a receipt key. Only an EVM hash has that form: a Solana hash
+            // is base58 and CASE-SENSITIVE, and a Tron hash carries no `0x`,
+            // so neither is touched here and neither is offered a document
+            // (hasResolvableReceiptDocument). Resolving those two chains is a
+            // history-route change.
+            id: receiptIdForDepositHash(depositResult.txHash),
             txHash: depositResult.txHash,
             explorerUrl,
             direction: 'add',

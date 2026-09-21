@@ -17,6 +17,7 @@ import {
     isSendLinkEntry,
     isSplittable,
     hasShareableReceipt,
+    hasResolvableReceiptDocument,
     servesAnonymousReceipt,
 } from '../transaction-predicates'
 import type { TransactionDetails } from '../transactionTransformer'
@@ -340,5 +341,37 @@ describe('servesAnonymousReceipt', () => {
 
     it.each(['DIRECT_TRANSFER', 'CARD_SPEND_CLEAR', 'CRYPTO_WITHDRAW'])('keeps %s owner-only', (kind) => {
         expect(servesAnonymousReceipt(tx(kind))).toBe(false)
+    })
+})
+
+/**
+ * The deposit success screen keys its receipt on the transaction hash, and the
+ * history route resolves only the EVM `tx:` form — so Share and Download on a
+ * Solana or Tron deposit were buttons that always answered 404.
+ */
+describe('hasResolvableReceiptDocument', () => {
+    const deposit = (id: string) =>
+        ({ id, extraDataForDrawer: { kind: 'CRYPTO_DEPOSIT' } }) as unknown as TransactionDetails
+
+    it('resolves a crypto deposit that is already a history row', () => {
+        expect(hasResolvableReceiptDocument(deposit('b27d2f1a-0000-4000-8000-000000000001'))).toBe(true)
+    })
+
+    it('resolves a deposit keyed on an EVM hash', () => {
+        expect(hasResolvableReceiptDocument(deposit(`tx:${'0xab'.padEnd(66, 'c')}`))).toBe(true)
+    })
+
+    it.each([
+        ['a solana hash', '5Tx9AbCdEfGhJkLmNpQrStUvWxYz1234567890AbCdEfGhJkLmNpQrStUvWxYz'],
+        ['a tron hash', 'TXYZa1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0'],
+        ['a bare evm hash', '0xab'.padEnd(66, 'c')],
+        ['the no-hash fallback', 'deposit'],
+    ])('offers no document for %s', (_name, id) => {
+        expect(hasResolvableReceiptDocument(deposit(id))).toBe(false)
+    })
+
+    it('never withholds a document from any other kind', () => {
+        const tx = { id: 'anything', extraDataForDrawer: { kind: 'OFFRAMP' } } as unknown as TransactionDetails
+        expect(hasResolvableReceiptDocument(tx)).toBe(true)
     })
 })
