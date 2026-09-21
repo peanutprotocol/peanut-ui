@@ -18,7 +18,15 @@ const ibanAccount = {
 } as unknown as Account
 
 /** The view is dumb: the harness holds the reference the way the flow hook does. */
-const Harness = ({ rail, submittedTxHash = null }: { rail: string; submittedTxHash?: string | null }) => {
+const Harness = ({
+    rail,
+    submittedTxHash = null,
+    showError = false,
+}: {
+    rail: string
+    submittedTxHash?: string | null
+    showError?: boolean
+}) => {
     const [reference, setReference] = React.useState('')
     const spec = bankReferenceSpecForRail(rail)
     return (
@@ -30,7 +38,7 @@ const Harness = ({ rail, submittedTxHash = null }: { rail: string; submittedTxHa
             isLoading={false}
             isSubmitReady
             submittedTxHash={submittedTxHash}
-            error={{ showError: false, errorMessage: '' }}
+            error={{ showError, errorMessage: showError ? 'Something went wrong' : '' }}
             balanceErrorMessage={null}
             confirmPendingCopy="processing"
             referenceSpec={spec}
@@ -139,5 +147,24 @@ describe('WithdrawBankReviewView — the optional reference', () => {
         // Faster Payments is absent from the provider's payout configuration.
         renderWithIntl(<Harness rail="faster_payments" />)
         expect(screen.queryByText(/arrives from/)).not.toBeInTheDocument()
+    })
+
+    it('Retry is disabled while the reference breaks the rail limits', () => {
+        // The flow hook returns early on a reference problem, so an enabled
+        // Retry here is a button that looks live and does nothing.
+        renderWithIntl(<Harness rail="sepa" showError />)
+        const retry = screen.getByRole('button', { name: /retry/i })
+        expect(retry).toBeEnabled()
+
+        fireEvent.change(referenceInput()!, { target: { value: 'rent' } })
+        expect(screen.getByRole('button', { name: /retry/i })).toBeDisabled()
+    })
+
+    it('names the reference problem in the error state without waiting for a blur', () => {
+        // The user already submitted once, so there is nothing left to "finish
+        // typing" — hiding the reason would leave a dead Retry unexplained.
+        renderWithIntl(<Harness rail="sepa" showError />)
+        fireEvent.change(referenceInput()!, { target: { value: 'rent' } })
+        expect(screen.getByText('Use at least 6 characters, or leave it empty.')).toBeInTheDocument()
     })
 })

@@ -180,7 +180,13 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                     label={t('bank.reference')}
                     htmlFor="withdraw-bank-reference"
                     helper={t(`bank.${referenceSpec.helperKey}`)}
-                    error={referenceTouched && referenceProblem ? referenceErrorText(referenceProblem) : undefined}
+                    // After a failed submit there is nothing left to finish
+                    // typing, so the reason shows without waiting for a blur.
+                    error={
+                        (referenceTouched || error.showError) && referenceProblem
+                            ? referenceErrorText(referenceProblem)
+                            : undefined
+                    }
                 >
                     <BaseInput
                         id="withdraw-bank-reference"
@@ -205,7 +211,10 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 </Button>
             ) : error.showError ? (
                 <Button
-                    disabled={isLoading}
+                    // Same guard as the normal submit below: the flow hook
+                    // returns early on a reference problem, so without this
+                    // Retry looks live and does nothing.
+                    disabled={isLoading || !!referenceProblem}
                     onClick={onSubmit}
                     loading={isLoading}
                     shadowSize="4"
