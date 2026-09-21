@@ -35,7 +35,11 @@ import { PILL_TINT_SELECTED_CHIP, PILL_TRACK_INVERTED } from './PillSurface'
  * The two fills are 1.09:1 apart (background-default vs background-page), so
  * the FILL CANNOT CARRY SELECTION on its own. The chip's 1px `border-default`
  * outline does that (18.09:1 on white, 16.60:1 on the tint), with the label
- * colour as the second channel. Never let a future change drop the chip border
+ * colour as the second channel and the label WEIGHT as the third (kush,
+ * 2026-09-21): active steps 500 -> 600. That question was open while the row
+ * shipped on border plus colour alone; the ruling took the weight because at a
+ * 1.09:1 fill it costs nothing — the type token already exists and the glyph
+ * metrics are identical at 16px. Never let a future change drop the chip border
  * and lean on fill.
  *
  * Radix headless base, semantic tokens only.
@@ -66,9 +70,10 @@ interface TabsProps {
     /** stretch the tabs to fill the row (network toggles) */
     fullWidth?: boolean
     /**
-     * Row scale. Changes ONLY height, horizontal padding, the text token and
-     * the icon-to-label gap — the chip weld, the track border, the radius, the
-     * ring, the scroll gutter and the panel spacing are identical in all three.
+     * Row scale. Changes ONLY height, horizontal padding, the text-token pair
+     * (inactive / active-semibold) and the icon-to-label gap — the chip weld,
+     * the track border, the radius, the ring, the scroll gutter and the panel
+     * spacing are identical in all three.
      *
      * `sm` is a 36px row, UNDER the 44px touch minimum. It clears WCAG 2.5.8 AA
      * (24px) but misses 2.5.5 AAA and Apple's 44pt guidance. Accepted by kush
@@ -94,7 +99,7 @@ const scrollWrap = '-m-1 overflow-x-auto p-1'
 // the trigger is a plain flow box; the chip rides 1px outside it as `::before`.
 // The transparent resting border keeps the chip's geometry identical in both
 // states, so switching tabs never shifts anything. Everything here is
-// size-independent; the three size-varying properties live in SIZES.
+// size-independent; the size-varying properties live in SIZES.
 const trigger =
     'relative flex shrink-0 items-center justify-center whitespace-nowrap text-foreground-secondary transition-colors duration-instant active:text-action-ghost-hover data-[state=active]:z-10 data-[state=active]:text-foreground-primary'
 
@@ -103,11 +108,28 @@ const trigger =
  * and the nav read as one family. Heights are min-h-*, which the spacing
  * ratchet does not govern; the padding and gap steps are all on the documented
  * scale (3 / 4 / 6 and 1 / 2).
+ *
+ * Each size carries a PAIR of type tokens, not one token plus a weight class.
+ * `text-body-m` is 500 and `text-body-m-semibold` is 600 at the same 1rem/1.25rem
+ * metrics, so the step is a token swap with no reflow — and the `ds-lint`
+ * `fontWeightOnTypeToken` ratchet stays at zero here, which stacking a raw
+ * `font-semibold` on a type token would not. The two selectors are mutually
+ * exclusive: radix gives a trigger `data-state="active"` or `"inactive"` and
+ * never neither, so every trigger resolves exactly one of the pair.
  */
 const SIZES = {
-    sm: { row: 'min-h-9 px-3 text-body-s', gap: 'gap-1' },
-    md: { row: 'min-h-11 px-4 text-body-m', gap: 'gap-1' },
-    lg: { row: 'min-h-13 px-6 text-body-m', gap: 'gap-2' },
+    sm: {
+        row: 'min-h-9 px-3 data-[state=inactive]:text-body-s data-[state=active]:text-body-s-semibold',
+        gap: 'gap-1',
+    },
+    md: {
+        row: 'min-h-11 px-4 data-[state=inactive]:text-body-m data-[state=active]:text-body-m-semibold',
+        gap: 'gap-1',
+    },
+    lg: {
+        row: 'min-h-13 px-6 data-[state=inactive]:text-body-m data-[state=active]:text-body-m-semibold',
+        gap: 'gap-2',
+    },
 } as const
 
 type TabsSize = keyof typeof SIZES

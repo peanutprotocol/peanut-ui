@@ -130,28 +130,36 @@ describe('Tabs', () => {
         expect(tab.className).not.toContain('transition-transform')
     })
 
-    // size changes THREE things and nothing else. If a future edit makes a size
-    // move the radius, the weld, the ring or the track, the shared-class check
-    // at the bottom fails.
+    // size changes height, padding, the text-token PAIR and the gap — nothing
+    // else. If a future edit makes a size move the radius, the weld, the ring or
+    // the track, the shared-class check at the bottom fails.
     test.each([
-        ['sm', 'min-h-9', 'px-3', 'text-body-s', 'gap-1'],
-        ['md', 'min-h-11', 'px-4', 'text-body-m', 'gap-1'],
-        ['lg', 'min-h-13', 'px-6', 'text-body-m', 'gap-2'],
-    ] as const)('size=%s resolves to %s %s %s with a %s label gap', (size, height, pad, text, gap) => {
-        const { container } = render(<Tabs tabs={TABS} aria-label="demo" size={size} />)
-        const [tab] = screen.getAllByRole('tab')
-        expect(tab.className).toContain(height)
-        expect(tab.className).toContain(pad)
-        expect(tab.className).toContain(text)
-        expect(container.querySelector('[role="tab"] > span')?.className).toContain(gap)
-    })
+        ['sm', 'min-h-9', 'px-3', 'text-body-s', 'text-body-s-semibold', 'gap-1'],
+        ['md', 'min-h-11', 'px-4', 'text-body-m', 'text-body-m-semibold', 'gap-1'],
+        ['lg', 'min-h-13', 'px-6', 'text-body-m', 'text-body-m-semibold', 'gap-2'],
+    ] as const)(
+        'size=%s resolves to %s %s, %s inactive / %s active, with a %s label gap',
+        (size, height, pad, idle, active, gap) => {
+            const { container } = render(<Tabs tabs={TABS} aria-label="demo" size={size} />)
+            const [tab] = screen.getAllByRole('tab')
+            expect(tab.className).toContain(height)
+            expect(tab.className).toContain(pad)
+            // the weight step is a PAIR of type tokens on mutually exclusive
+            // state selectors — never a type token plus a raw font-weight class,
+            // which is what the ds-lint fontWeightOnTypeToken ratchet counts
+            expect(tab.className).toContain(`data-[state=inactive]:${idle}`)
+            expect(tab.className).toContain(`data-[state=active]:${active}`)
+            expect(tab.className).not.toMatch(/\bfont-(?:semibold|bold|medium|normal)\b/)
+            expect(container.querySelector('[role="tab"] > span')?.className).toContain(gap)
+        }
+    )
 
     test('md is the default, and size touches nothing but height, padding, text and gap', () => {
         const { unmount } = render(<Tabs tabs={TABS} aria-label="demo" />)
         const byDefault = screen.getAllByRole('tab')[0].className
         expect(byDefault).toContain('min-h-11')
         expect(byDefault).toContain('px-4')
-        expect(byDefault).toContain('text-body-m')
+        expect(byDefault).toContain('data-[state=inactive]:text-body-m')
         unmount()
 
         // everything that must NOT vary with size
@@ -166,8 +174,15 @@ describe('Tabs', () => {
             const { unmount: u } = render(<Tabs tabs={TABS} aria-label="demo" size={size} />)
             const cls = screen.getAllByRole('tab')[0].className
             for (const c of shared) expect(cls).toContain(c)
-            // the row never grows a weight step — that third channel is unruled
-            expect(cls).not.toContain('text-body-m-semibold')
+            // the weight step IS the third selection channel (kush, 2026-09-21,
+            // superseding the "unruled" hold this assertion used to guard). It
+            // must ride the ACTIVE state only — an unconditional semibold would
+            // make every label bold and carry no selection at all.
+            const emphasis = size === 'sm' ? 'text-body-s-semibold' : 'text-body-m-semibold'
+            expect(cls).toContain(`data-[state=active]:${emphasis}`)
+            expect(cls).not.toContain(`data-[state=inactive]:${emphasis}`)
+            // and it is never an unprefixed, always-on token
+            expect(cls).not.toMatch(new RegExp(`(?<!:)\\b${emphasis}\\b`))
             u()
         }
     })
