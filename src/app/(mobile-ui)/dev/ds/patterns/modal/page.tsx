@@ -10,6 +10,7 @@ import { DocSection } from '../../_components/DocSection'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { ProductUsage } from '../../_components/ProductUsage'
 
 const TONES: ActionModalTone[] = ['error', 'attention', 'success', 'info']
 
@@ -17,6 +18,9 @@ export default function ModalPage() {
     const [showActionModal, setShowActionModal] = useState(false)
     const [actionCheckbox, setActionCheckbox] = useState(false)
     const [toneModal, setToneModal] = useState<ActionModalTone | null>(null)
+    // product recreations open on demand — an auto-opened overlay would cover the page
+    const [bridgeTosModal, setBridgeTosModal] = useState(false)
+    const [lockCardModal, setLockCardModal] = useState(false)
 
     return (
         <DocPage>
@@ -203,6 +207,99 @@ export default function ModalPage() {
                     green for success, blue for plain information. Without a tone the bubble is pink (primary-1).
                 </DesignNote>
             </DocSection>
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="KYC — Bridge terms of service"
+                    path="src/components/Kyc/BridgeTosStep.tsx"
+                    description="Two stacked full-width CTAs, and the same modal carries the error state: icon, title and description all swap when the accept call fails."
+                    code={`<ActionModal
+  visible={visible && !showIframe && !isConfirming}
+  onClose={onSkip}
+  icon={error ? 'alert' : 'badge'}
+  title={error ? t('bridgeTos.errorTitle') : copy.title}
+  description={error || copy.description}
+  ctas={[
+    {
+      text: t('bridgeTos.acceptTerms'),
+      onClick: handleAcceptTerms,
+      variant: 'primary',
+      className: 'w-full',
+      shadowSize: '4',
+    },
+    { text: t('bridgeTos.notNow'), onClick: onSkip, variant: 'stroke', className: 'w-full' },
+  ]}
+/>`}
+                >
+                    <Button variant="stroke" size="small" onClick={() => setBridgeTosModal(true)}>
+                        Open example
+                    </Button>
+                    <ActionModal
+                        visible={bridgeTosModal}
+                        onClose={() => setBridgeTosModal(false)}
+                        icon="badge"
+                        title="Accept Bridge terms"
+                        description="Bridge is our banking partner. Accept their terms to finish verification."
+                        ctas={[
+                            {
+                                text: 'Accept terms',
+                                onClick: () => setBridgeTosModal(false),
+                                variant: 'primary',
+                                className: 'w-full',
+                                shadowSize: '4',
+                            },
+                            {
+                                text: 'Not now',
+                                onClick: () => setBridgeTosModal(false),
+                                variant: 'stroke',
+                                className: 'w-full',
+                            },
+                        ]}
+                    />
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Card — lock the card"
+                    path="src/components/Card/LockCardModal.tsx"
+                    description="tone=attention with an explicit lock icon, and preventClose while the call runs so the modal cannot be dismissed mid-request."
+                    code={`<ActionModal
+  visible={isOpen}
+  onClose={onClose}
+  preventClose={phase === 'loading'}
+  hideModalCloseButton={phase === 'loading'}
+  tone="attention"
+  icon="lock"
+  title={t(copyKeys.title)}
+  description={t(copyKeys.body)}
+  content={hasBody ? bodyContent : undefined}
+  ctas={[
+    { text: t('lockModal.lockCta'), variant: 'primary', onClick: run, loading: phase === 'loading' },
+    { text: tCommon('cancel'), variant: 'stroke', className: 'w-full', onClick: onClose },
+  ]}
+/>`}
+                >
+                    <Button variant="stroke" size="small" onClick={() => setLockCardModal(true)}>
+                        Open example
+                    </Button>
+                    <ActionModal
+                        visible={lockCardModal}
+                        onClose={() => setLockCardModal(false)}
+                        tone="attention"
+                        icon="lock"
+                        title="Lock your card?"
+                        description="Payments stop straight away. You can unlock the card at any time."
+                        ctas={[
+                            { text: 'Lock card', variant: 'primary', onClick: () => setLockCardModal(false) },
+                            {
+                                text: 'Cancel',
+                                variant: 'stroke',
+                                className: 'w-full',
+                                onClick: () => setLockCardModal(false),
+                            },
+                        ]}
+                    />
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

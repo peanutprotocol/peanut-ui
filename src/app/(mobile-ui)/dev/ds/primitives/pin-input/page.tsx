@@ -7,6 +7,7 @@ import { CodeBlock } from '../../_components/CodeBlock'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocPage } from '../../_components/DocPage'
 import { DocSection } from '../../_components/DocSection'
+import { ProductUsage } from '../../_components/ProductUsage'
 import { PropsTable } from '../../_components/PropsTable'
 import { SectionDivider } from '../../_components/SectionDivider'
 
@@ -93,6 +94,48 @@ export default function PinInputPage() {
                     />
                 </DocSection.Code>
             </DocSection>
+
+            <SectionDivider />
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Card — choose your PIN"
+                    path="src/components/Card/CardPinSetupFlow.tsx"
+                    description="First step. The PIN is validated live once all 4 digits are in, so the rejection reason shows before Continue — and Continue stays disabled until it passes."
+                    code={`{/* pin input + its field error form one column, 4px apart (form-field board 17788:19179) */}
+<div className="flex flex-col items-center gap-1">
+    <PinInput value={first} onChange={setFirst} />
+    {choosePinValidation && !choosePinValidation.valid && choosePinValidation.reason && (
+        <FieldError>{t(REJECTION_KEYS[choosePinValidation.reason])}</FieldError>
+    )}
+</div>`}
+                >
+                    <div className="flex flex-col items-center gap-1">
+                        <PinInput value="1234" onChange={() => {}} autoFocus={false} />
+                        <FieldError>No sequential digits (e.g., 1234)</FieldError>
+                    </div>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Card — confirm your PIN"
+                    path="src/components/Card/CardPinSetupFlow.tsx"
+                    description="Second step, same column. The input goes disabled while the PIN is being saved, so the dots cannot change under a request in flight."
+                    code={`<div className="flex flex-col items-center gap-1">
+    <PinInput value={second} onChange={setSecond} disabled={step === 'saving'} />
+    {fieldError && <FieldError>{fieldError}</FieldError>}
+</div>`}
+                >
+                    <div className="flex flex-col items-center gap-1">
+                        <PinInput value="1234" onChange={() => {}} autoFocus={false} disabled />
+                        <FieldError>PINs do not match</FieldError>
+                    </div>
+                </ProductUsage.Example>
+
+                <p className="text-body-s text-foreground-secondary">
+                    Limited usage: <code>CardPinSetupFlow</code> is the only product file that renders PinInput. Both
+                    call sites are above.
+                </p>
+            </ProductUsage>
         </DocPage>
     )
 }

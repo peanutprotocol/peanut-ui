@@ -1,10 +1,12 @@
 'use client'
 
 import { BulletList } from '@/components/0_Bruddle/BulletList'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocPage } from '../../_components/DocPage'
 import { DocSection } from '../../_components/DocSection'
+import { ProductUsage } from '../../_components/ProductUsage'
 import { PropsTable } from '../../_components/PropsTable'
 import { SectionDivider } from '../../_components/SectionDivider'
 
@@ -101,6 +103,52 @@ export default function BulletListPage() {
                     },
                 ]}
             />
+
+            <SectionDivider />
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Card — choose your PIN"
+                    path="src/components/Card/CardPinSetupFlow.tsx"
+                    description="The PIN rules, under the dots. Plain translated strings, no links — the list states facts the user has to satisfy before Continue enables."
+                    code={`<BulletList items={[t('pin.ruleSequential'), t('pin.ruleRepeating'), t('pin.ruleChangeLater')]} />`}
+                >
+                    <BulletList
+                        items={[
+                            'No sequential digits (e.g., 1234)',
+                            'No repeating digits (e.g., 1111)',
+                            'You can change your PIN later',
+                        ]}
+                    />
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Add money — bank transfer details"
+                    path="src/components/AddMoney/components/AddMoneyBankDetails.tsx"
+                    description="The double-check list, nested in an attention Callout with its icon hidden. A name mismatch is the top cause of returned deposits, so each condition gets its own row."
+                    code={`<Callout priority="attention" hideIcon title={t('bankDetails.doubleCheckTitle')}>
+    <BulletList
+        items={[
+            t('bankDetails.doubleCheckAmount', { amount: formattedCurrencyAmount }),
+            t('bankDetails.doubleCheckReference', { reference }),
+            t('bankDetails.doubleCheckSenderName'),
+            t('bankDetails.doubleCheckRecipientName'),
+        ]}
+    />
+</Callout>`}
+                >
+                    <Callout priority="attention" hideIcon title="Double-check before you send">
+                        <BulletList
+                            items={[
+                                'Send exactly €250.00',
+                                'Add the reference PNT-4F2A',
+                                'Send from an account in your own name',
+                                'Check the recipient name matches',
+                            ]}
+                        />
+                    </Callout>
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

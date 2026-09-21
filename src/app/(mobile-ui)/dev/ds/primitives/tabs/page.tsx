@@ -13,6 +13,7 @@ import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { PropsTable } from '../../_components/PropsTable'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { ProductUsage } from '../../_components/ProductUsage'
 import { Callout } from '@/components/0_Bruddle/Callout'
 
 const historyRows = [
@@ -24,6 +25,11 @@ export default function TabsPage() {
     const [period, setPeriod] = useState('monthly')
     const [network, setNetwork] = useState('evm')
     const [chain, setChain] = useState('arb')
+    // separate state per "Used in product" recreation, so a doc section never
+    // drives the tab row of another one
+    const [limitsPeriod, setLimitsPeriod] = useState('monthly')
+    const [depositChainType, setDepositChainType] = useState('EVM')
+    const [tokenNetwork, setTokenNetwork] = useState('all')
 
     return (
         <DocPage>
@@ -361,6 +367,116 @@ export default function TabsPage() {
                     },
                 ]}
             />
+
+            <SectionDivider />
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Limits — monthly vs yearly"
+                    path="src/features/limits/views/MantecaLimitsView.tsx"
+                    description="The smallest row: size='sm', content width, sitting on the right of a card header opposite the asset name. It switches which limit the progress bar below reads."
+                    code={`<Tabs
+    size="sm"
+    tabs={[
+        { value: 'monthly', label: tPeriod('monthly') },
+        { value: 'yearly', label: tPeriod('yearly') },
+    ]}
+    value={period}
+    onValueChange={(v) => setPeriod(v as LimitsPeriod)}
+    aria-label={tPeriod('selectAriaLabel')}
+/>`}
+                >
+                    <div className="flex items-center justify-between gap-2">
+                        <span className="text-body-xs text-foreground-secondary">Total allowed in ARS</span>
+                        <Tabs
+                            size="sm"
+                            tabs={[
+                                { value: 'monthly', label: 'Monthly' },
+                                { value: 'yearly', label: 'Yearly' },
+                            ]}
+                            value={limitsPeriod}
+                            onValueChange={setLimitsPeriod}
+                            aria-label="Select a period"
+                        />
+                    </div>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Add money — crypto deposit network type"
+                    path="src/components/AddMoney/views/RhinoDeposit.view.tsx"
+                    description="fullWidth='stretch': three fixed tabs, each given an equal share of the row, above the deposit address the choice generates."
+                    code={`<Tabs
+    tabs={[
+        { value: 'EVM', label: 'EVM' },
+        { value: 'SOL', label: 'Solana' },
+        { value: 'TRON', label: 'Tron' },
+    ]}
+    value={chainType}
+    onValueChange={(v) => setChainType(v as RhinoChainType)}
+    fullWidth="stretch"
+    aria-label={t('selectNetworkType')}
+/>`}
+                >
+                    <Tabs
+                        tabs={[
+                            { value: 'EVM', label: 'EVM' },
+                            { value: 'SOL', label: 'Solana' },
+                            { value: 'TRON', label: 'Tron' },
+                        ]}
+                        value={depositChainType}
+                        onValueChange={setDepositChainType}
+                        fullWidth="stretch"
+                        aria-label="Select a network type"
+                    />
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Token selector — network row"
+                    path="src/components/Global/TokenSelector/TokenSelector.tsx"
+                    description="fullWidth='track': the tab count is trimmed at runtime to what fits, so the track fills the row while the chips stay content-sized. In product each chain label carries its own logo; the Icon here stands in for it."
+                    code={`const networkTabs = [
+    { value: 'all', label: t('tokenSelector.allNetworks') },
+    ...visiblePopularChains.map((chain) => ({
+        value: chain.chainId,
+        label: chainTabLabel(chain.name, chain.iconURI),
+    })),
+]
+
+<Tabs
+    aria-label={t('tokenSelector.selectANetwork')}
+    value={activeNetworkTab}
+    onValueChange={handleNetworkTabChange}
+    tabs={networkTabs}
+    fullWidth="track"
+/>`}
+                >
+                    <Tabs
+                        aria-label="Select a network"
+                        value={tokenNetwork}
+                        onValueChange={setTokenNetwork}
+                        fullWidth="track"
+                        tabs={[
+                            { value: 'all', label: 'All' },
+                            {
+                                value: '42161',
+                                label: (
+                                    <>
+                                        <Icon name="arrow-up-right" size={16} /> Arbitrum
+                                    </>
+                                ),
+                            },
+                            {
+                                value: '8453',
+                                label: (
+                                    <>
+                                        <Icon name="arrow-up-right" size={16} /> Base
+                                    </>
+                                ),
+                            },
+                        ]}
+                    />
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

@@ -6,6 +6,7 @@ import { CodeBlock } from '../../_components/CodeBlock'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocPage } from '../../_components/DocPage'
 import { DocSection } from '../../_components/DocSection'
+import { ProductUsage } from '../../_components/ProductUsage'
 import { PropsTable } from '../../_components/PropsTable'
 import { SectionDivider } from '../../_components/SectionDivider'
 
@@ -75,6 +76,58 @@ export default function FieldColumnPage() {
                     />
                 </DocSection.Code>
             </DocSection>
+
+            <SectionDivider />
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Profile — edit a detail"
+                    path="src/components/Profile/components/ProfileEditField.tsx"
+                    description="The label sits outside the column; FieldColumn owns the input and its error, and errorId wires aria-describedby on the input."
+                    code={`<div className="flex flex-col gap-2">
+    <label htmlFor={id} className="text-label-l">{label}</label>
+    <FieldColumn error={error} errorId={\`\${id}-error\`}>
+        <BaseInput
+            id={id}
+            variant="sm"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? \`\${id}-error\` : undefined}
+        />
+    </FieldColumn>
+</div>`}
+                >
+                    <div className="flex flex-col gap-2">
+                        <label htmlFor="field-column-usage-username" className="text-label-l">
+                            Username
+                        </label>
+                        <FieldColumn error="That username is taken" errorId="field-column-usage-username-error">
+                            <BaseInput
+                                id="field-column-usage-username"
+                                variant="sm"
+                                defaultValue="kushagra"
+                                aria-invalid
+                                aria-describedby="field-column-usage-username-error"
+                            />
+                        </FieldColumn>
+                    </div>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Add money — amount step"
+                    path="src/components/AddMoney/components/InputAmountStep.tsx"
+                    description="Wraps the amount keypad, not a text input, and carries the error-alert test hook. The error is suppressed while the limits card is blocking, so only one message shows at a time. Recreated here with BaseInput in place of AmountInput."
+                    code={`{/* only show the field error if limits blocking card is not displayed (warnings can coexist) */}
+<FieldColumn error={!limitsValidation?.isBlocking ? validationError : undefined} errorTestId="error-alert">
+    <AmountInput … />
+</FieldColumn>`}
+                >
+                    <FieldColumn error="Enter at least $10" errorTestId="error-alert">
+                        <BaseInput placeholder="$0.00" state="error" inputMode="decimal" />
+                    </FieldColumn>
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

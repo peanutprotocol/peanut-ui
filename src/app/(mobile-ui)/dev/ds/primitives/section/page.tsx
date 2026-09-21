@@ -1,10 +1,14 @@
 'use client'
 
+import { useState } from 'react'
 import { Section } from '@/components/0_Bruddle/Section'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { Tabs } from '@/components/0_Bruddle/Tabs'
+import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { PropsTable } from '../../_components/PropsTable'
+import { ProductUsage } from '../../_components/ProductUsage'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
 import { SectionDivider } from '../../_components/SectionDivider'
@@ -12,6 +16,9 @@ import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
 
 export default function SectionPage() {
+    // mirrors TokenSelector's activeNetworkTab state
+    const [networkTab, setNetworkTab] = useState('all')
+
     return (
         <DocPage>
             <DocHeader
@@ -71,6 +78,94 @@ export default function SectionPage() {
                     />
                 </DocSection.Code>
             </DocSection>
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Accounts & payments — ways to add money"
+                    path="src/components/Profile/views/AccountsList.tsx"
+                    description="The plain shape: heading, a secondary line, then the list. Section owns the h2 token so the page never respells it."
+                    code={`<Section title={t('waysTitle')}>
+    <p className="text-body-s text-foreground-secondary">{t('waysSubtitle')}</p>
+    <ListGroup>{bankListItems(bankRows, onRowClick, isKycDegraded, t)}</ListGroup>
+</Section>`}
+                >
+                    <Section title="Ways to add money">
+                        <p className="text-body-s text-foreground-secondary">
+                            Send from your bank account, or receive from anyone.
+                        </p>
+                        <ListGroup>
+                            <ListItem title="Bank transfer" body="USD, EUR" chevron onClick={() => {}} />
+                            <ListItem title="Pix" body="BRL" chevron onClick={() => {}} />
+                        </ListGroup>
+                    </Section>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Token selector — select a network"
+                    path="src/components/Global/TokenSelector/TokenSelector.tsx"
+                    description="The trailing slot: 'More networks' sits on the title row as a sibling of the h2, so the heading keeps the title as its accessible name. The wrapper reserves the link's full 44px hit area without stretching the row."
+                    code={`<Section
+    title={t('tokenSelector.selectANetwork')}
+    trailing={
+        <div className="flex min-h-11 shrink-0 items-center">
+            <LinkButton onClick={handleSearchNetwork}>{t('tokenSelector.moreNetworksTitle')}</LinkButton>
+        </div>
+    }
+>
+    <div ref={attachTabsRow}>
+        <Tabs
+            aria-label={t('tokenSelector.selectANetwork')}
+            value={activeNetworkTab}
+            onValueChange={handleNetworkTabChange}
+            tabs={networkTabs}
+            fullWidth="track"
+        />
+    </div>
+</Section>`}
+                >
+                    <Section
+                        title="Select a network"
+                        trailing={
+                            <div className="flex min-h-11 shrink-0 items-center">
+                                <LinkButton onClick={() => {}}>More networks</LinkButton>
+                            </div>
+                        }
+                    >
+                        <Tabs
+                            aria-label="Select a network"
+                            value={networkTab}
+                            onValueChange={setNetworkTab}
+                            tabs={[
+                                { value: 'all', label: 'All' },
+                                { value: 'arb', label: 'ARB' },
+                                { value: 'base', label: 'Base' },
+                            ]}
+                            fullWidth="track"
+                        />
+                    </Section>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Home — activity feed"
+                    path="src/components/Home/HomeHistory.tsx"
+                    description="Section also carries the feed's own layout: the className sets the column width and tightens the gap. Same heading, whether the feed loads, errors, or is empty."
+                    code={`<Section title={t('activity')} className="mx-auto mt-6 w-full gap-3 md:max-w-2xl">
+    <EmptyState
+        icon="alert"
+        title={isNetworkError ? t('networkErrorTitle') : t('errorTitle')}
+        description={isNetworkError ? t('networkErrorDescription') : t('errorDescription')}
+    />
+</Section>`}
+                >
+                    <Section title="Activity" className="mx-auto w-full gap-3 md:max-w-2xl">
+                        <EmptyState
+                            icon="alert"
+                            title="Could not load your activity"
+                            description="Check your connection and try again."
+                        />
+                    </Section>
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

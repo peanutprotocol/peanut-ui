@@ -10,6 +10,7 @@ import { DocSection } from '../../_components/DocSection'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { ProductUsage } from '../../_components/ProductUsage'
 
 export default function NavigationPage() {
     const [flowStep, setFlowStep] = useState(1)
@@ -176,6 +177,42 @@ export default function NavigationPage() {
                     navigation button size.
                 </DesignNote>
             </DocSection>
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Limits — standalone page header"
+                    path="src/features/limits/views/LimitsPageView.tsx"
+                    description="Title mode. The page is reachable from more than one place, so back is a callback (router history), not a fixed href."
+                    code={`<NavHeader title={t('title')} onPrev={goBack} />`}
+                >
+                    <NavHeader title="Limits" onPrev={() => {}} />
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Profile — back plus an edit action"
+                    path="src/components/Profile/index.tsx"
+                    description="The only rightElement call site in the app: hideLabel drops the title and the top-right slot carries Edit profile, the one action worth reaching without scrolling."
+                    code={`<NavHeader
+  hideLabel
+  onPrev={onBack}
+  rightElement={
+    <Button
+      variant="transparent"
+      href="/profile/edit"
+      icon="edit"
+      aria-label={t('menu.personalDetails')}
+      className={NAV_CIRCLE_BUTTON_CLASSES}
+    />
+  }
+/>`}
+                >
+                    <NavHeader
+                        hideLabel
+                        onPrev={() => {}}
+                        rightElement={<Button variant="transparent" icon="edit" aria-label="Edit profile" />}
+                    />
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

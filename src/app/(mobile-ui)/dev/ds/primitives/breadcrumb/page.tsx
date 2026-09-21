@@ -7,6 +7,7 @@ import { DocSection } from '../../_components/DocSection'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { ProductUsage } from '../../_components/ProductUsage'
 
 export default function BreadcrumbPage() {
     return (
@@ -79,6 +80,47 @@ export default function BreadcrumbPage() {
                     />
                 </DocSection.Code>
             </DocSection>
+
+            <SectionDivider />
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Blog — post footer trail"
+                    path="src/app/[locale]/(marketing)/blog/[slug]/page.tsx"
+                    description="Three levels, at the foot of the post. The parent crumb is the content hub filtered to blog, and the same array feeds the BreadcrumbList JSON-LD."
+                    code={`const breadcrumbs = [
+    { name: i18n.home, href: \`/\${locale}\` },
+    { name: i18n.filterBlog, href: hubHref },
+    { name: post.frontmatter.title, href: \`/\${locale}/blog/\${slug}\` },
+]
+
+<Breadcrumb items={breadcrumbs} className="pt-8" />`}
+                >
+                    <Breadcrumb
+                        className="pt-8"
+                        items={[
+                            { name: 'Home', href: '/en' },
+                            { name: 'Blog', href: '/en/content?type=blog' },
+                            { name: 'How Peanut keeps cross-border fees honest', href: '/en/blog/honest-fees' },
+                        ]}
+                    />
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Marketing — every ContentPage route"
+                    path="src/components/Marketing/ContentPage.tsx"
+                    description="One shared trail for the generated country, pay-with, deposit and legal pages. The className pins it to the prose column instead of the full page width."
+                    code={`<Breadcrumb items={breadcrumbs} className={\`mx-auto \${PROSE_WIDTH} px-6 pt-4 pb-8 md:px-4\`} />`}
+                >
+                    <Breadcrumb
+                        className="mx-auto max-w-[640px] px-6 pt-4 pb-8 md:px-4"
+                        items={[
+                            { name: 'Home', href: '/en' },
+                            { name: 'Argentina', href: '/en/receive-money-from/argentina' },
+                        ]}
+                    />
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

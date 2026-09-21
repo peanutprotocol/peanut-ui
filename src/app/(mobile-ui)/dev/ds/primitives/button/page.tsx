@@ -11,6 +11,7 @@ import { PropsTable } from '../../_components/PropsTable'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { ProductUsage } from '../../_components/ProductUsage'
 
 export default function ButtonPage() {
     return (
@@ -393,6 +394,58 @@ export default function ButtonPage() {
                     />
                 </DocSection.Code>
             </DocSection>
+
+            <SectionDivider />
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Payment success — back home + receipt"
+                    path="src/features/payments/shared/components/PaymentSuccessView.tsx"
+                    description="The success screen stacks the two buttons full width: primary goes home, stroke opens the receipt."
+                    code={`<Button onClick={handleDone} shadowSize="4">
+  {t('success.backToHome')}
+</Button>
+<Button
+  variant="stroke"
+  shadowSize="4"
+  onClick={() => openTransactionDetails(receiptTransaction)}
+>
+  {t('success.seeReceipt')}
+</Button>`}
+                >
+                    <div className="flex w-full flex-col gap-4">
+                        <Button shadowSize="4">Back to home</Button>
+                        <Button variant="stroke" shadowSize="4">
+                            See receipt
+                        </Button>
+                    </div>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Signup — Next beside the username field"
+                    path="src/components/Setup/Views/Signup.tsx"
+                    description="Inline CTA on one row with the input: large size, 4/12 width, loading while the username check runs."
+                    code={`<Button
+  size="large"
+  className="w-4/12"
+  loading={isLoading}
+  shadowSize="4"
+  onClick={() => handleNext(async () => isValid)}
+  disabled={!isValid || isChanging || isLoading}
+>
+  {t('next')}
+</Button>`}
+                >
+                    <div className="flex items-center gap-2">
+                        <div className="input flex h-12 flex-1 items-center px-4 text-body-s text-foreground-secondary">
+                            kushagra
+                        </div>
+                        <Button size="large" className="w-4/12" shadowSize="4">
+                            Next
+                        </Button>
+                    </div>
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

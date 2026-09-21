@@ -7,6 +7,7 @@ import { DocSection } from '../../_components/DocSection'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { ProductUsage } from '../../_components/ProductUsage'
 
 export default function AmountInputPage() {
     return (
@@ -220,6 +221,95 @@ export default function AmountInputPage() {
                     <p>5. Consider using a controlled-only pattern (value + onChange) instead of internal state</p>
                 </div>
             </DocSection>
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Send — amount step"
+                    path="src/features/payments/flows/direct-send/views/SendInputView.tsx"
+                    description="Dollars only: hideCurrencyToggle drops the swap icon. A logged-out sender has no balance, so hideBalance removes the line rather than showing a zero."
+                    code={`{/* amount input + its field error form one column, 4px apart */}
+<div className="flex flex-col gap-1">
+  <AmountInput
+    initialAmount={amount}
+    setPrimaryAmount={setAmount}
+    onSubmit={handleSubmit}
+    walletBalance={isLoggedIn ? formattedBalance : undefined}
+    balanceFillAmount={isLoggedIn ? balanceFillAmount : undefined}
+    hideBalance={!isLoggedIn}
+    hideCurrencyToggle={true}
+  />
+  {isInsufficientBalance && <FieldError>{t('errors.insufficientPayment')}</FieldError>}
+</div>`}
+                >
+                    <div className="flex flex-col items-center gap-1">
+                        <div className="flex items-center gap-1">
+                            <span className="text-heading-xs text-foreground-secondary">$</span>
+                            <span className="text-heading-big-input">25.00</span>
+                        </div>
+                        <span className="text-body-s text-foreground-secondary">Balance: $ 42.50</span>
+                        <span className="text-body-xs text-foreground-error">Not enough balance</span>
+                    </div>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Withdraw — amount step"
+                    path="src/features/withdraw/views/WithdrawAmountView.tsx"
+                    description="Same shape, but decimals are 6 so the user can pay an exact USDC amount. The comment on that prop is the reason: 2 decimals would round a withdrawal."
+                    code={`<AmountInput
+  initialAmount={initialAmount}
+  setPrimaryAmount={onAmountChange}
+  primaryDenomination={{
+    symbol: '$',
+    price: 1,
+    decimals: 6, // we want USDC decimals to be able to pay exactly
+  }}
+  walletBalance={walletBalance}
+  balanceFillAmount={balanceFillAmount}
+  onBalanceFilled={onBalanceFilled}
+  hideCurrencyToggle
+/>`}
+                >
+                    <div className="flex flex-col items-center gap-1">
+                        <div className="text-center text-heading-xs text-foreground-primary">
+                            How much do you want to withdraw?
+                        </div>
+                        <div className="mt-2 flex items-center gap-1">
+                            <span className="text-heading-xs text-foreground-secondary">$</span>
+                            <span className="text-heading-big-input">100.482915</span>
+                        </div>
+                        <span className="text-body-s text-foreground-secondary">Balance: $ 250.00</span>
+                    </div>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Contribute to a pot — amount with a slider"
+                    path="src/features/payments/flows/contribute-pot/views/ContributePotInputView.tsx"
+                    description="The only call site that turns the slider on. maxAmount is what the pot still needs, so the slider is a share of the remainder, not of the balance."
+                    code={`<AmountInput
+  initialAmount={amount}
+  setPrimaryAmount={setAmount}
+  onSubmit={handlePayWithPeanut}
+  walletBalance={isLoggedIn ? formattedBalance : undefined}
+  hideBalance={!isLoggedIn}
+  hideCurrencyToggle={true}
+  showSlider={remainingAmount > 0}
+  maxAmount={remainingAmount}
+  defaultSliderValue={sliderDefaults.percentage}
+  defaultSliderSuggestedAmount={sliderDefaults.suggestedAmount}
+/>`}
+                >
+                    <div className="flex flex-col items-center gap-1">
+                        <div className="flex items-center gap-1">
+                            <span className="text-heading-xs text-foreground-secondary">$</span>
+                            <span className="text-heading-big-input">30.00</span>
+                        </div>
+                        <span className="text-body-s text-foreground-secondary">$60.00 left to collect</span>
+                        <div className="mt-4 h-1 w-full rounded-full bg-background-disabled">
+                            <div className="h-1 w-1/2 rounded-full bg-action-primary" />
+                        </div>
+                    </div>
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

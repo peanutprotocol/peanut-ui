@@ -1,13 +1,17 @@
 'use client'
 
 import { Icon } from '@/components/Global/Icons/Icon'
+import Card from '@/components/Global/Card'
+import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { ProductUsage } from '../../_components/ProductUsage'
 
 export default function LayoutsPage() {
     return (
@@ -274,6 +278,125 @@ export default function LayoutsPage() {
                     areas, and content overflow correctly.
                 </DesignNote>
             </DocSection>
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Withdraw — amount step (recipe 1)"
+                    path="src/features/withdraw/views/WithdrawAmountView.tsx"
+                    description="PageStack is the coded form of these recipes. Center holds the amount and its CTA in the middle of the screen; the header stays at the top."
+                    code={`<PageStack>
+  <NavHeader title={pageTitle} onPrev={onBack} />
+  <PageStack.Center className="gap-4">
+    <div className="text-heading-xs text-foreground-primary">{heading}</div>
+    <AmountInput ... />
+    {limitsCardProps && <LimitsWarningCard {...limitsCardProps} />}
+    <Button variant="primary" shadowSize="4" onClick={onContinue} disabled={continueDisabled}>
+      {tCommon('continue')}
+    </Button>
+  </PageStack.Center>
+</PageStack>`}
+                >
+                    <div className="h-72">
+                        <PageStack className="h-full">
+                            <div className="flex items-center gap-1 rounded-sm bg-background-disabled px-3 py-1">
+                                <Icon name="chevron-up" size={16} className="-rotate-90" />
+                                <span className="text-body-xs text-foreground-secondary">Withdraw</span>
+                            </div>
+                            <PageStack.Center className="gap-4">
+                                <div className="text-center text-heading-xs text-foreground-primary">
+                                    How much do you want to withdraw?
+                                </div>
+                                <div className="text-center text-heading-big-input">$0.00</div>
+                                <Button variant="primary" shadowSize="4" className="w-full">
+                                    Continue
+                                </Button>
+                            </PageStack.Center>
+                        </PageStack>
+                    </div>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Deposit accounts — claim an account (recipe 2)"
+                    path="src/features/deposit-accounts/components/ClaimAccountScreen.tsx"
+                    description="Content flows from the top and PageStack.Footer pins the terms note and the CTA to the bottom, whatever the content height."
+                    code={`<PageStack>
+  <NavHeader title={t('title')} onPrev={onBack} />
+  <div className="flex flex-col gap-6">
+    <TitleBlock size="s" title={...} description={...} />
+    {/* rails, rules */}
+  </div>
+  <PageStack.Footer>
+    <Callout priority="info">{t('claim.conditions')}</Callout>
+    <Button variant="primary" shadowSize="4" onClick={onClaim}>{t('claim.cta')}</Button>
+  </PageStack.Footer>
+</PageStack>`}
+                >
+                    <div className="h-72">
+                        <PageStack className="h-full">
+                            <div className="flex items-center gap-1 rounded-sm bg-background-disabled px-3 py-1">
+                                <Icon name="chevron-up" size={16} className="-rotate-90" />
+                                <span className="text-body-xs text-foreground-secondary">Open an account</span>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <span className="text-label-l">Your own account number in USD</span>
+                                <span className="text-body-s text-foreground-secondary">
+                                    Get paid in USD and hold the money in Peanut.
+                                </span>
+                            </div>
+                            <PageStack.Footer>
+                                <Callout priority="info">Free to open. No minimum balance.</Callout>
+                                <Button variant="primary" shadowSize="4" className="w-full">
+                                    Open account
+                                </Button>
+                            </PageStack.Footer>
+                        </PageStack>
+                    </div>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="History — activity list (recipe 3)"
+                    path="src/app/(mobile-ui)/history/page.tsx"
+                    description="Header plus a list that fills the rest. The rows are Global Cards and the corners are set per date group, not per page."
+                    code={`<PageStack>
+  <NavHeader title={t('title')} />
+  <div className="h-full w-full">
+    {combinedAndSortedEntries.map((item, index) => {
+      let position: CardPosition = 'middle'
+      if (isFirstInGroup && isLastInGroup) position = 'solo'
+      else if (isFirstInGroup) position = 'top'
+      else if (isLastInGroup) position = 'bottom'
+      return <TransactionCard key={item.uuid} position={position} ... />
+    })}
+  </div>
+</PageStack>`}
+                >
+                    <div className="h-72">
+                        <PageStack className="h-full">
+                            <div className="rounded-sm bg-background-disabled px-3 py-1">
+                                <span className="text-body-xs text-foreground-secondary">History</span>
+                            </div>
+                            <div className="h-full w-full overflow-hidden">
+                                <div className="mb-2 text-label-m text-foreground-primary">Today</div>
+                                {(['top', 'bottom'] as const).map((pos, i) => (
+                                    <Card key={pos} position={pos} className="p-4">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-body-s">Sent to hugo</span>
+                                            <span className="text-body-s">-${(i + 1) * 12}.00</span>
+                                        </div>
+                                    </Card>
+                                ))}
+                                <div className="mt-2 mb-2 text-label-m text-foreground-primary">Yesterday</div>
+                                <Card position="solo" className="p-4">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-body-s">Added money</span>
+                                        <span className="text-body-s">+$100.00</span>
+                                    </div>
+                                </Card>
+                            </div>
+                        </PageStack>
+                    </div>
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

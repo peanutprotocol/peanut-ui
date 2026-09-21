@@ -5,6 +5,7 @@ import { CodeBlock } from '../../_components/CodeBlock'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocPage } from '../../_components/DocPage'
 import { DocSection } from '../../_components/DocSection'
+import { ProductUsage } from '../../_components/ProductUsage'
 import { PropsTable } from '../../_components/PropsTable'
 import { SectionDivider } from '../../_components/SectionDivider'
 
@@ -48,6 +49,67 @@ export default function MiniHeaderPage() {
                     <CodeBlock label="Raw classes" code={`<legend className={MINI_HEADER_CLASS}>Details</legend>`} />
                 </DocSection.Code>
             </DocSection>
+
+            <SectionDivider />
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Withdraw — bank account form groups"
+                    path="src/components/AddWithdraw/DynamicBankAccountForm.tsx"
+                    description="Two headers split six fields into two short questions: what the money is paid into, and who owns the account."
+                    code={`{/* The account: what the money is paid into. Grouped so the
+    screen reads as two short questions instead of six fields. */}
+<div className="flex flex-col gap-4">
+    <MiniHeader>{t('groupBankAccount')}</MiniHeader>
+    {/* account fields */}
+</div>
+<div className="flex flex-col gap-4">
+    <MiniHeader>{t('groupAccountOwner')}</MiniHeader>
+    {/* owner fields */}
+</div>`}
+                >
+                    <div className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-1">
+                            <MiniHeader>Bank account</MiniHeader>
+                            <p className="text-body-s text-foreground-secondary">IBAN, BIC</p>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <MiniHeader>Account owner</MiniHeader>
+                            <p className="text-body-s text-foreground-secondary">Full name, address, country</p>
+                        </div>
+                    </div>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Add money — onramp confirmation drawer"
+                    path="src/components/AddMoney/components/OnrampConfirmationModal.tsx"
+                    description="Two topics, two grey headers, plain prose under each. Neither is a warning, which keeps the single Callout slot free for the real one."
+                    code={`<div className="flex flex-col gap-1">
+    <MiniHeader>{t('nextStep')}</MiniHeader>
+    <p className="text-body-s text-foreground-primary">{t('bankDetailsItem')}</p>
+    <p className="text-body-s text-foreground-primary">{t('referenceCodeItem')}</p>
+</div>
+<div className="flex flex-col gap-1">
+    <MiniHeader>{t('youMust')}</MiniHeader>
+    <p className="text-body-s text-foreground-primary">{t.rich('sendExactly', { currency, amount, b })}</p>
+</div>`}
+                >
+                    <div className="flex flex-col gap-4 text-left">
+                        <div className="flex flex-col gap-1">
+                            <MiniHeader>Next step</MiniHeader>
+                            <p className="text-body-s text-foreground-primary">We show you the bank details</p>
+                            <p className="text-body-s text-foreground-primary">And a reference code</p>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <MiniHeader>You must</MiniHeader>
+                            <p className="text-body-s text-foreground-primary">
+                                Send exactly <b>EUR 250.00</b>
+                            </p>
+                            <p className="text-body-s text-foreground-primary">Paste the reference in your transfer</p>
+                        </div>
+                    </div>
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

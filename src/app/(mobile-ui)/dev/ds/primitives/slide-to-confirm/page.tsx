@@ -6,10 +6,13 @@ import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { ProductUsage } from '../../_components/ProductUsage'
 
 export default function SlideToConfirmPage() {
     const [confirmedAt, setConfirmedAt] = useState<string | null>(null)
     const [busy, setBusy] = useState(false)
+    // mirrors LockCardModal's phase machine for the product recreation below
+    const [lockPhase, setLockPhase] = useState<'idle' | 'loading' | 'done'>('idle')
 
     return (
         <DocPage>
@@ -54,6 +57,40 @@ export default function SlideToConfirmPage() {
                     />
                 </DocSection.Code>
             </DocSection>
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Card — lock card modal"
+                    path="src/components/Card/LockCardModal.tsx"
+                    description="The label flips while the request runs and disabled goes true then false again, so a failed lock can be retried in place."
+                    code={`<SlideToConfirm
+    label={phase === 'loading' ? t('lockModal.locking') : t('lockModal.slideToLock')}
+    onConfirm={run}
+    disabled={phase === 'loading'}
+/>`}
+                >
+                    <div className="flex flex-col gap-2">
+                        <SlideToConfirm
+                            label={lockPhase === 'loading' ? 'Locking…' : 'Slide to lock card'}
+                            disabled={lockPhase === 'loading'}
+                            onConfirm={() => {
+                                setLockPhase('loading')
+                                setTimeout(() => setLockPhase('done'), 1200)
+                            }}
+                        />
+                        {lockPhase === 'done' && <p className="text-body-s text-foreground-secondary">Card locked</p>}
+                    </div>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Add money — onramp confirmation"
+                    path="src/components/AddMoney/components/OnrampConfirmationModal.tsx"
+                    description="Plain money confirm: no phase, no disabled — the modal closes on confirm."
+                    code={`<SlideToConfirm label={tCommon('slideToProceed')} onConfirm={onConfirm} />`}
+                >
+                    <SlideToConfirm label="Slide to proceed" onConfirm={() => {}} />
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

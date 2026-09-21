@@ -8,9 +8,13 @@ import { DocSection } from '../../_components/DocSection'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { ProductUsage } from '../../_components/ProductUsage'
 
 export default function CheckboxPage() {
     const [checked, setChecked] = useState(false)
+    // one piece of local state per product recreation below
+    const [acceptedTerm, setAcceptedTerm] = useState(false)
+    const [saveAddress, setSaveAddress] = useState(false)
 
     return (
         <DocPage>
@@ -52,6 +56,48 @@ export default function CheckboxPage() {
                     <CodeBlock label="Without Label" code={`<Checkbox value={checked} onChange={() => {}} />`} />
                 </DocSection.Code>
             </DocSection>
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Card — terms and conditions"
+                    path="src/components/Card/CardTermsScreen.tsx"
+                    description="One unlabeled checkbox per legal term; the term text is a sibling so it can wrap and hold links."
+                    code={`<Checkbox
+    value={!!checked[term.id]}
+    onChange={(e) => setChecked((prev) => ({ ...prev, [term.id]: e.target.checked }))}
+    className="mt-0.5"
+/>
+<div className="flex-1 text-body-s">{term.label}</div>`}
+                >
+                    <div className="flex items-start gap-2">
+                        <Checkbox
+                            value={acceptedTerm}
+                            onChange={(e) => setAcceptedTerm(e.target.checked)}
+                            className="mt-0.5"
+                        />
+                        <div className="flex-1 text-body-s">
+                            I accept the cardholder agreement and the card issuer terms.
+                        </div>
+                    </div>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Withdraw — save this address"
+                    path="src/features/withdraw/components/AddressBook/SaveAddressPrompt.tsx"
+                    description="Labeled checkbox that reveals a nickname input once it is checked."
+                    code={`<Checkbox
+    label={t('savedAddresses.savePrompt')}
+    value={checked}
+    onChange={(e) => onCheckedChange(e.target.checked)}
+/>`}
+                >
+                    <Checkbox
+                        label="Save this address"
+                        value={saveAddress}
+                        onChange={(e) => setSaveAddress(e.target.checked)}
+                    />
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

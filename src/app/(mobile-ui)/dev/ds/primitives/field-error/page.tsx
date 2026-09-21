@@ -7,6 +7,8 @@ import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { SectionDivider } from '../../_components/SectionDivider'
+import { ProductUsage } from '../../_components/ProductUsage'
 
 export default function FieldErrorPage() {
     const [value, setValue] = useState('kush!')
@@ -44,6 +46,43 @@ export default function FieldErrorPage() {
                     />
                 </DocSection.Code>
             </DocSection>
+
+            <SectionDivider />
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Send — not enough balance"
+                    path="src/features/payments/flows/direct-send/views/SendInputView.tsx"
+                    description="The amount input and its error form one column, 4px apart. The error only mounts when the amount passes the balance."
+                    code={`{/* amount input + its field error form one column, 4px apart */}
+<div className="flex flex-col gap-1">
+  <AmountInput ... />
+  {isInsufficientBalance && <FieldError>{t('errors.insufficientPayment')}</FieldError>}
+</div>`}
+                >
+                    <div className="flex flex-col gap-1">
+                        <div className="text-center text-heading-l">$120.00</div>
+                        <FieldError>You do not have enough balance.</FieldError>
+                    </div>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Signup — username taken"
+                    path="src/components/Setup/Views/Signup.tsx"
+                    description="The slot keeps its 32px height whether or not the error shows, so mounting it does not re-center the step (F-5)."
+                    code={`{/* slot space is always reserved so the error mounting doesn't
+    re-center the vertically-centered step block (F-5). min-h-8
+    = two 16px body-xs lines, enough for the longest message */}
+<div className="min-h-8">{error && <FieldError>{error}</FieldError>}</div>`}
+                >
+                    <div className="flex flex-col gap-2">
+                        <BaseInput defaultValue="kushagra" state="error" />
+                        <div className="min-h-8">
+                            <FieldError>This username is already taken.</FieldError>
+                        </div>
+                    </div>
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

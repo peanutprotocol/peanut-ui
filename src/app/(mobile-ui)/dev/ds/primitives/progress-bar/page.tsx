@@ -5,6 +5,7 @@ import { DocHeader } from '../../_components/DocHeader'
 import { DocSection } from '../../_components/DocSection'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { ProductUsage } from '../../_components/ProductUsage'
 
 export default function ProgressBarPage() {
     return (
@@ -38,6 +39,57 @@ export default function ProgressBarPage() {
                     />
                 </DocSection.Code>
             </DocSection>
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Home — getting started checklist"
+                    path="src/components/Home/GettingStartedChecklist.tsx"
+                    description="Completion of the onboarding checklist, with the percentage spelled out above the bar."
+                    code={`<div className="flex items-center justify-between text-body-s text-foreground-secondary">
+    <span>{progressLabel}</span>
+    <span>{completionPercent}%</span>
+</div>
+<ProgressBar value={completionPercent} fillClassName="bg-background-icon-bubble-green" />`}
+                >
+                    <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between text-body-s text-foreground-secondary">
+                            <span>2 of 3 done</span>
+                            <span>67%</span>
+                        </div>
+                        <ProgressBar value={67} fillClassName="bg-background-icon-bubble-green" />
+                    </div>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Pots — goal progress"
+                    path="src/components/User/PotProgress.tsx"
+                    description="The only marker consumer: a tick at the goal and a second one at the end when a closed pot went over it."
+                    code={`<ProgressBar
+    value={isOverGoal ? goalPercentage : progressPercentage}
+    trackClassName={getTrackColor()}
+    fillClassName="bg-green-500"
+    markers={getMarkers()}
+/>`}
+                >
+                    <ProgressBar
+                        value={80}
+                        fillClassName="bg-green-500"
+                        markers={[
+                            { position: 80, className: 'bg-green-500' },
+                            { position: 'end', className: 'bg-action-secondary' },
+                        ]}
+                    />
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Limits — remaining allowance"
+                    path="src/features/limits/views/MantecaLimitsView.tsx"
+                    description="The fill color is derived from the remaining percent, so the bar turns red as the limit runs out."
+                    code={`<ProgressBar value={remainingPercent} fillClassName={getLimitColorClass(remainingPercent, 'bg')} />`}
+                >
+                    <ProgressBar value={18} fillClassName="bg-red-200" />
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

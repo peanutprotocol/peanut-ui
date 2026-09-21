@@ -9,6 +9,7 @@ import { DocPage } from '../../_components/DocPage'
 import { PropsTable } from '../../_components/PropsTable'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { DesignNote } from '../../_components/DesignNote'
+import { ProductUsage } from '../../_components/ProductUsage'
 
 export default function SliderPage() {
     const [value, setValue] = useState([50])
@@ -83,6 +84,40 @@ const [value, setValue] = useState([50])
                     },
                 ]}
             />
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Contribute to a pot — how much of the rest you pay"
+                    path="src/features/payments/flows/contribute-pot/views/ContributePotInputView.tsx"
+                    description="The only place in the app that shows a Slider. Nothing imports it directly: AmountInput owns it behind showSlider, and contribute-pot is the one caller that sets that prop. The percentage is of what the pot still needs, not of your balance."
+                    code={`{/* the only showSlider call site — AmountInput renders the Slider */}
+<AmountInput
+  setPrimaryAmount={setAmount}
+  hideCurrencyToggle={true}
+  showSlider={remainingAmount > 0}
+  maxAmount={remainingAmount}
+  defaultSliderValue={sliderDefaults.percentage}
+  defaultSliderSuggestedAmount={sliderDefaults.suggestedAmount}
+/>
+
+{/* inside AmountInput */}
+<Slider
+  onValueChange={onSliderValueChange}
+  defaultValue={[defaultSliderValue ? defaultSliderValue : 100]}
+/>`}
+                >
+                    <div className="flex flex-col gap-6 pb-6">
+                        <div className="flex flex-col items-center gap-1">
+                            <div className="flex items-center gap-1">
+                                <span className="text-heading-xs text-foreground-secondary">$</span>
+                                <span className="text-heading-big-input">30.00</span>
+                            </div>
+                            <span className="text-body-s text-foreground-secondary">$60.00 left to collect</span>
+                        </div>
+                        <Slider value={[50]} onValueChange={() => {}} aria-label="contribution percentage" />
+                    </div>
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

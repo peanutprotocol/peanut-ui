@@ -9,6 +9,8 @@ import { DocPage } from '../../_components/DocPage'
 import { PropsTable } from '../../_components/PropsTable'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { DesignNote } from '../../_components/DesignNote'
+import { ProductUsage } from '../../_components/ProductUsage'
+import { Icon } from '@/components/Global/Icons/Icon'
 
 const noop = () => {}
 
@@ -94,6 +96,55 @@ at any time.`}
                     { name: 'external', type: 'boolean', default: 'false', description: 'Opens href in a new tab' },
                 ]}
             />
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Receipt — download attachment"
+                    path="src/components/TransactionDetails/ReceiptDetailsCard.tsx"
+                    description="External link with its own trailing icon as a child instead of the built-in arrow."
+                    code={`<LinkButton href={transaction.attachmentUrl} external>
+    {t('rows.download')}
+    <Icon name="download" size={14} className="shrink-0" />
+</LinkButton>`}
+                >
+                    <LinkButton href="https://peanut.me" external>
+                        Download
+                        <Icon name="download" size={14} className="shrink-0" />
+                    </LinkButton>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="QR pay — success screen"
+                    path="src/features/payments/flows/qr-pay/views/QrPaySuccessView.tsx"
+                    description="Full-width secondary action under the primary button, with a leading icon."
+                    code={`<LinkButton onClick={() => setShowInviteFriendsModal(true)} className="w-full justify-center">
+    <Icon name="invite-heart" size={16} className="shrink-0" />
+    {t('success.inviteFriendsCta')}
+</LinkButton>`}
+                >
+                    <LinkButton onClick={noop} className="w-full justify-center">
+                        <Icon name="invite-heart" size={16} className="shrink-0" />
+                        Invite friends
+                    </LinkButton>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Card — application status"
+                    path="src/components/Card/ApplicationStatusScreen.tsx"
+                    description="Plain text link as the last resort on a blocked state — contact support, or read the policy."
+                    code={`<LinkButton href={PROHIBITED_ACTIVITIES_POLICY_URL} external>
+    {t('status.geoBlockedPolicyLink')}
+</LinkButton>
+<LinkButton onClick={onContactSupport}>{tCommon('contactSupport')}</LinkButton>`}
+                >
+                    <div className="flex flex-col items-start gap-2">
+                        <LinkButton href="https://peanut.me" external>
+                            Prohibited activities policy
+                        </LinkButton>
+                        <LinkButton onClick={noop}>Contact support</LinkButton>
+                    </div>
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

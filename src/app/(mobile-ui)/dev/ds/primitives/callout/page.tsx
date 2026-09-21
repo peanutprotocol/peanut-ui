@@ -7,6 +7,7 @@ import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { PropsTable } from '../../_components/PropsTable'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { ProductUsage } from '../../_components/ProductUsage'
 
 const noop = () => {}
 
@@ -186,6 +187,65 @@ export default function CalloutPage() {
                     },
                 ]}
             />
+
+            <SectionDivider />
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Send — amount step error"
+                    path="src/features/payments/flows/direct-send/views/SendInputView.tsx"
+                    description="The plainest shape and the most common one: a bare error Callout under the CTA, rendered only when the flow failed."
+                    code={`{error.showError && <Callout priority="error">{error.errorMessage}</Callout>}`}
+                >
+                    <Callout priority="error">Not enough balance to cover this transfer</Callout>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Profile — passkey backup"
+                    path="src/app/(mobile-ui)/profile/backup/page.tsx"
+                    description="Two stacked callouts on one screen: the warning the user must act on, then a quiet info note about third-party password managers."
+                    code={`<Callout priority="attention" title={t('noBackupWarning.title')}>
+    {t('noBackupWarning.description')}
+</Callout>
+{/* Passkeys saved to a third-party manager back up through
+    that manager, not the platform steps above. */}
+<Callout priority="info">{t('thirdPartyNote')}</Callout>`}
+                >
+                    <div className="flex flex-col gap-3">
+                        <Callout priority="attention" title="No backup yet">
+                            If you lose this device you lose access to your account. Turn on passkey backup now.
+                        </Callout>
+                        <Callout priority="info">
+                            Passkeys saved to a password manager back up through that manager.
+                        </Callout>
+                    </div>
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Deposit accounts — claim screen footer"
+                    path="src/features/deposit-accounts/components/ClaimAccountScreen.tsx"
+                    description="One Callout slot, three outcomes: the not-yet gate, or the claim error carrying a support CTA. They replace each other rather than stack."
+                    code={`{isUnavailable ? (
+    <Callout priority="attention" title={t('gate.notYetTitle')}>{t('gate.notYetBody')}</Callout>
+) : error ? (
+    <Callout
+        priority="error"
+        title={t('claim.errorTitle')}
+        ctas={onContactSupport ? [{ label: t('gate.supportCta'), onClick: onContactSupport }] : undefined}
+    >
+        {error}
+    </Callout>
+) : (…)}`}
+                >
+                    <Callout
+                        priority="error"
+                        title="We could not open your account"
+                        ctas={[{ label: 'Contact support', onClick: noop }]}
+                    >
+                        Something went wrong on our side. Try again, or reach out and we will sort it.
+                    </Callout>
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }

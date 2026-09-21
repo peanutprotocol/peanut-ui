@@ -8,6 +8,7 @@ import { DocSection } from '../../_components/DocSection'
 import { SectionDivider } from '../../_components/SectionDivider'
 import { DocPage } from '../../_components/DocPage'
 import { CodeBlock } from '../../_components/CodeBlock'
+import { ProductUsage } from '../../_components/ProductUsage'
 
 export default function BaseSelectPage() {
     const [value, setValue] = useState('')
@@ -78,6 +79,64 @@ export default function BaseSelectPage() {
                     />
                 </DocSection.Code>
             </DocSection>
+
+            <SectionDivider />
+
+            <ProductUsage>
+                <ProductUsage.Example
+                    title="Bank account form — account type"
+                    path="src/components/AddWithdraw/DynamicBankAccountForm.tsx"
+                    description="Every select in the dynamic bank form goes through one helper: Field for the label and error, Controller for the value, aria-label because the trigger is a button."
+                    code={`<BaseSelect
+  options={options}
+  aria-label={label}
+  placeholder={placeholder}
+  value={field.value}
+  onValueChange={(value) => {
+    markUserEdit()
+    field.onChange(value)
+  }}
+  onBlur={field.onBlur}
+  className="h-12 w-full rounded-sm text-body-s"
+/>`}
+                >
+                    <BaseSelect
+                        aria-label="Account type"
+                        placeholder="Select an account type"
+                        options={[
+                            { label: 'Checking', value: 'checking' },
+                            { label: 'Savings', value: 'savings' },
+                        ]}
+                        className="h-12 w-full rounded-sm text-body-s"
+                    />
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Manteca withdraw — bank code"
+                    path="src/app/(mobile-ui)/withdraw/manteca/page.tsx"
+                    description="Options come from the country config, so the select only mounts for the countries that need a bank code."
+                    code={`{countryConfig?.needsBankCode && (
+  <BaseSelect
+    value={selectedBank?.code}
+    onValueChange={(value) => {
+      const bank = countryConfig.validBankCodes.find((b) => b.code === value)
+      if (bank) setSelectedBank({ code: bank.code, name: bank.name })
+    }}
+    options={countryConfig.validBankCodes.map((bank) => ({ label: bank.name, value: bank.code }))}
+    placeholder={t('manteca.selectBank')}
+  />
+)}`}
+                >
+                    <BaseSelect
+                        placeholder="Select your bank"
+                        options={[
+                            { label: 'Banco Galicia', value: '007' },
+                            { label: 'Banco Santander', value: '072' },
+                            { label: 'Mercado Pago', value: '143' },
+                        ]}
+                    />
+                </ProductUsage.Example>
+            </ProductUsage>
         </DocPage>
     )
 }
