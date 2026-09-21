@@ -14,6 +14,9 @@ async function shot(page: Page, name: string) {
     await page.screenshot({
         path: `${process.env.CARD_SHOTS_OUT || '/tmp/card-public-shots'}/${name}.png`,
         animations: 'disabled',
+        // CSS pixels, not device pixels: the Pixel 7 DPR turns 390x844 into
+        // 1024x2216, past the 2000px cap on images an agent can read back.
+        scale: 'css',
     })
 }
 
@@ -79,15 +82,23 @@ test('re-issuing a card explains the Rain wallet permission on the terms step', 
 })
 
 test('cancelling the last card offers to remove the Rain permission afterwards', async ({ page }) => {
+    // "Cancel card" is the last row of the page, and the floating fixture
+    // banner is fixed over exactly that spot — the click never lands and the
+    // test hangs. __screenCapture is the banner's own switch for staying out.
+    await page.addInitScript(() => {
+        ;(window as Window & { __screenCapture?: boolean }).__screenCapture = true
+    })
     await page.goto('/card?__fixture=card-funding-enabled')
-    await page.getByText('Cancel card', { exact: true }).click()
-    // the slide handle takes arrow keys, so the confirm is deterministic
+    await page.getByRole('button', { name: 'Cancel card', exact: true }).click()
+    // The slide handle takes arrow keys (10% of the travel per press), so the
+    // confirm is deterministic. Keys go to the page, not to a locator: the
+    // handle disables and then unmounts as the cancel runs, and a locator
+    // action would wait on it.
     const handle = page.getByRole('button', { name: 'Slide to Cancel', exact: true })
+    await expect(handle).toBeVisible()
     await handle.focus()
+    for (let press = 0; press < 10; press++) await page.keyboard.press('ArrowRight')
     const revokeTitle = page.getByText("Remove Rain's permission", { exact: true })
-    for (let press = 0; press < 30 && !(await revokeTitle.isVisible()); press++) {
-        await handle.press('ArrowRight').catch(() => {})
-    }
     await expect(revokeTitle).toBeVisible()
     await expect(page.getByRole('button', { name: 'Not now', exact: true })).toBeVisible()
     await shot(page, 'cancel-revoke')
