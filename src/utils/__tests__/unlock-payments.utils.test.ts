@@ -1,7 +1,7 @@
 import { buildUnlockGroups, dedupeHeldBankRows, type BuildUnlockGroupsInput } from '@/utils/unlock-payments.utils'
 
 const base = (over?: Partial<BuildUnlockGroupsInput>): BuildUnlockGroupsInput => ({
-    regionChips: { europe: 'unlock', 'north-america': 'unlock', latam: 'unlock' },
+    bankChips: { brl: 'unlock', ars: 'unlock', usd: 'unlock', mxn: 'unlock', sepa: 'unlock' },
     canPayQr: false,
     restrictions: { banking: false, card: false },
     card: 'get',
@@ -48,9 +48,8 @@ describe('buildUnlockGroups', () => {
         const groups = buildUnlockGroups(base())
         expect(group(groups, 'spend').rows[1]).toEqual(expect.objectContaining({ chip: 'unlock', regionPath: 'latam' }))
 
-        const pending = buildUnlockGroups(
-            base({ regionChips: { europe: 'unlock', 'north-america': 'unlock', latam: 'processing' } })
-        )
+        // QR reads the Brazilian corridor: Pix is the bigger of the two.
+        const pending = buildUnlockGroups(base({ bankChips: { ...base().bankChips, brl: 'processing' } }))
         expect(group(pending, 'spend').rows[1].chip).toBe('processing')
     })
 
@@ -93,29 +92,30 @@ describe('buildUnlockGroups', () => {
         expect(groups[2].id).toBe('europe')
     })
 
-    it('South America is one merged row carrying both country allowances', () => {
-        const groups = buildUnlockGroups(
-            base({ regionChips: { europe: 'unlock', 'north-america': 'unlock', latam: 'active' } })
-        )
+    it('South America is one row per currency, each with its own allowance', () => {
+        const groups = buildUnlockGroups(base({ bankChips: { ...base().bankChips, brl: 'active' } }))
         expect(group(groups, 'southAmerica').rows.map((r) => [r.id, r.chip, r.limitRefs])).toEqual([
-            ['sa-bank', 'active', ['BRL', 'ARS']],
+            ['brl-bank', 'active', ['BRL']],
+            ['ars-bank', 'unlock', ['ARS']],
         ])
     })
 
-    it('South America stays one bank row whatever QR says', () => {
-        const groups = buildUnlockGroups(base({ canPayQr: true }))
-        expect(group(groups, 'southAmerica').rows.map((r) => [r.id, r.chip])).toEqual([['sa-bank', 'unlock']])
+    it('splits the US from Mexico, so one chip can never speak for the other', () => {
+        const groups = buildUnlockGroups(base({ bankChips: { ...base().bankChips, usd: 'active' } }))
+        expect(group(groups, 'northAmerica').rows.map((r) => [r.id, r.chip, r.limitRefs])).toEqual([
+            ['usd-bank', 'active', ['bridge']],
+            ['mxn-bank', 'unlock', ['bridge']],
+        ])
     })
 
-    it('North America is one merged US + Mexico row behind the one Bridge unlock', () => {
+    it('sibling rows share the one unlock intent behind their two currencies', () => {
         const groups = buildUnlockGroups(base())
-        expect(group(groups, 'northAmerica').rows.map((r) => [r.id, r.limitRefs])).toEqual([['na-bank', ['bridge']]])
+        expect(group(groups, 'southAmerica').rows.map((r) => r.regionPath)).toEqual(['latam', 'latam'])
+        expect(group(groups, 'northAmerica').rows.map((r) => r.regionPath)).toEqual(['north-america', 'north-america'])
     })
 
     it('active rows carry no tap target; offer rows route into the region intent', () => {
-        const groups = buildUnlockGroups(
-            base({ regionChips: { europe: 'active', 'north-america': 'unlock', latam: 'unlock' } })
-        )
+        const groups = buildUnlockGroups(base({ bankChips: { ...base().bankChips, sepa: 'active' } }))
         expect(group(groups, 'europe').rows[0].regionPath).toBeUndefined()
         expect(group(groups, 'northAmerica').rows[0]).toEqual(
             expect.objectContaining({ chip: 'unlock', regionPath: 'north-america' })
@@ -124,9 +124,7 @@ describe('buildUnlockGroups', () => {
     })
 
     it('a pending verification keeps its own Processing status, never collapsed into Unlock', () => {
-        const groups = buildUnlockGroups(
-            base({ regionChips: { europe: 'unlock', 'north-america': 'unlock', latam: 'processing' } })
-        )
+        const groups = buildUnlockGroups(base({ bankChips: { ...base().bankChips, brl: 'processing' } }))
         expect(group(groups, 'southAmerica').rows[0]).toEqual(
             expect.objectContaining({ chip: 'processing', regionPath: 'latam' })
         )
@@ -156,50 +154,57 @@ describe('buildUnlockGroups', () => {
         expect(group(groups, 'spend').rows[0]).toEqual(expect.objectContaining({ chip: 'active', href: '/card' }))
     })
 
-    it('every bank/QR row carries exactly one leading flag — the always-on rows carry none', () => {
+    it('every bank row carries its own country flag — the always-on rows carry none', () => {
         const groups = buildUnlockGroups(base())
-        expect(group(groups, 'europe').rows[0].flag).toBe('eu')
-        // a row covering two countries shows the first when the user lives in neither
-        expect(group(groups, 'northAmerica').rows[0].flag).toBe('us')
-        expect(group(groups, 'southAmerica').rows[0].flag).toBe('br')
+        expect(group(groups, 'europe').rows.map((r) => r.flag)).toEqual(['eu'])
+        expect(group(groups, 'northAmerica').rows.map((r) => r.flag)).toEqual(['us', 'mx'])
+        expect(group(groups, 'southAmerica').rows.map((r) => r.flag)).toEqual(['br', 'ar'])
         expect(group(groups, 'everywhere').rows[0].flag).toBeUndefined() // p2p
         expect(group(groups, 'spend').rows[0].flag).toBeUndefined() // card
     })
 
-    it('a row covering two countries shows the one the user lives in', () => {
-        expect(group(buildUnlockGroups(base({ residenceIso2: 'MX' })), 'northAmerica').rows[0].flag).toBe('mx')
-        expect(group(buildUnlockGroups(base({ residenceIso2: 'AR' })), 'southAmerica').rows[0].flag).toBe('ar')
+    it("a flag is the row's own country, whatever the user's residence", () => {
+        expect(group(buildUnlockGroups(base({ residenceIso2: 'MX' })), 'northAmerica').rows.map((r) => r.flag)).toEqual(
+            ['us', 'mx']
+        )
     })
 })
 
 describe('dedupeHeldBankRows', () => {
-    const rowsWith = (regionChips: BuildUnlockGroupsInput['regionChips']) =>
-        buildUnlockGroups(base({ regionChips }))
+    const rowsWith = (bankChips: BuildUnlockGroupsInput['bankChips']) =>
+        buildUnlockGroups(base({ bankChips }))
             .filter((g) => g.id !== 'everywhere' && g.id !== 'spend')
             .flatMap((g) => g.rows)
-    const bankRows = rowsWith({ europe: 'active', 'north-america': 'active', latam: 'active' })
+    const allActive = { brl: 'active', ars: 'active', usd: 'active', mxn: 'active', sepa: 'active' } as const
+    const bankRows = rowsWith(allActive)
 
     it('drops the active sepa row once an active EUR account covers the same corridor', () => {
         const rows = dedupeHeldBankRows(bankRows, new Set(['EUR']))
         expect(rows.find((r) => r.labelKey === 'sepa')).toBeUndefined()
-        expect(rows.find((r) => r.labelKey === 'saBank')).toBeDefined()
+        expect(rows.find((r) => r.labelKey === 'brl')).toBeDefined()
     })
 
-    it('drops the merged naBank row once EITHER USD or MXN is active', () => {
-        expect(dedupeHeldBankRows(bankRows, new Set(['USD'])).find((r) => r.labelKey === 'naBank')).toBeUndefined()
-        expect(dedupeHeldBankRows(bankRows, new Set(['MXN'])).find((r) => r.labelKey === 'naBank')).toBeUndefined()
+    it('drops only the currency the account covers, now the rows are split', () => {
+        const usd = dedupeHeldBankRows(bankRows, new Set(['USD']))
+        expect(usd.find((r) => r.labelKey === 'usd')).toBeUndefined()
+        expect(usd.find((r) => r.labelKey === 'mxn')).toBeDefined()
+
+        const mxn = dedupeHeldBankRows(bankRows, new Set(['MXN']))
+        expect(mxn.find((r) => r.labelKey === 'mxn')).toBeUndefined()
+        expect(mxn.find((r) => r.labelKey === 'usd')).toBeDefined()
     })
 
     it('keeps a row that still has something to do — it is the only way into the fix modal', () => {
         for (const chip of ['unlock', 'processing', 'attention'] as const) {
-            const rows = rowsWith({ europe: chip, 'north-america': 'active', latam: 'active' })
+            const rows = rowsWith({ ...allActive, sepa: chip })
             expect(dedupeHeldBankRows(rows, new Set(['EUR'])).find((r) => r.labelKey === 'sepa')).toBeDefined()
         }
     })
 
     it('never drops the Brazil/Argentina Manteca rows — they are a distinct product from a Bridge VA', () => {
         const rows = dedupeHeldBankRows(bankRows, new Set(['BRL', 'ARS']))
-        expect(rows.find((r) => r.labelKey === 'saBank')).toBeDefined()
+        expect(rows.find((r) => r.labelKey === 'brl')).toBeDefined()
+        expect(rows.find((r) => r.labelKey === 'ars')).toBeDefined()
     })
 
     it('is a no-op with no active accounts', () => {

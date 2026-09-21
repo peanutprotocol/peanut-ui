@@ -70,6 +70,18 @@ jest.mock('@/hooks/useCapabilities', () => ({
                     (!opts?.provider || rail.provider === opts.provider) &&
                     ((rail.operations?.[op] as string | undefined) ?? rail.status) === 'enabled'
             ),
+        // The real gate, not a second hand-rolled copy of it: the per-currency
+        // chips are only as truthful as the country scoping behind them, and a
+        // mock that ignores `rail.country` would pass a split these rails
+        // cannot actually support. Every rail fixture below names its country.
+        gateFor: (op: string, scope?: Record<string, unknown>) =>
+            jest
+                .requireActual('@/utils/capability-gate')
+                .deriveGate(
+                    { rails: mockRails, nextActions: [], identityVerified: mockIsKycApproved, isLoading: false },
+                    op,
+                    scope
+                ),
     }),
 }))
 
@@ -263,7 +275,7 @@ describe('UnlockPayments', () => {
         // Region headers are gone (2026-09-18 currency-first merge), so the
         // "floats up" contract now shows in row order: the residence's own
         // region (South America) sorts before the others in the merged list.
-        const brazilRow = screen.getByText('BRL and ARS · Pix and bank transfer')
+        const brazilRow = screen.getByText('BRL · Pix')
         const europeRow = screen.getByText('EUR · Bank transfer')
         expect(brazilRow.compareDocumentPosition(europeRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
@@ -317,7 +329,7 @@ describe('UnlockPayments', () => {
     })
 
     it('states the BRL monthly allowance in the row drawer, never as a card on the screen', () => {
-        mockRails = [{ id: 'manteca.bank', provider: 'manteca', channel: 'bank', status: 'enabled' }]
+        mockRails = [{ id: 'manteca.bank', provider: 'manteca', channel: 'bank', country: 'BR', status: 'enabled' }]
         mockMantecaLimits = [
             {
                 exchangeCountry: 'BRA',
@@ -360,7 +372,7 @@ describe('UnlockPayments', () => {
         })
 
         it('rail only: the row reads Available, and still no account numbers section', () => {
-            mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', status: 'enabled' }]
+            mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }]
             render()
 
             expect(screen.getAllByText('Available').length).toBeGreaterThan(0)
@@ -375,7 +387,7 @@ describe('UnlockPayments', () => {
          */
         it('rail and an account they could open: still rail access only', () => {
             mockDepositEnabled = true
-            mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', status: 'enabled' }]
+            mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }]
             mockDepositAccounts = {}
             render()
 
@@ -385,7 +397,7 @@ describe('UnlockPayments', () => {
 
         it('an account held: it gets its own section, its own words, and Ready', () => {
             mockDepositEnabled = true
-            mockRails = [{ id: 'bridge.sepa', provider: 'bridge', channel: 'bank', status: 'enabled' }]
+            mockRails = [{ id: 'bridge.sepa', provider: 'bridge', channel: 'bank', country: 'EU', status: 'enabled' }]
             mockDepositAccounts = {
                 SEPA_EU: { status: 'active', instructions: {}, matching: { sender: 'anyone' } },
             }
@@ -404,13 +416,13 @@ describe('UnlockPayments', () => {
     })
 
     it('names the deposit and withdrawal caps separately, inside the row drawer', () => {
-        mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', status: 'enabled' }]
+        mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }]
         mockBridgeLimits = { onRampPerTransaction: '25000', offRampPerTransaction: '50000', asset: 'USD' }
         render()
         expect(screen.queryByText('Per bank deposit')).not.toBeInTheDocument()
         expect(screen.queryByText('Per bank withdrawal')).not.toBeInTheDocument()
 
-        fireEvent.click(screen.getByText('EUR · Bank transfer'))
+        fireEvent.click(screen.getByText('USD · Bank transfer'))
         const drawer = screen.getByRole('dialog')
         expect(within(drawer).getByText('Per bank deposit')).toBeInTheDocument()
         expect(within(drawer).getByText('Per bank withdrawal')).toBeInTheDocument()
@@ -430,7 +442,7 @@ describe('UnlockPayments', () => {
 
     it('held bank accounts reuse account details, retain the profile return path, and drop the duplicate active row', () => {
         mockDepositEnabled = true
-        mockRails = [{ id: 'bridge.sepa', provider: 'bridge', channel: 'bank', status: 'enabled' }]
+        mockRails = [{ id: 'bridge.sepa', provider: 'bridge', channel: 'bank', country: 'EU', status: 'enabled' }]
         mockDepositAccounts = {
             SEPA_EU: { status: 'active', instructions: {}, matching: { sender: 'business-only' } },
         }
@@ -473,8 +485,8 @@ describe('UnlockPayments', () => {
     it('renders no limit card anywhere on the screen', () => {
         mockDepositEnabled = true
         mockRails = [
-            { id: 'bridge.ach', provider: 'bridge', channel: 'bank', status: 'enabled' },
-            { id: 'manteca.bank', provider: 'manteca', channel: 'bank', status: 'enabled' },
+            { id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' },
+            { id: 'manteca.bank', provider: 'manteca', channel: 'bank', country: 'BR', status: 'enabled' },
         ]
         mockBridgeLimits = { onRampPerTransaction: '25000', offRampPerTransaction: '50000', asset: 'USD' }
         mockMantecaLimits = [
@@ -506,7 +518,7 @@ describe('UnlockPayments', () => {
         // ListGroup positions its direct children: every row after the first
         // drops its top border. Rows behind a wrapper component each kept all
         // four and rendered as separate cards.
-        const rows = ['EUR · Bank transfer', 'USD and MXN · Bank transfer'].map((title) =>
+        const rows = ['EUR · Bank transfer', 'USD · Bank transfer'].map((title) =>
             screen.getByText(title).closest('.border')
         )
         const group = rows[0]?.parentElement
@@ -544,7 +556,7 @@ describe('UnlockPayments', () => {
         id: 'bridge.sepa_eu',
         provider: 'bridge',
         channel: 'bank',
-        country: 'DE',
+        country: 'EU',
         status: 'blocked',
         reason: {
             code: 'residence_unresolved',
@@ -597,7 +609,7 @@ describe('UnlockPayments', () => {
         ]
         mockIsKycApproved = true
         render()
-        fireEvent.click(screen.getByText('BRL and ARS · Pix and bank transfer'))
+        fireEvent.click(screen.getByText('BRL · Pix'))
         fireEvent.click(screen.getByText('Upload document'))
 
         expect(mockSelfHealResubmit).toHaveBeenCalledWith('MANTECA')
@@ -627,14 +639,14 @@ describe('UnlockPayments', () => {
             mockIsKycApproved = true
             render()
 
-            const bankRow = screen.getByText('BRL and ARS · Pix and bank transfer')
+            const bankRow = screen.getByText('BRL · Pix')
             expect(within(bankRow.closest('.border') as HTMLElement).getByText('Unlock')).toBeInTheDocument()
             const qrRow = screen.getByText('QR payments · Brazil and Argentina')
             expect(within(qrRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
 
             // the row is the way into the onboarding that makes it true
             fireEvent.click(bankRow)
-            expect(screen.getByText('unlock-modal-open:BRL and ARS · Pix and bank transfer')).toBeInTheDocument()
+            expect(screen.getByText('unlock-modal-open:BRL · Pix')).toBeInTheDocument()
         })
 
         it('a full Manteca account reads Available on both rows', () => {
@@ -642,7 +654,7 @@ describe('UnlockPayments', () => {
             mockIsKycApproved = true
             render()
 
-            const bankRow = screen.getByText('BRL and ARS · Pix and bank transfer')
+            const bankRow = screen.getByText('BRL · Pix')
             expect(within(bankRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
             const qrRow = screen.getByText('QR payments · Brazil and Argentina')
             expect(within(qrRow.closest('.border') as HTMLElement).getByText('Available')).toBeInTheDocument()
@@ -666,9 +678,63 @@ describe('UnlockPayments', () => {
             mockIsKycApproved = true
             render()
 
-            const row = screen.getByText('USD and MXN · Bank transfer').closest('.border') as HTMLElement
+            const row = screen.getByText('USD · Bank transfer').closest('.border') as HTMLElement
             expect(within(row).queryByText('Available')).not.toBeInTheDocument()
             expect(within(row).getByText('Processing')).toBeInTheDocument()
+        })
+    })
+
+    /**
+     * One row per currency (ruled 2026-09-21, hugo — "prob makes sense to split
+     * usa and Mexico"). A merged row gave two currencies one chip, so a user
+     * with a working US rail and no Mexican one read "Available" on a row that
+     * named MXN. Each chip is now scoped to its own corridor's country.
+     */
+    describe('one row per currency', () => {
+        const badgeFor = (title: string) => within(screen.getByText(title).closest('.border') as HTMLElement)
+
+        it('names each currency on its own row, in its own group', () => {
+            render()
+            for (const title of ['BRL · Pix', 'ARS · Bank transfer', 'USD · Bank transfer', 'MXN · SPEI']) {
+                expect(screen.getByText(title)).toBeInTheDocument()
+            }
+            expect(screen.queryByText(/USD and MXN/)).not.toBeInTheDocument()
+            expect(screen.queryByText(/BRL and ARS/)).not.toBeInTheDocument()
+        })
+
+        it('a US-only Bridge rail says Available on USD and never on MXN', () => {
+            mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }]
+            render()
+
+            expect(badgeFor('USD · Bank transfer').getByText('Available')).toBeInTheDocument()
+            expect(badgeFor('MXN · SPEI').queryByText('Available')).not.toBeInTheDocument()
+            expect(badgeFor('MXN · SPEI').getByText('Unlock')).toBeInTheDocument()
+        })
+
+        it('a Brazil-only Manteca rail says Available on BRL and never on ARS', () => {
+            mockRails = [
+                { id: 'manteca.pix_br', provider: 'manteca', channel: 'bank', country: 'BR', status: 'enabled' },
+            ]
+            render()
+
+            expect(badgeFor('BRL · Pix').getByText('Available')).toBeInTheDocument()
+            expect(badgeFor('ARS · Bank transfer').queryByText('Available')).not.toBeInTheDocument()
+        })
+
+        it('sibling rows still route into the one verification that opens both', () => {
+            render()
+            fireEvent.click(screen.getByText('MXN · SPEI'))
+            expect(screen.getByText('unlock-modal-open:MXN · SPEI')).toBeInTheDocument()
+        })
+
+        it("a usable row opens that currency's own details drawer", () => {
+            mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', country: 'US', status: 'enabled' }]
+            render()
+
+            fireEvent.click(screen.getByText('USD · Bank transfer'))
+            const drawer = screen.getByRole('dialog')
+            expect(within(drawer).getByText('Add and withdraw dollars using US bank transfers.')).toBeInTheDocument()
+            expect(within(drawer).queryByText(/Mexican pesos/)).not.toBeInTheDocument()
         })
     })
 
@@ -699,7 +765,7 @@ describe('UnlockPayments', () => {
         })
 
         it('reads Available once the QR rail is live, and explains itself in the drawer', () => {
-            mockRails = [{ id: 'manteca.bank', provider: 'manteca', channel: 'bank', status: 'enabled' }]
+            mockRails = [{ id: 'manteca.bank', provider: 'manteca', channel: 'bank', country: 'BR', status: 'enabled' }]
             render()
 
             const qrRow = screen.getByText('QR payments · Brazil and Argentina')
@@ -714,7 +780,7 @@ describe('UnlockPayments', () => {
         it('the bank list never mentions QR any more', () => {
             render()
 
-            const bankRow = screen.getByText('BRL and ARS · Pix and bank transfer')
+            const bankRow = screen.getByText('BRL · Pix')
             expect(bankRow.textContent).not.toMatch(/QR/)
         })
     })
