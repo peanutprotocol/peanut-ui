@@ -370,7 +370,7 @@
                 "sepa": "Euro bank transfers"
             },
             "chips": {
-                "active": "Active",
+                "active": "Available",
                 "alwaysOn": "Always on",
                 "unlock": "Unlock",
                 "processing": "Processing",
@@ -418,8 +418,8 @@
                 "short": "Verification attempts are temporarily limited. Please try again in a little while.",
                 "dismiss": "I'll try later"
             },
-            "accountsTitle": "Your accounts",
-            "accountsSubtitle": "Account numbers you can share to receive money into Peanut.",
+            "accountsTitle": "Your account numbers",
+            "accountsSubtitle": "Bank details in your name. Give them to someone else and the money arrives in Peanut.",
             "details": {
                 "p2p": "Send and receive money with other Peanut users.",
                 "crypto": "Add or withdraw crypto from any wallet or exchange — no verification required.",
@@ -451,7 +451,9 @@
             "detailsDrawer": {
                 "aboutTitle": "What you can do",
                 "limitsTitle": "Limits"
-            }
+            },
+            "waysTitle": "Ways to send yourself money",
+            "waysSubtitle": "Move your own money between Peanut and your bank. You get no account number of your own."
         },
         "backup": {
             "title": "Backup",
@@ -1097,11 +1099,12 @@
             "businessPays": "Only businesses can pay this by bank transfer. A friend's transfer is returned.",
             "unknownPays": "A transfer from anyone but you is not confirmed on this account, and it may be returned.",
             "titleOff": "Your bank details stay private",
-            "descriptionOff": "Payers can still pay with Peanut, crypto or their own bank."
+            "descriptionOff": "Payers pay with Peanut or crypto. A payer can still add money from their own bank first. It does not arrive in your bank account."
         },
         "paidByBank": {
             "rowLabel": "Bank transfer",
             "receivedPartial": "${received} of ${requested} received",
+            "receivedPartialSettled": "${received} of ${requested} by bank transfer. The rest was paid another way.",
             "badgePaid": "Paid",
             "badgePartial": "Partly paid",
             "paidByName": "Paid by {name}",
@@ -1944,10 +1947,19 @@
             "reference": "Reference (optional)",
             "referenceHelperSepa": "The recipient's bank shows it with the payment. 6 to 140 characters: letters a-z, numbers, spaces and & - . /",
             "referenceHelperAch": "The recipient's bank shows it with the payment. Up to 10 characters: letters a-z, numbers and spaces.",
+            "referenceHelperFasterPayments": "The recipient's bank shows it with the payment. Up to 18 characters: letters a-z, numbers, spaces and & - . /",
+            "referenceHelperSpei": "The recipient's bank shows it with the payment. Up to 40 characters: letters a-z, numbers and spaces.",
+            "referenceHelperCoBankTransfer": "The recipient's bank shows it with the payment. Up to 18 characters: letters a-z, numbers, spaces and & - . /",
             "referenceTooShort": "Use at least {min} characters, or leave it empty.",
             "referenceTooLong": "Use at most {max} characters.",
             "referenceInvalidCharsSepa": "Use only letters a-z, numbers, spaces and & - . /",
             "referenceInvalidCharsAch": "Use only letters a-z, numbers and spaces.",
+            "referenceInvalidCharsSpei": "Use only letters a-z, numbers and spaces.",
+            "payoutSenderSepa": "The payment arrives from our payment partner, not from your own name.",
+            "payoutSenderSepaDefaultReference": "Your name is in the payment reference.",
+            "payoutSenderAch": "The payment arrives from our payment partner, not from your own name. Your bank statement shows Peanut.",
+            "payoutSenderSpei": "The payment arrives from our payment partner's local bank, not from your own name.",
+            "payoutSenderWire": "The payment arrives from Peanut, not from your own name.",
             "bankAccount": "Bank Account",
             "transferProcessing": "Transfer processing",
             "confirmPending": "Your transfer is processing. Funds were sent on-chain successfully — this can take a few minutes to confirm. If you don't see the withdrawal in your activity within 30 minutes, please contact support."
@@ -1981,7 +1993,7 @@
             "iban": "IBAN",
             "ibanRequired": "IBAN is required",
             "ibanInvalid": "Invalid IBAN",
-            "ibanUnsupported": "This IBAN isn't supported for withdrawals",
+            "ibanUnsupported": "We cannot send euros to this IBAN. Enter an IBAN from a SEPA country.",
             "accountNumber": "Account Number",
             "accountNumberRequired": "Account number is required",
             "accountNumberUk": "Account number must be 6-8 digits",
@@ -2035,6 +2047,7 @@
             "pasteAria": "Paste from clipboard",
             "pasteEmpty": "Nothing to paste",
             "pasteUnavailable": "Can't read the clipboard",
+            "bicAutoFilled": "We filled this in from your IBAN. Check it against your bank and change it if it is wrong.",
             "bicCountryMismatch": "This BIC belongs to a bank in another country than the IBAN"
         },
         "errors": {
@@ -4013,9 +4026,9 @@
             "searchPlaceholder": "Search country, currency or account",
             "noMatchTitle": "No match for “{query}”",
             "clearSearch": "Clear search",
-            "countriesTitle": "Other countries",
-            "countriesPitch": "Send yourself money from a bank in another country.",
-            "sectionTitle": "Your accounts",
+            "countriesTitle": "Ways to send yourself money",
+            "countriesPitch": "No account needed. Pick the country your bank is in.",
+            "sectionTitle": "Your account numbers",
             "accountsPitch": "Bank details in your name. Share them once and get paid straight into Peanut.",
             "badgeReady": "Ready",
             "badgeActive": "Active",
@@ -4033,7 +4046,8 @@
             "errorTitle": "We could not load your accounts",
             "errorBody": "Your accounts are fine — we just could not read them. Check your connection and try again.",
             "errorRetry": "Try again",
-            "badgeActionNeeded": "Action needed"
+            "badgeActionNeeded": "Action needed",
+            "badgeAvailable": "Available"
         },
         "claim": {
             "heading": "Bank details in {currency}",
@@ -4164,7 +4178,9 @@
             "finishReviewBody": "Your identity is verified. {currency} accounts need one extra check by our payment partner. It opens on their page, and this screen updates when you come back.",
             "finishReviewSupportBody": "Your identity is verified. {currency} accounts need one extra check by our payment partner, and it cannot be started from the app for your account. Contact support and we will help you finish it.",
             "finishReviewCta": "Continue",
-            "actFailed": "We could not open the check. Try again in a moment."
+            "actFailed": "We could not open the check. Try again in a moment.",
+            "topUpCta": "Send from your own bank",
+            "limitBodyTopUp": "That is your current limit. You can still add money by sending it from your own bank. Support can open another account if you need one."
         },
         "rules": {
             "providerHeld": {

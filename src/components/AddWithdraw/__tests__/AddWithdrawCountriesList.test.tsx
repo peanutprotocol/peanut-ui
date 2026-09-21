@@ -49,7 +49,15 @@ jest.mock('next/navigation', () => ({
 // ---- consts: one country ('testland', id 'US') with a bank add-method and a
 // Bridge bank withdraw-method (the withdraw path also runs checkBridgeGate). ----
 jest.mock('@/components/AddMoney/consts', () => ({
-    countryData: [{ type: 'country', path: 'testland', id: 'US', title: 'Testland', currency: 'usd' }],
+    countryData: [
+        { type: 'country', path: 'testland', id: 'US', title: 'Testland', currency: 'usd' },
+        // a real catalogue country with NO bank corridor — reachable only by
+        // hand-editing the URL, which is the hole F9 names
+        { type: 'country', path: 'nocorridor', id: 'IND', title: 'Nocorridor', currency: 'inr' },
+        { type: 'country', path: 'aland', id: 'ALA', title: 'Åland', currency: 'eur' },
+    ],
+    // the corridor table reads this; the real module exports it
+    BRIDGE_ALPHA3_TO_ALPHA2: { DEU: 'DE', ALA: 'AX' },
     COUNTRY_SPECIFIC_METHODS: {
         US: {
             add: [
@@ -565,7 +573,11 @@ describe('bank country back navigation', () => {
         mockSearchParams = new URLSearchParams(query)
         render(<AddWithdrawCountriesList flow="withdraw" />)
         fireEvent.click(screen.getByTestId('nav-header'))
-        expect(mockPush).toHaveBeenCalledWith(query ? '/withdraw?showAll=true&method=bank' : '/withdraw?showAll=true')
+        // the plain withdraw path names the rail it came back from, so the
+        // chooser does not offer crypto again (QA round 2, Q1)
+        expect(mockPush).toHaveBeenCalledWith(
+            query ? '/withdraw?showAll=true&method=bank' : '/withdraw?showAll=true&rail=bank'
+        )
         expect(mockSetSelectedMethod).toHaveBeenCalledWith(null)
     })
 })
@@ -629,7 +641,7 @@ describe('AddWithdrawCountriesList — the bank form entered cold', () => {
         render(<AddWithdrawCountriesList flow="withdraw" />)
         fireEvent.click(screen.getByTestId('nav-header'))
 
-        expect(mockPush).toHaveBeenCalledWith('/withdraw?showAll=true')
+        expect(mockPush).toHaveBeenCalledWith('/withdraw?showAll=true&rail=bank')
     })
 
     it.each(['', 'bank'])(
@@ -645,7 +657,7 @@ describe('AddWithdrawCountriesList — the bank form entered cold', () => {
             })
 
             expect(mockPush).toHaveBeenCalledWith(
-                origin ? '/withdraw?showAll=true&method=bank' : '/withdraw?showAll=true'
+                origin ? '/withdraw?showAll=true&method=bank' : '/withdraw?showAll=true&rail=bank'
             )
             expect(mockUrlUpdate).not.toHaveBeenCalled()
             expect(mockSetSelectedBankAccount).toHaveBeenCalledWith(null)
@@ -746,4 +758,97 @@ it('a Manteca rail clicked from a multi-rail list forwards the send origin as se
         mockLiveRails = null
         mockSearchParams = new URLSearchParams()
     }
+})
+
+/**
+ * The euro area as a destination (QA round 2, Q2).
+ *
+ * `/withdraw/euro-area` is not a country: it is the euro bank form, reached
+ * with no country picked because the IBAN says which country it is. It has no
+ * rail list of its own, so the two things that could break are the screen it
+ * renders and the button that leaves it.
+ */
+describe('AddWithdrawCountriesList — the euro area', () => {
+    beforeEach(() => {
+        mockPush.mockClear()
+        mockParams.country = 'euro-area'
+        setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
+    })
+
+    afterEach(() => {
+        mockParams.country = 'testland'
+        mockNuqsParams = {}
+    })
+
+    it('renders the bank form, never an empty rail list', () => {
+        // no ?step=form: a deep link to the destination is still the form
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+
+        expect(mockBankFormProps).toHaveBeenCalled()
+        expect(mockBankFormProps.mock.calls.at(-1)?.[0]).toEqual(expect.objectContaining({ country: 'SEPA' }))
+    })
+
+    it('back returns to the chooser: there is no rail list to go back to', () => {
+        mockNuqsParams = { step: 'form' }
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+
+        fireEvent.click(screen.getByTestId('nav-header'))
+
+        expect(mockPush).toHaveBeenCalledWith('/withdraw?showAll=true&rail=bank')
+    })
+})
+
+/**
+ * A URL is not a permission (QA round 3, F9).
+ *
+ * The bank form rendered for `?step=form` on ANY country, so a hand-edited URL
+ * reached a form whose submit can only fail with "unsupported country". The
+ * review page one step later already refuses the same URL
+ * (`useBridgeOfframpFlow.ts:188-195`); this mirrors that guard at the form.
+ */
+describe('AddWithdrawCountriesList — the form refuses a country with no bank corridor', () => {
+    beforeEach(() => {
+        mockPush.mockClear()
+        mockBankFormProps.mockClear()
+        mockNuqsParams = { step: 'form' }
+        setCapabilities('ready', [{ status: 'enabled', channel: 'bank', country: 'US' }])
+    })
+
+    afterEach(() => {
+        mockParams.country = 'testland'
+        mockNuqsParams = {}
+        mockSearchParams = new URLSearchParams()
+    })
+
+    it('sends a hand-edited URL back to the chooser instead of an uncompletable form', () => {
+        mockParams.country = 'nocorridor'
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+
+        expect(mockPush).toHaveBeenCalledWith('/withdraw')
+        expect(mockBankFormProps).not.toHaveBeenCalled()
+    })
+
+    it('keeps the Send origin when it turns one away', () => {
+        mockParams.country = 'nocorridor'
+        mockSearchParams = new URLSearchParams('method=bank')
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+
+        expect(mockPush).toHaveBeenCalledWith('/withdraw?method=bank')
+    })
+
+    it('the euro area is a corridor, not a country, and still opens', () => {
+        mockParams.country = 'euro-area'
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+
+        expect(mockBankFormProps).toHaveBeenCalled()
+        expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('Åland still opens: it is paid over SEPA like Finland', () => {
+        mockParams.country = 'aland'
+        render(<AddWithdrawCountriesList flow="withdraw" />)
+
+        expect(mockBankFormProps).toHaveBeenCalled()
+        expect(mockPush).not.toHaveBeenCalled()
+    })
 })

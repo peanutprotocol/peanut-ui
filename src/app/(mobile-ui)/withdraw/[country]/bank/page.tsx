@@ -68,7 +68,6 @@ export default function WithdrawBankPage() {
                 <WithdrawBankReviewView
                     bankAccount={bankAccount}
                     amount={amountToWithdraw}
-                    country={country}
                     fromSendFlow={fromSendFlow}
                     isLoading={flow.isLoading}
                     isSubmitReady={flow.isSubmitReady}
@@ -77,6 +76,8 @@ export default function WithdrawBankPage() {
                     balanceErrorMessage={flow.balanceErrorMessage}
                     confirmPendingCopy={flow.confirmPendingCopy}
                     referenceSpec={flow.referenceSpec}
+                    payoutSenderNoteKey={flow.payoutSenderNoteKey}
+                    payoutSenderDefaultReferenceNoteKey={flow.payoutSenderDefaultReferenceNoteKey}
                     reference={flow.reference}
                     referenceProblem={flow.referenceProblem}
                     onReferenceChange={flow.setReference}

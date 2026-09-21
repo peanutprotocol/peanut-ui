@@ -9,7 +9,8 @@ import {
     transactionDetailsRowKeys,
 } from '@/components/TransactionDetails/transaction-details.utils'
 import {
-    hasReceiptPage,
+    hasResolvableReceiptDocument,
+    servesAnonymousReceipt,
     isCardPaymentEntry,
     isCardSpend as isCardSpendTransaction,
     isFxBearingFlow,
@@ -210,8 +211,14 @@ export function useReceiptViewModel(
                 (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim') &&
                 transaction.status !== 'cancelled'
             ),
+            // The payer's own reference is owner-only. The backend already
+            // withholds it from a public receipt, but the public page renders
+            // this same component tree, so the gate is repeated here rather
+            // than resting on one side alone.
             senderReference: !!(
-                transaction.direction === 'bank_deposit' && transaction.extraDataForDrawer?.senderReference
+                !isPublic &&
+                transaction.direction === 'bank_deposit' &&
+                transaction.extraDataForDrawer?.senderReference
             ),
             depositInstructions: !!(
                 (isOnrampEntry(transaction) ||
@@ -258,7 +265,13 @@ export function useReceiptViewModel(
     // interactive send/request action. Existing public receipt kinds share a
     // capability URL; all other kinds share an authenticated PDF file.
     const meetsShareConditions = useMemo(
-        () => !!transaction && !isPendingSentLink && !isPendingRequester && !isPendingRequestee,
+        () =>
+            !!transaction &&
+            !isPendingSentLink &&
+            !isPendingRequester &&
+            !isPendingRequestee &&
+            // no document affordance where the document cannot be fetched
+            hasResolvableReceiptDocument(transaction),
         [transaction, isPendingSentLink, isPendingRequester, isPendingRequestee]
     )
 
@@ -267,7 +280,7 @@ export function useReceiptViewModel(
     const shouldShowDownloadPdf = useMemo(() => {
         if (!transaction) return false
         if (isPendingSentLink || isPendingRequester || isPendingRequestee) return false
-        return isPublic ? hasReceiptPage(transaction) : meetsShareConditions
+        return isPublic ? servesAnonymousReceipt(transaction) : meetsShareConditions
     }, [transaction, isPublic, isPendingSentLink, isPendingRequester, isPendingRequestee, meetsShareConditions])
 
     const requestPotContributors = useMemo(() => {

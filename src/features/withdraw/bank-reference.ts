@@ -7,22 +7,30 @@
  * (apidocs.bridge.xyz, create a transfer → destination).
  *
  * A rail with no entry takes no reference, and the field does not show:
- * - `faster_payments`: the API route accepts `fasterPaymentsReference` but does
- *   not pass it to the provider yet.
- * - `spei`, `co_bank_transfer`: the API route has no field for them.
  * - `wire`: no withdrawal uses it; US accounts pay out over `ach`.
+ *
+ * SEPA and ACH limits are confirmed against the provider's sandbox. The other
+ * three are documentation only: the provider states a length for SPEI (40) and
+ * Colombia (18) and none for Faster Payments, and documents no character set
+ * for any of the three. Those character sets are ours, chosen to match what the
+ * banks on each rail print. Verify each on staging before trusting it.
  */
 export interface BankReferenceSpec {
     /** The `destination` key of the create-offramp request that carries the text. */
-    field: 'sepaReference' | 'achReference'
+    field: 'sepaReference' | 'achReference' | 'fasterPaymentsReference' | 'speiReference' | 'coBankTransferReference'
     minLength: number
     maxLength: number
     /** Matches a whole reference made of allowed characters only. */
     allowed: RegExp
     /** `withdraw.bank` message key that states the limits under the field. */
-    helperKey: 'referenceHelperSepa' | 'referenceHelperAch'
+    helperKey:
+        | 'referenceHelperSepa'
+        | 'referenceHelperAch'
+        | 'referenceHelperFasterPayments'
+        | 'referenceHelperSpei'
+        | 'referenceHelperCoBankTransfer'
     /** `withdraw.bank` message key that names the allowed characters. */
-    invalidCharsKey: 'referenceInvalidCharsSepa' | 'referenceInvalidCharsAch'
+    invalidCharsKey: 'referenceInvalidCharsSepa' | 'referenceInvalidCharsAch' | 'referenceInvalidCharsSpei'
 }
 
 const SPECS: Record<string, BankReferenceSpec> = {
@@ -41,6 +49,30 @@ const SPECS: Record<string, BankReferenceSpec> = {
         allowed: /^[a-zA-Z0-9 ]*$/,
         helperKey: 'referenceHelperAch',
         invalidCharsKey: 'referenceInvalidCharsAch',
+    },
+    faster_payments: {
+        field: 'fasterPaymentsReference',
+        minLength: 1,
+        maxLength: 18,
+        allowed: /^[a-zA-Z0-9 &\-./]*$/,
+        helperKey: 'referenceHelperFasterPayments',
+        invalidCharsKey: 'referenceInvalidCharsSepa',
+    },
+    spei: {
+        field: 'speiReference',
+        minLength: 1,
+        maxLength: 40,
+        allowed: /^[a-zA-Z0-9 ]*$/,
+        helperKey: 'referenceHelperSpei',
+        invalidCharsKey: 'referenceInvalidCharsSpei',
+    },
+    co_bank_transfer: {
+        field: 'coBankTransferReference',
+        minLength: 1,
+        maxLength: 18,
+        allowed: /^[a-zA-Z0-9 &\-./]*$/,
+        helperKey: 'referenceHelperCoBankTransfer',
+        invalidCharsKey: 'referenceInvalidCharsSepa',
     },
 }
 
@@ -74,4 +106,60 @@ export function bankReferenceDestinationFields(
     const text = reference.trim()
     if (!spec || !text || bankReferenceProblem(text, spec)) return {}
     return { [spec.field]: text }
+}
+
+/**
+ * Whose name the receiving bank shows as the sender of a withdrawal.
+ *
+ * It is not the user, on any rail we offer. The provider sets this per rail as
+ * account configuration — we cannot set it per payment — so the honest thing is
+ * to say what each rail actually does. Read from the provider's payout
+ * configuration for our own account (2026-09-21):
+ * - `sepa`: the provider's own entity. The user's name reaches the recipient
+ *   only inside the reference line.
+ * - `ach`: the provider's own entity, under a Peanut descriptor.
+ * - `spei`: the provider's upstream local bank.
+ * - `wire`: Peanut itself.
+ *
+ * `faster_payments` and `co_bank_transfer` are absent from that configuration,
+ * so we do not know and say nothing rather than guess.
+ *
+ * On `sepa` the user's name rides inside the reference, so there is a second
+ * sentence that holds ONLY while the user typed no reference of their own —
+ * see `payoutSenderDefaultReferenceNoteForRail`.
+ */
+export type PayoutSenderNoteKey = 'payoutSenderSepa' | 'payoutSenderAch' | 'payoutSenderSpei' | 'payoutSenderWire'
+
+const SENDER_NOTES: Record<string, PayoutSenderNoteKey> = {
+    sepa: 'payoutSenderSepa',
+    ach: 'payoutSenderAch',
+    spei: 'payoutSenderSpei',
+    wire: 'payoutSenderWire',
+}
+
+/** The `withdraw.bank` message key for this rail, or null when we cannot say. */
+export function payoutSenderNoteForRail(paymentRail: string | undefined): PayoutSenderNoteKey | null {
+    return (paymentRail && SENDER_NOTES[paymentRail]) || null
+}
+
+/**
+ * The extra sentence that holds only on the DEFAULT reference.
+ *
+ * On `sepa` the provider composes the reference itself and its template carries
+ * the user's legal name, so with no reference of our own the user's name does
+ * reach the recipient. Whether a reference we send REPLACES that default is not
+ * known (TD-37), so as soon as the user types one we stop making the promise
+ * rather than restate it as a loss we have not proven.
+ */
+export type PayoutSenderDefaultReferenceNoteKey = 'payoutSenderSepaDefaultReference'
+
+const SENDER_DEFAULT_REFERENCE_NOTES: Record<string, PayoutSenderDefaultReferenceNoteKey> = {
+    sepa: 'payoutSenderSepaDefaultReference',
+}
+
+/** The `withdraw.bank` key for this rail's default-reference sentence, or null. */
+export function payoutSenderDefaultReferenceNoteForRail(
+    paymentRail: string | undefined
+): PayoutSenderDefaultReferenceNoteKey | null {
+    return (paymentRail && SENDER_DEFAULT_REFERENCE_NOTES[paymentRail]) || null
 }

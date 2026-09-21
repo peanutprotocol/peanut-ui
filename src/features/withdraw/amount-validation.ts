@@ -1,4 +1,5 @@
 import { isAmountWithinBalance } from '@/utils/balance.utils'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/wallet-token.consts'
 import { getMinimumAmount } from '@/utils/bridge.utils'
 
 /**
@@ -22,6 +23,13 @@ export type WithdrawAmountCheck =
  * Downstream `parseUnits` calls throw on scientific notation, so oversized
  * forms (`1e21`) must never survive parsing either (Chip round 7). `.5` and
  * `5.` are tolerated as honest mid-typing decimals.
+ *
+ * A fraction the token cannot carry is rejected outright. The provider is
+ * promised this exact figure and matches the deposit on it, while `parseUnits`
+ * rounds a longer fraction rather than throwing — so 5.12345649 told the
+ * provider one number and sent 5.123456 on chain, and the transfer waited for
+ * funds that had already left. The typed field pins 6 decimals; `?amount=` is
+ * user-editable and is the durable store, so the check belongs here.
  */
 export function parseUsdAmount(amount: string): string | null {
     if (!/^(\d+\.?\d*|\.\d+)$/.test(amount)) return null
@@ -29,6 +37,7 @@ export function parseUsdAmount(amount: string): string | null {
     if (!Number.isFinite(value) || value <= 0) return null
     const normalized = value.toString()
     if (!/^\d+(\.\d+)?$/.test(normalized)) return null
+    if ((normalized.split('.')[1]?.length ?? 0) > PEANUT_WALLET_TOKEN_DECIMALS) return null
     return normalized
 }
 

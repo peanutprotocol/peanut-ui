@@ -209,11 +209,15 @@ describe('UnlockPayments', () => {
         expect(screen.queryByText(/unlock-modal-open/)).not.toBeInTheDocument()
     })
 
-    it('leads with the merged "Your accounts" list, and the Peanut group keeps its always-on row', () => {
+    it('leads with the ways-in list, and the Peanut group keeps its always-on row', () => {
         render()
         // The currency-first merge (2026-09-18): the accounts list comes before
         // the separate Peanut group in the DOM, not the old Everywhere-first order.
-        const accountsHeading = screen.getByText('Your accounts')
+        // The user holds no account here, so only the second section renders —
+        // an empty "Your account numbers" heading would promise details that do
+        // not exist.
+        expect(screen.queryByText('Your account numbers')).not.toBeInTheDocument()
+        const accountsHeading = screen.getByText('Ways to send yourself money')
         const peanutHeading = screen.getByText('Peanut')
         expect(accountsHeading.compareDocumentPosition(peanutHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
         expect(screen.getByText('Peanut-to-Peanut payments')).toBeInTheDocument()
@@ -321,6 +325,76 @@ describe('UnlockPayments', () => {
         expect(screen.getByText(/left this month/)).toBeInTheDocument()
     })
 
+    /**
+     * The two things this screen holds are not the same thing, and they used to
+     * share a word. "Active" meant BOTH "your verification lets you use this
+     * bank rail" and "you hold an account that is active but not shareable" —
+     * one on each screen. A user could not tell rail access from an account in
+     * their own name, which is the whole difference: somebody else can pay into
+     * an account number, and nobody can pay into rail access.
+     *
+     * The four states a user can be in, in order.
+     */
+    describe('rail access and an account in your name read as different things', () => {
+        it('no rail: the ways-in section offers the unlock, and promises no account number', () => {
+            render()
+
+            expect(screen.getByText('Ways to send yourself money')).toBeInTheDocument()
+            expect(
+                screen.getByText(
+                    'Move your own money between Peanut and your bank. You get no account number of your own.'
+                )
+            ).toBeInTheDocument()
+            expect(screen.queryByText('Your account numbers')).not.toBeInTheDocument()
+            expect(screen.getAllByText('Unlock').length).toBeGreaterThan(0)
+            // the word that meant two things is gone from the vocabulary
+            expect(screen.queryByText('Active')).not.toBeInTheDocument()
+        })
+
+        it('rail only: the row reads Available, and still no account numbers section', () => {
+            mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', status: 'enabled' }]
+            render()
+
+            expect(screen.getAllByText('Available').length).toBeGreaterThan(0)
+            expect(screen.queryByText('Active')).not.toBeInTheDocument()
+            expect(screen.queryByText('Your account numbers')).not.toBeInTheDocument()
+        })
+
+        /*
+         * A corridor the user could open is not one they hold. Accounts &
+         * payments lists only held accounts, so the heading stays away until
+         * there are details to put under it — claiming happens on Add money.
+         */
+        it('rail and an account they could open: still rail access only', () => {
+            mockDepositEnabled = true
+            mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', status: 'enabled' }]
+            mockDepositAccounts = {}
+            render()
+
+            expect(screen.queryByText('Your account numbers')).not.toBeInTheDocument()
+            expect(screen.getByText('Ways to send yourself money')).toBeInTheDocument()
+        })
+
+        it('an account held: it gets its own section, its own words, and Ready', () => {
+            mockDepositEnabled = true
+            mockRails = [{ id: 'bridge.sepa', provider: 'bridge', channel: 'bank', status: 'enabled' }]
+            mockDepositAccounts = {
+                SEPA_EU: { status: 'active', instructions: {}, matching: { sender: 'anyone' } },
+            }
+            render()
+
+            expect(screen.getByText('Your account numbers')).toBeInTheDocument()
+            expect(
+                screen.getByText(
+                    'Bank details in your name. Give them to someone else and the money arrives in Peanut.'
+                )
+            ).toBeInTheDocument()
+            // a payer can be handed these details; rail access never says Ready
+            expect(screen.getByText('Ready')).toBeInTheDocument()
+            expect(screen.queryByText('Active')).not.toBeInTheDocument()
+        })
+    })
+
     it('an active Bridge rail names deposit and withdrawal limits separately', () => {
         mockRails = [{ id: 'bridge.ach', provider: 'bridge', channel: 'bank', status: 'enabled' }]
         mockBridgeLimits = { onRampPerTransaction: '25000', offRampPerTransaction: '50000', asset: 'USD' }
@@ -349,7 +423,12 @@ describe('UnlockPayments', () => {
         }
         render()
 
-        expect(screen.getByText('Your accounts')).toBeInTheDocument()
+        // The two pathways are named apart: the account the user holds sits
+        // under its own heading, and the corridors their verification opens sit
+        // under the other. One list called "Your accounts" said both were the
+        // same thing, under a subtitle promising account numbers to share.
+        expect(screen.getByText('Your account numbers')).toBeInTheDocument()
+        expect(screen.getByText('Ways to send yourself money')).toBeInTheDocument()
         fireEvent.click(screen.getByText('EUR · SEPA'))
         expect(mockPush).toHaveBeenCalledWith(
             '/add-money?method=bank&step=details&corridor=SEPA_EU&returnTo=%2Fprofile%2Faccounts-and-payments'
@@ -409,9 +488,11 @@ describe('UnlockPayments', () => {
         mockReadDepositAccounts.mockClear()
         render()
         expect(mockReadDepositAccounts).not.toHaveBeenCalled()
-        // The merged "Your accounts" list still renders the KYC-unlock bank/QR
-        // rows with the flag off — only the VA fetch (and its rows) are gated.
-        expect(screen.getByText('Your accounts')).toBeInTheDocument()
+        // The ways-in list still renders the KYC-unlock bank/QR rows with the
+        // flag off — only the VA fetch (and its rows) are gated. With no
+        // standing accounts at all, the account-numbers heading must not appear.
+        expect(screen.getByText('Ways to send yourself money')).toBeInTheDocument()
+        expect(screen.queryByText('Your account numbers')).not.toBeInTheDocument()
         expect(screen.getByText('Euro bank transfers')).toBeInTheDocument()
     })
 

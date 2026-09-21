@@ -3,7 +3,7 @@ import { captureException } from '@sentry/nextjs'
 import { createTranslator } from 'next-intl'
 import { getHistoryEntry } from '@/app/actions/history'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
-import { hasReceiptPage } from '@/components/TransactionDetails/transaction-predicates'
+import { servesAnonymousReceipt } from '@/components/TransactionDetails/transaction-predicates'
 import { resolveReceiptKind } from '@/components/TransactionDetails/strategies/registry'
 import { isFinalState } from '@/utils/history.utils'
 import { APP_LOCALES, resolveLocale } from '@/i18n/app/config'
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         // An anonymous request stays on the exact public-page whitelist. A
         // bearer/cookie request may render a private kind only after the API's
         // participant check returned the entry above.
-        const isPublicReceipt = hasReceiptPage(transactionDetails)
+        const isPublicReceipt = servesAnonymousReceipt(transactionDetails)
         if (!isPublicReceipt && !authorization) {
             return notFound()
         }

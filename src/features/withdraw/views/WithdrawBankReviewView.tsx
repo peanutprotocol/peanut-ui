@@ -14,14 +14,18 @@ import { formatIban } from '@/utils/general.utils'
 import { type FC, useState } from 'react'
 import { Field } from '@/components/0_Bruddle/Field'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
-import { type BankReferenceProblem, type BankReferenceSpec } from '@/features/withdraw/bank-reference'
+import {
+    type BankReferenceProblem,
+    type BankReferenceSpec,
+    type PayoutSenderDefaultReferenceNoteKey,
+    type PayoutSenderNoteKey,
+} from '@/features/withdraw/bank-reference'
 import { useAuth } from '@/context/authContext'
 import { useTranslations } from 'next-intl'
 
 interface WithdrawBankReviewViewProps {
     bankAccount: Account
     amount: string
-    country: string
     fromSendFlow: boolean
     isLoading: boolean
     /** false while the spendable balance or the rail-minimum FX rate loads — submit stays disabled (Chip rounds 3+5). */
@@ -33,6 +37,10 @@ interface WithdrawBankReviewViewProps {
     confirmPendingCopy: string
     /** The limits of the rail's reference field; null when the rail takes none. */
     referenceSpec: BankReferenceSpec | null
+    /** `withdraw.bank` key naming who the recipient's bank shows as sender; null when unknown. */
+    payoutSenderNoteKey: PayoutSenderNoteKey | null
+    /** Extra sentence that holds only while the user typed no reference; null when the rail has none. */
+    payoutSenderDefaultReferenceNoteKey: PayoutSenderDefaultReferenceNoteKey | null
     reference: string
     referenceProblem: BankReferenceProblem | null
     onReferenceChange: (reference: string) => void
@@ -44,7 +52,6 @@ interface WithdrawBankReviewViewProps {
 export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     bankAccount,
     amount,
-    country,
     fromSendFlow,
     isLoading,
     isSubmitReady,
@@ -53,6 +60,8 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     balanceErrorMessage,
     confirmPendingCopy,
     referenceSpec,
+    payoutSenderNoteKey,
+    payoutSenderDefaultReferenceNoteKey,
     reference,
     referenceProblem,
     onReferenceChange,
@@ -66,10 +75,19 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     const tCommon = useTranslations('common')
     const { user } = useAuth()
 
+    // ONE country drives this screen: the account's own, read off the IBAN.
+    // The country picked upstream is not the same thing — a Portugal resident
+    // with a Lithuanian IBAN who picked Poland got a Lithuanian flag beside a
+    // zloty conversion quote — and since the euro area became one destination
+    // there is often no picked country at all (QA round 3, W1).
+    const accountCountryCode = (
+        ALL_COUNTRIES_ALPHA3_TO_ALPHA2[bankAccount?.details?.countryCode ?? ''] ??
+        bankAccount?.details?.countryCode ??
+        ''
+    ).toLowerCase()
+
     const nonEuroCurrency = countryCurrencyMappings.find(
-        (currency) =>
-            country.toLowerCase() === currency.country.toLowerCase() ||
-            currency.path?.toLowerCase() === country.toLowerCase()
+        (currency) => currency.flagCode.toLowerCase() === accountCountryCode
     )?.currencyCode
 
     const referenceErrorText = (problem: BankReferenceProblem) => {
@@ -81,13 +99,6 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
 
     // non-eur sepa countries that are currently experiencing issues
     const isNonEuroSepa = isNonEuroSepaCountry(nonEuroCurrency)
-
-    const countryCodeForFlag = () => {
-        if (!bankAccount?.details?.countryCode) return ''
-        const code =
-            ALL_COUNTRIES_ALPHA3_TO_ALPHA2[bankAccount.details.countryCode ?? ''] ?? bankAccount.details.countryCode
-        return code.toLowerCase()
-    }
 
     const getBicAndRoutingNumber = () => {
         if (bankAccount.type === AccountType.IBAN) {
@@ -105,7 +116,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
     return (
         <div className="my-auto space-y-4 flex h-full w-full flex-col justify-center pb-4">
             <PeanutActionDetailsCard
-                countryCodeForFlag={countryCodeForFlag()}
+                countryCodeForFlag={accountCountryCode}
                 avatarSize="small"
                 transactionType={'WITHDRAW_BANK_ACCOUNT'}
                 recipientType={'BANK_ACCOUNT'}
@@ -164,12 +175,30 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 <PaymentInfoRow hideBottomBorder label={t('bank.fee')} value={`$ 0.00`} />
             </Card>
 
+            {payoutSenderNoteKey && (
+                <p className="text-body-xs text-foreground-secondary">
+                    {t(`bank.${payoutSenderNoteKey}`)}
+                    {/* The provider's default reference carries the user's name.
+                        A reference they type may replace it, so the promise is
+                        made only while they have typed none. */}
+                    {payoutSenderDefaultReferenceNoteKey && !reference.trim() && (
+                        <> {t(`bank.${payoutSenderDefaultReferenceNoteKey}`)}</>
+                    )}
+                </p>
+            )}
+
             {referenceSpec && (
                 <Field
                     label={t('bank.reference')}
                     htmlFor="withdraw-bank-reference"
                     helper={t(`bank.${referenceSpec.helperKey}`)}
-                    error={referenceTouched && referenceProblem ? referenceErrorText(referenceProblem) : undefined}
+                    // After a failed submit there is nothing left to finish
+                    // typing, so the reason shows without waiting for a blur.
+                    error={
+                        (referenceTouched || error.showError) && referenceProblem
+                            ? referenceErrorText(referenceProblem)
+                            : undefined
+                    }
                 >
                     <BaseInput
                         id="withdraw-bank-reference"
@@ -194,7 +223,10 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                 </Button>
             ) : error.showError ? (
                 <Button
-                    disabled={isLoading}
+                    // Same guard as the normal submit below: the flow hook
+                    // returns early on a reference problem, so without this
+                    // Retry looks live and does nothing.
+                    disabled={isLoading || !!referenceProblem}
                     onClick={onSubmit}
                     loading={isLoading}
                     shadowSize="4"

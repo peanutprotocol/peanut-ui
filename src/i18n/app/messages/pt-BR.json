@@ -370,7 +370,7 @@
                 "sepa": "Transferências bancárias em euros"
             },
             "chips": {
-                "active": "Ativo",
+                "active": "Disponível",
                 "alwaysOn": "Sempre ativo",
                 "unlock": "Desbloquear",
                 "processing": "Processando",
@@ -418,8 +418,8 @@
                 "short": "As tentativas de verificação estão temporariamente limitadas. Tente novamente daqui a pouco.",
                 "dismiss": "Vou tentar mais tarde"
             },
-            "accountsTitle": "Suas contas",
-            "accountsSubtitle": "Números de conta que você pode compartilhar para receber dinheiro no Peanut.",
+            "accountsTitle": "Seus números de conta",
+            "accountsSubtitle": "Dados bancários no seu nome. Dê para outra pessoa e o dinheiro chega no Peanut.",
             "details": {
                 "p2p": "Envie e receba dinheiro de outros usuários do Peanut.",
                 "crypto": "Adicione ou saque cripto de qualquer carteira ou corretora, na hora.",
@@ -451,7 +451,9 @@
             "detailsDrawer": {
                 "aboutTitle": "O que você pode fazer",
                 "limitsTitle": "Limites"
-            }
+            },
+            "waysTitle": "Formas de enviar dinheiro para você",
+            "waysSubtitle": "Mova seu próprio dinheiro entre o Peanut e seu banco. Você não recebe um número de conta próprio."
         },
         "backup": {
             "title": "Backup",
@@ -1097,11 +1099,12 @@
             "businessPays": "Só empresas podem pagar isto por transferência bancária. A transferência de um amigo é devolvida.",
             "unknownPays": "Uma transferência de outra pessoa não está confirmada nesta conta e pode ser devolvida.",
             "titleOff": "Seus dados bancários ficam privados",
-            "descriptionOff": "Quem paga ainda pode usar Peanut, cripto ou o próprio banco."
+            "descriptionOff": "Quem paga usa a Peanut ou cripto. Pode adicionar dinheiro do próprio banco antes. Esse dinheiro não chega à sua conta bancária."
         },
         "paidByBank": {
             "rowLabel": "Transferência bancária",
             "receivedPartial": "${received} de ${requested} recebidos",
+            "receivedPartialSettled": "${received} de ${requested} por transferência bancária. O resto foi pago de outra forma.",
             "badgePaid": "Pago",
             "badgePartial": "Pago em parte",
             "paidByName": "Pago por {name}",
@@ -1944,10 +1947,19 @@
             "reference": "Referência (opcional)",
             "referenceHelperSepa": "O banco do destinatário mostra com o pagamento. De 6 a 140 caracteres: letras a-z, números, espaços e & - . /",
             "referenceHelperAch": "O banco do destinatário mostra com o pagamento. Até 10 caracteres: letras a-z, números e espaços.",
+            "referenceHelperFasterPayments": "O banco do destinatário mostra com o pagamento. Até 18 caracteres: letras a-z, números, espaços e & - . /",
+            "referenceHelperSpei": "O banco do destinatário mostra com o pagamento. Até 40 caracteres: letras a-z, números e espaços.",
+            "referenceHelperCoBankTransfer": "O banco do destinatário mostra com o pagamento. Até 18 caracteres: letras a-z, números, espaços e & - . /",
             "referenceTooShort": "Mínimo de {min} caracteres, ou deixe em branco.",
             "referenceTooLong": "Máximo de {max} caracteres.",
             "referenceInvalidCharsSepa": "Use apenas letras a-z, números, espaços e & - . /",
             "referenceInvalidCharsAch": "Use apenas letras a-z, números e espaços.",
+            "referenceInvalidCharsSpei": "Use apenas letras a-z, números e espaços.",
+            "payoutSenderSepa": "O pagamento chega do nosso parceiro de pagamentos, não em seu nome.",
+            "payoutSenderSepaDefaultReference": "Seu nome vai na referência do pagamento.",
+            "payoutSenderAch": "O pagamento chega do nosso parceiro de pagamentos, não em seu nome. Seu banco mostra Peanut.",
+            "payoutSenderSpei": "O pagamento chega do banco local do nosso parceiro de pagamentos, não em seu nome.",
+            "payoutSenderWire": "O pagamento chega da Peanut, não em seu nome.",
             "bankAccount": "Conta bancária",
             "transferProcessing": "Transferência em processamento",
             "confirmPending": "Sua transferência está sendo processada. Os fundos foram enviados on-chain com sucesso: a confirmação pode levar alguns minutos. Se você não vir o saque na sua atividade em até 30 minutos, fale com o suporte."
@@ -1981,7 +1993,7 @@
             "iban": "IBAN",
             "ibanRequired": "O IBAN é obrigatório",
             "ibanInvalid": "IBAN inválido",
-            "ibanUnsupported": "Este IBAN não é compatível com saques",
+            "ibanUnsupported": "Não podemos enviar euros para este IBAN. Digite um IBAN de um país do SEPA.",
             "accountNumber": "Número da conta",
             "accountNumberRequired": "O número da conta é obrigatório",
             "accountNumberUk": "O número da conta precisa ter de 6 a 8 dígitos",
@@ -2035,6 +2047,7 @@
             "pasteAria": "Colar da área de transferência",
             "pasteEmpty": "Nada para colar",
             "pasteUnavailable": "Não foi possível ler a área de transferência",
+            "bicAutoFilled": "Preenchemos isto a partir do seu IBAN. Confira com o seu banco e altere se estiver errado.",
             "bicCountryMismatch": "Este BIC é de um banco de outro país que o IBAN"
         },
         "errors": {
@@ -4013,9 +4026,9 @@
             "searchPlaceholder": "Busque país, moeda ou conta",
             "noMatchTitle": "Nenhum resultado para “{query}”",
             "clearSearch": "Limpar busca",
-            "countriesTitle": "Outros países",
-            "countriesPitch": "Envie dinheiro para você mesmo de um banco em outro país.",
-            "sectionTitle": "Suas contas",
+            "countriesTitle": "Formas de enviar dinheiro para você",
+            "countriesPitch": "Não precisa de conta. Escolha o país do seu banco.",
+            "sectionTitle": "Seus números de conta",
             "accountsPitch": "Dados bancários no seu nome. Compartilhe uma vez e receba direto no Peanut.",
             "badgeReady": "Pronta",
             "badgeActive": "Ativo",
@@ -4033,7 +4046,8 @@
             "errorTitle": "Não conseguimos carregar suas contas",
             "errorBody": "Suas contas estão bem: só não conseguimos lê-las. Verifique sua conexão e tente de novo.",
             "errorRetry": "Tentar de novo",
-            "badgeActionNeeded": "Ação necessária"
+            "badgeActionNeeded": "Ação necessária",
+            "badgeAvailable": "Disponível"
         },
         "claim": {
             "heading": "Dados bancários em {currency}",
@@ -4164,7 +4178,9 @@
             "finishReviewBody": "Sua identidade já está verificada. As contas em {currency} precisam de uma checagem extra do nosso parceiro de pagamentos. Ela abre na página dele, e esta tela se atualiza quando você voltar.",
             "finishReviewSupportBody": "Sua identidade já está verificada. As contas em {currency} precisam de uma checagem extra do nosso parceiro de pagamentos, e não dá para iniciá-la pelo app na sua conta. Fale com o suporte e a gente ajuda você a concluir.",
             "finishReviewCta": "Continuar",
-            "actFailed": "Não conseguimos abrir a checagem. Tente de novo em instantes."
+            "actFailed": "Não conseguimos abrir a checagem. Tente de novo em instantes.",
+            "topUpCta": "Envie do seu próprio banco",
+            "limitBodyTopUp": "Esse é o seu limite atual. Você ainda pode adicionar dinheiro enviando do seu próprio banco. O suporte pode abrir outra conta se você precisar."
         },
         "rules": {
             "providerHeld": {

@@ -39,6 +39,21 @@ export function collectedTotal(
 }
 
 /**
+ * What is left to pay, in dollars: what the request asks less everything both
+ * books collected, and never below zero.
+ *
+ * Every screen in the flow that offers the payer an amount must go through
+ * this. The amount field used to suggest a figure derived from the charges
+ * alone, so a request already part-paid by bank prefilled more than it still
+ * needed, and the payer overpaid money nobody can give back.
+ */
+export function remainingToPay(totalAmount: number, totalCollected: number) {
+    if (!Number.isFinite(totalAmount) || totalAmount <= 0) return 0
+    const collected = Number.isFinite(totalCollected) ? totalCollected : 0
+    return Math.max(totalAmount - collected, 0)
+}
+
+/**
  * The dollars a request still needs, off a `/pay-amounts` answer.
  *
  * The Peanut rail is always dollars and always exact — `tokenAmount` less

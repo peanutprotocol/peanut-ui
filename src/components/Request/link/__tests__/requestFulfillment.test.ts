@@ -1,4 +1,4 @@
-import { requestFulfillmentState } from '../requestFulfillment'
+import { requestFulfillmentState, requestIsSettled } from '../requestFulfillment'
 
 const request = (over: Partial<Parameters<typeof requestFulfillmentState>[0]> = {}) => ({
     paidAt: null,
@@ -67,5 +67,26 @@ describe('requestFulfillmentState', () => {
 
             expect(state).toBe('paid')
         })
+    })
+})
+
+/**
+ * Settlement is a question about the REQUEST; `bankFulfilment` answers only
+ * about the bank book (peanut-api-ts#1647). The two disagree on a request paid
+ * partly by bank and partly from a Peanut balance — QA round 2, Q5.
+ */
+describe('requestIsSettled', () => {
+    it('is true once the request is paid, whichever way the money came', () => {
+        expect(requestIsSettled({ bankFulfilment: 'partial', paidAt: '2026-09-20T22:00:00.000Z' })).toBe(true)
+    })
+
+    it('is false while money is still owed', () => {
+        expect(requestIsSettled({ bankFulfilment: 'partial', paidAt: null })).toBe(false)
+    })
+
+    it('says nothing on a response from before the bank verdict existed', () => {
+        // there `paidAt` meant "a bank deposit landed", and a short deposit
+        // really did leave the request open — the amounts own that case
+        expect(requestIsSettled({ paidAt: '2026-09-20T22:00:00.000Z' })).toBe(false)
     })
 })

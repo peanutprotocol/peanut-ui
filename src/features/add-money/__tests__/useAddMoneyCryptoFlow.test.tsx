@@ -126,6 +126,47 @@ describe('useAddMoneyCryptoFlow', () => {
         expect(result.current.depositTransactionDetails?.tokenSymbol).toBe('USDT')
     })
 
+    // GET /history/:id resolves a crypto deposit by the `tx:` prefixed EVM hash
+    // and by nothing else, so a bare hash 404s and the receipt cannot be shared.
+    it('keys the receipt on the prefixed transaction hash', () => {
+        const { result } = renderFlow()
+
+        act(() =>
+            result.current.handleSuccess(50, {
+                status: 'completed',
+                amount: 50,
+                txHash: '0xAB'.padEnd(66, 'c'),
+            } as never)
+        )
+
+        expect(result.current.depositTransactionDetails?.id).toBe(`tx:${'0xab'.padEnd(66, 'c')}`)
+        // the on-chain hash itself is unchanged: it is what the receipt prints
+        expect(result.current.depositTransactionDetails?.txHash).toBe('0xAB'.padEnd(66, 'c'))
+    })
+
+    // Only an EVM hash has a `tx:` form. A Solana hash is base58 and
+    // case-sensitive, so lowercasing it would corrupt it, and a Tron hash has
+    // no `0x` at all. Neither is rewritten, and neither is offered a document.
+    it.each([
+        ['solana', '5Tx9AbCdEfGhJkLmNpQrStUvWxYz1234567890AbCdEfGhJkLmNpQrStUvWxYz'],
+        ['tron', 'TXYZa1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0'],
+    ])('leaves a %s hash exactly as the chain wrote it', (_network, hash) => {
+        const { result } = renderFlow()
+
+        act(() => result.current.handleSuccess(50, { status: 'completed', amount: 50, txHash: hash } as never))
+
+        expect(result.current.depositTransactionDetails?.id).toBe(hash)
+        expect(result.current.depositTransactionDetails?.txHash).toBe(hash)
+    })
+
+    it('falls back to a plain key when the deposit carries no hash', () => {
+        const { result } = renderFlow()
+
+        act(() => result.current.handleSuccess(50))
+
+        expect(result.current.depositTransactionDetails?.id).toBe('deposit')
+    })
+
     it('handleSuccessComplete clears the success state', () => {
         const { result } = renderFlow()
         act(() => result.current.handleSuccess(10))

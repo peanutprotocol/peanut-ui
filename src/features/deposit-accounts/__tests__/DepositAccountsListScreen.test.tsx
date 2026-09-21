@@ -169,6 +169,129 @@ describe('DepositAccountsListScreen', () => {
         expect(screen.queryByText(/not set up/i)).not.toBeInTheDocument()
     })
 
+    /**
+     * What a real unverified user gets. Their rails come back `requires-info`
+     * with a `sumsub:identity` action on them, and the gate resolver answers
+     * `fixable-rejection` — NOT `needs-identity`, which is its answer for "no
+     * functional rail in scope". The rows only ever asked about
+     * `needs-identity`, so four corridors read "Not set up" on a DISABLED row,
+     * while the screen behind them was ready to say "Verify your identity
+     * first" and open the flow that clears it. Both halves were wrong: the
+     * user can set one up, and the row refused the tap that starts it.
+     *
+     * Found by the browser smoke of the `get-paid-blocked` fixture, whose rail
+     * shape is the backend's own.
+     */
+    describe('a corridor blocked only by verification', () => {
+        const unverified = (kind: GateState['kind']) => {
+            const gates = allGates({ kind, userMessage: null } as GateState)
+            return list(false, { corridors: ['SEPA_EU'], gates })
+        }
+
+        it.each([['fixable-rejection'], ['restart-identity'], ['needs-identity']] as const)(
+            'says verification is what is needed when the gate reads %s',
+            (kind) => {
+                const { container } = unverified(kind)
+
+                expect(inRow(container, 'SEPA_EU').getByText('Requires verification')).toBeInTheDocument()
+                expect(inRow(container, 'SEPA_EU').queryByText('Not set up')).not.toBeInTheDocument()
+            }
+        )
+
+        it.each([['fixable-rejection'], ['restart-identity']] as const)(
+            'keeps the row tappable into the verification flow when the gate reads %s',
+            (kind) => {
+                const { container } = unverified(kind)
+
+                expect(rowOf(container, 'SEPA_EU')).not.toHaveAttribute('aria-disabled', 'true')
+            }
+        )
+
+        /*
+         * The line that must not move. `needs-enrollment` means the user is
+         * already verified and has no rail for this corridor, so verifying
+         * again cannot open it — and one enabled Manteca rail must not unlock
+         * four Bridge corridors. That row stays closed.
+         */
+        it('leaves a verified user with no rail closed, and does not offer verification', () => {
+            const { container } = unverified('needs-enrollment')
+
+            expect(rowOf(container, 'SEPA_EU')).toHaveAttribute('aria-disabled', 'true')
+            expect(inRow(container, 'SEPA_EU').queryByText('Requires verification')).not.toBeInTheDocument()
+        })
+    })
+
+    /**
+     * One rail, one answer, whatever screen you read it on. Accounts & payments
+     * badges the Argentine rail "Available"; this row said nothing at all,
+     * because a corridor nobody can hold has no ACCOUNT to report. Silence on
+     * one screen and a status on the other is still two screens disagreeing
+     * about one thing (QA script step 7).
+     */
+    describe('a corridor nobody can hold says the same as the other screen', () => {
+        it('badges the Argentine rail Available when the user can use it', () => {
+            const gates = allGates({ kind: 'needs-enrollment' })
+            gates.BANK_TRANSFER_AR = READY
+            const { container } = list(false, { corridors: ['BANK_TRANSFER_AR'], gates })
+
+            expect(inRow(container, 'BANK_TRANSFER_AR').getByText('Available')).toBeInTheDocument()
+            // there is nothing to hand a payer, so it never claims to be Ready
+            expect(inRow(container, 'BANK_TRANSFER_AR').queryByText('Ready')).not.toBeInTheDocument()
+            expect(inRow(container, 'BANK_TRANSFER_AR').queryByText('Not set up')).not.toBeInTheDocument()
+        })
+
+        it('stays silent where the user cannot use it, rather than promising one', () => {
+            const gates = allGates({ kind: 'needs-enrollment' })
+            const { container } = list(false, { corridors: ['BANK_TRANSFER_AR'], gates })
+
+            expect(inRow(container, 'BANK_TRANSFER_AR').queryByText('Available')).not.toBeInTheDocument()
+        })
+    })
+
+    /**
+     * "Not set up" is a claim the user can set one up. At the account cap they
+     * cannot — they hold every account we open for them — yet the same rail
+     * still takes a transfer they send themselves, and the deposit route would
+     * have accepted it. The row said "Not set up" and led to "Contact support",
+     * which is the one string on this screen that was simply false.
+     */
+    describe('a corridor the user cannot open but can still deposit on', () => {
+        const capped = { claimable: { SEPA_EU: offered('SEPA_EU', 'account-limit') } }
+
+        it('reads Available, never Not set up', () => {
+            const { container } = list(false, capped)
+
+            expect(inRow(container, 'SEPA_EU').getByText('Available')).toBeInTheDocument()
+            expect(inRow(container, 'SEPA_EU').queryByText('Not set up')).not.toBeInTheDocument()
+        })
+
+        it('keeps the row tappable, because there is something behind it', () => {
+            const { container } = list(false, capped)
+
+            expect(rowOf(container, 'SEPA_EU')).not.toHaveAttribute('aria-disabled', 'true')
+        })
+
+        /*
+         * Colombia has no live country for its corridor, so there is no
+         * transfer to offer. The row must not promise one — that would be the
+         * same lie with a friendlier word.
+         */
+        it('says nothing is available where no transfer exists either', () => {
+            const { container } = list(false, {
+                claimable: { BANK_TRANSFER_CO: offered('BANK_TRANSFER_CO', 'account-limit') },
+            })
+
+            expect(inRow(container, 'BANK_TRANSFER_CO').queryByText('Available')).not.toBeInTheDocument()
+        })
+
+        // A corridor the user CAN open is set up by them, so the old word holds.
+        it('still says Not set up where the user can set one up', () => {
+            const { container } = list(false, { claimable: { SEPA_EU: offered('SEPA_EU') } })
+
+            expect(inRow(container, 'SEPA_EU').getByText('Not set up')).toBeInTheDocument()
+        })
+    })
+
     // Status belongs to the badge on every row, and the rows carry no subtitle:
     // the arrival time and the residence caveat moved off the hub so the list
     // reads as one consistent column of "currency · rail" and a status badge.

@@ -2,11 +2,16 @@
 
 import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
+import { corridorTopUpHref } from '@/features/add-money/countryRoutes'
+import { rewriteMethodPath } from '@/utils/native-routes'
+import { withReturnTo } from '@/utils/return-to.utils'
+import { useRouter } from 'next/navigation'
 import { DepositAccountsFlow } from './DepositAccountsFlow'
 import type { DepositSupportReason } from '../types'
 import { useDepositAccounts } from '../useDepositAccounts'
 import { useDepositAccountsEnabled } from '../useDepositAccountsEnabled'
 import { useDepositGateRemediation } from '../useDepositGateRemediation'
+import { useResidenceIso2s } from '../useResidenceIso2s'
 import { useEndorsementReview } from '../useEndorsementReview'
 
 /** What support reads first. English on purpose: it is for the agent, not the user. */
@@ -52,6 +57,8 @@ export function DepositAccountsFlowContainer({ onExit }: DepositAccountsFlowCont
         refetch,
     } = useDepositAccounts({ enabled: accountsEnabled })
     const { user } = useAuth()
+    const router = useRouter()
+    const residenceIso2s = useResidenceIso2s()
     const { resolveGate, modals } = useDepositGateRemediation()
     const { openSupportWithMessage } = useModalsContext()
     const review = useEndorsementReview()
@@ -87,6 +94,15 @@ export function DepositAccountsFlowContainer({ onExit }: DepositAccountsFlowCont
                 onContactSupport={(corridor, reason) =>
                     openSupportWithMessage(`${SUPPORT_SUBJECT[reason]}: ${corridor}`)
                 }
+                // The other way into a corridor, when the standing account
+                // cannot take the money: a transfer the user sends themselves.
+                // It is a page of its own, so it carries where it came from —
+                // leaving verification must not strand the user on a bare
+                // amount route they never knowingly opened.
+                onTopUp={(corridor) => {
+                    const href = corridorTopUpHref(corridor, residenceIso2s)
+                    if (href) router.push(withReturnTo(rewriteMethodPath(href), '/add-money?method=bank'))
+                }}
                 review={review}
             />
             {modals}

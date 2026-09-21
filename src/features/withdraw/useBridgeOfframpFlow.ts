@@ -42,7 +42,13 @@ import { validateBankOfframpAmount, bankWithdrawMinUsd, bankWithdrawMinNeedsRate
 import useGetExchangeRate from '@/hooks/useGetExchangeRate'
 import { AccountType } from '@/interfaces/interfaces'
 import { WITHDRAW_BANK_STEPS } from './types'
-import { bankReferenceDestinationFields, bankReferenceProblem, bankReferenceSpecForRail } from './bank-reference'
+import {
+    bankReferenceDestinationFields,
+    bankReferenceProblem,
+    bankReferenceSpecForRail,
+    payoutSenderDefaultReferenceNoteForRail,
+    payoutSenderNoteForRail,
+} from './bank-reference'
 
 /**
  * Flow hook for the Bridge bank-withdraw review page
@@ -100,6 +106,17 @@ export function useBridgeOfframpFlow() {
         [bankAccount]
     )
     const referenceProblem = referenceSpec ? bankReferenceProblem(reference, referenceSpec) : null
+    const payoutSenderNoteKey = useMemo(
+        () => (bankAccount ? payoutSenderNoteForRail(getOfframpConfigFromAccount(bankAccount).paymentRail) : null),
+        [bankAccount]
+    )
+    const payoutSenderDefaultReferenceNoteKey = useMemo(
+        () =>
+            bankAccount
+                ? payoutSenderDefaultReferenceNoteForRail(getOfframpConfigFromAccount(bankAccount).paymentRail)
+                : null,
+        [bankAccount]
+    )
     const { hasPendingTransactions } = usePendingTransactions()
 
     const stepper = useFlowStepper({
@@ -505,6 +522,8 @@ export function useBridgeOfframpFlow() {
         reference,
         setReference,
         referenceSpec,
+        payoutSenderNoteKey,
+        payoutSenderDefaultReferenceNoteKey,
         referenceProblem,
         pointsData,
         onBack,

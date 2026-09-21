@@ -13,9 +13,11 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { getCardPosition } from '@/components/Global/Card/card.utils'
+import { SEPA_DESTINATION } from '@/components/AddWithdraw/bank-corridors'
 import {
     countriesForQuery,
     currencyMatchesQuery,
+    currencyRoutesByIban,
     liveWithdrawCurrencies,
     type WithdrawCurrency,
 } from './withdraw-currencies'
@@ -25,8 +27,11 @@ interface WithdrawCurrencyListProps {
     heading: string
     /** A country was resolved — route it (reuses the method view's handler). */
     onCountryClick: (country: CountryData) => void
-    /** The crypto (on-chain) row was tapped. */
-    onCryptoClick: () => void
+    /**
+     * The crypto (on-chain) row was tapped. Omit it to drop the row: a user who
+     * already picked the bank rail upstream must not be offered crypto again.
+     */
+    onCryptoClick?: () => void
     /** Send has stricter country support than own-account withdrawal. */
     enforceSupportedCountries?: boolean
     /** Search the list opens with — `/withdraw?currencyCode=EUR` lands on the EUR row. */
@@ -78,7 +83,13 @@ export function WithdrawCurrencyList({
             onCountryClick(currency.countries[0])
             return
         }
-        // A shared currency (EUR): reveal its countries as the secondary step.
+        // The IBAN answers the country question, so it is never asked: the euro
+        // area is one destination and the form reads the country off the IBAN.
+        if (currencyRoutesByIban(currency)) {
+            onCountryClick(SEPA_DESTINATION)
+            return
+        }
+        // Any other shared currency: reveal its countries as the secondary step.
         setExpandedCurrency((current) => (current === currency.code ? null : currency.code))
     }
 
@@ -96,7 +107,7 @@ export function WithdrawCurrencyList({
             </div>
 
             {/* crypto sits beside the currencies, never inside them */}
-            {!query && (
+            {!query && onCryptoClick && (
                 <ListItem
                     key="crypto"
                     title={tGlobal('countryList.cryptoWithdrawTitle')}
@@ -113,7 +124,9 @@ export function WithdrawCurrencyList({
                 <div data-testid="withdraw-currencies">
                     {filteredCurrencies.map((currency, index) => {
                         const expanded = expandedCurrency === currency.code
-                        const isMulti = currency.countries.length > 1
+                        // a currency the IBAN decides routes straight through, so
+                        // it gets the plain chevron, not the expand affordance
+                        const isMulti = currency.countries.length > 1 && !currencyRoutesByIban(currency)
                         return (
                             <div key={currency.code}>
                                 <ListItem

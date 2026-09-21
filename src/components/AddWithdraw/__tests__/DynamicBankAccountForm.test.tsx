@@ -50,12 +50,15 @@ jest.mock('@/hooks/useSavedAccounts', () => ({
 // IBAN tests below run against the real derivation (and its real gaps). The
 // wrapper only lets one test make the server action fail.
 let mockBicLookupFails = false
+// Lets one test hand the form a BIC the lookup should never have produced.
+let mockBicOverride: string | null = null
 jest.mock('@/app/actions/ibanToBic', () => {
     const actual = jest.requireActual('@/app/actions/ibanToBic')
     return {
         ...actual,
         getBicFromIban: async (iban: string) => {
             if (mockBicLookupFails) throw new Error('server action failed')
+            if (mockBicOverride !== null) return mockBicOverride
             return actual.getBicFromIban(iban)
         },
     }
@@ -138,6 +141,7 @@ beforeEach(() => {
     mockValidateBankAccount.mockResolvedValue(true)
     mockValidateBic.mockResolvedValue(true)
     mockBicLookupFails = false
+    mockBicOverride = null
 })
 
 // ---------- tests ----------
@@ -338,13 +342,16 @@ const submitWithEnter = async (container: HTMLElement) => {
 const payloadOf = (onSuccess: jest.Mock) => onSuccess.mock.calls[0][0] as Record<string, unknown>
 
 describe('DynamicBankAccountForm — the BIC follows the IBAN', () => {
-    it('an IBAN the table knows: the BIC field hides and the derived BIC is submitted', async () => {
+    it('an IBAN the table knows: the BIC is filled in, shown, and submitted', async () => {
         const onSuccess = jest.fn(async () => ({}))
         const { container } = renderIbanForm(onSuccess)
         expect(bicInput()).toBeInTheDocument()
 
         await typeIban(DE_IBAN, { blur: true })
-        await waitFor(() => expect(bicInput()).not.toBeInTheDocument())
+        // The field stays on screen carrying the derived value, and says where
+        // it came from, so the account holder can catch a wrong one.
+        await waitFor(() => expect(bicInput()!.value).toBe(DE_BIC))
+        expect(screen.getByText(/withdraw\.bankForm\.bicAutoFilled/)).toBeInTheDocument()
 
         await submitWithEnter(container)
         await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
@@ -458,7 +465,7 @@ describe('DynamicBankAccountForm — the BIC follows the IBAN', () => {
 
         await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
         expect(payloadOf(onSuccess)).toMatchObject({ accountNumber: DE_IBAN, bic: DE_BIC })
-        expect(bicInput()).not.toBeInTheDocument()
+        expect(bicInput()!.value).toBe(DE_BIC)
     })
 
     it('a lookup that fails on a NEW IBAN does not reuse the BIC of the old one', async () => {
@@ -479,7 +486,7 @@ describe('DynamicBankAccountForm — the BIC follows the IBAN', () => {
         const { container } = renderIbanForm(onSuccess)
 
         await typeIban(DE_IBAN, { blur: true })
-        await waitFor(() => expect(bicInput()).not.toBeInTheDocument())
+        await waitFor(() => expect(bicInput()!.value).toBe(DE_BIC))
 
         await typeIban(IT_IBAN, { blur: true })
         await waitFor(() => expect(bicInput()).toBeInTheDocument())
@@ -489,18 +496,18 @@ describe('DynamicBankAccountForm — the BIC follows the IBAN', () => {
         expect(onSuccess).not.toHaveBeenCalled()
     })
 
-    it('IBAN A then IBAN B with Enter and no blur: the hidden BIC of A is not sent with B', async () => {
+    it('IBAN A then IBAN B with Enter and no blur: the BIC of A is not sent with B', async () => {
         const onSuccess = jest.fn(async () => ({}))
         const { container } = renderIbanForm(onSuccess)
 
         await typeIban(DE_IBAN, { blur: true })
-        await waitFor(() => expect(bicInput()).not.toBeInTheDocument())
+        await waitFor(() => expect(bicInput()!.value).toBe(DE_BIC))
 
         await typeIban(IT_IBAN, { blur: false })
         await submitWithEnter(container)
 
         expect(onSuccess).not.toHaveBeenCalled()
-        // the field is back, empty, and says why the submit stopped
+        // the field is empty again and says why the submit stopped
         await waitFor(() => expect(bicInput()).toBeInTheDocument())
         expect(bicInput()!.value).toBe('')
         expect(await screen.findByText('withdraw.bankForm.bicRequired')).toBeInTheDocument()
@@ -511,7 +518,7 @@ describe('DynamicBankAccountForm — the BIC follows the IBAN', () => {
         const { container } = renderIbanForm(onSuccess)
 
         await typeIban(DE_IBAN, { blur: true })
-        await waitFor(() => expect(bicInput()).not.toBeInTheDocument())
+        await waitFor(() => expect(bicInput()!.value).toBe(DE_BIC))
 
         await typeIban(DE_IBAN_OTHER_BANK, { blur: false })
         await submitWithEnter(container)
@@ -520,12 +527,107 @@ describe('DynamicBankAccountForm — the BIC follows the IBAN', () => {
         expect(payloadOf(onSuccess)).toMatchObject({ accountNumber: DE_IBAN_OTHER_BANK, bic: DE_BIC_OTHER_BANK })
     })
 
+    it('a derived BIC that is malformed is refused before it can be submitted', async () => {
+        // The tables behind the lookup are hand-maintained. If one ever yields
+        // something that is not a BIC, the form has to stop it: the provider is
+        // the next thing downstream, and this is someone's money.
+        mockBicOverride = 'NOTABIC'
+        const onSuccess = jest.fn(async () => ({}))
+        const { container } = renderIbanForm(onSuccess)
+
+        await typeIban(DE_IBAN, { blur: true })
+        await waitFor(() => expect(bicInput()!.value).toBe('NOTABIC'))
+
+        await submitWithEnter(container)
+        expect(onSuccess).not.toHaveBeenCalled()
+        // touching the field names the problem, as it does for an empty one
+        await act(async () => {
+            fireEvent.blur(bicInput()!)
+        })
+        expect(await screen.findByText('withdraw.bankForm.bicInvalid')).toBeInTheDocument()
+    })
+
+    it('editing a derived BIC keeps the typed value and drops the note', async () => {
+        const onSuccess = jest.fn(async () => ({}))
+        const { container } = renderIbanForm(onSuccess)
+
+        await typeIban(DE_IBAN, { blur: true })
+        await waitFor(() => expect(bicInput()!.value).toBe(DE_BIC))
+        expect(screen.getByText(/withdraw\.bankForm\.bicAutoFilled/)).toBeInTheDocument()
+
+        await act(async () => {
+            fireEvent.change(bicInput()!, { target: { value: 'SOGEDEFFXXX' } })
+        })
+        await act(async () => {
+            fireEvent.blur(bicInput()!)
+        })
+        // it is the user's value now, so the note that we filled it in is gone
+        expect(screen.queryByText(/withdraw\.bankForm\.bicAutoFilled/)).not.toBeInTheDocument()
+
+        await submitWithEnter(container)
+        await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+        expect(payloadOf(onSuccess)).toMatchObject({ accountNumber: DE_IBAN, bic: 'SOGEDEFFXXX' })
+    })
+
+    it("IBAN A corrected, then B, then back to A: A gets its own BIC, not B's", async () => {
+        // A correction belongs to the IBAN it was made for. Carrying it across a
+        // change of IBAN and back would submit account A with bank B's BIC, and
+        // when both banks sit in one country nothing downstream would catch it:
+        // the shape is valid, the country matches, and the provider is asked
+        // whether the BIC exists, not whether it belongs to this account.
+        const onSuccess = jest.fn(async () => ({}))
+        const { container } = renderIbanForm(onSuccess)
+
+        await typeIban(DE_IBAN, { blur: true })
+        await waitFor(() => expect(bicInput()!.value).toBe(DE_BIC))
+        await act(async () => {
+            fireEvent.change(bicInput()!, { target: { value: 'DEUTDEFFXXX' } })
+        })
+        await act(async () => {
+            fireEvent.blur(bicInput()!)
+        })
+
+        await typeIban(DE_IBAN_OTHER_BANK, { blur: true })
+        await waitFor(() => expect(bicInput()!.value).toBe(DE_BIC_OTHER_BANK))
+
+        await typeIban(DE_IBAN, { blur: true })
+        await waitFor(() => expect(bicInput()!.value).toBe(DE_BIC))
+
+        await submitWithEnter(container)
+        await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+        expect(payloadOf(onSuccess)).toMatchObject({ accountNumber: DE_IBAN, bic: DE_BIC })
+    })
+
+    it('a correction does not survive a detour through an IBAN with no BIC either', async () => {
+        // The same rule as above, on the path where the middle IBAN derives
+        // nothing. Clearing the correction only where a BIC is derived would
+        // leave it standing here, and the two paths should not differ: one
+        // change of IBAN is enough to make a hand-typed BIC stale.
+        const onSuccess = jest.fn(async () => ({}))
+        renderIbanForm(onSuccess)
+
+        await typeIban(DE_IBAN, { blur: true })
+        await waitFor(() => expect(bicInput()!.value).toBe(DE_BIC))
+        await act(async () => {
+            fireEvent.change(bicInput()!, { target: { value: 'DEUTDEFFXXX' } })
+        })
+        await act(async () => {
+            fireEvent.blur(bicInput()!)
+        })
+
+        // IT_IBAN is in neither table, so nothing derives for it
+        await typeIban(IT_IBAN, { blur: true })
+
+        await typeIban(DE_IBAN, { blur: true })
+        await waitFor(() => expect(bicInput()!.value).toBe(DE_BIC))
+    })
+
     it('clearing the IBAN drops the BIC that was derived from it', async () => {
         const onSuccess = jest.fn(async () => ({}))
         renderIbanForm(onSuccess)
 
         await typeIban(DE_IBAN, { blur: true })
-        await waitFor(() => expect(bicInput()).not.toBeInTheDocument())
+        await waitFor(() => expect(bicInput()!.value).toBe(DE_BIC))
 
         await typeIban('', { blur: true })
         await waitFor(() => expect(bicInput()).toBeInTheDocument())
@@ -550,7 +652,7 @@ describe('DynamicBankAccountForm — tap-to-paste', () => {
 
         await waitFor(() => expect(ibanInput().value).toBe(DE_IBAN))
         expect(mockValidateBankAccount).toHaveBeenCalledWith(DE_IBAN)
-        await waitFor(() => expect(bicInput()).not.toBeInTheDocument())
+        await waitFor(() => expect(bicInput()!.value).toBe(DE_BIC))
         await waitFor(() => expect(submit).toBeEnabled())
 
         await act(async () => {
@@ -569,5 +671,47 @@ describe('DynamicBankAccountForm — tap-to-paste', () => {
         })
 
         expect(await screen.findByText('withdraw.bankForm.ibanInvalid')).toBeInTheDocument()
+    })
+})
+
+/**
+ * The euro area entered with NO country (QA round 2, Q2).
+ *
+ * The withdraw flow stopped asking which euro country the bank is in — a
+ * Revolut or Wise customer does not know. The form is reached with the SEPA
+ * destination instead of a country, and the IBAN answers the question.
+ *
+ * That makes the form the ONLY place an IBAN we cannot pay is refused, which
+ * is the one way this change could make things worse. These pin it.
+ */
+describe('DynamicBankAccountForm — the euro area, entered with no country', () => {
+    it('refuses an IBAN the provider does not support, naming what to do instead', async () => {
+        mockValidateBankAccount.mockResolvedValue(false)
+        const onSuccess = jest.fn(async () => ({}))
+        const { container } = renderIbanForm(onSuccess, 'SEPA')
+
+        await typeIban(DE_IBAN, { blur: true })
+        await submitWithEnter(container)
+
+        expect(await screen.findByText('withdraw.bankForm.ibanUnsupported')).toBeInTheDocument()
+        // nothing reaches the provider: the refusal happens here, not later
+        expect(onSuccess).not.toHaveBeenCalled()
+    })
+
+    it('a supported IBAN submits with the country read off the IBAN, not off a country step', async () => {
+        const onSuccess = jest.fn(async () => ({}))
+        const { container } = renderIbanForm(onSuccess, 'SEPA')
+
+        await typeIban(DE_IBAN, { blur: true })
+        await submitWithEnter(container)
+
+        await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1))
+        expect(payloadOf(onSuccess)).toEqual(
+            expect.objectContaining({
+                accountType: 'iban',
+                accountNumber: DE_IBAN,
+                countryCode: 'DEU',
+            })
+        )
     })
 })
