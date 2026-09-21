@@ -82,7 +82,8 @@ describe('buildReceiptPdfModel — completed bank withdraw', () => {
 
     test('renders amount, status, and the core rows', () => {
         // formatCurrency mirrors the page: decimal places follow the input string
-        expect(model.amountDisplay).toBe('$125.5')
+        // signed like the screen: a bank withdraw is money leaving
+        expect(model.amountDisplay).toBe('-$125.5')
         expect(model.rows[0]).toEqual({
             label: 'transaction.officialReceipt.issuedOn',
             value: expect.stringContaining('2026'),
@@ -289,13 +290,38 @@ describe('buildReceiptPdfModel — variants', () => {
         expect(row(model, 'transaction.officialReceipt.issuedOn')).toContain('August 23, 2026')
     })
 
-    test('unparsable dates fall back to an ASCII marker instead of throwing', () => {
+    // The screen hides the row when the shared rule yields no date, so the
+    // document leaves it out too rather than printing a dash at a reader.
+    test('an unreadable issuance date drops the row instead of printing a dash', () => {
         const model = buildReceiptPdfModel(
-            withOverrides({ status: 'pending', createdAt: 'not-a-date', completedAt: undefined }),
+            withOverrides({ status: 'pending', createdAt: 'not-a-date', completedAt: undefined, date: 'not-a-date' }),
             t,
             'en'
         )
-        expect(row(model, 'transaction.officialReceipt.issuedOn')).toBe('-')
+        expect(labels(model)).not.toContain('transaction.officialReceipt.issuedOn')
+    })
+
+    // A refund and a spend of the same value printed an identical headline.
+    test('the headline carries the direction sign', () => {
+        const sent = buildReceiptPdfModel(withOverrides({ direction: 'send', amount: 12.5 }), t, 'en')
+        const received = buildReceiptPdfModel(withOverrides({ direction: 'receive', amount: 12.5 }), t, 'en')
+
+        expect(sent.amountDisplay).toBe('-$12.5')
+        expect(received.amountDisplay).toBe('+$12.5')
+    })
+
+    // A pot reports what it collected, and a collected total has no direction.
+    test('a request pot headline carries no sign', () => {
+        const model = buildReceiptPdfModel(
+            withOverrides(
+                { amount: 100, isRequestPotLink: true, totalAmountCollected: 40, status: 'closed' },
+                { kind: 'P2P_REQUEST_FULFILL' }
+            ),
+            t,
+            'en'
+        )
+
+        expect(model.amountDisplay).toBe('$40.00')
     })
 })
 

@@ -17,6 +17,7 @@ import {
     isSendLinkEntry,
     isSplittable,
     hasShareableReceipt,
+    servesAnonymousReceipt,
 } from '../transaction-predicates'
 import type { TransactionDetails } from '../transactionTransformer'
 import type { IntentKind } from '../strategies/registry'
@@ -322,5 +323,22 @@ describe('hasUserProfile', () => {
 
     test('a non-user avatar never links to a profile', () => {
         expect(hasUserProfileAvatar(profileTx('send', { isPeerActuallyUser: false }))).toBe(false)
+    })
+})
+
+/**
+ * The dedicated page serves a crypto deposit to a reader with no session, but
+ * the document gates read `hasReceiptPage`, which does not list it — so the
+ * page carried no Download affordance and its PDF twin answered 404.
+ */
+describe('servesAnonymousReceipt', () => {
+    const tx = (kind: string) => ({ extraDataForDrawer: { kind } }) as unknown as TransactionDetails
+
+    it.each(['ONRAMP', 'OFFRAMP', 'QR_PAY', 'SEND_LINK', 'CRYPTO_DEPOSIT'])('serves %s anonymously', (kind) => {
+        expect(servesAnonymousReceipt(tx(kind))).toBe(true)
+    })
+
+    it.each(['DIRECT_TRANSFER', 'CARD_SPEND_CLEAR', 'CRYPTO_WITHDRAW'])('keeps %s owner-only', (kind) => {
+        expect(servesAnonymousReceipt(tx(kind))).toBe(false)
     })
 })

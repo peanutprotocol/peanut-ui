@@ -199,24 +199,24 @@ export default function AddMoneyBankDetails(props: AddMoneyBankDetailsProps) {
 
         if (isUs) {
             lines.push(
-                line(t('bankDetails.beneficiaryName'), String(onrampData?.depositInstructions?.bankBeneficiaryName)),
+                line(t('bankDetails.beneficiaryName'), onrampData?.depositInstructions?.bankBeneficiaryName || loading),
                 line(
                     t('bankDetails.beneficiaryAddress'),
-                    String(onrampData?.depositInstructions?.bankBeneficiaryAddress)
+                    onrampData?.depositInstructions?.bankBeneficiaryAddress || loading
                 )
             )
         }
 
         if (!isUs && !isMexico && !isUk) {
             lines.push(
-                line(t('bankDetails.accountHolderName'), String(onrampData?.depositInstructions?.accountHolderName))
+                line(t('bankDetails.accountHolderName'), onrampData?.depositInstructions?.accountHolderName || loading)
             )
         }
 
         // for mexico, include clabe
         if (isMexico) {
             lines.push(
-                line(t('bankDetails.accountHolderName'), String(onrampData?.depositInstructions?.accountHolderName)),
+                line(t('bankDetails.accountHolderName'), onrampData?.depositInstructions?.accountHolderName || loading),
                 line(t('bankDetails.clabe'), onrampData?.depositInstructions?.clabe || loading)
             )
         }

@@ -68,6 +68,18 @@ export function hasReceiptPage(transaction: TransactionDetails): boolean {
     return k === 'SEND_LINK' || (!!k && FIAT_RAIL_KINDS.has(k))
 }
 
+/**
+ * Kinds a receipt serves to a reader with no session.
+ *
+ * The dedicated page already serves a crypto deposit anonymously, and the API
+ * treats it as public, but the document gates read `hasReceiptPage` — which
+ * does not list it. So the page rendered with no Download affordance and its
+ * PDF twin answered 404: a receipt page carrying no document.
+ */
+export function servesAnonymousReceipt(transaction: TransactionDetails): boolean {
+    return hasReceiptPage(transaction) || kindOf(transaction) === 'CRYPTO_DEPOSIT'
+}
+
 // Renders "Completed" label for the timestamp row instead of "Sent"/"Received".
 // One-shot bank/onchain flows.
 export function usesCompletedTimestampLabel(transaction: TransactionDetails): boolean {

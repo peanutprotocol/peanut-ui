@@ -9,7 +9,7 @@ import {
     transactionDetailsRowKeys,
 } from '@/components/TransactionDetails/transaction-details.utils'
 import {
-    hasReceiptPage,
+    servesAnonymousReceipt,
     isCardPaymentEntry,
     isCardSpend as isCardSpendTransaction,
     isFxBearingFlow,
@@ -267,7 +267,7 @@ export function useReceiptViewModel(
     const shouldShowDownloadPdf = useMemo(() => {
         if (!transaction) return false
         if (isPendingSentLink || isPendingRequester || isPendingRequestee) return false
-        return isPublic ? hasReceiptPage(transaction) : meetsShareConditions
+        return isPublic ? servesAnonymousReceipt(transaction) : meetsShareConditions
     }, [transaction, isPublic, isPendingSentLink, isPendingRequester, isPendingRequestee, meetsShareConditions])
 
     const requestPotContributors = useMemo(() => {
