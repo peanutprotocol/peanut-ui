@@ -15,7 +15,7 @@
  */
 
 import { useTranslations } from 'next-intl'
-import React, { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState } from 'react'
 
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
@@ -378,8 +378,14 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', di
     //
     // `popularChainsForTabs` stays the full list everywhere else: dropping a
     // TAB must not change which tokens `All` shows.
-    const tabsRowRef = useRef<HTMLDivElement>(null)
-    const [droppedTabCount, setDroppedTabCount] = useState(0)
+    const [tabsRow, setTabsRow] = useState<HTMLDivElement | null>(null)
+    // one state, because the two halves are one fact: `dropped` is only an
+    // answer to the `width` it was measured against. A bare counter could not
+    // be reset on a resize — setting it to 0 when it is already 0 changes
+    // nothing, React bails out, and a row that had nothing to drop at 430px
+    // stayed overflowing after a shrink to 320px (measured).
+    const [fit, setFit] = useState({ width: 0, dropped: 0 })
+    const droppedTabCount = fit.dropped
     const droppableTabCount = popularChainsForTabs.length - (isPopularSelected ? 1 : 0)
 
     const visiblePopularChains = useMemo(() => {
@@ -396,28 +402,60 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', di
         return popularChainsForTabs.filter((chain) => kept.has(chain.chainId))
     }, [popularChainsForTabs, droppedTabCount, selectedChainID])
 
-    // A LAYOUT effect, and no dependency list on purpose. React commits each
-    // intermediate row and runs this before the browser paints, so the row is
-    // never seen full and then collapsing; running it after every commit means
-    // a later width change (a loaded chain list, a longer label) is caught
-    // without a dependency list that has to list every cause.
+    // A REF CALLBACK, not a mount effect. The row is handed to the drawer as
+    // `children` and mounted in the DRAWER's own commit — this component does
+    // not re-render then, so none of its effects run and an effect-only
+    // measurement never sees the row at all. Measured before this was a ref
+    // callback: at 375px the row stayed untrimmed and clipped until some
+    // unrelated render happened ~800ms later. A ref callback does fire in the
+    // commit that attaches the element, and before the browser paints. It only
+    // publishes the node — all measuring lives in the one effect below, so a
+    // row can never be judged twice and dropped twice for one overflow.
+    // Detaching resets the count, so each open re-decides from the full row.
+    const attachTabsRow = useCallback((node: HTMLDivElement | null) => {
+        setTabsRow(node)
+        if (!node) setFit({ width: 0, dropped: 0 })
+    }, [])
+
+    // the Tabs primitive's own scroll box around the tablist — the element
+    // whose overflow decides whether the row clips
+    const tabsScrollBox = tabsRow?.querySelector('[role="tablist"]')?.parentElement ?? null
+
+    // Every drop re-renders this component, so the next pass runs here until
+    // the row fits. A LAYOUT effect with no dependency list: each intermediate
+    // row is measured and replaced before the browser paints, so the row is
+    // never seen full and then collapsing, and any other cause of a width
+    // change is caught without a dependency list that has to name them all.
     useLayoutEffect(() => {
-        // the Tabs primitive's own scroll box around the tablist — the element
-        // whose overflow decides whether the row clips
-        const scrollBox = tabsRowRef.current?.querySelector('[role="tablist"]')?.parentElement
-        if (!scrollBox || droppedTabCount >= droppableTabCount) return
+        if (!tabsScrollBox) return
+        const width = tabsScrollBox.clientWidth
+        // a different box than the one the current answer was measured against
+        // — ask again from the full row
+        if (width !== fit.width) {
+            setFit({ width, dropped: 0 })
+            return
+        }
+        if (fit.dropped >= droppableTabCount) return
         // the +1 absorbs sub-pixel rounding, which would drop a tab that fits
-        if (scrollBox.scrollWidth > scrollBox.clientWidth + 1) setDroppedTabCount((count) => count + 1)
+        if (tabsScrollBox.scrollWidth > width + 1) setFit({ width, dropped: fit.dropped + 1 })
     })
 
-    // a narrower row needs another pass; a wider one may fit a dropped tab back.
-    // The drawer is viewport-wide, so the viewport is the only thing that
-    // resizes it — use a ResizeObserver if that stops being true.
+    // The row's box changes with no render of this component behind it — the
+    // viewport rotates, a desktop window narrows. The observer turns that into
+    // a render, which the effect above then acts on. It watches the SCROLL BOX
+    // and not the tablist: the tablist's width is what the trim itself moves,
+    // so watching that would feed back on itself. A same-width notice returns
+    // the identical state object, so React bails out and the first, harmless
+    // notice on observe costs no render.
     useEffect(() => {
-        const remeasure = () => setDroppedTabCount(0)
-        window.addEventListener('resize', remeasure)
-        return () => window.removeEventListener('resize', remeasure)
-    }, [])
+        if (!tabsScrollBox || typeof ResizeObserver === 'undefined') return
+        const observer = new ResizeObserver(() => {
+            const width = tabsScrollBox.clientWidth
+            setFit((current) => (current.width === width ? current : { width, dropped: 0 }))
+        })
+        observer.observe(tabsScrollBox)
+        return () => observer.disconnect()
+    }, [tabsScrollBox])
 
     const networkTabs = [
         { value: 'all', label: t('tokenSelector.allNetworks') },
@@ -491,7 +529,7 @@ const TokenSelector: React.FC<NewTokenSelectorProps> = ({ viewType = 'other', di
                         }
                     >
                         {/* the ref anchor the responsive trim measures through */}
-                        <div ref={tabsRowRef}>
+                        <div ref={attachTabsRow}>
                             <Tabs
                                 aria-label={t('tokenSelector.selectANetwork')}
                                 value={activeNetworkTab}
