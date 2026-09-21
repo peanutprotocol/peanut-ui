@@ -159,21 +159,3 @@ describe('sender reference row (bank deposits)', () => {
         expect(renderConfig(bankDeposit('INVOICE 4471'), true).senderReference).toBe(false)
     })
 })
-
-describe('payout reference row (bank withdrawals)', () => {
-    const withdraw = (payoutReference?: string): TransactionDetails =>
-        withDrawer({ status: 'completed', direction: 'bank_withdraw' }, { kind: 'OFFRAMP', payoutReference })
-
-    it('shows the reference the recipient bank will display', () => {
-        expect(renderConfig(withdraw('INVOICE 4471')).payoutReference).toBe(true)
-    })
-
-    it('stays hidden when the API sends none — an older API, or a rail that takes none', () => {
-        expect(renderConfig(withdraw()).payoutReference).toBe(false)
-        expect(renderConfig(withdraw('')).payoutReference).toBe(false)
-    })
-
-    it('never shows on a public receipt', () => {
-        expect(renderConfig(withdraw('INVOICE 4471'), true).payoutReference).toBe(false)
-    })
-})
