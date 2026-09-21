@@ -1643,3 +1643,20 @@ input::placeholder {
         padding: 0 !important;
     }
 }
+
+/* ── Crisp launcher ── */
+
+/*
+ * Defence in depth, not the fix. The stock Crisp bubble belongs to the
+ * marketing site; the app has its own support drawer. The marketing layout
+ * hides the bubble when it unmounts (utils/crisp-launcher) — this rule is the
+ * backstop, so a future main-window Crisp loader cannot put a bubble over an
+ * app screen either.
+ *
+ * `data-crisp-launcher` is set by SupportDrawer, which only app layouts mount.
+ * The drawer's own chatbox lives in the `/crisp-proxy` iframe — a separate
+ * document with no drawer and no marker — so this never hides it.
+ */
+html[data-crisp-launcher='hidden'] .crisp-client {
+    display: none !important;
+}

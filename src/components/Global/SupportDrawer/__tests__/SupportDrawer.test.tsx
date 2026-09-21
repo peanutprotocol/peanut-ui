@@ -728,3 +728,41 @@ describe('SupportDrawer — Android hardware back', () => {
         expect(mockSetIsSupportModalOpen).not.toHaveBeenCalled()
     })
 })
+
+// Defence in depth for the 2026-09-21 leak: the marketing Crisp bubble rode a
+// client-side navigation into the app and covered the withdraw form's last
+// field. The marketing layout's own lifecycle is the fix; this marker is the
+// backstop, and the CSS rule it drives keys off the APP so it can never reach
+// the drawer's /crisp-proxy iframe.
+describe('SupportDrawer — stock Crisp launcher marker', () => {
+    beforeEach(() => {
+        mockUseCrispUserData.mockReset().mockReturnValue({})
+        mockUseCrispTokenId.mockReset().mockReturnValue(undefined)
+        mockIsCapacitor.mockReset().mockReturnValue(false)
+        mockSetIsSupportModalOpen.mockReset()
+        resetBackHandlersForTests()
+        modalsState.isSupportModalOpen = false
+    })
+
+    it('marks the document while the app drawer is mounted, and unmarks it on unmount', () => {
+        expect(document.documentElement.dataset.crispLauncher).toBeUndefined()
+
+        const { unmount } = render(<SupportDrawer />)
+        expect(document.documentElement.dataset.crispLauncher).toBe('hidden')
+
+        unmount()
+        expect(document.documentElement.dataset.crispLauncher).toBeUndefined()
+    })
+
+    it('keeps the drawer usable — it still opens and closes', () => {
+        modalsState.isSupportModalOpen = true
+        render(<SupportDrawer />)
+
+        expect(document.querySelector('iframe[src*="crisp-proxy"]')).not.toBeNull()
+
+        act(() => {
+            dispatchBackPress()
+        })
+        expect(mockSetIsSupportModalOpen).toHaveBeenCalledWith(false)
+    })
+})
