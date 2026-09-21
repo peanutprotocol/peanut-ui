@@ -1219,7 +1219,8 @@
             "amountNoteBankConverts": "There is no {currency} estimate right now. Send the {currency} amount that equals this USD amount. Your bank sets the rate.",
             "senderBusinessOnly": "Only a business account can pay this. A transfer from a personal account is returned.",
             "senderUnknown": "This account has not confirmed it accepts payments from other people, so your transfer may be returned.",
-            "otherWays": "See other ways to pay"
+            "otherWays": "See other ways to pay",
+            "chooseCurrency": "Choose a currency"
         },
         "requestAsksFor": "{amount} {currency} requested",
         "requestAsksForDollars": "${amount} in dollars, fixed when the request was made",

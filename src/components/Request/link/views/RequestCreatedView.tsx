@@ -50,11 +50,11 @@ export function RequestCreatedView({
             : t('shareOpenRequest')
 
     return (
-        <PageStack>
+        <PageStack className="max-h-dvh overflow-hidden">
             <NavHeader hideBackBtn title={tNav('request')} />
-            <PageStack.Center className="gap-4 text-center md:my-0">
+            <PageStack.Center className="min-h-0 gap-4 overflow-y-auto text-center md:my-0">
                 <div className="flex flex-col items-center gap-4">
-                    <PeanutMascot pose="cheering" alt="" className="size-[160px]" />
+                    <PeanutMascot pose="cheering" alt="" className="size-40" />
                     <TitleBlock size="s" title={<h1>{t('created.title')}</h1>} description={t('created.description')} />
                 </div>
 

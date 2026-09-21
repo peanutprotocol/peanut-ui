@@ -207,6 +207,11 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'Request link — created',
         path: 'Request/link/views/RequestCreatedView.tsx',
     },
+    '88-f-request-bank-currency': {
+        name: 'Request link — bank currency chooser',
+        path: 'features/payments/flows/contribute-pot/components/BankTransferChooserDrawer.tsx',
+        shotClick: 'Pay by bank transfer',
+    },
     '70-d-activationctas-outbound': {
         name: 'ActivationCTAs (outbound)',
         path: 'Home/ActivationCTAs.tsx',

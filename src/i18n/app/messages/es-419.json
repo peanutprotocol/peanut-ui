@@ -1219,7 +1219,8 @@
             "amountNoteBankConverts": "Ahora no hay un estimado en {currency}. Envía el monto en {currency} que equivale a este monto en USD. Tu banco fija el tipo de cambio.",
             "senderBusinessOnly": "Solo una cuenta de empresa puede pagar esto. Una transferencia desde una cuenta personal se devuelve.",
             "senderUnknown": "Esta cuenta no confirmó que acepta pagos de otras personas, así que tu transferencia puede devolverse.",
-            "otherWays": "Ver otras formas de pagar"
+            "otherWays": "Ver otras formas de pagar",
+            "chooseCurrency": "Elige una moneda"
         },
         "requestAsksFor": "Se piden {amount} {currency}",
         "requestAsksForDollars": "${amount} en dólares, fijado al crear la solicitud",
