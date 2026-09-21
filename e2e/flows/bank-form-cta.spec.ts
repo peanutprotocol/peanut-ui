@@ -42,6 +42,45 @@ async function tapTargetAtCentre(page: Page) {
 }
 
 test.describe('bank form submit button at 375x667', () => {
+    /*
+     * The disabled state, which is what a user sees first and for longest.
+     * `scrollClearOfBottomNav` only fires once the form can be submitted, so
+     * nothing moves the button here — the page's own bottom reservation has to
+     * be enough. Held for the three corridors with the most fields; the form is
+     * left EMPTY on purpose.
+     */
+    for (const [corridor, path] of [
+        ['the euro area', '/withdraw/spain'],
+        ['the United States', '/withdraw/usa'],
+        ['Mexico', '/withdraw/mexico'],
+    ] as const) {
+        test(`${corridor}: an empty form's disabled button is reachable and clear of the nav`, async ({ page }) => {
+            await page.goto(`${path}?step=form&__fixture=withdraw-bank-form`, { waitUntil: 'domcontentloaded' })
+            await page.addStyleTag({ content: '[data-fixture-banner]{display:none!important}' })
+            const button = page.getByTestId('bank-form-cta').locator('button')
+            await expect(button).toBeVisible({ timeout: 60_000 })
+            await expect(button).toBeDisabled()
+
+            // the user's own scroll to the end of the page, and nothing else
+            await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight }))
+            await expect.poll(() => tapTargetAtCentre(page), { timeout: 10_000 }).toBe('button')
+
+            // and the last field's paste control is not covered either — it sits
+            // at the interactive edge nearest the nav
+            const covered = await page.evaluate(() => {
+                const controls = Array.from(document.querySelectorAll('form button[aria-label="Paste from clipboard"]'))
+                return controls
+                    .filter((el) => el.getBoundingClientRect().width > 0 && el.getBoundingClientRect().top > 0)
+                    .filter((el) => {
+                        const box = el.getBoundingClientRect()
+                        const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)
+                        return !(hit && el.contains(hit))
+                    }).length
+            })
+            expect(covered).toBe(0)
+        })
+    }
+
     test('is clear of the bottom nav as soon as the form can be submitted', async ({ page }) => {
         await page.goto('/withdraw/spain?step=form&__fixture=withdraw-bank-form', { waitUntil: 'domcontentloaded' })
         // the dev fixture banner is fixed over the bottom of the page; it is not part of the app
