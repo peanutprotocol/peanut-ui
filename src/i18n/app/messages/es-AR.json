@@ -124,7 +124,7 @@
             "verifyDescriptionAdvisory": "Hacé una verificación rápida con nuestro socio de pagos para mantener disponibles las transferencias bancarias."
         },
         "drawers": {
-            "shareBankDetailsDescription": "Recibí pagos en EUR, USD y más con tus propios datos bancarios"
+            "shareBankDetailsDescription": "Recibí pagos en EUR, USD y más con datos bancarios a tu nombre."
         }
     },
     "profile": {
@@ -902,7 +902,7 @@
         "mustMatchBankTransfer": "Esto debe coincidir exactamente con lo que enviás desde tu banco",
         "amountMustMatchBank": "¡El monto debe coincidir con lo que enviás desde tu banco!",
         "methods": {
-            "cryptoDescription": "Agregá desde una billetera o exchange",
+            "cryptoDescription": "Depositá desde una billetera o exchange",
             "bankTransferDescription": "Datos bancarios reutilizables para cobrar"
         },
         "networkDrawer": {
@@ -1587,7 +1587,7 @@
         },
         "countryList": {
             "noResultsDescription": "Intentá buscar con otro término.",
-            "cryptoDepositDescription": "Agregá desde una billetera o exchange",
+            "cryptoDepositDescription": "Usá un exchange o tu billetera",
             "cryptoWithdrawDescription": "Retirá a una billetera o exchange"
         },
         "userCard": {

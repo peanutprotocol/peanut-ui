@@ -72,7 +72,7 @@
         "loggingOut": "Logging out...",
         "dashboard": "Dashboard",
         "pay": "Pay",
-        "cashout": "Withdraw",
+        "cashout": "Cashout",
         "claim": "Claim",
         "peanutLogoAlt": "Peanut Logo",
         "receipt": "Receipt",
@@ -260,7 +260,7 @@
             "shareRequestLink": "Share a request link",
             "shareRequestLinkDescription": "Request an amount with a shareable link",
             "shareBankDetails": "Share bank details",
-            "shareBankDetailsDescription": "Get paid in EUR, USD and more with your own bank details"
+            "shareBankDetailsDescription": "Get paid in EUR, USD and more with bank details in your name."
         }
     },
     "profile": {
@@ -1113,7 +1113,7 @@
         "errorPage": {
             "title": "Something went wrong!",
             "description": "An error occurred while loading the payment page.",
-            "contactSupport": "Contact support"
+            "contactSupport": "Contact Support"
         },
         "headers": {
             "pay": "Pay",
@@ -1729,7 +1729,7 @@
         "chainTokenOnly": "{chain} · {tokens} only",
         "methods": {
             "crypto": "Crypto",
-            "cryptoDescription": "Add from a wallet or exchange",
+            "cryptoDescription": "Deposit from a wallet or exchange",
             "bankTransfer": "Bank transfer",
             "kycRequired": "Verification required",
             "bankTransferDescription": "Reusable bank details to get paid"
@@ -1839,15 +1839,15 @@
             "accountHolderName": "Account holder name",
             "bankName": "Bank name",
             "bankAddress": "Bank address",
-            "beneficiaryName": "Recipient name",
-            "beneficiaryAddress": "Recipient address",
+            "beneficiaryName": "Beneficiary name",
+            "beneficiaryAddress": "Beneficiary address",
             "clabe": "CLABE",
             "sortCode": "Sort code",
             "accountNumber": "Account number",
             "iban": "IBAN",
             "routingNumber": "Routing number",
             "bic": "BIC",
-            "youllReceive": "You'll receive",
+            "youllReceive": "You'll Receive",
             "doubleCheckTitle": "Double check in your bank before sending:",
             "doubleCheckAmount": "Amount: {amount} (exact)",
             "doubleCheckReference": "Reference: {reference} (included)",
@@ -1971,7 +1971,7 @@
             "accountOwnerName": "Account owner name",
             "accountOwnerNameRequired": "Account owner name is required",
             "accountOwnerNameFull": "Please enter both first and last name",
-            "email": "Email",
+            "email": "E-mail",
             "emailRequired": "Email is required",
             "clabe": "CLABE",
             "clabeRequired": "CLABE is required",
@@ -3596,9 +3596,9 @@
             "noResultsDescription": "Try searching with a different term.",
             "receiveTitle": "Receive",
             "flagAlt": "{country} flag",
-            "cryptoDepositTitle": "Crypto",
+            "cryptoDepositTitle": "Crypto deposit",
             "cryptoWithdrawTitle": "Crypto",
-            "cryptoDepositDescription": "Add from a wallet or exchange",
+            "cryptoDepositDescription": "Use an exchange or your wallet",
             "cryptoWithdrawDescription": "Withdraw to a wallet or exchange"
         },
         "savedAccounts": {

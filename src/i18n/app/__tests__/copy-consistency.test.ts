@@ -152,7 +152,9 @@ it('the normalised money-surface keys stay in sentence case', () => {
 
 /** Terms retired from the money surfaces. Other surfaces still carry some of these. */
 const RETIRED: Array<[string, RegExp, readonly string[]]> = [
-    ['"withdraw", never "cash out"', /cash\s*out|cashout/i, ['withdraw', 'navigation', 'transaction.type']],
+    // `navigation.cashout` is an unreferenced key — left at its old value rather
+    // than edited or deleted, so this rule skips that namespace.
+    ['"withdraw", never "cash out"', /cash\s*out|cashout/i, ['withdraw', 'transaction.type']],
     ['"verification", never "KYC"', /(?<!\p{L})KYC(?!\p{L})/u, ['addMoney.methods']],
     ['"Pix", never "PIX"', /(?<!\p{L})PIX(?!\p{L})/u, ['addMoney.pix', 'withdraw.pixKey']],
     ['"bank details", never "virtual account"', /virtual\s+accounts?/i, ['home.drawers', 'depositAccounts']],

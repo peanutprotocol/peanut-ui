@@ -72,7 +72,7 @@
         "loggingOut": "Saindo...",
         "dashboard": "Painel",
         "pay": "Pagar",
-        "cashout": "Sacar",
+        "cashout": "Saque",
         "claim": "Resgatar",
         "peanutLogoAlt": "Logo da Peanut",
         "receipt": "Recibo",
@@ -260,7 +260,7 @@
             "shareRequestLink": "Compartilhar um link de cobrança",
             "shareRequestLinkDescription": "Peça um valor com um link para compartilhar",
             "shareBankDetails": "Compartilhar dados bancários",
-            "shareBankDetailsDescription": "Receba pagamentos em EUR, USD e mais com seus próprios dados bancários"
+            "shareBankDetailsDescription": "Receba pagamentos em EUR, USD e mais com dados bancários no seu nome."
         }
     },
     "profile": {
@@ -1113,7 +1113,7 @@
         "errorPage": {
             "title": "Algo deu errado!",
             "description": "Ocorreu um erro ao carregar a página de pagamento.",
-            "contactSupport": "Falar com o suporte"
+            "contactSupport": "Contatar o suporte"
         },
         "headers": {
             "pay": "Pagar",
@@ -1729,7 +1729,7 @@
         "chainTokenOnly": "{chain} · somente {tokens}",
         "methods": {
             "crypto": "Cripto",
-            "cryptoDescription": "Adicione de uma carteira ou corretora",
+            "cryptoDescription": "Deposite de uma carteira ou corretora",
             "bankTransfer": "Transferência bancária",
             "kycRequired": "Precisa de verificação",
             "bankTransferDescription": "Dados bancários reutilizáveis para receber"
@@ -1839,8 +1839,8 @@
             "accountHolderName": "Nome do titular",
             "bankName": "Nome do banco",
             "bankAddress": "Endereço do banco",
-            "beneficiaryName": "Nome do destinatário",
-            "beneficiaryAddress": "Endereço do destinatário",
+            "beneficiaryName": "Nome do beneficiário",
+            "beneficiaryAddress": "Endereço do beneficiário",
             "clabe": "CLABE",
             "sortCode": "Sort Code",
             "accountNumber": "Número da conta",
@@ -3596,9 +3596,9 @@
             "noResultsDescription": "Tente buscar com outro termo.",
             "receiveTitle": "Receber",
             "flagAlt": "Bandeira de {country}",
-            "cryptoDepositTitle": "Cripto",
+            "cryptoDepositTitle": "Depósito em cripto",
             "cryptoWithdrawTitle": "Cripto",
-            "cryptoDepositDescription": "Adicione de uma carteira ou corretora",
+            "cryptoDepositDescription": "Use uma corretora ou sua carteira",
             "cryptoWithdrawDescription": "Saque para uma carteira ou corretora"
         },
         "savedAccounts": {
