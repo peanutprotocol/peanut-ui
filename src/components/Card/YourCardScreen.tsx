@@ -15,11 +15,14 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import CardFace, { type CopyableCardField } from '@/components/Card/CardFace'
 import CancelCardModal from '@/components/Card/CancelCardModal'
+import EnableCardPaymentsBanner from '@/components/Card/EnableCardPaymentsBanner'
 import LockCardModal from '@/components/Card/LockCardModal'
 import { shouldShowAutoRenewBanner, daysUntilExpiry } from '@/components/Card/cardExpiry.utils'
+import { useModalsContext } from '@/context/ModalsContext'
 import { useCardReveal } from '@/hooks/useCardReveal'
 import { usePushProvisioning } from '@/hooks/usePushProvisioning'
 import { useWalletPlatform } from '@/hooks/useWalletPlatform'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { cardBalanceDueCents } from '@/utils/balance.utils'
 import type { RainCardOverview, RainCardSummary } from '@/services/rain'
 
@@ -39,6 +42,8 @@ const COPIED_MESSAGE_KEY: Record<CopyableCardField, 'cardNumberCopied' | 'expiry
 
 const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
     const t = useTranslations('card.yourCard')
+    const tCommon = useTranslations('common')
+    const { setIsSupportModalOpen } = useModalsContext()
     const router = useRouter()
     const [autoRenewDismissed, setAutoRenewDismissed] = useState(false)
     const [action, setAction] = useState<CardAction | null>(null)
@@ -67,6 +72,9 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
     const showAutoRenew = !autoRenewDismissed && shouldShowAutoRenewBanner(card.expiryMonth, card.expiryYear)
     const daysLeft = daysUntilExpiry(card.expiryMonth, card.expiryYear)
     const balanceDueCents = cardBalanceDueCents(overview.balance?.spendingPower)
+    const collateralCents = Math.max(0, Math.floor(overview.balance?.spendingPower ?? 0))
+    // smart-account USDC only — NOT the wallet + collateral total
+    const { balance: walletBalance, formattedBalance } = useWallet()
 
     const handleCopy = useCallback(
         (_value: string, field: CopyableCardField) => {
@@ -91,6 +99,23 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
                 onCopy={handleCopy}
             />
 
+            <EnableCardPaymentsBanner />
+
+            {/* Rain pulls every card payment from the WALLET. The home balance
+                also counts card collateral, which a new card payment cannot
+                use — so the card screen states the wallet-only figure. */}
+            {walletBalance !== undefined && (
+                <Callout
+                    priority="helper"
+                    title={t('cardFundsTitle', { amount: `$${formattedBalance}` })}
+                    data-testid="card-funds"
+                >
+                    {collateralCents > 0
+                        ? t('cardFundsCollateral', { amount: `$${(collateralCents / 100).toFixed(2)}` })
+                        : t('cardFundsBody')}
+                </Callout>
+            )}
+
             {showAutoRenew && (
                 <Callout priority="attention" title={t('autoRenewTitle')} onDismiss={() => setAutoRenewDismissed(true)}>
                     {t('autoRenewBody', { days: daysLeft })}
@@ -101,6 +126,7 @@ const YourCardScreen: FC<Props> = ({ overview, card, onPrev }) => {
                 <Callout
                     priority="attention"
                     title={t('balanceDueTitle', { amount: `$${(balanceDueCents / 100).toFixed(2)}` })}
+                    ctas={[{ label: tCommon('contactSupport'), onClick: () => setIsSupportModalOpen(true) }]}
                 >
                     {t('balanceDueBody')}
                 </Callout>

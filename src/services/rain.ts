@@ -37,13 +37,22 @@ export interface RainCardBalance {
     pendingCharges: number
     postedCharges: number
     balanceDue: number
-    /**
-     * Card collateral top-up funds debited from the smart account on-chain but
-     * not yet credited to Rain collateral (the ~10–45s smart→collateral
-     * handoff). Folded into the displayed balance so it doesn't crater to 0
-     * mid-top-up. Optional for backward-compat with a pre-deploy backend.
-     */
-    inTransitToCollateralCents?: number
+}
+
+/**
+ * Real-time funding state from `GET /rain/cards/funding`. Rain pulls every
+ * card authorization from `walletAddress` through `operatorAddress`, so the
+ * card only pays while that ERC20 allowance stands.
+ */
+export interface RainCardFunding {
+    chainId: string
+    tokenAddress: string
+    /** Rain's operator contract — the `approve` spender. */
+    operatorAddress: string
+    /** The smart wallet Rain pulls from. Must be the connected account. */
+    walletAddress: string
+    /** Raw ERC20 allowance(walletAddress, operatorAddress), decimal string. */
+    allowance: string
 }
 
 export interface RainCardSummary {
@@ -92,7 +101,6 @@ export type RainCollateralKind =
     | 'FIAT_OFFRAMP'
     | 'FIAT_ONRAMP'
     | 'REQUEST_PAY'
-    | 'AUTO_REBALANCE'
     | 'CARD_SPEND'
     | 'DEPOSIT_EXTERNAL'
     | 'OTHER'
@@ -172,7 +180,6 @@ export interface RecoverFundsPreviewResponse {
     amountCents: string
     /** Wei below one cent — stays in the contract after recovery. */
     dustWei: string
-    autoBalanceEnabled: boolean
     hasRecoverableCard: boolean
 }
 
@@ -487,6 +494,15 @@ export const rainApi = {
     },
 
     /**
+     * Real-time funding config + the live operator allowance. The backend owns
+     * the chain/token/operator addresses; a 409 means the connected smart
+     * wallet is not the wallet Rain pulls from.
+     */
+    getCardFunding: async (): Promise<RainCardFunding> => {
+        return rainRequest<RainCardFunding>({ method: 'GET', path: '/rain/cards/funding', noStore: true })
+    },
+
+    /**
      * Shared session-key address the frontend needs to scope the permission
      * grant to. Backend holds the private key; frontend only needs the
      * address.
@@ -554,9 +570,8 @@ export const rainApi = {
     },
 
     /**
-     * Read-only preview of what would be recovered: on-chain USDC balance,
-     * the user's smart-wallet recipient, and the current autoBalanceEnabled
-     * flag. Backed by GET /rain/cards/recover-funds/preview — no side
+     * Read-only preview of what would be recovered: on-chain USDC balance
+     * and the user's smart-wallet recipient. Backed by GET /rain/cards/recover-funds/preview — no side
      * effects, so safe to call on page mount and on refresh.
      */
     getRecoverFundsPreview: async (): Promise<RecoverFundsPreviewResponse> => {
@@ -568,8 +583,7 @@ export const rainApi = {
     },
 
     /**
-     * Side-effectful: flips autoBalanceEnabled to false, reads on-chain
-     * balance, fetches Rain's executor signature for the FULL cent-aligned
+     * Side-effectful: reads on-chain balance, fetches Rain's executor signature for the FULL cent-aligned
      * amount payable to the user's smart wallet, creates a TransactionIntent.
      * Returns the prepared payload the caller signs with their kernel and
      * submits to /rain/cards/withdraw/submit (unchanged).
@@ -637,7 +651,6 @@ export const rainApi = {
     applyForCard: async (
         opts: {
             termsAccepted?: boolean
-            serializedApproval?: string
             confirmedResidenceCountry?: string
             /** Consent-ledger echo: the legal documents the agreement screen
              *  actually displayed (slug + version + hash), so the backend
@@ -645,12 +658,7 @@ export const rainApi = {
             acceptedDocuments?: AcceptedLegalDocument[]
         } = {}
     ): Promise<ApplyForCardResponse> => {
-        // `serializedApproval` is consumed only by the re-issue branch on the
-        // backend (where a RainCard row is created synchronously). First-time
-        // applicants don't have a collateral proxy yet, so the frontend omits
-        // the field entirely in that case.
         const body: Record<string, unknown> = { termsAccepted: opts.termsAccepted === true }
-        if (opts.serializedApproval) body.serializedApproval = opts.serializedApproval
         if (opts.confirmedResidenceCountry) body.confirmedResidenceCountry = opts.confirmedResidenceCountry
         if (opts.termsAccepted === true && opts.acceptedDocuments?.length) {
             body.acceptedDocuments = opts.acceptedDocuments

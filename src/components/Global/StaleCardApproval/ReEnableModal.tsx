@@ -20,15 +20,15 @@ type GrantErrorKind = 'user-cancelled' | 'unexpected'
  * without threading state through each flow's catch block.
  *
  * The CTA reuses the existing session-key grant (`useGrantSessionKey().grant()`
- * — the same flow EnableAutoBalanceBanner drives) rather than building a new
+ * — the same lazy grant spendPreflight asks for) rather than building a new
  * one; a fresh grant re-binds a sponsorable approval and unblocks withdrawals.
  * Note: these users have `hasWithdrawApproval === true` (the approval exists,
- * it's just stale), so EnableAutoBalanceBanner never fires for them — this
- * modal is their only prompt.
+ * it's just stale), so the lazy grant never fires for them — this modal is
+ * their only prompt.
  *
- * Unlike EnableAutoBalanceBanner this is NOT a hard block: the user can dismiss
- * and re-enable later. On a successful grant we show a short confirmation so
- * they know to retry the withdrawal.
+ * This is NOT a hard block: the user can dismiss and re-enable later. On a
+ * successful grant we show a short confirmation so they know to retry the
+ * withdrawal.
  */
 export default function StaleCardApprovalReEnableModal() {
     const t = useTranslations('global')

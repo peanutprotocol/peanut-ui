@@ -840,11 +840,13 @@ export interface paths {
                         amount?: string;
                         destination: {
                             achReference?: string;
+                            coBankTransferReference?: string;
                             currency: "usd" | "eur" | "mxn" | "gbp" | "cop";
                             externalAccountId: string;
                             fasterPaymentsReference?: string;
                             paymentRail: "ach" | "ach_push" | "ach_same_day" | "wire" | "sepa" | "swift" | "spei" | "faster_payments" | "co_bank_transfer";
                             sepaReference?: string;
+                            speiReference?: string;
                             wireMessage?: string;
                         };
                         developerFee?: string;
@@ -947,11 +949,13 @@ export interface paths {
                         beneficiaryName?: string;
                         destination: {
                             achReference?: string;
+                            coBankTransferReference?: string;
                             currency: "usd" | "eur" | "mxn" | "gbp" | "cop";
                             externalAccountId: string;
                             fasterPaymentsReference?: string;
                             paymentRail: "ach" | "ach_push" | "ach_same_day" | "wire" | "sepa" | "swift" | "spei" | "faster_payments" | "co_bank_transfer";
                             sepaReference?: string;
+                            speiReference?: string;
                             wireMessage?: string;
                         };
                         provider?: string;
@@ -6768,7 +6772,6 @@ export interface paths {
                             balance: null | {
                                 balanceDue: number;
                                 creditLimit: number;
-                                inTransitToCollateralCents: number;
                                 pendingCharges: number;
                                 postedCharges: number;
                                 spendingPower: number;
@@ -6885,74 +6888,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/rain/cards/auto-balance/approve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        cardLimit?: number;
-                        serializedApproval: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            ok: boolean;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Default Response */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            code?: string;
-                            error: string;
-                        };
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/rain/cards/balance": {
         parameters: {
             query?: never;
@@ -6998,6 +6933,71 @@ export interface paths {
                 };
                 /** @description Default Response */
                 500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rain/cards/funding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            allowance: string;
+                            chainId: string;
+                            operatorAddress: string;
+                            tokenAddress: string;
+                            walletAddress: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -7198,7 +7198,6 @@ export interface paths {
                         "application/json": {
                             amountCents: string;
                             amountWei: string;
-                            autoBalanceEnabled: boolean;
                             collateralProxy: string;
                             dustWei: string;
                             hasRecoverableCard: boolean;
@@ -7876,7 +7875,6 @@ export interface paths {
             requestBody?: {
                 content: {
                     "application/json": {
-                        autoBalanceEnabled?: boolean;
                         cardLimit?: number;
                         limits?: {
                             amount: number;
@@ -12170,6 +12168,78 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/me/verified-address": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            city: string;
+                            countryCode: string | null;
+                            postalCode: string;
+                            streetLine1: string;
+                            subdivisionCode: string | null;
+                        };
+                    };
+                };
+                /** @description Nothing to prefill. */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Default Response */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;

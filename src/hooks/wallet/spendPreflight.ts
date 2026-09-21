@@ -241,8 +241,7 @@ export async function runCollateralSpendPreflight<TClient extends { account?: un
      * (`verifyRainWithdrawal` 409s without it); the mixed path broadcasts the
      * user's own root-signed UserOp and never touches the stored approval —
      * gating it here charged first-time mixed spenders a third passkey tap
-     * for nothing. Auto-balance activation (the grant's side effect) still
-     * happens on the user's first collateral-only spend or card activation.
+     * for nothing.
      */
     if (strategy === 'collateral-only') {
         const card = findActiveCard(overview)

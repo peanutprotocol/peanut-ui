@@ -14,10 +14,20 @@ async function shot(page: Page, name: string) {
     await page.screenshot({
         path: `${process.env.CARD_SHOTS_OUT || '/tmp/card-public-shots'}/${name}.png`,
         animations: 'disabled',
+        // CSS pixels, not device pixels: the Pixel 7 DPR turns 390x844 into
+        // 1024x2216, past the 2000px cap on images an agent can read back.
+        scale: 'css',
     })
 }
 
 test.use({ storageState: { cookies: [], origins: [] } })
+
+test.beforeEach(async ({ page }) => {
+    // Fixture controls must not cover product controls or visual evidence.
+    await page.addInitScript(() => {
+        ;(window as Window & { __screenCapture?: boolean }).__screenCapture = true
+    })
+})
 
 test('an ordinary account reaches the application and card terms without a queue or deposit', async ({ page }) => {
     await page.goto('/card?__fixture=card-application')
@@ -50,7 +60,51 @@ test('an existing holder can manage their card even with a prohibited residence'
     await page.goto('/card?__fixture=card-holder')
     await expect(page.getByText('Card management', { exact: true })).toBeVisible()
     await expect(page.getByText("Cards aren't available in your region yet")).toHaveCount(0)
+    // card payments already enabled: no funding callout
+    await expect(page.getByTestId('enable-card-payments')).toHaveCount(0)
     await shot(page, 'holder')
+})
+
+test('an existing holder without the Rain approval is asked to enable card payments', async ({ page }) => {
+    await page.goto('/card?__fixture=card-funding-needed')
+    await expect(page.getByTestId('enable-card-payments')).toBeVisible()
+    await expect(page.getByText('Card management', { exact: true })).toBeVisible()
+    await shot(page, 'funding-needed')
+})
+
+test('an unreadable funding status shows a retry and keeps card management', async ({ page }) => {
+    await page.goto('/card?__fixture=card-funding-error')
+    await expect(page.getByTestId('card-funding-error')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Retry', exact: true })).toBeVisible()
+    await expect(page.getByText('Card management', { exact: true })).toBeVisible()
+    await shot(page, 'funding-error')
+})
+
+test('re-issuing a card explains the Rain wallet permission on the terms step', async ({ page }) => {
+    await page.goto('/card?__fixture=card-reissue')
+    await page.getByRole('button', { name: 'Get your card', exact: true }).click()
+    await expect(page.getByText('Card Terms', { exact: true })).toBeVisible()
+    const permission = page.getByText(/Approve Rain, our card issuer, to take USDC from your wallet/)
+    await expect(permission).toBeVisible()
+    await permission.scrollIntoViewIfNeeded()
+    await shot(page, 'reissue-terms')
+})
+
+test('cancelling the last card offers to remove the Rain permission afterwards', async ({ page }) => {
+    await page.goto('/card?__fixture=card-funding-enabled')
+    await page.getByRole('button', { name: 'Cancel card', exact: true }).click()
+    // The slide handle takes arrow keys (10% of the travel per press), so the
+    // confirm is deterministic. Keys go to the page, not to a locator: the
+    // handle disables and then unmounts as the cancel runs, and a locator
+    // action would wait on it.
+    const handle = page.getByRole('button', { name: 'Slide to Cancel', exact: true })
+    await expect(handle).toBeVisible()
+    await handle.focus()
+    for (let press = 0; press < 10; press++) await page.keyboard.press('ArrowRight')
+    const revokeTitle = page.getByText("Remove Rain's permission", { exact: true })
+    await expect(revokeTitle).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Not now', exact: true })).toBeVisible()
+    await shot(page, 'cancel-revoke')
 })
 
 // Guests have no fixture session; stub the API at the network layer so the

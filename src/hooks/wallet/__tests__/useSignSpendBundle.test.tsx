@@ -134,7 +134,7 @@ describe('useSignSpendBundle — forceStrategy: collateral-only', () => {
                 requiredUsdcAmount: 150_000_000n, // $150
                 recipient: RECIPIENT,
                 rainSpendingPower: 200_000_000n, // $200 — sufficient
-                kind: 'AUTO_REBALANCE',
+                kind: 'CRYPTO_WITHDRAW',
                 forceStrategy: 'collateral-only',
             })
         })
@@ -166,7 +166,7 @@ describe('useSignSpendBundle — forceStrategy: collateral-only', () => {
                     requiredUsdcAmount: 200_000_000n,
                     recipient: RECIPIENT,
                     rainSpendingPower: 150_000_000n, // short
-                    kind: 'AUTO_REBALANCE',
+                    kind: 'CRYPTO_WITHDRAW',
                     forceStrategy: 'collateral-only',
                 })
             ).rejects.toBeInstanceOf(InsufficientSpendableError)
@@ -194,7 +194,7 @@ describe('useSignSpendBundle — forceStrategy: collateral-only', () => {
                     requiredUsdcAmount: 150_000_000n,
                     recipient: RECIPIENT,
                     rainSpendingPower: 200_000_000n,
-                    kind: 'AUTO_REBALANCE',
+                    kind: 'CRYPTO_WITHDRAW',
                     forceStrategy: 'collateral-only',
                 })
             ).rejects.toThrow('ceremony dismissed')

@@ -2,17 +2,17 @@
 
 import { useCallback, useState } from 'react'
 import type { Address, Hex, LocalAccount } from 'viem'
-import { pad, parseAbi, toFunctionSelector } from 'viem'
+import { toFunctionSelector } from 'viem'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { findActiveCard } from '@/components/Card/cardState.utils'
 import { useRainCardOverview, RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
 import { useQueryClient } from '@tanstack/react-query'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
+import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { rainCoordinatorAbi } from '@/constants/rain.consts'
 import { toPermissionValidator } from '@zerodev/permissions'
-import { toCallPolicy, CallPolicyVersion, ParamCondition } from '@zerodev/permissions/policies'
+import { toCallPolicy, CallPolicyVersion } from '@zerodev/permissions/policies'
 import { toECDSASigner } from '@zerodev/permissions/signers'
 import { accountMetadata, createKernelAccount, getPluginsEnableTypedData, KernelV3AccountAbi } from '@zerodev/sdk'
 import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
@@ -40,18 +40,17 @@ type KernelAccountInternals = {
 /**
  * One-time session-key grant for Rain card operations.
  *
- * Installs two `CallPolicy` entries on the user's kernel in a single
+ * Installs one `CallPolicy` entry on the user's kernel in a single
  * passkey tap:
- *   - `USDC.transfer(collateralProxy, *)` — auto-balancer deposits
  *   - `coordinator.withdrawAsset(coordinator, *)` — user-initiated withdrawals
  *
- * After the grant, the backend can submit UserOps for either operation
+ * After the grant, the backend can submit withdrawal UserOps
  * using the shared session key without another passkey tap — per-spend
  * authorization still comes from the user via the admin EIP-712 signature
  * (which the coordinator verifies against the kernel via ERC-1271).
  *
- * Consumers: dev grant page, production activation UI, and `useSpendBundle`
- * for the lazy "first collateral spend prompts for grant" flow.
+ * Consumers: dev grant page, the stale-approval re-enable modal, and
+ * `spendPreflight` for the lazy "first collateral spend prompts for grant" flow.
  */
 
 /**
@@ -90,10 +89,6 @@ export interface GrantSessionKeyResult {
      *  an error state instead of throwing) — consumers must NOT read the
      *  still-stale `hasWithdrawApproval` as a lockout signal in that case. */
     grant: () => Promise<{ ok: true; overviewFresh: boolean } | { ok: false; error: GrantSessionKeyError }>
-    /** Passkey tap only — returns the serialized approval string without
-     *  submitting it. Use when the card doesn't exist yet (issuance) and
-     *  another endpoint stores the string (e.g. `POST /rain/cards`). */
-    serializeGrant: () => Promise<{ ok: true; serialized: string } | { ok: false; error: GrantSessionKeyError }>
     isGranting: boolean
     lastError: GrantSessionKeyError | null
 }
@@ -128,30 +123,14 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
             return { ok: false, error: { kind: 'session-key-unavailable', message: (e as Error).message } }
         }
 
-        // Single CallPolicy with BOTH allowed calls. Multiple policies in
-        // `toPermissionValidator` are AND'd (a UserOp must satisfy every
-        // policy) — putting both permissions inside ONE call policy OR's
-        // them, so either transfer OR withdrawAsset is allowed.
-        //
-        // - USDC.transfer(collateralProxy, *) — auto-balancer deposits.
-        //   `params` is bytes32[] even for a single EQUAL rule; pad address to 32 bytes.
-        // - coordinator.withdrawAsset(*) — user-initiated withdrawals.
-        //   No param rules: the per-spend admin EIP-712 signature the user
-        //   produces via passkey gates recipient/amount on every call.
+        // coordinator.withdrawAsset(*) — user-initiated withdrawals. No param
+        // rules: the per-spend admin EIP-712 signature the user produces via
+        // passkey gates recipient/amount on every call. The session key can
+        // move no funds on its own — card payments are funded by the user's
+        // own operator approval (useRainFunding), not by this grant.
         const rainCallPolicy = await toCallPolicy({
             policyVersion: CallPolicyVersion.V0_0_4,
             permissions: [
-                {
-                    target: PEANUT_WALLET_TOKEN as Address,
-                    selector: toFunctionSelector(parseAbi(['function transfer(address,uint256) returns (bool)'])[0]),
-                    rules: [
-                        {
-                            condition: ParamCondition.EQUAL,
-                            offset: 0,
-                            params: [pad(collateralProxy, { size: 32 })],
-                        },
-                    ],
-                },
                 {
                     target: coordinatorAddress,
                     selector: toFunctionSelector(rainCoordinatorAbi[0]),
@@ -350,15 +329,6 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
         []
     )
 
-    const serializeGrant = useCallback<GrantSessionKeyResult['serializeGrant']>(async () => {
-        const result = await wrap(async () => {
-            const r = await runSerialize()
-            return r.ok ? { ok: true, value: r.serialized } : r
-        })
-        if (result.ok) return { ok: true, serialized: result.value as string }
-        return result
-    }, [wrap, runSerialize])
-
     const grant = useCallback<GrantSessionKeyResult['grant']>(async () => {
         const result = await wrap(async () => {
             const card = findActiveCard(overview)
@@ -385,5 +355,5 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
         return result
     }, [wrap, runSerialize, overview, refetch, queryClient])
 
-    return { grant, serializeGrant, isGranting, lastError }
+    return { grant, isGranting, lastError }
 }

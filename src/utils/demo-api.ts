@@ -652,7 +652,6 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             amountWei: '0',
             amountCents: '0',
             dustWei: '0',
-            autoBalanceEnabled: false,
             hasRecoverableCard: false,
         }),
     },
